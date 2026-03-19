@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { BookOpen, User, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { signInWithPassword, signUp, UserRole } from '../services/AuthService';
 
 interface LoginProps {
   onLogin: (role: 'district_admin' | 'teacher' | 'student' | 'parent') => void;
@@ -10,15 +11,54 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      onLogin(role);
-    }, 1000);
+    setError(null);
+
+    try {
+      if (isSignUp) {
+        // Sign up new user
+        const result = await signUp(email, password, role as UserRole);
+        if (!result.success) {
+          setError(result.error || 'Sign up failed');
+          setIsLoading(false);
+          return;
+        }
+        // After sign up, try to sign in
+        const loginResult = await signInWithPassword(email, password);
+        if (!loginResult.success) {
+          setError('Sign up successful but auto-login failed. Please try logging in.');
+          setIsLoading(false);
+          return;
+        }
+        onLogin(role);
+      } else {
+        // Sign in with Supabase Auth
+        const result = await signInWithPassword(email, password);
+        if (!result.success) {
+          setError(result.error || 'Invalid email or password');
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if user's role matches the selected portal
+        const userRole = result.user?.role;
+        if (userRole && userRole !== role && role !== 'district_admin') {
+          setError(`Your account is registered as a ${userRole}. Please use the ${userRole} portal.`);
+          setIsLoading(false);
+          return;
+        }
+
+        onLogin(role);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -47,8 +87,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 key={r}
                 onClick={() => setRole(r)}
                 className={`flex-1 py-2 text-sm font-medium rounded-md capitalize transition-colors ${role === r
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
                   }`}
               >
                 {r}
@@ -115,13 +155,30 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-md">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Sign in'}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : isSignUp ? 'Sign up' : 'Sign in'}
+              </button>
+            </div>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+                className="text-sm text-indigo-600 hover:text-indigo-500"
+              >
+                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </button>
             </div>
           </form>
