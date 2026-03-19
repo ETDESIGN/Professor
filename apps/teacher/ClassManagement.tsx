@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import {
    Search, Grid, List, Printer, Upload, MoreHorizontal,
    User, CheckCircle, AlertCircle, X, ExternalLink, Mail, Trash2,
-   Copy, Download
+   Copy, Download, Plus, Users, BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Engine } from '../../services/SupabaseService';
+import { getTeacherClasses, createClass, getTeacherStudents } from '../../services/DataService';
+import { useAppStore } from '../../store/useAppStore';
 import StudentPassports from './StudentPassports';
 
 const ClassManagement: React.FC = () => {
@@ -15,17 +17,52 @@ const ClassManagement: React.FC = () => {
    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
    const [showPassports, setShowPassports] = useState(false);
    const [students, setStudents] = useState<any[]>([]);
+   const [classes, setClasses] = useState<any[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [showCreateClass, setShowCreateClass] = useState(false);
+   const [newClassName, setNewClassName] = useState('');
+   const [newClassSubject, setNewClassSubject] = useState('');
+   const [newClassCode, setNewClassCode] = useState('');
+   const { userProfile } = useAppStore();
 
    useEffect(() => {
-      loadStudents();
-   }, []);
+      loadData();
+   }, [userProfile]);
 
-   const loadStudents = async () => {
+   const loadData = async () => {
       setIsLoading(true);
-      const data = await Engine.fetchStudents();
-      setStudents(data);
+      // Load classes for this teacher
+      if (userProfile?.id) {
+         const teacherClasses = await getTeacherClasses(userProfile.id);
+         setClasses(teacherClasses);
+         // Load students from these classes
+         const classStudents = await getTeacherStudents(userProfile.id);
+         setStudents(classStudents);
+      }
       setIsLoading(false);
+   };
+
+   const handleCreateClass = async () => {
+      if (!newClassName.trim() || !userProfile?.id) return;
+
+      try {
+         const newClass = await createClass(userProfile.id, {
+            name: newClassName,
+            subject: newClassSubject,
+            is_active: true
+         });
+         setClasses([...classes, newClass]);
+         setNewClassName('');
+         setNewClassSubject('');
+         setNewClassCode(newClass.code || '');
+         setShowCreateClass(true); // Show the code
+      } catch (error) {
+         console.error('Error creating class:', error);
+      }
+   };
+
+   const copyClassCode = (code: string) => {
+      navigator.clipboard.writeText(code);
    };
 
    if (showPassports) {
