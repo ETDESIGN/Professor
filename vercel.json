@@ -1,0 +1,25 @@
+{
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/teacher(.*)",
+            "destination": "/teacher.html"
+        },
+        {
+            "source": "/student(.*)",
+            "destination": "/student.html"
+        },
+        {
+            "source": "/parent(.*)",
+            "destination": "/parent.html"
+        },
+        {
+            "source": "/admin(.*)",
+            "destination": "/admin.html"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "professor 0.1",
+  "description": "A clean, modern React application scaffold initialized with TypeScript and Tailwind CSS, ready for feature implementation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
