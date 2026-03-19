@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { SessionProvider } from './store/SessionContext';
 import { Toaster } from 'sonner';
@@ -17,16 +17,31 @@ import TeacherOnboarding from './apps/teacher/TeacherOnboarding';
 import StudentOnboarding from './apps/student/StudentOnboarding';
 import ParentOnboarding from './apps/parent/ParentOnboarding';
 import { APP_NAME } from './constants';
+import { useAppStore } from './store/useAppStore';
+import { getCurrentUser } from './services/AuthService';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setUserProfile, userProfile } = useAppStore();
+
+  // Check for existing session on load
+  useEffect(() => {
+    const checkSession = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        setUserProfile(user);
+      }
+    };
+    checkSession();
+  }, [setUserProfile]);
 
   const handleLogin = (role: 'district_admin' | 'teacher' | 'student' | 'parent') => {
+    // The actual user data is set in Login.tsx after successful auth
     if (role === 'district_admin') navigate('/admin');
-    if (role === 'teacher') navigate('/onboarding/teacher');
-    if (role === 'student') navigate('/onboarding/student');
-    if (role === 'parent') navigate('/onboarding/parent');
+    if (role === 'teacher') navigate('/teacher');
+    if (role === 'student') navigate('/student');
+    if (role === 'parent') navigate('/parent');
   };
 
   const isHubOrLogin = location.pathname === '/' || location.pathname === '/login';

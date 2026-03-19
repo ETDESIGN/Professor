@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { signInWithPassword, signUp, UserRole } from '../services/AuthService';
+import { signInWithPassword, signUp, UserRole, AuthUser } from '../services/AuthService';
+import { useAppStore } from '../store/useAppStore';
 
 interface LoginProps {
   onLogin: (role: 'district_admin' | 'teacher' | 'student' | 'parent') => void;
@@ -13,6 +14,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const { setUserProfile } = useAppStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +37,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setIsLoading(false);
           return;
         }
+        if (loginResult.user) {
+          setUserProfile(loginResult.user);
+        }
         onLogin(role);
       } else {
         // Sign in with Supabase Auth
@@ -51,6 +56,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setError(`Your account is registered as a ${userRole}. Please use the ${userRole} portal.`);
           setIsLoading(false);
           return;
+        }
+
+        // Store user in global state
+        if (result.user) {
+          setUserProfile(result.user);
         }
 
         onLogin(role);
