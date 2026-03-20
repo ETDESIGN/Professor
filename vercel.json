@@ -1,24 +1,25 @@
 {
     "framework": "vite",
+    "cleanUrls": true,
     "rewrites": [
         {
-            "source": "/teacher(.*)",
+            "source": "/teacher/:path*",
             "destination": "/teacher.html"
         },
         {
-            "source": "/student(.*)",
+            "source": "/student/:path*",
             "destination": "/student.html"
         },
         {
-            "source": "/parent(.*)",
+            "source": "/parent/:path*",
             "destination": "/parent.html"
         },
         {
-            "source": "/admin(.*)",
+            "source": "/admin/:path*",
             "destination": "/admin.html"
         },
         {
-            "source": "/(.*)",
+            "source": "/:path*",
             "destination": "/index.html"
         }
     ]

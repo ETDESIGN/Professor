@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import './src/index.css';
 import { SessionProvider } from './store/SessionContext';
 import { Toaster } from 'sonner';
 import TeacherDashboard from './apps/teacher/TeacherDashboard';
