@@ -52,7 +52,7 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
     const { data, error } = await supabase
         .from('units')
         .select('*')
-        .order('last_updated', { ascending: false });
+        .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -174,7 +174,7 @@ const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
     const { data: allUnits } = await supabase
         .from('units')
         .select('id, status')
-        .order('last_updated', { ascending: true });
+        .order('created_at', { ascending: true });
 
     if (allUnits) {
         const idx = allUnits.findIndex(u => u.id === currentId);
