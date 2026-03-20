@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MOCK_LESSON_FLOW, MOCK_STUDENTS } from './mockData';
+import { MOCK_LESSON_FLOW } from './mockData';
 import { LessonUnit } from '../services/SupabaseService';
 
 interface AppState {
@@ -43,7 +43,7 @@ export const useAppStore = create<AppState>()(
           scannedAssets: []
         }
       ],
-      students: MOCK_STUDENTS,
+      students: [],
       userProfile: null,
       setUnits: (units) => set({ units }),
       addUnit: (unit) => set((state) => ({ units: [...state.units, unit] })),

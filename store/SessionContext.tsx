@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { MOCK_LESSON_FLOW, MOCK_STUDENTS } from './mockData';
+import { MOCK_LESSON_FLOW } from './mockData';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
 
@@ -84,7 +84,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     currentStepIndex: 0,
     activeSlideData: MOCK_LESSON_FLOW[0],
     activeUnit: null,
-    students: MOCK_STUDENTS,
+    students: [],
     pointsLog: [],
     selectionHistory: [],
     selectionMode: 'FAIR',

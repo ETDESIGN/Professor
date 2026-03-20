@@ -19,15 +19,6 @@ export const MOCK_USERS = [
   { id: 'u2', role: 'teacher', name: 'Mrs. Krabappel', email: 'edna@springfield.edu', schoolId: 'sch1' }
 ];
 
-export const MOCK_STUDENTS = [
-  { id: 's1', name: 'Leo', avatar: '🦁', points: 120, level: 5, team: 'red', schoolId: 'sch1', classId: 'c1' },
-  { id: 's2', name: 'Sarah', avatar: '🦄', points: 145, level: 6, team: 'blue', schoolId: 'sch1', classId: 'c1' },
-  { id: 's3', name: 'Mike', avatar: '🤖', points: 90, level: 4, team: 'red', schoolId: 'sch1', classId: 'c1' },
-  { id: 's4', name: 'Emma', avatar: '🦊', points: 110, level: 5, team: 'blue', schoolId: 'sch1', classId: 'c1' },
-  { id: 's5', name: 'Jay', avatar: '🐼', points: 130, level: 6, team: 'red', schoolId: 'sch1', classId: 'c1' },
-  { id: 's6', name: 'Zoe', avatar: '🐨', points: 125, level: 5, team: 'blue', schoolId: 'sch1', classId: 'c1' },
-];
-
 export const MOCK_UNITS = [
   { id: 'u1', title: 'Unit 1: Jungle Safari', status: 'Active', lessons: 4, level: 'Beginner' },
   { id: 'u2', title: 'Unit 2: My Family', status: 'Draft', lessons: 3, level: 'Beginner' },
