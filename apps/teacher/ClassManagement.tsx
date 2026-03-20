@@ -42,6 +42,9 @@ const ClassManagement: React.FC = () => {
       setIsLoading(false);
    };
 
+   const [showCodeModal, setShowCodeModal] = useState(false);
+   const [createdClassCode, setCreatedClassCode] = useState('');
+
    const handleCreateClass = async () => {
       if (!newClassName.trim() || !userProfile?.id) return;
 
@@ -54,8 +57,9 @@ const ClassManagement: React.FC = () => {
          setClasses([...classes, newClass]);
          setNewClassName('');
          setNewClassSubject('');
-         setNewClassCode(newClass.code || '');
-         setShowCreateClass(true); // Show the code
+         setCreatedClassCode(newClass.code || '');
+         setShowCreateClass(false); // Close the create form
+         setShowCodeModal(true); // Show the code
       } catch (error) {
          console.error('Error creating class:', error);
       }
@@ -110,6 +114,12 @@ const ClassManagement: React.FC = () => {
                   <div className="flex gap-3">
                      <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white text-slate-600 rounded-lg hover:bg-slate-50 font-medium shadow-sm">
                         <Upload size={18} /> Import CSV
+                     </button>
+                     <button
+                        onClick={() => setShowCreateClass(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-duo-blue text-white rounded-lg hover:bg-blue-600 font-bold shadow-md shadow-blue-200"
+                     >
+                        <Plus size={18} /> Create Class
                      </button>
                      <button
                         onClick={handleAddStudent}
@@ -338,6 +348,105 @@ const ClassManagement: React.FC = () => {
                </div>
             </div>
          )}
+
+         {/* Create Class Modal */}
+         <AnimatePresence>
+            {showCreateClass && (
+               <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                  onClick={() => setShowCreateClass(false)}
+               >
+                  <motion.div
+                     initial={{ scale: 0.9, opacity: 0 }}
+                     animate={{ scale: 1, opacity: 1 }}
+                     exit={{ scale: 0.9, opacity: 0 }}
+                     className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
+                     onClick={e => e.stopPropagation()}
+                  >
+                     <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-slate-800">Create New Class</h2>
+                        <button onClick={() => setShowCreateClass(false)} className="text-slate-400 hover:text-slate-600">
+                           <X size={24} />
+                        </button>
+                     </div>
+
+                     <div className="space-y-4">
+                        <div>
+                           <label className="block text-sm font-bold text-slate-600 mb-1">Class Name</label>
+                           <input
+                              type="text"
+                              value={newClassName}
+                              onChange={e => setNewClassName(e.target.value)}
+                              placeholder="e.g., Grade 3 English"
+                              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-duo-blue"
+                           />
+                        </div>
+                        <div>
+                           <label className="block text-sm font-bold text-slate-600 mb-1">Subject (Optional)</label>
+                           <input
+                              type="text"
+                              value={newClassSubject}
+                              onChange={e => setNewClassSubject(e.target.value)}
+                              placeholder="e.g., English, Math, Science"
+                              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-duo-blue"
+                           />
+                        </div>
+                        <button
+                           onClick={handleCreateClass}
+                           disabled={!newClassName.trim()}
+                           className="w-full py-3 bg-duo-blue text-white rounded-lg font-bold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                           Create Class
+                        </button>
+                     </div>
+                  </motion.div>
+               </motion.div>
+            )}
+         </AnimatePresence>
+
+         {/* Success Modal with Class Code */}
+         <AnimatePresence>
+            {showCodeModal && (
+               <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                  onClick={() => setShowCodeModal(false)}
+               >
+                  <motion.div
+                     initial={{ scale: 0.9, opacity: 0 }}
+                     animate={{ scale: 1, opacity: 1 }}
+                     exit={{ scale: 0.9, opacity: 0 }}
+                     className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl text-center"
+                     onClick={e => e.stopPropagation()}
+                  >
+                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle size={32} className="text-green-600" />
+                     </div>
+                     <h2 className="text-xl font-bold text-slate-800 mb-2">Class Created!</h2>
+                     <p className="text-slate-500 mb-4">Share this code with your students to join the class:</p>
+
+                     <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-4 mb-4">
+                        <div className="text-4xl font-mono font-bold text-duo-blue tracking-wider">{createdClassCode}</div>
+                     </div>
+
+                     <button
+                        onClick={() => {
+                           navigator.clipboard.writeText(createdClassCode);
+                           setShowCodeModal(false);
+                        }}
+                        className="w-full py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 transition-colors flex items-center justify-center gap-2"
+                     >
+                        <Copy size={18} /> Copy Code
+                     </button>
+                  </motion.div>
+               </motion.div>
+            )}
+         </AnimatePresence>
       </div>
    );
 };

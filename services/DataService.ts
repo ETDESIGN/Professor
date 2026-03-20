@@ -223,3 +223,45 @@ export async function enrollStudent(
         throw error;
     }
 }
+
+/**
+ * Find a class by its enrollment code
+ */
+export async function findClassByCode(code: string): Promise<ClassData | null> {
+    const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+    if (error) {
+        if (error.code === 'PGRST116') {
+            // No rows returned - class not found
+            return null;
+        }
+        console.error('Error finding class:', error);
+        throw error;
+    }
+
+    return data;
+}
+
+/**
+ * Get all classes a student is enrolled in
+ */
+export async function getStudentClasses(studentId: string): Promise<ClassData[]> {
+    const { data, error } = await supabase
+        .from('class_enrollments')
+        .select(`
+            class:classes (*)
+        `)
+        .eq('student_id', studentId);
+
+    if (error) {
+        console.error('Error fetching student classes:', error);
+        throw error;
+    }
+
+    return data?.map((enrollment: any) => enrollment.class).filter(Boolean) || [];
+}

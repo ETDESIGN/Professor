@@ -1,4 +1,14 @@
 
+/**
+ * @deprecated These mock data constants are for development only.
+ * Please use DataService methods to fetch real data from Supabase:
+ * - getTeacherClasses(teacherId)
+ * - getClassStudents(classId)
+ * - getTeacherStudents(teacherId)
+ * - findClassByCode(code)
+ * - getStudentClasses(studentId)
+ */
+
 export const MOCK_SCHOOLS = [
   { id: 'sch1', name: 'Springfield Elementary', logo: '🏫', ownerId: 'u1' },
   { id: 'sch2', name: 'Global Online Academy', logo: '🌍', ownerId: 'u2' }

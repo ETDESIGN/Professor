@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Trophy, BookOpen, User, ShoppingBag } from 'lucide-react';
+import { Home, Trophy, BookOpen, User, ShoppingBag, Users, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,7 +22,9 @@ import PhonicsPhlyer from './PhonicsPhlyer';
 import SpacedRepetition from './SpacedRepetition';
 import LessonSession, { ActivityType } from './LessonSession';
 import { Engine } from '../../services/SupabaseService';
+import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
+import { findClassByCode, enrollStudent, getStudentClasses, ClassData } from '../../services/DataService';
 
 interface StudentAppProps {
   onSignOut?: () => void;
@@ -92,11 +94,34 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     }
   }, [state.status, location.pathname, navigate]);
 
+  // Fetch enrolled classes on mount
+  useEffect(() => {
+    const fetchEnrolledClasses = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const classes = await getStudentClasses(user.id);
+          setEnrolledClasses(classes);
+        }
+      } catch (error) {
+        console.error('Error fetching enrolled classes:', error);
+      }
+    };
+    fetchEnrolledClasses();
+  }, []);
+
   // Local state for avatar customization
   const [avatarConfig, setAvatarConfig] = useState<any>(null);
 
   // Temp storage for lesson results to pass to the Complete screen
   const [sessionResults, setSessionResults] = useState({ xp: 0, accuracy: 0, time: '0:00' });
+
+  // Class enrollment state
+  const [showJoinClassModal, setShowJoinClassModal] = useState(false);
+  const [classCodeInput, setClassCodeInput] = useState('');
+  const [enrolledClasses, setEnrolledClasses] = useState<ClassData[]>([]);
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
   // Define the playlist for the main lesson
   const lessonPlaylist: { type: ActivityType, id: string, data?: any }[] = [
@@ -226,7 +251,14 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
             </div>
             <span className="font-bold text-slate-700">English</span>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={() => setShowJoinClassModal(true)}
+              className="flex items-center gap-1 text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Users size={16} />
+              <span className="text-sm">Join Class</span>
+            </button>
             <div className="flex items-center gap-1 text-orange-500 font-bold bg-orange-50 px-2 py-1 rounded-lg">
               <span className="text-lg">🔥</span> {userStats.streak}
             </div>
@@ -319,6 +351,112 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
           <span className="text-[10px] font-bold mt-1 uppercase">Profile</span>
         </button>
       </nav>
+
+      {/* Join Class Modal */}
+      <AnimatePresence>
+        {showJoinClassModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowJoinClassModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Join a Class</h2>
+                <button
+                  onClick={() => setShowJoinClassModal(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <p className="text-slate-600 mb-4">Enter the 6-character code from your teacher to join their class.</p>
+
+              <input
+                type="text"
+                value={classCodeInput}
+                onChange={(e) => {
+                  setClassCodeInput(e.target.value.toUpperCase().slice(0, 6));
+                  setJoinError('');
+                }}
+                placeholder="ABCD12"
+                className="w-full px-4 py-3 text-center text-2xl font-mono font-bold border-2 border-slate-200 rounded-xl focus:border-purple-500 focus:outline-none uppercase tracking-widest mb-2"
+                maxLength={6}
+              />
+
+              {joinError && (
+                <p className="text-red-500 text-sm mb-3">{joinError}</p>
+              )}
+
+              {enrolledClasses.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-bold text-slate-400 uppercase mb-2">Your Classes</p>
+                  <div className="flex flex-wrap gap-2">
+                    {enrolledClasses.map((cls) => (
+                      <span key={cls.id} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                        {cls.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={async () => {
+                  if (classCodeInput.length !== 6) {
+                    setJoinError('Please enter a 6-character code');
+                    return;
+                  }
+                  setIsJoining(true);
+                  setJoinError('');
+                  try {
+                    const classData = await findClassByCode(classCodeInput);
+                    if (!classData) {
+                      setJoinError('Class not found. Check the code and try again.');
+                      setIsJoining(false);
+                      return;
+                    }
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                      setJoinError('Please sign in to join a class');
+                      setIsJoining(false);
+                      return;
+                    }
+                    await enrollStudent(classData.id, user.id);
+                    toast.success(`Welcome to ${classData.name}!`, { icon: '🎉' });
+                    setShowJoinClassModal(false);
+                    setClassCodeInput('');
+                    // Refresh enrolled classes
+                    const classes = await getStudentClasses(user.id);
+                    setEnrolledClasses(classes);
+                  } catch (error: any) {
+                    if (error.code === '23505') {
+                      setJoinError('You are already in this class!');
+                    } else {
+                      setJoinError('Failed to join class. Please try again.');
+                    }
+                  } finally {
+                    setIsJoining(false);
+                  }
+                }}
+                disabled={isJoining || classCodeInput.length !== 6}
+                className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isJoining ? 'Joining...' : 'Join Class'}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
