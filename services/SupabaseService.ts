@@ -49,26 +49,34 @@ const getMockEngine = async () => {
 // ------------------------------------------------------------------
 
 const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
-    const { data, error } = await supabase
-        .from('units')
-        .select('*')
-        .order('created_at', { ascending: false });
+    try {
+        const { data, error } = await supabase
+            .from('units')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-    if (error) throw error;
+        if (error) {
+            console.error('Error fetching units:', error.message);
+            return [];
+        }
 
-    return (data || []).map(row => ({
-        id: row.id,
-        title: row.title,
-        level: row.level,
-        status: row.status,
-        lessons: row.lessons ?? 0,
-        coverImage: row.cover_image ?? '',
-        lastUpdated: row.last_updated,
-        flow: row.flow ?? [],
-        scannedAssets: row.scanned_assets ?? [],
-        manifest: row.manifest ?? undefined,
-        topic: row.topic ?? undefined,
-    }));
+        return (data || []).map(row => ({
+            id: row.id,
+            title: row.title,
+            level: row.level,
+            status: row.status,
+            lessons: row.lessons ?? 0,
+            coverImage: row.cover_image ?? '',
+            lastUpdated: row.last_updated,
+            flow: row.flow ?? [],
+            scannedAssets: row.scanned_assets ?? [],
+            manifest: row.manifest ?? undefined,
+            topic: row.topic ?? undefined,
+        }));
+    } catch (err) {
+        console.error('Unexpected error fetching units:', err);
+        return [];
+    }
 };
 
 const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Promise<LessonUnit> => {
@@ -221,9 +229,8 @@ const supabaseUpdateStudentProgress = async (updates: any) => {
 const supabaseFetchStudents = async () => {
     const { data, error } = await supabase.from('students').select('*');
     if (error || !data || data.length === 0) {
-        // Fallback to mock data
-        const { MOCK_STUDENTS } = await import('../store/mockData');
-        return MOCK_STUDENTS;
+        // Return empty array - no mock fallback
+        return [];
     }
     return data;
 };
