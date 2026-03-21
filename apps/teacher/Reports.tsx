@@ -1,28 +1,61 @@
 
-import React, { useState } from 'react';
-import { BarChart2, TrendingUp, AlertCircle, CheckCircle, Download, Calendar, Users, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BarChart2, TrendingUp, AlertCircle, CheckCircle, Download, Calendar, Users, ArrowUp, ArrowDown, ChevronDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '../../services/supabaseClient';
+import { getTeacherStudents, getClassAnalytics, StudentWithProgress, ClassAnalytics } from '../../services/DataService';
 
 const Reports: React.FC = () => {
    const [timeframe, setTimeframe] = useState('This Week');
+   const [students, setStudents] = useState<StudentWithProgress[]>([]);
+   const [analytics, setAnalytics] = useState<ClassAnalytics | null>(null);
+   const [loading, setLoading] = useState(true);
 
-   // Mock Aggregated Data
-   const stats = {
-      mastery: 78,
-      engagement: 92,
-      completion: 85,
-      totalXp: 12450
+   // Fetch students and analytics on mount
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+               const [teacherStudents, classAnalytics] = await Promise.all([
+                  getTeacherStudents(user.id),
+                  getClassAnalytics(user.id)
+               ]);
+               setStudents(teacherStudents);
+               setAnalytics(classAnalytics);
+            }
+         } catch (error) {
+            console.error('Error fetching data:', error);
+         } finally {
+            setLoading(false);
+         }
+      };
+      fetchData();
+   }, []);
+
+   // Use analytics data or fallback to empty state
+   const stats = analytics || {
+      mastery: 0,
+      engagement: 0,
+      completion: 0,
+      totalXp: 0,
+      timeSpent: 0
    };
 
-   const skills = [
-      { name: 'Speaking', score: 65, color: 'bg-blue-500' },
-      { name: 'Listening', score: 88, color: 'bg-green-500' },
-      { name: 'Reading', score: 92, color: 'bg-purple-500' },
-      { name: 'Grammar', score: 74, color: 'bg-orange-500' },
-   ];
+   const skills = analytics?.skills || [];
+   const atRiskStudents = students.filter(s => (s.xp || 0) < 100);
 
-   const students: any[] = [];
-   const atRiskStudents = students.filter(s => (s.points || 0) < 100);
+   // Show loading state
+   if (loading) {
+      return (
+         <div className="flex-1 p-8 overflow-auto bg-slate-50 font-sans flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4 text-slate-500">
+               <Loader2 className="w-8 h-8 animate-spin" />
+               <span className="font-medium">Loading analytics...</span>
+            </div>
+         </div>
+      );
+   }
 
    return (
       <div className="flex-1 p-8 overflow-auto bg-slate-50 font-sans">
@@ -141,10 +174,10 @@ const Reports: React.FC = () => {
                         className="flex items-center gap-3 p-3 bg-red-50/50 rounded-xl border border-red-100"
                      >
                         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-xl border border-red-100 shadow-sm">
-                           {student.avatar}
+                           {student.avatar_url ? <img src={student.avatar_url} alt="" className="w-10 h-10 rounded-full" /> : (student.full_name?.[0] || '?')}
                         </div>
                         <div className="flex-1">
-                           <div className="font-bold text-slate-800 text-sm">{student.name}</div>
+                           <div className="font-bold text-slate-800 text-sm">{student.full_name || student.email}</div>
                            <div className="text-xs text-red-500 font-bold">Low Participation</div>
                         </div>
                         <button className="text-xs bg-white border border-slate-200 px-2 py-1 rounded font-bold text-slate-600 hover:text-slate-800">
@@ -185,7 +218,7 @@ const Reports: React.FC = () => {
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-100 text-sm">
-                  {(students || []).sort((a: any, b: any) => (b.points || 0) - (a.points || 0)).map((s: any, i: number) => (
+                  {students.sort((a, b) => (b.xp || 0) - (a.xp || 0)).map((s, i) => (
                      <motion.tr
                         key={s.id}
                         initial={{ opacity: 0, x: -10 }}
@@ -197,20 +230,20 @@ const Reports: React.FC = () => {
                         <td className="p-4">
                            <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
-                                 {s.avatar}
+                                 {s.avatar_url ? <img src={s.avatar_url} alt="" className="w-8 h-8 rounded-full" /> : (s.full_name?.[0] || '?')}
                               </div>
-                              <span className="font-bold text-slate-700">{s.name}</span>
+                              <span className="font-bold text-slate-700">{s.full_name || s.email}</span>
                            </div>
                         </td>
                         <td className="p-4 font-mono font-bold text-slate-600">
-                           {Math.floor(Math.random() * 20 + 80)}%
+                           {Math.min(100, Math.round((s.xp || 0) / 10))}%
                         </td>
                         <td className="p-4 text-slate-500">
-                           {Math.floor(Math.random() * 60 + 30)}m
+                           {Math.round((s.xp || 0) / 15)}m
                         </td>
                         <td className="p-4">
-                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${s.points > 100 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {s.points > 100 ? 'On Track' : 'Improving'}
+                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${(s.xp || 0) > 100 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                              {(s.xp || 0) > 100 ? 'On Track' : 'Improving'}
                            </span>
                         </td>
                      </motion.tr>

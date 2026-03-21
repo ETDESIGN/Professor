@@ -11,14 +11,14 @@ import DrawingLayer from '../../components/shared/DrawingLayer';
 
 const TeacherRemote: React.FC = () => {
   const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent } = useSession();
-  
+
   // CRITICAL FIX: Use state.activeSlideData instead of MOCK_LESSON_FLOW
   const currentStep = state.activeSlideData;
-  
+
   // Calculate next step safely
   const activeFlow = state.activeUnit?.flow || [];
   const nextStep = activeFlow[state.currentStepIndex + 1];
-  
+
   const [hasConnected, setHasConnected] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showPointSelector, setShowPointSelector] = useState(false);
@@ -49,8 +49,8 @@ const TeacherRemote: React.FC = () => {
       }
     } catch (e) {
       console.error("Camera error:", e);
-      setLiveSnap('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1000'); 
-      setIsCameraActive(false); 
+      setLiveSnap('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1000');
+      setIsCameraActive(false);
     }
   };
 
@@ -62,7 +62,7 @@ const TeacherRemote: React.FC = () => {
       canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg');
       setLiveSnap(dataUrl);
-      
+
       const stream = videoRef.current.srcObject as MediaStream;
       stream?.getTracks().forEach(t => t.stop());
       setIsCameraActive(false);
@@ -95,10 +95,10 @@ const TeacherRemote: React.FC = () => {
       case 'WHEEL_OF_DESTINY':
         return (
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <button 
-                // When we are ON the wheel slide, we spin the slide's wheel (useOverlay=false)
-                onClick={() => selectNextStudent(undefined, false)} 
-                className="bg-yellow-500 text-black p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
+            <button
+              // When we are ON the wheel slide, we spin the slide's wheel (useOverlay=false)
+              onClick={() => selectNextStudent(undefined, false)}
+              className="bg-yellow-500 text-black p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform"
             >
               <RotateCw size={24} /> SPIN
             </button>
@@ -211,26 +211,26 @@ const TeacherRemote: React.FC = () => {
       case 'I_SAY_YOU_SAY':
         return (
           <div className="grid grid-cols-2 gap-3 mb-4">
-             <button onClick={() => triggerAction('TOGGLE_PHASE')} className="bg-purple-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform col-span-2">
-                <Mic size={24} /> Toggle Phase (Listen/Speak)
-             </button>
-             <button onClick={() => triggerAction('PREV_ITEM')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                <ChevronLeft size={24} /> Previous
-             </button>
-             <button onClick={() => triggerAction('NEXT_ITEM')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                Next <ChevronRight size={24} />
-             </button>
+            <button onClick={() => triggerAction('TOGGLE_PHASE')} className="bg-purple-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform col-span-2">
+              <Mic size={24} /> Toggle Phase (Listen/Speak)
+            </button>
+            <button onClick={() => triggerAction('PREV_ITEM')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              <ChevronLeft size={24} /> Previous
+            </button>
+            <button onClick={() => triggerAction('NEXT_ITEM')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              Next <ChevronRight size={24} />
+            </button>
           </div>
         );
       case 'POLL':
         return (
           <div className="grid grid-cols-2 gap-3 mb-4">
-             <button onClick={() => triggerAction('RESET_TIMER')} className="bg-indigo-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                <Clock size={24} /> Reset 30s
-             </button>
-             <button onClick={() => triggerAction('SHOW_RESULTS')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-                <BarChart2 size={24} /> Reveal
-             </button>
+            <button onClick={() => triggerAction('RESET_TIMER')} className="bg-indigo-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              <Clock size={24} /> Reset 30s
+            </button>
+            <button onClick={() => triggerAction('SHOW_RESULTS')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              <BarChart2 size={24} /> Reveal
+            </button>
           </div>
         );
       default:
@@ -253,15 +253,15 @@ const TeacherRemote: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
-           <button onClick={handleDisconnect} className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30">
-             <LogOut size={20} />
-           </button>
-           <button 
-             onClick={() => setShowNotes(!showNotes)} 
-             className={`p-2 rounded-lg ${showNotes ? 'bg-yellow-500 text-slate-900' : 'bg-slate-700 text-slate-400'}`}
-           >
-             <FileText size={20} />
-           </button>
+          <button onClick={handleDisconnect} className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30">
+            <LogOut size={20} />
+          </button>
+          <button
+            onClick={() => setShowNotes(!showNotes)}
+            className={`p-2 rounded-lg ${showNotes ? 'bg-yellow-500 text-slate-900' : 'bg-slate-700 text-slate-400'}`}
+          >
+            <FileText size={20} />
+          </button>
         </div>
       </header>
 
@@ -277,15 +277,15 @@ const TeacherRemote: React.FC = () => {
             {currentStep.type.replace('_', ' ')}
           </div>
           <h2 className="text-xl font-bold leading-tight mb-4">{currentStep.title}</h2>
-          
+
           {nextStep && (
-             <div className="bg-slate-900/50 rounded-lg p-3 flex items-center justify-between mt-2 border border-slate-700/50">
-               <div className="flex flex-col">
-                 <span className="text-[10px] uppercase text-slate-400">Up Next</span>
-                 <span className="text-sm font-medium truncate w-40">{nextStep.title}</span>
-               </div>
-               <button onClick={nextSlide} className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">Skip</button>
-             </div>
+            <div className="bg-slate-900/50 rounded-lg p-3 flex items-center justify-between mt-2 border border-slate-700/50">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase text-slate-400">Up Next</span>
+                <span className="text-sm font-medium truncate w-40">{nextStep.title}</span>
+              </div>
+              <button onClick={nextSlide} className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">Skip</button>
+            </div>
           )}
         </div>
 
@@ -294,14 +294,14 @@ const TeacherRemote: React.FC = () => {
 
         {/* Main Navigation Pad */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <button 
+          <button
             onClick={prevSlide}
             disabled={state.currentStepIndex === 0}
             className="bg-slate-800 aspect-square rounded-2xl flex items-center justify-center active:scale-95 transition-all border border-slate-700 disabled:opacity-30"
           >
             <ChevronLeft size={32} />
           </button>
-          
+
           <button className="bg-blue-600 aspect-square rounded-2xl flex flex-col items-center justify-center active:scale-95 transition-all shadow-lg shadow-blue-900/50 col-span-1 border-b-4 border-blue-800">
             <span className="text-xs uppercase font-bold tracking-widest mb-1 opacity-80">Action</span>
             <div className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center">
@@ -309,7 +309,7 @@ const TeacherRemote: React.FC = () => {
             </div>
           </button>
 
-          <button 
+          <button
             onClick={nextSlide}
             disabled={!nextStep}
             className="bg-slate-800 aspect-square rounded-2xl flex items-center justify-center active:scale-95 transition-all border border-slate-700 disabled:opacity-30"
@@ -321,7 +321,7 @@ const TeacherRemote: React.FC = () => {
         {/* God Mode Tools */}
         <h3 className="text-xs font-bold text-slate-500 uppercase mb-3 ml-1">Tools</h3>
         <div className="grid grid-cols-4 gap-3 mb-6">
-          <button 
+          <button
             onClick={state.liveSnapImage ? () => setLiveSnap(null) : startCamera}
             className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border ${state.liveSnapImage ? 'bg-red-500 border-red-600' : 'bg-slate-800 border-slate-700'}`}
           >
@@ -332,28 +332,28 @@ const TeacherRemote: React.FC = () => {
             <Zap size={24} className="text-yellow-400" />
             <span className="text-[10px]">Spin</span>
           </button>
-          <button 
-            onClick={() => setShowPointSelector(true)} 
+          <button
+            onClick={() => setShowPointSelector(true)}
             className="aspect-square bg-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700"
           >
             <Star size={24} className="text-emerald-400" />
             <span className="text-[10px]">Points</span>
           </button>
-          <button 
+          <button
             onClick={() => setShowSoundBoard(true)}
             className="aspect-square bg-blue-900/30 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-blue-900/50"
           >
             <Volume2 size={24} className="text-blue-400" />
             <span className="text-[10px] text-blue-200">Sounds</span>
           </button>
-          <button 
+          <button
             onClick={() => setIsDrawingMode(true)}
             className="aspect-square bg-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700"
           >
             <PenTool size={24} className="text-rose-400" />
             <span className="text-[10px]">Pen</span>
           </button>
-          <button 
+          <button
             onClick={() => setShowVoiceCommand(true)}
             className="aspect-square bg-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700"
           >
@@ -381,70 +381,70 @@ const TeacherRemote: React.FC = () => {
 
       {/* Teacher Notes Drawer */}
       {showNotes && (
-         <div className="absolute inset-x-0 bottom-0 top-20 bg-slate-800 rounded-t-3xl shadow-2xl p-6 z-30 animate-slide-up border-t border-white/10 overflow-y-auto">
-            <div className="w-12 h-1 bg-slate-600 rounded-full mx-auto mb-6 shrink-0"></div>
-            <h3 className="text-xl font-bold text-yellow-400 mb-4">Teacher Notes</h3>
-            <div className="prose prose-invert prose-sm">
-               {currentStep.teacherGuide ? (
-                  <>
-                     <p>{currentStep.teacherGuide.instruction}</p>
-                     <p className="italic">"{currentStep.teacherGuide.script}"</p>
-                  </>
-               ) : (
-                  <p>No notes for this slide.</p>
-               )}
-            </div>
-            <button 
-               onClick={() => setShowNotes(false)}
-               className="absolute top-4 right-4 p-2 bg-slate-700 rounded-full"
-            >
-               <X size={20} />
-            </button>
-         </div>
+        <div className="absolute inset-x-0 bottom-0 top-20 bg-slate-800 rounded-t-3xl shadow-2xl p-6 z-30 animate-slide-up border-t border-white/10 overflow-y-auto">
+          <div className="w-12 h-1 bg-slate-600 rounded-full mx-auto mb-6 shrink-0"></div>
+          <h3 className="text-xl font-bold text-yellow-400 mb-4">Teacher Notes</h3>
+          <div className="prose prose-invert prose-sm">
+            {currentStep.teacherGuide ? (
+              <>
+                <p>{currentStep.teacherGuide.instruction}</p>
+                <p className="italic">"{currentStep.teacherGuide.script}"</p>
+              </>
+            ) : (
+              <p>No notes for this slide.</p>
+            )}
+          </div>
+          <button
+            onClick={() => setShowNotes(false)}
+            className="absolute top-4 right-4 p-2 bg-slate-700 rounded-full"
+          >
+            <X size={20} />
+          </button>
+        </div>
       )}
 
       {/* Drawing Overlay */}
       {isDrawingMode && (
-         <div className="absolute inset-0 bg-black/80 z-[60] flex flex-col">
-            <div className="flex-1 bg-white relative">
-               <DrawingLayer isInteractive={true} color="#ef4444" />
-               <div className="absolute top-4 left-4 text-slate-400 text-xs font-bold uppercase tracking-widest pointer-events-none">
-                  Annotate Mode
-               </div>
+        <div className="absolute inset-0 bg-black/80 z-[60] flex flex-col">
+          <div className="flex-1 bg-white relative">
+            <DrawingLayer isInteractive={true} color="#ef4444" />
+            <div className="absolute top-4 left-4 text-slate-400 text-xs font-bold uppercase tracking-widest pointer-events-none">
+              Annotate Mode
             </div>
-            <div className="h-24 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-6">
-               <div className="flex items-center gap-4">
-                  <button onClick={clearDrawings} className="p-3 bg-slate-700 rounded-full text-slate-400 hover:text-white">
-                     <Eraser size={24} />
-                  </button>
-                  <div className="w-px h-8 bg-slate-700"></div>
-                  <div className="text-white text-sm font-bold">Drawing active on Board</div>
-               </div>
-               <button 
-                  onClick={() => setIsDrawingMode(false)} 
-                  className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold"
-               >
-                  Done
-               </button>
+          </div>
+          <div className="h-24 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-6">
+            <div className="flex items-center gap-4">
+              <button onClick={clearDrawings} className="p-3 bg-slate-700 rounded-full text-slate-400 hover:text-white">
+                <Eraser size={24} />
+              </button>
+              <div className="w-px h-8 bg-slate-700"></div>
+              <div className="text-white text-sm font-bold">Drawing active on Board</div>
             </div>
-         </div>
+            <button
+              onClick={() => setIsDrawingMode(false)}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold"
+            >
+              Done
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Camera Overlay */}
       {isCameraActive && (
-         <div className="absolute inset-0 bg-black z-50 flex flex-col">
-            <video ref={videoRef} autoPlay playsInline className="flex-1 object-cover" />
-            <div className="h-32 bg-black/50 backdrop-blur absolute bottom-0 w-full flex items-center justify-around pb-8">
-               <button onClick={cancelCamera} className="text-white p-4">Cancel</button>
-               <button 
-                  onClick={capturePhoto}
-                  className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center"
-               >
-                  <div className="w-16 h-16 bg-white rounded-full active:scale-90 transition-transform"></div>
-               </button>
-               <button className="text-white p-4">Flip</button>
-            </div>
-         </div>
+        <div className="absolute inset-0 bg-black z-50 flex flex-col">
+          <video ref={videoRef} autoPlay playsInline className="flex-1 object-cover" />
+          <div className="h-32 bg-black/50 backdrop-blur absolute bottom-0 w-full flex items-center justify-around pb-8">
+            <button onClick={cancelCamera} className="text-white p-4">Cancel</button>
+            <button
+              onClick={capturePhoto}
+              className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center"
+            >
+              <div className="w-16 h-16 bg-white rounded-full active:scale-90 transition-transform"></div>
+            </button>
+            <button className="text-white p-4">Flip</button>
+          </div>
+        </div>
       )}
 
       {/* Quick Spin Modal */}
@@ -454,8 +454,9 @@ const TeacherRemote: React.FC = () => {
 
       {/* Student Point Selector Modal */}
       {showPointSelector && (
-        <StudentSelectorModal 
-          onClose={() => setShowPointSelector(false)} 
+        <StudentSelectorModal
+          students={state.students}
+          onClose={() => setShowPointSelector(false)}
           onAward={handleAwardPoints}
           onMagicSelect={handleMagicSelect}
         />

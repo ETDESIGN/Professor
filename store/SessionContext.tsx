@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useRe
 import { MOCK_LESSON_FLOW } from './mockData';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
+import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
 type SelectionMode = 'RANDOM' | 'FAIR' | 'ELIMINATION';
@@ -47,9 +48,22 @@ interface SessionState {
   units: LessonUnit[];
 }
 
+// Map StudentWithProgress to the format expected by components
+const mapStudent = (s: StudentWithProgress) => ({
+  id: s.id,
+  name: s.full_name || s.email || 'Unknown',
+  avatar: s.avatar_url || '',
+  email: s.email,
+  student_id: s.student_id,
+  xp: s.xp,
+  streak: s.streak,
+  points: s.xp, // For compatibility with components expecting 'points'
+});
+
 interface SessionContextType {
   state: SessionState;
   loadUnits: () => Promise<void>;
+  loadStudents: () => Promise<void>;
   setActiveUnit: (unitId: string) => Promise<void>;
   saveUnit: (unitId: string, updates: Partial<LessonUnit>) => Promise<void>;
   startSession: () => void;
@@ -105,6 +119,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     loadUnits();
+    loadStudents(); // Load students for the teacher
 
     // Initialize Supabase Realtime channel
     const channel = supabase.channel('classroom_live');
@@ -178,6 +193,23 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const loadUnits = async () => {
     const units = await Engine.fetchUnits();
     setState(prev => ({ ...prev, units }));
+  };
+
+  const loadStudents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('No authenticated user found');
+        return;
+      }
+
+      const students = await getTeacherStudents(user.id);
+      const mappedStudents = students.map(mapStudent);
+      setState(prev => ({ ...prev, students: mappedStudents }));
+    } catch (error) {
+      console.error('Error loading students:', error);
+      // Keep empty array on error
+    }
   };
 
   const setActiveUnit = async (unitId: string) => {
@@ -441,7 +473,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   return (
     <SessionContext.Provider value={{
-      state, loadUnits, setActiveUnit, saveUnit, unlockNextLevel,
+      state, loadUnits, loadStudents, setActiveUnit, saveUnit, unlockNextLevel,
       startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, closeOverlay,

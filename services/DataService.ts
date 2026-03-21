@@ -265,3 +265,80 @@ export async function getStudentClasses(studentId: string): Promise<ClassData[]>
 
     return data?.map((enrollment: any) => enrollment.class).filter(Boolean) || [];
 }
+
+/**
+ * Analytics data for class reports
+ */
+export interface ClassAnalytics {
+    totalStudents: number;
+    totalXp: number;
+    avgXpPerStudent: number;
+    mastery: number; // Based on completed units
+    engagement: number; // Based on streak (0-100)
+    completion: number; // % of students with current_unit_id
+    skills: { name: string; score: number; color: string }[];
+    timeSpent: number; // Estimated minutes based on XP
+}
+
+/**
+ * Get class analytics for a teacher
+ * Calculates deterministic metrics from real student data
+ */
+export async function getClassAnalytics(teacherId: string): Promise<ClassAnalytics> {
+    const students = await getTeacherStudents(teacherId);
+
+    if (students.length === 0) {
+        return {
+            totalStudents: 0,
+            totalXp: 0,
+            avgXpPerStudent: 0,
+            mastery: 0,
+            engagement: 0,
+            completion: 0,
+            skills: [],
+            timeSpent: 0
+        };
+    }
+
+    // Calculate deterministic metrics
+    const totalXp = students.reduce((sum, s) => sum + (s.xp || 0), 0);
+    const avgXpPerStudent = Math.round(totalXp / students.length);
+
+    // Mastery: Average completed units per student (as percentage)
+    // Assuming 10 units total for baseline
+    const TOTAL_UNITS = 10;
+    const totalCompletions = students.reduce((sum, s) => sum + (s.completed_unit_ids?.length || 0), 0);
+    const mastery = Math.round((totalCompletions / students.length / TOTAL_UNITS) * 100);
+
+    // Engagement: Based on average streak (max 100 for streak of 30+ days)
+    const totalStreak = students.reduce((sum, s) => sum + (s.streak || 0), 0);
+    const avgStreak = totalStreak / students.length;
+    const engagement = Math.min(100, Math.round(avgStreak * 3.33)); // 30-day streak = 100%
+
+    // Completion: % of students with active current_unit_id
+    const studentsWithCurrentUnit = students.filter(s => s.current_unit_id).length;
+    const completion = Math.round((studentsWithCurrentUnit / students.length) * 100);
+
+    // Time spent: Deterministic proxy based on XP (15 XP per minute of activity)
+    const timeSpent = Math.round(totalXp / 15);
+
+    // Skills: Generate from student data (placeholder until skill tracking is implemented)
+    // Use average XP as a proxy for overall skill level
+    const skills = [
+        { name: 'Speaking', score: Math.min(100, Math.round(avgXpPerStudent * 0.8)), color: 'bg-blue-500' },
+        { name: 'Listening', score: Math.min(100, Math.round(avgXpPerStudent * 0.9)), color: 'bg-green-500' },
+        { name: 'Reading', score: Math.min(100, Math.round(avgXpPerStudent)), color: 'bg-purple-500' },
+        { name: 'Grammar', score: Math.min(100, Math.round(avgXpPerStudent * 0.7)), color: 'bg-orange-500' },
+    ];
+
+    return {
+        totalStudents: students.length,
+        totalXp,
+        avgXpPerStudent,
+        mastery: Math.min(100, mastery),
+        engagement: Math.min(100, engagement),
+        completion: Math.min(100, completion),
+        skills,
+        timeSpent
+    };
+}
