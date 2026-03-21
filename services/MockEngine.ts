@@ -158,9 +158,8 @@ export const MockEngine = {
   },
 
   fetchStudents: async () => {
-    // Fallback to mock data
-    const { MOCK_STUDENTS } = await import('../store/mockData');
-    return MOCK_STUDENTS;
+    // Return empty array - students should come from DataService
+    return [];
   },
 
   addStudent: async (student: any) => {
