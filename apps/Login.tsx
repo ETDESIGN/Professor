@@ -13,6 +13,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const { setUserProfile } = useAppStore();
 
@@ -30,11 +31,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setIsLoading(false);
           return;
         }
-        // After sign up, try to sign in
+
+        // Check if email confirmation is required
+        if (result.needsEmailConfirmation) {
+          // Show friendly message instead of trying to auto-login
+          setError(null);
+          setSuccessMessage('Sign up successful! Please check your email to confirm your account.');
+          setIsLoading(false);
+          return;
+        }
+
+        // If no email confirmation required, try to sign in
         const loginResult = await signInWithPassword(email, password);
         if (!loginResult.success) {
-          setError('Sign up successful but auto-login failed. Please try logging in.');
+          // Don't treat as error - account was created, just tell them to login
+          setSuccessMessage('Sign up successful! Please sign in with your credentials.');
           setIsLoading(false);
+          setIsSignUp(false); // Switch to sign in mode
           return;
         }
         if (loginResult.user) {
@@ -167,7 +180,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            {error && (
+            {successMessage && (
+              <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-3 rounded-md">
+                <AlertCircle size={16} />
+                {successMessage}
+              </div>
+            )}
+            {error && !successMessage && (
               <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-md">
                 <AlertCircle size={16} />
                 {error}
@@ -187,7 +206,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => { setIsSignUp(!isSignUp); setError(null); }}
+                onClick={() => { setIsSignUp(!isSignUp); setError(null); setSuccessMessage(null); }}
                 className="text-sm text-indigo-600 hover:text-indigo-500"
               >
                 {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}

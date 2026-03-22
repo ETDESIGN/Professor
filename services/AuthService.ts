@@ -73,12 +73,18 @@ export async function signUp(
     password: string,
     role: UserRole,
     fullName?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; needsEmailConfirmation?: boolean; error?: string }> {
     try {
+        // Dynamic redirect URL for Vercel deployment
+        const redirectUrl = typeof window !== 'undefined'
+            ? window.location.origin
+            : 'https://professor-eta.vercel.app';
+
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
+                emailRedirectTo: redirectUrl,
                 data: {
                     full_name: fullName || email.split('@')[0],
                     role: role,
@@ -90,8 +96,12 @@ export async function signUp(
             return { success: false, error: error.message };
         }
 
+        // Check if email confirmation is required
+        // If session is null, user needs to confirm their email
+        const needsEmailConfirmation = !data.session;
+
         // Note: Profile will be created automatically by the trigger
-        return { success: true };
+        return { success: true, needsEmailConfirmation };
     } catch (error) {
         return {
             success: false,
