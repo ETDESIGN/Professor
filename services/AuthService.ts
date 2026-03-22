@@ -6,6 +6,8 @@ export interface AuthUser {
     id: string;
     email: string;
     role: UserRole;
+    full_name?: string;
+    avatar_url?: string;
 }
 
 export interface LoginResult {
@@ -38,7 +40,7 @@ export async function signInWithPassword(
         // Get user role from profiles table
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('id, email, role')
+            .select('id, email, role, full_name, avatar_url')
             .eq('id', data.user.id)
             .single();
 
@@ -55,6 +57,8 @@ export async function signInWithPassword(
                 id: profile.id,
                 email: profile.email || '',
                 role: profile.role as UserRole,
+                full_name: profile.full_name || undefined,
+                avatar_url: profile.avatar_url || undefined,
             },
         };
     } catch (error) {
@@ -139,7 +143,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('id, email, role')
+            .select('id, email, role, full_name, avatar_url')
             .eq('id', user.id)
             .single();
 
@@ -149,6 +153,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             id: profile.id,
             email: profile.email || '',
             role: profile.role as UserRole,
+            full_name: profile.full_name || undefined,
+            avatar_url: profile.avatar_url || undefined,
         };
     } catch {
         return null;
