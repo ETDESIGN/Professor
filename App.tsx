@@ -19,6 +19,7 @@ import ParentOnboarding from './apps/parent/ParentOnboarding';
 import { APP_NAME } from './constants';
 import { useAppStore } from './store/useAppStore';
 import { getCurrentUser } from './services/AuthService';
+import { supabase } from './services/supabaseClient';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -102,8 +103,16 @@ const App: React.FC = () => {
         {/* Other Apps */}
         <Route path="/board" element={<ClassroomBoard />} />
         <Route path="/remote" element={<TeacherRemote />} />
-        <Route path="/student/*" element={<StudentApp onSignOut={() => navigate('/login')} />} />
-        <Route path="/parent/*" element={<ParentApp onSignOut={() => navigate('/login')} />} />
+        <Route path="/student/*" element={<StudentApp onSignOut={async () => {
+          await supabase.auth.signOut();
+          useAppStore.getState().clearUserProfile();
+          window.location.href = '/';
+        }} />} />
+        <Route path="/parent/*" element={<ParentApp onSignOut={async () => {
+          await supabase.auth.signOut();
+          useAppStore.getState().clearUserProfile();
+          window.location.href = '/';
+        }} />} />
       </Routes>
 
       {/* Global "Exit Prototype" button to return to Hub */}

@@ -17,6 +17,7 @@ import Assignments from './Assignments';
 import Reports from './Reports';
 import TeacherMessages from './TeacherMessages';
 import { useAppStore } from '../../store/useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 interface TeacherDashboardProps {
   onNavigateToStudio?: () => void;
@@ -119,7 +120,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 </button>
               </nav>
               <button
-                onClick={() => navigate('/login')}
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  useAppStore.getState().clearUserProfile();
+                  window.location.href = '/';
+                }}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium text-red-500 hover:bg-red-50 mt-auto"
               >
                 <LogOut size={20} /> Sign Out
@@ -202,7 +207,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             </div>
           </div>
           <button
-            onClick={() => navigate('/login')}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              useAppStore.getState().clearUserProfile();
+              window.location.href = '/';
+            }}
             className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-red-500 text-sm font-medium transition-colors"
           >
             <LogOut size={16} /> Sign Out

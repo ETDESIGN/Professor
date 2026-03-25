@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { LogOut, Building2, Users } from 'lucide-react';
+import { supabase } from '../../services/supabaseClient';
+import { useAppStore } from '../../store/useAppStore';
 
 const DistrictAdminDashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -30,7 +32,11 @@ const DistrictAdminDashboard: React.FC = () => {
 
                 <div className="p-4 border-t border-slate-200">
                     <button
-                        onClick={() => navigate('/login')}
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            useAppStore.getState().clearUserProfile();
+                            window.location.href = '/';
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
                     >
                         <LogOut size={18} />

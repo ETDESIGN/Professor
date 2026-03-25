@@ -171,6 +171,16 @@ export async function getStudentProgress(studentId: string): Promise<{
             .order('next_review', { ascending: true })
     ]);
 
+    if (progressRes.error) {
+        console.error('Error fetching student progress:', progressRes.error);
+        throw progressRes.error;
+    }
+
+    if (srsRes.error) {
+        console.error('Error fetching SRS items:', srsRes.error);
+        throw srsRes.error;
+    }
+
     return {
         progress: progressRes.data,
         srsItems: srsRes.data || [],
@@ -377,11 +387,16 @@ export async function getParentStudents(parentId: string): Promise<StudentWithPr
     const studentsWithProgress = await Promise.all(
         links.map(async (link: any) => {
             const studentId = link.student_id;
-            const { data: progress } = await supabase
+            const { data: progress, error: progressError } = await supabase
                 .from('student_progress')
                 .select('*')
                 .eq('student_id', studentId)
                 .single();
+
+            if (progressError) {
+                console.error('Error fetching student progress for student:', studentId, progressError);
+                // Don't throw, just use default values
+            }
 
             return {
                 id: link.profiles?.id,

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronRight, User, Lock, Bell, Moon, HelpCircle, Bug, LogOut, X } from 'lucide-react';
 import MobileAccountSettings from './MobileAccountSettings';
 import { useAppStore } from '../../store/useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 interface MobileProfileSettingsProps {
    onBack: () => void;
@@ -129,7 +130,14 @@ const MobileProfileSettings: React.FC<MobileProfileSettingsProps> = ({ onBack })
                </button>
             </div>
 
-            <button className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl border border-red-100 flex items-center justify-center gap-2 hover:bg-red-100 transition-colors">
+            <button
+               onClick={async () => {
+                  await supabase.auth.signOut();
+                  useAppStore.getState().clearUserProfile();
+                  window.location.href = '/';
+               }}
+               className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl border border-red-100 flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
+            >
                <LogOut size={18} /> Sign Out
             </button>
 

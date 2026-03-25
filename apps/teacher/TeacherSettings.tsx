@@ -2,9 +2,12 @@
 import React, { useState } from 'react';
 import { User, Lock, Bell, Globe, Monitor, Moon, Shield, ToggleLeft, ToggleRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppStore } from '../../store/useAppStore';
 
 const TeacherSettings: React.FC = () => {
    const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'notifications' | 'security' | 'display'>('profile');
+   const { userProfile } = useAppStore();
+   const displayName = userProfile?.full_name || userProfile?.email || 'Teacher';
 
    const TabButton = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
       <button
@@ -60,15 +63,15 @@ const TeacherSettings: React.FC = () => {
                               <div className="flex-1 grid grid-cols-2 gap-4">
                                  <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">First Name</label>
-                                    <input type="text" defaultValue="Sarah" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <input type="text" defaultValue={displayName.split(' ')[0] || 'Teacher'} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                  </div>
                                  <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Last Name</label>
-                                    <input type="text" defaultValue="Davis" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <input type="text" defaultValue={displayName.split(' ').slice(1).join(' ') || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                  </div>
                                  <div className="col-span-2">
                                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email Address</label>
-                                    <input type="email" defaultValue="s.davis@school.edu" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <input type="email" defaultValue={userProfile?.email || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                  </div>
                               </div>
                            </div>
