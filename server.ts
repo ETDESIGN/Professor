@@ -32,13 +32,11 @@ async function startServer() {
   };
 
   io.on("connection", (socket) => {
-    console.log("A user connected:", socket.id);
 
     // Send current state to new connections
     socket.emit("sync_state", classroomState);
 
     socket.on("classroom_action", (action) => {
-      console.log("Received action:", action.type); // Less noisy logging
 
       // Update server state based on action
       if (action.type === 'STUDENT_JOIN') {
@@ -90,7 +88,6 @@ async function startServer() {
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
     });
   });
 
@@ -106,7 +103,6 @@ async function startServer() {
   }
 
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 

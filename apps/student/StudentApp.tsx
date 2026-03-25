@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Home, Trophy, BookOpen, User, ShoppingBag, Users, X } from 'lucide-react';
+import { Home, Trophy, BookOpen, User, ShoppingBag, Users, X, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,7 +24,7 @@ import LessonSession, { ActivityType } from './LessonSession';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
-import { findClassByCode, enrollStudent, getStudentClasses, ClassData } from '../../services/DataService';
+import { findClassByCode, enrollStudent, getStudentClasses, ClassData, getStudentAssignments, updateStudentAssignmentStatus, AssignmentWithDetails } from '../../services/DataService';
 
 interface StudentAppProps {
   onSignOut?: () => void;
@@ -33,7 +33,7 @@ interface StudentAppProps {
 const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state } = useSession();
+  const { state, setActiveUnit } = useSession();
 
   // Gamification State
   const [userStats, setUserStats] = useState({
@@ -42,6 +42,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     xp: 1250,
     level: 5
   });
+
+  // Track selected unit for lesson
+  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -110,6 +113,42 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     fetchEnrolledClasses();
   }, []);
 
+  // Fetch student assignments
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        setLoadingAssignments(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const studentAssignments = await getStudentAssignments(user.id);
+          setAssignments(studentAssignments);
+        }
+      } catch (error) {
+        console.error('Error fetching assignments:', error);
+      } finally {
+        setLoadingAssignments(false);
+      }
+    };
+    fetchAssignments();
+  }, []);
+
+  // Handle marking assignment as done
+  const handleMarkAsDone = async (assignmentId: string) => {
+    try {
+      await updateStudentAssignmentStatus(assignmentId, 'submitted');
+      // Refresh assignments
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const studentAssignments = await getStudentAssignments(user.id);
+        setAssignments(studentAssignments);
+      }
+      toast.success('Assignment submitted!', { icon: '✅' });
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      toast.error('Failed to submit assignment');
+    }
+  };
+
   // Local state for avatar customization
   const [avatarConfig, setAvatarConfig] = useState<any>(null);
 
@@ -123,58 +162,76 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
-  // Define the playlist for the main lesson
-  const lessonPlaylist: { type: ActivityType, id: string, data?: any }[] = [
-    {
-      type: 'LISTEN_TAP',
-      id: '1',
-      data: {
-        instruction: 'Listen and select the correct image',
-        options: [
-          { id: 1, img: 'https://img.freepik.com/free-vector/cute-lion-cartoon-character_1308-106575.jpg', label: 'Lion' },
-          { id: 2, img: 'https://img.freepik.com/free-vector/cute-elephant-sitting-cartoon-vector-icon-illustration_138676-2220.jpg', label: 'Elephant', correct: true },
-          { id: 3, img: 'https://img.freepik.com/free-vector/cute-giraffe-cartoon-vector-icon-illustration_138676-2222.jpg', label: 'Giraffe' },
-          { id: 4, img: 'https://img.freepik.com/free-vector/cute-zebra-sitting-cartoon-vector-icon-illustration_138676-2223.jpg', label: 'Zebra' },
-        ]
-      }
-    },
-    {
-      type: 'SCRAMBLE',
-      id: '2',
-      data: {
-        targetSentence: { en: "The cat is sleeping on the mat", translation: "El gato está durmiendo en la alfombra" },
-        wordBank: [
-          { id: 'w1', text: 'is' },
-          { id: 'w2', text: 'sleeping' },
-          { id: 'w3', text: 'mat' },
-          { id: 'w4', text: 'on' },
-          { id: 'w5', text: 'the' },
-          { id: 'w6', text: 'The' },
-          { id: 'w7', text: 'cat' },
-          { id: 'w8', text: 'dog' }, // Distractor
-        ]
-      }
-    },
-    {
-      type: 'SPEAKING',
-      id: '3',
-      data: {
-        targetSentence: "The quick brown fox jumps"
-      }
-    },
-    {
-      type: 'FLASH_MATCH',
-      id: '4',
-      data: {
-        pairs: [
-          { id: '1', left: 'Apple', right: 'Manzana' },
-          { id: '2', left: 'Dog', right: 'Perro' },
-          { id: '3', left: 'Cat', right: 'Gato' },
-          { id: '4', left: 'House', right: 'Casa' },
-        ]
-      }
+  // Assignments state
+  const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+
+  // Get the lesson playlist from the active unit's flow, or fall back to mock data
+  const getLessonPlaylist = (): { type: ActivityType, id: string, data?: any }[] => {
+    // If we have an active unit with flow, use it
+    if (state.activeUnit?.flow && state.activeUnit.flow.length > 0) {
+      return state.activeUnit.flow.map((step: any) => ({
+        type: step.type as ActivityType,
+        id: step.id,
+        data: step.data
+      }));
     }
-  ];
+
+    // Fallback to mock playlist if no unit is selected or flow is empty
+    return [
+      {
+        type: 'LISTEN_TAP',
+        id: '1',
+        data: {
+          instruction: 'Listen and select the correct image',
+          options: [
+            { id: 1, img: 'https://img.freepik.com/free-vector/cute-lion-cartoon-character_1308-106575.jpg', label: 'Lion' },
+            { id: 2, img: 'https://img.freepik.com/free-vector/cute-elephant-sitting-cartoon-vector-icon-illustration_138676-2220.jpg', label: 'Elephant', correct: true },
+            { id: 3, img: 'https://img.freepik.com/free-vector/cute-giraffe-cartoon-vector-icon-illustration_138676-2222.jpg', label: 'Giraffe' },
+            { id: 4, img: 'https://img.freepik.com/free-vector/cute-zebra-sitting-cartoon-vector-icon-illustration_138676-2223.jpg', label: 'Zebra' },
+          ]
+        }
+      },
+      {
+        type: 'SCRAMBLE',
+        id: '2',
+        data: {
+          targetSentence: { en: "The cat is sleeping on the mat", translation: "El gato está durmiendo en la alfombra" },
+          wordBank: [
+            { id: 'w1', text: 'is' },
+            { id: 'w2', text: 'sleeping' },
+            { id: 'w3', text: 'mat' },
+            { id: 'w4', text: 'on' },
+            { id: 'w5', text: 'the' },
+            { id: 'w6', text: 'The' },
+            { id: 'w7', text: 'cat' },
+            { id: 'w8', text: 'dog' }, // Distractor
+          ]
+        }
+      },
+      {
+        type: 'SPEAKING',
+        id: '3',
+        data: {
+          targetSentence: "The quick brown fox jumps"
+        }
+      },
+      {
+        type: 'FLASH_MATCH',
+        id: '4',
+        data: {
+          pairs: [
+            { id: '1', left: 'Apple', right: 'Manzana' },
+            { id: '2', left: 'Dog', right: 'Perro' },
+            { id: '3', left: 'Cat', right: 'Gato' },
+            { id: '4', left: 'House', right: 'Casa' },
+          ]
+        }
+      }
+    ];
+  };
+
+  const lessonPlaylist = getLessonPlaylist();
 
   const handleAvatarSave = (config: any) => {
     setAvatarConfig(config);
@@ -203,8 +260,18 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   };
 
   // Navigate to lesson session
-  const startLesson = () => {
+  const startLesson = async (unitId?: string) => {
+    // If a unitId is provided, set it as the active unit
+    if (unitId) {
+      setSelectedUnitId(unitId);
+      await setActiveUnit(unitId);
+    }
     navigate('/student/lesson');
+  };
+
+  // Handle live class banner click (no unit ID)
+  const handleLiveClassClick = () => {
+    startLesson();
   };
 
   // Check if current path is a full screen app
@@ -284,7 +351,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               <Route path="/" element={
                 <>
                   {state.status === 'LIVE' && (
-                    <div className="bg-duo-green text-white p-4 m-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce cursor-pointer" onClick={startLesson}>
+                    <div className="bg-duo-green text-white p-4 m-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce cursor-pointer" onClick={handleLiveClassClick}>
                       <div>
                         <h3 className="font-bold text-lg">Live Class Started!</h3>
                         <p className="text-sm opacity-90">Your teacher is waiting for you.</p>
@@ -294,9 +361,68 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                       </button>
                     </div>
                   )}
-                  <HomeMap onNavigate={(view) => {
+                  {/* Pending Assignments Section */}
+                  <div className="mx-4 mt-4 mb-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileText size={20} className="text-orange-500" />
+                      <h2 className="font-bold text-slate-800">Pending Homework</h2>
+                      {assignments.filter(a => a.student_status === 'pending').length > 0 && (
+                        <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                          {assignments.filter(a => a.student_status === 'pending').length}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {loadingAssignments ? (
+                        <div className="bg-white rounded-xl p-4 text-center text-slate-500">
+                          Loading assignments...
+                        </div>
+                      ) : assignments.filter(a => a.student_status === 'pending').length === 0 ? (
+                        <div className="bg-white rounded-xl p-6 text-center border border-slate-100">
+                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <CheckCircle size={32} className="text-green-500" />
+                          </div>
+                          <h3 className="font-bold text-slate-800 mb-1">All caught up!</h3>
+                          <p className="text-sm text-slate-500">No pending homework. Great job!</p>
+                        </div>
+                      ) : (
+                        assignments
+                          .filter(a => a.student_status === 'pending')
+                          .slice(0, 3)
+                          .map((assignment) => (
+                            <div
+                              key={assignment.id}
+                              className="bg-white rounded-xl p-4 shadow-sm border border-slate-100"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h3 className="font-bold text-slate-800 text-sm">{assignment.title}</h3>
+                                  {assignment.class_name && (
+                                    <p className="text-xs text-slate-500 mt-1">{assignment.class_name}</p>
+                                  )}
+                                  {assignment.due_date && (
+                                    <div className="flex items-center gap-1 mt-2 text-xs text-orange-600">
+                                      <Clock size={12} />
+                                      <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => handleMarkAsDone(assignment.id)}
+                                  className="ml-2 px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:bg-green-600 transition-colors"
+                                >
+                                  Mark Done
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+                  </div>
+
+                  <HomeMap onNavigate={(view, unitId) => {
                     if (view === 'listen' || view === 'scramble') {
-                      startLesson();
+                      startLesson(unitId);
                     } else {
                       navigate(`/student/${view}`);
                     }

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { toast } from 'sonner';
 
 export interface ClassData {
     id: string;
@@ -198,9 +199,11 @@ export async function createClass(
 
     if (error) {
         console.error('Error creating class:', error);
+        toast.error('Failed to create class. Please try again.');
         throw error;
     }
 
+    toast.success(`Class "${classData.name}" created successfully!`);
     return data!;
 }
 
@@ -220,8 +223,11 @@ export async function enrollStudent(
 
     if (error) {
         console.error('Error enrolling student:', error);
+        toast.error('Failed to join class. Please check the code and try again.');
         throw error;
     }
+
+    toast.success('Successfully joined the class!');
 }
 
 /**
@@ -341,4 +347,355 @@ export async function getClassAnalytics(teacherId: string): Promise<ClassAnalyti
         skills,
         timeSpent
     };
+}
+
+/**
+ * Get all students linked to a parent
+ */
+export async function getParentStudents(parentId: string): Promise<StudentWithProgress[]> {
+    const { data: links, error } = await supabase
+        .from('parent_student_links')
+        .select(`
+            student_id,
+            profiles:profiles!parent_student_links_student_id_fkey(
+                id,
+                email,
+                full_name,
+                avatar_url
+            )
+        `)
+        .eq('parent_id', parentId);
+
+    if (error) {
+        console.error('Error fetching parent-student links:', error);
+        throw error;
+    }
+
+    if (!links || links.length === 0) return [];
+
+    // Get progress for each student
+    const studentsWithProgress = await Promise.all(
+        links.map(async (link: any) => {
+            const studentId = link.student_id;
+            const { data: progress } = await supabase
+                .from('student_progress')
+                .select('*')
+                .eq('student_id', studentId)
+                .single();
+
+            return {
+                id: link.profiles?.id,
+                email: link.profiles?.email,
+                full_name: link.profiles?.full_name,
+                avatar_url: link.profiles?.avatar_url,
+                student_id: studentId,
+                xp: progress?.xp || 0,
+                streak: progress?.streak || 0,
+                current_unit_id: progress?.current_unit_id || null,
+                completed_unit_ids: progress?.completed_unit_ids || [],
+            };
+        })
+    );
+
+    return studentsWithProgress;
+}
+
+// ============================================
+// Assignment Interfaces
+// ============================================
+
+export interface Assignment {
+    id: string;
+    class_id: string;
+    unit_id: string | null;
+    title: string;
+    description: string | null;
+    due_date: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface StudentAssignment {
+    id: string;
+    assignment_id: string;
+    student_id: string;
+    status: 'pending' | 'submitted' | 'graded';
+    grade: number | null;
+    completed_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AssignmentWithDetails extends Assignment {
+    class_name?: string;
+    unit_title?: string;
+    student_status?: 'pending' | 'submitted' | 'graded';
+    student_grade?: number | null;
+    student_completed_at?: string | null;
+}
+
+// ============================================
+// Message Interfaces
+// ============================================
+
+export interface Message {
+    id: string;
+    sender_id: string;
+    receiver_id: string;
+    content: string;
+    read: boolean;
+    created_at: string;
+}
+
+export interface MessageWithSender extends Message {
+    sender_name?: string;
+    sender_avatar?: string;
+    receiver_name?: string;
+    receiver_avatar?: string;
+}
+
+// ============================================
+// Assignment Functions
+// ============================================
+
+/**
+ * Create a new assignment for a class
+ */
+export async function createAssignment(
+    assignmentData: Partial<Assignment>
+): Promise<Assignment> {
+    const { data, error } = await supabase
+        .from('assignments')
+        .insert({
+            class_id: assignmentData.class_id,
+            unit_id: assignmentData.unit_id || null,
+            title: assignmentData.title,
+            description: assignmentData.description || null,
+            due_date: assignmentData.due_date || null,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error creating assignment:', error);
+        toast.error('Failed to create assignment. Please try again.');
+        throw error;
+    }
+
+    toast.success(`Assignment "${assignmentData.title}" created successfully!`);
+    return data!;
+}
+
+/**
+ * Get all assignments for a specific class
+ */
+export async function getClassAssignments(classId: string): Promise<Assignment[]> {
+    const { data, error } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('class_id', classId)
+        .order('due_date', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching class assignments:', error);
+        throw error;
+    }
+
+    return data || [];
+}
+
+/**
+ * Get all assignments for a student with their status
+ */
+export async function getStudentAssignments(studentId: string): Promise<AssignmentWithDetails[]> {
+    const { data, error } = await supabase
+        .from('student_assignments')
+        .select(`
+            id,
+            assignment_id,
+            status,
+            grade,
+            completed_at,
+            assignments:assignments!inner(
+                id,
+                class_id,
+                unit_id,
+                title,
+                description,
+                due_date,
+                created_at,
+                updated_at,
+                classes:classes!inner(
+                    name
+                )
+            )
+        `)
+        .eq('student_id', studentId)
+        .order('assignments(due_date)', { ascending: true, nullsFirst: false });
+
+    if (error) {
+        console.error('Error fetching student assignments:', error);
+        throw error;
+    }
+
+    return (data || []).map((item: any) => ({
+        id: item.assignments.id,
+        class_id: item.assignments.class_id,
+        unit_id: item.assignments.unit_id,
+        title: item.assignments.title,
+        description: item.assignments.description,
+        due_date: item.assignments.due_date,
+        created_at: item.assignments.created_at,
+        updated_at: item.assignments.updated_at,
+        class_name: item.assignments.classes?.name,
+        student_status: item.status,
+        student_grade: item.grade,
+        student_completed_at: item.completed_at,
+    }));
+}
+
+/**
+ * Update a student's assignment status
+ */
+export async function updateStudentAssignmentStatus(
+    studentAssignmentId: string,
+    status: 'pending' | 'submitted' | 'graded',
+    grade?: number
+): Promise<void> {
+    const updateData: any = {
+        status,
+        updated_at: new Date().toISOString(),
+    };
+
+    if (status === 'submitted') {
+        updateData.completed_at = new Date().toISOString();
+    }
+
+    if (grade !== undefined) {
+        updateData.grade = grade;
+    }
+
+    const { error } = await supabase
+        .from('student_assignments')
+        .update(updateData)
+        .eq('id', studentAssignmentId);
+
+    if (error) {
+        console.error('Error updating student assignment:', error);
+        toast.error('Failed to update assignment status');
+        throw error;
+    }
+
+    if (status === 'submitted') {
+        toast.success('Assignment submitted successfully!');
+    } else if (status === 'graded') {
+        toast.success('Assignment graded successfully!');
+    }
+}
+
+// ============================================
+// Message Functions
+// ============================================
+
+/**
+ * Send a message from one user to another
+ */
+export async function sendMessage(
+    senderId: string,
+    receiverId: string,
+    content: string
+): Promise<Message> {
+    const { data, error } = await supabase
+        .from('messages')
+        .insert({
+            sender_id: senderId,
+            receiver_id: receiverId,
+            content,
+            read: false,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error sending message:', error);
+        toast.error('Failed to send message');
+        throw error;
+    }
+
+    toast.success('Message sent successfully!');
+    return data!;
+}
+
+/**
+ * Get all messages for a user (sent and received)
+ */
+export async function getUserMessages(userId: string): Promise<MessageWithSender[]> {
+    const { data, error } = await supabase
+        .from('messages')
+        .select(`
+            *,
+            sender:profiles!messages_sender_id_fkey(
+                full_name,
+                avatar_url
+            ),
+            receiver:profiles!messages_receiver_id_fkey(
+                full_name,
+                avatar_url
+            )
+        `)
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching user messages:', error);
+        throw error;
+    }
+
+    return (data || []).map((msg: any) => ({
+        id: msg.id,
+        sender_id: msg.sender_id,
+        receiver_id: msg.receiver_id,
+        content: msg.content,
+        read: msg.read,
+        created_at: msg.created_at,
+        sender_name: msg.sender?.full_name,
+        sender_avatar: msg.sender?.avatar_url,
+        receiver_name: msg.receiver?.full_name,
+        receiver_avatar: msg.receiver?.avatar_url,
+    }));
+}
+
+/**
+ * Get unread message count for a user
+ */
+export async function getUnreadMessageCount(userId: string): Promise<number> {
+    const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', userId)
+        .eq('read', false);
+
+    if (error) {
+        console.error('Error fetching unread message count:', error);
+        throw error;
+    }
+
+    return count || 0;
+}
+
+/**
+ * Mark a message as read
+ */
+export async function markMessageAsRead(messageId: string): Promise<void> {
+    const { error } = await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('id', messageId);
+
+    if (error) {
+        console.error('Error marking message as read:', error);
+        // Don't show toast for this silent operation
+        throw error;
+    }
 }

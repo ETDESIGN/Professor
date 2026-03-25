@@ -23,18 +23,28 @@ import { getCurrentUser } from './services/AuthService';
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUserProfile, userProfile } = useAppStore();
+  const { setUserProfile, clearUserProfile, userProfile } = useAppStore();
 
-  // Check for existing session on load
+  // Check for existing session on load and hydrate profile from database
   useEffect(() => {
     const checkSession = async () => {
-      const user = await getCurrentUser();
-      if (user) {
-        setUserProfile(user);
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          // Always fetch fresh profile from database to avoid stale mock data
+          setUserProfile(user);
+        } else {
+          // Clear any stale profile data if no session exists
+          clearUserProfile();
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        // Clear profile on error to prevent stale data
+        clearUserProfile();
       }
     };
     checkSession();
-  }, [setUserProfile]);
+  }, [setUserProfile, clearUserProfile]);
 
   const handleLogin = (role: 'district_admin' | 'teacher' | 'student' | 'parent') => {
     // The actual user data is set in Login.tsx after successful auth

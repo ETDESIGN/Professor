@@ -4,12 +4,14 @@ import { BarChart2, TrendingUp, AlertCircle, CheckCircle, Download, Calendar, Us
 import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { getTeacherStudents, getClassAnalytics, StudentWithProgress, ClassAnalytics } from '../../services/DataService';
+import { useAppStore } from '../../store/useAppStore';
 
 const Reports: React.FC = () => {
    const [timeframe, setTimeframe] = useState('This Week');
    const [students, setStudents] = useState<StudentWithProgress[]>([]);
    const [analytics, setAnalytics] = useState<ClassAnalytics | null>(null);
    const [loading, setLoading] = useState(true);
+   const { userProfile } = useAppStore();
 
    // Fetch students and analytics on mount
    useEffect(() => {
@@ -63,7 +65,7 @@ const Reports: React.FC = () => {
          <header className="flex justify-between items-center mb-8">
             <div>
                <h1 className="text-2xl font-bold text-slate-800">Class Performance</h1>
-               <p className="text-slate-500">Analytics for Class 3B • English</p>
+               <p className="text-slate-500">Analytics for {userProfile?.full_name || 'Teacher'}'s Classes</p>
             </div>
             <div className="flex gap-3">
                <div className="relative">

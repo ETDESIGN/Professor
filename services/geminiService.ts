@@ -16,19 +16,19 @@ export interface PronunciationResult {
 const cleanJsonOutput = (text: string): string => {
   if (!text) return "{}";
   let cleaned = text.trim();
-  
+
   // Remove markdown code blocks explicitly
   cleaned = cleaned.replace(/```json/g, "").replace(/```/g, "");
-  
+
   // Find the first { or [ and the last } or ]
   const firstBrace = cleaned.indexOf('{');
   const firstBracket = cleaned.indexOf('[');
   const lastBrace = cleaned.lastIndexOf('}');
   const lastBracket = cleaned.lastIndexOf(']');
-  
+
   let start = -1;
   let end = -1;
-  
+
   if (firstBrace !== -1 && firstBracket !== -1) {
     start = Math.min(firstBrace, firstBracket);
   } else if (firstBrace !== -1) {
@@ -36,7 +36,7 @@ const cleanJsonOutput = (text: string): string => {
   } else if (firstBracket !== -1) {
     start = firstBracket;
   }
-  
+
   if (lastBrace !== -1 && lastBracket !== -1) {
     end = Math.max(lastBrace, lastBracket);
   } else if (lastBrace !== -1) {
@@ -44,11 +44,11 @@ const cleanJsonOutput = (text: string): string => {
   } else if (lastBracket !== -1) {
     end = lastBracket;
   }
-  
+
   if (start !== -1 && end !== -1 && end > start) {
     cleaned = cleaned.substring(start, end + 1);
   }
-  
+
   return cleaned.trim();
 };
 
@@ -63,16 +63,16 @@ const retryWithBackoff = async <T>(
   } catch (error: any) {
     // Immediate fallback for network errors (XHR, Connection Closed)
     const isNetworkError = error.message?.includes('xhr') || error.message?.includes('fetch') || error.code === 6 || error.code === 500;
-    
+
     if (isNetworkError) {
-        console.warn("⚠️ Network error detected. Skipping retries to force fallback.");
-        throw error; // Throw immediately to catch block which switches models
+      console.warn("⚠️ Network error detected. Skipping retries to force fallback.");
+      throw error; // Throw immediately to catch block which switches models
     }
 
     if (retries === 0) throw error;
-    
+
     console.warn(`API Request failed. Retrying in ${delay}ms... (Attempts left: ${retries})`, error.message);
-    
+
     await new Promise(resolve => setTimeout(resolve, delay));
     return retryWithBackoff(fn, retries - 1, delay * 2);
   }
@@ -208,10 +208,12 @@ const mechanicsSchema: Schema = {
       engine: { type: Type.STRING, enum: ['LOGIC_LABYRINTH', 'SENTENCE_FACTORY', 'DUBBING_STUDIO', 'FLASH_MATCH', 'MEDIA_PLAYER'] },
       title: { type: Type.STRING },
       instructions: { type: Type.STRING },
-      config_data: { type: Type.OBJECT, properties: { 
-         items: { type: Type.ARRAY, items: { type: Type.STRING } }, 
-         sentences: { type: Type.ARRAY, items: { type: Type.STRING } }
-      }}
+      config_data: {
+        type: Type.OBJECT, properties: {
+          items: { type: Type.ARRAY, items: { type: Type.STRING } },
+          sentences: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+      }
     },
     required: ["engine", "title"]
   }
@@ -241,17 +243,19 @@ const orchestratorSchema: Schema = {
           type: { type: Type.STRING },
           title: { type: Type.STRING },
           duration: { type: Type.INTEGER },
-          data: { type: Type.OBJECT, properties: {
-             config: { 
-               type: Type.OBJECT,
-               properties: {
-                 search_query: { type: Type.STRING },
-                 items: { type: Type.ARRAY, items: { type: Type.STRING } },
-                 text: { type: Type.STRING },
-                 cards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { front: {type: Type.STRING}, back: {type: Type.STRING} } } }
-               }
-             }
-          }}
+          data: {
+            type: Type.OBJECT, properties: {
+              config: {
+                type: Type.OBJECT,
+                properties: {
+                  search_query: { type: Type.STRING },
+                  items: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  text: { type: Type.STRING },
+                  cards: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { front: { type: Type.STRING }, back: { type: Type.STRING } } } }
+                }
+              }
+            }
+          }
         },
         required: ["type", "title"]
       }
@@ -263,69 +267,62 @@ const orchestratorSchema: Schema = {
 // --- MAIN FUNCTION: SEQUENTIAL CHAIN ---
 
 const runAgent = async (ai: GoogleGenAI, model: string, instruction: string, schema: Schema, contentParts: any[]): Promise<any> => {
-   return retryWithBackoff(async () => {
-      const response = await ai.models.generateContent({
-         model,
-         contents: { parts: contentParts },
-         config: {
-            systemInstruction: instruction,
-            responseMimeType: "application/json",
-            responseSchema: schema
-         }
-      });
-      const text = cleanJsonOutput(response.text || "{}");
-      return JSON.parse(text);
-   }, 2, 1000);
+  return retryWithBackoff(async () => {
+    const response = await ai.models.generateContent({
+      model,
+      contents: { parts: contentParts },
+      config: {
+        systemInstruction: instruction,
+        responseMimeType: "application/json",
+        responseSchema: schema
+      }
+    });
+    const text = cleanJsonOutput(response.text || "{}");
+    return JSON.parse(text);
+  }, 2, 1000);
 };
 
 export const runPipeline = async (initialContents: any[]): Promise<AgentPipelineOutput> => {
-   const ai = getClient();
-   const model = GEMINI_PRO_MODEL; // use pro for complex reasoning
-   const fastModel = GEMINI_FLASH_MODEL; // use flash for simpler mapping
+  const ai = getClient();
+  const model = GEMINI_PRO_MODEL; // use pro for complex reasoning
+  const fastModel = GEMINI_FLASH_MODEL; // use flash for simpler mapping
 
-   console.log("🕵️ Run Agent 1: Vision Scanner");
-   let agent_1_vision;
-   try {
-       agent_1_vision = await runAgent(ai, model, VISION_PROMPT, visionSchema, [...initialContents, { text: "Execute Vision Scanner."}]);
-   } catch (e) {
-       console.warn("Pro Vision failed, falling back to Flash", e);
-       agent_1_vision = await runAgent(ai, fastModel, VISION_PROMPT, visionSchema, [...initialContents, { text: "Execute Vision Scanner."}]);
-   }
+  let agent_1_vision;
+  try {
+    agent_1_vision = await runAgent(ai, model, VISION_PROMPT, visionSchema, [...initialContents, { text: "Execute Vision Scanner." }]);
+  } catch (e) {
+    console.warn("Pro Vision failed, falling back to Flash", e);
+    agent_1_vision = await runAgent(ai, fastModel, VISION_PROMPT, visionSchema, [...initialContents, { text: "Execute Vision Scanner." }]);
+  }
 
-   console.log("🧠 Run Agent 2: Pedagogue");
-   const agent_2_pedagogy = await runAgent(ai, fastModel, PEDAGOGY_PROMPT, pedagogySchema, [
-      { text: `Vision Scanner Output:\n${JSON.stringify(agent_1_vision, null, 2)}\n\nExecute Pedagogue.` }
-   ]);
+  const agent_2_pedagogy = await runAgent(ai, fastModel, PEDAGOGY_PROMPT, pedagogySchema, [
+    { text: `Vision Scanner Output:\n${JSON.stringify(agent_1_vision, null, 2)}\n\nExecute Pedagogue.` }
+  ]);
 
-   console.log("🎨 Run Agent 3: Asset Curator");
-   const agent_3_assets = await runAgent(ai, fastModel, ASSETS_PROMPT, assetsSchema, [
-      { text: `Vision Scanner Output:\n${JSON.stringify(agent_1_vision)}\n\nPedagogy Output:\n${JSON.stringify(agent_2_pedagogy)}\n\nExecute Asset Curator.` }
-   ]);
+  const agent_3_assets = await runAgent(ai, fastModel, ASSETS_PROMPT, assetsSchema, [
+    { text: `Vision Scanner Output:\n${JSON.stringify(agent_1_vision)}\n\nPedagogy Output:\n${JSON.stringify(agent_2_pedagogy)}\n\nExecute Asset Curator.` }
+  ]);
 
-   console.log("🏗️ Run Agent 4: Game Mechanic");
-   const agent_4_mechanics = await runAgent(ai, fastModel, MECHANICS_PROMPT, mechanicsSchema, [
-      { text: `Assets Output:\n${JSON.stringify(agent_3_assets)}\n\nExecute Game Mechanic.` }
-   ]);
+  const agent_4_mechanics = await runAgent(ai, fastModel, MECHANICS_PROMPT, mechanicsSchema, [
+    { text: `Assets Output:\n${JSON.stringify(agent_3_assets)}\n\nExecute Game Mechanic.` }
+  ]);
 
-   console.log("🎬 Run Agent 5: Orchestrator");
-   const agent_5_orchestrator = await runAgent(ai, fastModel, ORCHESTRATOR_PROMPT, orchestratorSchema, [
-      { text: `Pedagogy Output:\n${JSON.stringify(agent_2_pedagogy)}\n\nGame Mechanics Output:\n${JSON.stringify(agent_4_mechanics)}\n\nExecute Orchestrator.` }
-   ]);
+  const agent_5_orchestrator = await runAgent(ai, fastModel, ORCHESTRATOR_PROMPT, orchestratorSchema, [
+    { text: `Pedagogy Output:\n${JSON.stringify(agent_2_pedagogy)}\n\nGame Mechanics Output:\n${JSON.stringify(agent_4_mechanics)}\n\nExecute Orchestrator.` }
+  ]);
 
-   return {
-      agent_1_vision,
-      agent_2_pedagogy,
-      agent_3_assets,
-      agent_4_mechanics,
-      agent_5_orchestrator
-   };
+  return {
+    agent_1_vision,
+    agent_2_pedagogy,
+    agent_3_assets,
+    agent_4_mechanics,
+    agent_5_orchestrator
+  };
 };
 
 export const generateLessonManifest = async (topic: string): Promise<LessonManifest | null> => {
   try {
-    console.log(`🚀 Generating Lesson Manifest for topic: ${topic}`);
     const pipelineOutput = await runPipeline([{ text: `Topic: "${topic}"` }]);
-    console.log("✅ Lesson Generation Success!");
     return mapPipelineToManifest(pipelineOutput);
   } catch (error) {
     console.error("🚨 Lesson Generation Failure:", error);
@@ -335,9 +332,7 @@ export const generateLessonManifest = async (topic: string): Promise<LessonManif
 
 export const analyzeTextbookPage = async (imageBase64: string): Promise<LessonManifest | null> => {
   try {
-    console.log("🚀 Starting Sequential 5-Agent Pipeline Analysis...");
     const pipelineOutput = await runPipeline([{ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } }]);
-    console.log("✅ Pipeline Success!");
     return mapPipelineToManifest(pipelineOutput);
   } catch (error) {
     console.error("🚨 Pipeline Failure:", error);
@@ -348,15 +343,13 @@ export const analyzeTextbookPage = async (imageBase64: string): Promise<LessonMa
 export const analyzeSyllabus = async (imageB64Array: string[]): Promise<LessonManifest[]> => {
   try {
     if (imageB64Array.length === 0) return [createFallbackManifest()];
-    
-    console.log(`🚀 Starting Syllabus Analysis with ${imageB64Array.length} pages...`);
+
     const imageParts = imageB64Array.map(b64 => ({
       inlineData: { mimeType: 'image/jpeg', data: b64 }
     }));
-    
+
     // For a syllabus we can just run the pipeline once with all images for prototype purposes
     const pipelineOutput = await runPipeline(imageParts);
-    console.log(`✅ Syllabus Pipeline Success!`);
     return [mapPipelineToManifest(pipelineOutput)];
   } catch (error) {
     console.error("🚨 Syllabus Pipeline Failure:", error);
@@ -365,31 +358,31 @@ export const analyzeSyllabus = async (imageB64Array: string[]): Promise<LessonMa
 };
 
 const mapPipelineToManifest = (pipelineOutput: AgentPipelineOutput): LessonManifest => {
-    return {
-      meta: {
-        unit_title: pipelineOutput.agent_5_orchestrator?.meta?.title || "New Lesson",
-        theme: pipelineOutput.agent_5_orchestrator?.meta?.theme || "General",
-        difficulty_cefr: pipelineOutput.agent_2_pedagogy?.difficulty_cefr || "A1"
-      },
-      knowledge_graph: {
-        characters: [], 
-        vocabulary: (pipelineOutput.agent_3_assets?.vocabulary_enhancements || []).map(v => ({
-          word: v.word,
-          definition: v.definition,
-          distractors: v.distractors || [],
-          image_prompt: v.image_prompt
-        })),
-        grammar_rules: [{ 
-           rule: pipelineOutput.agent_2_pedagogy?.grammar_focus || "General Usage", 
-           examples: [] 
-        }],
-        narrative_arc: `Lesson about ${pipelineOutput.agent_2_pedagogy?.primary_topic || 'topic'}`
-      },
-      timeline: (pipelineOutput.agent_5_orchestrator?.timeline || []).map(block => ({
-        ...block,
-        config: block.data?.config || block.data || {} 
-      }))
-    };
+  return {
+    meta: {
+      unit_title: pipelineOutput.agent_5_orchestrator?.meta?.title || "New Lesson",
+      theme: pipelineOutput.agent_5_orchestrator?.meta?.theme || "General",
+      difficulty_cefr: pipelineOutput.agent_2_pedagogy?.difficulty_cefr || "A1"
+    },
+    knowledge_graph: {
+      characters: [],
+      vocabulary: (pipelineOutput.agent_3_assets?.vocabulary_enhancements || []).map(v => ({
+        word: v.word,
+        definition: v.definition,
+        distractors: v.distractors || [],
+        image_prompt: v.image_prompt
+      })),
+      grammar_rules: [{
+        rule: pipelineOutput.agent_2_pedagogy?.grammar_focus || "General Usage",
+        examples: []
+      }],
+      narrative_arc: `Lesson about ${pipelineOutput.agent_2_pedagogy?.primary_topic || 'topic'}`
+    },
+    timeline: (pipelineOutput.agent_5_orchestrator?.timeline || []).map(block => ({
+      ...block,
+      config: block.data?.config || block.data || {}
+    }))
+  };
 };
 
 export const differentiateText = async (text: string, theme: string): Promise<{ below: string, on: string, above: string }> => {
@@ -465,7 +458,7 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
         parts: [{ text: prompt }]
       }
     });
-    
+
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         return `data:image/jpeg;base64,${part.inlineData.data}`;

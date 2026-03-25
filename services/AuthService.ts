@@ -42,12 +42,19 @@ export async function signInWithPassword(
             .from('profiles')
             .select('id, email, role, full_name, avatar_url')
             .eq('id', data.user.id)
-            .single();
+            .maybeSingle();
 
         if (profileError) {
             return {
                 success: false,
                 error: 'Unable to verify user role. Please contact support.'
+            };
+        }
+
+        if (!profile) {
+            return {
+                success: false,
+                error: 'Profile setup incomplete. Please try signing up again or contact support.'
             };
         }
 
@@ -91,7 +98,7 @@ export async function signUp(
                 emailRedirectTo: redirectUrl,
                 data: {
                     full_name: fullName || email.split('@')[0],
-                    role: role,
+                    role: role.toLowerCase(),
                 },
             },
         });
@@ -145,7 +152,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             .from('profiles')
             .select('id, email, role, full_name, avatar_url')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (!profile) return null;
 

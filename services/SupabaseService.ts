@@ -161,11 +161,18 @@ const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
     // Mark current unit as Completed
     await supabase.from('units').update({ status: 'Completed' }).eq('id', currentId);
 
+    // Get authenticated user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.error('No authenticated user found');
+        return;
+    }
+
     // Update student progress
     const { data: progress } = await supabase
         .from('student_progress')
         .select('*')
-        .eq('student_id', 'default_student')
+        .eq('student_id', user.id)
         .single();
 
     if (progress) {
@@ -175,7 +182,7 @@ const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
         }
         await supabase.from('student_progress').update({
             completed_unit_ids: completedIds,
-        }).eq('student_id', 'default_student');
+        }).eq('student_id', user.id);
     }
 
     // Find and unlock the next unit (by position in the database)
@@ -196,10 +203,17 @@ const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
 };
 
 const supabaseGetStudentProgress = async () => {
+    // Get authenticated user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.error('No authenticated user found');
+        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 };
+    }
+
     const { data, error } = await supabase
         .from('student_progress')
         .select('*')
-        .eq('student_id', 'default_student')
+        .eq('student_id', user.id)
         .single();
 
     if (error || !data) {
@@ -215,13 +229,20 @@ const supabaseGetStudentProgress = async () => {
 };
 
 const supabaseUpdateStudentProgress = async (updates: any) => {
+    // Get authenticated user ID
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.error('No authenticated user found');
+        return updates;
+    }
+
     const row: any = {};
     if (updates.xp !== undefined) row.xp = updates.xp;
     if (updates.streak !== undefined) row.streak = updates.streak;
     if (updates.completedUnitIds !== undefined) row.completed_unit_ids = updates.completedUnitIds;
     if (updates.currentUnitId !== undefined) row.current_unit_id = updates.currentUnitId;
 
-    await supabase.from('student_progress').update(row).eq('student_id', 'default_student');
+    await supabase.from('student_progress').update(row).eq('student_id', user.id);
 
     return { ...updates };
 };

@@ -12,6 +12,7 @@ interface AppState {
   updateUnit: (id: string, updates: Partial<LessonUnit>) => void;
   setStudents: (students: any[]) => void;
   setUserProfile: (profile: any) => void;
+  clearUserProfile: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -52,9 +53,15 @@ export const useAppStore = create<AppState>()(
       })),
       setStudents: (students) => set({ students }),
       setUserProfile: (profile) => set({ userProfile: profile }),
+      clearUserProfile: () => set({ userProfile: null }),
     }),
     {
       name: 'app-storage',
+      partialize: (state) => ({
+        units: state.units,
+        students: state.students,
+        // Exclude userProfile from persistence to ensure it's always fetched fresh from database
+      }),
     }
   )
 );

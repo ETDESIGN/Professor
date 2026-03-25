@@ -43,7 +43,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
   const handleProgress = (state: { played: number, playedSeconds: number }) => {
     setProgress(state.played);
     setCurrentTime(state.playedSeconds);
-    
+
     // Update lyrics based on progress
     const activeLyric = [...lyrics].reverse().find(l => l.time <= state.playedSeconds);
     if (activeLyric) {
@@ -97,91 +97,91 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
       <div className="relative z-20 p-8 flex justify-between items-start">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-duo-yellow rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-500/20">
-             <Volume2 size={32} className="text-yellow-900" />
+            <Volume2 size={32} className="text-yellow-900" />
           </div>
           <div>
-             <div className="text-yellow-400 font-bold uppercase tracking-widest text-sm mb-1">Warm Up Song</div>
-             <h1 className="text-5xl font-display font-bold text-white drop-shadow-lg">{data.title || "Walking in the Jungle"}</h1>
+            <div className="text-yellow-400 font-bold uppercase tracking-widest text-sm mb-1">Warm Up Song</div>
+            <h1 className="text-5xl font-display font-bold text-white drop-shadow-lg">{data.title || "Walking in the Jungle"}</h1>
           </div>
         </div>
         <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-full text-white/80 font-mono text-xl border border-white/10">
-           {Math.floor(progress * 100)}%
+          {Math.floor(progress * 100)}%
         </div>
       </div>
 
       {/* Karaoke Lyrics Area */}
       <div className="flex-1 relative z-20 flex items-end justify-center pb-32 px-20">
         <div className="text-center space-y-6 max-w-5xl">
-           <div className="relative inline-block">
-             {/* Background text (dimmed) */}
-             <p className="text-8xl text-white/30 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight">
-               {currentLine}
-             </p>
-             {/* Foreground text (highlighted) with clip-path for karaoke effect */}
-             <p 
-               className="text-8xl text-yellow-400 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight absolute top-0 left-0 whitespace-nowrap overflow-hidden"
-               style={{ width: `${lyricProgress * 100}%`, transition: 'width 0.1s linear' }}
-             >
-               {currentLine}
-             </p>
-           </div>
-           <p className="text-4xl text-white/50 font-fun transform transition-all duration-500">
-             {nextLine}
-           </p>
+          <div className="relative inline-block">
+            {/* Background text (dimmed) */}
+            <p className="text-8xl text-white/30 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight">
+              {currentLine}
+            </p>
+            {/* Foreground text (highlighted) with clip-path for karaoke effect */}
+            <p
+              className="text-8xl text-yellow-400 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight absolute top-0 left-0 whitespace-nowrap overflow-hidden"
+              style={{ width: `${lyricProgress * 100}%`, transition: 'width 0.1s linear' }}
+            >
+              {currentLine}
+            </p>
+          </div>
+          <p className="text-4xl text-white/50 font-fun transform transition-all duration-500">
+            {nextLine}
+          </p>
         </div>
       </div>
 
       {/* Progress Bar & Controls */}
       <div className="absolute bottom-0 left-0 w-full z-30 bg-gradient-to-t from-black to-transparent pt-20 pb-8 px-8 transition-transform duration-300 translate-y-full group-hover:translate-y-0">
-         {/* Timeline */}
-         <div 
-           className="w-full h-3 bg-white/20 rounded-full mb-6 cursor-pointer relative overflow-hidden"
-           onClick={handleSeek}
-         >
-           <div className="h-full bg-duo-green relative transition-all duration-100 ease-linear" style={{ width: `${progress * 100}%` }}>
-             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-150"></div>
-           </div>
-         </div>
+        {/* Timeline */}
+        <div
+          className="w-full h-3 bg-white/20 rounded-full mb-6 cursor-pointer relative overflow-hidden"
+          onClick={handleSeek}
+        >
+          <div className="h-full bg-duo-green relative transition-all duration-100 ease-linear" style={{ width: `${progress * 100}%` }}>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-150"></div>
+          </div>
+        </div>
 
-         {/* Buttons */}
-         <div className="flex justify-between items-center text-white">
-            <div className="flex items-center gap-6">
-              <button 
-                className="hover:text-duo-green transition-colors"
-                onClick={() => playerRef.current?.seekTo(0)}
-              >
-                <SkipBack size={32} />
-              </button>
-              <button 
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-transform"
-              >
-                {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} fill="black" className="ml-1" />}
-              </button>
-              <button 
-                className="hover:text-duo-green transition-colors"
-                onClick={() => playerRef.current?.seekTo(progress + 0.1)}
-              >
-                <SkipForward size={32} />
-              </button>
+        {/* Buttons */}
+        <div className="flex justify-between items-center text-white">
+          <div className="flex items-center gap-6">
+            <button
+              className="hover:text-duo-green transition-colors"
+              onClick={() => playerRef.current?.seekTo(0)}
+            >
+              <SkipBack size={32} />
+            </button>
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+            >
+              {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} fill="black" className="ml-1" />}
+            </button>
+            <button
+              className="hover:text-duo-green transition-colors"
+              onClick={() => playerRef.current?.seekTo(progress + 0.1)}
+            >
+              <SkipForward size={32} />
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsMuted(!isMuted)}>
+              {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+            </button>
+            <div className="w-24 h-1 bg-white/30 rounded-full">
+              <div className="h-full bg-white rounded-full" style={{ width: isMuted ? '0%' : '100%' }}></div>
             </div>
-            <div className="flex items-center gap-4">
-               <button onClick={() => setIsMuted(!isMuted)}>
-                 {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
-               </button>
-               <div className="w-24 h-1 bg-white/30 rounded-full">
-                 <div className="h-full bg-white rounded-full" style={{ width: isMuted ? '0%' : '100%' }}></div>
-               </div>
-               <Maximize size={24} className="ml-4 cursor-pointer" onClick={() => {
-                 const elem = document.documentElement;
-                 if (!document.fullscreenElement) {
-                   elem.requestFullscreen().catch(err => console.log(err));
-                 } else {
-                   document.exitFullscreen();
-                 }
-               }} />
-            </div>
-         </div>
+            <Maximize size={24} className="ml-4 cursor-pointer" onClick={() => {
+              const elem = document.documentElement;
+              if (!document.fullscreenElement) {
+                elem.requestFullscreen().catch(() => { });
+              } else {
+                document.exitFullscreen();
+              }
+            }} />
+          </div>
+        </div>
       </div>
     </div>
   );

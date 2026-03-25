@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitList from './UnitList';
 import UploadTextbook from './UploadTextbook';
@@ -15,6 +15,8 @@ import ResourceLibrary from './ResourceLibrary';
 import LessonEditor from './LessonEditor';
 import Assignments from './Assignments';
 import Reports from './Reports';
+import TeacherMessages from './TeacherMessages';
+import { useAppStore } from '../../store/useAppStore';
 
 interface TeacherDashboardProps {
   onNavigateToStudio?: () => void;
@@ -26,6 +28,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { userProfile } = useAppStore();
 
   // Helper to determine active state for nav items
   const isActive = (path: string) => {
@@ -99,6 +102,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 <button onClick={() => handleNav('/teacher/assignments')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <FileText size={20} /> Assignments
                 </button>
+                <button onClick={() => handleNav('/teacher/messages')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/messages') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                  <MessageCircle size={20} /> Messages
+                </button>
                 <button onClick={() => handleNav('/teacher/reports')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/reports') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <BarChart3 size={20} /> Reports
                 </button>
@@ -153,6 +159,12 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <FileText size={20} /> Assignments
             </button>
             <button
+              onClick={() => handleNav('/teacher/messages')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/messages') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+            >
+              <MessageCircle size={20} /> Messages
+            </button>
+            <button
               onClick={() => handleNav('/teacher/reports')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/reports') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
@@ -182,10 +194,10 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
         <div className="mt-auto p-6 border-t border-slate-100">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" alt="Teacher" />
+              <img src={userProfile?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher"} alt="Teacher" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm text-slate-800 truncate">Mrs. Davis</div>
+              <div className="font-bold text-sm text-slate-800 truncate">{userProfile?.full_name || 'Teacher'}</div>
               <div className="text-xs text-slate-500 truncate">Teacher • 3rd Grade</div>
             </div>
           </div>
@@ -217,6 +229,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="mobile-editor" element={<LessonEditor onBack={() => navigate('/teacher/units')} />} />
               <Route path="students" element={<ClassManagement />} />
               <Route path="assignments" element={<Assignments />} />
+              <Route path="messages" element={<TeacherMessages onBack={() => navigate('/teacher')} />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<TeacherSettings />} />
               <Route path="mobile-profile" element={<MobileProfileSettings onBack={() => navigate('/teacher')} />} />
