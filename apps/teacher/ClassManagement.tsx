@@ -207,59 +207,62 @@ const ClassManagement: React.FC = () => {
                               </tr>
                            ) : (
                               <React.Fragment>
-                                 {students.map((student, index) => (
-                                    <motion.tr
-                                       key={student.id}
-                                       initial={{ opacity: 0, y: 10 }}
-                                       animate={{ opacity: 1, y: 0 }}
-                                       exit={{ opacity: 0, scale: 0.95 }}
-                                       transition={{ delay: index * 0.05 }}
-                                       onClick={() => setSelectedStudentId(student.id)}
-                                       className={`
-                              group cursor-pointer transition-colors hover:bg-slate-50
-                              ${selectedStudentId === student.id ? 'bg-emerald-50 hover:bg-emerald-50 border-l-4 border-l-teacher-primary' : 'border-l-4 border-l-transparent'}
-                            `}
-                                    >
-                                       <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                                          <input
-                                             type="checkbox"
-                                             checked={selectedIds.has(student.id)}
-                                             onChange={() => toggleSelection(student.id)}
-                                             className="rounded border-slate-300 text-teacher-primary focus:ring-teacher-primary"
-                                          />
-                                       </td>
-                                       <td className="p-4">
-                                          <div className="flex items-center gap-3">
-                                             <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-2xl border border-slate-200">
-                                                {student.avatar}
+                                 {students.map((student, index) => {
+                                    const isSelected = selectedStudentId === student.id;
+                                    const rowClassName = isSelected
+                                       ? 'group cursor-pointer transition-colors hover:bg-slate-50 bg-emerald-50 hover:bg-emerald-50 border-l-4 border-l-teacher-primary'
+                                       : 'group cursor-pointer transition-colors hover:bg-slate-50 border-l-4 border-l-transparent';
+                                    return (
+                                       <motion.tr
+                                          key={student.id}
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          exit={{ opacity: 0, scale: 0.95 }}
+                                          transition={{ delay: index * 0.05 }}
+                                          onClick={() => setSelectedStudentId(student.id)}
+                                          className={rowClassName}
+                                       >
+                                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                                             <input
+                                                type="checkbox"
+                                                checked={selectedIds.has(student.id)}
+                                                onChange={() => toggleSelection(student.id)}
+                                                className="rounded border-slate-300 text-teacher-primary focus:ring-teacher-primary"
+                                             />
+                                          </td>
+                                          <td className="p-4">
+                                             <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-2xl border border-slate-200">
+                                                   {student.avatar}
+                                                </div>
+                                                <div>
+                                                   <div className="font-bold text-slate-800">{student.name}</div>
+                                                   <div className="text-xs text-slate-400">Level {student.level}</div>
+                                                </div>
                                              </div>
-                                             <div>
-                                                <div className="font-bold text-slate-800">{student.name}</div>
-                                                <div className="text-xs text-slate-400">Level {student.level}</div>
-                                             </div>
-                                          </div>
-                                       </td>
-                                       <td className="p-4 font-mono text-sm text-slate-500">
-                                          #{student.id.toUpperCase().padStart(6, '0')}
-                                       </td>
-                                       <td className="p-4">
-                                          {parseInt(student.id.replace(/\D/g, '') || '0') % 2 === 0 ? (
-                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                                <CheckCircle size={12} /> Connected
-                                             </span>
-                                          ) : (
-                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
-                                                <AlertCircle size={12} /> Pending
-                                             </span>
-                                          )}
-                                       </td>
-                                       <td className="p-4 text-right">
-                                          <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
-                                             <MoreHorizontal size={18} />
-                                          </button>
-                                       </td>
-                                    </motion.tr>
-                                 ))}
+                                          </td>
+                                          <td className="p-4 font-mono text-sm text-slate-500">
+                                             #{student.id.toUpperCase().padStart(6, '0')}
+                                          </td>
+                                          <td className="p-4">
+                                             {parseInt(student.id.replace(/\D/g, '') || '0') % 2 === 0 ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                                   <CheckCircle size={12} /> Connected
+                                                </span>
+                                             ) : (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
+                                                   <AlertCircle size={12} /> Pending
+                                                </span>
+                                             )}
+                                          </td>
+                                          <td className="p-4 text-right">
+                                             <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
+                                                <MoreHorizontal size={18} />
+                                             </button>
+                                          </td>
+                                       </motion.tr>
+                                    );
+                                 })}
                               </React.Fragment>
                            )}
                         </AnimatePresence>
