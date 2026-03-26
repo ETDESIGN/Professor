@@ -37,15 +37,23 @@ const App: React.FC = () => {
         } else {
           // Clear any stale profile data if no session exists
           clearUserProfile();
+          // Redirect to login if not on login or hub page
+          if (location.pathname !== '/login' && location.pathname !== '/') {
+            navigate('/login');
+          }
         }
       } catch (error) {
         console.error('Error checking session:', error);
         // Clear profile on error to prevent stale data
         clearUserProfile();
+        // Redirect to login if not on login or hub page
+        if (location.pathname !== '/login' && location.pathname !== '/') {
+          navigate('/login');
+        }
       }
     };
     checkSession();
-  }, [setUserProfile, clearUserProfile]);
+  }, [setUserProfile, clearUserProfile, location.pathname, navigate]);
 
   const handleLogin = (role: 'district_admin' | 'teacher' | 'student' | 'parent') => {
     // The actual user data is set in Login.tsx after successful auth
@@ -106,12 +114,12 @@ const App: React.FC = () => {
         <Route path="/student/*" element={<StudentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
-          window.location.href = '/';
+          window.location.assign(window.location.origin);
         }} />} />
         <Route path="/parent/*" element={<ParentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
-          window.location.href = '/';
+          window.location.assign(window.location.origin);
         }} />} />
       </Routes>
 

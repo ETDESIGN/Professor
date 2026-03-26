@@ -134,7 +134,7 @@ const MobileProfileSettings: React.FC<MobileProfileSettingsProps> = ({ onBack })
                onClick={async () => {
                   await supabase.auth.signOut();
                   useAppStore.getState().clearUserProfile();
-                  window.location.href = '/';
+                  window.location.assign(window.location.origin);
                }}
                className="w-full bg-red-50 text-red-600 font-bold py-4 rounded-2xl border border-red-100 flex items-center justify-center gap-2 hover:bg-red-100 transition-colors"
             >
