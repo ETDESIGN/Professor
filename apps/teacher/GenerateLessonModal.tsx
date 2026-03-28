@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Loader2, CheckCircle2 } from 'lucide-react';
-import { generateLessonManifest } from '../../services/geminiService';
-import { Engine } from '../../services/SupabaseService';
+import { AIService } from '../../services/AIService';
+import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +21,7 @@ const LOADING_STEPS = [
 
 const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSuccess }) => {
   const [topic, setTopic] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('3rd Grade');
   const [isGenerating, setIsGenerating] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -45,16 +46,45 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
     setLoadingStep(0);
 
     try {
-      const manifest = await generateLessonManifest(topic);
-      if (manifest) {
-        const newUnit = await Engine.createUnit(topic, manifest);
-        await loadUnits();
-        toast.success('Lesson generated successfully!');
-        onSuccess(newUnit.id);
-      } else {
-        setError("Failed to generate lesson. Please try again.");
-        toast.error('Failed to generate lesson.');
+      const generated = await AIService.generateLessonContent(topic, gradeLevel);
+
+      // Insert new unit
+      const { data: newUnit, error: unitError } = await supabase
+        .from('units')
+        .insert({
+          title: generated.title,
+          topic: topic,
+          level: gradeLevel,
+          status: 'Draft',
+          lessons: 1,
+          cover_image: `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`
+        })
+        .select()
+        .single();
+
+      if (unitError || !newUnit) {
+        throw new Error('Failed to create DB unit record.');
       }
+
+      // Insert flashcards
+      if (generated.flashcards.length > 0) {
+        const srsInserts = generated.flashcards.map(card => ({
+          unit_id: newUnit.id,
+          word: card.question,
+          translation: card.answer,
+          interval: 0,
+          repetition: 0,
+          efactor: 2.5
+        }));
+        const { error: srsError } = await supabase.from('srs_items').insert(srsInserts);
+        if (srsError) {
+          console.error("Failed to insert SRS items:", srsError);
+        }
+      }
+
+      await loadUnits();
+      toast.success('AI Lesson successfully generated and saved!');
+      onSuccess(newUnit.id);
     } catch (err: any) {
       setError(err.message || "An error occurred during generation.");
       toast.error('An error occurred during generation.');
@@ -97,11 +127,29 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
                       type="text"
                       value={topic}
                       onChange={(e) => setTopic(e.target.value)}
-                      placeholder="e.g., Space Exploration for 3rd Graders"
+                      placeholder="e.g., Space Exploration"
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
                       disabled={isGenerating}
                       onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Grade Level</label>
+                    <select
+                      value={gradeLevel}
+                      onChange={(e) => setGradeLevel(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
+                      disabled={isGenerating}
+                    >
+                      <option>1st Grade</option>
+                      <option>2nd Grade</option>
+                      <option>3rd Grade</option>
+                      <option>4th Grade</option>
+                      <option>5th Grade</option>
+                      <option>6th Grade</option>
+                      <option>Middle School</option>
+                      <option>High School</option>
+                    </select>
                   </div>
 
                   {error && (
@@ -125,7 +173,7 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
                     <div
                       key={step}
                       className={`flex items-center gap-3 text-sm font-medium transition-all duration-500 ${index === loadingStep ? 'text-purple-700 scale-105' :
-                          index < loadingStep ? 'text-slate-400' : 'text-slate-300 opacity-50'
+                        index < loadingStep ? 'text-slate-400' : 'text-slate-300 opacity-50'
                         }`}
                     >
                       {index < loadingStep ? (
