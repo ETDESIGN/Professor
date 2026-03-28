@@ -38,7 +38,7 @@ export async function signInWithPassword(
         }
 
         // Get user role from profiles table
-        const { data: profile, error: profileError } = await supabase
+        let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('id, email, role, full_name, avatar_url')
             .eq('id', data.user.id)
@@ -51,11 +51,37 @@ export async function signInWithPassword(
             };
         }
 
+        // Self-Healing: If profile doesn't exist, create it
         if (!profile) {
-            return {
-                success: false,
-                error: 'Profile setup incomplete. Please try signing up again or contact support.'
-            };
+            console.log('Profile not found, attempting self-healing...');
+
+            // Wait briefly to allow RLS policies or trigger to catch up
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const defaultRole = data.user.user_metadata?.role ? data.user.user_metadata.role.toLowerCase() : 'student';
+            const defaultFullName = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Unknown User';
+
+            const { data: newProfile, error: insertError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: data.user.id,
+                    email: data.user.email,
+                    role: defaultRole, // Will be cast to enum in Supabase if properly defined, otherwise string representation is fine for JS client
+                    full_name: defaultFullName
+                })
+                .select('id, email, role, full_name, avatar_url')
+                .single();
+
+            if (insertError) {
+                console.error('Self-healing failed:', insertError);
+                return {
+                    success: false,
+                    error: 'Profile setup incomplete. Please try signing up again or contact support.'
+                };
+            }
+
+            profile = newProfile;
+            console.log('Profile self-healed successfully:', profile);
         }
 
         return {

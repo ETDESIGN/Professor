@@ -60,7 +60,8 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         units: state.units,
         students: state.students,
-        // Exclude userProfile from persistence to ensure it's always fetched fresh from database
+        // CRITICAL: Exclude userProfile from persistence to ensure it's always fetched fresh from database
+        // and doesn't get trapped in a stale missing-profile state.
       }),
     }
   )

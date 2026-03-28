@@ -35,7 +35,7 @@ const App: React.FC = () => {
           // Always fetch fresh profile from database to avoid stale mock data
           setUserProfile(user);
         } else {
-          // Clear any stale profile data if no session exists
+          // Clear any stale profile data if no session exists or profile failed
           clearUserProfile();
           // Redirect to login if not on login or hub page
           if (location.pathname !== '/login' && location.pathname !== '/') {
