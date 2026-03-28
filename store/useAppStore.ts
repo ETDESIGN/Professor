@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MOCK_LESSON_FLOW } from './mockData';
 import { LessonUnit } from '../services/SupabaseService';
 
 interface AppState {

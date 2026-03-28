@@ -1,6 +1,5 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { MOCK_LESSON_FLOW } from './mockData';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
 import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
@@ -96,7 +95,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [state, setState] = useState<SessionState>({
     status: 'IDLE',
     currentStepIndex: 0,
-    activeSlideData: MOCK_LESSON_FLOW[0],
+    activeSlideData: null,
     activeUnit: null,
     students: [],
     pointsLog: [],

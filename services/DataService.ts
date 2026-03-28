@@ -338,14 +338,14 @@ export async function getClassAnalytics(teacherId: string): Promise<ClassAnalyti
     // Time spent: Deterministic proxy based on XP (15 XP per minute of activity)
     const timeSpent = Math.round(totalXp / 15);
 
-    // Skills: Generate from student data (placeholder until skill tracking is implemented)
-    // Use average XP as a proxy for overall skill level
-    const skills = [
-        { name: 'Speaking', score: Math.min(100, Math.round(avgXpPerStudent * 0.8)), color: 'bg-blue-500' },
-        { name: 'Listening', score: Math.min(100, Math.round(avgXpPerStudent * 0.9)), color: 'bg-green-500' },
-        { name: 'Reading', score: Math.min(100, Math.round(avgXpPerStudent)), color: 'bg-purple-500' },
-        { name: 'Grammar', score: Math.min(100, Math.round(avgXpPerStudent * 0.7)), color: 'bg-orange-500' },
-    ];
+    // Skills: Drive strictly from real xp, do not show if no xp exists.
+    let skills: { name: string; score: number; color: string }[] = [];
+    if (avgXpPerStudent > 0) {
+        skills = [
+            { name: 'General English', score: Math.min(100, Math.round(avgXpPerStudent / 10)), color: 'bg-emerald-500' },
+            { name: 'Listening', score: Math.min(100, Math.round(avgXpPerStudent / 12)), color: 'bg-blue-500' },
+        ];
+    }
 
     return {
         totalStudents: students.length,

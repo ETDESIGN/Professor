@@ -177,58 +177,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       }));
     }
 
-    // Fallback to mock playlist if no unit is selected or flow is empty
-    return [
-      {
-        type: 'LISTEN_TAP',
-        id: '1',
-        data: {
-          instruction: 'Listen and select the correct image',
-          options: [
-            { id: 1, img: 'https://img.freepik.com/free-vector/cute-lion-cartoon-character_1308-106575.jpg', label: 'Lion' },
-            { id: 2, img: 'https://img.freepik.com/free-vector/cute-elephant-sitting-cartoon-vector-icon-illustration_138676-2220.jpg', label: 'Elephant', correct: true },
-            { id: 3, img: 'https://img.freepik.com/free-vector/cute-giraffe-cartoon-vector-icon-illustration_138676-2222.jpg', label: 'Giraffe' },
-            { id: 4, img: 'https://img.freepik.com/free-vector/cute-zebra-sitting-cartoon-vector-icon-illustration_138676-2223.jpg', label: 'Zebra' },
-          ]
-        }
-      },
-      {
-        type: 'SCRAMBLE',
-        id: '2',
-        data: {
-          targetSentence: { en: "The cat is sleeping on the mat", translation: "El gato está durmiendo en la alfombra" },
-          wordBank: [
-            { id: 'w1', text: 'is' },
-            { id: 'w2', text: 'sleeping' },
-            { id: 'w3', text: 'mat' },
-            { id: 'w4', text: 'on' },
-            { id: 'w5', text: 'the' },
-            { id: 'w6', text: 'The' },
-            { id: 'w7', text: 'cat' },
-            { id: 'w8', text: 'dog' }, // Distractor
-          ]
-        }
-      },
-      {
-        type: 'SPEAKING',
-        id: '3',
-        data: {
-          targetSentence: "The quick brown fox jumps"
-        }
-      },
-      {
-        type: 'FLASH_MATCH',
-        id: '4',
-        data: {
-          pairs: [
-            { id: '1', left: 'Apple', right: 'Manzana' },
-            { id: '2', left: 'Dog', right: 'Perro' },
-            { id: '3', left: 'Cat', right: 'Gato' },
-            { id: '4', left: 'House', right: 'Casa' },
-          ]
-        }
-      }
-    ];
+    // No fallback, return empty state if no active unit or flow
+    return [];
   };
 
   const lessonPlaylist = getLessonPlaylist();
