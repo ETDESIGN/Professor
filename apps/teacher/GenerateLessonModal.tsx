@@ -52,12 +52,14 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
       const { data: newUnit, error: unitError } = await supabase
         .from('units')
         .insert({
-          title: generated.title,
+          title: generated.textContent.title,
           topic: topic,
           level: gradeLevel,
           status: 'Draft',
           lessons: 1,
-          cover_image: `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`
+          cover_image: generated.imageUrl,
+          image_url: generated.imageUrl,
+          audio_url: generated.audioUrl
         })
         .select()
         .single();
@@ -67,8 +69,8 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
       }
 
       // Insert flashcards
-      if (generated.flashcards.length > 0) {
-        const srsInserts = generated.flashcards.map(card => ({
+      if (generated.textContent.flashcards.length > 0) {
+        const srsInserts = generated.textContent.flashcards.map(card => ({
           unit_id: newUnit.id,
           word: card.question,
           translation: card.answer,

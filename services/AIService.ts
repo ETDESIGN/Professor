@@ -11,9 +11,15 @@ export interface GeneratedFlashcard {
 }
 
 export interface GeneratedLesson {
-    title: string;
-    description: string;
-    flashcards: GeneratedFlashcard[];
+    textContent: {
+        title: string;
+        description: string;
+        visual_prompt?: string;
+        spoken_intro?: string;
+        flashcards: GeneratedFlashcard[];
+    };
+    imageUrl: string;
+    audioUrl: string | null;
 }
 
 export const AIService = {
@@ -32,7 +38,7 @@ export const AIService = {
             throw new Error(error.message || 'Failed to generate lesson from AI.');
         }
 
-        if (!data || !data.title || !data.flashcards) {
+        if (!data || !data.textContent || !data.textContent.flashcards) {
             throw new Error('Received invalid data from AI generation.');
         }
 
