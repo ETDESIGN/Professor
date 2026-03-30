@@ -4,12 +4,10 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitList from './UnitList';
-import UploadTextbook from './UploadTextbook';
 import ClassManagement from './ClassManagement';
 import DashboardHome from './DashboardHome';
 import TeacherSettings from './TeacherSettings';
 import LessonTimelineBuilder from './LessonTimelineBuilder';
-import AIAssetEnrichment from './AIAssetEnrichment';
 import MobileProfileSettings from './MobileProfileSettings';
 import ResourceLibrary from './ResourceLibrary';
 import LessonEditor from './LessonEditor';
@@ -36,7 +34,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
     const loadUnits = async () => {
       try {
         const { Engine } = await import('../../services/SupabaseService');
-        const units = await Engine.getUnits();
+        const units = await Engine.fetchUnits();
         setUnits(units);
       } catch (error) {
         console.error('Failed to fetch real units:', error);
@@ -113,7 +111,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 <button onClick={() => handleNav('/teacher/mobile-editor')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-editor') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <Calendar size={20} /> Plan Lesson
                 </button>
-                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') || isActive('/teacher/upload') || isActive('/teacher/timeline-builder') || isActive('/teacher/enrichment') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') || isActive('/teacher/timeline-builder') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <BookOpen size={20} /> Curriculum
                 </button>
                 <button onClick={() => handleNav('/teacher/assignments')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
@@ -169,7 +167,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             </button>
             <button
               onClick={() => handleNav('/teacher/units')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') || isActive('/teacher/upload') || isActive('/teacher/timeline-builder') || isActive('/teacher/enrichment') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') || isActive('/teacher/timeline-builder') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <BookOpen size={20} /> Curriculum
             </button>
@@ -248,8 +246,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
           >
             <Routes location={location}>
               <Route path="" element={<DashboardHome onLaunchLive={() => navigate('/teacher/live')} />} />
-              <Route path="upload" element={<UploadTextbook onFinish={() => navigate('/teacher/enrichment')} />} />
-              <Route path="enrichment" element={<AIAssetEnrichment onBack={() => navigate('/teacher/upload')} onFinish={() => navigate('/teacher/units')} />} />
               <Route path="timeline-builder" element={<LessonTimelineBuilder onBack={() => navigate('/teacher/units')} />} />
               <Route path="mobile-editor" element={<LessonEditor onBack={() => navigate('/teacher/units')} />} />
               <Route path="students" element={<ClassManagement />} />
@@ -259,7 +255,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="settings" element={<TeacherSettings />} />
               <Route path="mobile-profile" element={<MobileProfileSettings onBack={() => navigate('/teacher')} />} />
               <Route path="library" element={<ResourceLibrary />} />
-              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={() => navigate('/teacher/studio')} onLaunchLesson={() => navigate('/teacher/live')} />} />
+              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onPlanLesson={handlePlanLesson} onEditUnit={() => navigate('/teacher/studio')} onLaunchLesson={() => navigate('/teacher/live')} />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

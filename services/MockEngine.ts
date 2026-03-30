@@ -1,5 +1,4 @@
 
-import { MOCK_LESSON_FLOW } from '../store/mockData';
 import { LessonManifest } from './geminiService';
 import { transformManifestToFlow } from './LessonTransformer';
 
@@ -34,7 +33,7 @@ const INITIAL_DB: LessonUnit[] = [
     lessons: 4,
     coverImage: 'https://api.dicebear.com/7.x/shapes/svg?seed=jungle&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be',
     lastUpdated: '2d ago',
-    flow: MOCK_LESSON_FLOW,
+    flow: [],
     topic: 'Animals',
     scannedAssets: []
   },

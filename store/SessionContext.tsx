@@ -217,7 +217,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       unit = await Engine.getUnitById(unitId);
     }
     if (unit) {
-      const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : MOCK_LESSON_FLOW;
+      const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : [];
       setState(prev => ({
         ...prev,
         activeUnit: unit,
@@ -257,7 +257,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (state.activeUnit && state.activeUnit.flow && state.activeUnit.flow.length > 0) {
       return state.activeUnit.flow;
     }
-    return MOCK_LESSON_FLOW;
+    return [];
   };
 
   const goToSlide = (index: number) => {
