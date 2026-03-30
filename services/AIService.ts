@@ -24,6 +24,22 @@ export interface GeneratedLesson {
 
 export const AIService = {
     /**
+     * Calls the Edge Function to handle real-time lesson adjustments and feedback.
+     */
+    async generateLiveFeedback(context: string): Promise<any> {
+        console.log("Generating Live Feedback via Edge Function...");
+        const { data, error } = await supabase.functions.invoke('generate-lesson', {
+            body: { action: 'live-feedback', context }
+        });
+
+        if (error) {
+            console.error('Edge Function Error:', error);
+            throw new Error(error.message || 'Failed to generate live feedback.');
+        }
+        return data;
+    },
+
+    /**
      * Calls the Generate Lesson Edge Function based on topic and grade level.
      */
     async generateLessonContent(topic: string, gradeLevel: string): Promise<GeneratedLesson> {

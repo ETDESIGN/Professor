@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from '../../store/SessionContext';
+import { AIService } from '../../services/AIService';
 import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
    Monitor, Clock, LogOut, SkipForward, Zap, PenTool, Eraser,
@@ -85,6 +86,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    // AI Intervention State
    const [showAiSuggestion, setShowAiSuggestion] = useState(false);
    const [aiSuggestionText, setAiSuggestionText] = useState("");
+   const [isGenerating, setIsGenerating] = useState(false);
 
    useEffect(() => {
       const timer = setInterval(() => setElapsedTime(t => t + 1), 1000);
@@ -724,14 +726,21 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                               </p>
                               <div className="flex gap-2">
                                  <button
-                                    onClick={() => {
-                                       setShowAiSuggestion(false);
-                                       // In a real app, this would trigger a slide generation
-                                       alert("Generating review slide...");
+                                    onClick={async () => {
+                                       setIsGenerating(true);
+                                       try {
+                                          await AIService.generateLiveFeedback(aiSuggestionText);
+                                          setShowAiSuggestion(false);
+                                       } catch (err) {
+                                          console.error("Live AI Error:", err);
+                                       } finally {
+                                          setIsGenerating(false);
+                                       }
                                     }}
-                                    className="flex-1 bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors"
+                                    disabled={isGenerating}
+                                    className="flex-1 bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors disabled:opacity-50"
                                  >
-                                    Generate
+                                    {isGenerating ? "Generating..." : "Generate"}
                                  </button>
                                  <button
                                     onClick={() => setShowAiSuggestion(false)}
