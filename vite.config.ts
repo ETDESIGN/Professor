@@ -31,12 +31,13 @@ export default defineConfig(({ mode }) => {
           short_name: 'Lessons',
           description: 'Interactive lesson platform for students and teachers',
           theme_color: '#ffffff',
-          // Icons disabled - PWA images not yet generated
           icons: []
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          cleanupOutdatedCaches: true,
+          navigateFallbackDenylist: [/^\/upload/],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
@@ -45,7 +46,7 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'dicebear-avatars',
                 expiration: {
                   maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                  maxAgeSeconds: 60 * 60 * 24 * 30
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
@@ -53,6 +54,9 @@ export default defineConfig(({ mode }) => {
               }
             }
           ]
+        },
+        devOptions: {
+          enabled: false
         }
       })
     ],
