@@ -57,8 +57,11 @@ export default defineConfig(({ mode }) => {
       })
     ],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+      // CRITICAL: Do NOT inject API keys into client bundle.
+      // All AI calls go through Supabase Edge Functions for security.
+    },
+    optimizeDeps: {
+      exclude: ['@google/genai']
     },
     resolve: {
       alias: {
