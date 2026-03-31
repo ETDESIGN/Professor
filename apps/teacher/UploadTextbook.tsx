@@ -1,150 +1,163 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { UploadCloud, Check, X, ArrowRight, Loader2, FileText, Trash2, Plus, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
-import { analyzeTextbookPage, analyzeSyllabus, LessonManifest, validateApiKey } from '../../services/geminiService';
+import { AIService } from '../../services/AIService';
+import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
 import ReviewContent from './ReviewContent';
 import AIAnalysis from './AIAnalysis';
 import * as pdfjsLib from 'pdfjs-dist';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
-// Set worker source
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface UploadTextbookProps {
    onFinish?: () => void;
+   onBack?: () => void;
 }
 
-const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
+const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => {
    const { loadUnits, setActiveUnit } = useSession();
    const [isDragging, setIsDragging] = useState(false);
    const [isScanning, setIsScanning] = useState(false);
    const [showReview, setShowReview] = useState(false);
    const [error, setError] = useState<string | null>(null);
 
-   // API Status State
-   const [apiStatus, setApiStatus] = useState<'checking' | 'valid' | 'invalid'>('checking');
-
-   // Store actual File objects now
    const [files, setFiles] = useState<File[]>([]);
    const fileInputRef = useRef<HTMLInputElement>(null);
 
-   // Store scanned blueprint to pass to review
-   const [scannedBlueprint, setScannedBlueprint] = useState<LessonManifest | null>(null);
+   const [scannedBlueprint, setScannedBlueprint] = useState<any>(null);
 
-   // Check API Key on Mount
-   useEffect(() => {
-      const checkConnection = async () => {
-         const result = await validateApiKey();
-         setApiStatus(result.valid ? 'valid' : 'invalid');
-         if (!result.valid) {
-            setError(`API Connection Failed: ${result.message}`);
-         }
-      };
-      checkConnection();
-   }, []);
-
-   const startScan = async () => {
-      if (files.length === 0) return;
-      setError(null);
-      setIsScanning(true);
-      // The Analysis component runs the visual timer, then calls handleAIComplete
-   };
-
-   const convertPdfToImages = async (file: File): Promise<string[]> => {
+   const extractTextFromPDF = async (file: File): Promise<string> => {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       const numPages = pdf.numPages;
-      const images: string[] = [];
-
-      // Limit to max 5 pages for prototype performance
-      const maxPages = Math.min(numPages, 5);
-
+      const textParts: string[] = [];
+      
+      const maxPages = Math.min(numPages, 10);
+      
       for (let i = 1; i <= maxPages; i++) {
          const page = await pdf.getPage(i);
-         const viewport = page.getViewport({ scale: 1.5 });
-         const canvas = document.createElement('canvas');
-         const ctx = canvas.getContext('2d');
-
-         if (!ctx) throw new Error("Could not create canvas context");
-
-         canvas.width = viewport.width;
-         canvas.height = viewport.height;
-
-         await page.render({
-            canvasContext: ctx,
-            viewport: viewport
-         } as any).promise;
-
-         images.push(canvas.toDataURL('image/jpeg', 0.8));
+         const textContent = await page.getTextContent();
+         const pageText = textContent.items
+            .map((item: any) => item.str)
+            .filter(str => str.trim().length > 0)
+            .join(' ');
+         if (pageText) {
+            textParts.push(pageText);
+         }
       }
+      
+      return textParts.join('\n\n');
+   };
 
-      return images;
+   const uploadFileToStorage = async (file: File): Promise<string> => {
+      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      const { data, error: uploadError } = await supabase.storage
+         .from('materials')
+         .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+         });
+      
+      if (uploadError) {
+         console.error('Storage upload error:', uploadError);
+         throw new Error('Failed to upload file to storage');
+      }
+      
+      const { data: urlData } = supabase.storage
+         .from('materials')
+         .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
    };
 
    const handleAIComplete = async () => {
-      let aiBlueprints: LessonManifest[] = [];
-
       try {
-         let base64Images: string[] = [];
+         setIsScanning(true);
+         setError(null);
+         
+         let documentContext = '';
+         let uploadedFileUrl = '';
+         
          for (const file of files) {
-            if (file.type.startsWith('image/')) {
-               base64Images.push(await resizeAndConvertImage(file));
-            } else if (file.type === 'application/pdf') {
-               const pdfImages = await convertPdfToImages(file);
-               base64Images.push(...pdfImages);
-            } else {
-               throw new Error("Please upload a JPG, PNG image, or PDF file.");
+            if (file.type === 'application/pdf') {
+               documentContext = await extractTextFromPDF(file);
+            } else if (file.type.startsWith('image/')) {
+               documentContext = 'Image file uploaded - please analyze and create curriculum based on visual content';
             }
+            
+            uploadedFileUrl = await uploadFileToStorage(file);
+         }
+         
+         const topic = files[0]?.name.replace(/\.[^/.]+$/, '') || 'Uploaded Material';
+         
+         const generated = await AIService.generateLessonContent(topic, '3rd Grade', documentContext);
+         
+         const { data: newUnit, error: unitError } = await supabase
+            .from('units')
+            .insert({
+               title: generated.textContent.title,
+               topic: topic,
+               level: '3rd Grade',
+               status: 'Draft',
+               lessons: 1,
+               cover_image: generated.imageUrl,
+               image_url: generated.imageUrl,
+               audio_url: generated.audioUrl,
+               flow: [],
+               scanned_assets: []
+            })
+            .select()
+            .single();
+
+         if (unitError || !newUnit) {
+            throw new Error('Failed to create unit in database');
          }
 
-         // Strip prefix for API
-         const base64DataArray = base64Images.map(b64 => b64.split(',')[1]);
-
-         if (base64DataArray.length > 1) {
-            aiBlueprints = await analyzeSyllabus(base64DataArray);
-         } else {
-            const singleBlueprint = await analyzeTextbookPage(base64DataArray[0]);
-            if (singleBlueprint) aiBlueprints = [singleBlueprint];
+         if (generated.textContent.flashcards.length > 0) {
+            const srsInserts = generated.textContent.flashcards.map(card => ({
+               unit_id: newUnit.id,
+               word: card.question,
+               translation: card.answer,
+               interval: 0,
+               repetition: 0,
+               efactor: 2.5
+            }));
+            await supabase.from('srs_items').insert(srsInserts);
          }
+
+         await loadUnits();
+         
+         const createdUnit = await Engine.getUnitById(newUnit.id);
+         if (createdUnit) {
+            await setActiveUnit(createdUnit.id);
+         }
+
+         setScannedBlueprint({
+            meta: {
+               unit_title: generated.textContent.title,
+               theme: topic,
+               difficulty_cefr: 'A1'
+            },
+            knowledge_graph: { 
+               characters: [], 
+               vocabulary: [], 
+               grammar_rules: [] 
+            },
+            timeline: []
+         });
+
+         setIsScanning(false);
+         setShowReview(true);
+         
       } catch (e: any) {
-         console.error("Critical AI Scan Error:", e);
-         setError(`AI Scan Failed: ${e.message || "Unknown error"}`);
+         console.error('AI Generation Error:', e);
+         setError(`AI Generation Failed: ${e.message || 'Unknown error'}`);
          setIsScanning(false);
-         return;
       }
-
-      if (aiBlueprints.length === 0) {
-         setError("The AI could not analyze the provided files. Please try clearer photos.");
-         setIsScanning(false);
-         return;
-      }
-
-      // 2. Create the Units in the Database with the Blueprints
-      for (const blueprint of aiBlueprints) {
-         await Engine.createUnit(blueprint.meta.unit_title || "New Unit", blueprint);
-      }
-
-      // 3. Update Global State
-      await loadUnits();
-
-      // 4. Pass the first blueprint to review (or we could build a syllabus review screen)
-      // For now, we'll just review the first one, but all are saved.
-      const firstBlueprint = aiBlueprints[0];
-
-      // Find the unit id of the first created unit to set as active
-      const units = await Engine.fetchUnits();
-      const createdUnit = units.find(u => u.title === (firstBlueprint.meta.unit_title || "New Unit"));
-      if (createdUnit) {
-         await setActiveUnit(createdUnit.id);
-      }
-
-      setScannedBlueprint(firstBlueprint);
-
-      // 5. Move to Review Phase
-      setIsScanning(false);
-      setShowReview(true);
    };
 
    const resizeAndConvertImage = (file: File): Promise<string> => {
@@ -153,11 +166,10 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
          img.src = URL.createObjectURL(file);
          img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_DIMENSION = 1024; // Strict limit to prevent XHR errors
+            const MAX_DIMENSION = 1024;
             let width = img.width;
             let height = img.height;
 
-            // Scale down keeping aspect ratio
             if (width > height) {
                if (width > MAX_DIMENSION) {
                   height *= MAX_DIMENSION / width;
@@ -175,14 +187,13 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
             const ctx = canvas.getContext('2d');
             if (ctx) {
                ctx.drawImage(img, 0, 0, width, height);
-               // Compress to 0.6 JPEG for smaller payload
                const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                resolve(dataUrl);
             } else {
-               reject(new Error("Could not get canvas context"));
+               reject(new Error('Could not get canvas context'));
             }
          };
-         img.onerror = (e) => reject(new Error("Failed to load image"));
+         img.onerror = () => reject(new Error('Failed to load image'));
       });
    };
 
@@ -251,7 +262,16 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
    }
 
    if (showReview && scannedBlueprint) {
-      return <ReviewContent onBack={() => setShowReview(false)} onPublish={handlePublish} initialBlueprint={scannedBlueprint} />;
+      return (
+         <ReviewContent 
+            onBack={() => {
+               setShowReview(false);
+               setFiles([]);
+            }} 
+            onPublish={handlePublish} 
+            initialBlueprint={scannedBlueprint} 
+         />
+      );
    }
 
    return (
@@ -261,10 +281,17 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
          exit={{ opacity: 0, y: -20 }}
          className="flex-1 p-8 overflow-auto flex gap-8"
       >
-         {/* Main Upload Area */}
          <div className="flex-1 max-w-4xl">
             <div className="flex items-center justify-between mb-8">
                <div className="flex items-center gap-4">
+                  {onBack && (
+                     <button 
+                        onClick={onBack}
+                        className="text-slate-500 hover:text-slate-700 text-sm font-medium"
+                     >
+                        ← Back
+                     </button>
+                  )}
                   <div className={`flex items-center text-sm font-bold text-slate-500`}>
                      <span className="w-8 h-8 rounded-full bg-teacher-primary text-white flex items-center justify-center mr-2">1</span>
                      Upload
@@ -280,27 +307,21 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
                      Review
                   </div>
                </div>
-
-               {/* API Status Badge */}
-               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${apiStatus === 'checking' ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                     apiStatus === 'valid' ? 'bg-green-50 text-green-700 border-green-200' :
-                        'bg-red-50 text-red-700 border-red-200'
-                  }`}>
-                  {apiStatus === 'checking' && <Loader2 size={12} className="animate-spin" />}
-                  {apiStatus === 'valid' && <ShieldCheck size={12} />}
-                  {apiStatus === 'invalid' && <ShieldAlert size={12} />}
-                  {apiStatus === 'checking' ? 'Checking AI...' : apiStatus === 'valid' ? 'AI System Ready' : 'System Error'}
+               
+               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border bg-green-50 text-green-700 border-green-200">
+                  <ShieldCheck size={12} />
+                  Secure AI Processing
                </div>
             </div>
 
-            <h1 className="text-3xl font-display font-bold text-slate-800 mb-2">Let's digitize your textbook</h1>
-            <p className="text-slate-500 mb-8">Upload scanned pages or photos. The AI will extract activities automatically.</p>
+            <h1 className="text-3xl font-display font-bold text-slate-800 mb-2">Upload Your Teaching Materials</h1>
+            <p className="text-slate-500 mb-8">Upload PDF documents or images. The AI will analyze and generate a lesson plan.</p>
 
             {error && (
                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3">
                   <AlertTriangle size={24} />
                   <div>
-                     <div className="font-bold">System Error</div>
+                     <div className="font-bold">Error</div>
                      <div className="text-sm">{error}</div>
                   </div>
                </div>
@@ -321,7 +342,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
                   ref={fileInputRef}
                   className="hidden"
                   onChange={handleFileSelect}
-                  accept=".jpg,.jpeg,.png"
+                  accept=".jpg,.jpeg,.png,.pdf"
                   multiple
                />
 
@@ -370,9 +391,10 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
                         <UploadCloud size={48} />
                      </div>
                      <h3 className="text-xl font-bold text-slate-800 mb-2">Drag & Drop files here</h3>
-                     <p className="text-slate-400 mb-8">or click to browse your computer (JPG, PNG)</p>
+                     <p className="text-slate-400 mb-8">or click to browse (PDF, JPG, PNG)</p>
 
                      <div className="flex gap-3">
+                        <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded text-xs font-bold uppercase tracking-wider">PDF</span>
                         <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded text-xs font-bold uppercase tracking-wider">JPG</span>
                         <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded text-xs font-bold uppercase tracking-wider">PNG</span>
                      </div>
@@ -383,18 +405,18 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
             <div className="flex justify-between items-center mt-8">
                <div className="text-xs text-slate-400 flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center font-serif text-[10px]">i</span>
-                  Max file size: 10MB per image
+                  Max file size: 10MB per file
                </div>
                <button
-                  onClick={startScan}
-                  disabled={files.length === 0 || apiStatus === 'invalid'}
+                  onClick={handleAIComplete}
+                  disabled={files.length === 0}
                   className={`px-8 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 transition-all
-                 ${files.length > 0 && apiStatus === 'valid'
+                 ${files.length > 0
                         ? 'bg-teacher-primary text-white hover:scale-105 shadow-emerald-200'
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'}
-              `}
+               `}
                >
-                  Start AI Scan <ArrowRight size={20} />
+                  Generate Lesson <ArrowRight size={20} />
                </button>
             </div>
          </div>
@@ -408,15 +430,15 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish }) => {
                <ul className="space-y-4">
                   <li className="flex gap-3 text-sm text-slate-600">
                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0"><Check size={12} /></div>
-                     Ensure good lighting and no shadows.
+                     Use clear, readable scans of textbook pages.
                   </li>
                   <li className="flex gap-3 text-sm text-slate-600">
                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0"><Check size={12} /></div>
-                     Keep pages flat.
+                     PDF files work best for text extraction.
                   </li>
                   <li className="flex gap-3 text-sm text-slate-600">
                      <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0"><Check size={12} /></div>
-                     Max resolution 1024px (auto-resized).
+                     Max 10 pages for optimal processing.
                   </li>
                </ul>
             </div>

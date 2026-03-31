@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import UnitPreviewModal from './UnitPreviewModal';
 import GenerateLessonModal from './GenerateLessonModal';
 import { useSession } from '../../store/SessionContext';
 
 interface UnitListProps {
   onNewUnit: () => void;
+  onUploadMaterial?: () => void;
   onEditUnit?: () => void;
   onPlanLesson?: () => void;
   onLaunchLesson?: () => void; 
@@ -28,11 +29,12 @@ const itemVariants: any = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
-const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onEditUnit, onPlanLesson, onLaunchLesson }) => {
+const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEditUnit, onPlanLesson, onLaunchLesson }) => {
   const { state, loadUnits, setActiveUnit, startSession, goToSlide } = useSession();
   const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showNewUnitModal, setShowNewUnitModal] = useState(false);
 
   // Ensure we have fresh data on mount
   useEffect(() => {
@@ -78,7 +80,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onEditUnit, onPlanLesson
              <Wand2 size={20} /> Generate Lesson
            </button>
            <button 
-             onClick={onNewUnit}
+             onClick={() => setShowNewUnitModal(true)}
              className="bg-teacher-primary hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95"
            >
              <span className="text-xl">+</span> New Unit
@@ -230,10 +232,78 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onEditUnit, onPlanLesson
           onClose={() => setShowGenerateModal(false)}
           onSuccess={(unitId) => {
             setShowGenerateModal(false);
-            // Optionally, we could automatically select the new unit or open it
           }}
         />
       )}
+
+      {/* New Unit Options Modal */}
+      <AnimatePresence>
+        {showNewUnitModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => setShowNewUnitModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-slate-100">
+                <h2 className="text-xl font-bold text-slate-800">Create New Unit</h2>
+                <p className="text-slate-500 text-sm mt-1">Choose how you want to create your lesson</p>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <button
+                  onClick={() => {
+                    setShowNewUnitModal(false);
+                    onNewUnit?.();
+                  }}
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center gap-4 text-left group"
+                >
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all">
+                    <Wand2 size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800">Generate from Topic</h3>
+                    <p className="text-sm text-slate-500">Enter a topic and let AI create a lesson</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowNewUnitModal(false);
+                    onUploadMaterial?.();
+                  }}
+                  className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all flex items-center gap-4 text-left group"
+                >
+                  <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                    <Upload size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800">Upload Material</h3>
+                    <p className="text-sm text-slate-500">Upload PDF or images for AI to analyze</p>
+                  </div>
+                </button>
+              </div>
+
+              <div className="px-6 pb-6">
+                <button
+                  onClick={() => setShowNewUnitModal(false)}
+                  className="w-full py-2 text-slate-500 font-medium hover:text-slate-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

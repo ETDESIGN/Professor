@@ -28,76 +28,48 @@ These generations execute concurrently using `Promise.all` and are hydrated dire
 
 ---
 
-## 🚨 CRITICAL AUDIT: Course Generation Pipeline Regression (March 2026)
+## ✅ Upload Pipeline RESTORED (April 2026)
 
-### Problem Statement
-The "Add New Unit" workflow in the Teacher app has regressed. When clicking the button:
-- **Expected Flow**: Upload Material → AI Analyze → Generate Lesson Plan
-- **Actual Flow**: Skips directly to the Lesson Plan Builder / Timeline Editor
+### What Was Fixed
 
-### Audit Findings
+1. **Storage Bucket Created** (`supabase/migrations/20260401000000_create_storage_bucket.sql`)
+   - Created public bucket named `materials` for uploaded PDFs/images
+   - RLS policies: authenticated users can INSERT, SELECT, UPDATE, DELETE their own files
 
-#### 1. UI Flow Analysis
-**Entry Point**: `apps/teacher/UnitList.tsx` (Line 81)
-- "New Unit" button calls `onNewUnit` prop which navigates to `/teacher/timeline-builder` (LessonTimelineBuilder)
-- This bypasses the file upload step entirely!
+2. **Edge Function Upgraded** (`supabase/functions/generate-lesson/index.ts`)
+   - Added `documentContext` parameter for file-based curriculum generation
+   - If documentContext provided, AI uses it as primary source (not hallucinating)
+   - Added `action` routing to support both topic-based and document-based generation
 
-**Orphaned Component**: `apps/teacher/UploadTextbook.tsx`
-- This component exists and is fully functional (file drag/drop, PDF conversion, AI analysis)
-- **NOT CONNECTED** to the main routing in TeacherDashboard.tsx
-- Contains complete implementation: PDF→Images→AI Analysis→Review→Publish
+3. **UploadTextbook.tsx Refactored** (`apps/teacher/UploadTextbook.tsx`)
+   - Removed all client-side AI SDK imports (@google/generative-ai, GEMINI_API_KEY)
+   - Added Supabase Storage upload: `supabase.storage.from('materials').upload()`
+   - Added PDF text extraction using pdfjs-dist
+   - Now calls secure AIService with extracted documentContext
 
-#### 2. Generate Lesson Modal
-**Entry Point**: `apps/teacher/UnitList.tsx` (Line 75-79)
-- "Generate Lesson" button opens `GenerateLessonModal`
-- This only takes `topic` + `gradeLevel` as input
-- Does NOT accept file uploads
-- Calls `AIService.generateLessonContent(topic, gradeLevel)` which invokes Edge Function
-- Edge Function only accepts `topic` and `gradeLevel` - **NO FILE SUPPORT**
+4. **UI Flow Reconnected** (`apps/teacher/UnitList.tsx` & `TeacherDashboard.tsx`)
+   - "New Unit" now shows modal with two options:
+     - **Generate from Topic**: Opens existing GenerateLessonModal (topic + gradeLevel)
+     - **Upload Material**: Navigates to `/teacher/upload` for file-based generation
+   - Added route `/teacher/upload` in TeacherDashboard.tsx
 
-#### 3. Upload & AI Architecture Gap
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `UploadTextbook.tsx` | ✅ Complete | Full PDF/Image upload, PDF.js conversion, AI analysis |
-| `generate-lesson` Edge Function | ⚠️ Partial | Only accepts `topic` + `gradeLevel`, NO file handling |
-| `AIService.ts` | ⚠️ Partial | Only has `generateLessonContent(topic, gradeLevel)` |
-| Supabase Storage | ❌ Not configured | No bucket for uploaded PDFs |
-| Text Extraction | ❌ Not connected | pdfjs-dist exists but results not used in pipeline |
+5. **AIService Enhanced** (`services/AIService.ts`)
+   - Added optional `documentContext` parameter to `generateLessonContent()`
+   - Forwards document text to Edge Function for curriculum generation
 
-### Root Cause
-The "Upload Material" step was **intentionally or accidentally removed** from the routing. The `UploadTextbook.tsx` component is complete but disconnected.
+### Migration Required
+To enable the storage bucket, run:
+```bash
+# Apply migration to remote database
+npx supabase db push
+# OR manually run the SQL in Supabase SQL Editor
+```
 
----
-
-## 📋 Integration Roadmap: Restore File Upload Pipeline
-
-### Phase A: Connect Upload Screen to Routing (Quick Fix)
-1. Add route for `/teacher/upload` in `TeacherDashboard.tsx`
-2. Add navigation from "New Unit" to first show upload options
-3. OR: Add a "From File" vs "From Scratch" choice in UnitList
-
-### Phase B: Add Supabase Storage for File Persistence
-1. Create Supabase Storage bucket `textbook-uploads` (or similar)
-2. Update `UploadTextbook.tsx` to upload files to Supabase Storage
-3. Store file URL in database alongside generated unit
-
-### Phase C: Extend Edge Function for File Processing
-1. Add new action type in `generate-lesson` Edge Function: `analyze-document`
-2. Accept `fileUrl` (Supabase Storage URL) or base64 image data
-3. Add text extraction logic: If PDF, use pdf.js in Edge Function (or pre-convert in frontend)
-4. Pass extracted text to LLM for curriculum generation
-
-### Phase D: Connect Frontend to Edge Function
-1. Add `AIService.analyzeDocument(fileData)` method
-2. Pass document to Edge Function with `action: 'analyze-document'`
-3. Handle the manifest response and create unit
-
-### Implementation Priority Order
-1. **Highest**: Restore basic navigation - show Upload option when creating unit
-2. **High**: Connect UploadTextbook results to Unit creation
-3. **Medium**: Add Supabase Storage for file persistence
-4. **Low**: Extend Edge Function for full document analysis
+To deploy the updated Edge Function:
+```bash
+npx supabase functions deploy generate-lesson --no-verify-jwt
+```
 
 ---
 
-## Status: Awaiting Implementation
+## Status: Upload Pipeline Active & Secure

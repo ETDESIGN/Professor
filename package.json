@@ -10,7 +10,6 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@google/genai": "^1.46.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@supabase/supabase-js": "^2.99.3",
     "canvas-confetti": "^1.9.4",

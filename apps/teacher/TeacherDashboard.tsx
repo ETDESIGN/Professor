@@ -14,6 +14,7 @@ import LessonEditor from './LessonEditor';
 import Assignments from './Assignments';
 import Reports from './Reports';
 import TeacherMessages from './TeacherMessages';
+import UploadTextbook from './UploadTextbook';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
 
@@ -248,6 +249,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="" element={<DashboardHome onLaunchLive={() => navigate('/teacher/live')} />} />
               <Route path="timeline-builder" element={<LessonTimelineBuilder onBack={() => navigate('/teacher/units')} />} />
               <Route path="mobile-editor" element={<LessonEditor onBack={() => navigate('/teacher/units')} />} />
+              <Route path="upload" element={<UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} />} />
               <Route path="students" element={<ClassManagement />} />
               <Route path="assignments" element={<Assignments />} />
               <Route path="messages" element={<TeacherMessages onBack={() => navigate('/teacher')} />} />
@@ -255,7 +257,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="settings" element={<TeacherSettings />} />
               <Route path="mobile-profile" element={<MobileProfileSettings onBack={() => navigate('/teacher')} />} />
               <Route path="library" element={<ResourceLibrary />} />
-              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onPlanLesson={handlePlanLesson} onEditUnit={() => navigate('/teacher/studio')} onLaunchLesson={() => navigate('/teacher/live')} />} />
+              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={() => navigate('/teacher/studio')} onLaunchLesson={() => navigate('/teacher/live')} />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
