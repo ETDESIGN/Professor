@@ -36,6 +36,12 @@ export const AIService = {
             console.error('Edge Function Error:', error);
             throw new Error(error.message || 'Failed to generate live feedback.');
         }
+
+        if (data && data.success === false) {
+            console.error('Edge Function reported error:', data.error);
+            throw new Error(data.error || 'Edge Function failed');
+        }
+
         return data;
     },
 
@@ -56,6 +62,12 @@ export const AIService = {
         if (error) {
             console.error('Edge Function Error:', error);
             throw new Error(error.message || 'Failed to generate lesson from AI.');
+        }
+
+        // Check if Edge Function returned an error in the body
+        if (data && data.success === false) {
+            console.error('Edge Function reported error:', data.error);
+            throw new Error(data.error || 'Edge Function failed');
         }
 
         if (!data || !data.textContent || !data.textContent.flashcards) {

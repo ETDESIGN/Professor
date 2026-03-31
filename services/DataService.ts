@@ -97,7 +97,7 @@ export async function getClassStudents(classId: string): Promise<StudentWithProg
  * Get all students across all teacher's classes
  */
 export async function getTeacherStudents(teacherId: string): Promise<StudentWithProgress[]> {
-    // Step 1: Fetch class IDs for this teacher
+    // Query 1: Fetch class IDs for this teacher
     const { data: classes, error: classError } = await supabase
         .from('classes')
         .select('id')
@@ -111,7 +111,7 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
     const classIds = (classes || []).map(c => c.id);
     if (classIds.length === 0) return [];
 
-    // Step 2: Fetch student IDs from enrollments
+    // Query 2: Fetch enrollments
     const { data: enrollments, error: enrollmentError } = await supabase
         .from('class_enrollments')
         .select('student_id')
@@ -122,13 +122,14 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         throw enrollmentError;
     }
 
+    // Query 3: Extract unique student IDs
     const studentIds = [...new Set((enrollments || []).map(e => e.student_id))];
     if (studentIds.length === 0) return [];
 
-    // Step 3: Fetch profiles with student_progress
+    // Query 4: Fetch profiles (no nested joins)
     const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('*, student_progress(*)')
+        .select('id, email, full_name, avatar_url')
         .in('id', studentIds);
 
     if (profileError) {
@@ -136,19 +137,35 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         throw profileError;
     }
 
-    // Map to expected format
+    // Query 5: Fetch student_progress separately
+    const { data: progressData, error: progressError } = await supabase
+        .from('student_progress')
+        .select('student_id, xp, streak, current_unit_id, completed_unit_ids')
+        .in('student_id', studentIds);
+
+    if (progressError) {
+        console.error('Error fetching student progress:', progressError);
+        // Don't throw - use default progress values
+    }
+
+    // Manually merge profiles and progress in JavaScript
+    const progressMap = new Map();
+    (progressData || []).forEach(p => {
+        progressMap.set(p.student_id, p);
+    });
+
     return (profiles || []).map((p: any) => {
-        const progress = p.student_progress?.[0];
+        const progress = progressMap.get(p.id) || {};
         return {
             id: p.id,
             email: p.email,
             full_name: p.full_name,
             avatar_url: p.avatar_url,
             student_id: p.id,
-            xp: progress?.xp || 0,
-            streak: progress?.streak || 0,
-            current_unit_id: progress?.current_unit_id || null,
-            completed_unit_ids: progress?.completed_unit_ids || [],
+            xp: progress.xp || 0,
+            streak: progress.streak || 0,
+            current_unit_id: progress.current_unit_id || null,
+            completed_unit_ids: progress.completed_unit_ids || [],
         };
     });
 }

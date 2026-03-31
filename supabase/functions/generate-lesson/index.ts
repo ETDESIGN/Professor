@@ -11,7 +11,8 @@ serve(async (req) => {
     }
 
     try {
-        const { topic, gradeLevel, documentContext, action } = await req.json()
+        const body = await req.json()
+        const { topic, gradeLevel, documentContext, action } = body
 
         // Determine action - default to 'generate-lesson'
         const actionType = action || 'generate-lesson';
@@ -27,9 +28,9 @@ serve(async (req) => {
 
     } catch (error) {
         console.error('Edge Function Error:', error.message)
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({ success: false, error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+            status: 200,
         })
     }
 });
