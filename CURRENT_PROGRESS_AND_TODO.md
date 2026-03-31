@@ -58,12 +58,27 @@ These generations execute concurrently using `Promise.all` and are hydrated dire
    - Forwards document text to Edge Function for curriculum generation
 
 ### Migration Required
-To enable the storage bucket, run:
+To enable the storage bucket with updated RLS policies, run:
 ```bash
 # Apply migration to remote database
 npx supabase db push
 # OR manually run the SQL in Supabase SQL Editor
 ```
+
+**RLS Policy Updates** (`20260401000001_update_storage_rls_policies.sql`):
+- Teachers can INSERT (upload) files to materials bucket
+- All authenticated users can SELECT (read/download) files
+- Removed unrestricted UPDATE/DELETE policies
+
+To deploy the updated Edge Function:
+```bash
+npx supabase functions deploy generate-lesson --no-verify-jwt
+```
+
+**RLS Policy Updates** (`20260401000001_update_storage_rls_policies.sql`):
+- Teachers can INSERT (upload) files to materials bucket
+- All authenticated users can SELECT (read/download) files
+- Removed unrestricted UPDATE/DELETE policies
 
 To deploy the updated Edge Function:
 ```bash
