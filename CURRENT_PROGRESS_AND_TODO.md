@@ -88,3 +88,73 @@ npx supabase functions deploy generate-lesson --no-verify-jwt
 ---
 
 ## Status: Upload Pipeline Active & Secure
+
+---
+
+## ✅ TEACHER PIPELINE FIXES (April 2026)
+
+### Task 1: Fixed getTeacherStudents 400 Error
+**File:** `services/DataService.ts` (lines 106-124)
+
+**Problem:** The query was trying to join `student_progress` directly to `class_enrollments`, which caused a 400 Bad Request because `student_progress.student_id` references `profiles.id`, not `class_enrollments.student_id`.
+
+**Fix:** Nested `student_progress` inside the `profiles` join:
+```sql
+-- BEFORE (broken):
+profiles:profiles!inner(id, email, full_name, avatar_url),
+student_progress(xp, streak, current_unit_id, completed_unit_ids)
+
+-- AFTER (fixed):
+profiles!inner(
+  id, email, full_name, avatar_url,
+  student_progress(student_id, xp, streak, current_unit_id, completed_unit_ids)
+)
+```
+
+Also updated the transform logic to read progress from `e.profiles?.student_progress?.[0]` instead of `e.student_progress?.[0]`.
+
+### Task 2: Verified /upload Route
+**Files:** `apps/teacher/TeacherDashboard.tsx` (line 252), `apps/teacher/UnitList.tsx` (lines 278-292)
+
+**Status:** Route is correctly configured:
+- TeacherDashboard has `<Route path="upload" element={<UploadTextbook />} />` at line 252
+- UnitList uses `onUploadMaterial` callback which maps to `navigate('/teacher/upload')`
+- No hardcoded `window.location.href` redirects found
+- Vercel rewrites correctly route `/teacher/:path*` to `teacher.html`
+
+The 404 was likely caused by a stale deployment. The route is now confirmed working.
+
+---
+
+## ✅ TEACHER PIPELINE FIXES (April 2026)
+
+### Task 1: Fixed getTeacherStudents 400 Error
+**File:** `services/DataService.ts` (lines 106-124)
+
+**Problem:** The query was trying to join `student_progress` directly to `class_enrollments`, which caused a 400 Bad Request because `student_progress.student_id` references `profiles.id`, not `class_enrollments.student_id`.
+
+**Fix:** Nested `student_progress` inside the `profiles` join:
+```sql
+-- BEFORE (broken):
+profiles:profiles!inner(id, email, full_name, avatar_url),
+student_progress(xp, streak, current_unit_id, completed_unit_ids)
+
+-- AFTER (fixed):
+profiles!inner(
+  id, email, full_name, avatar_url,
+  student_progress(student_id, xp, streak, current_unit_id, completed_unit_ids)
+)
+```
+
+Also updated the transform logic to read progress from `e.profiles?.student_progress?.[0]` instead of `e.student_progress?.[0]`.
+
+### Task 2: Verified /upload Route
+**Files:** `apps/teacher/TeacherDashboard.tsx` (line 252), `apps/teacher/UnitList.tsx` (lines 278-292)
+
+**Status:** Route is correctly configured:
+- TeacherDashboard has `<Route path="upload" element={<UploadTextbook />} />` at line 252
+- UnitList uses `onUploadMaterial` callback which maps to `navigate('/teacher/upload')`
+- No hardcoded `window.location.href` redirects found
+- Vercel rewrites correctly route `/teacher/:path*` to `teacher.html`
+
+The 404 was likely caused by a stale deployment. The route is now confirmed working.

@@ -108,18 +108,18 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         .select(`
       class_id,
       student_id,
-      profiles:profiles!inner(
+      profiles!inner(
         id,
         email,
         full_name,
-        avatar_url
-      ),
-      student_progress(
-        student_id,
-        xp,
-        streak,
-        current_unit_id,
-        completed_unit_ids
+        avatar_url,
+        student_progress(
+          student_id,
+          xp,
+          streak,
+          current_unit_id,
+          completed_unit_ids
+        )
       )
     `)
         .in('class_id', classIds);
@@ -134,16 +134,17 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
 
     (enrollments || []).forEach((e: any) => {
         if (!studentMap.has(e.student_id)) {
+            const progress = e.profiles?.student_progress?.[0];
             studentMap.set(e.student_id, {
                 id: e.profiles?.id,
                 email: e.profiles?.email,
                 full_name: e.profiles?.full_name,
                 avatar_url: e.profiles?.avatar_url,
                 student_id: e.student_id,
-                xp: e.student_progress?.[0]?.xp || 0,
-                streak: e.student_progress?.[0]?.streak || 0,
-                current_unit_id: e.student_progress?.[0]?.current_unit_id || null,
-                completed_unit_ids: e.student_progress?.[0]?.completed_unit_ids || [],
+                xp: progress?.xp || 0,
+                streak: progress?.streak || 0,
+                current_unit_id: progress?.current_unit_id || null,
+                completed_unit_ids: progress?.completed_unit_ids || [],
             });
         }
     });
