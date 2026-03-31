@@ -97,59 +97,60 @@ export async function getClassStudents(classId: string): Promise<StudentWithProg
  * Get all students across all teacher's classes
  */
 export async function getTeacherStudents(teacherId: string): Promise<StudentWithProgress[]> {
-    // First get all class IDs for this teacher
-    const classes = await getTeacherClasses(teacherId);
-    const classIds = classes.map(c => c.id);
+    // Step 1: Fetch class IDs for this teacher
+    const { data: classes, error: classError } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('teacher_id', teacherId);
 
-    if (classIds.length === 0) return [];
-
-    const { data: enrollments, error } = await supabase
-        .from('class_enrollments')
-        .select(`
-      class_id,
-      student_id,
-      profiles!inner(
-        id,
-        email,
-        full_name,
-        avatar_url,
-        student_progress(
-          student_id,
-          xp,
-          streak,
-          current_unit_id,
-          completed_unit_ids
-        )
-      )
-    `)
-        .in('class_id', classIds);
-
-    if (error) {
-        console.error('Error fetching teacher students:', error);
-        throw error;
+    if (classError) {
+        console.error('Error fetching teacher classes:', classError);
+        throw classError;
     }
 
-    // Transform and dedupe students (in case they're in multiple classes)
-    const studentMap = new Map<string, StudentWithProgress>();
+    const classIds = (classes || []).map(c => c.id);
+    if (classIds.length === 0) return [];
 
-    (enrollments || []).forEach((e: any) => {
-        if (!studentMap.has(e.student_id)) {
-            const progress = e.profiles?.student_progress?.[0];
-            studentMap.set(e.student_id, {
-                id: e.profiles?.id,
-                email: e.profiles?.email,
-                full_name: e.profiles?.full_name,
-                avatar_url: e.profiles?.avatar_url,
-                student_id: e.student_id,
-                xp: progress?.xp || 0,
-                streak: progress?.streak || 0,
-                current_unit_id: progress?.current_unit_id || null,
-                completed_unit_ids: progress?.completed_unit_ids || [],
-            });
-        }
+    // Step 2: Fetch student IDs from enrollments
+    const { data: enrollments, error: enrollmentError } = await supabase
+        .from('class_enrollments')
+        .select('student_id')
+        .in('class_id', classIds);
+
+    if (enrollmentError) {
+        console.error('Error fetching enrollments:', enrollmentError);
+        throw enrollmentError;
+    }
+
+    const studentIds = [...new Set((enrollments || []).map(e => e.student_id))];
+    if (studentIds.length === 0) return [];
+
+    // Step 3: Fetch profiles with student_progress
+    const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*, student_progress(*)')
+        .in('id', studentIds);
+
+    if (profileError) {
+        console.error('Error fetching student profiles:', profileError);
+        throw profileError;
+    }
+
+    // Map to expected format
+    return (profiles || []).map((p: any) => {
+        const progress = p.student_progress?.[0];
+        return {
+            id: p.id,
+            email: p.email,
+            full_name: p.full_name,
+            avatar_url: p.avatar_url,
+            student_id: p.id,
+            xp: progress?.xp || 0,
+            streak: progress?.streak || 0,
+            current_unit_id: progress?.current_unit_id || null,
+            completed_unit_ids: progress?.completed_unit_ids || [],
+        };
     });
-
-    return Array.from(studentMap.values());
 }
 
 /**

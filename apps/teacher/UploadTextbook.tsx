@@ -92,9 +92,9 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             uploadedFileUrl = await uploadFileToStorage(file);
          }
          
-         const topic = files[0]?.name.replace(/\.[^/.]+$/, '') || 'Uploaded Material';
-         
-         const generated = await AIService.generateLessonContent(topic, '3rd Grade', documentContext);
+          const topic = files[0]?.name.replace(/\.[^/.]+$/, '') || 'Document Summary';
+          
+          const generated = await AIService.generateLessonContent(topic || "Document Summary", "General", documentContext);
          
          const { data: newUnit, error: unitError } = await supabase
             .from('units')

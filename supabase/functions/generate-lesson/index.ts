@@ -34,12 +34,12 @@ serve(async (req) => {
     }
 });
 
-async function handleGenerateLesson(req: Request, params: { topic: string; gradeLevel: string; documentContext?: string }) {
-    const { topic, gradeLevel, documentContext } = params;
+async function handleGenerateLesson(req: Request, params: { topic?: string; gradeLevel?: string; documentContext?: string }) {
+    const { topic: rawTopic, gradeLevel: rawGradeLevel, documentContext } = params;
 
-    if (!topic || !gradeLevel) {
-        throw new Error('Topic and Grade Level are required')
-    }
+    // Default values when topic/gradeLevel are missing (common for document uploads)
+    const topic = rawTopic || "Uploaded Document";
+    const gradeLevel = rawGradeLevel || "General";
 
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1'
     const aiApiKey = Deno.env.get('AI_API_KEY')

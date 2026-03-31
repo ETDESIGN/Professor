@@ -34,18 +34,19 @@ These generations execute concurrently using `Promise.all` and are hydrated dire
 
 1. **Storage Bucket Created** (`supabase/migrations/20260401000000_create_storage_bucket.sql`)
    - Created public bucket named `materials` for uploaded PDFs/images
-   - RLS policies: authenticated users can INSERT, SELECT, UPDATE, DELETE their own files
+   - RLS policies: Teachers can INSERT (upload), authenticated users can SELECT (read/download)
 
 2. **Edge Function Upgraded** (`supabase/functions/generate-lesson/index.ts`)
    - Added `documentContext` parameter for file-based curriculum generation
    - If documentContext provided, AI uses it as primary source (not hallucinating)
    - Added `action` routing to support both topic-based and document-based generation
+   - Defaults `topic` to "Uploaded Document" and `gradeLevel` to "General" when missing
 
 3. **UploadTextbook.tsx Refactored** (`apps/teacher/UploadTextbook.tsx`)
    - Removed all client-side AI SDK imports (@google/generative-ai, GEMINI_API_KEY)
    - Added Supabase Storage upload: `supabase.storage.from('materials').upload()`
    - Added PDF text extraction using pdfjs-dist
-   - Now calls secure AIService with extracted documentContext
+   - Now calls secure AIService with extracted documentContext and fallback strings
 
 4. **UI Flow Reconnected** (`apps/teacher/UnitList.tsx` & `TeacherDashboard.tsx`)
    - "New Unit" now shows modal with two options:
@@ -75,86 +76,64 @@ To deploy the updated Edge Function:
 npx supabase functions deploy generate-lesson --no-verify-jwt
 ```
 
-**RLS Policy Updates** (`20260401000001_update_storage_rls_policies.sql`):
-- Teachers can INSERT (upload) files to materials bucket
-- All authenticated users can SELECT (read/download) files
-- Removed unrestricted UPDATE/DELETE policies
+---
 
-To deploy the updated Edge Function:
-```bash
-npx supabase functions deploy generate-lesson --no-verify-jwt
-```
+## ✅ TEACHER PIPELINE FIXES (April 2026)
+
+### Task 1: Fixed getTeacherStudents 400 Error (PGRST200)
+**File:** `services/DataService.ts` (lines 99-153)
+
+**Problem:** The nested `.select()` join was causing PostgREST relationship errors (PGRST200) due to ambiguous foreign key relationships between `class_enrollments`, `profiles`, and `student_progress`.
+
+**Fix:** Rewrote to use a safe three-step query:
+1. Fetch class IDs from `classes` where `teacher_id = teacherId`
+2. Fetch student IDs from `class_enrollments` where `class_id IN (classIds)`
+3. Fetch profiles with `student_progress` using `.select('*, student_progress(*)')` where `id IN (studentIds)`
+
+This bypasses the PostgREST join cache issues entirely.
+
+### Task 2: Verified /upload Route
+**Files:** `apps/teacher/TeacherDashboard.tsx` (line 252), `apps/teacher/UnitList.tsx` (lines 278-292)
+
+**Status:** Route is correctly configured:
+- TeacherDashboard has `<Route path="upload" element={<UploadTextbook />} />` at line 252
+- UnitList uses `onUploadMaterial` callback which maps to `navigate('/teacher/upload')`
+- No hardcoded `window.location.href` redirects found
+- Vercel rewrites correctly route `/teacher/:path*` to `teacher.html`
+
+---
+
+## ✅ PIPELINE HARDENING FIXES (April 2026)
+
+### Task 1: Fixed getTeacherStudents PGRST200 Error (Three-Step Query)
+**File:** `services/DataService.ts` (lines 99-153)
+
+**Problem:** The nested `.select()` join was causing PostgREST relationship errors (PGRST200) due to ambiguous foreign key relationships between `class_enrollments`, `profiles`, and `student_progress`.
+
+**Fix:** Rewrote to use a safe three-step query:
+1. Fetch class IDs from `classes` where `teacher_id = teacherId`
+2. Fetch student IDs from `class_enrollments` where `class_id IN (classIds)`
+3. Fetch profiles with `student_progress` using `.select('*, student_progress(*)')` where `id IN (studentIds)`
+
+This bypasses the PostgREST join cache issues entirely.
+
+### Task 2: Fixed Edge Function Payload Validation
+**File:** `supabase/functions/generate-lesson/index.ts` (lines 37-40)
+
+**Problem:** Edge Function threw 400 when `topic` or `gradeLevel` were missing during document uploads.
+
+**Fix:** Removed the validation throw. Added defaults:
+- Missing `topic` → defaults to `"Uploaded Document"`
+- Missing `gradeLevel` → defaults to `"General"`
+
+### Task 3: Fixed UploadTextbook.tsx Payload
+**File:** `apps/teacher/UploadTextbook.tsx` (line 97)
+
+**Fix:** Updated `AIService.generateLessonContent` call to pass explicit fallback strings:
+- `topic`: Uses filename or `"Document Summary"`
+- `gradeLevel`: `"General"`
+- `documentContext`: Extracted text from PDF
 
 ---
 
 ## Status: Upload Pipeline Active & Secure
-
----
-
-## ✅ TEACHER PIPELINE FIXES (April 2026)
-
-### Task 1: Fixed getTeacherStudents 400 Error
-**File:** `services/DataService.ts` (lines 106-124)
-
-**Problem:** The query was trying to join `student_progress` directly to `class_enrollments`, which caused a 400 Bad Request because `student_progress.student_id` references `profiles.id`, not `class_enrollments.student_id`.
-
-**Fix:** Nested `student_progress` inside the `profiles` join:
-```sql
--- BEFORE (broken):
-profiles:profiles!inner(id, email, full_name, avatar_url),
-student_progress(xp, streak, current_unit_id, completed_unit_ids)
-
--- AFTER (fixed):
-profiles!inner(
-  id, email, full_name, avatar_url,
-  student_progress(student_id, xp, streak, current_unit_id, completed_unit_ids)
-)
-```
-
-Also updated the transform logic to read progress from `e.profiles?.student_progress?.[0]` instead of `e.student_progress?.[0]`.
-
-### Task 2: Verified /upload Route
-**Files:** `apps/teacher/TeacherDashboard.tsx` (line 252), `apps/teacher/UnitList.tsx` (lines 278-292)
-
-**Status:** Route is correctly configured:
-- TeacherDashboard has `<Route path="upload" element={<UploadTextbook />} />` at line 252
-- UnitList uses `onUploadMaterial` callback which maps to `navigate('/teacher/upload')`
-- No hardcoded `window.location.href` redirects found
-- Vercel rewrites correctly route `/teacher/:path*` to `teacher.html`
-
-The 404 was likely caused by a stale deployment. The route is now confirmed working.
-
----
-
-## ✅ TEACHER PIPELINE FIXES (April 2026)
-
-### Task 1: Fixed getTeacherStudents 400 Error
-**File:** `services/DataService.ts` (lines 106-124)
-
-**Problem:** The query was trying to join `student_progress` directly to `class_enrollments`, which caused a 400 Bad Request because `student_progress.student_id` references `profiles.id`, not `class_enrollments.student_id`.
-
-**Fix:** Nested `student_progress` inside the `profiles` join:
-```sql
--- BEFORE (broken):
-profiles:profiles!inner(id, email, full_name, avatar_url),
-student_progress(xp, streak, current_unit_id, completed_unit_ids)
-
--- AFTER (fixed):
-profiles!inner(
-  id, email, full_name, avatar_url,
-  student_progress(student_id, xp, streak, current_unit_id, completed_unit_ids)
-)
-```
-
-Also updated the transform logic to read progress from `e.profiles?.student_progress?.[0]` instead of `e.student_progress?.[0]`.
-
-### Task 2: Verified /upload Route
-**Files:** `apps/teacher/TeacherDashboard.tsx` (line 252), `apps/teacher/UnitList.tsx` (lines 278-292)
-
-**Status:** Route is correctly configured:
-- TeacherDashboard has `<Route path="upload" element={<UploadTextbook />} />` at line 252
-- UnitList uses `onUploadMaterial` callback which maps to `navigate('/teacher/upload')`
-- No hardcoded `window.location.href` redirects found
-- Vercel rewrites correctly route `/teacher/:path*` to `teacher.html`
-
-The 404 was likely caused by a stale deployment. The route is now confirmed working.
