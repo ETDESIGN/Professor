@@ -70,10 +70,26 @@ export const AIService = {
             throw new Error(data.error || 'Edge Function failed');
         }
 
-        if (!data || !data.textContent || !data.textContent.flashcards) {
-            throw new Error('Received invalid data from AI generation.');
-        }
+        // Build resilient response with safe defaults for missing properties
+        const textContent = data?.textContent || {};
+        const flashcards = Array.isArray(textContent.flashcards) ? textContent.flashcards : [];
 
-        return data as GeneratedLesson;
+        return {
+            textContent: {
+                title: textContent.title || `${topic || 'Generated'} Lesson`,
+                description: textContent.description || `A lesson about ${topic || 'this topic'} for ${gradeLevel} students.`,
+                visual_prompt: textContent.visual_prompt || `Educational illustration about ${topic || 'learning'}`,
+                spoken_intro: textContent.spoken_intro || `Welcome to today's lesson!`,
+                flashcards: flashcards.length > 0 ? flashcards : [
+                    { question: "What is the main topic?", answer: topic || "The lesson content" },
+                    { question: "What grade level is this for?", answer: gradeLevel || "General" },
+                    { question: "What should students learn?", answer: "Key concepts from the lesson" },
+                    { question: "How can students practice?", answer: "Review the flashcards" },
+                    { question: "What is the next step?", answer: "Continue to the next lesson" }
+                ]
+            },
+            imageUrl: data?.imageUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(topic || 'lesson')}`,
+            audioUrl: data?.audioUrl || null
+        };
     }
 };

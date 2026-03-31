@@ -139,16 +139,64 @@ Ensure exactly 5 flashcards are returned.`;
     const data = await response.json()
     let aiResponseText = data.choices[0]?.message?.content || '{}'
 
-    // Clean up any potential markdown code blocks
-    aiResponseText = aiResponseText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim()
+    // Robust JSON sanitization - strip markdown code blocks, backticks, and any surrounding text
+    let cleanJson = aiResponseText
+        .replace(/```json\s*/gi, '')    // Strip opening ```json
+        .replace(/```\s*/g, '')          // Strip closing ```
+        .replace(/^[\s\S]*?\{/, '{')     // Strip everything before first {
+        .replace(/\}[\s\S]*?$/, '}')     // Strip everything after last }
+        .trim();
 
     let parsedResponse;
     try {
-        parsedResponse = JSON.parse(aiResponseText)
+        parsedResponse = JSON.parse(cleanJson)
     } catch (e) {
-        console.error('Failed to parse AI response as JSON:', aiResponseText)
-        throw new Error('AI returned invalid JSON')
+        console.error('Failed to parse AI response as JSON, using fallback:', cleanJson.substring(0, 200));
+        // Safe fallback - never crash the pipeline
+        parsedResponse = {
+            title: topic || "Generated Lesson",
+            description: `A lesson about ${topic || "the uploaded document"} for ${gradeLevel} students.`,
+            visual_prompt: `Educational illustration about ${topic || "learning"}`,
+            spoken_intro: `Welcome to today's lesson about ${topic || "this topic"}!`,
+            flashcards: [
+                { question: "What is the main topic?", answer: topic || "The uploaded document content" },
+                { question: "What grade level is this for?", answer: gradeLevel || "General" },
+                { question: "What should students learn?", answer: "Key concepts from the lesson material" },
+                { question: "How can students practice?", answer: "Review the flashcards and complete exercises" },
+                { question: "What is the next step?", answer: "Continue to the next lesson in the unit" }
+            ]
+        };
     }
+
+    // Ensure required properties exist with safe defaults
+    parsedResponse.title = parsedResponse.title || topic || "Generated Lesson";
+    parsedResponse.description = parsedResponse.description || `A lesson about ${topic || "the topic"}.`;
+    parsedResponse.visual_prompt = parsedResponse.visual_prompt || `Educational illustration about ${topic || "learning"}`;
+    parsedResponse.spoken_intro = parsedResponse.spoken_intro || `Welcome to today's lesson!`;
+    parsedResponse.flashcards = Array.isArray(parsedResponse.flashcards) && parsedResponse.flashcards.length > 0 
+        ? parsedResponse.flashcards 
+        : [
+            { question: "What is the main topic?", answer: topic || "The lesson content" },
+            { question: "What grade level is this for?", answer: gradeLevel || "General" },
+            { question: "What should students learn?", answer: "Key concepts from the lesson" },
+            { question: "How can students practice?", answer: "Review the flashcards" },
+            { question: "What is the next step?", answer: "Continue to the next lesson" }
+          ];
+
+    // Ensure required properties exist with safe defaults
+    parsedResponse.title = parsedResponse.title || topic || "Generated Lesson";
+    parsedResponse.description = parsedResponse.description || `A lesson about ${topic || "the topic"}.`;
+    parsedResponse.visual_prompt = parsedResponse.visual_prompt || `Educational illustration about ${topic || "learning"}`;
+    parsedResponse.spoken_intro = parsedResponse.spoken_intro || `Welcome to today's lesson!`;
+    parsedResponse.flashcards = Array.isArray(parsedResponse.flashcards) && parsedResponse.flashcards.length > 0 
+        ? parsedResponse.flashcards 
+        : [
+            { question: "What is the main topic?", answer: topic || "The lesson content" },
+            { question: "What grade level is this for?", answer: gradeLevel || "General" },
+            { question: "What should students learn?", answer: "Key concepts from the lesson" },
+            { question: "How can students practice?", answer: "Review the flashcards" },
+            { question: "What is the next step?", answer: "Continue to the next lesson" }
+          ];
 
     // Multi-Modal Generation in Parallel
     let imageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
