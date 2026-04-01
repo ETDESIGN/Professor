@@ -117,11 +117,11 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             throw new Error('Failed to create unit in database');
          }
 
-         if (generated.textContent.flashcards.length > 0) {
-            const srsInserts = generated.textContent.flashcards.map(card => ({
+         if (generated.textContent.vocabulary.length > 0) {
+            const srsInserts = generated.textContent.vocabulary.map(vocab => ({
                unit_id: newUnit.id,
-               word: card.question,
-               translation: card.answer,
+               word: vocab.word,
+               translation: vocab.definition,
                interval: 0,
                repetition: 0,
                efactor: 2.5
@@ -144,8 +144,15 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             },
             knowledge_graph: { 
                characters: [], 
-               vocabulary: [], 
-               grammar_rules: [] 
+               vocabulary: generated.textContent.vocabulary,
+               grammar_rules: generated.textContent.grammarRules.map(gr => ({
+                  rule: gr.rule,
+                  explanation: gr.explanation
+               })),
+               sentences: generated.textContent.sentences.map(s => ({
+                  english: s.original,
+                  translation: s.translation
+               }))
             },
             timeline: []
          });

@@ -137,3 +137,55 @@ This bypasses the PostgREST join cache issues entirely.
 ---
 
 ## Status: Upload Pipeline Active & Secure
+
+---
+
+## ✅ DATA CONTRACT ALIGNMENT FIX (April 2026)
+
+### Problem: Blank Review UI Fields
+After a successful upload and AI analysis, the **ReviewContent.tsx** component (shown post-upload as the "Knowledge Graph" / "Lesson Timeline" review screen) rendered completely blank input boxes for:
+- **Vocabulary** (line 172: `knowledgeGraph.vocabulary`)
+- **Grammar Rules** (line 218: `knowledgeGraph.grammar_rules`)
+- **Generated Sentences** (line 264: `knowledgeGraph.sentences`)
+
+### Root Cause: Schema Mismatch
+The Edge Function returned `{ flashcards: [{ question, answer }] }` but the Review UI expected:
+```json
+{
+  "vocabulary": [{ "word": "...", "definition": "..." }],
+  "grammar_rules": [{ "rule": "...", "explanation": "..." }],
+  "sentences": [{ "english": "...", "translation": "..." }]
+}
+```
+Additionally, `UploadTextbook.tsx:139-151` hardcoded empty arrays for `vocabulary` and `grammar_rules` and omitted `sentences` entirely from the `scannedBlueprint`.
+
+### Files Modified
+
+1. **`supabase/functions/generate-lesson/index.ts`** (Edge Function)
+   - Updated both system prompts (document-based and topic-based) to request `vocabulary`, `grammarRules`, and `sentences` instead of `flashcards`
+   - Updated fallback JSON in catch block to match new schema
+   - Updated safe defaults to validate and populate `vocabulary`, `grammarRules`, `sentences`
+
+2. **`services/AIService.ts`**
+   - Replaced `GeneratedFlashcard` interface with new fields on `GeneratedLesson.textContent`:
+     - `vocabulary: { word, definition }[]`
+     - `grammarRules: { rule, explanation }[]`
+     - `sentences: { original, translation }[]`
+   - Updated `generateLessonContent()` response handling to extract and provide safe defaults for new fields
+
+3. **`apps/teacher/UploadTextbook.tsx`**
+   - Populated `scannedBlueprint.knowledge_graph.vocabulary` with `generated.textContent.vocabulary`
+   - Populated `scannedBlueprint.knowledge_graph.grammar_rules` with mapped `grammarRules`
+   - Added `sentences` field mapped from `generated.textContent.sentences` (`original` → `english`)
+   - Changed SRS items insertion to use `vocabulary` (word/definition) instead of `flashcards` (question/answer)
+
+### Data Flow (Fixed)
+```
+Edge Function → { vocabulary, grammarRules, sentences }
+    ↓
+AIService.ts → GeneratedLesson.textContent.{vocabulary, grammarRules, sentences}
+    ↓
+UploadTextbook.tsx → scannedBlueprint.knowledge_graph.{vocabulary, grammar_rules, sentences}
+    ↓
+ReviewContent.tsx → knowledgeGraph state → Renders editable input fields
+```

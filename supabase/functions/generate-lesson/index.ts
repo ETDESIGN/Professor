@@ -59,16 +59,15 @@ async function handleGenerateLesson(req: Request, params: { topic?: string; grad
     if (documentContext && documentContext.trim().length > 0) {
         // Document-based generation: heavily reference the provided text
         systemPrompt = `You are an expert curriculum designer AI.
-        
+
 You have been provided with source material from a textbook or educational document.
 Your task is to generate a lesson plan that is STRONGLY BASED on this provided content.
 
 IMPORTANT INSTRUCTIONS:
 1. Use the provided document content as the PRIMARY source for vocabulary, topics, and concepts
 2. Extract key terms, definitions, and concepts from the document
-3. Create flashcards that test understanding of the DOCUMENT'S content
-4. The title should reflect the actual topic from the document
-5. DO NOT hallucinate content that isn't supported by the document
+3. The title should reflect the actual topic from the document
+4. DO NOT hallucinate content that isn't supported by the document
 
 SOURCE DOCUMENT:
 ---
@@ -82,18 +81,23 @@ You MUST return ONLY a valid JSON object with the following exact structure (no 
   "description": "A 1-2 sentence description based on the document",
   "visual_prompt": "A detailed midjourney-style prompt for the lesson cover image",
   "spoken_intro": "An enthusiastic, friendly greeting introducing the lesson from the document",
-  "flashcards": [
-    { "question": "Question based on document content", "answer": "Answer from document" },
-    { "question": "Question based on document content", "answer": "Answer from document" },
-    { "question": "Question based on document content", "answer": "Answer from document" },
-    { "question": "Question based on document content", "answer": "Answer from document" },
-    { "question": "Question based on document content", "answer": "Answer from document" }
+  "vocabulary": [
+    { "word": "key term from document", "definition": "clear definition from the document" },
+    { "word": "key term from document", "definition": "clear definition from the document" },
+    { "word": "key term from document", "definition": "clear definition from the document" }
+  ],
+  "grammarRules": [
+    { "rule": "grammar rule name", "explanation": "explanation of the rule" }
+  ],
+  "sentences": [
+    { "original": "example sentence from document", "translation": "translation or paraphrase" },
+    { "original": "example sentence from document", "translation": "translation or paraphrase" }
   ]
 }
-Ensure exactly 5 flashcards are returned.`;
+Ensure at least 3 vocabulary items, 1 grammar rule, and 2 sentences are returned.`;
     } else {
         // Topic-based generation (original behavior)
-        systemPrompt = `You are an expert curriculum designer. 
+        systemPrompt = `You are an expert curriculum designer.
 Generate a lesson plan about "${topic}" for "${gradeLevel}" students.
 You MUST return ONLY a valid JSON object with the following exact structure (no markdown formatting, no code blocks, just raw JSON):
 {
@@ -101,15 +105,20 @@ You MUST return ONLY a valid JSON object with the following exact structure (no 
   "description": "A 1-2 sentence description",
   "visual_prompt": "A detailed midjourney-style prompt for the lesson cover image",
   "spoken_intro": "An enthusiastic, friendly greeting introducing the lesson",
-  "flashcards": [
-    { "question": "Question 1", "answer": "Answer 1" },
-    { "question": "Question 2", "answer": "Answer 2" },
-    { "question": "Question 3", "answer": "Answer 3" },
-    { "question": "Question 4", "answer": "Answer 4" },
-    { "question": "Question 5", "answer": "Answer 5" }
+  "vocabulary": [
+    { "word": "key term", "definition": "clear definition" },
+    { "word": "key term", "definition": "clear definition" },
+    { "word": "key term", "definition": "clear definition" }
+  ],
+  "grammarRules": [
+    { "rule": "grammar rule name", "explanation": "explanation of the rule" }
+  ],
+  "sentences": [
+    { "original": "example sentence", "translation": "translation or paraphrase" },
+    { "original": "example sentence", "translation": "translation or paraphrase" }
   ]
 }
-Ensure exactly 5 flashcards are returned.`;
+Ensure at least 3 vocabulary items, 1 grammar rule, and 2 sentences are returned.`;
     }
 
     const userContent = documentContext 
@@ -171,12 +180,17 @@ Ensure exactly 5 flashcards are returned.`;
             description: `A lesson about ${topic || "the uploaded document"} for ${gradeLevel} students.`,
             visual_prompt: `Educational illustration about ${topic || "learning"}`,
             spoken_intro: `Welcome to today's lesson about ${topic || "this topic"}!`,
-            flashcards: [
-                { question: "What is the main topic?", answer: topic || "The uploaded document content" },
-                { question: "What grade level is this for?", answer: gradeLevel || "General" },
-                { question: "What should students learn?", answer: "Key concepts from the lesson material" },
-                { question: "How can students practice?", answer: "Review the flashcards and complete exercises" },
-                { question: "What is the next step?", answer: "Continue to the next lesson in the unit" }
+            vocabulary: [
+                { word: topic || "Vocabulary", definition: `A key term from ${topic || "the lesson"}` },
+                { word: "Lesson", definition: "A period of teaching or learning" },
+                { word: "Study", definition: "The activity of learning about a subject" }
+            ],
+            grammarRules: [
+                { rule: "Basic Sentence Structure", explanation: "A sentence needs a subject and a verb to express a complete thought." }
+            ],
+            sentences: [
+                { original: `We are learning about ${topic || "this topic"}.`, translation: `We are studying ${topic || "this subject"}.` },
+                { original: "Please open your textbook.", translation: "Please open your book for studying." }
             ]
         };
     }
@@ -186,29 +200,26 @@ Ensure exactly 5 flashcards are returned.`;
     parsedResponse.description = parsedResponse.description || `A lesson about ${topic || "the topic"}.`;
     parsedResponse.visual_prompt = parsedResponse.visual_prompt || `Educational illustration about ${topic || "learning"}`;
     parsedResponse.spoken_intro = parsedResponse.spoken_intro || `Welcome to today's lesson!`;
-    parsedResponse.flashcards = Array.isArray(parsedResponse.flashcards) && parsedResponse.flashcards.length > 0 
-        ? parsedResponse.flashcards 
+
+    parsedResponse.vocabulary = Array.isArray(parsedResponse.vocabulary) && parsedResponse.vocabulary.length > 0
+        ? parsedResponse.vocabulary
         : [
-            { question: "What is the main topic?", answer: topic || "The lesson content" },
-            { question: "What grade level is this for?", answer: gradeLevel || "General" },
-            { question: "What should students learn?", answer: "Key concepts from the lesson" },
-            { question: "How can students practice?", answer: "Review the flashcards" },
-            { question: "What is the next step?", answer: "Continue to the next lesson" }
+            { word: topic || "Vocabulary", definition: `A key term from ${topic || "the lesson"}` },
+            { word: "Lesson", definition: "A period of teaching or learning" },
+            { word: "Study", definition: "The activity of learning about a subject" }
           ];
 
-    // Ensure required properties exist with safe defaults
-    parsedResponse.title = parsedResponse.title || topic || "Generated Lesson";
-    parsedResponse.description = parsedResponse.description || `A lesson about ${topic || "the topic"}.`;
-    parsedResponse.visual_prompt = parsedResponse.visual_prompt || `Educational illustration about ${topic || "learning"}`;
-    parsedResponse.spoken_intro = parsedResponse.spoken_intro || `Welcome to today's lesson!`;
-    parsedResponse.flashcards = Array.isArray(parsedResponse.flashcards) && parsedResponse.flashcards.length > 0 
-        ? parsedResponse.flashcards 
+    parsedResponse.grammarRules = Array.isArray(parsedResponse.grammarRules) && parsedResponse.grammarRules.length > 0
+        ? parsedResponse.grammarRules
         : [
-            { question: "What is the main topic?", answer: topic || "The lesson content" },
-            { question: "What grade level is this for?", answer: gradeLevel || "General" },
-            { question: "What should students learn?", answer: "Key concepts from the lesson" },
-            { question: "How can students practice?", answer: "Review the flashcards" },
-            { question: "What is the next step?", answer: "Continue to the next lesson" }
+            { rule: "Basic Sentence Structure", explanation: "A sentence needs a subject and a verb." }
+          ];
+
+    parsedResponse.sentences = Array.isArray(parsedResponse.sentences) && parsedResponse.sentences.length > 0
+        ? parsedResponse.sentences
+        : [
+            { original: `We are learning about ${topic || "this topic"}.`, translation: `We are studying ${topic || "this subject"}.` },
+            { original: "Please open your textbook.", translation: "Please open your book for studying." }
           ];
 
     // Multi-Modal Generation in Parallel

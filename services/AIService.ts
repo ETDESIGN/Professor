@@ -5,18 +5,15 @@
 
 import { supabase } from './supabaseClient';
 
-export interface GeneratedFlashcard {
-    question: string;
-    answer: string;
-}
-
 export interface GeneratedLesson {
     textContent: {
         title: string;
         description: string;
         visual_prompt?: string;
         spoken_intro?: string;
-        flashcards: GeneratedFlashcard[];
+        vocabulary: { word: string; definition: string }[];
+        grammarRules: { rule: string; explanation: string }[];
+        sentences: { original: string; translation: string }[];
     };
     imageUrl: string;
     audioUrl: string | null;
@@ -72,7 +69,9 @@ export const AIService = {
 
         // Build resilient response with safe defaults for missing properties
         const textContent = data?.textContent || {};
-        const flashcards = Array.isArray(textContent.flashcards) ? textContent.flashcards : [];
+        const vocabulary = Array.isArray(textContent.vocabulary) ? textContent.vocabulary : [];
+        const grammarRules = Array.isArray(textContent.grammarRules) ? textContent.grammarRules : [];
+        const sentences = Array.isArray(textContent.sentences) ? textContent.sentences : [];
 
         return {
             textContent: {
@@ -80,12 +79,17 @@ export const AIService = {
                 description: textContent.description || `A lesson about ${topic || 'this topic'} for ${gradeLevel} students.`,
                 visual_prompt: textContent.visual_prompt || `Educational illustration about ${topic || 'learning'}`,
                 spoken_intro: textContent.spoken_intro || `Welcome to today's lesson!`,
-                flashcards: flashcards.length > 0 ? flashcards : [
-                    { question: "What is the main topic?", answer: topic || "The lesson content" },
-                    { question: "What grade level is this for?", answer: gradeLevel || "General" },
-                    { question: "What should students learn?", answer: "Key concepts from the lesson" },
-                    { question: "How can students practice?", answer: "Review the flashcards" },
-                    { question: "What is the next step?", answer: "Continue to the next lesson" }
+                vocabulary: vocabulary.length > 0 ? vocabulary : [
+                    { word: topic || "Vocabulary", definition: `A key term from ${topic || "the lesson"}` },
+                    { word: "Lesson", definition: "A period of teaching or learning" },
+                    { word: "Study", definition: "The activity of learning about a subject" }
+                ],
+                grammarRules: grammarRules.length > 0 ? grammarRules : [
+                    { rule: "Basic Sentence Structure", explanation: "A sentence needs a subject and a verb." }
+                ],
+                sentences: sentences.length > 0 ? sentences : [
+                    { original: `We are learning about ${topic || "this topic"}.`, translation: `We are studying ${topic || "this subject"}.` },
+                    { original: "Please open your textbook.", translation: "Please open your book for studying." }
                 ]
             },
             imageUrl: data?.imageUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(topic || 'lesson')}`,
