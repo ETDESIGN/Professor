@@ -120,7 +120,7 @@ Ensure exactly 5 flashcards are returned.`;
     try {
         response = await fetch(`${aiBaseUrl}/chat/completions`, {
             method: 'POST',
-            signal: AbortSignal.timeout(30000),
+            signal: AbortSignal.timeout(60000),
             headers: {
                 'Authorization': `Bearer ${aiApiKey}`,
                 'Content-Type': 'application/json',
