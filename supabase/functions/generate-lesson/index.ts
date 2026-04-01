@@ -44,7 +44,7 @@ async function handleGenerateLesson(req: Request, params: { topic?: string; grad
 
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1'
     const aiApiKey = Deno.env.get('AI_API_KEY')
-    const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'google/gemini-3-flash-preview'
+    const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'mistralai/mistral-small-3.1-24b-instruct'
 
     // Diagnostic logging (masked for security)
     console.log(`AI Config: base=${aiBaseUrl}, model=${aiModelName}, keySet=${!!aiApiKey}, keyLength=${aiApiKey?.length || 0}`);
@@ -116,23 +116,30 @@ Ensure exactly 5 flashcards are returned.`;
         ? `Generate the lesson for the provided document at ${gradeLevel} level.`
         : `Generate the lesson for ${topic} at ${gradeLevel} level.`;
 
-    const response = await fetch(`${aiBaseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${aiApiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://professor-ai.vercel.app',
-            'X-Title': 'Professor AI'
-        },
-        body: JSON.stringify({
-            model: aiModelName,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userContent }
-            ],
-            temperature: 0.7,
+    let response: Response;
+    try {
+        response = await fetch(`${aiBaseUrl}/chat/completions`, {
+            method: 'POST',
+            signal: AbortSignal.timeout(30000),
+            headers: {
+                'Authorization': `Bearer ${aiApiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://professor-ai.vercel.app',
+                'X-Title': 'Professor AI'
+            },
+            body: JSON.stringify({
+                model: aiModelName,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userContent }
+                ],
+                temperature: 0.7,
+            })
         })
-    })
+    } catch (fetchError) {
+        console.error('Network error calling AI API:', fetchError);
+        throw new Error(`Network error connecting to AI: ${fetchError.message}`);
+    }
 
     if (!response.ok) {
         const errorData = await response.text()
