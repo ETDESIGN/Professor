@@ -364,6 +364,8 @@ policy = "per_worker"
 inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
+# Maximum time for edge function execution (seconds)
+timeout = 150
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"

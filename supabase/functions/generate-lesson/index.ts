@@ -126,28 +126,49 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
         : `Generate the lesson for ${topic} at ${gradeLevel} level.`;
 
     let response: Response;
-    try {
-        response = await fetch(`${aiBaseUrl}/chat/completions`, {
-            method: 'POST',
-            signal: AbortSignal.timeout(60000),
-            headers: {
-                'Authorization': `Bearer ${aiApiKey}`,
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://professor-ai.vercel.app',
-                'X-Title': 'Professor AI'
-            },
-            body: JSON.stringify({
-                model: aiModelName,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userContent }
-                ],
-                temperature: 0.7,
-            })
-        })
-    } catch (fetchError) {
-        console.error('Network error calling AI API:', fetchError);
-        throw new Error(`Network error connecting to AI: ${fetchError.message}`);
+    let lastError: Error | null = null;
+
+    // Retry up to 2 times for transient failures
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            if (attempt > 0) {
+                console.log(`Retrying AI API call (attempt ${attempt + 1}/3)...`);
+                await new Promise(r => setTimeout(r, 2000));
+            }
+
+            response = await fetch(`${aiBaseUrl}/chat/completions`, {
+                method: 'POST',
+                signal: AbortSignal.timeout(120000),
+                headers: {
+                    'Authorization': `Bearer ${aiApiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://professor-ai.vercel.app',
+                    'X-Title': 'Professor AI'
+                },
+                body: JSON.stringify({
+                    model: aiModelName,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userContent }
+                    ],
+                    temperature: 0.7,
+                })
+            });
+
+            // If we got a response (even non-OK), break the retry loop
+            break;
+
+        } catch (fetchError: any) {
+            lastError = fetchError;
+            console.error(`AI API attempt ${attempt + 1} failed:`, fetchError.message);
+            if (attempt === 2) {
+                throw new Error(`Network error connecting to AI after 3 attempts: ${fetchError.message}`);
+            }
+        }
+    }
+
+    if (!response!) {
+        throw new Error(lastError?.message || 'Failed to get response from AI API');
     }
 
     if (!response.ok) {

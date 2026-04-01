@@ -68,12 +68,12 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
         throw new Error('Failed to create DB unit record.');
       }
 
-      // Insert flashcards
-      if (generated.textContent.flashcards.length > 0) {
-        const srsInserts = generated.textContent.flashcards.map(card => ({
+      // Insert SRS items from vocabulary
+      if (generated.textContent.vocabulary.length > 0) {
+        const srsInserts = generated.textContent.vocabulary.map(vocab => ({
           unit_id: newUnit.id,
-          word: card.question,
-          translation: card.answer,
+          word: vocab.word,
+          translation: vocab.definition,
           interval: 0,
           repetition: 0,
           efactor: 2.5
