@@ -74,28 +74,31 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       return urlData.publicUrl;
    };
 
+   const handleStartScan = () => {
+      setIsScanning(true);
+      setError(null);
+   };
+
    const handleAIComplete = async () => {
       try {
-         setIsScanning(true);
          setError(null);
-         
+
          let documentContext = '';
-         let uploadedFileUrl = '';
-         
+
          for (const file of files) {
             if (file.type === 'application/pdf') {
                documentContext = await extractTextFromPDF(file);
             } else if (file.type.startsWith('image/')) {
                documentContext = 'Image file uploaded - please analyze and create curriculum based on visual content';
             }
-            
-            uploadedFileUrl = await uploadFileToStorage(file);
+
+            await uploadFileToStorage(file);
          }
-         
-          const topic = files[0]?.name.replace(/\.[^/.]+$/, '') || 'Document Summary';
-          
-          const generated = await AIService.generateLessonContent(topic || "Document Summary", "General", documentContext);
-         
+
+         const topic = files[0]?.name.replace(/\.[^/.]+$/, '') || 'Document Summary';
+
+         const generated = await AIService.generateLessonContent(topic || "Document Summary", "General", documentContext);
+
          const { data: newUnit, error: unitError } = await supabase
             .from('units')
             .insert({
@@ -130,7 +133,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          }
 
          await loadUnits();
-         
+
          const createdUnit = await Engine.getUnitById(newUnit.id);
          if (createdUnit) {
             await setActiveUnit(createdUnit.id);
@@ -142,8 +145,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                theme: topic,
                difficulty_cefr: 'A1'
             },
-            knowledge_graph: { 
-               characters: [], 
+            knowledge_graph: {
+               characters: [],
                vocabulary: generated.textContent.vocabulary,
                grammar_rules: generated.textContent.grammarRules.map(gr => ({
                   rule: gr.rule,
@@ -159,7 +162,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
 
          setIsScanning(false);
          setShowReview(true);
-         
+
       } catch (e: any) {
          console.error('AI Generation Error:', e);
          setError(`AI Generation Failed: ${e.message || 'Unknown error'}`);
@@ -415,8 +418,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                   Max file size: 10MB per file
                </div>
                <button
-                  onClick={handleAIComplete}
-                  disabled={files.length === 0}
+               onClick={handleStartScan}
+               disabled={files.length === 0}
                   className={`px-8 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center gap-2 transition-all
                  ${files.length > 0
                         ? 'bg-teacher-primary text-white hover:scale-105 shadow-emerald-200'

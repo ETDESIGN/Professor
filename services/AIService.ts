@@ -67,6 +67,8 @@ export const AIService = {
             throw new Error(data.error || 'Edge Function failed');
         }
 
+        console.log('Edge Function raw response:', JSON.stringify(data).substring(0, 1000));
+
         // Build resilient response with safe defaults for missing properties
         const textContent = data?.textContent || {};
         const vocabulary = Array.isArray(textContent.vocabulary) ? textContent.vocabulary : [];

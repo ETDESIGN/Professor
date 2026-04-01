@@ -94,7 +94,7 @@ You MUST return ONLY a valid JSON object with the following exact structure (no 
     { "original": "example sentence from document", "translation": "translation or paraphrase" }
   ]
 }
-Ensure at least 3 vocabulary items, 1 grammar rule, and 2 sentences are returned.`;
+CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays in your response. These fields are REQUIRED. Return ONLY the JSON object, no other text.`;
     } else {
         // Topic-based generation (original behavior)
         systemPrompt = `You are an expert curriculum designer.
@@ -118,7 +118,7 @@ You MUST return ONLY a valid JSON object with the following exact structure (no 
     { "original": "example sentence", "translation": "translation or paraphrase" }
   ]
 }
-Ensure at least 3 vocabulary items, 1 grammar rule, and 2 sentences are returned.`;
+CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays in your response. These fields are REQUIRED. Return ONLY the JSON object, no other text.`;
     }
 
     const userContent = documentContext 
@@ -161,6 +161,8 @@ Ensure at least 3 vocabulary items, 1 grammar rule, and 2 sentences are returned
     const data = await response.json()
     let aiResponseText = data.choices[0]?.message?.content || '{}'
 
+    console.log('Raw AI response:', aiResponseText.substring(0, 500));
+
     // Robust JSON sanitization - strip markdown code blocks, backticks, and any surrounding text
     let cleanJson = aiResponseText
         .replace(/```json\s*/gi, '')    // Strip opening ```json
@@ -194,6 +196,43 @@ Ensure at least 3 vocabulary items, 1 grammar rule, and 2 sentences are returned
             ]
         };
     }
+
+    // Normalize field names - AI might return grammar_rules or grammarRules, original/english or original
+    if (!Array.isArray(parsedResponse.vocabulary) && Array.isArray(parsedResponse.words)) {
+        parsedResponse.vocabulary = parsedResponse.words;
+    }
+    if (!Array.isArray(parsedResponse.grammarRules) && Array.isArray(parsedResponse.grammar_rules)) {
+        parsedResponse.grammarRules = parsedResponse.grammar_rules;
+    }
+    if (!Array.isArray(parsedResponse.sentences) && Array.isArray(parsedResponse.examples)) {
+        parsedResponse.sentences = parsedResponse.examples;
+    }
+    // Normalize sentence field names
+    if (Array.isArray(parsedResponse.sentences)) {
+        parsedResponse.sentences = parsedResponse.sentences.map((s: any) => ({
+            original: s.original || s.english || s.sentence || s.source || '',
+            translation: s.translation || s.target || s.translated || ''
+        }));
+    }
+    // Normalize vocabulary field names
+    if (Array.isArray(parsedResponse.vocabulary)) {
+        parsedResponse.vocabulary = parsedResponse.vocabulary.map((v: any) => ({
+            word: v.word || v.term || v.key || '',
+            definition: v.definition || v.meaning || v.description || ''
+        }));
+    }
+    // Normalize grammar rules field names
+    if (Array.isArray(parsedResponse.grammarRules)) {
+        parsedResponse.grammarRules = parsedResponse.grammarRules.map((g: any) => ({
+            rule: g.rule || g.name || g.title || '',
+            explanation: g.explanation || g.description || g.detail || ''
+        }));
+    }
+
+    console.log('Parsed response keys:', Object.keys(parsedResponse));
+    console.log('Vocabulary count:', Array.isArray(parsedResponse.vocabulary) ? parsedResponse.vocabulary.length : 'not array');
+    console.log('GrammarRules count:', Array.isArray(parsedResponse.grammarRules) ? parsedResponse.grammarRules.length : 'not array');
+    console.log('Sentences count:', Array.isArray(parsedResponse.sentences) ? parsedResponse.sentences.length : 'not array');
 
     // Ensure required properties exist with safe defaults
     parsedResponse.title = parsedResponse.title || topic || "Generated Lesson";
