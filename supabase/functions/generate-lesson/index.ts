@@ -44,10 +44,13 @@ async function handleGenerateLesson(req: Request, params: { topic?: string; grad
 
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1'
     const aiApiKey = Deno.env.get('AI_API_KEY')
-    const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'mistralai/mistral-7b-instruct:free'
+    const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'google/gemini-3-flash-preview'
+
+    // Diagnostic logging (masked for security)
+    console.log(`AI Config: base=${aiBaseUrl}, model=${aiModelName}, keySet=${!!aiApiKey}, keyLength=${aiApiKey?.length || 0}`);
 
     if (!aiApiKey) {
-        throw new Error('AI_API_KEY environment variable is not set')
+        throw new Error('AI_API_KEY environment variable is not set. Please configure it in Supabase Dashboard > Edge Functions > Secrets')
     }
 
     // Build system prompt based on whether document context is provided
@@ -117,7 +120,9 @@ Ensure exactly 5 flashcards are returned.`;
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${aiApiKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://professor-ai.vercel.app',
+            'X-Title': 'Professor AI'
         },
         body: JSON.stringify({
             model: aiModelName,
@@ -126,14 +131,15 @@ Ensure exactly 5 flashcards are returned.`;
                 { role: 'user', content: userContent }
             ],
             temperature: 0.7,
-            response_format: { type: "json_object" }
         })
     })
 
     if (!response.ok) {
         const errorData = await response.text()
-        console.error('AI API Error:', errorData)
-        throw new Error(`AI API request failed: ${response.status} ${response.statusText}`)
+        console.error('AI API Full Error Response:', errorData)
+        console.error('AI API Request URL:', `${aiBaseUrl}/chat/completions`)
+        console.error('AI API Model:', aiModelName)
+        throw new Error(`AI API request failed: ${response.status} ${response.statusText} - ${errorData.substring(0, 500)}`)
     }
 
     const data = await response.json()
