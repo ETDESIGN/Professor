@@ -84,12 +84,13 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          setError(null);
 
          let documentContext = '';
+         let imageBase64: string | undefined;
 
          for (const file of files) {
             if (file.type === 'application/pdf') {
                documentContext = await extractTextFromPDF(file);
             } else if (file.type.startsWith('image/')) {
-               documentContext = 'Image file uploaded - please analyze and create curriculum based on visual content';
+               imageBase64 = await resizeAndConvertImage(file);
             }
 
             await uploadFileToStorage(file);
@@ -97,7 +98,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
 
          const topic = files[0]?.name.replace(/\.[^/.]+$/, '') || 'Document Summary';
 
-         const generated = await AIService.generateLessonContent(topic || "Document Summary", "General", documentContext);
+         const generated = await AIService.generateLessonContent(topic || "Document Summary", "General", documentContext, imageBase64);
 
          const { data: newUnit, error: unitError } = await supabase
             .from('units')
@@ -176,7 +177,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          img.src = URL.createObjectURL(file);
          img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_DIMENSION = 1024;
+            const MAX_DIMENSION = 800;
             let width = img.width;
             let height = img.height;
 

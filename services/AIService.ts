@@ -46,14 +46,17 @@ export const AIService = {
      * Calls the Generate Lesson Edge Function based on topic and grade level.
      * Optionally accepts documentContext for file-based curriculum generation.
      */
-    async generateLessonContent(topic: string, gradeLevel: string, documentContext?: string): Promise<GeneratedLesson> {
+    async generateLessonContent(topic: string, gradeLevel: string, documentContext?: string, imageBase64?: string): Promise<GeneratedLesson> {
         console.log(`Generating AI Lesson for ${gradeLevel} on ${topic} via Edge Function...`);
         if (documentContext) {
             console.log(`With document context (${documentContext.length} characters)`);
         }
+        if (imageBase64) {
+            console.log(`With image base64 (${imageBase64.length} characters)`);
+        }
 
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
-            body: { topic, gradeLevel, documentContext }
+            body: { topic, gradeLevel, documentContext, imageBase64 }
         });
 
         if (error) {

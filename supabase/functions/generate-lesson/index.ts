@@ -12,14 +12,14 @@ serve(async (req) => {
 
     try {
         const body = await req.json()
-        const { topic, gradeLevel, documentContext, action } = body
+        const { topic, gradeLevel, documentContext, imageBase64, action } = body
 
         // Determine action - default to 'generate-lesson'
         const actionType = action || 'generate-lesson';
 
         // Route to appropriate handler
         if (actionType === 'generate-lesson') {
-            return await handleGenerateLesson(req, { topic, gradeLevel, documentContext });
+            return await handleGenerateLesson(req, { topic, gradeLevel, documentContext, imageBase64 });
         } else if (actionType === 'live-feedback') {
             return await handleLiveFeedback(req);
         } else {
@@ -35,8 +35,8 @@ serve(async (req) => {
     }
 });
 
-async function handleGenerateLesson(req: Request, params: { topic?: string; gradeLevel?: string; documentContext?: string }) {
-    const { topic: rawTopic, gradeLevel: rawGradeLevel, documentContext } = params;
+async function handleGenerateLesson(req: Request, params: { topic?: string; gradeLevel?: string; documentContext?: string; imageBase64?: string }) {
+    const { topic: rawTopic, gradeLevel: rawGradeLevel, documentContext: rawDocumentContext, imageBase64 } = params;
 
     // Default values when topic/gradeLevel are missing (common for document uploads)
     const topic = rawTopic || "Uploaded Document";
@@ -53,7 +53,70 @@ async function handleGenerateLesson(req: Request, params: { topic?: string; grad
         throw new Error('AI_API_KEY environment variable is not set. Please configure it in Supabase Dashboard > Edge Functions > Secrets')
     }
 
-    // Build system prompt based on whether document context is provided
+    // --- STEP 1: Image OCR via Multimodal Vision Model ---
+    let documentContext = rawDocumentContext || '';
+
+    if (imageBase64) {
+        const visionModel = Deno.env.get('VISION_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free';
+        console.log(`Running OCR with vision model: ${visionModel}`);
+
+        try {
+            const ocrResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
+                method: 'POST',
+                signal: AbortSignal.timeout(120000),
+                headers: {
+                    'Authorization': `Bearer ${aiApiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://professor-ai.vercel.app',
+                    'X-Title': 'Professor AI'
+                },
+                body: JSON.stringify({
+                    model: visionModel,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: imageBase64
+                                    }
+                                },
+                                {
+                                    type: 'text',
+                                    text: `Extract ALL text from this educational image/document. Return ONLY the extracted text, preserving the original structure, headings, vocabulary words, definitions, and any grammatical rules. Do not add commentary or formatting.`
+                                }
+                            ]
+                        }
+                    ],
+                    temperature: 0.1,
+                    max_tokens: 4096
+                })
+            });
+
+            if (ocrResponse.ok) {
+                const ocrData = await ocrResponse.json();
+                const extractedText = ocrData.choices?.[0]?.message?.content || '';
+                console.log(`OCR extracted ${extractedText.length} characters`);
+
+                if (extractedText.length > 20) {
+                    documentContext = extractedText;
+                } else {
+                    console.warn('OCR returned very short text, falling back to image description');
+                    documentContext = `Image content: The user uploaded an educational image. The filename is "${rawTopic || 'unknown'}". Use visual educational content to generate vocabulary, grammar rules, and example sentences appropriate for the grade level.`;
+                }
+            } else {
+                const errText = await ocrResponse.text();
+                console.error(`OCR vision model failed (${ocrResponse.status}):`, errText.substring(0, 300));
+                documentContext = `Image content: Educational image uploaded. Generate appropriate lesson content for "${rawTopic || 'the topic'}" at "${rawGradeLevel || 'General'}" level.`;
+            }
+        } catch (ocrError: any) {
+            console.error('OCR call failed:', ocrError.message);
+            documentContext = `Image content: Educational image uploaded. Generate appropriate lesson content for "${rawTopic || 'the topic'}" at "${rawGradeLevel || 'General'}" level.`;
+        }
+    }
+
+    // Build system prompt based on whether document context is available
     let systemPrompt: string;
     
     if (documentContext && documentContext.trim().length > 0) {
