@@ -29,3 +29,16 @@ The `generate-lesson` Edge Function was upgraded to serve as an Omni-Router. It 
 - Documented new architecture in `AI_PIPELINE_ARCHITECTURE.md`.
 - Created database migration (`20260403000000_unit_draft_state.sql`) adding `scanned_assets` JSONB for draft states.
 - Refactored `UploadTextbook.tsx` into a dual-pane Workspace view.
+
+---
+
+## 🤖 PHASE 10: MULTI-AGENT BACKEND
+
+**Agent 1 (Vision Scanner) Implemented**
+- Created new `extract-page` Edge Function.
+- **Vision Integration:** Uses Universal AI gateway with proper OpenAI vision spec (`image_url` within the message object) to classify uploaded lesson pages via `VISION_MODEL_NAME`.
+- **Strict Data Extraction:** Applies strict JSON-only system prompting designed for EdTech. Robustly escapes markdown and extracts specific `page_type` (e.g. COMIC, VOCABULARY, GRAMMAR) and `extracted_content`.
+- **UI & DB Connection:** Upgraded `UploadTextbook.tsx` so when a teacher uploads a file to the Workspace, it immediately:
+  1. Uploads the file to `materials` bucket.
+  2. Invokes `extract-page` edge function with the public URL.
+  3. Saves the parsed JSON to `units.scanned_assets` array under a draft unit ID.
