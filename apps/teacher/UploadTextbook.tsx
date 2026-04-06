@@ -62,7 +62,7 @@ const ExtractionReviewPane = ({ file, scan }: any) => {
          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white shadow-sm z-10">
             <div>
                <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review & Edit</h2>
-               <p className="text-sm text-slate-500">{file.name} {scan ?\`(\${scan.data?.page_type || 'Draft'})\` : 'Extraction Draft'}</p>
+               <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || 'Draft'})` : 'Extraction Draft'}</p>
             </div>
             <button className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2" disabled={!scan || scan.status !== 'success'}>
                Approve & Generate Assets <ChevronRight size={18} />
@@ -73,8 +73,8 @@ const ExtractionReviewPane = ({ file, scan }: any) => {
             {/* Document Preview */}
             <div className="w-1/2 p-6 bg-slate-100 border-r border-slate-200 flex flex-col">
                <div className="flex-1 bg-white p-4 shadow-md rounded-xl flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
-                  {file.url ? (
-                     <img src={file.url} alt="document preview" className="max-w-full max-h-full object-contain" />
+                  {file?.fileUrl ? (
+                     <img src={file.fileUrl} alt="document preview" className="max-w-full max-h-full object-contain" />
                   ) : (
                      <div className="text-slate-400 flex flex-col items-center gap-2">
                         <FileImage size={48} className="opacity-50" />
@@ -96,7 +96,7 @@ const ExtractionReviewPane = ({ file, scan }: any) => {
                         <p>Extracting data using Agent 1 Vision Scanner...</p>
                      </div>
                   ) : scan.status === 'error' ? (
-                     <div className="text-red-500 p-4 bg-red-50 border border-red-200 rounded-lg">
+                     <div className="text-red-500 p-4 bg-red-50 border border-red-200 rounded-lg whitespace-pre-wrap">
                         <strong>Error:</strong> {scan.error}
                      </div>
                   ) : (
@@ -138,14 +138,14 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          setScans(prev => ({ ...prev, [fileIndex]: { status: 'scanning' } }));
 
          // 1. Upload to storage
-         const fileName = \`\${Date.now()}-\${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}\`;
+         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
          const { error: uploadError } = await supabase.storage.from('materials').upload(fileName, file);
          if (uploadError) throw uploadError;
 
          const { data: urlData } = supabase.storage.from('materials').getPublicUrl(fileName);
          const fileUrl = urlData.publicUrl;
 
-         setFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, url: fileUrl } : f));
+         setFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, fileUrl: fileUrl } : f));
 
          // 2. Invoke extract-page Agent 1 Function
          const { data: aiData, error: aiError } = await supabase.functions.invoke('extract-page', {
@@ -162,7 +162,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          if (!activeUnitId) {
             // Create draft unit if doesn't exist
             const { data: newUnit, error: createError } = await supabase.from('units').insert({
-               title: \`Draft Unit \${new Date().toLocaleDateString()}\`,
+               title: `Draft Unit ${new Date().toLocaleDateString()}`,
                topic: 'Uploaded Material',
                level: 'General',
                status: 'Draft',
@@ -174,12 +174,12 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             activeUnitId = newUnit.id;
             setDraftUnitId(activeUnitId);
          } else {
-             // Append to scanned_assets
-             const { data: existingUnit } = await supabase.from('units').select('scanned_assets').eq('id', activeUnitId).single();
-             const currentAssets = existingUnit?.scanned_assets || [];
-             await supabase.from('units').update({
-                scanned_assets: [...currentAssets, aiData.extraction]
-             }).eq('id', activeUnitId);
+            // Append to scanned_assets
+            const { data: existingUnit } = await supabase.from('units').select('scanned_assets').eq('id', activeUnitId).single();
+            const currentAssets = existingUnit?.scanned_assets || [];
+            await supabase.from('units').update({
+               scanned_assets: [...currentAssets, aiData.extraction]
+            }).eq('id', activeUnitId);
          }
 
       } catch (err: any) {
@@ -194,12 +194,12 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       if (e.target.files && e.target.files.length > 0) {
          const newFiles = Array.from(e.target.files);
          const startIndex = files.length;
-         
-         const newFilesState = [...files, ...newFiles.map(f => ({ file: f, name: f.name, url: null }))];
+
+         const newFilesState = [...files, ...newFiles.map(f => ({ file: f, name: f.name, fileUrl: null }))];
          setFiles(newFilesState);
-         
+
          if (activeFileIndex === -1 && newFiles.length > 0) {
-           setActiveFileIndex(startIndex);
+            setActiveFileIndex(startIndex);
          }
 
          // Process only the first uploaded file in this demo to avoid parallel race condition simplicity issues
@@ -211,26 +211,26 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    return (
       <div className="flex-1 flex h-[calc(100vh-64px)] overflow-hidden bg-white">
          <input
-           type="file"
-           ref={fileInputRef}
-           className="hidden"
-           onChange={handleFileSelect}
-           accept=".jpg,.jpeg,.png,.pdf"
-           multiple={false} // Force single file at a time for stability in this phase
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileSelect}
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={false} // Force single file at a time for stability in this phase
          />
-         
-         <WorkspaceSidebar 
-           files={files} 
-           scans={scans}
-           activeFileIndex={activeFileIndex} 
-           setActiveFileIndex={setActiveFileIndex}
-           onUploadClick={() => fileInputRef.current?.click()}
-           isExtracting={isExtracting}
+
+         <WorkspaceSidebar
+            files={files}
+            scans={scans}
+            activeFileIndex={activeFileIndex}
+            setActiveFileIndex={setActiveFileIndex}
+            onUploadClick={() => fileInputRef.current?.click()}
+            isExtracting={isExtracting}
          />
-         
-         <ExtractionReviewPane 
-           file={files[activeFileIndex]} 
-           scan={scans[activeFileIndex]}
+
+         <ExtractionReviewPane
+            file={files[activeFileIndex]}
+            scan={scans[activeFileIndex]}
          />
       </div>
    );

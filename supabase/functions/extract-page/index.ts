@@ -86,10 +86,7 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT. 
             parsedResponse = JSON.parse(cleanJson);
         } catch (e) {
             console.error('JSON parsing failed. Raw:', aiResponseText.substring(0, 200));
-            parsedResponse = {
-                page_type: "READING",
-                extracted_content: { reading_text: aiResponseText.substring(0, 500) }
-            };
+            throw new Error(`JSON Schema compliance failed. Raw LLM response: ${aiResponseText}`);
         }
 
         return new Response(JSON.stringify({ success: true, metadata: { pageNumber }, extraction: parsedResponse }), {
@@ -101,7 +98,7 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT. 
         console.error('Edge Function Error:', error.message)
         return new Response(JSON.stringify({ success: false, error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500,
+            status: 400,
         })
     }
 });
