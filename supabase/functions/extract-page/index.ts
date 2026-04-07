@@ -6,22 +6,22 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
-    }
-
     try {
-        const body = await req.json()
-        const { fileUrl, pageNumber } = body
+        if (req.method === 'OPTIONS') {
+            return new Response('ok', { headers: corsHeaders });
+        }
+
+        const body = await req.json();
+        const { fileUrl, pageNumber } = body;
 
         if (!fileUrl) throw new Error("Missing fileUrl");
 
-        const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1'
-        const aiApiKey = Deno.env.get('AI_API_KEY')
-        const aiModelName = Deno.env.get('VISION_MODEL_NAME') || Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free'
+        const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
+        const aiApiKey = Deno.env.get('AI_API_KEY');
+        const aiModelName = Deno.env.get('VISION_MODEL_NAME') || Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free';
 
         if (!aiApiKey) {
-            throw new Error('AI_API_KEY environment variable is not set.')
+            throw new Error('AI_API_KEY environment variable is not set.');
         }
 
         const systemPrompt = `You are an expert EdTech AI assistant tasked with scanning textbook pages.
@@ -52,11 +52,10 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT. 
             body: JSON.stringify({
                 model: aiModelName,
                 messages: [
-                    { role: 'system', content: systemPrompt },
                     {
                         role: 'user',
                         content: [
-                            { type: 'text', text: 'Extract and classify this page based on your strict schema instructions.' },
+                            { type: 'text', text: systemPrompt },
                             { type: 'image_url', image_url: { url: fileUrl } }
                         ]
                     }
@@ -92,13 +91,13 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT. 
         return new Response(JSON.stringify({ success: true, metadata: { pageNumber }, extraction: parsedResponse }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 200,
-        })
+        });
 
     } catch (error: any) {
-        console.error('Edge Function Error:', error.message)
+        console.error('Edge Function Error:', error.message);
         return new Response(JSON.stringify({ success: false, error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
-        })
+            status: 200,
+        });
     }
 });
