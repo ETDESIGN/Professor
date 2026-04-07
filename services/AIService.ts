@@ -43,6 +43,28 @@ export const AIService = {
     },
 
     /**
+     * Calls the Agent 2 Orchestrator Edge Function to safely publish assets to the final timeline.
+     */
+    async orchestrateLesson(unitId: string, approvedAssets: object): Promise<any> {
+        console.log(`Orchestrating Lesson via Agent 2 for unit ${unitId}...`);
+        const { data, error } = await supabase.functions.invoke('orchestrate-lesson', {
+            body: { unitId, approvedAssets }
+        });
+
+        if (error) {
+            console.error('Edge Function Error:', error);
+            throw new Error(error.message || 'Failed to orchestrate lesson.');
+        }
+
+        if (data && data.success === false) {
+            console.error('Edge Function reported error:', data.error);
+            throw new Error(data.error || 'Edge Function failed');
+        }
+
+        return data;
+    },
+
+    /**
      * Calls the Generate Lesson Edge Function based on topic and grade level.
      * Optionally accepts documentContext for file-based curriculum generation.
      */

@@ -3,6 +3,9 @@ import { UploadCloud, Check, X, ArrowRight, Loader2, FileText, Trash2, Plus, Ale
 import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
+import { AIService } from '../../services/AIService';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 // Mock components to represent the Workspace
 const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, onUploadClick, isExtracting }: any) => (
@@ -177,28 +180,25 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const [isOrchestrating, setIsOrchestrating] = useState<boolean>(false);
    const [draftUnitId, setDraftUnitId] = useState<string | null>(null);
    const fileInputRef = useRef<HTMLInputElement>(null);
+   const navigate = useNavigate();
 
    const handleApprove = async (approvedAssets: any) => {
       if (!draftUnitId) return;
       try {
          setIsOrchestrating(true);
-         const { data, error } = await supabase.functions.invoke('orchestrate-lesson', {
-            body: { unitId: draftUnitId, approvedAssets }
-         });
+         console.log("Approving unit...", draftUnitId);
 
-         if (error) throw error;
-         if (!data.success) throw new Error(data.error || "Unknown Edge Function error");
+         await AIService.orchestrateLesson(draftUnitId, approvedAssets);
 
-         alert("Success! The Game Timeline has been generated and published.");
+         toast.success('Lesson orchestrated and published!');
+         navigate('/teacher/curriculum');
 
          if (onFinish) {
             onFinish();
-         } else {
-            window.location.href = '/teacher/curriculum';
          }
       } catch (err: any) {
          console.error("Orchestration error:", err);
-         alert(`Error orchestrating game: ${err.message}`);
+         toast.error(err.message || "Failed to orchestrate lesson");
       } finally {
          setIsOrchestrating(false);
       }
