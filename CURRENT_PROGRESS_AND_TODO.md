@@ -42,3 +42,10 @@ The `generate-lesson` Edge Function was upgraded to serve as an Omni-Router. It 
   1. Uploads the file to `materials` bucket.
   2. Invokes `extract-page` edge function with the public URL.
   3. Saves the parsed JSON to `units.scanned_assets` array under a draft unit ID.
+
+**Agent 2 (The Orchestrator) Implemented (Phase 11)**
+- Created new `orchestrate-lesson` Edge Function.
+- Acts as a 'Master Educational Game Designer', taking the approved structured textbook assets.
+- Maps the structured educational data (vocabulary, grammar) into a 5-step `LessonManifest` `timeline` (MEDIA_PLAYER, FOCUS_CARDS, GRAMMAR_SANDBOX, GAME_ARENA, STORY_STAGE).
+- Updates the draft `units` Database row to `status: 'published'` with `flow: parsedResponse.timeline`.
+- UI handles orchestration via green 'Approve & Generate Assets' button and redirects on success.

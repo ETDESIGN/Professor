@@ -50,7 +50,7 @@ const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, o
    </div>
 );
 
-const ExtractionReviewPane = ({ file, scan }: any) => {
+const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) => {
    if (!file) return (
       <div className="flex-1 flex items-center justify-center bg-slate-50 text-slate-400">
          Select a page from the sidebar to review extraction.
@@ -64,8 +64,13 @@ const ExtractionReviewPane = ({ file, scan }: any) => {
                <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review & Edit</h2>
                <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || 'Draft'})` : 'Extraction Draft'}</p>
             </div>
-            <button className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2" disabled={!scan || scan.status !== 'success'}>
-               Approve & Generate Assets <ChevronRight size={18} />
+            <button
+               className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+               disabled={!scan || scan.status !== 'success' || isOrchestrating}
+               onClick={() => onApprove(scan.data)}
+            >
+               {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Approve & Generate Assets'}
+               {!isOrchestrating && <ChevronRight size={18} />}
             </button>
          </div>
 
@@ -169,8 +174,35 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const [scans, setScans] = useState<Record<number, any>>({});
    const [activeFileIndex, setActiveFileIndex] = useState<number>(-1);
    const [isExtracting, setIsExtracting] = useState<boolean>(false);
+   const [isOrchestrating, setIsOrchestrating] = useState<boolean>(false);
    const [draftUnitId, setDraftUnitId] = useState<string | null>(null);
    const fileInputRef = useRef<HTMLInputElement>(null);
+
+   const handleApprove = async (approvedAssets: any) => {
+      if (!draftUnitId) return;
+      try {
+         setIsOrchestrating(true);
+         const { data, error } = await supabase.functions.invoke('orchestrate-lesson', {
+            body: { unitId: draftUnitId, approvedAssets }
+         });
+
+         if (error) throw error;
+         if (!data.success) throw new Error(data.error || "Unknown Edge Function error");
+
+         alert("Success! The Game Timeline has been generated and published.");
+
+         if (onFinish) {
+            onFinish();
+         } else {
+            window.location.href = '/teacher/curriculum';
+         }
+      } catch (err: any) {
+         console.error("Orchestration error:", err);
+         alert(`Error orchestrating game: ${err.message}`);
+      } finally {
+         setIsOrchestrating(false);
+      }
+   };
 
    const processFileUpload = async (file: File, fileIndex: number, currentDraftId: string | null) => {
       try {
@@ -271,6 +303,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          <ExtractionReviewPane
             file={files[activeFileIndex]}
             scan={scans[activeFileIndex]}
+            isOrchestrating={isOrchestrating}
+            onApprove={handleApprove}
          />
       </div>
    );
