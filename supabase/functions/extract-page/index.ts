@@ -24,18 +24,21 @@ serve(async (req) => {
             throw new Error('AI_API_KEY environment variable is not set.');
         }
 
-        const systemPrompt = `You are an expert EdTech AI assistant tasked with scanning textbook pages.
-Your job is to look at a single uploaded page, classify it, and extract the raw, structured text with absolute precision.
+        const systemPrompt = `You are an Expert ESL Curriculum Designer. Analyze the images, diagrams, and exercises to deduce the true learning objectives. If words are pointing to pictures (like a vocab map), extract them as vocabulary.
 
-Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT. No markdown formatting outside of a potential JSON block, but ideally just raw JSON:
+Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT:
 
 {
-  "page_type": "COMIC" | "VOCABULARY" | "GRAMMAR" | "EXERCISES" | "READING",
+  "page_type": "MIXED",
+  "pedagogy": {
+     "topic": "string (e.g., Vehicles and Places)",
+     "learning_objectives": ["string"],
+     "visual_context": "string (Detailed description of the images/diagrams)"
+  },
   "extracted_content": {
-     // If COMIC: return array of { "character": "string", "dialogue": "string", "panel_description": "string" } under key "comic_panels"
-     // If VOCABULARY: return array of { "word": "string", "target_language": "string", "native_translation": "string" } under key "vocabulary"
-     // If GRAMMAR: return { "rule_name": "string", "formula": "string", "examples": ["string"] } under key "grammar_rule"
-     // Provide only the relevant key inside extracted_content based on the page_type.
+     "vocabulary": [{"word": "string", "definition_or_context": "string"}],
+     "reading_text": "string (Any main paragraphs)",
+     "exercises":[{"instruction": "string", "content": "string"}]
   }
 }`;
 
@@ -72,13 +75,9 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT. 
         const data = await aiResponse.json();
         let aiResponseText = data.choices?.[0]?.message?.content || '{}';
 
-        // Robust JSON sanitization
-        let cleanJson = aiResponseText
-            .replace(/```json\s*/gi, '')    // Strip opening ```json
-            .replace(/```\s*/g, '')          // Strip closing ```
-            .replace(/^[\s\S]*?\{/, '{')     // Strip everything before first {
-            .replace(/\}[\s\S]*?$/, '}')     // Strip everything after last }
-            .trim();
+        // Robust JSON sanitization using regex to bypass any markdown wrapping
+        const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
+        const cleanJson = jsonMatch ? jsonMatch[0] : aiResponseText;
 
         let parsedResponse;
         try {

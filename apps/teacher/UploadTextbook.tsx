@@ -101,12 +101,52 @@ const ExtractionReviewPane = ({ file, scan }: any) => {
                      </div>
                   ) : (
                      <div className="space-y-6">
-                        {/* Dynamic Rendering Based on Page Type */}
+                        {/* Rich Pedagogical Rendering */}
+                        {scan.data.pedagogy && (
+                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <h3 className="font-bold text-blue-800 text-lg mb-1">{scan.data.pedagogy.topic || "Unknown Topic"}</h3>
+                              <p className="text-sm text-blue-600 mb-3">{scan.data.pedagogy.visual_context}</p>
+                              <div className="flex flex-wrap gap-2">
+                                 {scan.data.pedagogy.learning_objectives?.map((obj: string, i: number) => (
+                                    <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">{obj}</span>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {scan.data.extracted_content?.vocabulary && scan.data.extracted_content.vocabulary.length > 0 && (
+                           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                              <h4 className="font-bold text-emerald-800 mb-3 flex items-center gap-2"><FileText size={16} /> Vocabulary Maps</h4>
+                              <div className="grid grid-cols-2 gap-3">
+                                 {scan.data.extracted_content.vocabulary.map((v: any, i: number) => (
+                                    <div key={i} className="p-3 bg-white border border-emerald-100 rounded shadow-sm">
+                                       <div className="font-bold text-emerald-700">{v.word}</div>
+                                       <div className="text-sm text-emerald-600 mt-1">{v.definition_or_context}</div>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {scan.data.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
+                           <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                              <h4 className="font-bold text-purple-800 mb-3 flex items-center gap-2"><Settings size={16} /> Exercises</h4>
+                              <div className="space-y-3">
+                                 {scan.data.extracted_content.exercises.map((ex: any, i: number) => (
+                                    <div key={i} className="p-3 bg-white border border-purple-100 rounded shadow-sm">
+                                       <div className="font-bold text-purple-700 text-sm">{ex.instruction}</div>
+                                       <div className="text-sm text-purple-600 mt-1">{ex.content}</div>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
                         <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                           <h3 className="font-bold text-slate-700 mb-2">JSON Editor (Draft State)</h3>
+                           <h3 className="font-bold text-slate-700 mb-2">Raw JSON Data Tracker</h3>
                            <textarea
                               className="w-full p-3 border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                              rows={16}
+                              rows={8}
                               defaultValue={JSON.stringify(scan.data, null, 2)}
                            />
                         </div>
