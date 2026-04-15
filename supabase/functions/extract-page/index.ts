@@ -24,7 +24,7 @@ serve(async (req) => {
             throw new Error('AI_API_KEY environment variable is not set.');
         }
 
-        const systemPrompt = `You are an Expert ESL Curriculum Designer. Analyze the images, diagrams, and exercises to deduce the true learning objectives. If words are pointing to pictures (like a vocab map), extract them as vocabulary.
+        const systemPrompt = `You are an Expert ESL Curriculum Designer and meticulous transcriber. Analyze the images, diagrams, and exercises to deduce the true learning objectives. If words are pointing to pictures (like a vocab map), extract them as vocabulary. If there is a comic or story, you MUST extract it panel-by-panel. If there is a grammar box, you MUST extract the exact formulas and examples.
 
 Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT:
 
@@ -38,7 +38,13 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT:
   "extracted_content": {
      "vocabulary": [{"word": "string", "definition_or_context": "string"}],
      "reading_text": "string (Any main paragraphs)",
-     "exercises":[{"instruction": "string", "content": "string"}]
+     "comic_panels": [
+        { "panel_number": 1, "context": "string", "dialogues": [{"character": "string", "text": "EXACT extracted text"}] }
+     ],
+     "grammar_boxes": [
+        { "title": "string", "formulas_and_examples": ["EXACT extracted text (e.g. 'Are there any animals? Yes, there are.')"] }
+     ],
+     "exercises": [{"instruction": "string", "content": "string"}]
   }
 }`;
 

@@ -136,6 +136,45 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
+                        {scan.data.extracted_content?.comic_panels && scan.data.extracted_content.comic_panels.length > 0 && (
+                           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                              <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2"><FileImage size={16} /> Story & Comics</h4>
+                              <div className="space-y-4">
+                                 {scan.data.extracted_content.comic_panels.map((panel: any, i: number) => (
+                                    <div key={i} className="p-3 bg-white border border-amber-100 rounded shadow-sm">
+                                       <div className="text-xs font-bold text-amber-500 uppercase mb-1">Panel {panel.panel_number}</div>
+                                       {panel.context && <div className="text-xs text-amber-700 italic mb-2 bg-amber-50 p-1 rounded border border-amber-100">{panel.context}</div>}
+                                       <div className="space-y-1">
+                                          {panel.dialogues?.map((d: any, j: number) => (
+                                             <div key={j} className="text-sm text-amber-900 border-l-2 border-amber-300 pl-2">
+                                                <span className="font-bold">{d.character}:</span> {d.text}
+                                             </div>
+                                          ))}
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {scan.data.extracted_content?.grammar_boxes && scan.data.extracted_content.grammar_boxes.length > 0 && (
+                           <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                              <h4 className="font-bold text-indigo-800 mb-3 flex items-center gap-2"><Settings size={16} /> Grammar & Formulas</h4>
+                              <div className="space-y-3">
+                                 {scan.data.extracted_content.grammar_boxes.map((box: any, i: number) => (
+                                    <div key={i} className="p-3 bg-white border border-indigo-100 rounded shadow-sm">
+                                       <div className="font-bold text-indigo-700 mb-2">{box.title}</div>
+                                       <div className="space-y-1 bg-indigo-50 p-2 rounded text-indigo-900 font-mono text-xs">
+                                          {box.formulas_and_examples?.map((f: string, j: number) => (
+                                             <div key={j}>• {f}</div>
+                                          ))}
+                                       </div>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
                         {scan.data.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
                            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                               <h4 className="font-bold text-purple-800 mb-3 flex items-center gap-2"><Settings size={16} /> Exercises</h4>

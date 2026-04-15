@@ -53,4 +53,8 @@ The `generate-lesson` Edge Function was upgraded to serve as an Omni-Router. It 
 **Pipeline Audit — Phases A, B, C COMPLETE (April 2026)**
 - Phase A: `handleApprove` in `UploadTextbook.tsx` now aggregates ALL scanned pages and shows a `toast.error` instead of a silent return when `draftUnitId` is null.
 - Phase B: `orchestrate-lesson` system prompt upgraded to force fully-populated game block `data` objects (FOCUS_CARDS cards[], GAME_ARENA questions[], GRAMMAR_SANDBOX rule/examples, STORY_STAGE pages[]). Also saves to `units.manifest` for future LessonStudio hydration.
-- Phase C: DB status fixed to `'Active'` (satisfies CHECK constraint). Vocabulary is now inserted into `srs_items` table (`unit_id`, `word`, `translation`, defaults) after unit publish. SRS insert errors are non-fatal (logged, not re-thrown).
+- Phase C: DB status fixed to exactly `'Active'` (satisfies checked constraint on Postgres). Vocabulary is now inserted into `srs_items` table (`unit_id`, `word`, `translation`, defaults) after unit publish. SRS insert errors are non-fatal (logged, not re-thrown).
+
+**Deep Reading Upgrade (Agent 1 & UI) COMPLETE**
+- The `extract-page` edge function (Agent 1) now uses an upgraded schema to meticulously transcribe `comic_panels` (with panel numbers and character dialogues) and `grammar_boxes` (with explicit formulas/examples) when analyzing pages.
+- The `UploadTextbook.tsx` UI was upgraded to visually parse and render these new schemas into "Story & Comics" and "Grammar & Formulas" preview cards.
