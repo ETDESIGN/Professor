@@ -58,3 +58,8 @@ The `generate-lesson` Edge Function was upgraded to serve as an Omni-Router. It 
 **Deep Reading Upgrade (Agent 1 & UI) COMPLETE**
 - The `extract-page` edge function (Agent 1) now uses an upgraded schema to meticulously transcribe `comic_panels` (with panel numbers and character dialogues) and `grammar_boxes` (with explicit formulas/examples) when analyzing pages.
 - The `UploadTextbook.tsx` UI was upgraded to visually parse and render these new schemas into "Story & Comics" and "Grammar & Formulas" preview cards.
+
+**Server-Side Hydration (Phase 1 & 2 of Audit Roadmap) COMPLETE**
+- Reverted Agent 2 Schema to ONLY generate the semantic `LessonManifest` (the intelligence), removing the timeline array generation from the LLM prompt.
+- Server-Side Transformer (`transformManifestToFlow`) implemented in `orchestrate-lesson/index.ts` to manually map the vocabulary and grammar to strict Board Engine components (`FOCUS_CARDS`, `GAME_ARENA`, etc.).
+- Direct conversion of `manifest` to `flow` in the DB resolves the "Dummy Data" Hallucination issue from the Orchestrator.
