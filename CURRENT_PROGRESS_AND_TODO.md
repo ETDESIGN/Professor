@@ -49,3 +49,8 @@ The `generate-lesson` Edge Function was upgraded to serve as an Omni-Router. It 
 - Maps the structured educational data (vocabulary, grammar) into a 5-step `LessonManifest` `timeline` (MEDIA_PLAYER, FOCUS_CARDS, GRAMMAR_SANDBOX, GAME_ARENA, STORY_STAGE).
 - Updates the draft `units` Database row to `status: 'published'` with `flow: parsedResponse.timeline`.
 - UI handles orchestration via green 'Approve & Generate Assets' button and redirects on success.
+
+**Pipeline Audit — Phases A, B, C COMPLETE (April 2026)**
+- Phase A: `handleApprove` in `UploadTextbook.tsx` now aggregates ALL scanned pages and shows a `toast.error` instead of a silent return when `draftUnitId` is null.
+- Phase B: `orchestrate-lesson` system prompt upgraded to force fully-populated game block `data` objects (FOCUS_CARDS cards[], GAME_ARENA questions[], GRAMMAR_SANDBOX rule/examples, STORY_STAGE pages[]). Also saves to `units.manifest` for future LessonStudio hydration.
+- Phase C: DB status fixed to `'Active'` (satisfies CHECK constraint). Vocabulary is now inserted into `srs_items` table (`unit_id`, `word`, `translation`, defaults) after unit publish. SRS insert errors are non-fatal (logged, not re-thrown).

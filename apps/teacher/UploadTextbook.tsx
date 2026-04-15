@@ -70,7 +70,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
             <button
                className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                disabled={!scan || scan.status !== 'success' || isOrchestrating}
-               onClick={() => onApprove(scan.data)}
+               onClick={() => onApprove()}
             >
                {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Approve & Generate Assets'}
                {!isOrchestrating && <ChevronRight size={18} />}
@@ -182,13 +182,28 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
-   const handleApprove = async (approvedAssets: any) => {
-      if (!draftUnitId) return;
+   const handleApprove = async () => {
+      // Phase A Fix: Surface error instead of silent return
+      if (!draftUnitId) {
+         toast.error('No draft unit found. Upload a page first.');
+         return;
+      }
       try {
          setIsOrchestrating(true);
          console.log("Approving unit...", draftUnitId);
 
-         await AIService.orchestrateLesson(draftUnitId, approvedAssets);
+         // Phase A Fix: Aggregate ALL successfully scanned pages, not just the current one
+         const allAssets = Object.values(scans)
+            .filter((s: any) => s.status === 'success')
+            .map((s: any) => s.data);
+
+         if (allAssets.length === 0) {
+            toast.error('No successfully extracted pages found.');
+            setIsOrchestrating(false);
+            return;
+         }
+
+         await AIService.orchestrateLesson(draftUnitId, allAssets);
 
          toast.success('Lesson orchestrated and published!');
          navigate('/teacher/curriculum');
