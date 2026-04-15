@@ -101,7 +101,7 @@ Force your output to conform EXACTLY to this JSON schema. Return NO OTHER TEXT:
 
             // Update DB
             const { error: dbError } = await supabase.from('units').update({
-                status: 'published',
+                status: 'Completed',
                 flow: parsedResponse.timeline
             }).eq('id', unitId);
 
