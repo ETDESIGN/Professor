@@ -16,7 +16,6 @@ import DistrictAdminDashboard from './apps/admin/DistrictAdminDashboard';
 import TeacherOnboarding from './apps/teacher/TeacherOnboarding';
 import StudentOnboarding from './apps/student/StudentOnboarding';
 import ParentOnboarding from './apps/parent/ParentOnboarding';
-import { APP_NAME } from './constants';
 import { useAppStore } from './store/useAppStore';
 import { getCurrentUser } from './services/AuthService';
 import { supabase } from './services/supabaseClient';

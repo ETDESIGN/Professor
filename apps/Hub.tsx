@@ -46,7 +46,7 @@ const Hub: React.FC<HubProps> = ({ onSelectApp }) => {
       </div>
 
       <div className="mt-12 text-slate-500 text-sm">
-        v0.1.0 Prototype • No Backend • Mock Data
+        v1.0 • Supabase + Gemini + ElevenLabs
       </div>
     </div>
   );
