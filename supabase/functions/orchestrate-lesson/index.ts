@@ -212,7 +212,8 @@ IMPORTANT RULES:
 2. Every vocabulary item MUST have a context_sentence that uses the word naturally within the theme_context setting and characters.
 3. Every grammar rule MUST have world_examples using the theme_context characters and setting.
 4. The context_sentence must NOT use generic phrases like "lives in the jungle". It must be specific to the unit's theme.
-5. Return ONLY the JSON. No markdown, no explanation.`
+5. Return ONLY the JSON. No markdown, no explanation.
+6. Every distractor must be a plausible alternative definition from the same topic domain. Never use generic placeholders like 'wrong1' or 'wrong2'. Each distractor should be a real, confusing-but-wrong answer that tests true understanding.`
 
     const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
       method: 'POST',
@@ -275,20 +276,6 @@ IMPORTANT RULES:
             setting: themeCtx?.setting || "",
             characters: characters
           }
-        },
-        {
-          id: crypto.randomUUID(),
-          type: "MEDIA_PLAYER",
-          title: `Warm Up: ${theme}`,
-          duration: 300,
-          teacherGuide: { instruction: "Play a warm-up song or video related to the theme.", script: `Let's start with a song about ${theme}!` },
-          data: {
-            title: `${theme} Warm Up`,
-            videoUrl: "",
-            videoThumbnail: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(theme + '-media')}`,
-            lyrics: [],
-            audioUrl: ""
-          }
         }
       ]
 
@@ -314,13 +301,48 @@ IMPORTANT RULES:
           }
         })
 
-        const questions = vocabulary.map((v: any, i: number) => ({
-          id: `q_${i}`,
-          text: `What does "${v.word}" mean?`,
-          image: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(v.word || 'vocab')}`,
-          options: [v.definition, ...(v.distractors || ['wrong1', 'wrong2', 'wrong3'])].sort(() => Math.random() - 0.5),
-          correct: v.definition
-        }))
+        const allDefinitions = vocabulary.map((v: any) => v.definition).filter(Boolean)
+        const allWords = vocabulary.map((v: any) => v.word).filter(Boolean)
+
+        const pickRandom = (arr: string[], exclude: string, count: number): string[] => {
+          const filtered = arr.filter(x => x !== exclude)
+          const shuffled = filtered.sort(() => Math.random() - 0.5)
+          return shuffled.slice(0, count)
+        }
+
+        const questions = vocabulary.map((v: any, i: number) => {
+          const questionType = i % 3
+          let text: string
+          let options: string[]
+          let correct: string
+
+          if (questionType === 0) {
+            text = `What does "${v.word}" mean?`
+            correct = v.definition
+            const crossDistractors = pickRandom(allDefinitions, v.definition, 3)
+            options = [correct, ...crossDistractors.length >= 3 ? crossDistractors : [...crossDistractors, ...(v.distractors || []).slice(0, 3 - crossDistractors.length)]].slice(0, 4)
+          } else if (questionType === 1) {
+            text = `Which word means: "${v.definition}"?`
+            correct = v.word
+            const crossDistractors = pickRandom(allWords, v.word, 3)
+            options = [correct, ...crossDistractors.length >= 3 ? crossDistractors : [...crossDistractors, ...(v.distractors || []).slice(0, 3 - crossDistractors.length)]].slice(0, 4)
+          } else {
+            const sentence = v.context_sentence || `This word is about ${v.word}.`
+            const blanked = sentence.replace(new RegExp(v.word, 'gi'), '____')
+            text = `Fill in the blank: "${blanked}"`
+            correct = v.word
+            const crossDistractors = pickRandom(allWords, v.word, 3)
+            options = [correct, ...crossDistractors.length >= 3 ? crossDistractors : [...crossDistractors, ...(v.distractors || []).slice(0, 3 - crossDistractors.length)]].slice(0, 4)
+          }
+
+          return {
+            id: `q_${i}`,
+            text,
+            image: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(v.word || 'vocab')}`,
+            options: options.sort(() => Math.random() - 0.5),
+            correct
+          }
+        })
 
         flow.push({
           id: crypto.randomUUID(),

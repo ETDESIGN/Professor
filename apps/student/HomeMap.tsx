@@ -10,8 +10,18 @@ interface HomeMapProps {
 
 const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
   const { state } = useSession();
+  const soloState = state as any;
 
   const units = state.units.length > 0 ? state.units : [];
+  const completedUnitIds: string[] = soloState.studentProgress?.completedUnitIds || [];
+  const currentUnitId: string = soloState.studentProgress?.currentUnitId || '';
+  const studentXp: number = soloState.studentProgress?.xp || 0;
+  const studentStreak: number = soloState.studentProgress?.streak || 0;
+
+  const now = new Date();
+  const hoursLeft = 24 - now.getHours();
+  const xpGoal = 50;
+  const xpProgress = Math.min(studentXp / xpGoal, 1);
 
   // Helper to generate the path string
   const generatePath = (startIndex: number) => {
@@ -41,7 +51,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
           <h2 className="font-bold text-slate-800 flex items-center gap-2">
             <Target size={20} className="text-orange-500" /> Daily Quests
           </h2>
-          <span className="text-sm font-bold text-slate-400">12h left</span>
+          <span className="text-sm font-bold text-slate-400">{hoursLeft}h left</span>
         </div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -50,11 +60,11 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-bold text-slate-700">Earn 50 XP</span>
-                <span className="text-sm font-bold text-slate-400">10/50</span>
+                <span className="text-sm font-bold text-slate-700">Earn {xpGoal} XP</span>
+                <span className="text-sm font-bold text-slate-400">{Math.min(studentXp, xpGoal)}/{xpGoal}</span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500 w-1/5 rounded-full"></div>
+                <div className="h-full bg-orange-500 rounded-full" style={{ width: `${xpProgress * 100}%` }}></div>
               </div>
             </div>
           </div>
@@ -64,14 +74,27 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-bold text-slate-700">Complete 2 Listening</span>
-                <span className="text-sm font-bold text-slate-400">0/2</span>
+                <span className="text-sm font-bold text-slate-700">Complete 2 Lessons</span>
+                <span className="text-sm font-bold text-slate-400">{Math.min(completedUnitIds.length, 2)}/2</span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 w-0 rounded-full"></div>
+                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(completedUnitIds.length / 2, 1) * 100}%` }}></div>
               </div>
             </div>
           </div>
+          {studentStreak > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
+                <Star size={24} className="text-green-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm font-bold text-slate-700">Keep your streak!</span>
+                  <span className="text-sm font-bold text-green-500">{studentStreak} days</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -108,9 +131,11 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
             {/* Nodes Container */}
             <div className="flex flex-col items-center gap-6 mt-10 pb-4">
               {[1, 2, 3, 4].map((lesson, i) => {
-                const isCompleted = unit.status === 'Active' ? i < 2 : unit.status === 'Completed';
-                const isActive = unit.status === 'Active' && i === 2;
-                const isLocked = unit.status === 'Locked' || (unit.status === 'Active' && i > 2);
+                const isUnitCompleted = completedUnitIds.includes(unit.id) || unit.status === 'Completed';
+                const isUnitActive = unit.status === 'Active' && (currentUnitId === unit.id || !currentUnitId);
+                const isCompleted = isUnitCompleted || (unit.status === 'Active' && i < 2 && completedUnitIds.length > 0);
+                const isActive = isUnitActive && i === 2;
+                const isLocked = unit.status === 'Locked' || (!isCompleted && !isActive && unit.status === 'Active' && i > 2);
 
                 let offsetClass = '';
                 if (i % 4 === 1) offsetClass = 'translate-x-16';

@@ -319,6 +319,38 @@ const supabaseUpdateSRSItem = async (id: string, quality: number) => {
     }).eq('id', id);
 };
 
+const supabaseEnsureStudentSRSItems = async (unitId: string, studentId: string): Promise<void> => {
+    const { data: existing } = await supabase
+        .from('srs_items')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('unit_id', unitId)
+        .limit(1);
+
+    if (existing && existing.length > 0) return;
+
+    const { data: templates } = await supabase
+        .from('srs_items')
+        .select('*')
+        .eq('student_id', 'unit_template')
+        .eq('unit_id', unitId);
+
+    if (!templates || templates.length === 0) return;
+
+    const clones = templates.map((t: any) => ({
+        unit_id: t.unit_id,
+        student_id: studentId,
+        word: t.word,
+        translation: t.translation,
+        interval: 0,
+        repetition: 0,
+        efactor: 2.5,
+        next_review: new Date().toISOString(),
+    }));
+
+    await supabase.from('srs_items').insert(clones);
+};
+
 // ------------------------------------------------------------------
 // Unified Engine — delegates to Supabase or MockEngine
 // ------------------------------------------------------------------
@@ -391,6 +423,10 @@ export const Engine = {
     updateSRSItem: async (id: string, quality: number) => {
         if (isSupabaseConfigured()) return supabaseUpdateSRSItem(id, quality);
         return (await getMockEngine()).updateSRSItem(id, quality);
+    },
+
+    ensureStudentSRSItems: async (unitId: string, studentId: string): Promise<void> => {
+        if (isSupabaseConfigured()) return supabaseEnsureStudentSRSItems(unitId, studentId);
     },
 
     simulateScan: async (fileName: string): Promise<LessonUnit> => {

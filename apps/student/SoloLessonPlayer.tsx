@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, Heart, ArrowRight, ArrowLeft, Check, Volume2, ChevronRight, Star, BookOpen, Zap } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, Heart, ArrowRight, ArrowLeft, Check, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../store/SessionContext';
 import { MediaService } from '../../services/MediaService';
+import ReactPlayer from 'react-player';
 
 interface SoloLessonPlayerProps {
   onComplete: (results: { xp: number; accuracy: number; time: string }) => void;
@@ -28,6 +29,14 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   const [activePageIndex, setActivePageIndex] = useState(0);
 
   const [activeQuizIndex, setActiveQuizIndex] = useState(0);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [mediaProgress, setMediaProgress] = useState(0);
+  const [mediaTime, setMediaTime] = useState(0);
+  const [mediaDuration, setMediaDuration] = useState(0);
+  const [currentLineIdx, setCurrentLineIdx] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const playerRef = useRef<any>(null);
 
   const progress = totalSteps > 0 ? ((currentIndex + 1) / totalSteps) * 100 : 0;
   const startTime = React.useRef(Date.now());
@@ -351,21 +360,126 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
   const renderMediaPlayer = () => {
     const title = currentStep.data?.title || 'Media';
-    const lyrics = currentStep.data?.lyrics || '';
+    const videoUrl = currentStep.data?.videoUrl || '';
+    const audioUrl = currentStep.data?.audioUrl || '';
+    const lyrics: { time: number; text: string }[] = currentStep.data?.lyrics || [];
+
+    const hasVideo = Boolean(videoUrl);
+    const hasAudio = Boolean(audioUrl);
+    const hasLyrics = lyrics.length > 0;
+    const hasContent = hasVideo || hasAudio;
+
+    const handleMediaProgress = (state: { played: number; playedSeconds: number }) => {
+      setMediaProgress(state.played);
+      setMediaTime(state.playedSeconds);
+      const activeLyric = [...lyrics].reverse().find(l => l.time <= state.playedSeconds);
+      if (activeLyric) {
+        setCurrentLineIdx(lyrics.indexOf(activeLyric));
+      }
+    };
+
+    const formatTime = (seconds: number) => {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    if (!hasContent && !hasLyrics) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 text-center max-w-sm">
+            <Volume2 size={40} className="text-slate-300 mx-auto mb-4" />
+            <h2 className="text-lg font-bold text-slate-600 mb-2">{title}</h2>
+            <p className="text-slate-400 text-sm">No media for this step. Tap Continue.</p>
+          </div>
+        </div>
+      );
+    }
+
+    const currentLine = lyrics[currentLineIdx]?.text || '';
+    const nextLine = lyrics[currentLineIdx + 1]?.text || '';
+    const currentLyricStart = lyrics[currentLineIdx]?.time || 0;
+    const nextLyricStart = lyrics[currentLineIdx + 1]?.time || mediaDuration || currentLyricStart + 5;
+    const lyricDuration = nextLyricStart - currentLyricStart;
+    const lyricProgress = Math.min(1, Math.max(0, (mediaTime - currentLyricStart) / lyricDuration));
 
     return (
-      <div className="flex-1 flex flex-col p-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 flex-1">
-          <div className="flex items-center gap-2 mb-4">
-            <Volume2 size={20} className="text-blue-500" />
-            <span className="font-bold text-slate-800">{title}</span>
+      <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
+        {(hasVideo || hasAudio) && (
+          <ReactPlayer
+            ref={playerRef}
+            url={hasVideo ? videoUrl : audioUrl}
+            playing={isPlaying}
+            muted={isMuted}
+            width={hasVideo ? '100%' : '0'}
+            height={hasVideo ? '100%' : '0'}
+            style={hasVideo ? { position: 'absolute', top: 0, left: 0, opacity: 0.6, objectFit: 'cover' } : { position: 'absolute', width: 0, height: 0 }}
+            onProgress={handleMediaProgress}
+            onDuration={setMediaDuration}
+            onEnded={() => setIsPlaying(false)}
+            config={{
+              youtube: { playerVars: { controls: 0, disablekb: 1, modestbranding: 1 } } as any,
+            }}
+          />
+        )}
+
+        {hasVideo && <div className="absolute inset-0 bg-black/50 z-10" />}
+
+        <div className="relative z-20 p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-duo-yellow rounded-xl flex items-center justify-center shadow-lg">
+              <Volume2 size={24} className="text-yellow-900" />
+            </div>
+            <div>
+              <div className="text-yellow-400 font-bold uppercase tracking-widest text-xs">Media</div>
+              <h2 className="text-white font-bold text-lg">{title}</h2>
+            </div>
           </div>
-          {lyrics && (
-            <p className="text-slate-600 whitespace-pre-wrap">{lyrics}</p>
-          )}
-          {!lyrics && (
-            <p className="text-slate-400 italic">No media content for this step.</p>
-          )}
+        </div>
+
+        <div className="flex-1 relative z-20 flex flex-col items-center justify-center px-6 pb-4">
+          {hasLyrics ? (
+            <div className="text-center space-y-4 w-full max-w-sm">
+              <p className="text-2xl text-white/90 font-bold leading-relaxed">{currentLine}</p>
+              <p className="text-lg text-white/40">{nextLine}</p>
+            </div>
+          ) : hasContent ? (
+            <div className="text-center">
+              <Volume2 size={48} className="text-white/20 mx-auto mb-4" />
+              <p className="text-white/50">{isPlaying ? 'Playing...' : 'Press play to start'}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="relative z-20 p-4 space-y-3">
+          <div className="flex items-center gap-3 text-white/60 text-xs">
+            <span>{formatTime(mediaTime)}</span>
+            <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden cursor-pointer"
+              onClick={(e) => {
+                const bounds = e.currentTarget.getBoundingClientRect();
+                const pct = (e.clientX - bounds.left) / bounds.width;
+                playerRef.current?.seekTo(pct);
+              }}
+            >
+              <div className="h-full bg-duo-green rounded-full transition-all duration-100" style={{ width: `${mediaProgress * 100}%` }} />
+            </div>
+            <span>{formatTime(mediaDuration)}</span>
+          </div>
+
+          <div className="flex items-center justify-center gap-4">
+            <button onClick={() => setIsMuted(!isMuted)} className="text-white/60 hover:text-white transition-colors">
+              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            </button>
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="w-14 h-14 bg-white text-slate-900 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            >
+              {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-0.5" />}
+            </button>
+            <button onClick={() => playerRef.current?.seekTo(0)} className="text-white/60 hover:text-white transition-colors">
+              <Volume2 size={20} className="rotate-180" />
+            </button>
+          </div>
         </div>
       </div>
     );

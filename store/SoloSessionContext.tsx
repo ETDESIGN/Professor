@@ -6,6 +6,13 @@ import { supabase } from '../services/supabaseClient';
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
 
+interface StudentProgress {
+  completedUnitIds: string[];
+  currentUnitId: string;
+  xp: number;
+  streak: number;
+}
+
 interface SoloSessionState {
   status: SessionStatus;
   currentStepIndex: number;
@@ -28,6 +35,7 @@ interface SoloSessionState {
   score: number;
   totalCorrect: number;
   totalAttempts: number;
+  studentProgress: StudentProgress;
 }
 
 const initialState: SoloSessionState = {
@@ -52,6 +60,7 @@ const initialState: SoloSessionState = {
   score: 0,
   totalCorrect: 0,
   totalAttempts: 0,
+  studentProgress: { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 },
 };
 
 export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -59,7 +68,17 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
 
   useEffect(() => {
     loadUnits();
+    loadStudentProgress();
   }, []);
+
+  const loadStudentProgress = async () => {
+    try {
+      const progress = await Engine.getStudentProgress();
+      setState(prev => ({ ...prev, studentProgress: progress }));
+    } catch (error) {
+      console.error('SoloSession: Error loading progress:', error);
+    }
+  };
 
   const loadUnits = async () => {
     try {
@@ -108,6 +127,15 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         totalCorrect: 0,
         totalAttempts: 0,
       }));
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await Engine.ensureStudentSRSItems(unitId, user.id);
+        }
+      } catch (err) {
+        console.error('SoloSession: SRS clone error:', err);
+      }
     }
   };
 

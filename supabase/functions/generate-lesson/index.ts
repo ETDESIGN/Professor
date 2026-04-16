@@ -1,44 +1,179 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
+import { createLogger } from '../_shared/logger.ts'
+import { authenticateRequest, AuthError } from '../_shared/authMiddleware.ts'
+import { checkRateLimit, extractIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
+import { handleHealthCheck } from '../_shared/health.ts'
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const log = createLogger('generate-lesson')
 
 serve(async (req) => {
-    if (req.method === 'OPTIONS') {
-        return new Response('ok', { headers: corsHeaders })
-    }
+    const startTime = Date.now()
 
     try {
+        const healthResponse = handleHealthCheck(req)
+        if (healthResponse) return healthResponse
+
+        const corsResponse = handleCors(req)
+        if (corsResponse) return corsResponse
+
+        const identifier = extractIdentifier(req)
+        const rateLimit = checkRateLimit(identifier, { maxRequests: 30, windowMs: 60 * 1000 })
+        if (!rateLimit.allowed) {
+            log.warn('rate_limited', { metadata: { identifier } })
+            return errorResponse('Rate limit exceeded. Please try again later.', 429, rateLimitHeaders(rateLimit.remaining, rateLimit.retryAfterMs))
+        }
+
+        let userId: string | undefined
+        try {
+            const auth = await authenticateRequest(req)
+            userId = auth.userId
+        } catch (authErr) {
+            if (authErr instanceof AuthError) {
+                log.warn('auth_failed', { error: authErr.message })
+                return errorResponse(authErr.message, authErr.status)
+            }
+        }
+
         const body = await req.json()
         const { topic, gradeLevel, documentContext, imageBase64, action } = body
 
-        // Determine action - default to 'generate-lesson'
         const actionType = action || 'generate-lesson';
 
-        // Route to appropriate handler
         if (actionType === 'generate-lesson') {
-            return await handleGenerateLesson(req, { topic, gradeLevel, documentContext, imageBase64 });
+            return await handleGenerateLesson(req, { topic, gradeLevel, documentContext, imageBase64 }, userId, startTime, rateLimit);
+        } else if (actionType === 'differentiate') {
+            return await handleDifferentiate(req, body, userId, startTime, rateLimit);
         } else if (actionType === 'live-feedback') {
-            return await handleLiveFeedback(req);
+            return await handleLiveFeedback(req, body, userId, startTime, rateLimit);
         } else {
             throw new Error(`Unknown action: ${actionType}`);
         }
 
-    } catch (error) {
-        console.error('Edge Function Error:', error.message)
-        return new Response(JSON.stringify({ success: false, error: error.message }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200,
-        })
+    } catch (error: any) {
+        log.error('generate_lesson_failed', { error: error.message, durationMs: Date.now() - startTime })
+        return errorResponse(error.message);
     }
 });
 
-async function handleGenerateLesson(req: Request, params: { topic?: string; gradeLevel?: string; documentContext?: string; imageBase64?: string }) {
+async function handleDifferentiate(req: Request, body: any, userId: string | undefined, startTime: number, rateLimit: any) {
+    const { text, theme } = body
+    if (!text) throw new Error('Missing text for differentiation')
+
+    const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1'
+    const aiApiKey = Deno.env.get('AI_API_KEY')
+    const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'mistralai/mistral-small-3.1-24b-instruct'
+
+    if (!aiApiKey) throw new Error('AI_API_KEY environment variable is not set.')
+
+    log.info('differentiate_start', { userId, metadata: { textLength: text.length, theme } })
+
+    const prompt = `You are an ESL differentiation expert. Given this text about "${theme || 'education'}", create 3 versions at different reading levels.
+
+Original: "${text}"
+
+Return ONLY a JSON object:
+{
+  "below": "simplified version (CEFR A1-A2, short sentences, basic vocabulary)",
+  "on": "on-level version (CEFR B1, the original adapted slightly)",
+  "above": "advanced version (CEFR B2-C1, complex sentences, richer vocabulary)"
+}`
+
+    const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${aiApiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://professor-ai.vercel.app',
+            'X-Title': 'Professor AI'
+        },
+        body: JSON.stringify({
+            model: aiModelName,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.4,
+        })
+    });
+
+    if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        throw new Error(`AI Request Failed: ${aiResponse.status} - ${errText.substring(0, 300)}`);
+    }
+
+    const data = await aiResponse.json();
+    const raw = data.choices?.[0]?.message?.content || '{}';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : { below: text, on: text, above: text };
+
+    log.info('differentiate_complete', { userId, durationMs: Date.now() - startTime })
+
+    return jsonResponse({
+        success: true,
+        below: parsed.below || text,
+        on: parsed.on || text,
+        above: parsed.above || text
+    }, 200, rateLimitHeaders(rateLimit.remaining, 0));
+}
+
+async function handleLiveFeedback(req: Request, body: any, userId: string | undefined, startTime: number, rateLimit: any) {
+    const { context } = body
+
+    const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1'
+    const aiApiKey = Deno.env.get('AI_API_KEY')
+    const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'mistralai/mistral-small-3.1-24b-instruct'
+
+    if (!aiApiKey) throw new Error('AI_API_KEY environment variable is not set.')
+
+    log.info('live_feedback_start', { userId })
+
+    const prompt = `You are an expert ESL teacher assistant. Based on this classroom context, provide brief, actionable teaching feedback.
+
+Context: ${context || 'General classroom activity'}
+
+Return ONLY a JSON object:
+{
+  "suggestion": "A specific teaching tip or next step",
+  "engagement": "A tip to increase student engagement",
+  "differentiation": "A way to adapt for different levels"
+}`
+
+    const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${aiApiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://professor-ai.vercel.app',
+            'X-Title': 'Professor AI'
+        },
+        body: JSON.stringify({
+            model: aiModelName,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.5,
+        })
+    });
+
+    if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        throw new Error(`AI Request Failed: ${aiResponse.status} - ${errText.substring(0, 300)}`);
+    }
+
+    const data = await aiResponse.json();
+    const raw = data.choices?.[0]?.message?.content || '{}';
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+
+    log.info('live_feedback_complete', { userId, durationMs: Date.now() - startTime })
+
+    return jsonResponse({
+        success: true,
+        suggestion: parsed.suggestion || 'Continue with the current activity.',
+        engagement: parsed.engagement || 'Ask students to work in pairs.',
+        differentiation: parsed.differentiation || 'Provide sentence frames for lower-level students.'
+    }, 200, rateLimitHeaders(rateLimit.remaining, 0));
+}
+
+async function handleGenerateLesson(req: Request, params: { topic?: string; gradeLevel?: string; documentContext?: string; imageBase64?: string }, userId: string | undefined, startTime: number, rateLimit: any) {
     const { topic: rawTopic, gradeLevel: rawGradeLevel, documentContext: rawDocumentContext, imageBase64 } = params;
 
-    // Default values when topic/gradeLevel are missing (common for document uploads)
     const topic = rawTopic || "Uploaded Document";
     const gradeLevel = rawGradeLevel || "General";
 
@@ -46,19 +181,17 @@ async function handleGenerateLesson(req: Request, params: { topic?: string; grad
     const aiApiKey = Deno.env.get('AI_API_KEY')
     const aiModelName = Deno.env.get('AI_MODEL_NAME') || 'mistralai/mistral-small-3.1-24b-instruct'
 
-    // Diagnostic logging (masked for security)
-    console.log(`AI Config: base=${aiBaseUrl}, model=${aiModelName}, keySet=${!!aiApiKey}, keyLength=${aiApiKey?.length || 0}`);
-
     if (!aiApiKey) {
         throw new Error('AI_API_KEY environment variable is not set. Please configure it in Supabase Dashboard > Edge Functions > Secrets')
     }
 
-    // --- STEP 1: Image OCR via Multimodal Vision Model ---
+    log.info('generate_start', { userId, metadata: { topic, gradeLevel, hasImage: !!imageBase64, model: aiModelName } })
+
     let documentContext = rawDocumentContext || '';
 
     if (imageBase64) {
         const visionModel = Deno.env.get('VISION_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free';
-        console.log(`Running OCR with vision model: ${visionModel}`);
+        log.info('ocr_start', { metadata: { visionModel } });
 
         try {
             const ocrResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
@@ -97,30 +230,28 @@ async function handleGenerateLesson(req: Request, params: { topic?: string; grad
             if (ocrResponse.ok) {
                 const ocrData = await ocrResponse.json();
                 const extractedText = ocrData.choices?.[0]?.message?.content || '';
-                console.log(`OCR extracted ${extractedText.length} characters`);
+                log.info('ocr_complete', { metadata: { charCount: extractedText.length } });
 
                 if (extractedText.length > 20) {
                     documentContext = extractedText;
                 } else {
-                    console.warn('OCR returned very short text, falling back to image description');
+                    log.warn('ocr_short_text')
                     documentContext = `Image content: The user uploaded an educational image. The filename is "${rawTopic || 'unknown'}". Use visual educational content to generate vocabulary, grammar rules, and example sentences appropriate for the grade level.`;
                 }
             } else {
                 const errText = await ocrResponse.text();
-                console.error(`OCR vision model failed (${ocrResponse.status}):`, errText.substring(0, 300));
+                log.warn('ocr_api_failed', { error: `${ocrResponse.status}`, metadata: { detail: errText.substring(0, 200) } });
                 documentContext = `Image content: Educational image uploaded. Generate appropriate lesson content for "${rawTopic || 'the topic'}" at "${rawGradeLevel || 'General'}" level.`;
             }
         } catch (ocrError: any) {
-            console.error('OCR call failed:', ocrError.message);
+            log.warn('ocr_call_failed', { error: ocrError.message });
             documentContext = `Image content: Educational image uploaded. Generate appropriate lesson content for "${rawTopic || 'the topic'}" at "${rawGradeLevel || 'General'}" level.`;
         }
     }
 
-    // Build system prompt based on whether document context is available
     let systemPrompt: string;
     
     if (documentContext && documentContext.trim().length > 0) {
-        // Document-based generation: heavily reference the provided text
         systemPrompt = `You are an expert curriculum designer AI.
 
 You have been provided with source material from a textbook or educational document.
@@ -159,7 +290,6 @@ You MUST return ONLY a valid JSON object with the following exact structure (no 
 }
 CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays in your response. These fields are REQUIRED. Return ONLY the JSON object, no other text.`;
     } else {
-        // Topic-based generation (original behavior)
         systemPrompt = `You are an expert curriculum designer.
 Generate a lesson plan about "${topic}" for "${gradeLevel}" students.
 You MUST return ONLY a valid JSON object with the following exact structure (no markdown formatting, no code blocks, just raw JSON):
@@ -188,14 +318,13 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
         ? `Generate the lesson for the provided document at ${gradeLevel} level.`
         : `Generate the lesson for ${topic} at ${gradeLevel} level.`;
 
-    let response: Response;
+    let response: Response | undefined;
     let lastError: Error | null = null;
 
-    // Retry up to 2 times for transient failures
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
             if (attempt > 0) {
-                console.log(`Retrying AI API call (attempt ${attempt + 1}/3)...`);
+                log.info('retry_attempt', { metadata: { attempt: attempt + 1 } });
                 await new Promise(r => setTimeout(r, 2000));
             }
 
@@ -218,49 +347,42 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
                 })
             });
 
-            // If we got a response (even non-OK), break the retry loop
             break;
 
         } catch (fetchError: any) {
             lastError = fetchError;
-            console.error(`AI API attempt ${attempt + 1} failed:`, fetchError.message);
+            log.warn('api_attempt_failed', { error: fetchError.message, metadata: { attempt: attempt + 1 } });
             if (attempt === 2) {
                 throw new Error(`Network error connecting to AI after 3 attempts: ${fetchError.message}`);
             }
         }
     }
 
-    if (!response!) {
+    if (!response) {
         throw new Error(lastError?.message || 'Failed to get response from AI API');
     }
 
     if (!response.ok) {
         const errorData = await response.text()
-        console.error('AI API Full Error Response:', errorData)
-        console.error('AI API Request URL:', `${aiBaseUrl}/chat/completions`)
-        console.error('AI API Model:', aiModelName)
+        log.error('ai_api_error', { error: `${response.status}`, metadata: { detail: errorData.substring(0, 300) } })
         throw new Error(`AI API request failed: ${response.status} ${response.statusText} - ${errorData.substring(0, 500)}`)
     }
 
     const data = await response.json()
     let aiResponseText = data.choices[0]?.message?.content || '{}'
 
-    console.log('Raw AI response:', aiResponseText.substring(0, 500));
-
-    // Robust JSON sanitization - strip markdown code blocks, backticks, and any surrounding text
     let cleanJson = aiResponseText
-        .replace(/```json\s*/gi, '')    // Strip opening ```json
-        .replace(/```\s*/g, '')          // Strip closing ```
-        .replace(/^[\s\S]*?\{/, '{')     // Strip everything before first {
-        .replace(/\}[\s\S]*?$/, '}')     // Strip everything after last }
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .replace(/^[\s\S]*?\{/, '{')
+        .replace(/\}[\s\S]*?$/, '}')
         .trim();
 
     let parsedResponse;
     try {
         parsedResponse = JSON.parse(cleanJson)
     } catch (e) {
-        console.error('Failed to parse AI response as JSON, using fallback:', cleanJson.substring(0, 200));
-        // Safe fallback - never crash the pipeline
+        log.warn('json_parse_fallback', { metadata: { rawLength: cleanJson.length } })
         parsedResponse = {
             title: topic || "Generated Lesson",
             description: `A lesson about ${topic || "the uploaded document"} for ${gradeLevel} students.`,
@@ -281,7 +403,6 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
         };
     }
 
-    // Normalize field names - AI might return grammar_rules or grammarRules, original/english or original
     if (!Array.isArray(parsedResponse.vocabulary) && Array.isArray(parsedResponse.words)) {
         parsedResponse.vocabulary = parsedResponse.words;
     }
@@ -291,21 +412,18 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
     if (!Array.isArray(parsedResponse.sentences) && Array.isArray(parsedResponse.examples)) {
         parsedResponse.sentences = parsedResponse.examples;
     }
-    // Normalize sentence field names
     if (Array.isArray(parsedResponse.sentences)) {
         parsedResponse.sentences = parsedResponse.sentences.map((s: any) => ({
             original: s.original || s.english || s.sentence || s.source || '',
             translation: s.translation || s.target || s.translated || ''
         }));
     }
-    // Normalize vocabulary field names
     if (Array.isArray(parsedResponse.vocabulary)) {
         parsedResponse.vocabulary = parsedResponse.vocabulary.map((v: any) => ({
             word: v.word || v.term || v.key || '',
             definition: v.definition || v.meaning || v.description || ''
         }));
     }
-    // Normalize grammar rules field names
     if (Array.isArray(parsedResponse.grammarRules)) {
         parsedResponse.grammarRules = parsedResponse.grammarRules.map((g: any) => ({
             rule: g.rule || g.name || g.title || '',
@@ -313,12 +431,6 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
         }));
     }
 
-    console.log('Parsed response keys:', Object.keys(parsedResponse));
-    console.log('Vocabulary count:', Array.isArray(parsedResponse.vocabulary) ? parsedResponse.vocabulary.length : 'not array');
-    console.log('GrammarRules count:', Array.isArray(parsedResponse.grammarRules) ? parsedResponse.grammarRules.length : 'not array');
-    console.log('Sentences count:', Array.isArray(parsedResponse.sentences) ? parsedResponse.sentences.length : 'not array');
-
-    // Ensure required properties exist with safe defaults
     parsedResponse.title = parsedResponse.title || topic || "Generated Lesson";
     parsedResponse.description = parsedResponse.description || `A lesson about ${topic || "the topic"}.`;
     parsedResponse.visual_prompt = parsedResponse.visual_prompt || `Educational illustration about ${topic || "learning"}`;
@@ -345,7 +457,6 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
             { original: "Please open your textbook.", translation: "Please open your book for studying." }
           ];
 
-    // Multi-Modal Generation in Parallel
     let imageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
     let audioUrl = null;
 
@@ -355,7 +466,7 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
     const generateImage = async () => {
         if (!googleApiKey || !parsedResponse.visual_prompt) return;
         try {
-            console.log("Generating image with Nano Banana 2/Gemini...");
+            log.info('image_gen_start');
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${googleApiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -364,15 +475,15 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
             if (res.ok) {
                 imageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(parsedResponse.visual_prompt)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
             }
-        } catch (e) {
-            console.error("Image generation failed:", e);
+        } catch (e: any) {
+            log.warn('image_gen_failed', { error: e.message });
         }
     };
 
     const generateAudio = async () => {
         if (!elevenLabsApiKey || !parsedResponse.spoken_intro) return;
         try {
-            console.log("Generating audio with ElevenLabs...");
+            log.info('audio_gen_start');
             const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM`, {
                 method: 'POST',
                 headers: {
@@ -391,29 +502,18 @@ CRITICAL: You MUST include "vocabulary", "grammarRules", and "sentences" arrays 
                 const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
                 audioUrl = `data:audio/mpeg;base64,${base64}`;
             }
-        } catch (e) {
-            console.error("Audio generation failed:", e);
+        } catch (e: any) {
+            log.warn('audio_gen_failed', { error: e.message });
         }
     };
 
-    // Run multimodal generations concurrently
     await Promise.all([generateImage(), generateAudio()]);
 
-    return new Response(JSON.stringify({
+    log.info('generate_complete', { userId, durationMs: Date.now() - startTime, metadata: { vocabCount: parsedResponse.vocabulary?.length || 0 } })
+
+    return jsonResponse({
         textContent: parsedResponse,
         imageUrl,
         audioUrl
-    }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-}
-
-async function handleLiveFeedback(req: Request) {
-    // This is handled by the existing logic - just return a simple response
-    return new Response(JSON.stringify({ 
-        message: "Live feedback endpoint ready",
-        suggestion: "Consider adding student engagement metrics for real-time feedback"
-    }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    }, 200, rateLimitHeaders(rateLimit.remaining, 0));
 }

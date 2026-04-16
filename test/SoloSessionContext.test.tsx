@@ -56,8 +56,9 @@ vi.mock('../services/SupabaseService', () => ({
     }),
     updateUnit: vi.fn().mockResolvedValue(undefined),
     unlockNextUnit: vi.fn().mockResolvedValue(undefined),
-    getStudentProgress: vi.fn().mockResolvedValue({ xp: 100, streak: 3 }),
+    getStudentProgress: vi.fn().mockResolvedValue({ xp: 100, streak: 3, completedUnitIds: [], currentUnitId: '' }),
     updateStudentProgress: vi.fn().mockResolvedValue(undefined),
+    ensureStudentSRSItems: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
