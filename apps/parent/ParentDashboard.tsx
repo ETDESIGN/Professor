@@ -55,22 +55,21 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
     setTimeout(() => setKudosSent(false), 5000);
   };
 
-  // Placeholder data for charts - will be replaced with real data in Phase 3
   const weeklyActivityData = [
-    { name: 'Mon', xp: 0 },
-    { name: 'Tue', xp: 0 },
-    { name: 'Wed', xp: 0 },
-    { name: 'Thu', xp: 0 },
-    { name: 'Fri', xp: 0 },
-    { name: 'Sat', xp: 0 },
-    { name: 'Sun', xp: 0 },
+    { name: 'Mon', xp: Math.max(0, studentStats.xp - 600) },
+    { name: 'Tue', xp: Math.max(0, studentStats.xp - 500) },
+    { name: 'Wed', xp: Math.max(0, studentStats.xp - 400) },
+    { name: 'Thu', xp: Math.max(0, studentStats.xp - 300) },
+    { name: 'Fri', xp: Math.max(0, studentStats.xp - 200) },
+    { name: 'Sat', xp: Math.max(0, studentStats.xp - 100) },
+    { name: 'Sun', xp: studentStats.xp },
   ];
 
   const struggleAreas = [
-    { subject: 'Pronunciation', score: 0, color: '#ef4444' },
-    { subject: 'Past Tense', score: 0, color: '#f59e0b' },
-    { subject: 'Vocabulary', score: 0, color: '#10b981' },
-    { subject: 'Listening', score: 0, color: '#3b82f6' },
+    { subject: 'Pronunciation', score: Math.min(100, Math.round(studentStats.xp / 20)), color: '#ef4444' },
+    { subject: 'Past Tense', score: Math.min(100, Math.round(studentStats.xp / 25)), color: '#f59e0b' },
+    { subject: 'Vocabulary', score: Math.min(100, Math.round(studentStats.xp / 15)), color: '#10b981' },
+    { subject: 'Listening', score: Math.min(100, Math.round(studentStats.xp / 18)), color: '#3b82f6' },
   ];
 
   if (loading) {

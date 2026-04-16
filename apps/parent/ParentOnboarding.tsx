@@ -2,34 +2,69 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Link2, ShieldCheck, CheckCircle, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 const ParentOnboarding: React.FC = () => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    // Form State
     const [pairingCode, setPairingCode] = useState('');
     const [parentName, setParentName] = useState('');
+    const [childName, setChildName] = useState('Student');
+    const { setUserProfile } = useAppStore();
 
-    // Mock checking code
-    const handleVerifyCode = () => {
+    const handleVerifyCode = async () => {
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
+        setError('');
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('student_id', pairingCode.replace(/-/g, ''))
+                .single();
+
+            if (profile) {
+                setChildName(profile.full_name || 'Student');
+                setStep(2);
+            } else {
+                setStep(2);
+            }
+        } catch {
             setStep(2);
-        }, 1000);
+        }
+        setLoading(false);
     };
 
-    const handleCompleteSignUp = () => {
+    const handleCompleteSignUp = async () => {
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            navigate('/parent');
-        }, 1500);
-    };
+        setError('');
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                await supabase.from('profiles').update({ full_name: parentName }).eq('id', user.id);
 
-    const mockChild = { id: 's2', name: 'Sarah', avatar: '🦄' };
+                const cleanCode = pairingCode.replace(/-/g, '');
+                const { data: studentProfile } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('student_id', cleanCode)
+                    .single();
+
+                if (studentProfile) {
+                    await supabase.from('parent_student_links').upsert({
+                        parent_id: user.id,
+                        student_id: studentProfile.id,
+                    });
+                }
+            }
+            navigate('/parent');
+        } catch (err: any) {
+            setError(err.message || 'Setup failed. Please try again.');
+        }
+        setLoading(false);
+    };
 
     return (
         <div className="min-h-screen bg-rose-50 flex flex-col font-sans">
@@ -69,6 +104,7 @@ const ParentOnboarding: React.FC = () => {
                                 >
                                     {loading ? <Loader2 className="animate-spin" /> : 'Verify Code'}
                                 </button>
+                                {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
                             </div>
                         </div>
                     )}
@@ -78,10 +114,10 @@ const ParentOnboarding: React.FC = () => {
                             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
 
                             <div className="w-16 h-16 bg-emerald-100 rounded-full mx-auto flex items-center justify-center mb-6 shadow-md border-4 border-white transform -mt-4">
-                                <div className="text-3xl filter drop-shadow">{mockChild.avatar}</div>
+                                <div className="text-3xl filter drop-shadow">👤</div>
                             </div>
 
-                            <h2 className="text-2xl font-bold font-display text-slate-800 mb-2">Found {mockChild.name}!</h2>
+                            <h2 className="text-2xl font-bold font-display text-slate-800 mb-2">Found {childName}!</h2>
                             <p className="text-slate-500 mb-8">Now, let's set up your parent account to track their progress.</p>
 
                             <div className="space-y-6 text-left">
@@ -99,7 +135,7 @@ const ParentOnboarding: React.FC = () => {
                                 <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-start gap-3">
                                     <ShieldCheck className="text-emerald-600 shrink-0 mt-0.5" size={20} />
                                     <p className="text-sm text-emerald-800">
-                                        Your account acts as a secure observer. You can see assignments, approve shop purchases, and track {mockChild.name}'s learning journey.
+                                        Your account acts as a secure observer. You can see assignments, approve shop purchases, and track {childName}'s learning journey.
                                     </p>
                                 </div>
 
@@ -110,6 +146,7 @@ const ParentOnboarding: React.FC = () => {
                                 >
                                     {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle size={22} /> Complete Setup</>}
                                 </button>
+                                {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
                             </div>
                         </div>
                     )}

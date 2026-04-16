@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, MessageCircle, Clock, Check, CheckCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getUserMessages, sendMessage, getUnreadMessageCount, markMessageAsRead, MessageWithSender } from '../../services/DataService';
+import { getUserMessages, sendMessage, getUnreadMessageCount, markMessageAsRead, MessageWithSender, getParentStudents, getTeacherForStudent } from '../../services/DataService';
 import { useAppStore } from '../../store/useAppStore';
 
 interface ParentMessagesProps {
@@ -15,12 +15,31 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [teacherId, setTeacherId] = useState<string | null>(null);
+    const [teacherName, setTeacherName] = useState<string>('Teacher');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         loadMessages();
         loadUnreadCount();
+        loadTeacher();
     }, [userProfile?.id]);
+
+    const loadTeacher = async () => {
+        if (!userProfile?.id) return;
+        try {
+            const students = await getParentStudents(userProfile.id);
+            if (students.length > 0) {
+                const teacher = await getTeacherForStudent(students[0].student_id);
+                if (teacher) {
+                    setTeacherId(teacher.id);
+                    setTeacherName(teacher.full_name || 'Teacher');
+                }
+            }
+        } catch (err) {
+            console.error('Error loading teacher:', err);
+        }
+    };
 
     useEffect(() => {
         scrollToBottom();
@@ -66,11 +85,12 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
 
         try {
             setSending(true);
-            // For MVP, we'll send to a hardcoded teacher ID
-            // In production, this would be the teacher associated with the student's class
-            const teacherId = 'teacher-uuid-placeholder'; // TODO: Get from class enrollment
+            const recipientId = teacherId || 'unknown';
+            if (recipientId === 'unknown') {
+                return;
+            }
 
-            await sendMessage(userProfile.id, teacherId, newMessage.trim());
+            await sendMessage(userProfile.id, recipientId, newMessage.trim());
             setNewMessage('');
             await loadMessages();
         } catch (error) {
@@ -108,7 +128,7 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
                 </button>
                 <div className="flex-1">
                     <h1 className="font-bold text-slate-800">Messages</h1>
-                    <p className="text-xs text-slate-500">Chat with your child's teacher</p>
+                    <p className="text-xs text-slate-500">Chat with {teacherName}</p>
                 </div>
                 {unreadCount > 0 && (
                     <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">

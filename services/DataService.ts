@@ -729,7 +729,44 @@ export async function markMessageAsRead(messageId: string): Promise<void> {
 
     if (error) {
         console.error('Error marking message as read:', error);
-        // Don't show toast for this silent operation
         throw error;
     }
+}
+
+export async function getTeacherForStudent(studentId: string): Promise<{ id: string; full_name: string | null; avatar_url: string | null } | null> {
+    const { data: enrollment } = await supabase
+        .from('class_enrollments')
+        .select('class_id')
+        .eq('student_id', studentId)
+        .limit(1)
+        .single();
+
+    if (!enrollment) return null;
+
+    const { data: classData } = await supabase
+        .from('classes')
+        .select('teacher_id')
+        .eq('id', enrollment.class_id)
+        .single();
+
+    if (!classData) return null;
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .eq('id', classData.teacher_id)
+        .single();
+
+    return profile || null;
+}
+
+export async function getStudentSRSWords(studentId: string): Promise<string[]> {
+    const { data } = await supabase
+        .from('srs_items')
+        .select('word')
+        .eq('student_id', studentId)
+        .order('next_review', { ascending: false })
+        .limit(20);
+
+    return (data || []).map((d: any) => d.word);
 }

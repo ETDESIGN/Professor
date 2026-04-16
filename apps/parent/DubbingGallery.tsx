@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, Share2, Download, MoreHorizontal, Play, Star, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppStore } from '../../store/useAppStore';
+import { getParentStudents, StudentWithProgress } from '../../services/DataService';
 
 interface DubbingGalleryProps {
   onBack: () => void;
@@ -9,11 +11,20 @@ interface DubbingGalleryProps {
 
 const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
   const [selectedVideo, setSelectedVideo] = useState<number | null>(null);
+  const { userProfile } = useAppStore();
+  const studentName = userProfile?.full_name?.split(' ')[0] || 'Student';
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     alert('Sharing video link copied!');
   };
+
+  const placeholderItems = Array.from({ length: 6 }, (_, i) => ({
+    id: i + 1,
+    title: `Dubbing Take ${i + 1}`,
+    score: 70 + Math.floor(Math.random() * 30),
+    date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+  }));
 
   return (
     <div className="h-full bg-slate-50 flex flex-col relative">
@@ -23,10 +34,10 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full">
              <ChevronLeft size={24} className="text-slate-600" />
            </button>
-           <h1 className="font-bold text-lg text-slate-800">Leo's Studio</h1>
+            <h1 className="font-bold text-lg text-slate-800">{studentName}'s Studio</h1>
         </div>
         <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-100">
-           <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Leo" alt="Leo" />
+           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${studentName}`} alt={studentName} />
         </div>
       </header>
 
@@ -39,13 +50,13 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
             transition={{ delay: 0.1 }}
             className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex divide-x divide-slate-100"
          >
-            <div className="flex-1 text-center">
-               <div className="text-2xl font-bold text-slate-800">12</div>
-               <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Videos Created</div>
-            </div>
-            <div className="flex-1 text-center">
-               <div className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-1">
-                 4.8 <Star size={16} className="fill-yellow-400 text-yellow-400" />
+             <div className="flex-1 text-center">
+                <div className="text-2xl font-bold text-slate-800">{placeholderItems.length}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Videos Created</div>
+             </div>
+             <div className="flex-1 text-center">
+                <div className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-1">
+                  {placeholderItems.length > 0 ? (placeholderItems.reduce((a, b) => a + b.score, 0) / placeholderItems.length).toFixed(1) : '0'} <Star size={16} className="fill-yellow-400 text-yellow-400" />
                </div>
                <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Avg Score</div>
             </div>
@@ -69,49 +80,42 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
          </motion.div>
 
          {/* Video Grid */}
-         <div className="grid grid-cols-2 gap-4">
-            {['1', '2', '3', '4', '5', '6'].map((i, idx) => (
-              <motion.div 
-                key={i} 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 + (idx * 0.05) }}
-                className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 group cursor-pointer"
-                onClick={() => setSelectedVideo(Number(i))}
-              >
-                 {/* Thumbnail */}
-                 <div className="aspect-[4/5] bg-slate-800 relative">
-                    <img 
-                      src={`https://source.unsplash.com/random/400x500?cartoon,kids&sig=${i}`} 
-                      className="w-full h-full object-cover opacity-80" 
-                      alt="Thumbnail" 
-                    />
-                    <div className="absolute top-2 right-2 bg-black/50 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-full border border-white/20 flex items-center gap-1">
-                       <Star size={10} className="fill-yellow-400 text-yellow-400" />
-                       {90 + Number(i)}/100
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                       <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Play size={20} className="text-white ml-1" fill="white" />
-                       </div>
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent"></div>
-                 </div>
+          <div className="grid grid-cols-2 gap-4">
+             {placeholderItems.map((item, idx) => (
+               <motion.div 
+                 key={item.id} 
+                 initial={{ opacity: 0, scale: 0.9 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 transition={{ delay: 0.3 + (idx * 0.05) }}
+                 className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 group cursor-pointer"
+                 onClick={() => setSelectedVideo(item.id)}
+               >
+                  <div className="aspect-[4/5] bg-gradient-to-br from-cyan-100 to-blue-100 relative flex items-center justify-center">
+                     <div className="text-6xl">🎬</div>
+                     <div className="absolute top-2 right-2 bg-black/50 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-full border border-white/20 flex items-center gap-1">
+                        <Star size={10} className="fill-yellow-400 text-yellow-400" />
+                        {item.score}/100
+                     </div>
+                     <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                           <Play size={20} className="text-cyan-700 ml-1" fill="currentColor" />
+                        </div>
+                     </div>
+                  </div>
 
-                 {/* Meta */}
-                 <div className="p-3">
-                    <h3 className="font-bold text-slate-800 text-sm mb-1 truncate">The Lost Hat</h3>
-                    <div className="text-[10px] text-slate-400 mb-3">Oct 2{i} • Level 1</div>
-                    
-                    <div className="flex justify-between border-t border-slate-100 pt-2">
-                       <button onClick={handleShare} className="text-slate-400 hover:text-cyan-500 transition-colors"><Share2 size={16} /></button>
-                       <button className="text-slate-400 hover:text-cyan-500 transition-colors"><Download size={16} /></button>
-                       <button className="text-slate-400 hover:text-cyan-500 transition-colors"><MoreHorizontal size={16} /></button>
-                    </div>
-                 </div>
-              </motion.div>
-            ))}
-         </div>
+                  <div className="p-3">
+                     <h3 className="font-bold text-slate-800 text-sm mb-1 truncate">{item.title}</h3>
+                     <div className="text-[10px] text-slate-400 mb-3">{item.date}</div>
+                     
+                     <div className="flex justify-between border-t border-slate-100 pt-2">
+                        <button onClick={handleShare} className="text-slate-400 hover:text-cyan-500 transition-colors"><Share2 size={16} /></button>
+                        <button className="text-slate-400 hover:text-cyan-500 transition-colors"><Download size={16} /></button>
+                        <button className="text-slate-400 hover:text-cyan-500 transition-colors"><MoreHorizontal size={16} /></button>
+                     </div>
+                  </div>
+               </motion.div>
+             ))}
+          </div>
       </div>
 
       {/* Video Player Modal */}
@@ -129,12 +133,8 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
                exit={{ scale: 0.9, y: 20 }}
                className="w-full max-w-lg bg-black rounded-3xl overflow-hidden relative shadow-2xl"
              >
-                <div className="aspect-[4/5] relative">
-                   <img 
-                     src={`https://source.unsplash.com/random/400x500?cartoon,kids&sig=${selectedVideo}`} 
-                     className="w-full h-full object-cover opacity-60" 
-                     alt="Playing" 
-                   />
+                 <div className="aspect-[4/5] relative bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center">
+                    <div className="text-8xl">🎬</div>
                    <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center animate-pulse">
                          <Play size={32} className="text-white ml-1" fill="white" />
@@ -155,7 +155,7 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
                 <div className="p-4 bg-slate-900 flex justify-between items-center text-white">
                    <div>
                       <h3 className="font-bold">The Lost Hat</h3>
-                      <div className="text-xs text-slate-400">Recorded by Leo</div>
+                       <div className="text-xs text-slate-400">Recorded by {studentName}</div>
                    </div>
                    <div className="flex gap-4">
                       <button className="p-2 bg-white/10 rounded-full hover:bg-white/20"><Share2 size={20} /></button>

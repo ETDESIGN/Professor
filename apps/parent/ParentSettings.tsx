@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, User, Bell, Mail, CreditCard, HelpCircle, LogOut, ChevronRight, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ParentConnect from './ParentConnect';
 import { useAppStore } from '../../store/useAppStore';
+import { getParentStudents, StudentWithProgress } from '../../services/DataService';
 
 interface ParentSettingsProps {
    onBack: () => void;
@@ -14,8 +15,22 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
    const [notifications, setNotifications] = useState(true);
    const [emailDigest, setEmailDigest] = useState(true);
    const [showConnect, setShowConnect] = useState(false);
+   const [linkedStudents, setLinkedStudents] = useState<StudentWithProgress[]>([]);
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Parent';
+
+   useEffect(() => {
+      const loadStudents = async () => {
+         if (!userProfile?.id) return;
+         try {
+            const students = await getParentStudents(userProfile.id);
+            setLinkedStudents(students);
+         } catch (err) {
+            console.error('Error loading students:', err);
+         }
+      };
+      loadStudents();
+   }, [userProfile?.id]);
 
    if (showConnect) {
       return <ParentConnect onBack={() => setShowConnect(false)} />;
@@ -65,19 +80,24 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
                transition={{ delay: 0.2 }}
             >
                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Children</h3>
-               <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-                  <div className="p-4 flex items-center justify-between border-b border-slate-50">
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                           <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Leo" alt="Leo" />
-                        </div>
-                        <div>
-                           <div className="font-bold text-slate-700">Leo</div>
-                           <div className="text-xs text-slate-400">Class 3B • Level 5</div>
-                        </div>
-                     </div>
-                     <ChevronRight size={20} className="text-slate-300" />
-                  </div>
+                <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                   {linkedStudents.map(student => (
+                      <div key={student.id} className="p-4 flex items-center justify-between border-b border-slate-50">
+                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                               <img src={student.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.full_name || 'Student'}`} alt={student.full_name || 'Student'} />
+                            </div>
+                            <div>
+                               <div className="font-bold text-slate-700">{student.full_name || student.email || 'Student'}</div>
+                               <div className="text-xs text-slate-400">Lvl {Math.floor(student.xp / 1000) + 1} • {student.xp} XP</div>
+                            </div>
+                         </div>
+                         <ChevronRight size={20} className="text-slate-300" />
+                      </div>
+                   ))}
+                   {linkedStudents.length === 0 && (
+                      <div className="p-4 text-center text-sm text-slate-400">No children linked yet</div>
+                   )}
                   <button
                      onClick={() => setShowConnect(true)}
                      className="w-full p-4 flex items-center gap-3 text-cyan-600 font-bold hover:bg-slate-50 transition-colors"
@@ -126,26 +146,23 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
             </motion.div>
 
             {/* Subscription */}
-            <motion.div
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.4 }}
-            >
-               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Subscription</h3>
-               <div className="bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-10 rounded-full -mr-8 -mt-8"></div>
-                  <div className="flex items-center gap-3 mb-4 relative z-10">
-                     <div className="p-2 bg-white/20 rounded-lg"><CreditCard size={20} /></div>
-                     <div>
-                        <div className="font-bold">Premium Family</div>
-                        <div className="text-xs text-cyan-100">Next billing: Nov 24, 2023</div>
-                     </div>
-                  </div>
-                  <button className="w-full py-2 bg-white/20 rounded-lg font-bold text-sm hover:bg-white/30 transition-colors">
-                     Manage Subscription
-                  </button>
-               </div>
-            </motion.div>
+             <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+             >
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Subscription</h3>
+                <div className="bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-10 rounded-full -mr-8 -mt-8"></div>
+                   <div className="flex items-center gap-3 mb-4 relative z-10">
+                      <div className="p-2 bg-white/20 rounded-lg"><CreditCard size={20} /></div>
+                      <div>
+                         <div className="font-bold">Free Plan</div>
+                         <div className="text-xs text-cyan-100">{linkedStudents.length} child{linkedStudents.length !== 1 ? 'ren' : ''} linked</div>
+                      </div>
+                   </div>
+                </div>
+             </motion.div>
 
             {/* Support */}
             <motion.div

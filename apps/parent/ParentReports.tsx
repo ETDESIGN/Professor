@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Share2, TrendingUp, Mic, Book, Headphones, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
+import { getParentStudents, StudentWithProgress, getStudentSRSWords } from '../../services/DataService';
 
 interface ParentReportsProps {
    onBack: () => void;
@@ -10,7 +11,37 @@ interface ParentReportsProps {
 
 const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
    const { userProfile } = useAppStore();
-   const teacherName = userProfile?.full_name || userProfile?.email || 'Teacher';
+   const [vocabularyWords, setVocabularyWords] = useState<string[]>([]);
+   const [studentName, setStudentName] = useState('Student');
+   const [xp, setXp] = useState(0);
+   const [loading, setLoading] = useState(true);
+
+   useEffect(() => {
+      const loadData = async () => {
+         if (!userProfile?.id) return;
+         try {
+            const students = await getParentStudents(userProfile.id);
+            if (students.length > 0) {
+               const s = students[0];
+               setStudentName(s.full_name || s.email || 'Student');
+               setXp(s.xp);
+               const words = await getStudentSRSWords(s.student_id);
+               setVocabularyWords(words.length > 0 ? words : ['No vocabulary yet']);
+            }
+         } catch (err) {
+            console.error('Error loading report data:', err);
+         } finally {
+            setLoading(false);
+         }
+      };
+      loadData();
+   }, [userProfile?.id]);
+
+   const speakingScore = Math.min(100, Math.round(xp / 20));
+   const readingScore = Math.min(100, Math.round(xp / 15));
+   const listeningScore = Math.min(100, Math.round(xp / 18));
+   const grammarScore = Math.min(100, Math.round(xp / 16));
+
    const handleShare = () => {
       alert("Report link copied to clipboard!");
    };
@@ -54,22 +85,22 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 flex flex-col items-center">
                      <Mic size={16} className="text-cyan-600" />
                      <span className="text-[10px] font-bold text-slate-500 uppercase">Speaking</span>
-                     <span className="text-xs font-bold text-slate-800">85%</span>
+                      <span className="text-xs font-bold text-slate-800">{speakingScore}%</span>
                   </div>
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-6 flex flex-col items-center">
-                     <span className="text-xs font-bold text-slate-800">92%</span>
+                      <span className="text-xs font-bold text-slate-800">{readingScore}%</span>
                      <span className="text-[10px] font-bold text-slate-500 uppercase">Reading</span>
                      <Book size={16} className="text-purple-500" />
                   </div>
                   <div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 pr-2 flex flex-col items-end">
                      <Headphones size={16} className="text-blue-500" />
                      <span className="text-[10px] font-bold text-slate-500 uppercase">Listening</span>
-                     <span className="text-xs font-bold text-slate-800">78%</span>
+                      <span className="text-xs font-bold text-slate-800">{listeningScore}%</span>
                   </div>
                   <div className="absolute right-0 top-1/2 translate-x-full -translate-y-1/2 pl-2 flex flex-col items-start">
                      <MessageCircle size={16} className="text-green-500" />
                      <span className="text-[10px] font-bold text-slate-500 uppercase">Grammar</span>
-                     <span className="text-xs font-bold text-slate-800">88%</span>
+                      <span className="text-xs font-bold text-slate-800">{grammarScore}%</span>
                   </div>
                </div>
             </motion.div>
@@ -82,8 +113,8 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
                className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm"
             >
                <h3 className="font-bold text-slate-800 mb-4">Vocabulary Mastered</h3>
-               <div className="flex flex-wrap gap-2 justify-center">
-                  {['Elephant', 'Passport', 'Airport', 'Ticket', 'Suitcase', 'Giraffe', 'Lion', 'Zebra', 'Boarding'].map((word, i) => (
+                <div className="flex flex-wrap gap-2 justify-center">
+                   {vocabularyWords.map((word, i) => (
                      <motion.span
                         key={word}
                         initial={{ scale: 0 }}
@@ -109,13 +140,13 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
                </div>
                <h3 className="font-bold text-yellow-800 mb-2">Teacher's Note</h3>
                <p className="text-sm text-yellow-900/80 leading-relaxed italic">
-                  "Leo has shown great improvement in his pronunciation this week, especially with the 'th' sound! He is very active during the team games."
+                   "{studentName} has been making great progress! Keep encouraging daily practice for the best results."
                </p>
                <div className="mt-4 flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-slate-200 overflow-hidden">
                      <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" alt="Teacher" />
                   </div>
-                  <span className="text-xs font-bold text-slate-500">{teacherName} • Oct 24</span>
+                   <span className="text-xs font-bold text-slate-500">{userProfile?.full_name || 'Teacher'} • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                </div>
             </motion.div>
 

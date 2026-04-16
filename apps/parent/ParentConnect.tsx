@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { ChevronLeft, QrCode, ArrowRight, CheckCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppStore } from '../../store/useAppStore';
+import { supabase } from '../../services/supabaseClient';
 
 interface ParentConnectProps {
   onBack: () => void;
@@ -10,11 +12,50 @@ interface ParentConnectProps {
 const ParentConnect: React.FC<ParentConnectProps> = ({ onBack }) => {
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<'idle' | 'scanning' | 'verifying' | 'success'>('idle');
+  const [error, setError] = useState('');
+  const { userProfile } = useAppStore();
+  const parentName = userProfile?.full_name || 'your child';
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (code.length < 6) return;
     setStatus('verifying');
-    setTimeout(() => setStatus('success'), 2000);
+    setError('');
+
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('student_id', code)
+        .single();
+
+      if (!profile) {
+        const { data: enrollment } = await supabase
+          .from('class_enrollments')
+          .select('student_id')
+          .eq('id', code)
+          .limit(1)
+          .single();
+
+        if (!enrollment) {
+          setError('Student not found. Check the code and try again.');
+          setStatus('idle');
+          return;
+        }
+      }
+
+      if (userProfile?.id) {
+        const studentId = profile?.id || code;
+        await supabase.from('parent_student_links').upsert({
+          parent_id: userProfile.id,
+          student_id: studentId,
+        });
+      }
+
+      setStatus('success');
+    } catch {
+      setError('Connection failed. Please try again.');
+      setStatus('idle');
+    }
   };
 
   const handleScan = () => {
@@ -41,7 +82,7 @@ const ParentConnect: React.FC<ParentConnectProps> = ({ onBack }) => {
               <CheckCircle size={48} />
            </motion.div>
            <h2 className="text-2xl font-bold text-slate-800 mb-2">Connected!</h2>
-           <p className="text-slate-500 mb-8">You are now linked to Leo's profile.</p>
+            <p className="text-slate-500 mb-8">You are now linked to {parentName}'s profile.</p>
            <button 
               onClick={onBack}
               className="w-full bg-cyan-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform"
@@ -89,41 +130,13 @@ const ParentConnect: React.FC<ParentConnectProps> = ({ onBack }) => {
                />
             </div>
 
-            <div className="flex items-center gap-4 w-full max-w-xs mb-8">
-               <div className="h-px bg-slate-200 flex-1"></div>
-               <span className="text-xs font-bold text-slate-400 uppercase">Or</span>
-               <div className="h-px bg-slate-200 flex-1"></div>
-            </div>
+             <div className="flex items-center gap-4 w-full max-w-xs mb-8">
+                <div className="h-px bg-slate-200 flex-1"></div>
+                <span className="text-xs font-bold text-slate-400 uppercase">Ask teacher for code</span>
+                <div className="h-px bg-slate-200 flex-1"></div>
+             </div>
 
-            <button 
-               onClick={handleScan}
-               disabled={status !== 'idle'}
-               className="w-full max-w-xs bg-white border-2 border-slate-200 text-slate-700 font-bold py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors"
-            >
-               <AnimatePresence mode="wait">
-                  {status === 'scanning' ? (
-                     <motion.div 
-                        key="scanning"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center gap-3"
-                     >
-                        <Loader2 size={24} className="animate-spin" /> Scanning...
-                     </motion.div>
-                  ) : (
-                     <motion.div 
-                        key="idle"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="flex items-center gap-3"
-                     >
-                        <QrCode size={24} /> Scan QR Code
-                     </motion.div>
-                  )}
-               </AnimatePresence>
-            </button>
+             {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
          </motion.div>
 
          {/* Footer Action */}
