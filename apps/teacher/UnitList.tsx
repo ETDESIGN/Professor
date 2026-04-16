@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 interface UnitListProps {
   onNewUnit: () => void;
   onUploadMaterial?: () => void;
-  onEditUnit?: () => void;
+  onEditUnit?: (unitId: string) => void;
   onPlanLesson?: () => void;
   onLaunchLesson?: () => void; 
 }
@@ -60,9 +60,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
 
   const handleEditEnrichment = async (unit: any) => {
      await setActiveUnit(unit.id);
-     // If the unit is "Processing" or "Draft", we might want to go to Enrichment view
-     // For now, let's map this to the EditUnit callback which usually routes to enrichment or studio
-     onEditUnit?.();
+     onEditUnit?.(unit.id);
   };
 
   return (

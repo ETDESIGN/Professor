@@ -15,6 +15,7 @@ import Assignments from './Assignments';
 import Reports from './Reports';
 import TeacherMessages from './TeacherMessages';
 import UploadTextbook from './UploadTextbook';
+import UnitContentVault from './UnitContentVault';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
 
@@ -257,7 +258,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="settings" element={<TeacherSettings />} />
               <Route path="mobile-profile" element={<MobileProfileSettings onBack={() => navigate('/teacher')} />} />
               <Route path="library" element={<ResourceLibrary />} />
-              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={() => navigate('/teacher/studio')} onLaunchLesson={() => navigate('/teacher/live')} />} />
+              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit-vault/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} />} />
+              <Route path="unit-vault/:unitId" element={<UnitContentVault />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
