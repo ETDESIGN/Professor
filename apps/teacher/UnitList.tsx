@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitPreviewModal from './UnitPreviewModal';
-import GenerateLessonModal from './GenerateLessonModal';
 import { useSession } from '../../store/SessionContext';
+import toast from 'react-hot-toast';
 
 interface UnitListProps {
   onNewUnit: () => void;
@@ -226,14 +226,29 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
         />
       )}
 
-      {/* Generate Lesson Modal */}
+      {/* Generate Lesson Modal — Deprecated: redirects to upload */}
       {showGenerateModal && (
-        <GenerateLessonModal 
-          onClose={() => setShowGenerateModal(false)}
-          onSuccess={(unitId) => {
-            setShowGenerateModal(false);
-          }}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Lesson Generation</h2>
+            <p className="text-slate-600 mb-6">Upload textbook pages to generate AI-powered lessons.</p>
+            <button
+              onClick={() => {
+                setShowGenerateModal(false);
+                if (onUploadMaterial) onUploadMaterial();
+              }}
+              className="px-6 py-3 bg-teacher-primary text-white font-bold rounded-lg"
+            >
+              Go to Upload Workspace
+            </button>
+            <button
+              onClick={() => setShowGenerateModal(false)}
+              className="ml-3 px-6 py-3 bg-slate-200 text-slate-700 font-bold rounded-lg"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* New Unit Options Modal */}

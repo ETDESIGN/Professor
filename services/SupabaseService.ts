@@ -3,7 +3,7 @@
 // if Supabase env vars are not configured (for local dev without a DB).
 
 import { supabase } from './supabaseClient';
-import { LessonManifest } from './geminiService';
+import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
 
 // Re-export types so consumers can keep their imports

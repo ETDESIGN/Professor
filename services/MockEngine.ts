@@ -1,5 +1,5 @@
 
-import { LessonManifest } from './geminiService';
+import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
 
 export interface ScannedAsset {

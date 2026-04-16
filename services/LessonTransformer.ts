@@ -1,5 +1,36 @@
 
-import { LessonManifest, ActivityBlock, RichVocabItem, differentiateText } from './geminiService';
+import { LessonManifest, ActivityBlock, RichVocabItem } from '../types/pipeline';
+import { supabase } from './supabaseClient';
+import { createClientLogger } from './logger';
+
+const log = createClientLogger('LessonTransformer');
+
+const differentiateText = async (text: string, theme: string): Promise<{ below: string, on: string, above: string }> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('generate-lesson', {
+      body: {
+        action: 'differentiate',
+        text,
+        theme
+      }
+    });
+
+    if (error) {
+      log.warn('differentiate_edge_error', { error: error.message });
+      return { below: text, on: text, above: text };
+    }
+
+    if (data?.below && data?.on && data?.above) {
+      return { below: data.below, on: data.on, above: data.above };
+    }
+
+    log.warn('differentiate_missing_fields');
+    return { below: text, on: text, above: text };
+  } catch (err: any) {
+    log.warn('differentiate_fallback', { error: err.message });
+    return { below: text, on: text, above: text };
+  }
+};
 
 /**
  * LessonTransformer

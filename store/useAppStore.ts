@@ -17,32 +17,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      units: [
-        {
-          id: 'u1',
-          title: 'Unit 1: Jungle Safari',
-          level: 'Beginner',
-          status: 'Active',
-          lessons: 4,
-          coverImage: 'https://api.dicebear.com/7.x/shapes/svg?seed=jungle&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be',
-          lastUpdated: '2d ago',
-          flow: [],
-          topic: 'Animals',
-          scannedAssets: []
-        },
-        {
-          id: 'u2',
-          title: 'Unit 2: My Family',
-          level: 'Beginner',
-          status: 'Draft',
-          lessons: 3,
-          coverImage: 'https://api.dicebear.com/7.x/shapes/svg?seed=family&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be',
-          lastUpdated: '5d ago',
-          flow: [],
-          topic: 'Family',
-          scannedAssets: []
-        }
-      ],
+      units: [],
       students: [],
       userProfile: null,
       setUnits: (units) => set({ units }),
@@ -55,13 +30,18 @@ export const useAppStore = create<AppState>()(
       clearUserProfile: () => set({ userProfile: null }),
     }),
     {
-      name: 'app-storage',
+      name: 'app-storage-v2',
+      version: 2,
       partialize: (state) => ({
         units: state.units,
         students: state.students,
-        // CRITICAL: Exclude userProfile from persistence to ensure it's always fetched fresh from database
-        // and doesn't get trapped in a stale missing-profile state.
       }),
+      migrate: (persistedState: any, version) => {
+        if (version < 2) {
+          return { units: [], students: [] };
+        }
+        return persistedState;
+      },
     }
   )
 );

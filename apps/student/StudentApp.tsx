@@ -21,6 +21,7 @@ import LessonComplete from './LessonComplete';
 import PhonicsPhlyer from './PhonicsPhlyer';
 import SpacedRepetition from './SpacedRepetition';
 import LessonSession, { ActivityType } from './LessonSession';
+import SoloLessonPlayer from './SoloLessonPlayer';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
@@ -55,6 +56,24 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
         xp: progress.xp,
         level: Math.floor(progress.xp / 1000) + 1
       }));
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
+          if (profile?.avatar_url) {
+            try {
+              setAvatarConfig(JSON.parse(profile.avatar_url));
+            } catch { /* avatar_url might not be JSON */ }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading avatar:', error);
+      }
     };
     fetchProgress();
   }, []);
@@ -183,8 +202,19 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
   const lessonPlaylist = getLessonPlaylist();
 
-  const handleAvatarSave = (config: any) => {
+  const handleAvatarSave = async (config: any) => {
     setAvatarConfig(config);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ avatar_url: JSON.stringify(config) })
+          .eq('id', user.id);
+      }
+    } catch (error) {
+      console.error('Error saving avatar:', error);
+    }
     navigate('/student/profile');
   };
 
@@ -209,29 +239,33 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student');
   };
 
-  // Navigate to lesson session
+  // Navigate to solo lesson session
   const startLesson = async (unitId?: string) => {
-    // If a unitId is provided, set it as the active unit
     if (unitId) {
       setSelectedUnitId(unitId);
       await setActiveUnit(unitId);
     }
+    navigate('/student/solo-lesson');
+  };
+
+  // Handle live class banner click (uses live lesson mode)
+  const handleLiveClassClick = () => {
     navigate('/student/lesson');
   };
 
-  // Handle live class banner click (no unit ID)
-  const handleLiveClassClick = () => {
-    startLesson();
-  };
-
   // Check if current path is a full screen app
-  const isFullScreenApp = ['/student/login', '/student/lesson', '/student/dubbing', '/student/pronounce', '/student/reading', '/student/phonics', '/student/srs', '/student/lesson-complete', '/student/avatar', '/student/settings', '/student/help', '/student/practice'].includes(location.pathname);
+  const isFullScreenApp = ['/student/login', '/student/lesson', '/student/solo-lesson', '/student/dubbing', '/student/pronounce', '/student/reading', '/student/phonics', '/student/srs', '/student/lesson-complete', '/student/avatar', '/student/settings', '/student/help', '/student/practice'].includes(location.pathname);
 
   if (location.pathname === '/student/login') return <Login onLogin={() => navigate('/student')} />;
 
-  // The Main Lesson Runner
+  // The Main Lesson Runner (live class mode)
   if (location.pathname === '/student/lesson') {
     return <LessonSession playlist={lessonPlaylist} onComplete={handleLessonComplete} onExit={() => navigate('/student')} />;
+  }
+
+  // Solo Lesson Player (independent study mode)
+  if (location.pathname === '/student/solo-lesson') {
+    return <SoloLessonPlayer onComplete={handleLessonComplete} onExit={() => navigate('/student')} />;
   }
 
   // Full screen standalone apps

@@ -6,7 +6,8 @@ import {
    Sparkles, Layers, Clock, AlertCircle, CheckCircle2, MonitorPlay,
    BrainCircuit, Users, BookOpen
 } from 'lucide-react';
-import { generateSong, generateImage } from '../../services/geminiService';
+const generateSong = async (_prompt: string) => ({ title: "Song Gen Disabled", lyrics: "Feature pending..." });
+const generateImage = async (_prompt: string): Promise<string | null> => null;
 import { useSession } from '../../store/SessionContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';

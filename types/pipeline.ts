@@ -25,16 +25,36 @@ export interface LearningObjective {
   educational_goal: string; // e.g. "Student can describe animal actions."
 }
 
+// --- THEME CONTEXT (The World Binding) ---
+export interface ThemeCharacter {
+  name: string;
+  role: string;
+  emoji: string;
+}
+
+export interface ThemeContext {
+  setting: string;
+  characters: ThemeCharacter[];
+  world_description: string;
+}
+
 // --- AGENT 3: ASSET CURATOR (The Producer) ---
 export interface VocabAsset {
   word: string;
   definition: string;
-  distractors: string[]; // "Lion" -> ["Tiger", "Bear", "Wolf"]
-  image_prompt: string; // "Cartoon lion roaring, vector style"
+  context_sentence?: string;
+  distractors: string[];
+  image_prompt: string;
 }
 
 // Alias for consumers expecting RichVocabItem
 export type RichVocabItem = VocabAsset;
+
+export interface GrammarRuleAsset {
+  rule: string;
+  explanation: string;
+  world_examples?: string[];
+}
 
 export interface AudioAsset {
   character_id: string;
@@ -84,10 +104,11 @@ export interface LessonManifest {
     theme: string;
     difficulty_cefr?: string;
   };
+  theme_context?: ThemeContext;
   knowledge_graph: {
     characters: any[];
     vocabulary: VocabAsset[];
-    grammar_rules: any[];
+    grammar_rules: GrammarRuleAsset[];
     narrative_arc?: string;
   };
   timeline: ActivityBlock[];

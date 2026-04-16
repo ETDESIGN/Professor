@@ -1,9 +1,8 @@
-/**
- * AI Service for automated curriculum generation.
- * Calls Supabase Edge Function to securely process LLM requests.
- */
-
 import { supabase } from './supabaseClient';
+import { reportApiError } from './errorReporting';
+import { createClientLogger } from './logger';
+
+const log = createClientLogger('AIService');
 
 export interface GeneratedLesson {
     textContent: {
@@ -24,18 +23,20 @@ export const AIService = {
      * Calls the Edge Function to handle real-time lesson adjustments and feedback.
      */
     async generateLiveFeedback(context: string): Promise<any> {
-        console.log("Generating Live Feedback via Edge Function...");
+        log.info('generate_live_feedback');
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
             body: { action: 'live-feedback', context }
         });
 
         if (error) {
-            console.error('Edge Function Error:', error);
+            log.error('edge_function_error', { error: error.message, metadata: { fn: 'generate-lesson' } });
+            reportApiError('generate-lesson', 0, error.message);
             throw new Error(error.message || 'Failed to generate live feedback.');
         }
 
         if (data && data.success === false) {
-            console.error('Edge Function reported error:', data.error);
+            log.error('edge_function_body_error', { error: data.error });
+            reportApiError('generate-lesson', 200, data.error);
             throw new Error(data.error || 'Edge Function failed');
         }
 
@@ -46,22 +47,45 @@ export const AIService = {
      * Calls the Agent 2 Orchestrator Edge Function to safely publish assets to the final timeline.
      */
     async orchestrateLesson(unitId: string, approvedAssets: object): Promise<any> {
-        console.log(`Orchestrating Lesson via Agent 2 for unit ${unitId}...`);
+        log.info('orchestrate_lesson', { metadata: { unitId } });
         const { data, error } = await supabase.functions.invoke('orchestrate-lesson', {
             body: { unitId, approvedAssets }
         });
 
         if (error) {
-            console.error('Edge Function Error:', error);
+            log.error('orchestration_error', { error: error.message, metadata: { unitId } });
+            reportApiError('orchestrate-lesson', 0, error.message, { unitId });
             throw new Error(error.message || 'Failed to orchestrate lesson.');
         }
 
         if (data && data.success === false) {
-            console.error('Edge Function reported error:', data.error);
+            log.error('orchestration_body_error', { error: data.error, metadata: { unitId } });
+            reportApiError('orchestrate-lesson', 200, data.error, { unitId });
             throw new Error(data.error || 'Edge Function failed');
         }
 
         return data;
+    },
+
+    async evaluatePronunciation(audioBase64: string, targetText: string, targetEmotion?: string, language?: string): Promise<any> {
+        log.info('evaluate_pronunciation', { metadata: { targetTextLength: targetText.length, language: language || 'en' } });
+        const { data, error } = await supabase.functions.invoke('evaluate-pronunciation', {
+            body: { audioBase64, targetText, targetEmotion, language: language || 'en' }
+        });
+
+        if (error) {
+            log.error('pronunciation_eval_error', { error: error.message });
+            reportApiError('evaluate-pronunciation', 0, error.message);
+            throw new Error(error.message || 'Failed to evaluate pronunciation.');
+        }
+
+        if (data && data.success === false) {
+            log.error('pronunciation_eval_body_error', { error: data.error });
+            reportApiError('evaluate-pronunciation', 200, data.error);
+            throw new Error(data.error || 'Pronunciation evaluation failed');
+        }
+
+        return data?.evaluation || null;
     },
 
     /**
@@ -69,30 +93,23 @@ export const AIService = {
      * Optionally accepts documentContext for file-based curriculum generation.
      */
     async generateLessonContent(topic: string, gradeLevel: string, documentContext?: string, imageBase64?: string): Promise<GeneratedLesson> {
-        console.log(`Generating AI Lesson for ${gradeLevel} on ${topic} via Edge Function...`);
-        if (documentContext) {
-            console.log(`With document context (${documentContext.length} characters)`);
-        }
-        if (imageBase64) {
-            console.log(`With image base64 (${imageBase64.length} characters)`);
-        }
+        log.info('generate_lesson', { metadata: { topic, gradeLevel, hasContext: !!documentContext, hasImage: !!imageBase64 } });
 
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
             body: { topic, gradeLevel, documentContext, imageBase64 }
         });
 
         if (error) {
-            console.error('Edge Function Error:', error);
+            log.error('generate_error', { error: error.message, metadata: { topic, gradeLevel } });
+            reportApiError('generate-lesson', 0, error.message, { topic, gradeLevel });
             throw new Error(error.message || 'Failed to generate lesson from AI.');
         }
 
-        // Check if Edge Function returned an error in the body
         if (data && data.success === false) {
-            console.error('Edge Function reported error:', data.error);
+            log.error('generate_body_error', { error: data.error });
+            reportApiError('generate-lesson', 200, data.error, { topic });
             throw new Error(data.error || 'Edge Function failed');
         }
-
-        console.log('Edge Function raw response:', JSON.stringify(data).substring(0, 1000));
 
         // Build resilient response with safe defaults for missing properties
         const textContent = data?.textContent || {};

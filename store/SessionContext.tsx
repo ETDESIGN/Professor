@@ -45,6 +45,9 @@ interface SessionState {
   quietModeActive: boolean;
   noiseLevel: number;
   units: LessonUnit[];
+  score?: number;
+  totalCorrect?: number;
+  totalAttempts?: number;
 }
 
 // Map StudentWithProgress to the format expected by components
@@ -59,7 +62,7 @@ const mapStudent = (s: StudentWithProgress) => ({
   points: s.xp, // For compatibility with components expecting 'points'
 });
 
-interface SessionContextType {
+export interface SessionContextType {
   state: SessionState;
   loadUnits: () => Promise<void>;
   loadStudents: () => Promise<void>;
@@ -89,7 +92,7 @@ interface SessionContextType {
   unlockNextLevel: (currentUnitId: string) => Promise<void>;
 }
 
-const SessionContext = createContext<SessionContextType | undefined>(undefined);
+export const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<SessionState>({

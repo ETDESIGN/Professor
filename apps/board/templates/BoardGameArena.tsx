@@ -10,6 +10,18 @@ const BoardGameArena = ({ data }: { data: any }) => {
   const [winner, setWinner] = useState<any>(null);
 
   const students = state.students;
+
+  if (students.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex items-center justify-center text-white font-display">
+        <div className="text-center">
+          <Star size={64} className="text-yellow-400 mx-auto mb-4 opacity-50" />
+          <h2 className="text-4xl font-bold mb-2">No Students Loaded</h2>
+          <p className="text-slate-400 text-xl">Connect to a classroom session to use the Wheel of Destiny.</p>
+        </div>
+      </div>
+    );
+  }
   const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
   // Listen for remote events

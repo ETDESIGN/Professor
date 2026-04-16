@@ -16,7 +16,6 @@ import DrawingLayer from '../../components/shared/DrawingLayer';
 import BoardMediaPlayer from '../board/templates/BoardMediaPlayer';
 import BoardFocusCards from '../board/templates/BoardFocusCards';
 import BoardStoryStage from '../board/templates/BoardStoryStage';
-import BoardGameArena from '../board/templates/BoardGameArena';
 import BoardGrammarSandbox from '../board/templates/BoardGrammarSandbox';
 import BoardTeamBattle from '../board/templates/BoardTeamBattle';
 import BoardIntroSplash from '../board/templates/BoardIntroSplash';
@@ -234,7 +233,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
          case 'MEDIA_PLAYER': return <BoardMediaPlayer data={data} />;
          case 'LIVE_WARMUP': return <BoardLiveClassWarmup data={data} />;
          case 'FOCUS_CARDS': return <BoardFocusCards data={data} />;
-         case 'GAME_ARENA': return <BoardGameArena data={data} />;
+         case 'GAME_ARENA': return <BoardSpeedQuiz data={data} />;
          case 'STORY_STAGE': return <BoardStoryStage data={data} />;
          case 'GRAMMAR_SANDBOX': return <BoardGrammarSandbox data={data} />;
          case 'TEAM_BATTLE': return <BoardTeamBattle data={data} />;

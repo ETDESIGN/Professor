@@ -11,6 +11,17 @@ const BoardFocusCards = ({ data }: { data: any }) => {
   const cards = data.cards || [];
   const activeCard = cards[activeIndex];
 
+  if (cards.length === 0) {
+    return (
+      <div className="h-full bg-slate-100 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-4xl font-display font-bold text-slate-400">{data.title || 'Focus Cards'}</h2>
+          <p className="text-slate-300 text-xl mt-2">No cards available for this lesson.</p>
+        </div>
+      </div>
+    );
+  }
+
   // Listen for remote events
   useEffect(() => {
     if (state.lastAction?.type === 'NEXT_CARD') {
@@ -72,18 +83,27 @@ const BoardFocusCards = ({ data }: { data: any }) => {
           className={`relative w-[600px] h-[750px] transition-transform duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
         >
            {/* Front Face */}
-           <div className="absolute inset-0 backface-hidden bg-white rounded-[3rem] shadow-2xl border-b-[24px] border-slate-100 flex flex-col items-center justify-center p-12 overflow-hidden border-2 border-t-white border-x-white">
-              {/* Image Container */}
-              <div className="flex-1 w-full flex items-center justify-center relative">
-                 <div className="absolute inset-0 bg-blue-50 rounded-full scale-90 opacity-50 blur-3xl"></div>
-                 <div className="text-[250px] leading-none filter drop-shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-500">
-                    {activeCard.front}
-                 </div>
-              </div>
-              <div className="h-12 flex items-end">
-                 <span className="text-slate-300 font-bold uppercase tracking-[0.5em] text-sm animate-pulse">Waiting to Flip...</span>
-              </div>
-           </div>
+            <div className="absolute inset-0 backface-hidden bg-white rounded-[3rem] shadow-2xl border-b-[24px] border-slate-100 flex flex-col items-center justify-center p-12 overflow-hidden border-2 border-t-white border-x-white">
+               <div className="flex-1 w-full flex items-center justify-center relative">
+                  <div className="absolute inset-0 bg-blue-50 rounded-full scale-90 opacity-50 blur-3xl"></div>
+                  {activeCard.image && activeCard.image.startsWith('http') ? (
+                    <img
+                      src={activeCard.image}
+                      alt={activeCard.back || 'Vocabulary'}
+                      className="w-full h-full object-contain relative z-10 rounded-2xl"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.querySelector('.fallback-text')!.textContent = activeCard.back || activeCard.front; }}
+                    />
+                  ) : (
+                    <div className="text-[200px] leading-none filter drop-shadow-2xl relative z-10 transform hover:scale-110 transition-transform duration-500 select-none">
+                      {activeCard.front || activeCard.back}
+                    </div>
+                  )}
+                  <span className="fallback-text sr-only">{activeCard.back}</span>
+               </div>
+               <div className="h-12 flex items-end">
+                  <span className="text-slate-300 font-bold uppercase tracking-[0.5em] text-sm animate-pulse">Waiting to Flip...</span>
+               </div>
+            </div>
 
            {/* Back Face */}
            <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-[3rem] shadow-2xl border-b-[24px] border-blue-800 rotate-y-180 flex flex-col items-center justify-center p-12 text-white border-2 border-t-white/20 border-x-white/20">
@@ -96,11 +116,26 @@ const BoardFocusCards = ({ data }: { data: any }) => {
                  </div>
               </div>
               
-              <div className="w-full bg-black/20 p-6 rounded-2xl text-center backdrop-blur-sm border border-white/10">
-                 <p className="opacity-90 text-2xl font-medium">
-                    "The <span className="font-bold text-yellow-300 underline decoration-4 underline-offset-4">{activeCard.back.toLowerCase()}</span> lives in the jungle."
-                 </p>
-              </div>
+               <div className="w-full bg-black/20 p-6 rounded-2xl text-center backdrop-blur-sm border border-white/10">
+                  <p className="opacity-90 text-2xl font-medium">
+                     {activeCard.context_sentence ? (
+                       <>
+                         {activeCard.context_sentence.split(activeCard.back).map((part: string, i: number, arr: string[]) => (
+                           <React.Fragment key={i}>
+                             {part}
+                             {i < arr.length - 1 && (
+                               <span className="font-bold text-yellow-300 underline decoration-4 underline-offset-4">{activeCard.back}</span>
+                             )}
+                           </React.Fragment>
+                         ))}
+                       </>
+                     ) : activeCard.definition ? (
+                       activeCard.definition
+                     ) : (
+                       <span className="text-white/50 italic">No context available</span>
+                     )}
+                  </p>
+               </div>
            </div>
         </div>
 

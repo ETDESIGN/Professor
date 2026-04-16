@@ -12,7 +12,6 @@ import DrawingLayer from '../../components/shared/DrawingLayer';
 import BoardMediaPlayer from './templates/BoardMediaPlayer';
 import BoardFocusCards from './templates/BoardFocusCards';
 import BoardStoryStage from './templates/BoardStoryStage';
-import BoardGameArena from './templates/BoardGameArena';
 import BoardGrammarSandbox from './templates/BoardGrammarSandbox';
 import BoardTeamBattle from './templates/BoardTeamBattle';
 import BoardIntroSplash from './templates/BoardIntroSplash';
@@ -118,7 +117,7 @@ const ClassroomBoard: React.FC = () => {
             {currentStep.type === 'MEDIA_PLAYER' && <BoardMediaPlayer data={currentStep.data} />}
             {currentStep.type === 'LIVE_WARMUP' && <BoardLiveClassWarmup data={currentStep.data} />}
             {currentStep.type === 'FOCUS_CARDS' && <BoardFocusCards data={currentStep.data} />}
-            {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
+            {currentStep.type === 'GAME_ARENA' && <BoardSpeedQuiz data={currentStep.data} />}
             {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
             {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
             {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}

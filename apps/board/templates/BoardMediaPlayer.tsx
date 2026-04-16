@@ -15,20 +15,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
   const playerRef = useRef<any>(null);
 
   // Mock Lyrics synced to time (in seconds)
-  const lyrics = data.lyrics || [
-    { text: "Walking in the jungle...", time: 0 },
-    { text: "Walking in the jungle...", time: 3 },
-    { text: "We're not afraid!", time: 6 },
-    { text: "We're not afraid!", time: 9 },
-    { text: "One step, two steps...", time: 12 },
-    { text: "Three steps forward!", time: 15 },
-    { text: "One step, two steps...", time: 18 },
-    { text: "Three steps back!", time: 21 },
-    { text: "Stop!", time: 24 },
-    { text: "Listen!", time: 25 },
-    { text: "What's that?", time: 27 },
-    { text: "It's a monkey!", time: 29 },
-  ];
+  const lyrics = data.lyrics && data.lyrics.length > 0 ? data.lyrics : [];
 
   // Listen for remote events
   useEffect(() => {
@@ -69,29 +56,55 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
   const lyricDuration = nextLyricStartTime - currentLyricStartTime;
   const lyricProgress = Math.min(1, Math.max(0, (currentTime - currentLyricStartTime) / lyricDuration));
 
+  const hasVideo = Boolean(data.videoUrl);
+  const hasAudio = Boolean(data.audioUrl);
+  const hasLyrics = lyrics.length > 0;
+  const hasContent = hasVideo || hasAudio || hasLyrics;
+
   return (
     <div className="h-full bg-black relative flex flex-col group overflow-hidden">
       {/* Video Layer */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-black/40 z-10"></div>
-        <ReactPlayer
-          ref={playerRef}
-          url={data.videoUrl || "https://www.youtube.com/watch?v=GoSq-yZcJ-4"} // Default walking in the jungle
-          playing={isPlaying}
-          muted={isMuted}
-          width="150%"
-          height="150%"
-          style={{ position: 'absolute', top: '-25%', left: '-25%', opacity: 0.8 }}
-          onProgress={handleProgress as any}
-          onDuration={setDuration}
-          onEnded={() => setIsPlaying(false)}
-          config={{
-            youtube: {
-              playerVars: { controls: 0, disablekb: 1, modestbranding: 1 }
-            } as any
-          }}
-        />
-      </div>
+      {hasVideo ? (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-black/40 z-10"></div>
+          <ReactPlayer
+            ref={playerRef}
+            url={data.videoUrl}
+            playing={isPlaying}
+            muted={isMuted}
+            width="150%"
+            height="150%"
+            style={{ position: 'absolute', top: '-25%', left: '-25%', opacity: 0.8 }}
+            onProgress={handleProgress as any}
+            onDuration={setDuration}
+            onEnded={() => setIsPlaying(false)}
+            config={{
+              youtube: {
+                playerVars: { controls: 0, disablekb: 1, modestbranding: 1 }
+              } as any
+            }}
+          />
+        </div>
+      ) : hasAudio ? (
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-purple-900 via-indigo-900 to-slate-900">
+          <ReactPlayer
+            ref={playerRef}
+            url={data.audioUrl}
+            playing={isPlaying}
+            muted={isMuted}
+            width="0"
+            height="0"
+            onProgress={handleProgress as any}
+            onDuration={setDuration}
+            onEnded={() => setIsPlaying(false)}
+          />
+          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+            <Volume2 size={200} className="text-white" />
+          </div>
+        </div>
+      ) : (
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+      )}
 
       {/* Top Info Bar */}
       <div className="relative z-20 p-8 flex justify-between items-start">
@@ -101,7 +114,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
           </div>
           <div>
             <div className="text-yellow-400 font-bold uppercase tracking-widest text-sm mb-1">Warm Up Song</div>
-            <h1 className="text-5xl font-display font-bold text-white drop-shadow-lg">{data.title || "Walking in the Jungle"}</h1>
+            <h1 className="text-5xl font-display font-bold text-white drop-shadow-lg">{data.title || "Media Player"}</h1>
           </div>
         </div>
         <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-full text-white/80 font-mono text-xl border border-white/10">
@@ -111,24 +124,33 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
 
       {/* Karaoke Lyrics Area */}
       <div className="flex-1 relative z-20 flex items-end justify-center pb-32 px-20">
-        <div className="text-center space-y-6 max-w-5xl">
-          <div className="relative inline-block">
-            {/* Background text (dimmed) */}
-            <p className="text-8xl text-white/30 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight">
-              {currentLine}
-            </p>
-            {/* Foreground text (highlighted) with clip-path for karaoke effect */}
-            <p
-              className="text-8xl text-yellow-400 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight absolute top-0 left-0 whitespace-nowrap overflow-hidden"
-              style={{ width: `${lyricProgress * 100}%`, transition: 'width 0.1s linear' }}
-            >
-              {currentLine}
+        {hasLyrics ? (
+          <div className="text-center space-y-6 max-w-5xl">
+            <div className="relative inline-block">
+              {/* Background text (dimmed) */}
+              <p className="text-8xl text-white/30 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight">
+                {currentLine}
+              </p>
+              {/* Foreground text (highlighted) with clip-path for karaoke effect */}
+              <p
+                className="text-8xl text-yellow-400 font-fun drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] leading-tight absolute top-0 left-0 whitespace-nowrap overflow-hidden"
+                style={{ width: `${lyricProgress * 100}%`, transition: 'width 0.1s linear' }}
+              >
+                {currentLine}
+              </p>
+            </div>
+            <p className="text-4xl text-white/50 font-fun transform transition-all duration-500">
+              {nextLine}
             </p>
           </div>
-          <p className="text-4xl text-white/50 font-fun transform transition-all duration-500">
-            {nextLine}
-          </p>
-        </div>
+        ) : (
+          <div className="text-center">
+            <Volume2 size={80} className="text-white/20 mx-auto mb-6" />
+            <p className="text-3xl text-white/40 font-fun">
+              {hasContent ? "Press play to start the media" : "No media content available for this step"}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Progress Bar & Controls */}
