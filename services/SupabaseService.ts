@@ -266,14 +266,28 @@ const supabaseRemoveStudent = async (id: string) => {
     await supabase.from('students').delete().eq('id', id);
 };
 
-const supabaseFetchSRSItems = async (studentId: string = 'default_student') => {
+const supabaseFetchSRSItems = async (studentId?: string) => {
+    let effectiveId = studentId;
+    if (!effectiveId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        effectiveId = user?.id || 'default_student';
+    }
+
     const { data, error } = await supabase
         .from('srs_items')
         .select('*')
-        .eq('student_id', studentId)
+        .eq('student_id', effectiveId)
         .lte('next_review', new Date().toISOString());
 
-    if (error || !data) return [];
+    if (error || !data || data.length === 0) {
+        const { data: allData } = await supabase
+            .from('srs_items')
+            .select('*')
+            .eq('student_id', effectiveId)
+            .order('next_review', { ascending: true })
+            .limit(10);
+        return allData || [];
+    }
     return data;
 };
 

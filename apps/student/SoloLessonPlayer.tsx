@@ -27,6 +27,8 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   const [activeExampleIndex, setActiveExampleIndex] = useState(0);
   const [activePageIndex, setActivePageIndex] = useState(0);
 
+  const [activeQuizIndex, setActiveQuizIndex] = useState(0);
+
   const progress = totalSteps > 0 ? ((currentIndex + 1) / totalSteps) * 100 : 0;
   const startTime = React.useRef(Date.now());
 
@@ -50,6 +52,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     setActiveCardIndex(0);
     setActiveExampleIndex(0);
     setActivePageIndex(0);
+    setActiveQuizIndex(0);
   }, [currentIndex]);
 
   const handleNext = useCallback(() => {
@@ -104,7 +107,11 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
             >
               {!isFlipped ? (
                 <div className="bg-white rounded-3xl shadow-xl border-2 border-slate-100 p-8 text-center">
-                  <div className="text-6xl mb-4">{card.front}</div>
+                  {card.image && card.image.startsWith('http') ? (
+                    <img src={card.image} alt={card.back} className="w-40 h-40 object-contain mx-auto mb-4 rounded-2xl" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <div className="text-6xl mb-4">{card.front}</div>
+                  )}
                   <h2 className="text-3xl font-bold text-slate-800">{card.back}</h2>
                   <p className="text-slate-400 font-bold mt-6 animate-pulse">Tap to flip</p>
                 </div>
@@ -155,18 +162,29 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   const renderSpeedQuiz = () => {
     const questions = currentStep.data?.questions || [];
     if (questions.length === 0) return <EmptyStep title="Quiz" />;
-    const question = questions[0];
+    const question = questions[activeQuizIndex];
     if (!question) return <EmptyStep title="Quiz" />;
+
+    const isLastQuestion = activeQuizIndex >= questions.length - 1;
+    const quizProgress = ((activeQuizIndex + (isRevealed ? 1 : 0)) / questions.length) * 100;
 
     return (
       <div className="flex-1 flex flex-col p-6">
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 mb-4">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
               <Zap size={20} className="text-white" />
             </div>
-            <span className="text-sm font-bold text-blue-500 uppercase">Question</span>
+            <span className="text-sm font-bold text-blue-500 uppercase">Question {activeQuizIndex + 1} / {questions.length}</span>
           </div>
+          <span className="text-sm font-bold text-green-500">{quizScore} correct</span>
+        </div>
+
+        <div className="w-full h-2 bg-slate-100 rounded-full mb-4">
+          <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${quizProgress}%` }} />
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 mb-4">
           <h2 className="text-2xl font-bold text-slate-800">{question.text}</h2>
         </div>
 
@@ -209,10 +227,18 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
         {isRevealed && (
           <button
-            onClick={handleNext}
+            onClick={() => {
+              if (isLastQuestion) {
+                handleNext();
+              } else {
+                setIsRevealed(false);
+                setSelectedOption(null);
+                setActiveQuizIndex(i => i + 1);
+              }
+            }}
             className="w-full mt-4 bg-duo-green text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2"
           >
-            Continue <ArrowRight size={20} />
+            {isLastQuestion ? 'Complete Quiz' : 'Next Question'} <ArrowRight size={20} />
           </button>
         )}
       </div>

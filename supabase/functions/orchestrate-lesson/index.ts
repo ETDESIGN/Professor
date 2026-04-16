@@ -275,6 +275,20 @@ IMPORTANT RULES:
             setting: themeCtx?.setting || "",
             characters: characters
           }
+        },
+        {
+          id: crypto.randomUUID(),
+          type: "MEDIA_PLAYER",
+          title: `Warm Up: ${theme}`,
+          duration: 300,
+          teacherGuide: { instruction: "Play a warm-up song or video related to the theme.", script: `Let's start with a song about ${theme}!` },
+          data: {
+            title: `${theme} Warm Up`,
+            videoUrl: "",
+            videoThumbnail: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(theme + '-media')}`,
+            lyrics: [],
+            audioUrl: ""
+          }
         }
       ]
 

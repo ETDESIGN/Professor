@@ -328,8 +328,9 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             setActiveFileIndex(startIndex);
          }
 
-         // Process only the first uploaded file in this demo to avoid parallel race condition simplicity issues
-         await processFileUpload(newFiles[0], startIndex, draftUnitId);
+         for (let i = 0; i < newFiles.length; i++) {
+            await processFileUpload(newFiles[i], startIndex + i, draftUnitId);
+         }
       }
       if (fileInputRef.current) fileInputRef.current.value = '';
    };
@@ -341,8 +342,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             ref={fileInputRef}
             className="hidden"
             onChange={handleFileSelect}
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={false} // Force single file at a time for stability in this phase
+             accept=".jpg,.jpeg,.png,.pdf"
+             multiple={true}
          />
 
          <WorkspaceSidebar
