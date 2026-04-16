@@ -68,7 +68,7 @@ vi.mock('../services/MediaService', () => ({
   },
 }));
 
-vi.mock('react-player', () => ({
+vi.mock('react-player/lazy', () => ({
   __esModule: true,
   default: React.forwardRef((props: any, ref: any) => (
     <div data-testid="react-player" data-url={props.url} data-playing={String(props.playing)} />

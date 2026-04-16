@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
     },
     build: {
+      chunkSizeWarningLimit: 600,
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
@@ -18,6 +19,12 @@ export default defineConfig(({ mode }) => {
           student: path.resolve(__dirname, 'student.html'),
           parent: path.resolve(__dirname, 'parent.html'),
           admin: path.resolve(__dirname, 'admin.html'),
+        },
+        output: {
+          manualChunks: {
+            'react-player': ['react-player/lazy'],
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          }
         }
       }
     },

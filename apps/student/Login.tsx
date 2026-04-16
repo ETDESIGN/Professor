@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { ArrowRight, HelpCircle, AlertCircle, Camera, Mic, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../../services/supabaseClient';
+import { useAppStore } from '../../store/useAppStore';
 
 interface LoginProps {
   onLogin: () => void;
@@ -10,20 +12,37 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [step, setStep] = useState(1);
   const [code, setCode] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { setUserProfile } = useAppStore();
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
-       if (code.length >= 6) {
-          setStep(2);
-       } else {
-          setError(true);
-          setTimeout(() => setError(false), 2000);
-       }
+      setIsLoading(true);
+      setError('');
+
+      try {
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('id, name')
+          .eq('code', code)
+          .single();
+
+        if (classError || !classData) {
+          setError('Invalid class code. Ask your teacher for the correct code.');
+          setIsLoading(false);
+          return;
+        }
+
+        setStep(2);
+      } catch {
+        setError('Could not verify code. Please try again.');
+      }
+      setIsLoading(false);
     } else if (step === 2) {
-       setStep(3);
+      setStep(3);
     } else {
-       onLogin();
+      onLogin();
     }
   };
 
@@ -66,13 +85,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <div className="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 mb-8 w-full">
                  <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">Class Code</label>
                  <div className="relative">
-                    <input 
+                     <input 
                       type="text" 
                       value={code}
                       onChange={(e) => {
                          setCode(e.target.value.toUpperCase());
-                         setError(false);
+                         setError('');
                       }}
+                      disabled={isLoading}
                       maxLength={6}
                       placeholder="ABC-123"
                       className={`w-full h-16 text-3xl font-mono font-bold text-center tracking-[0.5em] uppercase border-2 rounded-2xl focus:outline-none transition-all
@@ -84,12 +104,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                           <AlertCircle size={24} />
                        </div>
                     )}
-                 </div>
-              </div>
-           </motion.div>
-        )}
+                  </div>
+                  {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}
+               </div>
+            </motion.div>
+         )}
 
-        {/* Step 2: Permissions */}
+         {/* Step 2: Permissions */}
         {step === 2 && (
            <motion.div 
               key="step2"

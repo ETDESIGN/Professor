@@ -38,10 +38,10 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
   // Gamification State
   const [userStats, setUserStats] = useState({
-    streak: 12,
-    gems: 450,
-    xp: 1250,
-    level: 5
+    streak: 0,
+    gems: 0,
+    xp: 0,
+    level: 1
   });
 
   // Track selected unit for lesson

@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../store/SessionContext';
 import { MediaService } from '../../services/MediaService';
-import ReactPlayer from 'react-player';
+import ReactPlayer from 'react-player/lazy';
 
 interface SoloLessonPlayerProps {
   onComplete: (results: { xp: number; accuracy: number; time: string }) => void;

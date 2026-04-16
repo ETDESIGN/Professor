@@ -40,6 +40,7 @@ const isSupabaseConfigured = (): boolean => {
 // ------------------------------------------------------------------
 
 const getMockEngine = async () => {
+    console.warn('[Engine] VITE_SUPABASE_URL not set — using MockEngine with hardcoded data. Set your .env file for production.');
     const mod = await import('./MockEngine');
     return mod.MockEngine;
 };

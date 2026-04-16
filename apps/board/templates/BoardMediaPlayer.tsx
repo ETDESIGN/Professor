@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Volume2, Maximize, VolumeX } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
-import ReactPlayer from 'react-player';
+import ReactPlayer from 'react-player/lazy';
 
 const BoardMediaPlayer = ({ data }: { data: any }) => {
   const { state } = useSession();

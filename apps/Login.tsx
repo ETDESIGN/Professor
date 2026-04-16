@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { signInWithPassword, signUp, UserRole, AuthUser } from '../services/AuthService';
 import { useAppStore } from '../store/useAppStore';
+import { supabase } from '../services/supabaseClient';
 
 interface LoginProps {
   onLogin: (role: 'district_admin' | 'teacher' | 'student' | 'parent') => void;
@@ -15,6 +16,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
   const { setUserProfile } = useAppStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,6 +86,25 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setIsLoading(false);
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setSuccessMessage('Password reset link sent! Check your email.');
+      }
+    } catch {
+      setError('Failed to send reset email. Please try again.');
+    }
+    setIsLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -104,6 +125,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-slate-200">
 
           {/* Role Selector */}
+          {!isResetMode && (
           <div className="flex justify-center gap-2 mb-8 bg-slate-100 p-1 rounded-lg">
             {(['teacher', 'student', 'parent'] as const).map((r) => (
               <button
@@ -117,9 +139,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 {r}
               </button>
             ))}
-          </div>
+           </div>
+          )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={isResetMode ? handleResetPassword : handleSubmit}>
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Email address
@@ -140,45 +163,49 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Password
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-md py-2 px-3 border"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900">
-                  Remember me
+            {!isResetMode && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Password
                 </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-md py-2 px-3 border"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
+            )}
 
-              <div className="text-sm">
-                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Forgot your password?
-                </a>
+            {!isResetMode && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    id="remember-me"
+                    name="remember-me"
+                    type="checkbox"
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900">
+                    Remember me
+                  </label>
+                </div>
+
+                <div className="text-sm">
+                  <button type="button" onClick={() => { setIsResetMode(true); setError(null); setSuccessMessage(null); }} className="font-medium text-indigo-600 hover:text-indigo-500">
+                    Forgot your password?
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {successMessage && (
               <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 p-3 rounded-md">
@@ -199,18 +226,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isLoading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : isSignUp ? 'Sign up' : 'Sign in'}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : isResetMode ? 'Send Reset Link' : isSignUp ? 'Sign up' : 'Sign in'}
               </button>
             </div>
 
             <div className="text-center">
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(!isSignUp); setError(null); setSuccessMessage(null); }}
-                className="text-sm text-indigo-600 hover:text-indigo-500"
-              >
-                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-              </button>
+              {isResetMode ? (
+                <button
+                  type="button"
+                  onClick={() => { setIsResetMode(false); setError(null); setSuccessMessage(null); }}
+                  className="text-sm text-indigo-600 hover:text-indigo-500 flex items-center justify-center gap-1"
+                >
+                  <ArrowLeft size={14} /> Back to sign in
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(!isSignUp); setError(null); setSuccessMessage(null); }}
+                  className="text-sm text-indigo-600 hover:text-indigo-500"
+                >
+                  {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                </button>
+              )}
             </div>
           </form>
 
