@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { corsHeaders, handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
 import { createLogger } from '../_shared/logger.ts'
-import { authenticateRequest, AuthError } from '../_shared/authMiddleware.ts'
+import { softAuthenticate } from '../_shared/authMiddleware.ts'
 import { checkRateLimit, extractIdentifier, rateLimitHeaders } from '../_shared/rateLimit.ts'
 import { handleHealthCheck } from '../_shared/health.ts'
 
@@ -81,14 +81,11 @@ serve(async (req) => {
     }
 
     let userId: string | undefined
-    try {
-      const auth = await authenticateRequest(req)
+    const auth = await softAuthenticate(req)
+    if (auth) {
       userId = auth.userId
-    } catch (authErr) {
-      if (authErr instanceof AuthError) {
-        log.warn('auth_failed', { error: authErr.message })
-        return errorResponse(authErr.message, authErr.status)
-      }
+    } else {
+      log.warn('auth_missing', { error: 'No valid auth token provided' })
     }
 
     const body = await req.json()

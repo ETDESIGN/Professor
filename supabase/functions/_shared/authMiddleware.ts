@@ -20,6 +20,10 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new AuthError('Server auth not configured', 500);
+  }
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -33,6 +37,14 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
     role: (user as any).role || 'authenticated',
     supabase,
   };
+}
+
+export async function softAuthenticate(req: Request): Promise<AuthResult | null> {
+  try {
+    return await authenticateRequest(req);
+  } catch {
+    return null;
+  }
 }
 
 export class AuthError extends Error {

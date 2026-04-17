@@ -35,6 +35,3 @@ ON storage.objects
 FOR SELECT
 TO authenticated
 USING (bucket_id = 'materials');
-
--- Enable RLS on storage.objects (should be enabled by default, but ensuring it)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
