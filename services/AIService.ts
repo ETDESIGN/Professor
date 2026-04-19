@@ -24,6 +24,13 @@ export const AIService = {
      */
     async generateLiveFeedback(context: string): Promise<any> {
         log.info('generate_live_feedback');
+        
+        // Return mock data if API key not configured
+        if (!import.meta.env.VITE_GEMINI_API_KEY) {
+            log.warn('gemini_api_key_not_configured');
+            return this.getMockLiveFeedback(context);
+        }
+
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
             body: { action: 'live-feedback', context }
         });
@@ -48,6 +55,13 @@ export const AIService = {
      */
     async orchestrateLesson(unitId: string, approvedAssets: object): Promise<any> {
         log.info('orchestrate_lesson', { metadata: { unitId } });
+        
+        // Return mock data if API key not configured
+        if (!import.meta.env.VITE_GEMINI_API_KEY) {
+            log.warn('gemini_api_key_not_configured');
+            return this.getMockOrchestration(unitId, approvedAssets);
+        }
+
         const { data, error } = await supabase.functions.invoke('orchestrate-lesson', {
             body: { unitId, approvedAssets }
         });
@@ -69,6 +83,13 @@ export const AIService = {
 
     async evaluatePronunciation(audioBase64: string, targetText: string, targetEmotion?: string, language?: string): Promise<any> {
         log.info('evaluate_pronunciation', { metadata: { targetTextLength: targetText.length, language: language || 'en' } });
+        
+        // Return mock data if API key not configured
+        if (!import.meta.env.VITE_GEMINI_API_KEY) {
+            log.warn('gemini_api_key_not_configured');
+            return this.getMockPronunciationEvaluation(targetText);
+        }
+
         const { data, error } = await supabase.functions.invoke('evaluate-pronunciation', {
             body: { audioBase64, targetText, targetEmotion, language: language || 'en' }
         });
@@ -94,6 +115,12 @@ export const AIService = {
      */
     async generateLessonContent(topic: string, gradeLevel: string, documentContext?: string, imageBase64?: string): Promise<GeneratedLesson> {
         log.info('generate_lesson', { metadata: { topic, gradeLevel, hasContext: !!documentContext, hasImage: !!imageBase64 } });
+
+        // Return mock data if API key not configured
+        if (!import.meta.env.VITE_GEMINI_API_KEY) {
+            log.warn('gemini_api_key_not_configured');
+            return this.getMockLessonContent(topic, gradeLevel);
+        }
 
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
             body: { topic, gradeLevel, documentContext, imageBase64 }
@@ -138,6 +165,72 @@ export const AIService = {
             },
             imageUrl: data?.imageUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(topic || 'lesson')}`,
             audioUrl: data?.audioUrl || null
+        };
+    },
+
+    /**
+     * Mock responses for when API key is not configured
+     */
+    getMockLiveFeedback(context: string) {
+        log.warn('Returning mock live feedback');
+        return {
+            success: true,
+            feedback: `AI analysis for: ${context}`,
+            suggestions: ['Increase visual engagement', 'Add interactive elements'],
+            timestamp: new Date().toISOString()
+        };
+    },
+
+    getMockOrchestration(unitId: string, approvedAssets: object) {
+        log.warn('Returning mock orchestration');
+        return {
+            success: true,
+            unitId,
+            publishedAssets: approvedAssets,
+            timelineId: `timeline_${Date.now()}`,
+            timestamp: new Date().toISOString()
+        };
+    },
+
+    getMockPronunciationEvaluation(targetText: string) {
+        log.warn('Returning mock pronunciation evaluation');
+        return {
+            evaluation: {
+                targetText,
+                score: 0.85,
+                feedback: 'Good pronunciation, minor improvements needed',
+                phonemeAnalysis: [
+                    { phoneme: 'th', accuracy: 0.9, timing: 0.95 },
+                    { phoneme: 's', accuracy: 0.8, timing: 0.85 }
+                ],
+                timestamp: new Date().toISOString()
+            }
+        };
+    },
+
+    getMockLessonContent(topic: string, gradeLevel: string) {
+        log.warn('Returning mock lesson content');
+        return {
+            textContent: {
+                title: `${topic || 'Generated'} Lesson`,
+                description: `A lesson about ${topic || 'this topic'} for ${gradeLevel} students.`,
+                visual_prompt: `Educational illustration about ${topic || 'learning'}`,
+                spoken_intro: `Welcome to today's lesson!`,
+                vocabulary: [
+                    { word: topic || "Vocabulary", definition: `A key term from ${topic || "the lesson"}` },
+                    { word: "Lesson", definition: "A period of teaching or learning" },
+                    { word: "Study", definition: "The activity of learning about a subject" }
+                ],
+                grammarRules: [
+                    { rule: "Basic Sentence Structure", explanation: "A sentence needs a subject and a verb." }
+                ],
+                sentences: [
+                    { original: `We are learning about ${topic || "this topic"}.`, translation: `We are studying ${topic || "this subject"}.` },
+                    { original: "Please open your textbook.", translation: "Please open your book for studying." }
+                ]
+            },
+            imageUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(topic || 'lesson')}`,
+            audioUrl: null
         };
     }
 };
