@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
 import { Search, Clock, BookOpen, Star, PlayCircle } from 'lucide-react';
-import { useAppStore } from '../../../store/useAppStore';
 import { useSession } from '../../../store/SessionContext';
 
 const BoardUnitSelection = () => {
-   const { startSession, nextSlide } = useSession();
+   const { state, startSession, nextSlide } = useSession();
    const [searchTerm, setSearchTerm] = useState('');
-   const { units } = useAppStore();
+   const units = state.units;
    const featuredUnit = units.length > 0 ? units[0] : null;
 
    const handleLaunch = () => {

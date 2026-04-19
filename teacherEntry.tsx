@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import TeacherDashboard from './apps/teacher/TeacherDashboard';
 import LessonStudio from './apps/teacher/LessonStudio';
 import LiveCommander from './apps/teacher/LiveCommander';
+import './services/i18n';
 
 const TeacherRouter = () => {
     const navigate = useNavigate();

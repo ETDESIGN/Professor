@@ -1,6 +1,6 @@
-import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Engine, LessonUnit } from '../services/SupabaseService';
-import { SessionContext, SessionContextType } from './SessionContext';
+import { SessionContextType } from './SessionContext';
 import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
 import { supabase } from '../services/supabaseClient';
 
@@ -62,6 +62,8 @@ const initialState: SoloSessionState = {
   totalAttempts: 0,
   studentProgress: { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 },
 };
+
+export const SoloSessionContext = createContext<SessionContextType | undefined>(undefined);
 
 export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<SoloSessionState>(initialState);
@@ -189,14 +191,6 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }));
   };
 
-  const recordAnswer = (correct: boolean) => {
-    setState(prev => ({
-      ...prev,
-      totalCorrect: prev.totalCorrect + (correct ? 1 : 0),
-      totalAttempts: prev.totalAttempts + 1,
-    }));
-  };
-
   const deductAllPoints = (amount: number) => {
     setState(prev => ({ ...prev }));
   };
@@ -225,11 +219,11 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
     setState(prev => ({ ...prev, activeOverlay: 'NONE', quickWheelWinner: null }));
   };
 
-  const selectNextStudent = (filterTeam?: string, useOverlay: boolean = true) => {};
-  const magicSelectStudent = (studentId: string) => {};
+  const selectNextStudent = (_filterTeam?: string, _useOverlay?: boolean) => {};
+  const magicSelectStudent = (_studentId: string) => {};
 
-  const startDrawing = (x: number, y: number, color: string = '#ef4444') => {};
-  const addDrawingPoint = (x: number, y: number) => {};
+  const startDrawing = (_x: number, _y: number, _color?: string) => {};
+  const addDrawingPoint = (_x: number, _y: number) => {};
   const endDrawing = () => {};
   const clearDrawings = () => {
     setState(prev => ({ ...prev, drawings: [] }));
@@ -283,19 +277,25 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   return (
-    <SessionContext.Provider value={contextValue}>
+    <SoloSessionContext.Provider value={contextValue}>
       {children}
-    </SessionContext.Provider>
+    </SoloSessionContext.Provider>
   );
 };
 
 export const useSoloSession = () => {
-  const sessionCtx = React.useContext(SessionContext);
-  if (!sessionCtx) throw new Error('useSoloSession must be used within SoloSessionProvider');
-  const soloState = sessionCtx.state as SoloSessionState;
+  const context = React.useContext(SoloSessionContext);
+  if (!context) throw new Error('useSoloSession must be used within SoloSessionProvider');
   return {
-    ...sessionCtx,
-    state: soloState,
-    recordAnswer: (sessionCtx as any).recordAnswer,
+    ...context,
+    state: context.state as SoloSessionState,
+    recordAnswer: (correct: boolean) => {
+      const currentState = context.state as SoloSessionState;
+      (context as any).setState?.((prev: SoloSessionState) => ({
+        ...prev,
+        totalCorrect: prev.totalCorrect + (correct ? 1 : 0),
+        totalAttempts: prev.totalAttempts + 1,
+      }));
+    },
   };
 };

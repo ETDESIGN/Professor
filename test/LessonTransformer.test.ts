@@ -1,4 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
+
+vi.mock('../services/supabaseClient', () => ({
+  supabase: {
+    functions: {
+      invoke: vi.fn().mockResolvedValue({
+        data: { below: 'simple text', on: 'on-level text', above: 'advanced text' },
+        error: null,
+      }),
+    },
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user-id' } } }),
+    },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      }),
+    }),
+  },
+}));
+
 import { transformManifestToFlow } from '../services/LessonTransformer';
 import { LessonManifest } from '../types/pipeline';
 

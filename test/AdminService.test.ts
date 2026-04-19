@@ -21,7 +21,7 @@ function queryChain(resolvedValue: { data: any; error?: any; count?: number }) {
   const handler: ProxyHandler<any> = {
     get(_target, prop) {
       if (prop === 'then') return undefined;
-      if (prop === 'select' || prop === 'insert' || prop === 'update' || prop === 'delete' || prop === 'eq' || prop === 'in' || prop === 'order' || prop === 'limit') {
+      if (prop === 'select' || prop === 'insert' || prop === 'update' || prop === 'delete' || prop === 'eq' || prop === 'in' || prop === 'order' || prop === 'limit' || prop === 'lt') {
         return vi.fn().mockReturnValue(new Proxy(chain, handler));
       }
       return undefined;
@@ -39,6 +39,7 @@ function queryChain(resolvedValue: { data: any; error?: any; count?: number }) {
     in: vi.fn().mockReturnValue(proxy),
     order: vi.fn().mockReturnValue(proxy),
     limit: vi.fn().mockReturnValue(proxy),
+    lt: vi.fn().mockReturnValue(proxy),
     single: vi.fn().mockResolvedValue(resolvedValue),
     maybeSingle: vi.fn().mockResolvedValue(resolvedValue),
   };
@@ -56,6 +57,7 @@ function selectChain(data: any, error?: any) {
     in: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
+    lt: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue(result),
     maybeSingle: vi.fn().mockResolvedValue(result),
   };
@@ -64,6 +66,7 @@ function selectChain(data: any, error?: any) {
   chain.in.mockImplementation(() => chain);
   chain.order.mockImplementation(() => chain);
   chain.limit.mockImplementation(() => chain);
+  chain.lt.mockImplementation(() => chain);
   chain.data = data;
   chain.error = error || null;
   chain.count = undefined;
@@ -186,7 +189,7 @@ describe('AdminService', () => {
     it('returns student summaries with progress and class info', async () => {
       mockFrom
         .mockReturnValueOnce(selectChain([
-          { id: 's1', full_name: 'Alice', email: 'a@t.com', avatar_url: null },
+          { id: 's1', full_name: 'Alice', email: 'a@t.com', avatar_url: null, created_at: '2026-01-01' },
         ]))
         .mockReturnValueOnce(selectChain([
           { student_id: 's1', xp: 500, streak: 7, completed_unit_ids: ['u1', 'u2'], current_unit_id: 'u3' },
@@ -195,21 +198,23 @@ describe('AdminService', () => {
           { student_id: 's1', class: { name: 'English 101' } },
         ]));
 
-      const summaries = await AdminService.getStudentSummaries(50);
+      const result = await AdminService.getStudentSummaries(50);
 
-      expect(summaries).toHaveLength(1);
-      expect(summaries[0].fullName).toBe('Alice');
-      expect(summaries[0].xp).toBe(500);
-      expect(summaries[0].streak).toBe(7);
-      expect(summaries[0].completedUnits).toBe(2);
-      expect(summaries[0].currentUnitId).toBe('u3');
-      expect(summaries[0].enrolledClassName).toBe('English 101');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].fullName).toBe('Alice');
+      expect(result.data[0].xp).toBe(500);
+      expect(result.data[0].streak).toBe(7);
+      expect(result.data[0].completedUnits).toBe(2);
+      expect(result.data[0].currentUnitId).toBe('u3');
+      expect(result.data[0].enrolledClassName).toBe('English 101');
+      expect(result.hasMore).toBe(false);
     });
 
-    it('returns empty array when no students', async () => {
+    it('returns empty result when no students', async () => {
       mockFrom.mockReturnValueOnce(selectChain([]));
-      const summaries = await AdminService.getStudentSummaries();
-      expect(summaries).toEqual([]);
+      const result = await AdminService.getStudentSummaries();
+      expect(result.data).toEqual([]);
+      expect(result.hasMore).toBe(false);
     });
   });
 

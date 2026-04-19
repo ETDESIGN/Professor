@@ -3,14 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './src/index.css';
 import App from './App';
-import { initErrorReporting, setupGlobalErrorHandler } from './services/errorReporting';
-
-initErrorReporting({
-  dsn: import.meta.env.VITE_SENTRY_DSN || undefined,
-  environment: import.meta.env.MODE,
-});
-
-setupGlobalErrorHandler();
+import './services/i18n';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

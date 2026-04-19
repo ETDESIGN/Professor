@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
+import type { PaginatedResult, PaginationOptions } from './pagination';
 
 const log = createClientLogger('AdminService');
 
@@ -210,23 +211,33 @@ export const AdminService = {
     }));
   },
 
-  async getStudentSummaries(limit: number = 50): Promise<StudentSummary[]> {
-    log.info('get_student_summaries', { metadata: { limit } });
+  async getStudentSummaries(limit: number = 50, cursor?: string): Promise<PaginatedResult<StudentSummary>> {
+    log.info('get_student_summaries', { metadata: { limit, cursor } });
 
-    const { data: students, error } = await supabase
+    let query = supabase
       .from('profiles')
-      .select('id, full_name, email, avatar_url')
+      .select('id, full_name, email, avatar_url, created_at')
       .eq('role', 'student')
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .limit(limit + 1);
+
+    if (cursor) {
+      query = query.lt('created_at', cursor);
+    }
+
+    const { data: students, error } = await query;
 
     if (error) {
       log.error('get_student_summaries_error', { error: error.message });
       throw error;
     }
 
-    const studentIds = (students || []).map(s => s.id);
-    if (studentIds.length === 0) return [];
+    const hasMore = (students || []).length > limit;
+    const results = hasMore ? (students || []).slice(0, limit) : (students || []);
+    const nextCursor = hasMore && results.length > 0 ? results[results.length - 1].created_at : null;
+
+    const studentIds = results.map(s => s.id);
+    if (studentIds.length === 0) return { data: [], nextCursor: null, hasMore: false };
 
     const [progressRes, enrollmentRes] = await Promise.all([
       supabase.from('student_progress').select('student_id, xp, streak, completed_unit_ids, current_unit_id').in('student_id', studentIds),
@@ -241,7 +252,7 @@ export const AdminService = {
       if (e.class?.name) classMap.set(e.student_id, e.class.name);
     });
 
-    return (students || []).map((s: any) => {
+    const data = results.map((s: any) => {
       const progress = progressMap.get(s.id) || {};
       return {
         id: s.id,
@@ -255,6 +266,8 @@ export const AdminService = {
         enrolledClassName: classMap.get(s.id) || null,
       };
     });
+
+    return { data, nextCursor, hasMore };
   },
 
   async getContentForModeration(): Promise<ContentModerationItem[]> {

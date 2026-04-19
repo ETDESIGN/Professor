@@ -24,6 +24,10 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'react-player': ['react-player/lazy'],
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-charts': ['recharts'],
+            'vendor-dnd': ['@hello-pangea/dnd'],
+            'vendor-motion': ['framer-motion'],
+            'vendor-supabase': ['@supabase/supabase-js'],
           }
         }
       }

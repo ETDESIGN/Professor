@@ -5,6 +5,7 @@ import './src/index.css';
 import { SessionProvider } from './store/SessionContext';
 import { Toaster } from 'sonner';
 import DistrictAdminDashboard from './apps/admin/DistrictAdminDashboard';
+import './services/i18n';
 
 const rootElement = document.getElementById('root');
 if (rootElement) {

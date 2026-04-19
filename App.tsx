@@ -1,31 +1,50 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { SessionProvider } from './store/SessionContext';
 import { Toaster } from 'sonner';
 import Hub from './apps/Hub';
-import ClassroomBoard from './apps/board/ClassroomBoard';
-import TeacherRemote from './apps/remote/TeacherRemote';
-import StudentApp from './apps/student/StudentApp';
-import TeacherDashboard from './apps/teacher/TeacherDashboard';
-import LessonStudio from './apps/teacher/LessonStudio';
-import ParentApp from './apps/parent/ParentApp';
-import LiveCommander from './apps/teacher/LiveCommander';
 import Login from './apps/Login';
-import DistrictAdminDashboard from './apps/admin/DistrictAdminDashboard';
-import TeacherOnboarding from './apps/teacher/TeacherOnboarding';
-import StudentOnboarding from './apps/student/StudentOnboarding';
-import ParentOnboarding from './apps/parent/ParentOnboarding';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { useAppStore } from './store/useAppStore';
 import { getCurrentUser } from './services/AuthService';
 import { supabase } from './services/supabaseClient';
+import { initErrorReporting, setupGlobalErrorHandler, setCurrentUser } from './services/errorReporting';
+import { startMetricsCollection, stopMetricsCollection } from './services/perfMonitor';
+
+const ClassroomBoard = lazy(() => import('./apps/board/ClassroomBoard'));
+const TeacherRemote = lazy(() => import('./apps/remote/TeacherRemote'));
+const StudentApp = lazy(() => import('./apps/student/StudentApp'));
+const TeacherDashboard = lazy(() => import('./apps/teacher/TeacherDashboard'));
+const LessonStudio = lazy(() => import('./apps/teacher/LessonStudio'));
+const ParentApp = lazy(() => import('./apps/parent/ParentApp'));
+const LiveCommander = lazy(() => import('./apps/teacher/LiveCommander'));
+const DistrictAdminDashboard = lazy(() => import('./apps/admin/DistrictAdminDashboard'));
+const TeacherOnboarding = lazy(() => import('./apps/teacher/TeacherOnboarding'));
+const StudentOnboarding = lazy(() => import('./apps/student/StudentOnboarding'));
+const ParentOnboarding = lazy(() => import('./apps/parent/ParentOnboarding'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen bg-slate-50">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700" />
+  </div>
+);
 
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUserProfile, clearUserProfile, userProfile } = useAppStore();
 
-  // Check for existing session on load and hydrate profile from database
+  useEffect(() => {
+    initErrorReporting({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      environment: import.meta.env.MODE,
+    });
+    setupGlobalErrorHandler();
+    startMetricsCollection();
+    return () => stopMetricsCollection();
+  }, []);
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -54,6 +73,10 @@ const App: React.FC = () => {
     checkSession();
   }, [setUserProfile, clearUserProfile, location.pathname, navigate]);
 
+  useEffect(() => {
+    setCurrentUser(userProfile ? { id: userProfile.id, role: userProfile.role as string | undefined } : null);
+  }, [userProfile]);
+
   const handleLogin = (role: 'district_admin' | 'teacher' | 'student' | 'parent') => {
     // The actual user data is set in Login.tsx after successful auth
     if (role === 'district_admin') navigate('/admin');
@@ -66,7 +89,8 @@ const App: React.FC = () => {
 
   return (
     <SessionProvider>
-      <Toaster position="top-center" richColors />
+      <ErrorBoundary>
+        <Toaster position="top-center" richColors />
 
       <Routes>
         <Route path="/" element={<Hub onSelectApp={(app) => {
@@ -83,17 +107,14 @@ const App: React.FC = () => {
         }} />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
 
-        {/* Onboarding Routes */}
-        <Route path="/onboarding/teacher" element={<TeacherOnboarding />} />
-        <Route path="/onboarding/student" element={<StudentOnboarding />} />
-        <Route path="/onboarding/parent" element={<ParentOnboarding />} />
+        <Route path="/onboarding/teacher" element={<Suspense fallback={<PageLoader />}><TeacherOnboarding /></Suspense>} />
+        <Route path="/onboarding/student" element={<Suspense fallback={<PageLoader />}><StudentOnboarding /></Suspense>} />
+        <Route path="/onboarding/parent" element={<Suspense fallback={<PageLoader />}><ParentOnboarding /></Suspense>} />
 
-        {/* Admin Routes */}
-        <Route path="/admin/*" element={<DistrictAdminDashboard />} />
+        <Route path="/admin/*" element={<Suspense fallback={<PageLoader />}><DistrictAdminDashboard /></Suspense>} />
 
-        {/* Teacher Routes */}
-        <Route path="/teacher/*" element={<TeacherDashboard />} />
-        <Route path="/teacher/studio" element={
+        <Route path="/teacher/*" element={<Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense>} />
+        <Route path="/teacher/studio" element={<Suspense fallback={<PageLoader />}>
           <div className="relative">
             <button
               onClick={() => navigate('/teacher')}
@@ -104,22 +125,21 @@ const App: React.FC = () => {
             </button>
             <LessonStudio onLaunchLive={() => navigate('/teacher/live')} />
           </div>
-        } />
-        <Route path="/teacher/live" element={<LiveCommander onExit={() => navigate('/teacher/studio')} />} />
+        </Suspense>} />
+        <Route path="/teacher/live" element={<Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate('/teacher/studio')} /></Suspense>} />
 
-        {/* Other Apps */}
-        <Route path="/board" element={<ClassroomBoard />} />
-        <Route path="/remote" element={<TeacherRemote />} />
-        <Route path="/student/*" element={<StudentApp onSignOut={async () => {
+        <Route path="/board" element={<Suspense fallback={<PageLoader />}><ClassroomBoard /></Suspense>} />
+        <Route path="/remote" element={<Suspense fallback={<PageLoader />}><TeacherRemote /></Suspense>} />
+        <Route path="/student/*" element={<Suspense fallback={<PageLoader />}><StudentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
           window.location.assign(window.location.origin);
-        }} />} />
-        <Route path="/parent/*" element={<ParentApp onSignOut={async () => {
+        }} /></Suspense>} />
+        <Route path="/parent/*" element={<Suspense fallback={<PageLoader />}><ParentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
           window.location.assign(window.location.origin);
-        }} />} />
+        }} /></Suspense>} />
       </Routes>
 
       {/* Global "Exit Prototype" button to return to Hub */}
@@ -131,6 +151,7 @@ const App: React.FC = () => {
           Exit to Hub
         </button>
       )}
+      </ErrorBoundary>
     </SessionProvider>
   );
 };

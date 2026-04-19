@@ -6,7 +6,7 @@ import ListenTap from './ListenTap';
 import SentenceScramble from './SentenceScramble';
 import PronunciationCoach from './PronunciationCoach';
 import FlashMatch from './FlashMatch';
-import { useSession } from '../../store/SessionContext';
+import { useSoloSession } from '../../store/SoloSessionContext';
 
 export type ActivityType = 'LISTEN_TAP' | 'SCRAMBLE' | 'SPEAKING' | 'FLASH_MATCH';
 
@@ -23,7 +23,7 @@ interface LessonSessionProps {
 }
 
 const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onExit }) => {
-  const { state, addPoints } = useSession();
+  const { state, addPoints } = useSoloSession();
   const isLive = state.status === 'LIVE';
   
   const [localIndex, setLocalIndex] = useState(0);

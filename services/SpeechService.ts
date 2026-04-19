@@ -1,3 +1,8 @@
+import { MediaService } from './MediaService';
+import { createClientLogger } from './logger';
+
+const log = createClientLogger('SpeechService');
+
 type SpeechRecognitionEvent = {
   results: {
     [index: number]: {
@@ -141,7 +146,31 @@ export function startPronunciationCheck(
   return recognition;
 }
 
-export function speakText(text: string, rate: number = 0.9): void {
+const audioCache = new Map<string, HTMLAudioElement>();
+
+export async function speakText(text: string, rate: number = 0.9): Promise<void> {
+  const cachedAudio = audioCache.get(text);
+  if (cachedAudio) {
+    cachedAudio.currentTime = 0;
+    cachedAudio.play();
+    return;
+  }
+
+  try {
+    const unitId = 'tts-global';
+    const audioUrl = await MediaService.getVocabAudio(unitId, text, text);
+
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audioCache.set(text, audio);
+      await audio.play();
+      log.info('tts_generated_audio_played', { metadata: { textLength: text.length } });
+      return;
+    }
+  } catch (err: any) {
+    log.warn('tts_generated_fallback', { error: err.message });
+  }
+
   if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
   window.speechSynthesis.cancel();
@@ -152,7 +181,39 @@ export function speakText(text: string, rate: number = 0.9): void {
   window.speechSynthesis.speak(utterance);
 }
 
+export async function speakVocabWord(unitId: string, word: string, contextSentence?: string): Promise<void> {
+  const cachedAudio = audioCache.get(`${unitId}:${word}`);
+  if (cachedAudio) {
+    cachedAudio.currentTime = 0;
+    cachedAudio.play();
+    return;
+  }
+
+  try {
+    const audioUrl = await MediaService.getVocabAudio(unitId, word, contextSentence);
+
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audioCache.set(`${unitId}:${word}`, audio);
+      await audio.play();
+      return;
+    }
+  } catch (err: any) {
+    log.warn('vocab_audio_fallback', { error: err.message });
+  }
+
+  speakText(word);
+}
+
 export function stopSpeaking(): void {
   if (typeof window === 'undefined') return;
   window.speechSynthesis.cancel();
+  audioCache.forEach(audio => {
+    audio.pause();
+    audio.currentTime = 0;
+  });
+}
+
+export function preloadVocabAudio(unitId: string, vocabulary: { word: string; context_sentence?: string }[]): Promise<void> {
+  return MediaService.preloadUnitAssets(unitId, vocabulary);
 }

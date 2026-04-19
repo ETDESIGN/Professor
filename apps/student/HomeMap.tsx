@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Star, Play, Lock, Headphones, Activity, Mic, LayoutGrid, Check, Flame, Gift, Target, BookOpen } from 'lucide-react';
-import { useSession } from '../../store/SessionContext';
+import { useSoloSession } from '../../store/SoloSessionContext';
 import { motion } from 'framer-motion';
 
 interface HomeMapProps {
@@ -9,7 +9,7 @@ interface HomeMapProps {
 }
 
 const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
-  const { state } = useSession();
+  const { state } = useSoloSession();
   const soloState = state as any;
 
   const units = state.units.length > 0 ? state.units : [];

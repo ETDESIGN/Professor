@@ -24,8 +24,9 @@ import LessonSession, { ActivityType } from './LessonSession';
 import SoloLessonPlayer from './SoloLessonPlayer';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
-import { useSession } from '../../store/SessionContext';
+import { useSoloSession } from '../../store/SoloSessionContext';
 import { findClassByCode, enrollStudent, getStudentClasses, ClassData, getStudentAssignments, updateStudentAssignmentStatus, AssignmentWithDetails } from '../../services/DataService';
+import { GamificationService } from '../../services/GamificationService';
 
 interface StudentAppProps {
   onSignOut?: () => void;
@@ -34,7 +35,7 @@ interface StudentAppProps {
 const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, setActiveUnit } = useSession();
+  const { state, setActiveUnit } = useSoloSession();
 
   // Gamification State
   const [userStats, setUserStats] = useState({
@@ -76,6 +77,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       }
     };
     fetchProgress();
+    GamificationService.checkAndUpdateStreak().then(({ streak }) => {
+      setUserStats(prev => ({ ...prev, streak }));
+    });
   }, []);
 
   // Listen for global celebration action

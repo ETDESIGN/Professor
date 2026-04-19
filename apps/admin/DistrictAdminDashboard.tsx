@@ -25,7 +25,7 @@ const DistrictAdminDashboard: React.FC = () => {
     const loadAllData = async () => {
         setLoading(true);
         try {
-            const [metricsData, schoolsData, teachersData, studentsData, contentData] = await Promise.all([
+            const [metricsData, schoolsData, teachersData, studentsResult, contentData] = await Promise.all([
                 AdminService.getDistrictMetrics(),
                 AdminService.getSchoolGroups(),
                 AdminService.getTeacherSummaries(),
@@ -35,7 +35,7 @@ const DistrictAdminDashboard: React.FC = () => {
             setMetrics(metricsData);
             setSchools(schoolsData);
             setTeachers(teachersData);
-            setStudents(studentsData);
+            setStudents(studentsResult.data);
             setContent(contentData);
         } catch (err: any) {
             toast.error('Failed to load admin data: ' + err.message);

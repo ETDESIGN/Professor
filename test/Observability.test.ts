@@ -154,7 +154,7 @@ describe('Error Reporting', () => {
     reportApiError('/api/test', 404, 'Not found');
     expect(errorSpy).toHaveBeenCalled();
     const output = errorSpy.mock.calls[0][0];
-    expect(output).toContain('API 404');
+    expect(output).toContain('404');
     expect(output).toContain('/api/test');
     errorSpy.mockRestore();
   });

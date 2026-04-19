@@ -1,32 +1,91 @@
-// Supabase Functions - Node.js Compatible Implementation
-// Updated extract-page function for local development
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
+import { PROMPTS } from '../_shared/prompts/index.ts';
 
-import express from 'express';
+serve(async (req) => {
+  return serveEdgeFunction(req, {
+    name: 'extract-page',
+    rateLimit: { maxRequests: 15, windowMs: 60 * 1000 },
+    validationRules: [
+      { field: 'imageBase64', required: true, type: 'string', minLength: 100 },
+    ],
+  }, async (body, _auth) => {
+    const { imageBase64, imageUrl } = body;
+    const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
+    const aiApiKey = Deno.env.get('AI_API_KEY');
 
-const MOCK_RESPONSE = {
-  success: true,
-  url: 'https://example.com/mock-image.png',
-  metadata: {
-    extractedText: 'Sample extracted text from document',
-    pageCount: 1,
-    language: 'en'
-  }
-};
+    if (!aiApiKey) {
+      return {
+        success: true,
+        url: imageUrl || '',
+        metadata: {
+          extractedText: 'Text extraction requires AI configuration.',
+          pageCount: 1,
+          language: 'en',
+        },
+      };
+    }
 
-const app = express();
-app.use(express.json({ limit: '10mb' }));
+    const prompt = PROMPTS.extraction;
 
-app.post('/extract-page', function(req, res) {
-  res.json(MOCK_RESPONSE);
+    const messages: any[] = [
+      { role: 'system', content: prompt.systemPrompt },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt.userPromptTemplate },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageUrl || `data:image/jpeg;base64,${imageBase64}`,
+            },
+          },
+        ],
+      },
+    ];
+
+    const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+        messages,
+        temperature: 0.1,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      throw new Error(`Vision AI error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const content = aiData.choices?.[0]?.message?.content || '';
+
+    try {
+      const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || '{}');
+      return {
+        success: true,
+        url: imageUrl || '',
+        metadata: {
+          extractedText: parsed.extractedText || parsed.text || content,
+          pageCount: parsed.pageCount || 1,
+          language: parsed.language || 'en',
+          vocabulary: parsed.vocabulary || [],
+          topic: parsed.topic || '',
+          gradeLevel: parsed.gradeLevel || '',
+        },
+      };
+    } catch {
+      return {
+        success: true,
+        url: imageUrl || '',
+        metadata: {
+          extractedText: content,
+          pageCount: 1,
+          language: 'en',
+        },
+      };
+    }
+  });
 });
-
-app.get('/health', function(_req, res) {
-  res.json({ status: 'ok' });
-});
-
-const PORT = 3002;
-app.listen(PORT, '0.0.0.0', function() {
-  console.log('Extract page function server running on port ' + PORT);
-});
-
-export { app };

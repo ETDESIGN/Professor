@@ -62,6 +62,17 @@ vi.mock('../store/SessionContext', () => ({
   }),
 }));
 
+vi.mock('../store/SoloSessionContext', () => ({
+  useSoloSession: () => ({
+    state: mockSessionState,
+    addPoints: mockAddPoints,
+    nextSlide: mockNextSlide,
+    prevSlide: mockPrevSlide,
+    goToSlide: mockGoToSlide,
+    triggerAction: mockTriggerAction,
+  }),
+}));
+
 vi.mock('../services/MediaService', () => ({
   MediaService: {
     preloadUnitAssets: vi.fn(),

@@ -29,23 +29,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { userProfile, setUnits } = useAppStore();
-
-  // Hydrate real units on mount
-  React.useEffect(() => {
-    const loadUnits = async () => {
-      try {
-        const { Engine } = await import('../../services/SupabaseService');
-        const units = await Engine.fetchUnits();
-        setUnits(units);
-      } catch (error) {
-        console.error('Failed to fetch real units:', error);
-      }
-    };
-    if (userProfile) {
-      loadUnits();
-    }
-  }, [userProfile, setUnits]);
+  const { userProfile } = useAppStore();
 
   // Helper to determine active state for nav items
   const isActive = (path: string) => {

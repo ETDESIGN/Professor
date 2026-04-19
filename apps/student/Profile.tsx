@@ -2,7 +2,7 @@
 import React from 'react';
 import { ChevronLeft, Settings, Camera, Flame, Zap, Trophy, Mic, Play, Share2, Unlock } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useSession } from '../../store/SessionContext';
+import { useSoloSession } from '../../store/SoloSessionContext';
 import { useAppStore } from '../../store/useAppStore';
 
 interface ProfileProps {
@@ -18,7 +18,7 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
-   const { unlockNextLevel, state } = useSession();
+   const { unlockNextLevel, state } = useSoloSession();
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 

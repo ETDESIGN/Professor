@@ -3,6 +3,7 @@ import { ChevronLeft, MoreHorizontal, Headphones, Mic, Play, StopCircle, Loader2
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { speakText } from '../../services/SpeechService';
+import { toast } from 'sonner';
 
 interface DubbingResult {
   score: number;
@@ -126,7 +127,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
 
       if (responseData?.success && responseData.evaluation) {
         const eval_ = responseData.evaluation;
-        return {
+        const result: DubbingResult = {
           score: eval_.score || 0,
           feedback: eval_.feedback || 'Evaluation complete.',
           emotionMatch: eval_.emotionMatch || 'low',
@@ -134,6 +135,28 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
           transcript: eval_.transcript || '',
           similarity: eval_.similarity || 0
         };
+
+        try {
+          const audioBytes = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
+          const fileName = `dubbing/${(await supabase.auth.getUser()).data.user?.id || 'anon'}/${Date.now()}.webm`;
+          const { error: uploadError } = await supabase.storage
+            .from('generated-media')
+            .upload(fileName, audioBytes, { contentType: 'audio/webm' });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('generated-media').getPublicUrl(fileName);
+            await supabase.from('assets').insert({
+              unit_id: unitTitle,
+              asset_type: 'dubbing_recording',
+              url: urlData.publicUrl,
+              metadata: { score: result.score, transcript: result.transcript, targetText, characterName, storyTitle },
+            });
+          }
+        } catch (storageErr) {
+          console.warn('Recording storage failed:', storageErr);
+        }
+
+        return result;
       }
 
       return null;

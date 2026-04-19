@@ -3,6 +3,7 @@ import { X, Volume2, Check, ArrowRight, RotateCcw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Engine } from '../../services/SupabaseService';
+import { MediaService } from '../../services/MediaService';
 
 interface SpacedRepetitionProps {
   onBack: () => void;
@@ -13,6 +14,7 @@ const SpacedRepetition: React.FC<SpacedRepetitionProps> = ({ onBack, onComplete 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [reviewQueue, setReviewQueue] = useState<any[]>([]);
+  const [vocabImages, setVocabImages] = useState<Record<string, string>>({});
   const [initialQueueLength, setInitialQueueLength] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,17 +24,23 @@ const SpacedRepetition: React.FC<SpacedRepetitionProps> = ({ onBack, onComplete 
     const loadItems = async () => {
       setIsLoading(true);
       const items = await Engine.fetchSRSItems();
-      // Only review items that are due
       const dueItems = items.filter((item: any) => new Date(item.next_review) <= new Date());
 
-      if (dueItems.length === 0) {
-        // If no items due, just load some for demo purposes
-        setReviewQueue(items.slice(0, 5));
-        setInitialQueueLength(Math.min(items.length, 5));
-      } else {
-        setReviewQueue(dueItems);
-        setInitialQueueLength(dueItems.length);
+      const queue = dueItems.length === 0 ? items.slice(0, 5) : dueItems;
+      setReviewQueue(queue);
+      setInitialQueueLength(queue.length);
+
+      const images: Record<string, string> = {};
+      for (const item of queue) {
+        const cached = MediaService.getCachedImage('srs', item.word);
+        if (cached) {
+          images[item.word] = cached;
+        } else {
+          const url = await MediaService.getVocabImage('srs', item.word, item.translation);
+          if (url) images[item.word] = url;
+        }
       }
+      setVocabImages(images);
       setIsLoading(false);
     };
     loadItems();
@@ -202,7 +210,7 @@ const SpacedRepetition: React.FC<SpacedRepetitionProps> = ({ onBack, onComplete 
               {/* Front */}
               <div className="absolute inset-0 backface-hidden bg-white rounded-3xl shadow-xl border-2 border-slate-100 flex flex-col items-center justify-center p-6">
                 <div className="w-40 h-40 rounded-2xl overflow-hidden mb-6 shadow-md border-4 border-slate-50">
-                  <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=${currentItem.word}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt="Vocab" className="w-full h-full object-cover" />
+                  <img src={vocabImages[currentItem.word] || `https://api.dicebear.com/7.x/shapes/svg?seed=${currentItem.word}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt="Vocab" className="w-full h-full object-cover" />
                 </div>
                 <h2 className="text-3xl font-bold text-slate-800 mb-2 text-center">{currentItem.word}</h2>
                 <button

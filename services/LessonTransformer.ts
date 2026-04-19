@@ -1,18 +1,14 @@
-
-import { LessonManifest, ActivityBlock, RichVocabItem } from '../types/pipeline';
+import { LessonManifest } from '../types/pipeline';
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
+import { MediaService } from './MediaService';
 
 const log = createClientLogger('LessonTransformer');
 
 const differentiateText = async (text: string, theme: string): Promise<{ below: string, on: string, above: string }> => {
   try {
     const { data, error } = await supabase.functions.invoke('generate-lesson', {
-      body: {
-        action: 'differentiate',
-        text,
-        theme
-      }
+      body: { action: 'differentiate', text, theme }
     });
 
     if (error) {
@@ -32,21 +28,27 @@ const differentiateText = async (text: string, theme: string): Promise<{ below: 
   }
 };
 
-/**
- * LessonTransformer
- * 
- * The bridge between the "AI Brain" (Manifest) and the "Game Engine" (Board Components).
- * It takes generic AI concepts and structures them into the exact JSON props required by React components.
- */
-
-// Helper to get image URL (Mock or Real)
 const getAssetUrl = (keyword: string) => {
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(keyword)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
 };
 
 export const transformManifestToFlow = async (manifest: LessonManifest): Promise<any[]> => {
+  const unitId = (manifest.meta as any).unit_id || manifest.meta.unit_title || 'unknown';
 
-  // 1. Create Intro Splash
+  const vocabImagePromises = manifest.knowledge_graph.vocabulary.map(async (v: any) => {
+    const cachedImage = MediaService.getCachedImage(unitId, v.word);
+    if (cachedImage) return { word: v.word, url: cachedImage };
+    const url = await MediaService.getVocabImage(unitId, v.word, v.definition);
+    return { word: v.word, url };
+  });
+
+  const vocabImages = await Promise.all(vocabImagePromises);
+  const imageMap = new Map(vocabImages.filter(v => v.url).map(v => [v.word, v.url]));
+
+  const getImageForWord = (word: string): string => {
+    return imageMap.get(word) || getAssetUrl(word);
+  };
+
   const introSlide = {
     id: 'step_intro',
     type: 'INTRO_SPLASH',
@@ -55,10 +57,9 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
     data: { theme: manifest.meta.theme }
   };
 
-  // 2. Transform Timeline Items
   const flowSlidesPromises = manifest.timeline.map(async (block, index) => {
     const stepId = `step_${index + 1}`;
-    const upperType = block.type.toUpperCase(); // Normalize AI output
+    const upperType = block.type.toUpperCase();
 
     switch (true) {
       case upperType.includes('MEDIA') || upperType.includes('VIDEO'):
@@ -73,13 +74,12 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
           },
           data: {
             title: block.title,
-            videoThumbnail: getAssetUrl(block.config?.search_query || manifest.meta.theme),
+            videoThumbnail: getImageForWord(block.config?.search_query || manifest.meta.theme),
             lyrics: []
           }
         };
 
       case upperType.includes('FOCUS') || upperType.includes('VOCAB'):
-        // Use full vocabulary list if block config is empty
         const vocabSource = (block.config?.items && block.config.items.length > 0)
           ? block.config.items
           : manifest.knowledge_graph.vocabulary;
@@ -100,24 +100,23 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
               front: v.image_prompt ? '🎨' : '📸',
               back: v.word,
               pronunciation: `/${v.word.toLowerCase()}/`,
-              image: getAssetUrl(v.word)
+              image: getImageForWord(v.word)
             }))
           }
         };
 
       case upperType.includes('GAME') || upperType.includes('ARENA') || upperType.includes('QUIZ'):
-        // Generate Quiz Questions from Vocabulary + Distractors
         const quizQuestions = manifest.knowledge_graph.vocabulary.slice(0, 5).map((v, i) => ({
           id: `q_${i}`,
           text: `Which one is the ${v.word}?`,
-          image: getAssetUrl(v.word),
+          image: getImageForWord(v.word),
           options: [v.word, ...(v.distractors || ['Option A', 'Option B'])].sort(() => Math.random() - 0.5),
           correct: v.word
         }));
 
         return {
           id: stepId,
-          type: 'TEAM_BATTLE', // Map GAME_ARENA to TEAM_BATTLE
+          type: 'TEAM_BATTLE',
           title: block.title,
           duration: block.duration || 600,
           teacherGuide: {
@@ -145,15 +144,12 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
             script: "Let's see what happens next.",
           },
           data: {
-            pages: [
-              { id: 'p1', text: baseText }
-            ],
+            pages: [{ id: 'p1', text: baseText }],
             readingLevels: readingLevels
           }
         };
 
       default:
-        // Safe fallback for unknown types
         return {
           id: stepId,
           type: 'INTRO_SPLASH',
@@ -165,6 +161,5 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
   });
 
   const flowSlides = await Promise.all(flowSlidesPromises);
-
   return [introSlide, ...flowSlides];
 };

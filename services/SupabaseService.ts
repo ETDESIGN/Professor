@@ -91,7 +91,9 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
         level: manifest?.meta.difficulty_cefr || 'Draft',
         status: 'Processing',
         lessons: manifest?.timeline.length || 0,
-        cover_image: `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`,
+        cover_image: manifest?.meta.theme
+            ? `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(manifest.meta.theme)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`
+            : `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`,
         flow: generatedFlow,
         scanned_assets: [],
         manifest: manifest ?? null,

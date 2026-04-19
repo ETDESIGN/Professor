@@ -62,11 +62,10 @@ vi.mock('../services/SupabaseService', () => ({
   },
 }));
 
-import { SoloSessionProvider } from '../store/SoloSessionContext';
-import { useSession } from '../store/SessionContext';
+import { SoloSessionProvider, useSoloSession } from '../store/SoloSessionContext';
 
 const TestConsumer = () => {
-  const { state, startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, setActiveUnit } = useSession();
+  const { state, startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, setActiveUnit } = useSoloSession();
 
   return (
     <div>

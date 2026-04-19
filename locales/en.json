@@ -1,0 +1,108 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close",
+    "search": "Search",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "exit": "Exit",
+    "noData": "No data available"
+  },
+  "auth": {
+    "login": "Log In",
+    "signup": "Sign Up",
+    "logout": "Log Out",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "hub": {
+    "title": "Professor",
+    "subtitle": "Choose your role to continue",
+    "teacher": "Teacher Studio",
+    "student": "Student App",
+    "parent": "Parent Portal",
+    "admin": "Admin Portal",
+    "board": "Classroom Board",
+    "remote": "Teacher Remote"
+  },
+  "nav": {
+    "learn": "Learn",
+    "rank": "Rank",
+    "quests": "Quests",
+    "shop": "Shop",
+    "profile": "Profile",
+    "home": "Home",
+    "reports": "Reports",
+    "gallery": "Gallery",
+    "settings": "Settings",
+    "messages": "Messages"
+  },
+  "student": {
+    "liveClass": "Live Class Started!",
+    "joinNow": "Join Now",
+    "teacherWaiting": "Your teacher is waiting for you.",
+    "liveEnded": "Live class has ended.",
+    "joinClass": "Join Class",
+    "enterCode": "Enter the 6-character code from your teacher to join their class.",
+    "codePlaceholder": "ABCD12",
+    "pendingHomework": "Pending Homework",
+    "allCaughtUp": "All caught up!",
+    "noPendingHomework": "No pending homework. Great job!",
+    "markDone": "Mark Done",
+    "assignmentSubmitted": "Assignment submitted!",
+    "failedSubmit": "Failed to submit assignment"
+  },
+  "teacher": {
+    "dashboard": "Teacher Dashboard",
+    "lessonStudio": "Lesson Studio",
+    "liveCommander": "Live Commander",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "parent": {
+    "dashboard": "Parent Dashboard",
+    "reports": "Reports",
+    "gallery": "Gallery"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "districtMetrics": "District Metrics",
+    "schoolGroups": "School Groups",
+    "teacherSummaries": "Teachers",
+    "studentSummaries": "Students",
+    "contentModeration": "Content"
+  },
+  "gamification": {
+    "streak": "Streak",
+    "gems": "Gems",
+    "xp": "XP",
+    "level": "Level",
+    "leaderboard": "Leaderboard",
+    "quests": "Quests",
+    "shop": "Shop",
+    "dailyQuests": "Daily Quests",
+    "claimReward": "Claim Reward",
+    "buy": "Buy",
+    "owned": "Owned",
+    "notEnoughGems": "Not enough gems"
+  },
+  "lesson": {
+    "complete": "Lesson Complete!",
+    "accuracy": "Accuracy",
+    "time": "Time",
+    "continue": "Continue",
+    "exitToHub": "Exit to Hub"
+  }
+}

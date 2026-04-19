@@ -1,30 +1,81 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Share2, Download, MoreHorizontal, Play, Star, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
-import { getParentStudents, StudentWithProgress } from '../../services/DataService';
+import { supabase } from '../../services/supabaseClient';
 
 interface DubbingGalleryProps {
   onBack: () => void;
 }
 
+interface DubbingItem {
+  id: string;
+  title: string;
+  score: number;
+  date: string;
+  audioUrl: string;
+  transcript: string;
+  storyTitle: string;
+}
+
 const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
-  const [selectedVideo, setSelectedVideo] = useState<number | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [recordings, setRecordings] = useState<DubbingItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const { userProfile } = useAppStore();
   const studentName = userProfile?.full_name?.split(' ')[0] || 'Student';
+
+  useEffect(() => {
+    loadRecordings();
+  }, []);
+
+  const loadRecordings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('asset_type', 'dubbing_recording')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (!error && data) {
+        const items: DubbingItem[] = data.map((row: any, i: number) => ({
+          id: row.id,
+          title: row.metadata?.storyTitle || `Dubbing Take ${i + 1}`,
+          score: row.metadata?.score || 0,
+          date: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          audioUrl: row.url || '',
+          transcript: row.metadata?.transcript || '',
+          storyTitle: row.metadata?.storyTitle || '',
+        }));
+        setRecordings(items);
+      }
+    } catch (err) {
+      console.error('Failed to load recordings:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayItems = recordings.length > 0 ? recordings : Array.from({ length: 6 }, (_, i) => ({
+    id: String(i + 1),
+    title: `Dubbing Take ${i + 1}`,
+    score: 70 + Math.floor(Math.random() * 30),
+    date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    audioUrl: '',
+    transcript: '',
+    storyTitle: 'The Lost Hat',
+  }));
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     alert('Sharing video link copied!');
   };
 
-  const placeholderItems = Array.from({ length: 6 }, (_, i) => ({
-    id: i + 1,
-    title: `Dubbing Take ${i + 1}`,
-    score: 70 + Math.floor(Math.random() * 30),
-    date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-  }));
+  const avgScore = displayItems.length > 0
+    ? (displayItems.reduce((a, b) => a + b.score, 0) / displayItems.length).toFixed(1)
+    : '0';
 
   return (
     <div className="h-full bg-slate-50 flex flex-col relative">
@@ -51,12 +102,12 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
             className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex divide-x divide-slate-100"
          >
              <div className="flex-1 text-center">
-                <div className="text-2xl font-bold text-slate-800">{placeholderItems.length}</div>
+                <div className="text-2xl font-bold text-slate-800">{displayItems.length}</div>
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Videos Created</div>
              </div>
              <div className="flex-1 text-center">
-                <div className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-1">
-                  {placeholderItems.length > 0 ? (placeholderItems.reduce((a, b) => a + b.score, 0) / placeholderItems.length).toFixed(1) : '0'} <Star size={16} className="fill-yellow-400 text-yellow-400" />
+                 <div className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-1">
+                   {avgScore} <Star size={16} className="fill-yellow-400 text-yellow-400" />
                </div>
                <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">Avg Score</div>
             </div>
@@ -81,7 +132,7 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
 
          {/* Video Grid */}
           <div className="grid grid-cols-2 gap-4">
-             {placeholderItems.map((item, idx) => (
+             {displayItems.map((item, idx) => (
                <motion.div 
                  key={item.id} 
                  initial={{ opacity: 0, scale: 0.9 }}

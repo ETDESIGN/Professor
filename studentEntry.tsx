@@ -5,6 +5,7 @@ import './src/index.css';
 import { SoloSessionProvider } from './store/SoloSessionContext';
 import { Toaster } from 'sonner';
 import StudentApp from './apps/student/StudentApp';
+import './services/i18n';
 
 const rootElement = document.getElementById('root');
 if (rootElement) {

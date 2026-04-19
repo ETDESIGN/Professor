@@ -160,11 +160,11 @@ const UnitContentVault: React.FC = () => {
     setYtResults([]);
     try {
       const query = `${manifest?.meta?.theme || ytSearch} English lesson kids song`;
-      const resp = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&videoEmbeddable=true&safeSearch=strict&key=${import.meta.env.VITE_GEMINI_API_KEY}`
-      );
-      const data = await resp.json();
-      if (data.items) {
+      const { data, error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'youtube-search', query }
+      });
+      if (error) throw error;
+      if (data?.items) {
         setYtResults(data.items.map((item: any) => ({
           videoId: item.id.videoId,
           title: item.snippet.title,

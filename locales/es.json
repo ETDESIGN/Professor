@@ -1,0 +1,108 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Algo salió mal",
+    "retry": "Reintentar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "done": "Listo",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "submit": "Enviar",
+    "confirm": "Confirmar",
+    "exit": "Salir",
+    "noData": "Sin datos disponibles"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "signup": "Registrarse",
+    "logout": "Cerrar Sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tienes una cuenta?",
+    "hasAccount": "¿Ya tienes una cuenta?"
+  },
+  "hub": {
+    "title": "Professor",
+    "subtitle": "Elige tu rol para continuar",
+    "teacher": "Estudio del Profesor",
+    "student": "App del Estudiante",
+    "parent": "Portal de Padres",
+    "admin": "Portal de Administración",
+    "board": "Pizarra del Aula",
+    "remote": "Control Remoto"
+  },
+  "nav": {
+    "learn": "Aprender",
+    "rank": "Rango",
+    "quests": "Misiones",
+    "shop": "Tienda",
+    "profile": "Perfil",
+    "home": "Inicio",
+    "reports": "Informes",
+    "gallery": "Galería",
+    "settings": "Configuración",
+    "messages": "Mensajes"
+  },
+  "student": {
+    "liveClass": "¡Clase en vivo iniciada!",
+    "joinNow": "Unirse ahora",
+    "teacherWaiting": "Tu profesor te está esperando.",
+    "liveEnded": "La clase en vivo ha terminado.",
+    "joinClass": "Unirse a la clase",
+    "enterCode": "Ingresa el código de 6 caracteres que te dio tu profesor.",
+    "codePlaceholder": "ABCD12",
+    "pendingHomework": "Tareas pendientes",
+    "allCaughtUp": "¡Todo al día!",
+    "noPendingHomework": "No hay tareas pendientes. ¡Buen trabajo!",
+    "markDone": "Marcar como hecha",
+    "assignmentSubmitted": "¡Tarea enviada!",
+    "failedSubmit": "Error al enviar la tarea"
+  },
+  "teacher": {
+    "dashboard": "Panel del Profesor",
+    "lessonStudio": "Estudio de Lecciones",
+    "liveCommander": "Comando en Vivo",
+    "backToDashboard": "Volver al Panel"
+  },
+  "parent": {
+    "dashboard": "Panel de Padres",
+    "reports": "Informes",
+    "gallery": "Galería"
+  },
+  "admin": {
+    "dashboard": "Panel de Administración",
+    "districtMetrics": "Métricas del Distrito",
+    "schoolGroups": "Grupos Escolares",
+    "teacherSummaries": "Profesores",
+    "studentSummaries": "Estudiantes",
+    "contentModeration": "Contenido"
+  },
+  "gamification": {
+    "streak": "Racha",
+    "gems": "Gemas",
+    "xp": "XP",
+    "level": "Nivel",
+    "leaderboard": "Tabla de Clasificación",
+    "quests": "Misiones",
+    "shop": "Tienda",
+    "dailyQuests": "Misiones Diarias",
+    "claimReward": "Reclamar Recompensa",
+    "buy": "Comprar",
+    "owned": "Adquirido",
+    "notEnoughGems": "No tienes suficientes gemas"
+  },
+  "lesson": {
+    "complete": "¡Lección Completada!",
+    "accuracy": "Precisión",
+    "time": "Tiempo",
+    "continue": "Continuar",
+    "exitToHub": "Salir al Hub"
+  }
+}

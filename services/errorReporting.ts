@@ -1,84 +1,94 @@
+import * as Sentry from '@sentry/react';
+
 interface ErrorReport {
   message: string;
   stack?: string;
   url: string;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp: string;
 }
 
-type ErrorReporter = (error: ErrorReport) => void;
-
-let reporter: ErrorReporter | null = null;
 let currentUser: { id: string; role?: string } | null = null;
+let isInitialized = false;
 
-const defaultReporter: ErrorReporter = (report) => {
-  if (import.meta.env.DEV) {
-    console.error(`[ErrorReport] ${report.message}`, {
-      url: report.url,
-      userId: report.userId,
-      metadata: report.metadata,
-      stack: report.stack,
-    });
-  }
-};
-
-reporter = defaultReporter;
-
-export function initErrorReporting(config?: { dsn?: string; environment?: string }) {
+export function initErrorReporting(config?: { dsn?: string; environment?: string; release?: string }) {
   if (!config?.dsn) {
-    reporter = defaultReporter;
+    isInitialized = false;
     return;
   }
 
-  reporter = (report) => {
-    defaultReporter(report);
+  Sentry.init({
+    dsn: config.dsn,
+    environment: config.environment || import.meta.env.MODE,
+    release: config.release || 'professor@0.1.0',
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
+    ],
+    tracesSampleRate: 0.1,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 1.0,
+    beforeSend(event) {
+      if (currentUser) {
+        event.user = { id: currentUser.id };
+        if (currentUser.role) {
+          event.tags = { ...event.tags, role: currentUser.role };
+        }
+      }
+      return event;
+    },
+  });
 
-    if (config.dsn) {
-      try {
-        fetch(config.dsn, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(report),
-          keepalive: true,
-        }).catch(() => {});
-      } catch {}
-    }
-  };
+  isInitialized = true;
 }
 
 export function setCurrentUser(user: { id: string; role?: string } | null) {
   currentUser = user;
+  if (isInitialized) {
+    if (user) {
+      Sentry.setUser({ id: user.id });
+      Sentry.setTag('role', user.role || 'unknown');
+    } else {
+      Sentry.setUser(null);
+    }
+  }
 }
 
 export function reportError(
   error: Error | string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
-  const report: ErrorReport = {
-    message: typeof error === 'string' ? error : error.message,
-    stack: typeof error === 'string' ? undefined : error.stack,
-    url: typeof window !== 'undefined' ? window.location.href : '',
-    userId: currentUser?.id,
-    metadata,
-    timestamp: new Date().toISOString(),
-  };
+  if (isInitialized) {
+    Sentry.captureException(typeof error === 'string' ? new Error(error) : error, {
+      extra: metadata,
+    });
+  }
 
-  reporter?.(report);
+  if (import.meta.env.DEV) {
+    console.error(`[ErrorReport] ${typeof error === 'string' ? error : error.message}`, {
+      metadata,
+      stack: typeof error === 'string' ? undefined : error.stack,
+    });
+  }
 }
 
 export function reportApiError(
   endpoint: string,
   status: number,
   message: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
-  reportError(new Error(`API ${status}: ${endpoint} - ${message}`), {
-    type: 'api_error',
-    endpoint,
-    status,
-    ...metadata,
-  });
+  if (isInitialized) {
+    Sentry.captureMessage(`API ${status}: ${endpoint}`, {
+      level: status >= 500 ? 'error' : 'warning',
+      extra: { endpoint, status, message, ...metadata },
+    });
+  }
+
+  if (import.meta.env.DEV) {
+    console.error(`[API Error] ${status} ${endpoint}: ${message}`, metadata);
+  }
 }
 
 export function setupGlobalErrorHandler() {
@@ -98,3 +108,5 @@ export function setupGlobalErrorHandler() {
     reportError(error, { type: 'unhandled_promise_rejection' });
   });
 }
+
+export { Sentry };

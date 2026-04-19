@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Heart, ArrowRight, ArrowLeft, Check, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession } from '../../store/SessionContext';
+import { useSoloSession } from '../../store/SoloSessionContext';
 import { MediaService } from '../../services/MediaService';
 import ReactPlayer from 'react-player/lazy';
 
@@ -12,7 +12,7 @@ interface SoloLessonPlayerProps {
 }
 
 const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit }) => {
-  const { state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction } = useSession();
+  const { state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction } = useSoloSession();
 
   const flow = state.activeUnit?.flow || [];
   const currentStep = state.activeSlideData;

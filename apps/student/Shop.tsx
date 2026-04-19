@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Gem, Heart, Zap, Shirt, Crown, Glasses, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Engine } from '../../services/SupabaseService';
+import { GamificationService } from '../../services/GamificationService';
+import { toast } from 'sonner';
 
 interface ShopProps {
    onBack: () => void;
@@ -17,10 +18,15 @@ const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
    useEffect(() => {
       const loadData = async () => {
          setIsLoading(true);
-         const progress = await Engine.getStudentProgress();
-         // Assuming xp is used as gems for now, or we can add a gems field
-         // Let's use XP as currency for simplicity in this prototype
-         setLocalGems(progress.xp || 0);
+         const { data: { user } } = await (await import('../../services/supabaseClient')).supabase.auth.getUser();
+         if (user) {
+            const { data } = await (await import('../../services/supabaseClient')).supabase
+               .from('student_progress').select('gems').eq('student_id', user.id).single();
+            setLocalGems(data?.gems || 0);
+
+            const inventory = await GamificationService.getInventory();
+            setPurchased(inventory.map((i: any) => i.item_id));
+         }
          setIsLoading(false);
       };
       loadData();
@@ -37,14 +43,16 @@ const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
       { id: 'glass_cool', name: 'Cool Shades', cost: 120, icon: Glasses, color: 'text-slate-800', bg: 'bg-slate-200' },
    ];
 
-   const handleBuy = async (id: string, cost: number) => {
-      if (localGems >= cost && !purchased.includes(id)) {
-         const newGems = localGems - cost;
-         setLocalGems(newGems);
-         setPurchased([...purchased, id]);
-         await Engine.updateStudentProgress({ xp: newGems });
-      }
-   };
+    const handleBuy = async (id: string, cost: number) => {
+       if (localGems >= cost && !purchased.includes(id)) {
+          const result = await GamificationService.buyShopItem(id, cost);
+          if (result.success) {
+             setLocalGems(prev => prev - cost);
+             setPurchased(prev => [...prev, id]);
+             toast.success('Item purchased!');
+          }
+       }
+    };
 
    if (isLoading) {
       return (
