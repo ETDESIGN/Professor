@@ -7,17 +7,28 @@ serve(async (req) => {
     name: 'extract-page',
     rateLimit: { maxRequests: 15, windowMs: 60 * 1000 },
     validationRules: [
-      { field: 'imageBase64', required: true, type: 'string', minLength: 100 },
+      { field: 'imageBase64', required: false, type: 'string', minLength: 100 },
+      { field: 'fileUrl', required: false, type: 'string', minLength: 10 },
+      { field: 'imageUrl', required: false, type: 'string', minLength: 10 },
+      {
+        custom: (body: any) => {
+          if (!body.imageBase64 && !body.fileUrl && !body.imageUrl) {
+            return 'One of imageBase64, fileUrl, or imageUrl is required';
+          }
+          return null;
+        },
+      } as any,
     ],
   }, async (body, _auth) => {
-    const { imageBase64, imageUrl } = body;
+    const { imageBase64, imageUrl, fileUrl } = body;
+    const inputUrl = fileUrl || imageUrl || '';
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
     const aiApiKey = Deno.env.get('AI_API_KEY');
 
     if (!aiApiKey) {
       return {
         success: true,
-        url: imageUrl || '',
+        url: inputUrl,
         metadata: {
           extractedText: 'Text extraction requires AI configuration.',
           pageCount: 1,
@@ -37,7 +48,7 @@ serve(async (req) => {
           {
             type: 'image_url',
             image_url: {
-              url: imageUrl || `data:image/jpeg;base64,${imageBase64}`,
+              url: inputUrl || `data:image/jpeg;base64,${imageBase64}`,
             },
           },
         ],
@@ -66,7 +77,7 @@ serve(async (req) => {
       const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || '{}');
       return {
         success: true,
-        url: imageUrl || '',
+        url: inputUrl,
         metadata: {
           extractedText: parsed.extractedText || parsed.text || content,
           pageCount: parsed.pageCount || 1,
@@ -79,7 +90,7 @@ serve(async (req) => {
     } catch {
       return {
         success: true,
-        url: imageUrl || '',
+        url: inputUrl,
         metadata: {
           extractedText: content,
           pageCount: 1,
