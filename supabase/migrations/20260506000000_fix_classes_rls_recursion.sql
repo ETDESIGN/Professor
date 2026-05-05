@@ -41,6 +41,10 @@ CREATE POLICY "classes_select_policy"
     );
 
 -- 5. Recreate classes write policies (clean, no subqueries on enrollments)
+DROP POLICY IF EXISTS "classes_insert_policy" ON public.classes;
+DROP POLICY IF EXISTS "classes_update_policy" ON public.classes;
+DROP POLICY IF EXISTS "classes_delete_policy" ON public.classes;
+
 CREATE POLICY "classes_insert_policy"
     ON public.classes FOR INSERT
     TO authenticated
@@ -71,6 +75,9 @@ CREATE POLICY "classes_delete_policy"
 
 -- 6. Recreate safe enrollment policies (no references to classes table)
 DROP POLICY IF EXISTS "enrollments_select_policy" ON public.class_enrollments;
+DROP POLICY IF EXISTS "enrollments_insert_policy" ON public.class_enrollments;
+DROP POLICY IF EXISTS "enrollments_update_policy" ON public.class_enrollments;
+DROP POLICY IF EXISTS "enrollments_delete_policy" ON public.class_enrollments;
 
 CREATE POLICY "enrollments_select_policy"
     ON public.class_enrollments FOR SELECT
