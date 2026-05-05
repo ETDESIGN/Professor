@@ -35,7 +35,7 @@ const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, o
                      <h4 className="text-sm font-bold text-slate-700 truncate">{file.name}</h4>
                      <div className="flex items-center gap-1 text-xs font-bold mt-1">
                         {scan && scan.status === 'success' ? (
-                           <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data.page_type} Extracted</span>
+                            <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 20) || 'Page'} Extracted</span>
                         ) : scan && scan.status === 'scanning' ? (
                            <span className="text-amber-500 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Scanning...</span>
                         ) : (
@@ -68,7 +68,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white shadow-sm z-10">
             <div>
                <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review & Edit</h2>
-               <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || 'Draft'})` : 'Extraction Draft'}</p>
+                <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 30) || 'Draft'})` : 'Extraction Draft'}</p>
             </div>
             <button
                className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
@@ -111,9 +111,20 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                         <strong>Error:</strong> {scan.error}
                      </div>
                   ) : (
-                     <div className="space-y-6">
-                        {/* Rich Pedagogical Rendering */}
-                        {scan.data.pedagogy && (
+                      <div className="space-y-6">
+                         {scan.data?.metadata?.extractedText && !scan.data?.pedagogy && !scan.data?.extracted_content && (
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                               <h3 className="font-bold text-blue-800 text-lg mb-2">Extracted Text</h3>
+                               <p className="text-sm text-blue-700 whitespace-pre-wrap">{scan.data.metadata.extractedText}</p>
+                               <div className="flex gap-2 mt-3 text-xs text-blue-500">
+                                  <span>Pages: {scan.data.metadata.pageCount || 1}</span>
+                                  <span>Language: {scan.data.metadata.language || 'en'}</span>
+                               </div>
+                            </div>
+                         )}
+
+                         {/* Rich Pedagogical Rendering */}
+                        {scan.data?.pedagogy && (
                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h3 className="font-bold text-blue-800 text-lg mb-1">{scan.data.pedagogy.topic || "Unknown Topic"}</h3>
                               <p className="text-sm text-blue-600 mb-3">{scan.data.pedagogy.visual_context}</p>
@@ -125,7 +136,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                        {scan.data.extracted_content?.vocabulary && scan.data.extracted_content.vocabulary.length > 0 && (
+                         {scan.data?.extracted_content?.vocabulary && scan.data.extracted_content.vocabulary.length > 0 && (
                            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                               <h4 className="font-bold text-emerald-800 mb-3 flex items-center gap-2"><FileText size={16} /> Vocabulary Maps</h4>
                               <div className="grid grid-cols-2 gap-3">
@@ -139,7 +150,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                        {scan.data.extracted_content?.comic_panels && scan.data.extracted_content.comic_panels.length > 0 && (
+                         {scan.data?.extracted_content?.comic_panels && scan.data.extracted_content.comic_panels.length > 0 && (
                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                               <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2"><FileImage size={16} /> Story & Comics</h4>
                               <div className="space-y-4">
@@ -160,7 +171,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                        {scan.data.extracted_content?.grammar_boxes && scan.data.extracted_content.grammar_boxes.length > 0 && (
+                         {scan.data?.extracted_content?.grammar_boxes && scan.data.extracted_content.grammar_boxes.length > 0 && (
                            <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                               <h4 className="font-bold text-indigo-800 mb-3 flex items-center gap-2"><Settings size={16} /> Grammar & Formulas</h4>
                               <div className="space-y-3">
@@ -178,7 +189,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                        {scan.data.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
+                         {scan.data?.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
                            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                               <h4 className="font-bold text-purple-800 mb-3 flex items-center gap-2"><Settings size={16} /> Exercises</h4>
                               <div className="space-y-3">

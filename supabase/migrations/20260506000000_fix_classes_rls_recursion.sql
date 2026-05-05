@@ -107,3 +107,55 @@ CREATE POLICY "enrollments_delete_policy"
         student_id = auth.uid()
         OR public.is_teacher_or_admin()
     );
+
+-- ============================================
+-- 7. Fix is_role() to handle missing app_metadata gracefully
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.is_role(required_role user_role)
+RETURNS BOOLEAN AS $$
+    DECLARE
+        jwt_role TEXT;
+        profile_role TEXT;
+    BEGIN
+        jwt_role := auth.jwt() -> 'app_metadata' ->> 'role';
+        IF jwt_role IS NOT NULL AND jwt_role = required_role::text THEN
+            RETURN true;
+        END IF;
+
+        SELECT role::text INTO profile_role FROM public.profiles WHERE id = auth.uid();
+        RETURN profile_role = required_role::text;
+    END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- ============================================
+-- 8. Fix units INSERT — allow any authenticated user (app gates the UI)
+-- ============================================
+
+DROP POLICY IF EXISTS "units_insert_policy" ON public.units;
+
+CREATE POLICY "units_insert_policy"
+    ON public.units FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.role() = 'authenticated');
+
+-- ============================================
+-- 9. Ensure class_analytics_view exists
+-- ============================================
+
+CREATE OR REPLACE VIEW public.class_analytics_view AS
+SELECT
+  c.id as class_id,
+  c.teacher_id,
+  COUNT(ce.student_id) as total_students,
+  COALESCE(SUM(sp.xp), 0) as total_xp,
+  ROUND(COALESCE(AVG(sp.xp), 0)) as avg_xp_per_student,
+  ROUND(COALESCE(AVG(array_length(sp.completed_unit_ids, 1)), 0) / 10.0 * 100) as mastery_percent,
+  LEAST(100, ROUND(COALESCE(AVG(sp.streak), 0) * 3.33)) as engagement_percent,
+  ROUND((COUNT(sp.current_unit_id)::float / GREATEST(COUNT(ce.student_id), 1)) * 100) as completion_percent
+FROM public.classes c
+LEFT JOIN public.class_enrollments ce ON c.id = ce.class_id
+LEFT JOIN public.student_progress sp ON ce.student_id = sp.student_id
+GROUP BY c.id, c.teacher_id;
+
+GRANT SELECT ON public.class_analytics_view TO authenticated, service_role;
