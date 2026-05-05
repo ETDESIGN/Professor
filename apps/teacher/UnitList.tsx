@@ -4,7 +4,7 @@ import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users,
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface UnitListProps {
   onNewUnit: () => void;

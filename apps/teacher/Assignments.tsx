@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Calendar, CheckCircle, Clock, MoreVertical, FileText, Mic, BarChart2, Search, Filter, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getClassAssignments, createAssignment, Assignment, getTeacherClasses, ClassData } from '../../services/DataService';
+import { useAllTeacherAssignments, useCreateAssignment } from '../../hooks/useQueries';
 import { useAppStore } from '../../store/useAppStore';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('Assignments');
 
 const Assignments: React.FC = () => {
    const [activeTab, setActiveTab] = useState<'active' | 'scheduled' | 'past'>('active');
-   const [assignments, setAssignments] = useState<Assignment[]>([]);
-   const [classes, setClasses] = useState<ClassData[]>([]);
-   const [loading, setLoading] = useState(true);
    const [showCreateModal, setShowCreateModal] = useState(false);
    const [newAssignment, setNewAssignment] = useState({
       title: '',
@@ -17,38 +17,17 @@ const Assignments: React.FC = () => {
       due_date: ''
    });
    const { userProfile } = useAppStore();
+   const { data, isLoading: loading } = useAllTeacherAssignments(userProfile?.id);
+   const createAssignmentMut = useCreateAssignment();
 
-   useEffect(() => {
-      loadData();
-   }, [userProfile]);
-
-   const loadData = async () => {
-      if (!userProfile?.id) return;
-
-      try {
-         setLoading(true);
-         const teacherClasses = await getTeacherClasses(userProfile.id);
-         setClasses(teacherClasses);
-
-         // Load assignments for all classes
-         const allAssignments: Assignment[] = [];
-         for (const cls of teacherClasses) {
-            const classAssignments = await getClassAssignments(cls.id);
-            allAssignments.push(...classAssignments);
-         }
-         setAssignments(allAssignments);
-      } catch (error) {
-         console.error('Error loading assignments:', error);
-      } finally {
-         setLoading(false);
-      }
-   };
+   const assignments = data?.assignments || [];
+   const classes = data?.classes || [];
 
    const handleCreateAssignment = async () => {
       if (!newAssignment.title || !newAssignment.class_id) return;
 
       try {
-         await createAssignment({
+         await createAssignmentMut.mutateAsync({
             title: newAssignment.title,
             description: newAssignment.description || null,
             class_id: newAssignment.class_id,
@@ -57,9 +36,8 @@ const Assignments: React.FC = () => {
 
          setShowCreateModal(false);
          setNewAssignment({ title: '', description: '', class_id: '', due_date: '' });
-         loadData(); // Reload assignments
       } catch (error) {
-         console.error('Error creating assignment:', error);
+         log.warn('error_creating_assignment', { error: error instanceof Error ? error.message : String(error) });
       }
    };
 

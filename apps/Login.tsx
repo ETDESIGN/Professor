@@ -3,12 +3,14 @@ import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle, ArrowLeft } fro
 import { signInWithPassword, signUp, UserRole, AuthUser } from '../services/AuthService';
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../services/supabaseClient';
+import { useTranslation } from 'react-i18next';
 
 interface LoginProps {
   onLogin: (role: 'district_admin' | 'teacher' | 'student' | 'parent') => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [role, setRole] = useState<'district_admin' | 'teacher' | 'student' | 'parent'>('teacher');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,10 +116,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 font-display">
-          Lesson Orchestrator
+          {t('hub.title')}
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600">
-          Sign in to your account
+          {t('auth.login')}
         </p>
       </div>
 
@@ -144,9 +146,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <form className="space-y-6" onSubmit={isResetMode ? handleResetPassword : handleSubmit}>
             <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Email address
-              </label>
+               <label className="block text-sm font-medium text-slate-700">
+                 {t('auth.email')}
+               </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-slate-400" />
@@ -165,9 +167,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             {!isResetMode && (
               <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Password
-                </label>
+                 <label className="block text-sm font-medium text-slate-700">
+                   {t('auth.password')}
+                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-slate-400" />
@@ -185,7 +187,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             )}
 
-            {!isResetMode && (
+             {!isResetMode && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
@@ -201,7 +203,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                 <div className="text-sm">
                   <button type="button" onClick={() => { setIsResetMode(true); setError(null); setSuccessMessage(null); }} className="font-medium text-indigo-600 hover:text-indigo-500">
-                    Forgot your password?
+                    {t('auth.forgotPassword')}
                   </button>
                 </div>
               </div>
@@ -226,7 +228,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 disabled={isLoading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : isResetMode ? 'Send Reset Link' : isSignUp ? 'Sign up' : 'Sign in'}
+                 {isLoading ? <Loader2 className="animate-spin" size={20} /> : isResetMode ? 'Send Reset Link' : isSignUp ? t('auth.signup') : t('auth.login')}
               </button>
             </div>
 
@@ -245,7 +247,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   onClick={() => { setIsSignUp(!isSignUp); setError(null); setSuccessMessage(null); }}
                   className="text-sm text-indigo-600 hover:text-indigo-500"
                 >
-                  {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                  {isSignUp ? t('auth.hasAccount') : t('auth.noAccount')}
                 </button>
               )}
             </div>

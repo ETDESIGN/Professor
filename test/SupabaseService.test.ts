@@ -41,9 +41,6 @@ describe('SupabaseService Engine', () => {
     expect(typeof Engine.unlockNextUnit).toBe('function');
     expect(typeof Engine.getStudentProgress).toBe('function');
     expect(typeof Engine.updateStudentProgress).toBe('function');
-    expect(typeof Engine.fetchStudents).toBe('function');
-    expect(typeof Engine.addStudent).toBe('function');
-    expect(typeof Engine.removeStudent).toBe('function');
     expect(typeof Engine.fetchSRSItems).toBe('function');
     expect(typeof Engine.updateSRSItem).toBe('function');
     expect(typeof Engine.ensureStudentSRSItems).toBe('function');

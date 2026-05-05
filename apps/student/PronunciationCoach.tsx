@@ -3,6 +3,9 @@ import { ChevronLeft, MoreHorizontal, Mic, MicOff, Headphones, Loader2, MessageS
 import { motion, AnimatePresence } from 'framer-motion';
 import { startPronunciationCheck, isSpeechRecognitionSupported, speakText, stopSpeaking } from '../../services/SpeechService';
 import { toast } from 'sonner';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('PronunciationCoach');
 
 interface PronunciationCoachProps {
   onBack: () => void;
@@ -74,7 +77,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
       analyserRef.current.fftSize = 32;
       animateBars();
     } catch (err) {
-      console.error('Audio visualizer failed:', err);
+      log.warn('audio_visualizer_failed', { error: err instanceof Error ? err.message : String(err) });
     }
   };
 

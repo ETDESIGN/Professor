@@ -1,23 +1,32 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import UnitList from './UnitList';
-import ClassManagement from './ClassManagement';
-import DashboardHome from './DashboardHome';
-import TeacherSettings from './TeacherSettings';
-import LessonTimelineBuilder from './LessonTimelineBuilder';
-import MobileProfileSettings from './MobileProfileSettings';
-import ResourceLibrary from './ResourceLibrary';
-import LessonEditor from './LessonEditor';
-import Assignments from './Assignments';
-import Reports from './Reports';
-import TeacherMessages from './TeacherMessages';
-import UploadTextbook from './UploadTextbook';
-import UnitContentVault from './UnitContentVault';
+import { useTranslation } from 'react-i18next';
+import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
+
+const UnitList = lazy(() => import('./UnitList'));
+const ClassManagement = lazy(() => import('./ClassManagement'));
+const DashboardHome = lazy(() => import('./DashboardHome'));
+const TeacherSettings = lazy(() => import('./TeacherSettings'));
+const LessonTimelineBuilder = lazy(() => import('./LessonTimelineBuilder'));
+const MobileProfileSettings = lazy(() => import('./MobileProfileSettings'));
+const ResourceLibrary = lazy(() => import('./ResourceLibrary'));
+const LessonEditor = lazy(() => import('./LessonEditor'));
+const Assignments = lazy(() => import('./Assignments'));
+const Reports = lazy(() => import('./Reports'));
+const TeacherMessages = lazy(() => import('./TeacherMessages'));
+const UploadTextbook = lazy(() => import('./UploadTextbook'));
+const UnitContentVault = lazy(() => import('./UnitContentVault'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600" />
+  </div>
+);
 
 interface TeacherDashboardProps {
   onNavigateToStudio?: () => void;
@@ -26,6 +35,7 @@ interface TeacherDashboardProps {
 }
 
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio, onLaunchLive, onSignOut }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -85,38 +95,38 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               onClick={e => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-8">
-                <span className="font-bold text-lg text-slate-800">Menu</span>
+                <span className="font-bold text-lg text-slate-800">{t('nav.menu')}</span>
                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400">
                   <X size={24} />
                 </button>
               </div>
               <nav className="space-y-2 flex-1">
                 <button onClick={() => handleNav('/teacher')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <LayoutDashboard size={20} /> Dashboard
+                  <LayoutDashboard size={20} /> {t('nav.dashboard')}
                 </button>
                 <button onClick={() => handleNav('/teacher/mobile-editor')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-editor') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <Calendar size={20} /> Plan Lesson
+                  <Calendar size={20} /> {t('nav.planLesson')}
                 </button>
                 <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') || isActive('/teacher/timeline-builder') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <BookOpen size={20} /> Curriculum
+                  <BookOpen size={20} /> {t('nav.curriculum')}
                 </button>
                 <button onClick={() => handleNav('/teacher/assignments')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <FileText size={20} /> Assignments
+                  <FileText size={20} /> {t('nav.assignments')}
                 </button>
                 <button onClick={() => handleNav('/teacher/messages')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/messages') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <MessageCircle size={20} /> Messages
+                  <MessageCircle size={20} /> {t('nav.messages')}
                 </button>
                 <button onClick={() => handleNav('/teacher/reports')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/reports') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <BarChart3 size={20} /> Reports
+                  <BarChart3 size={20} /> {t('nav.reports')}
                 </button>
                 <button onClick={() => handleNav('/teacher/students')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/students') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <Users size={20} /> Students
+                  <Users size={20} /> {t('nav.students')}
                 </button>
                 <button onClick={() => handleNav('/teacher/library')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/library') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <Folder size={20} /> Library
+                  <Folder size={20} /> {t('nav.library')}
                 </button>
                 <button onClick={() => handleNav('/teacher/mobile-profile')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-profile') || isActive('/teacher/settings') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <Settings size={20} /> Settings
+                  <Settings size={20} /> {t('nav.settings')}
                 </button>
               </nav>
               <button
@@ -127,7 +137,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 }}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium text-red-500 hover:bg-red-50 mt-auto"
               >
-                <LogOut size={20} /> Sign Out
+                <LogOut size={20} /> {t('nav.signOut')}
               </button>
             </motion.div>
           </motion.div>
@@ -149,49 +159,49 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               onClick={() => handleNav('/teacher')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <LayoutDashboard size={20} /> Dashboard
+              <LayoutDashboard size={20} /> {t('nav.dashboard')}
             </button>
             <button
               onClick={() => handleNav('/teacher/units')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') || isActive('/teacher/timeline-builder') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <BookOpen size={20} /> Curriculum
+              <BookOpen size={20} /> {t('nav.curriculum')}
             </button>
             <button
               onClick={() => handleNav('/teacher/assignments')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <FileText size={20} /> Assignments
+              <FileText size={20} /> {t('nav.assignments')}
             </button>
             <button
               onClick={() => handleNav('/teacher/messages')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/messages') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <MessageCircle size={20} /> Messages
+              <MessageCircle size={20} /> {t('nav.messages')}
             </button>
             <button
               onClick={() => handleNav('/teacher/reports')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/reports') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <BarChart3 size={20} /> Reports
+              <BarChart3 size={20} /> {t('nav.reports')}
             </button>
             <button
               onClick={() => handleNav('/teacher/students')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/students') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <Users size={20} /> Students
+              <Users size={20} /> {t('nav.students')}
             </button>
             <button
               onClick={() => handleNav('/teacher/library')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/library') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <Folder size={20} /> Library
+              <Folder size={20} /> {t('nav.library')}
             </button>
             <button
               onClick={() => handleNav('/teacher/settings')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/settings') || isActive('/teacher/mobile-profile') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <Settings size={20} /> Settings
+              <Settings size={20} /> {t('nav.settings')}
             </button>
           </nav>
         </div>
@@ -203,7 +213,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-bold text-sm text-slate-800 truncate">{userProfile?.full_name || 'Teacher'}</div>
-              <div className="text-xs text-slate-500 truncate">Teacher • 3rd Grade</div>
+              <div className="text-xs text-slate-500 truncate">{t('hub.teacher')}</div>
             </div>
           </div>
           <button
@@ -214,7 +224,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             }}
             className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-red-500 text-sm font-medium transition-colors"
           >
-            <LogOut size={16} /> Sign Out
+            <LogOut size={16} /> {t('nav.signOut')}
           </button>
         </div>
       </aside>
@@ -231,19 +241,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             className="w-full h-full flex flex-col"
           >
             <Routes location={location}>
-              <Route path="" element={<DashboardHome onLaunchLive={() => navigate('/teacher/live')} />} />
-              <Route path="timeline-builder" element={<LessonTimelineBuilder onBack={() => navigate('/teacher/units')} />} />
-              <Route path="mobile-editor" element={<LessonEditor onBack={() => navigate('/teacher/units')} />} />
-              <Route path="upload" element={<UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} />} />
-              <Route path="students" element={<ClassManagement />} />
-              <Route path="assignments" element={<Assignments />} />
-              <Route path="messages" element={<TeacherMessages onBack={() => navigate('/teacher')} />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<TeacherSettings />} />
-              <Route path="mobile-profile" element={<MobileProfileSettings onBack={() => navigate('/teacher')} />} />
-              <Route path="library" element={<ResourceLibrary />} />
-              <Route path="units" element={<UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit-vault/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} />} />
-              <Route path="unit-vault/:unitId" element={<UnitContentVault />} />
+              <Route path="" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="timeline-builder" element={<RouteErrorBoundary name="timeline-builder"><Suspense fallback={<PageLoader />}><LessonTimelineBuilder onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="mobile-editor" element={<RouteErrorBoundary name="lesson-editor"><Suspense fallback={<PageLoader />}><LessonEditor onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="students" element={<RouteErrorBoundary name="students"><Suspense fallback={<PageLoader />}><ClassManagement /></Suspense></RouteErrorBoundary>} />
+              <Route path="assignments" element={<RouteErrorBoundary name="assignments"><Suspense fallback={<PageLoader />}><Assignments /></Suspense></RouteErrorBoundary>} />
+              <Route path="messages" element={<RouteErrorBoundary name="messages"><Suspense fallback={<PageLoader />}><TeacherMessages onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="reports" element={<RouteErrorBoundary name="reports"><Suspense fallback={<PageLoader />}><Reports /></Suspense></RouteErrorBoundary>} />
+              <Route path="settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
+              <Route path="mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
+              <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit-vault/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitContentVault /></Suspense></RouteErrorBoundary>} />
             </Routes>
           </motion.div>
         </AnimatePresence>

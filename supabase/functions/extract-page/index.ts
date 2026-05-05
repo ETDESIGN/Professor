@@ -11,13 +11,13 @@ serve(async (req) => {
       { field: 'fileUrl', required: false, type: 'string', minLength: 10 },
       { field: 'imageUrl', required: false, type: 'string', minLength: 10 },
       {
-        custom: (body: any) => {
+        custom: (_value: any, body: any) => {
           if (!body.imageBase64 && !body.fileUrl && !body.imageUrl) {
             return 'One of imageBase64, fileUrl, or imageUrl is required';
           }
           return null;
         },
-      } as any,
+      },
     ],
   }, async (body, _auth) => {
     const { imageBase64, imageUrl, fileUrl } = body;
@@ -55,16 +55,26 @@ serve(async (req) => {
       },
     ];
 
-    const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
-        messages,
-        temperature: 0.1,
-        max_tokens: 1000,
-      }),
-    });
+    let aiResponse;
+    const makeAiRequest = async (modelName: string) => {
+      return fetch(`${aiBaseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelName,
+          messages,
+          temperature: 0.1,
+          max_tokens: 1000,
+        }),
+      });
+    };
+
+    try {
+      aiResponse = await makeAiRequest(Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free');
+      if (!aiResponse.ok) throw new Error('Primary Vision Model Failed');
+    } catch {
+      aiResponse = await makeAiRequest(Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'openai/gpt-4o-mini');
+    }
 
     if (!aiResponse.ok) {
       throw new Error(`Vision AI error: ${aiResponse.status}`);
@@ -74,7 +84,8 @@ serve(async (req) => {
     const content = aiData.choices?.[0]?.message?.content || '';
 
     try {
-      const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || '{}');
+      const raw = content.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
       return {
         success: true,
         url: inputUrl,

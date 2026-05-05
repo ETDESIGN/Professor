@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { AIService } from '../../../../services/AIService';
+import { createClientLogger } from '../../../../services/logger';
+
+const log = createClientLogger('useAISuggestion');
 
 export const useAISuggestion = () => {
   const [showAiSuggestion, setShowAiSuggestion] = useState(false);
@@ -21,7 +24,7 @@ export const useAISuggestion = () => {
       await AIService.generateLiveFeedback(aiSuggestionText);
       setShowAiSuggestion(false);
     } catch (err) {
-      console.error("Live AI Error:", err);
+      log.warn('live_ai_error', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsGenerating(false);
     }

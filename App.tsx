@@ -6,11 +6,16 @@ import { Toaster } from 'sonner';
 import Hub from './apps/Hub';
 import Login from './apps/Login';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { MockModeBanner } from './components/shared/MockModeBanner';
+import { AppProviders } from './components/shared/AppProviders';
 import { useAppStore } from './store/useAppStore';
 import { getCurrentUser } from './services/AuthService';
 import { supabase } from './services/supabaseClient';
 import { initErrorReporting, setupGlobalErrorHandler, setCurrentUser } from './services/errorReporting';
 import { startMetricsCollection, stopMetricsCollection } from './services/perfMonitor';
+import { createClientLogger } from './services/logger';
+
+const log = createClientLogger('App');
 
 const ClassroomBoard = lazy(() => import('./apps/board/ClassroomBoard'));
 const TeacherRemote = lazy(() => import('./apps/remote/TeacherRemote'));
@@ -61,7 +66,7 @@ const App: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error checking session:', error);
+        log.warn('error_checking_session', { error: error instanceof Error ? error.message : String(error) });
         // Clear profile on error to prevent stale data
         clearUserProfile();
         // Redirect to login if not on login or hub page
@@ -89,7 +94,9 @@ const App: React.FC = () => {
 
   return (
     <SessionProvider>
+      <AppProviders>
       <ErrorBoundary>
+        <MockModeBanner />
         <Toaster position="top-center" richColors />
 
       <Routes>
@@ -152,6 +159,7 @@ const App: React.FC = () => {
         </button>
       )}
       </ErrorBoundary>
+      </AppProviders>
     </SessionProvider>
   );
 };

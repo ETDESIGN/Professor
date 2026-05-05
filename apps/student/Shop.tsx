@@ -1,36 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, Gem, Heart, Zap, Shirt, Crown, Glasses, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { GamificationService } from '../../services/GamificationService';
+import { useInventory, useStudentGems, useBuyShopItem } from '../../hooks/useQueries';
 import { toast } from 'sonner';
 
 interface ShopProps {
    onBack: () => void;
-   gemCount?: number;
 }
 
-const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
-   const [localGems, setLocalGems] = useState(gemCount);
+const Shop: React.FC<ShopProps> = ({ onBack }) => {
+   const { data: gemCount = 0 } = useStudentGems();
+   const { data: inventory = [], isLoading } = useInventory();
+   const buyItem = useBuyShopItem();
    const [purchased, setPurchased] = useState<string[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
 
-   useEffect(() => {
-      const loadData = async () => {
-         setIsLoading(true);
-         const { data: { user } } = await (await import('../../services/supabaseClient')).supabase.auth.getUser();
-         if (user) {
-            const { data } = await (await import('../../services/supabaseClient')).supabase
-               .from('student_progress').select('gems').eq('student_id', user.id).single();
-            setLocalGems(data?.gems || 0);
-
-            const inventory = await GamificationService.getInventory();
-            setPurchased(inventory.map((i: any) => i.item_id));
-         }
-         setIsLoading(false);
-      };
-      loadData();
-   }, []);
+   const purchasedIds = purchased.length > 0 ? purchased : inventory.map((i: any) => i.item_id);
 
    const powerups = [
       { id: 'freeze', name: 'Streak Freeze', desc: 'Miss a day without losing your streak.', cost: 200, icon: Zap, color: 'text-blue-500', bg: 'bg-blue-100' },
@@ -44,10 +29,9 @@ const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
    ];
 
     const handleBuy = async (id: string, cost: number) => {
-       if (localGems >= cost && !purchased.includes(id)) {
-          const result = await GamificationService.buyShopItem(id, cost);
+       if (gemCount >= cost && !purchasedIds.includes(id)) {
+          const result = await buyItem.mutateAsync({ itemId: id, cost });
           if (result.success) {
-             setLocalGems(prev => prev - cost);
              setPurchased(prev => [...prev, id]);
              toast.success('Item purchased!');
           }
@@ -74,7 +58,7 @@ const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
             </div>
             <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
                <Gem size={18} className="text-blue-500 fill-blue-500" />
-               <span className="font-bold text-blue-600">{localGems}</span>
+                <span className="font-bold text-blue-600">{gemCount}</span>
             </div>
          </header>
 
@@ -117,7 +101,7 @@ const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
                <h3 className="font-bold text-slate-800 text-lg mb-4">Avatar Style</h3>
                <div className="grid grid-cols-2 gap-4">
                   {items.map((item, index) => {
-                     const isOwned = purchased.includes(item.id);
+                     const isOwned = purchasedIds.includes(item.id);
                      return (
                         <motion.div
                            key={item.id}
@@ -138,13 +122,13 @@ const Shop: React.FC<ShopProps> = ({ onBack, gemCount = 450 }) => {
                            ) : (
                               <button
                                  onClick={() => handleBuy(item.id, item.cost)}
-                                 disabled={localGems < item.cost}
-                                 className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${localGems >= item.cost
-                                       ? 'bg-duo-green text-white hover:bg-green-600 shadow-green-700'
-                                       : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-slate-300'
-                                    }`}
-                              >
-                                 <Gem size={14} className={localGems >= item.cost ? 'text-white/80 fill-white/80' : 'text-slate-400'} />
+                                  disabled={gemCount < item.cost}
+                                  className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${gemCount >= item.cost
+                                        ? 'bg-duo-green text-white hover:bg-green-600 shadow-green-700'
+                                        : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-slate-300'
+                                     }`}
+                               >
+                                  <Gem size={14} className={gemCount >= item.cost ? 'text-white/80 fill-white/80' : 'text-slate-400'} />
                                  {item.cost}
                               </button>
                            )}

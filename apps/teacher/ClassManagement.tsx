@@ -1,46 +1,36 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
    Search, Grid, List, Printer, Upload, MoreHorizontal,
    User, CheckCircle, AlertCircle, X, ExternalLink, Mail, Trash2,
    Copy, Download, Plus, Users, BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Engine } from '../../services/SupabaseService';
-import { getTeacherClasses, createClass, getTeacherStudents } from '../../services/DataService';
+import { createClass } from '../../services/DataService';
+import { useTeacherClasses, useTeacherStudents } from '../../hooks/useQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../../services/supabaseClient';
+import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import StudentPassports from './StudentPassports';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('ClassManagement');
 
 const ClassManagement: React.FC = () => {
    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
    const [showPassports, setShowPassports] = useState(false);
-   const [students, setStudents] = useState<any[]>([]);
-   const [classes, setClasses] = useState<any[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
    const [showCreateClass, setShowCreateClass] = useState(false);
    const [newClassName, setNewClassName] = useState('');
    const [newClassSubject, setNewClassSubject] = useState('');
-   const [newClassCode, setNewClassCode] = useState('');
    const { userProfile } = useAppStore();
+   const queryClient = useQueryClient();
+   const { data: classes = [], isLoading: isLoadingClasses } = useTeacherClasses(userProfile?.id);
+   const { data: students = [], isLoading: isLoadingStudents } = useTeacherStudents(userProfile?.id);
 
-   useEffect(() => {
-      loadData();
-   }, [userProfile]);
-
-   const loadData = async () => {
-      setIsLoading(true);
-      // Load classes for this teacher
-      if (userProfile?.id) {
-         const teacherClasses = await getTeacherClasses(userProfile.id);
-         setClasses(teacherClasses);
-         // Load students from these classes
-         const classStudents = await getTeacherStudents(userProfile.id);
-         setStudents(classStudents);
-      }
-      setIsLoading(false);
-   };
+   const isLoading = isLoadingClasses || isLoadingStudents;
 
    const [showCodeModal, setShowCodeModal] = useState(false);
    const [createdClassCode, setCreatedClassCode] = useState('');
@@ -54,14 +44,14 @@ const ClassManagement: React.FC = () => {
             subject: newClassSubject,
             is_active: true
          });
-         setClasses([...classes, newClass]);
+         queryClient.invalidateQueries({ queryKey: ['teacherClasses', userProfile?.id] });
          setNewClassName('');
          setNewClassSubject('');
          setCreatedClassCode(newClass.code || '');
-         setShowCreateClass(false); // Close the create form
-         setShowCodeModal(true); // Show the code
+         setShowCreateClass(false);
+         setShowCodeModal(true);
       } catch (error) {
-         console.error('Error creating class:', error);
+         log.warn('error_creating_class', { error: error instanceof Error ? error.message : String(error) });
       }
    };
 
@@ -85,9 +75,21 @@ const ClassManagement: React.FC = () => {
    // This ensures all student data comes from Supabase profiles and enrollments
 
    const handleRemoveStudent = async (id: string) => {
-      await Engine.removeStudent(id);
-      setStudents(students.filter(s => s.id !== id));
-      if (selectedStudentId === id) setSelectedStudentId(null);
+      try {
+         for (const cls of classes) {
+            const { error } = await supabase
+               .from('class_enrollments')
+               .delete()
+               .eq('class_id', cls.id)
+               .eq('student_id', id);
+            if (!error) break;
+         }
+         queryClient.invalidateQueries({ queryKey: ['teacherStudents', userProfile?.id] });
+         setSelectedStudentId(null);
+         toast.success('Student removed from class');
+      } catch (err) {
+         toast.error('Failed to remove student');
+      }
    };
 
    const selectedStudent = students.find(s => s.id === selectedStudentId);
@@ -232,13 +234,17 @@ const ClassManagement: React.FC = () => {
                                           </td>
                                           <td className="p-4">
                                              <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-2xl border border-slate-200">
-                                                   {student.avatar}
-                                                </div>
-                                                <div>
-                                                   <div className="font-bold text-slate-800">{student.name}</div>
-                                                   <div className="text-xs text-slate-400">Level {student.level}</div>
-                                                </div>
+                                                 <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-2xl border border-slate-200">
+                                                    {student.avatar_url ? (
+                                                      <img src={student.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                                                    ) : (
+                                                      student.full_name?.[0]?.toUpperCase() || '?'
+                                                    )}
+                                                 </div>
+                                                 <div>
+                                                    <div className="font-bold text-slate-800">{student.full_name || student.email}</div>
+                                                    <div className="text-xs text-slate-400">Level {Math.floor((student.xp || 0) / 1000) + 1}</div>
+                                                 </div>
                                              </div>
                                           </td>
                                           <td className="p-4 font-mono text-sm text-slate-500">
@@ -285,28 +291,30 @@ const ClassManagement: React.FC = () => {
                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {/* Profile Header */}
                   <div className="flex flex-col items-center text-center">
-                     <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-6xl mb-4 border-4 border-white shadow-lg">
-                        {selectedStudent.avatar}
-                     </div>
-                     <h2 className="text-2xl font-bold text-slate-800">{selectedStudent.name}</h2>
-                     <div className="text-slate-500 font-mono text-sm mb-6">ID: #{selectedStudent.id.toUpperCase().padStart(6, '0')}</div>
+                      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-6xl mb-4 border-4 border-white shadow-lg">
+                         {selectedStudent.avatar_url ? (
+                           <img src={selectedStudent.avatar_url} alt="" className="w-24 h-24 rounded-full" />
+                         ) : (
+                           selectedStudent.full_name?.[0]?.toUpperCase() || '?'
+                         )}
+                      </div>
+                      <h2 className="text-2xl font-bold text-slate-800">{selectedStudent.full_name || selectedStudent.email}</h2>
+                      <div className="text-slate-500 font-mono text-sm mb-6">ID: #{selectedStudent.id.toUpperCase().padStart(6, '0')}</div>
 
-                     <div className="grid grid-cols-3 gap-2 w-full">
-                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                           <div className="text-xs text-slate-400 font-bold uppercase">Points</div>
-                           <div className="font-bold text-teacher-primary">{selectedStudent.points}</div>
-                        </div>
-                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                           <div className="text-xs text-slate-400 font-bold uppercase">Level</div>
-                           <div className="font-bold text-blue-500">{selectedStudent.level}</div>
-                        </div>
-                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                           <div className="text-xs text-slate-400 font-bold uppercase">Team</div>
-                           <div className={`font-bold capitalize ${selectedStudent.team === 'red' ? 'text-red-500' : 'text-blue-500'}`}>
-                              {selectedStudent.team}
-                           </div>
-                        </div>
-                     </div>
+                      <div className="grid grid-cols-3 gap-2 w-full">
+                         <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <div className="text-xs text-slate-400 font-bold uppercase">Points</div>
+                            <div className="font-bold text-teacher-primary">{selectedStudent.xp}</div>
+                         </div>
+                         <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <div className="text-xs text-slate-400 font-bold uppercase">Level</div>
+                            <div className="font-bold text-blue-500">{Math.floor((selectedStudent.xp || 0) / 1000) + 1}</div>
+                         </div>
+                         <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <div className="text-xs text-slate-400 font-bold uppercase">Streak</div>
+                            <div className="font-bold text-orange-500">{selectedStudent.streak || 0}</div>
+                         </div>
+                      </div>
                   </div>
 
                   {/* Parent Connection */}

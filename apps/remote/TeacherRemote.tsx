@@ -8,6 +8,9 @@ import SoundBoardModal from './SoundBoardModal';
 import VoiceCommandModal from './VoiceCommandModal';
 import QuickSpinModal from './QuickSpinModal';
 import DrawingLayer from '../../components/shared/DrawingLayer';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('TeacherRemote');
 
 const TeacherRemote: React.FC = () => {
   const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent } = useSession();
@@ -48,7 +51,7 @@ const TeacherRemote: React.FC = () => {
         videoRef.current.srcObject = stream;
       }
     } catch (e) {
-      console.error("Camera error:", e);
+      log.warn('camera_error', { error: e instanceof Error ? e.message : String(e) });
       setLiveSnap('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=1000');
       setIsCameraActive(false);
     }

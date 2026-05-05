@@ -5,12 +5,12 @@ import { checkRateLimit, extractIdentifier, rateLimitHeaders } from './rateLimit
 import { handleHealthCheck } from './health.ts';
 
 interface ValidationRule {
-  field: string;
+  field?: string;
   required?: boolean;
   type?: 'string' | 'number' | 'object' | 'array';
   minLength?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: any, body: any) => string | null;
 }
 
 export interface EdgeFunctionConfig {
@@ -49,7 +49,7 @@ export function validateBody(body: any, rules: ValidationRule[]): { valid: boole
     }
 
     if (rule.custom) {
-      const customError = rule.custom(value);
+      const customError = rule.custom(value, body);
       if (customError) errors.push(customError);
     }
   }
@@ -97,8 +97,7 @@ export async function serveEdgeFunction(req: Request, config: EdgeFunctionConfig
 
     return jsonResponse(result, 200, rateLimitHeaders(rateLimit.remaining, 0));
   } catch (error: any) {
-    const log2 = createLogger(config.name);
-    log2.error('request_failed', { error: error.message, durationMs: Date.now() - startTime });
+    log.error('request_failed', { error: error.message, durationMs: Date.now() - startTime });
     return errorResponse(error.message);
   }
 }

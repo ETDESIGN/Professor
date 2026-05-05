@@ -3,6 +3,9 @@ import { Send, ArrowLeft, MessageCircle, Clock, Check, CheckCheck, Search, User 
 import { motion, AnimatePresence } from 'framer-motion';
 import { getUserMessages, sendMessage, getUnreadMessageCount, markMessageAsRead, MessageWithSender } from '../../services/DataService';
 import { useAppStore } from '../../store/useAppStore';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('TeacherMessages');
 
 interface TeacherMessagesProps {
     onBack: () => void;
@@ -42,7 +45,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                 await markMessageAsRead(msg.id);
             }
         } catch (error) {
-            console.error('Error loading messages:', error);
+            log.warn('error_loading_messages', { error: error instanceof Error ? error.message : String(error) });
         } finally {
             setLoading(false);
         }
@@ -55,7 +58,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
             const count = await getUnreadMessageCount(userProfile.id);
             setUnreadCount(count);
         } catch (error) {
-            console.error('Error loading unread count:', error);
+            log.warn('error_loading_unread_count', { error: error instanceof Error ? error.message : String(error) });
         }
     };
 
@@ -72,7 +75,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
             setNewMessage('');
             await loadMessages();
         } catch (error) {
-            console.error('Error sending message:', error);
+            log.warn('error_sending_message', { error: error instanceof Error ? error.message : String(error) });
         } finally {
             setSending(false);
         }

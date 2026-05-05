@@ -16,6 +16,14 @@ const cache: MediaCache = {
 const preloadQueue: Set<string> = new Set();
 let isPreloading = false;
 
+async function hashPrompt(prompt: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(prompt.toLowerCase().trim());
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function callGenerateMedia(payload: any): Promise<any> {
   const { data, error } = await supabase.functions.invoke('generate-media', {
     body: payload,
@@ -37,6 +45,19 @@ export const MediaService = {
     const prompt = contextSentence
       ? `Illustration for the word "${word}" in context: "${contextSentence}"`
       : `Illustration of the word "${word}"`;
+    const promptHash = await hashPrompt(prompt);
+
+    const { data: globalExisting } = await supabase
+      .from('assets')
+      .select('public_url')
+      .eq('type', 'image')
+      .eq('prompt_hash', promptHash)
+      .limit(1);
+
+    if (globalExisting && globalExisting.length > 0 && globalExisting[0].public_url) {
+      cache.images.set(cacheKey, globalExisting[0].public_url);
+      return globalExisting[0].public_url;
+    }
 
     const result = await callGenerateMedia({
       action: 'generate-image',
@@ -45,7 +66,17 @@ export const MediaService = {
     });
 
     const url = result?.url || '';
-    if (url) cache.images.set(cacheKey, url);
+    if (url) {
+      cache.images.set(cacheKey, url);
+      supabase.from('assets').insert({
+        unit_id: unitId,
+        type: 'image',
+        prompt: word,
+        prompt_hash: promptHash,
+        storage_path: 'external',
+        public_url: url
+      }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
+    }
     return url;
   },
 
@@ -54,6 +85,19 @@ export const MediaService = {
     if (cache.audios.has(cacheKey)) return cache.audios.get(cacheKey)!;
 
     const text = contextSentence || word;
+    const promptHash = await hashPrompt(`audio:${text}`);
+
+    const { data: globalExisting } = await supabase
+      .from('assets')
+      .select('public_url')
+      .eq('type', 'audio')
+      .eq('prompt_hash', promptHash)
+      .limit(1);
+
+    if (globalExisting && globalExisting.length > 0 && globalExisting[0].public_url) {
+      cache.audios.set(cacheKey, globalExisting[0].public_url);
+      return globalExisting[0].public_url;
+    }
 
     const result = await callGenerateMedia({
       action: 'generate-audio',
@@ -62,7 +106,17 @@ export const MediaService = {
     });
 
     const url = result?.url || '';
-    if (url) cache.audios.set(cacheKey, url);
+    if (url) {
+      cache.audios.set(cacheKey, url);
+      supabase.from('assets').insert({
+        unit_id: unitId,
+        type: 'audio',
+        prompt: word,
+        prompt_hash: promptHash,
+        storage_path: 'external',
+        public_url: url
+      }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
+    }
     return url;
   },
 

@@ -48,7 +48,15 @@
     "reports": "Reports",
     "gallery": "Gallery",
     "settings": "Settings",
-    "messages": "Messages"
+    "messages": "Messages",
+    "dashboard": "Dashboard",
+    "planLesson": "Plan Lesson",
+    "curriculum": "Curriculum",
+    "assignments": "Assignments",
+    "students": "Students",
+    "library": "Library",
+    "signOut": "Sign Out",
+    "menu": "Menu"
   },
   "student": {
     "liveClass": "Live Class Started!",
@@ -63,7 +71,14 @@
     "noPendingHomework": "No pending homework. Great job!",
     "markDone": "Mark Done",
     "assignmentSubmitted": "Assignment submitted!",
-    "failedSubmit": "Failed to submit assignment"
+    "failedSubmit": "Failed to submit assignment",
+    "loadingAssignments": "Loading assignments...",
+    "yourClasses": "Your Classes",
+    "joining": "Joining...",
+    "codeRequired": "Please enter a 6-character code",
+    "classNotFound": "Class not found. Check the code and try again.",
+    "alreadyEnrolled": "You are already in this class!",
+    "joinFailed": "Failed to join class. Please try again."
   },
   "teacher": {
     "dashboard": "Teacher Dashboard",

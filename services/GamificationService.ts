@@ -123,7 +123,6 @@ export const GamificationService = {
         streak: newStreak,
         last_active_date: today,
         longest_streak: longestStreak,
-        xp: xpBonus > 0 ? supabase.rpc ? undefined : undefined : undefined,
       })
       .eq('student_id', user.id);
 
@@ -148,11 +147,23 @@ export const GamificationService = {
 
     if (existing && existing.length > 0) return existing;
 
-    const templates = [
-      { type: 'earn_xp', title: 'Earn 50 XP', target: 50, reward_gems: 10, reward_xp: 15 },
-      { type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, reward_gems: 10, reward_xp: 15 },
-      { type: 'perfect_speaking', title: 'Score Perfect in Speaking', target: 1, reward_gems: 10, reward_xp: 15 },
-    ];
+    const { data: dbTemplates } = await supabase
+      .from('quest_templates')
+      .select('*');
+
+    const templates = (dbTemplates && dbTemplates.length > 0)
+      ? dbTemplates.map((t: any) => ({
+          type: t.type,
+          title: t.title,
+          target: t.target || 1,
+          reward_gems: t.reward_gems || 10,
+          reward_xp: t.reward_xp || 15,
+        }))
+      : [
+          { type: 'earn_xp', title: 'Earn 50 XP', target: 50, reward_gems: 10, reward_xp: 15 },
+          { type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, reward_gems: 10, reward_xp: 15 },
+          { type: 'perfect_speaking', title: 'Score Perfect in Speaking', target: 1, reward_gems: 10, reward_xp: 15 },
+        ];
 
     const quests = templates.map(t => ({
       student_id: user.id,
@@ -277,5 +288,93 @@ export const GamificationService = {
       streak: row.streak || 0,
       gems: row.gems || 0,
     }));
+  },
+
+  async getCharacters(unitId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('character_ledger')
+      .select('*')
+      .eq('unit_id', unitId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      log.warn('get_characters_error', { error: error.message });
+      return [];
+    }
+    return data || [];
+  },
+
+  async addCharacter(unitId: string, character: { name: string; role?: string; image_url?: string; description?: string }): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('character_ledger')
+      .insert({ unit_id: unitId, ...character })
+      .select()
+      .single();
+
+    if (error) {
+      log.warn('add_character_error', { error: error.message });
+      return null;
+    }
+    return data;
+  },
+
+  async updateCharacter(characterId: string, updates: Partial<{ name: string; role: string; image_url: string; description: string }>): Promise<boolean> {
+    const { error } = await supabase
+      .from('character_ledger')
+      .update(updates)
+      .eq('id', characterId);
+
+    if (error) {
+      log.warn('update_character_error', { error: error.message });
+      return false;
+    }
+    return true;
+  },
+
+  async deleteCharacter(characterId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('character_ledger')
+      .delete()
+      .eq('id', characterId);
+
+    if (error) {
+      log.warn('delete_character_error', { error: error.message });
+      return false;
+    }
+    return true;
+  },
+
+  async generateCharacterFromUnit(unitId: string): Promise<any | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: unit } = await supabase
+      .from('units')
+      .select('title, description, vocabulary')
+      .eq('id', unitId)
+      .single();
+
+    if (!unit) return null;
+
+    const { data, error } = await supabase.functions.invoke('generate-lesson', {
+      body: {
+        action: 'generate-characters',
+        unitId,
+        unitTitle: unit.title,
+        unitDescription: unit.description,
+        vocabulary: unit.vocabulary,
+      },
+    });
+
+    if (error || !data?.characters) {
+      log.warn('generate_character_error', { error: error?.message });
+      return null;
+    }
+
+    for (const char of data.characters) {
+      await GamificationService.addCharacter(unitId, char);
+    }
+
+    return data.characters;
   },
 };

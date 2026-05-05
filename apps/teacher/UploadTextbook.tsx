@@ -5,7 +5,10 @@ import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
 import { AIService } from '../../services/AIService';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('UploadTextbook');
 
 // Mock components to represent the Workspace
 const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, onUploadClick, isExtracting }: any) => (
@@ -229,7 +232,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       }
       try {
          setIsOrchestrating(true);
-         console.log("Approving unit...", draftUnitId);
+         log.info('approving_unit', { metadata: { unitId: draftUnitId } });
 
          // Phase A Fix: Aggregate ALL successfully scanned pages, not just the current one
          const allAssets = Object.values(scans)
@@ -251,7 +254,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             onFinish();
          }
       } catch (err: any) {
-         console.error("Orchestration error:", err);
+         log.warn('orchestration_error', { error: err?.message || String(err) });
          toast.error(err.message || "Failed to orchestrate lesson");
       } finally {
          setIsOrchestrating(false);
@@ -309,7 +312,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          }
 
       } catch (err: any) {
-         console.error("Extraction error:", err);
+         log.warn('extraction_error', { error: err?.message || String(err) });
          setScans(prev => ({ ...prev, [fileIndex]: { status: 'error', error: err.message } }));
       } finally {
          setIsExtracting(false);

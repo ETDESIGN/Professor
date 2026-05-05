@@ -7,6 +7,18 @@ const { invokeMock } = vi.hoisted(() => ({
 vi.mock('../services/supabaseClient', () => ({
   supabase: {
     functions: { invoke: invokeMock },
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue({ data: [] }),
+          }),
+        }),
+      }),
+      insert: vi.fn().mockReturnValue({
+        then: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    }),
   },
 }));
 

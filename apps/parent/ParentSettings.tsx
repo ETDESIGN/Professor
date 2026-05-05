@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import ParentConnect from './ParentConnect';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress } from '../../services/DataService';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('ParentSettings');
 
 interface ParentSettingsProps {
    onBack: () => void;
@@ -26,7 +29,7 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
             const students = await getParentStudents(userProfile.id);
             setLinkedStudents(students);
          } catch (err) {
-            console.error('Error loading students:', err);
+             log.warn('error_loading_students', { error: err instanceof Error ? err.message : String(err) });
          }
       };
       loadStudents();

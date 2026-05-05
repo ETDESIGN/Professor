@@ -1,8 +1,10 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
 import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
+import { createClientLogger } from '../services/logger';
+
+const log = createClientLogger('SessionContext');
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
 type SelectionMode = 'RANDOM' | 'FAIR' | 'ELIMINATION';
@@ -201,7 +203,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.warn('No authenticated user found');
+        log.warn('no_authenticated_user', { metadata: { context: 'loadStudents' } });
         return;
       }
 
@@ -209,7 +211,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const mappedStudents = students.map(mapStudent);
       setState(prev => ({ ...prev, students: mappedStudents }));
     } catch (error) {
-      console.error('Error loading students:', error);
+      log.warn('error_loading_students', { error: error instanceof Error ? error.message : String(error) });
       // Keep empty array on error
     }
   };

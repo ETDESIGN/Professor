@@ -5,6 +5,9 @@
 import { supabase } from './supabaseClient';
 import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
+import { createClientLogger } from './logger';
+
+const log = createClientLogger('SupabaseService');
 
 // Re-export types so consumers can keep their imports
 export interface ScannedAsset {
@@ -40,7 +43,7 @@ const isSupabaseConfigured = (): boolean => {
 // ------------------------------------------------------------------
 
 const getMockEngine = async () => {
-    console.warn('[Engine] VITE_SUPABASE_URL not set — using MockEngine with hardcoded data. Set your .env file for production.');
+    log.warn('using_mock_engine', { metadata: { message: 'VITE_SUPABASE_URL not set' } });
     const mod = await import('./MockEngine');
     return mod.MockEngine;
 };
@@ -57,7 +60,7 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error fetching units:', error.message);
+            log.warn('error_fetching_units', { error: error.message });
             return [];
         }
 
@@ -75,7 +78,7 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
             topic: row.topic ?? undefined,
         }));
     } catch (err) {
-        console.error('Unexpected error fetching units:', err);
+        log.warn('unexpected_error_fetching_units', { error: err instanceof Error ? err.message : String(err) });
         return [];
     }
 };
@@ -167,7 +170,7 @@ const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
     // Get authenticated user ID
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        console.error('No authenticated user found');
+        log.warn('no_authenticated_user', { metadata: { context: 'unlockNextUnit' } });
         return;
     }
 
@@ -209,7 +212,7 @@ const supabaseGetStudentProgress = async () => {
     // Get authenticated user ID
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        console.error('No authenticated user found');
+        log.warn('no_authenticated_user', { metadata: { context: 'getStudentProgress' } });
         return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 };
     }
 
@@ -235,7 +238,7 @@ const supabaseUpdateStudentProgress = async (updates: any) => {
     // Get authenticated user ID
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-        console.error('No authenticated user found');
+        log.warn('no_authenticated_user', { metadata: { context: 'updateStudentProgress' } });
         return updates;
     }
 
@@ -248,25 +251,6 @@ const supabaseUpdateStudentProgress = async (updates: any) => {
     await supabase.from('student_progress').update(row).eq('student_id', user.id);
 
     return { ...updates };
-};
-
-const supabaseFetchStudents = async () => {
-    const { data, error } = await supabase.from('students').select('*');
-    if (error || !data || data.length === 0) {
-        // Return empty array - no mock fallback
-        return [];
-    }
-    return data;
-};
-
-const supabaseAddStudent = async (student: any) => {
-    const { data, error } = await supabase.from('students').insert(student).select().single();
-    if (error) throw error;
-    return data;
-};
-
-const supabaseRemoveStudent = async (id: string) => {
-    await supabase.from('students').delete().eq('id', id);
 };
 
 const supabaseFetchSRSItems = async (studentId?: string) => {
@@ -392,30 +376,6 @@ export const Engine = {
     updateStudentProgress: async (updates: any) => {
         if (isSupabaseConfigured()) return supabaseUpdateStudentProgress(updates);
         return (await getMockEngine()).updateStudentProgress(updates);
-    },
-
-    fetchStudents: async () => {
-        if (isSupabaseConfigured()) return supabaseFetchStudents();
-        return (await getMockEngine()).fetchStudents();
-    },
-
-    addStudent: async (student: any) => {
-        if (isSupabaseConfigured()) return supabaseAddStudent(student);
-        return (await getMockEngine()).addStudent(student);
-    },
-
-    removeStudent: async (id: string) => {
-        if (isSupabaseConfigured()) return supabaseRemoveStudent(id);
-        return (await getMockEngine()).removeStudent(id);
-    },
-
-    updateStudent: async (id: string, updates: any) => {
-        // Supabase or mock
-        if (isSupabaseConfigured()) {
-            await supabase.from('students').update(updates).eq('id', id);
-            return;
-        }
-        return (await getMockEngine()).updateStudent(id, updates);
     },
 
     fetchSRSItems: async (studentId?: string) => {

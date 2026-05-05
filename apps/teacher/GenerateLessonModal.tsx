@@ -5,6 +5,9 @@ import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('GenerateLessonModal');
 
 interface GenerateLessonModalProps {
   onClose: () => void;
@@ -80,7 +83,7 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
         }));
         const { error: srsError } = await supabase.from('srs_items').insert(srsInserts);
         if (srsError) {
-          console.error("Failed to insert SRS items:", srsError);
+          log.warn('failed_to_insert_srs_items', { error: srsError?.message || String(srsError) });
         }
       }
 

@@ -1,8 +1,35 @@
 import { supabase } from './supabaseClient';
 import { reportApiError } from './errorReporting';
 import { createClientLogger } from './logger';
+import { trackEdgeFunctionCall } from './perfMonitor';
 
 const log = createClientLogger('AIService');
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+
+async function invokeWithRetry(fnName: string, body: object): Promise<{ data: any; error: any }> {
+    let lastError: any;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const result = await supabase.functions.invoke(fnName, { body });
+        if (!result.error) return result;
+
+        lastError = result.error;
+        const isRetryable = result.error.message?.includes('network') ||
+            result.error.message?.includes('timeout') ||
+            result.error.message?.includes('500') ||
+            result.error.message?.includes('502') ||
+            result.error.message?.includes('503') ||
+            result.error.message?.includes('429');
+
+        if (!isRetryable || attempt === MAX_RETRIES) break;
+
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        log.warn('retry_scheduled', { metadata: { fnName, attempt: attempt + 1, delayMs: delay } });
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    return { data: null, error: lastError };
+}
 
 export interface GeneratedLesson {
     textContent: {
@@ -22,11 +49,11 @@ export const AIService = {
     async generateLiveFeedback(context: string): Promise<any> {
         log.info('generate_live_feedback');
 
-        const { data, error } = await supabase.functions.invoke('generate-lesson', {
-            body: { action: 'live-feedback', context }
-        });
+        const span = trackEdgeFunctionCall('generate-lesson');
+        const { data, error } = await invokeWithRetry('generate-lesson', { action: 'live-feedback', context });
 
         if (error) {
+            span.error = error.message;
             log.error('edge_function_error', { error: error.message, metadata: { fn: 'generate-lesson' } });
             reportApiError('generate-lesson', 0, error.message);
             throw new Error(error.message || 'Failed to generate live feedback.');
@@ -44,11 +71,11 @@ export const AIService = {
     async orchestrateLesson(unitId: string, approvedAssets: object): Promise<any> {
         log.info('orchestrate_lesson', { metadata: { unitId } });
 
-        const { data, error } = await supabase.functions.invoke('orchestrate-lesson', {
-            body: { unitId, approvedAssets }
-        });
+        const span = trackEdgeFunctionCall('orchestrate-lesson');
+        const { data, error } = await invokeWithRetry('orchestrate-lesson', { unitId, approvedAssets });
 
         if (error) {
+            span.error = error.message;
             log.error('orchestration_error', { error: error.message, metadata: { unitId } });
             reportApiError('orchestrate-lesson', 0, error.message, { unitId });
             throw new Error(error.message || 'Failed to orchestrate lesson.');
@@ -66,11 +93,11 @@ export const AIService = {
     async evaluatePronunciation(audioBase64: string, targetText: string, targetEmotion?: string, language?: string): Promise<any> {
         log.info('evaluate_pronunciation', { metadata: { targetTextLength: targetText.length, language: language || 'en' } });
 
-        const { data, error } = await supabase.functions.invoke('evaluate-pronunciation', {
-            body: { audioBase64, targetText, targetEmotion, language: language || 'en' }
-        });
+        const span = trackEdgeFunctionCall('evaluate-pronunciation');
+        const { data, error } = await invokeWithRetry('evaluate-pronunciation', { audioBase64, targetText, targetEmotion, language: language || 'en' });
 
         if (error) {
+            span.error = error.message;
             log.error('pronunciation_eval_error', { error: error.message });
             reportApiError('evaluate-pronunciation', 0, error.message);
             throw new Error(error.message || 'Failed to evaluate pronunciation.');
@@ -88,9 +115,8 @@ export const AIService = {
     async generateLessonContent(topic: string, gradeLevel: string, documentContext?: string, imageBase64?: string): Promise<GeneratedLesson> {
         log.info('generate_lesson', { metadata: { topic, gradeLevel, hasContext: !!documentContext, hasImage: !!imageBase64 } });
 
-        const { data, error } = await supabase.functions.invoke('generate-lesson', {
-            body: { topic, gradeLevel, documentContext, imageBase64 }
-        });
+        const span = trackEdgeFunctionCall('generate-lesson');
+        const { data, error } = await invokeWithRetry('generate-lesson', { topic, gradeLevel, documentContext, imageBase64 });
 
         if (error) {
             log.error('generate_error', { error: error.message, metadata: { topic, gradeLevel } });

@@ -3,6 +3,9 @@ import { Send, ArrowLeft, MessageCircle, Clock, Check, CheckCheck } from 'lucide
 import { motion, AnimatePresence } from 'framer-motion';
 import { getUserMessages, sendMessage, getUnreadMessageCount, markMessageAsRead, MessageWithSender, getParentStudents, getTeacherForStudent } from '../../services/DataService';
 import { useAppStore } from '../../store/useAppStore';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('ParentMessages');
 
 interface ParentMessagesProps {
     onBack: () => void;
@@ -37,7 +40,7 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
                 }
             }
         } catch (err) {
-            console.error('Error loading teacher:', err);
+            log.warn('error_loading_teacher', { error: err instanceof Error ? err.message : String(err) });
         }
     };
 
@@ -59,7 +62,7 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
                 await markMessageAsRead(msg.id);
             }
         } catch (error) {
-            console.error('Error loading messages:', error);
+            log.warn('error_loading_messages', { error: error instanceof Error ? error.message : String(error) });
         } finally {
             setLoading(false);
         }
@@ -72,7 +75,7 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
             const count = await getUnreadMessageCount(userProfile.id);
             setUnreadCount(count);
         } catch (error) {
-            console.error('Error loading unread count:', error);
+            log.warn('error_loading_unread_count', { error: error instanceof Error ? error.message : String(error) });
         }
     };
 
@@ -94,7 +97,7 @@ const ParentMessages: React.FC<ParentMessagesProps> = ({ onBack }) => {
             setNewMessage('');
             await loadMessages();
         } catch (error) {
-            console.error('Error sending message:', error);
+            log.warn('error_sending_message', { error: error instanceof Error ? error.message : String(error) });
         } finally {
             setSending(false);
         }

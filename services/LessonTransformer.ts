@@ -29,17 +29,22 @@ const differentiateText = async (text: string, theme: string): Promise<{ below: 
 };
 
 const getAssetUrl = (keyword: string) => {
-  return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(keyword)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
+  return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(keyword || 'vocab')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
 };
 
 export const transformManifestToFlow = async (manifest: LessonManifest): Promise<any[]> => {
   const unitId = (manifest.meta as any).unit_id || manifest.meta.unit_title || 'unknown';
 
   const vocabImagePromises = manifest.knowledge_graph.vocabulary.map(async (v: any) => {
-    const cachedImage = MediaService.getCachedImage(unitId, v.word);
-    if (cachedImage) return { word: v.word, url: cachedImage };
-    const url = await MediaService.getVocabImage(unitId, v.word, v.definition);
-    return { word: v.word, url };
+    try {
+      const cachedImage = MediaService.getCachedImage(unitId, v.word);
+      if (cachedImage) return { word: v.word, url: cachedImage };
+      const url = await MediaService.getVocabImage(unitId, v.word, v.definition);
+      return { word: v.word, url };
+    } catch (err: any) {
+      log.warn('vocab_image_error', { error: err.message, metadata: { word: v.word } } as any);
+      return { word: v.word, url: '' };
+    }
   });
 
   const vocabImages = await Promise.all(vocabImagePromises);
@@ -128,6 +133,130 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
             topic: manifest.meta.theme,
             questions: quizQuestions
           }
+        };
+
+      case upperType.includes('LISTEN') || upperType.includes('LISTEN_TAP'):
+        const listenVocab = manifest.knowledge_graph.vocabulary.slice(0, 4);
+        const listenOptions = listenVocab.length > 0 ? listenVocab.map((v, i) => ({
+          id: i,
+          img: getImageForWord(v.word),
+          label: v.word,
+          correct: i === 0
+        })) : undefined;
+
+        if (listenVocab.length >= 2) {
+          const correctWord = listenVocab[Math.floor(Math.random() * listenVocab.length)];
+          const others = listenVocab.filter(v => v.word !== correctWord.word).slice(0, 3);
+          const allOptions = [correctWord, ...others].sort(() => Math.random() - 0.5).map((v, i) => ({
+            id: i,
+            img: getImageForWord(v.word),
+            label: v.word,
+            correct: v.word === correctWord.word
+          }));
+
+          return {
+            id: stepId,
+            type: 'LISTEN_TAP',
+            title: block.title || 'Listen & Tap',
+            duration: block.duration || 120,
+            data: {
+              instruction: `Listen and select the "${correctWord.word}"`,
+              targetWord: correctWord.word,
+              options: allOptions
+            }
+          };
+        }
+        return {
+          id: stepId,
+          type: 'INTRO_SPLASH',
+          title: block.title,
+          duration: block.duration || 120,
+          data: { theme: block.title }
+        };
+
+      case upperType.includes('FLASH') || upperType.includes('MATCH') || upperType.includes('FLASH_MATCH'):
+        const matchVocab = manifest.knowledge_graph.vocabulary.slice(0, 5);
+        if (matchVocab.length >= 2) {
+          const matchPairs = matchVocab.map((v, i) => ({
+            id: `p_${i}`,
+            left: v.word,
+            right: v.definition || v.translation || `${v.word} def`
+          }));
+
+          return {
+            id: stepId,
+            type: 'FLASH_MATCH',
+            title: block.title || 'Match the Pairs',
+            duration: block.duration || 180,
+            data: { pairs: matchPairs }
+          };
+        }
+        return {
+          id: stepId,
+          type: 'INTRO_SPLASH',
+          title: block.title,
+          duration: block.duration || 120,
+          data: { theme: block.title }
+        };
+
+      case upperType.includes('SCRAMBLE') || upperType.includes('SENTENCE'):
+        const scrambleVocab = manifest.knowledge_graph.vocabulary.slice(0, 3);
+        if (scrambleVocab.length > 0) {
+          const target = scrambleVocab[Math.floor(Math.random() * scrambleVocab.length)];
+          const sentence = target.context_sentence || target.example_sentence || `The ${target.word} is very interesting`;
+          const words = sentence.split(/\s+/).filter(w => w.length > 0);
+          const distractors = scrambleVocab
+            .filter(v => v.word !== target.word)
+            .slice(0, 2)
+            .map((v, i) => ({ id: `d_${i}`, text: v.word.toLowerCase() }));
+
+          const wordBank = words.map((w, i) => ({ id: `w_${i}`, text: w }))
+            .concat(distractors)
+            .sort(() => Math.random() - 0.5);
+
+          return {
+            id: stepId,
+            type: 'SCRAMBLE',
+            title: block.title || 'Build the Sentence',
+            duration: block.duration || 180,
+            data: {
+              targetSentence: {
+                en: sentence,
+                translation: target.translation || target.definition || ''
+              },
+              wordBank
+            }
+          };
+        }
+        return {
+          id: stepId,
+          type: 'INTRO_SPLASH',
+          title: block.title,
+          duration: block.duration || 120,
+          data: { theme: block.title }
+        };
+
+      case upperType.includes('SPEAK') || upperType.includes('PRONUNCIATION'):
+        const speakVocab = manifest.knowledge_graph.vocabulary.slice(0, 3);
+        if (speakVocab.length > 0) {
+          const word = speakVocab[Math.floor(Math.random() * speakVocab.length)];
+          return {
+            id: stepId,
+            type: 'SPEAKING',
+            title: block.title || 'Pronunciation Practice',
+            duration: block.duration || 120,
+            data: {
+              targetSentence: word.context_sentence || word.example_sentence || word.word,
+              targetWord: word.word
+            }
+          };
+        }
+        return {
+          id: stepId,
+          type: 'INTRO_SPLASH',
+          title: block.title,
+          duration: block.duration || 120,
+          data: { theme: block.title }
         };
 
       case upperType.includes('STORY') || upperType.includes('READING'):

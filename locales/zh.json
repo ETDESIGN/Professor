@@ -1,0 +1,123 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "error": "出了点问题",
+    "retry": "重试",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "back": "返回",
+    "next": "下一步",
+    "done": "完成",
+    "close": "关闭",
+    "search": "搜索",
+    "submit": "提交",
+    "confirm": "确认",
+    "exit": "退出",
+    "noData": "暂无数据"
+  },
+  "auth": {
+    "login": "登录",
+    "signup": "注册",
+    "logout": "退出登录",
+    "email": "邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "forgotPassword": "忘记密码？",
+    "noAccount": "没有账号？",
+    "hasAccount": "已有账号？"
+  },
+  "hub": {
+    "title": "Professor",
+    "subtitle": "请选择您的角色继续",
+    "teacher": "教师工作室",
+    "student": "学生应用",
+    "parent": "家长门户",
+    "admin": "管理门户",
+    "board": "教室大屏",
+    "remote": "教师遥控器"
+  },
+  "nav": {
+    "learn": "学习",
+    "rank": "排名",
+    "quests": "任务",
+    "shop": "商店",
+    "profile": "个人",
+    "home": "首页",
+    "reports": "报告",
+    "gallery": "画廊",
+    "settings": "设置",
+    "messages": "消息",
+    "dashboard": "仪表板",
+    "planLesson": "备课",
+    "curriculum": "课程",
+    "assignments": "作业",
+    "students": "学生",
+    "library": "资料库",
+    "signOut": "退出登录",
+    "menu": "菜单"
+  },
+  "student": {
+    "liveClass": "直播课已开始！",
+    "joinNow": "立即加入",
+    "teacherWaiting": "您的老师正在等您。",
+    "liveEnded": "直播课已结束。",
+    "joinClass": "加入班级",
+    "enterCode": "输入老师提供的6位班级代码。",
+    "codePlaceholder": "ABCD12",
+    "pendingHomework": "待完成的作业",
+    "allCaughtUp": "全部完成！",
+    "noPendingHomework": "没有待完成的作业，做得好！",
+    "markDone": "标记完成",
+    "assignmentSubmitted": "作业已提交！",
+    "failedSubmit": "提交作业失败",
+    "loadingAssignments": "加载作业中...",
+    "yourClasses": "我的班级",
+    "joining": "加入中...",
+    "codeRequired": "请输入6位班级代码",
+    "classNotFound": "班级未找到，请检查代码后重试。",
+    "alreadyEnrolled": "您已在该班级中！",
+    "joinFailed": "加入班级失败，请重试。"
+  },
+  "teacher": {
+    "dashboard": "教师仪表板",
+    "lessonStudio": "课程工作室",
+    "liveCommander": "直播指挥",
+    "backToDashboard": "返回仪表板"
+  },
+  "parent": {
+    "dashboard": "家长仪表板",
+    "reports": "报告",
+    "gallery": "画廊"
+  },
+  "admin": {
+    "dashboard": "管理仪表板",
+    "districtMetrics": "学区指标",
+    "schoolGroups": "学校分组",
+    "teacherSummaries": "教师",
+    "studentSummaries": "学生",
+    "contentModeration": "内容"
+  },
+  "gamification": {
+    "streak": "连续天数",
+    "gems": "宝石",
+    "xp": "经验值",
+    "level": "等级",
+    "leaderboard": "排行榜",
+    "quests": "任务",
+    "shop": "商店",
+    "dailyQuests": "每日任务",
+    "claimReward": "领取奖励",
+    "buy": "购买",
+    "owned": "已拥有",
+    "notEnoughGems": "宝石不足"
+  },
+  "lesson": {
+    "complete": "课程完成！",
+    "accuracy": "准确率",
+    "time": "用时",
+    "continue": "继续",
+    "exitToHub": "返回主页"
+  }
+}

@@ -28,3 +28,6 @@ dist-ssr
 .env.*
 !.env.example
 .vercel
+test-results/
+playwright-report/
+COMPREHENSIVE_TECHNICAL_AUDIT_REPORT.md

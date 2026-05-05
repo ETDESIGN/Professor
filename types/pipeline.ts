@@ -42,6 +42,8 @@ export interface ThemeContext {
 export interface VocabAsset {
   word: string;
   definition: string;
+  translation?: string;
+  example_sentence?: string;
   context_sentence?: string;
   distractors: string[];
   image_prompt: string;

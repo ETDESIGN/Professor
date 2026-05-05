@@ -6,11 +6,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI ? 'list' : 'html',
+  timeout: 30000,
+  expect: {
+    timeout: 10000,
+  },
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    actionTimeout: 10000,
+    navigationTimeout: 15000,
   },
   projects: [
     {
@@ -18,10 +24,18 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 30000,
-  },
+  webServer: [
+    {
+      command: 'tsx server.ts',
+      port: 3000,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15000,
+    },
+    {
+      command: 'npx vite --port 5173',
+      port: 5173,
+      reuseExistingServer: !process.env.CI,
+      timeout: 15000,
+    },
+  ],
 });

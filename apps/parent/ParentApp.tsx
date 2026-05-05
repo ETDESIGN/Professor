@@ -1,15 +1,23 @@
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Bell, Home, BarChart2, Video, Settings, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DubbingGallery from './DubbingGallery';
-import ParentReports from './ParentReports';
-import ParentDashboard from './ParentDashboard';
-import ParentSettings from './ParentSettings';
-import ParentMessages from './ParentMessages';
 import ConfettiSystem from '../../components/effects/ConfettiSystem';
 import { useAppStore } from '../../store/useAppStore';
+import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
+
+const DubbingGallery = lazy(() => import('./DubbingGallery'));
+const ParentReports = lazy(() => import('./ParentReports'));
+const ParentDashboard = lazy(() => import('./ParentDashboard'));
+const ParentSettings = lazy(() => import('./ParentSettings'));
+const ParentMessages = lazy(() => import('./ParentMessages'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500" />
+  </div>
+);
 
 interface ParentAppProps {
   onSignOut?: () => void;
@@ -52,11 +60,11 @@ const ParentApp: React.FC<ParentAppProps> = ({ onSignOut }) => {
           className="flex-1 overflow-hidden flex flex-col"
         >
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<ParentDashboard onNavigate={(path) => navigate(`/parent/${path}`)} />} />
-            <Route path="/messages" element={<ParentMessages onBack={() => navigate('/parent')} />} />
-            <Route path="/gallery" element={<DubbingGallery onBack={() => navigate('/parent')} />} />
-            <Route path="/reports" element={<ParentReports onBack={() => navigate('/parent')} />} />
-            <Route path="/settings" element={<ParentSettings onBack={() => navigate('/parent')} onSignOut={onSignOut} />} />
+            <Route path="/" element={<RouteErrorBoundary name="parent-dashboard"><Suspense fallback={<PageLoader />}><ParentDashboard onNavigate={(path) => navigate(`/parent/${path}`)} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/messages" element={<RouteErrorBoundary name="parent-messages"><Suspense fallback={<PageLoader />}><ParentMessages onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/gallery" element={<RouteErrorBoundary name="parent-gallery"><Suspense fallback={<PageLoader />}><DubbingGallery onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/reports" element={<RouteErrorBoundary name="parent-reports"><Suspense fallback={<PageLoader />}><ParentReports onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/settings" element={<RouteErrorBoundary name="parent-settings"><Suspense fallback={<PageLoader />}><ParentSettings onBack={() => navigate('/parent')} onSignOut={onSignOut} /></Suspense></RouteErrorBoundary>} />
             <Route path="*" element={<Navigate to="/parent" replace />} />
           </Routes>
         </motion.div>

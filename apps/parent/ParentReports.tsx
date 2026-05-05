@@ -4,6 +4,9 @@ import { ChevronLeft, Share2, TrendingUp, Mic, Book, Headphones, MessageCircle }
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress, getStudentSRSWords } from '../../services/DataService';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('ParentReports');
 
 interface ParentReportsProps {
    onBack: () => void;
@@ -29,7 +32,7 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
                setVocabularyWords(words.length > 0 ? words : ['No vocabulary yet']);
             }
          } catch (err) {
-            console.error('Error loading report data:', err);
+             log.warn('error_loading_report_data', { error: err instanceof Error ? err.message : String(err) });
          } finally {
             setLoading(false);
          }

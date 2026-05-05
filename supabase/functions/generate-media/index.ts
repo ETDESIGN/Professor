@@ -13,29 +13,65 @@ serve(async (req) => {
 
     switch (action) {
       case 'generate-image': {
-        const imageGenUrl = Deno.env.get('IMAGE_GEN_URL') || '';
-        const imageGenKey = Deno.env.get('IMAGE_GEN_KEY') || '';
+        const geminiApiKey = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('AI_API_KEY') || '';
+        const modelName = Deno.env.get('IMAGE_GEN_MODEL') || 'gemini-2.0-flash';
 
-        if (!imageGenUrl || !imageGenKey) {
-          return { url: '', error: 'Image generation not configured' };
+        if (!geminiApiKey) {
+          return { url: '', error: 'Image generation not configured (GEMINI_API_KEY required)' };
         }
 
         try {
-          const response = await fetch(imageGenUrl, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${imageGenKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: 'gemini-2.0-flash-exp',
-              prompt: prompt || `Educational illustration for children`,
-              n: 1,
-              size: '512x512',
-            }),
-          });
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{
+                  parts: [
+                    { text: `Generate a child-friendly educational illustration: ${prompt || 'Educational illustration for children'}. Style: simple, colorful, cartoon-like, suitable for children aged 6-12. No text in the image.` }
+                  ]
+                }],
+                generationConfig: {
+                  responseModalities: ["TEXT", "IMAGE"],
+                },
+              }),
+            }
+          );
 
           if (response.ok) {
             const data = await response.json();
-            const url = data.data?.[0]?.url || data.url || '';
-            return { url };
+            const parts = data.candidates?.[0]?.content?.parts || [];
+            const imagePart = parts.find((p: any) => p.inlineData);
+            if (imagePart?.inlineData) {
+              const mimeType = imagePart.inlineData.mimeType || 'image/png';
+              const base64Data = imagePart.inlineData.data;
+              const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+              const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+              if (supabaseUrl && supabaseKey) {
+                const ext = mimeType.split('/')[1] || 'png';
+                const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
+                const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+
+                const uploadResponse = await fetch(
+                  `${supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${supabaseKey}`,
+                      'Content-Type': mimeType,
+                    },
+                    body: imageBytes,
+                  }
+                );
+
+                if (uploadResponse.ok) {
+                  return { url: `${supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}` };
+                }
+              }
+              return { url: `data:${mimeType};base64,${base64Data}`, inline: true };
+            }
           }
           return { url: '', error: `Image gen failed: ${response.status}` };
         } catch (err: any) {

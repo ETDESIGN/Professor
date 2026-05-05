@@ -7,6 +7,9 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress } from '../../services/DataService';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('ParentDashboard');
 
 interface ParentDashboardProps {
   onNavigate: (tab: string) => void;
@@ -34,7 +37,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
           setStudentStats({ xp: students[0].xp, streak: students[0].streak });
         }
       } catch (error) {
-        console.error('Error loading parent data:', error);
+        log.warn('error_loading_parent_data', { error: error instanceof Error ? error.message : String(error) });
       } finally {
         setLoading(false);
       }

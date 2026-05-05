@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+import { createClientLogger } from '../../../../services/logger';
+
+const log = createClientLogger('useNoiseDetection');
 
 export const useNoiseDetection = (
   quietModeActive: boolean,
@@ -74,7 +77,7 @@ export const useNoiseDetection = (
       (window as any).quietPenaltyInterval = penaltyCheck;
 
     } catch (err) {
-      console.error("Mic Error", err);
+      log.warn('mic_error', { error: err instanceof Error ? err.message : String(err) });
       alert("Microphone access required for Quiet Mode.");
     }
   };

@@ -1,11 +1,14 @@
 
 import React, { useState } from 'react';
-import { User, Lock, Bell, Globe, Monitor, Moon, Shield, ToggleLeft, ToggleRight } from 'lucide-react';
+import { User, Lock, Bell, Globe, Monitor, Moon, Shield, ToggleLeft, ToggleRight, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
+import BillingSettings from './BillingSettings';
 
 const TeacherSettings: React.FC = () => {
-   const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'notifications' | 'security' | 'display'>('profile');
+   const { t } = useTranslation();
+   const [activeTab, setActiveTab] = useState<'profile' | 'school' | 'billing' | 'notifications' | 'security' | 'display'>('profile');
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Teacher';
 
@@ -29,8 +32,9 @@ const TeacherSettings: React.FC = () => {
             {/* Sidebar Nav */}
             <div className="w-full lg:w-64 flex-shrink-0 space-y-1">
                <TabButton id="profile" icon={User} label="Profile" />
-               <TabButton id="school" icon={Globe} label="School Settings" />
-               <TabButton id="notifications" icon={Bell} label="Notifications" />
+                <TabButton id="school" icon={Globe} label="School Settings" />
+                <TabButton id="billing" icon={CreditCard} label="Billing & Plans" />
+                <TabButton id="notifications" icon={Bell} label="Notifications" />
                <TabButton id="security" icon={Shield} label="Security" />
                <TabButton id="display" icon={Monitor} label="Display" />
             </div>
@@ -137,6 +141,18 @@ const TeacherSettings: React.FC = () => {
                               <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700">Manage Plan</button>
                            </div>
                         </div>
+                     </motion.div>
+                  )}
+
+                  {activeTab === 'billing' && (
+                     <motion.div
+                        key="billing"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                     >
+                        <BillingSettings />
                      </motion.div>
                   )}
 

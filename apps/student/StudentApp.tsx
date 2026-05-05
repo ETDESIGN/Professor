@@ -1,41 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Home, Trophy, BookOpen, User, ShoppingBag, Users, X, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import DubbingStudio from './DubbingStudio';
-import Profile from './Profile';
-import Settings from './Settings';
-import HelpCenter from './HelpCenter';
-import PronunciationCoach from './PronunciationCoach';
-import Login from './Login';
+import { useTranslation } from 'react-i18next';
+import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
 import HomeMap from './HomeMap';
-import Leaderboard from './Leaderboard';
-import Quests from './Quests';
-import AvatarBuilder from './AvatarBuilder';
-import PracticeMenu from './PracticeMenu';
-import ReadingReader from './ReadingReader';
-import Shop from './Shop';
-import LessonComplete from './LessonComplete';
-import PhonicsPhlyer from './PhonicsPhlyer';
-import SpacedRepetition from './SpacedRepetition';
+import Login from './Login';
 import LessonSession, { ActivityType } from './LessonSession';
-import SoloLessonPlayer from './SoloLessonPlayer';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSoloSession } from '../../store/SoloSessionContext';
-import { findClassByCode, enrollStudent, getStudentClasses, ClassData, getStudentAssignments, updateStudentAssignmentStatus, AssignmentWithDetails } from '../../services/DataService';
+import { findClassByCode, enrollStudent } from '../../services/DataService';
+import { useStudentClasses, useStudentAssignments, useSubmitAssignment } from '../../hooks/useQueries';
+import { useQueryClient } from '@tanstack/react-query';
 import { GamificationService } from '../../services/GamificationService';
+import { GEM_REWARDS, XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
+import { createClientLogger } from '../../services/logger';
+
+const DubbingStudio = lazy(() => import('./DubbingStudio'));
+const Profile = lazy(() => import('./Profile'));
+const Settings = lazy(() => import('./Settings'));
+const HelpCenter = lazy(() => import('./HelpCenter'));
+const PronunciationCoach = lazy(() => import('./PronunciationCoach'));
+const Leaderboard = lazy(() => import('./Leaderboard'));
+const Quests = lazy(() => import('./Quests'));
+const AvatarBuilder = lazy(() => import('./AvatarBuilder'));
+const PracticeMenu = lazy(() => import('./PracticeMenu'));
+const ReadingReader = lazy(() => import('./ReadingReader'));
+const Shop = lazy(() => import('./Shop'));
+const LessonComplete = lazy(() => import('./LessonComplete'));
+const PhonicsPhlyer = lazy(() => import('./PhonicsPhlyer'));
+const SpacedRepetition = lazy(() => import('./SpacedRepetition'));
+const SoloLessonPlayer = lazy(() => import('./SoloLessonPlayer'));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-lime-500" />
+  </div>
+);
+
+const log = createClientLogger('StudentApp');
 
 interface StudentAppProps {
   onSignOut?: () => void;
 }
 
 const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { state, setActiveUnit } = useSoloSession();
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, []);
+
+  const { data: enrolledClasses = [] } = useStudentClasses(userId);
+  const { data: assignments = [], isLoading: loadingAssignments } = useStudentAssignments(userId);
+  const submitAssignment = useSubmitAssignment();
 
   // Gamification State
   const [userStats, setUserStats] = useState({
@@ -73,7 +102,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
           }
         }
       } catch (error) {
-        console.error('Error loading avatar:', error);
+        log.warn('error_loading_avatar', { error: error instanceof Error ? error.message : String(error) });
       }
     };
     fetchProgress();
@@ -116,59 +145,17 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   useEffect(() => {
     if (location.pathname === '/student/lesson' && state.status === 'IDLE') {
       navigate('/student');
-      toast.info('Live class has ended.', { icon: '👋' });
+      toast.info(t('student.liveEnded'), { icon: '👋' });
     }
   }, [state.status, location.pathname, navigate]);
 
-  // Fetch enrolled classes on mount
-  useEffect(() => {
-    const fetchEnrolledClasses = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.id) {
-          const classes = await getStudentClasses(user.id);
-          setEnrolledClasses(classes);
-        }
-      } catch (error) {
-        console.error('Error fetching enrolled classes:', error);
-      }
-    };
-    fetchEnrolledClasses();
-  }, []);
-
-  // Fetch student assignments
-  useEffect(() => {
-    const fetchAssignments = async () => {
-      try {
-        setLoadingAssignments(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.id) {
-          const studentAssignments = await getStudentAssignments(user.id);
-          setAssignments(studentAssignments);
-        }
-      } catch (error) {
-        console.error('Error fetching assignments:', error);
-      } finally {
-        setLoadingAssignments(false);
-      }
-    };
-    fetchAssignments();
-  }, []);
-
-  // Handle marking assignment as done
   const handleMarkAsDone = async (assignmentId: string) => {
     try {
-      await updateStudentAssignmentStatus(assignmentId, 'submitted');
-      // Refresh assignments
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) {
-        const studentAssignments = await getStudentAssignments(user.id);
-        setAssignments(studentAssignments);
-      }
-      toast.success('Assignment submitted!', { icon: '✅' });
+      await submitAssignment.mutateAsync({ assignmentId, studentId: userId! });
+      toast.success(t('student.assignmentSubmitted'), { icon: '✅' });
     } catch (error) {
-      console.error('Error updating assignment:', error);
-      toast.error('Failed to submit assignment');
+      log.warn('error_updating_assignment', { error: error instanceof Error ? error.message : String(error) });
+      toast.error(t('student.failedSubmit'));
     }
   };
 
@@ -181,13 +168,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   // Class enrollment state
   const [showJoinClassModal, setShowJoinClassModal] = useState(false);
   const [classCodeInput, setClassCodeInput] = useState('');
-  const [enrolledClasses, setEnrolledClasses] = useState<ClassData[]>([]);
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
-
-  // Assignments state
-  const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
-  const [loadingAssignments, setLoadingAssignments] = useState(false);
 
   // Get the lesson playlist from the active unit's flow, or fall back to mock data
   const getLessonPlaylist = (): { type: ActivityType, id: string, data?: any }[] => {
@@ -217,7 +199,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
           .eq('id', user.id);
       }
     } catch (error) {
-      console.error('Error saving avatar:', error);
+      log.warn('error_saving_avatar', { error: error instanceof Error ? error.message : String(error) });
     }
     navigate('/student/profile');
   };
@@ -228,17 +210,23 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   };
 
   const finalizeLesson = async () => {
-    // Commit the rewards
-    const newXp = userStats.xp + sessionResults.xp;
-    const newGems = userStats.gems + 20; // Mock reward
+    const xpResult = await GamificationService.awardXP(
+      sessionResults.xp || XP_REWARDS.LESSON_COMPLETE,
+      'lesson_complete'
+    );
+    const newGems = await GamificationService.awardGems(
+      GEM_REWARDS.PERFECT_LESSON,
+      'lesson_complete'
+    );
 
-    await Engine.updateStudentProgress({ xp: newXp });
+    await GamificationService.updateQuestProgress(QUEST_TYPES.COMPLETE_LESSONS, 1);
+    await GamificationService.updateQuestProgress(QUEST_TYPES.EARN_XP, sessionResults.xp || XP_REWARDS.LESSON_COMPLETE);
 
     setUserStats(prev => ({
       ...prev,
-      xp: newXp,
+      xp: xpResult.newXP,
       gems: newGems,
-      level: Math.floor(newXp / 1000) + 1
+      level: xpResult.newLevel,
     }));
     navigate('/student');
   };
@@ -269,24 +257,24 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
   // Solo Lesson Player (independent study mode)
   if (location.pathname === '/student/solo-lesson') {
-    return <SoloLessonPlayer onComplete={handleLessonComplete} onExit={() => navigate('/student')} />;
+    return <Suspense fallback={<PageLoader />}><SoloLessonPlayer onComplete={handleLessonComplete} onExit={() => navigate('/student')} /></Suspense>;
   }
 
   // Full screen standalone apps
-  if (location.pathname === '/student/dubbing') return <DubbingStudio onBack={() => handleLessonComplete({ xp: 50, accuracy: 95, time: '2:30' })} />;
-  if (location.pathname === '/student/pronounce') return <PronunciationCoach onBack={() => handleLessonComplete({ xp: 45, accuracy: 85, time: '3:00' })} />;
-  if (location.pathname === '/student/reading') return <ReadingReader onBack={() => handleLessonComplete({ xp: 60, accuracy: 100, time: '4:20' })} />;
-  if (location.pathname === '/student/phonics') return <PhonicsPhlyer onBack={() => handleLessonComplete({ xp: 40, accuracy: 92, time: '1:45' })} />;
-  if (location.pathname === '/student/srs') return <SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={handleLessonComplete} />;
+  if (location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 50, accuracy: 95, time: '2:30' })} /></Suspense>;
+  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => handleLessonComplete({ xp: 45, accuracy: 85, time: '3:00' })} /></Suspense>;
+  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => handleLessonComplete({ xp: 60, accuracy: 100, time: '4:20' })} /></Suspense>;
+  if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => handleLessonComplete({ xp: 40, accuracy: 92, time: '1:45' })} /></Suspense>;
+  if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={handleLessonComplete} /></Suspense>;
 
   // The Reward Interstitial
-  if (location.pathname === '/student/lesson-complete') return <LessonComplete onContinue={finalizeLesson} stats={sessionResults} />;
+  if (location.pathname === '/student/lesson-complete') return <Suspense fallback={<PageLoader />}><LessonComplete onContinue={finalizeLesson} stats={sessionResults} /></Suspense>;
 
   // Secondary Screens that don't show the bottom nav
-  if (location.pathname === '/student/avatar') return <AvatarBuilder onBack={() => navigate('/student/profile')} onSave={handleAvatarSave} initialConfig={avatarConfig} />;
-  if (location.pathname === '/student/settings') return <Settings onBack={() => navigate('/student/profile')} onSignOut={onSignOut} />;
-  if (location.pathname === '/student/help') return <HelpCenter onBack={() => navigate('/student/settings')} />;
-  if (location.pathname === '/student/practice') return <PracticeMenu onBack={() => navigate('/student')} onNavigate={(view) => navigate(`/student/${view}`)} />;
+  if (location.pathname === '/student/avatar') return <Suspense fallback={<PageLoader />}><AvatarBuilder onBack={() => navigate('/student/profile')} onSave={handleAvatarSave} initialConfig={avatarConfig} /></Suspense>;
+  if (location.pathname === '/student/settings') return <Suspense fallback={<PageLoader />}><Settings onBack={() => navigate('/student/profile')} onSignOut={onSignOut} /></Suspense>;
+  if (location.pathname === '/student/help') return <Suspense fallback={<PageLoader />}><HelpCenter onBack={() => navigate('/student/settings')} /></Suspense>;
+  if (location.pathname === '/student/practice') return <Suspense fallback={<PageLoader />}><PracticeMenu onBack={() => navigate('/student')} onNavigate={(view) => navigate(`/student/${view}`)} /></Suspense>;
 
   // Tab views (map, leaderboard, quests, shop, profile) share the main layout with bottom nav
   return (
@@ -312,7 +300,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               className="flex items-center gap-1 text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded-lg hover:bg-purple-100 transition-colors"
             >
               <Users size={16} />
-              <span className="text-sm">Join Class</span>
+              <span className="text-sm">{t('student.joinClass')}</span>
             </button>
             <div className="flex items-center gap-1 text-orange-500 font-bold bg-orange-50 px-2 py-1 rounded-lg">
               <span className="text-lg">🔥</span> {userStats.streak}
@@ -341,11 +329,11 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   {state.status === 'LIVE' && (
                     <div className="bg-duo-green text-white p-4 m-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce cursor-pointer" onClick={handleLiveClassClick}>
                       <div>
-                        <h3 className="font-bold text-lg">Live Class Started!</h3>
-                        <p className="text-sm opacity-90">Your teacher is waiting for you.</p>
+                        <h3 className="font-bold text-lg">{t('student.liveClass')}</h3>
+                        <p className="text-sm opacity-90">{t('student.teacherWaiting')}</p>
                       </div>
                       <button className="bg-white text-duo-green px-4 py-2 rounded-xl font-bold hover:bg-green-50 transition-colors">
-                        Join Now
+                        {t('student.joinNow')}
                       </button>
                     </div>
                   )}
@@ -353,7 +341,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   <div className="mx-4 mt-4 mb-2">
                     <div className="flex items-center gap-2 mb-3">
                       <FileText size={20} className="text-orange-500" />
-                      <h2 className="font-bold text-slate-800">Pending Homework</h2>
+                      <h2 className="font-bold text-slate-800">{t('student.pendingHomework')}</h2>
                       {assignments.filter(a => a.student_status === 'pending').length > 0 && (
                         <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">
                           {assignments.filter(a => a.student_status === 'pending').length}
@@ -363,15 +351,15 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                     <div className="space-y-2">
                       {loadingAssignments ? (
                         <div className="bg-white rounded-xl p-4 text-center text-slate-500">
-                          Loading assignments...
+                          {t('common.loading')}
                         </div>
                       ) : assignments.filter(a => a.student_status === 'pending').length === 0 ? (
                         <div className="bg-white rounded-xl p-6 text-center border border-slate-100">
                           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <CheckCircle size={32} className="text-green-500" />
                           </div>
-                          <h3 className="font-bold text-slate-800 mb-1">All caught up!</h3>
-                          <p className="text-sm text-slate-500">No pending homework. Great job!</p>
+                          <h3 className="font-bold text-slate-800 mb-1">{t('student.allCaughtUp')}</h3>
+                          <p className="text-sm text-slate-500">{t('student.noPendingHomework')}</p>
                         </div>
                       ) : (
                         assignments
@@ -399,7 +387,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                                   onClick={() => handleMarkAsDone(assignment.id)}
                                   className="ml-2 px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:bg-green-600 transition-colors"
                                 >
-                                  Mark Done
+                                  {t('student.markDone')}
                                 </button>
                               </div>
                             </div>
@@ -417,10 +405,10 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   }} />
                 </>
               } />
-              <Route path="/leaderboard" element={<Leaderboard onBack={() => navigate('/student')} />} />
-              <Route path="/quests" element={<Quests onBack={() => navigate('/student')} />} />
-              <Route path="/shop" element={<Shop onBack={() => navigate('/student')} gemCount={userStats.gems} />} />
-              <Route path="/profile" element={<Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} avatarConfig={avatarConfig} stats={userStats} />} />
+              <Route path="/leaderboard" element={<RouteErrorBoundary name="leaderboard"><Leaderboard onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
+              <Route path="/quests" element={<RouteErrorBoundary name="quests"><Quests onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
+              <Route path="/shop" element={<RouteErrorBoundary name="shop"><Shop onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
+              <Route path="/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} avatarConfig={avatarConfig} stats={userStats} /></RouteErrorBoundary>} />
               <Route path="*" element={<Navigate to="/student" replace />} />
             </Routes>
           </motion.div>
@@ -434,35 +422,35 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <Home size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">Learn</span>
+          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.learn')}</span>
         </button>
         <button
           onClick={() => navigate('/student/leaderboard')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/leaderboard' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <Trophy size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">Rank</span>
+          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.rank')}</span>
         </button>
         <button
           onClick={() => navigate('/student/quests')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/quests' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <BookOpen size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">Quests</span>
+          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.quests')}</span>
         </button>
         <button
           onClick={() => navigate('/student/shop')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/shop' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <ShoppingBag size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">Shop</span>
+          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.shop')}</span>
         </button>
         <button
           onClick={() => navigate('/student/profile')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/profile' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <User size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">Profile</span>
+          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.profile')}</span>
         </button>
       </nav>
 
@@ -484,7 +472,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Join a Class</h2>
+                <h2 className="text-xl font-bold text-slate-800">{t('student.joinClass')}</h2>
                 <button
                   onClick={() => setShowJoinClassModal(false)}
                   className="text-slate-400 hover:text-slate-600"
@@ -493,7 +481,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                 </button>
               </div>
 
-              <p className="text-slate-600 mb-4">Enter the 6-character code from your teacher to join their class.</p>
+              <p className="text-slate-600 mb-4">{t('student.enterCode')}</p>
 
               <input
                 type="text"
@@ -513,7 +501,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
               {enrolledClasses.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs font-bold text-slate-400 uppercase mb-2">Your Classes</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase mb-2">{t('student.yourClasses')}</p>
                   <div className="flex flex-wrap gap-2">
                     {enrolledClasses.map((cls) => (
                       <span key={cls.id} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
@@ -527,7 +515,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               <button
                 onClick={async () => {
                   if (classCodeInput.length !== 6) {
-                    setJoinError('Please enter a 6-character code');
+                    setJoinError(t('student.codeRequired'));
                     return;
                   }
                   setIsJoining(true);
@@ -535,13 +523,13 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   try {
                     const classData = await findClassByCode(classCodeInput);
                     if (!classData) {
-                      setJoinError('Class not found. Check the code and try again.');
+                      setJoinError(t('student.classNotFound'));
                       setIsJoining(false);
                       return;
                     }
                     const { data: { user } } = await supabase.auth.getUser();
                     if (!user) {
-                      setJoinError('Please sign in to join a class');
+                      setJoinError(t('auth.login'));
                       setIsJoining(false);
                       return;
                     }
@@ -549,14 +537,12 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                     toast.success(`Welcome to ${classData.name}!`, { icon: '🎉' });
                     setShowJoinClassModal(false);
                     setClassCodeInput('');
-                    // Refresh enrolled classes
-                    const classes = await getStudentClasses(user.id);
-                    setEnrolledClasses(classes);
+                    await queryClient.invalidateQueries({ queryKey: ['studentClasses', user.id] });
                   } catch (error: any) {
                     if (error.code === '23505') {
-                      setJoinError('You are already in this class!');
+                      setJoinError(t('student.alreadyEnrolled'));
                     } else {
-                      setJoinError('Failed to join class. Please try again.');
+                      setJoinError(t('student.joinFailed'));
                     }
                   } finally {
                     setIsJoining(false);
@@ -565,7 +551,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                 disabled={isJoining || classCodeInput.length !== 6}
                 className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isJoining ? 'Joining...' : 'Join Class'}
+                {isJoining ? t('common.loading') : t('student.joinClass')}
               </button>
             </motion.div>
           </motion.div>

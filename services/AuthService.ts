@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createClientLogger } from './logger';
+
+const log = createClientLogger('AuthService');
 
 export type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
 
@@ -53,7 +56,7 @@ export async function signInWithPassword(
 
         // Self-Healing: If profile doesn't exist, create it
         if (!profile) {
-            console.log('Profile not found, attempting self-healing...');
+            log.info('profile_self_healing_attempt', { metadata: { email: data.user.email } });
 
             // Wait briefly to allow RLS policies or trigger to catch up
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -73,7 +76,7 @@ export async function signInWithPassword(
                 .single();
 
             if (insertError) {
-                console.error('Self-healing failed:', insertError);
+                log.warn('self_healing_failed', { error: insertError?.message || String(insertError) });
                 return {
                     success: false,
                     error: 'Profile setup incomplete. Please try signing up again or contact support.'
@@ -81,7 +84,7 @@ export async function signInWithPassword(
             }
 
             profile = newProfile;
-            console.log('Profile self-healed successfully:', profile);
+            log.info('profile_self_healed', { metadata: { profileId: profile.id } });
         }
 
         return {

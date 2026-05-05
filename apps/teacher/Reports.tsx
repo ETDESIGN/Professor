@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { getTeacherStudents, getClassAnalytics, StudentWithProgress, ClassAnalytics } from '../../services/DataService';
 import { useAppStore } from '../../store/useAppStore';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('Reports');
 
 const Reports: React.FC = () => {
    const [timeframe, setTimeframe] = useState('This Week');
@@ -27,7 +30,7 @@ const Reports: React.FC = () => {
                setAnalytics(classAnalytics);
             }
          } catch (error) {
-            console.error('Error fetching data:', error);
+             log.warn('error_fetching_data', { error: error instanceof Error ? error.message : String(error) });
          } finally {
             setLoading(false);
          }

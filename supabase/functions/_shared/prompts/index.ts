@@ -60,16 +60,6 @@ Approved assets: {{approvedAssets}}
 
 Generate a lesson timeline with activity blocks.`,
   },
-
-  pronunciationFeedback: {
-    id: 'pron-feedback-v1',
-    version: 1,
-    systemPrompt: `You are a pronunciation evaluator. Given an audio transcription and a target text, evaluate pronunciation accuracy. Return ONLY valid JSON: {"transcript": "string", "confidence": number, "emotion_score": number}`,
-    userPromptTemplate: `Target text: "{{targetText}}"
-Target emotion: {{targetEmotion}}
-
-Analyze this audio and provide your evaluation.`,
-  },
 } as const;
 
 export type PromptId = keyof typeof PROMPTS;

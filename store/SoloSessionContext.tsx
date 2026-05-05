@@ -3,6 +3,9 @@ import { Engine, LessonUnit } from '../services/SupabaseService';
 import { SessionContextType } from './SessionContext';
 import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
 import { supabase } from '../services/supabaseClient';
+import { createClientLogger } from '../services/logger';
+
+const log = createClientLogger('SoloSessionContext');
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
 
@@ -78,7 +81,7 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       const progress = await Engine.getStudentProgress();
       setState(prev => ({ ...prev, studentProgress: progress }));
     } catch (error) {
-      console.error('SoloSession: Error loading progress:', error);
+      log.warn('error_loading_progress', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -87,7 +90,7 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       const units = await Engine.fetchUnits();
       setState(prev => ({ ...prev, units }));
     } catch (error) {
-      console.error('SoloSession: Error loading units:', error);
+      log.warn('error_loading_units', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -109,7 +112,7 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       }));
       setState(prev => ({ ...prev, students: mappedStudents }));
     } catch (error) {
-      console.error('SoloSession: Error loading students:', error);
+      log.warn('error_loading_students', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 
@@ -136,7 +139,7 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
           await Engine.ensureStudentSRSItems(unitId, user.id);
         }
       } catch (err) {
-        console.error('SoloSession: SRS clone error:', err);
+        log.warn('srs_clone_error', { error: err instanceof Error ? err.message : String(err) });
       }
     }
   };
@@ -274,7 +277,14 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
     setQuietMode,
     updateNoiseLevel,
     unlockNextLevel,
-  };
+    __recordAnswer: (correct: boolean) => {
+      setState((prev: SoloSessionState) => ({
+        ...prev,
+        totalCorrect: prev.totalCorrect + (correct ? 1 : 0),
+        totalAttempts: prev.totalAttempts + 1,
+      }));
+    },
+  } as any;
 
   return (
     <SoloSessionContext.Provider value={contextValue}>
@@ -290,12 +300,7 @@ export const useSoloSession = () => {
     ...context,
     state: context.state as SoloSessionState,
     recordAnswer: (correct: boolean) => {
-      const currentState = context.state as SoloSessionState;
-      (context as any).setState?.((prev: SoloSessionState) => ({
-        ...prev,
-        totalCorrect: prev.totalCorrect + (correct ? 1 : 0),
-        totalAttempts: prev.totalAttempts + 1,
-      }));
+      (context as any).__recordAnswer?.(correct);
     },
   };
 };

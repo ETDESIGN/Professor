@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { speakText } from '../../services/SpeechService';
 import { toast } from 'sonner';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('DubbingStudio');
 
 interface DubbingResult {
   score: number;
@@ -121,7 +124,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
       });
 
       if (error) {
-        console.error('Edge function error:', error.message);
+        log.warn('edge_function_error', { error: error.message });
         return null;
       }
 
@@ -153,7 +156,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
             });
           }
         } catch (storageErr) {
-          console.warn('Recording storage failed:', storageErr);
+          log.warn('recording_storage_failed', { error: storageErr instanceof Error ? storageErr.message : String(storageErr) });
         }
 
         return result;
@@ -161,7 +164,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
 
       return null;
     } catch (err) {
-      console.error('Evaluation failed:', err);
+      log.warn('evaluation_failed', { error: err instanceof Error ? err.message : String(err) });
       return null;
     }
   };
@@ -249,7 +252,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
       }, 100);
 
     } catch (err) {
-      console.error("Mic Error:", err);
+      log.warn('mic_error', { error: err instanceof Error ? err.message : String(err) });
       alert("Microphone access denied.");
     }
   };

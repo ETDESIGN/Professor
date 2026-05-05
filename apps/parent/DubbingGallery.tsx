@@ -4,6 +4,9 @@ import { ChevronLeft, Share2, Download, MoreHorizontal, Play, Star, X } from 'lu
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('DubbingGallery');
 
 interface DubbingGalleryProps {
   onBack: () => void;
@@ -52,7 +55,7 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
         setRecordings(items);
       }
     } catch (err) {
-      console.error('Failed to load recordings:', err);
+      log.warn('failed_to_load_recordings', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoading(false);
     }

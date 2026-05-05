@@ -1,9 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Calendar, Clock, Users, CheckCircle, Bell, ArrowRight, Play, MessageSquare, Zap, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
-import { getClassAnalytics, getTeacherStudents, ClassAnalytics, StudentWithProgress } from '../../services/DataService';
+import { getClassAnalytics, getTeacherStudents } from '../../services/DataService';
+import { useUnits } from '../../hooks/useQueries';
+import { useQuery } from '@tanstack/react-query';
+import { createClientLogger } from '../../services/logger';
+
+const log = createClientLogger('DashboardHome');
 
 interface DashboardHomeProps {
   onLaunchLive?: () => void;
@@ -11,29 +16,18 @@ interface DashboardHomeProps {
 
 const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
   const { userProfile } = useAppStore();
-  const [analytics, setAnalytics] = useState<ClassAnalytics | null>(null);
-  const [students, setStudents] = useState<StudentWithProgress[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userProfile?.id) return;
-
-      try {
-        const [classAnalytics, teacherStudents] = await Promise.all([
-          getClassAnalytics(userProfile.id),
-          getTeacherStudents(userProfile.id)
-        ]);
-        setAnalytics(classAnalytics);
-        setStudents(teacherStudents);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [userProfile?.id]);
+  const { isLoading: isLoadingUnits } = useUnits();
+  const { data: analytics } = useQuery({
+    queryKey: ['classAnalytics', userProfile?.id],
+    queryFn: () => getClassAnalytics(userProfile!.id!),
+    enabled: !!userProfile?.id,
+  });
+  const { data: students = [], isLoading: isLoadingStudents } = useQuery({
+    queryKey: ['teacherStudents', userProfile?.id],
+    queryFn: () => getTeacherStudents(userProfile!.id!),
+    enabled: !!userProfile?.id,
+  });
+  const loading = isLoadingUnits || isLoadingStudents || !analytics;
 
   if (loading) {
     return (

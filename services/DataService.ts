@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { toast } from 'sonner';
+import { createClientLogger } from './logger';
+
+const log = createClientLogger('DataService');
 
 export interface ClassData {
     id: string;
@@ -43,7 +46,7 @@ export async function getTeacherClasses(teacherId: string): Promise<ClassData[]>
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching classes:', error);
+        log.warn('error_fetching_classes', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -75,7 +78,7 @@ export async function getClassStudents(classId: string): Promise<StudentWithProg
         .eq('class_id', classId);
 
     if (error) {
-        console.error('Error fetching class students:', error);
+        log.warn('error_fetching_class_students', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -104,7 +107,7 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         .eq('teacher_id', teacherId);
 
     if (classError) {
-        console.error('Error fetching teacher classes:', classError);
+        log.warn('error_fetching_teacher_classes', { error: classError?.message || String(classError) });
         throw classError;
     }
 
@@ -118,7 +121,7 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         .in('class_id', classIds);
 
     if (enrollmentError) {
-        console.error('Error fetching enrollments:', enrollmentError);
+        log.warn('error_fetching_enrollments', { error: enrollmentError?.message || String(enrollmentError) });
         throw enrollmentError;
     }
 
@@ -133,7 +136,7 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         .in('id', studentIds);
 
     if (profileError) {
-        console.error('Error fetching student profiles:', profileError);
+        log.warn('error_fetching_student_profiles', { error: profileError?.message || String(profileError) });
         throw profileError;
     }
 
@@ -144,7 +147,7 @@ export async function getTeacherStudents(teacherId: string): Promise<StudentWith
         .in('student_id', studentIds);
 
     if (progressError) {
-        console.error('Error fetching student progress:', progressError);
+        log.warn('error_fetching_student_progress', { error: progressError?.message || String(progressError) });
         // Don't throw - use default progress values
     }
 
@@ -191,12 +194,12 @@ export async function getStudentProgress(studentId: string): Promise<{
     ]);
 
     if (progressRes.error) {
-        console.error('Error fetching student progress:', progressRes.error);
+        log.warn('error_fetching_student_progress', { error: progressRes.error?.message || String(progressRes.error) });
         throw progressRes.error;
     }
 
     if (srsRes.error) {
-        console.error('Error fetching SRS items:', srsRes.error);
+        log.warn('error_fetching_srs_items', { error: srsRes.error?.message || String(srsRes.error) });
         throw srsRes.error;
     }
 
@@ -227,7 +230,7 @@ export async function createClass(
         .single();
 
     if (error) {
-        console.error('Error creating class:', error);
+        log.warn('error_creating_class', { error: error?.message || String(error) });
         toast.error('Failed to create class. Please try again.');
         throw error;
     }
@@ -251,7 +254,7 @@ export async function enrollStudent(
         });
 
     if (error) {
-        console.error('Error enrolling student:', error);
+        log.warn('error_enrolling_student', { error: error?.message || String(error) });
         toast.error('Failed to join class. Please check the code and try again.');
         throw error;
     }
@@ -275,7 +278,7 @@ export async function findClassByCode(code: string): Promise<ClassData | null> {
             // No rows returned - class not found
             return null;
         }
-        console.error('Error finding class:', error);
+        log.warn('error_finding_class', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -294,7 +297,7 @@ export async function getStudentClasses(studentId: string): Promise<ClassData[]>
         .eq('student_id', studentId);
 
     if (error) {
-        console.error('Error fetching student classes:', error);
+        log.warn('error_fetching_student_classes', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -317,12 +320,15 @@ export interface ClassAnalytics {
 
 /**
  * Get class analytics for a teacher
- * Calculates deterministic metrics from real student data
+ * Utilizes the Supabase view for efficient DB-side aggregation
  */
 export async function getClassAnalytics(teacherId: string): Promise<ClassAnalytics> {
-    const students = await getTeacherStudents(teacherId);
+    const { data, error } = await supabase
+        .from('class_analytics_view')
+        .select('*')
+        .eq('teacher_id', teacherId);
 
-    if (students.length === 0) {
+    if (error || !data || data.length === 0) {
         return {
             totalStudents: 0,
             totalXp: 0,
@@ -335,29 +341,17 @@ export async function getClassAnalytics(teacherId: string): Promise<ClassAnalyti
         };
     }
 
-    // Calculate deterministic metrics
-    const totalXp = students.reduce((sum, s) => sum + (s.xp || 0), 0);
-    const avgXpPerStudent = Math.round(totalXp / students.length);
+    const totalStudents = data.reduce((sum, row) => sum + row.total_students, 0);
+    const totalXp = data.reduce((sum, row) => sum + row.total_xp, 0);
+    const avgXpPerStudent = totalStudents > 0 ? Math.round(totalXp / totalStudents) : 0;
 
-    // Mastery: Average completed units per student (as percentage)
-    // Assuming 10 units total for baseline
-    const TOTAL_UNITS = 10;
-    const totalCompletions = students.reduce((sum, s) => sum + (s.completed_unit_ids?.length || 0), 0);
-    const mastery = Math.round((totalCompletions / students.length / TOTAL_UNITS) * 100);
+    const classCount = data.length;
+    const mastery = Math.round(data.reduce((sum, row) => sum + row.mastery_percent, 0) / classCount);
+    const engagement = Math.round(data.reduce((sum, row) => sum + row.engagement_percent, 0) / classCount);
+    const completion = Math.round(data.reduce((sum, row) => sum + row.completion_percent, 0) / classCount);
 
-    // Engagement: Based on average streak (max 100 for streak of 30+ days)
-    const totalStreak = students.reduce((sum, s) => sum + (s.streak || 0), 0);
-    const avgStreak = totalStreak / students.length;
-    const engagement = Math.min(100, Math.round(avgStreak * 3.33)); // 30-day streak = 100%
-
-    // Completion: % of students with active current_unit_id
-    const studentsWithCurrentUnit = students.filter(s => s.current_unit_id).length;
-    const completion = Math.round((studentsWithCurrentUnit / students.length) * 100);
-
-    // Time spent: Deterministic proxy based on XP (15 XP per minute of activity)
     const timeSpent = Math.round(totalXp / 15);
 
-    // Skills: Drive strictly from real xp, do not show if no xp exists.
     let skills: { name: string; score: number; color: string }[] = [];
     if (avgXpPerStudent > 0) {
         skills = [
@@ -367,12 +361,12 @@ export async function getClassAnalytics(teacherId: string): Promise<ClassAnalyti
     }
 
     return {
-        totalStudents: students.length,
+        totalStudents,
         totalXp,
         avgXpPerStudent,
         mastery: Math.min(100, mastery),
         engagement: Math.min(100, engagement),
-        completion: Math.min(100, completion),
+        completion: Math.min(100, Math.max(0, completion || 0)),
         skills,
         timeSpent
     };
@@ -396,7 +390,7 @@ export async function getParentStudents(parentId: string): Promise<StudentWithPr
         .eq('parent_id', parentId);
 
     if (error) {
-        console.error('Error fetching parent-student links:', error);
+        log.warn('error_fetching_parent_student_links', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -413,7 +407,7 @@ export async function getParentStudents(parentId: string): Promise<StudentWithPr
                 .single();
 
             if (progressError) {
-                console.error('Error fetching student progress for student:', studentId, progressError);
+                log.warn('error_fetching_student_progress_for_student', { error: progressError?.message || String(progressError), metadata: { studentId } });
                 // Don't throw, just use default values
             }
 
@@ -511,7 +505,7 @@ export async function createAssignment(
         .single();
 
     if (error) {
-        console.error('Error creating assignment:', error);
+        log.warn('error_creating_assignment', { error: error?.message || String(error) });
         toast.error('Failed to create assignment. Please try again.');
         throw error;
     }
@@ -532,7 +526,7 @@ export async function getClassAssignments(classId: string): Promise<Assignment[]
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching class assignments:', error);
+        log.warn('error_fetching_class_assignments', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -569,7 +563,7 @@ export async function getStudentAssignments(studentId: string): Promise<Assignme
         .order('assignments(due_date)', { ascending: true, nullsFirst: false });
 
     if (error) {
-        console.error('Error fetching student assignments:', error);
+        log.warn('error_fetching_student_assignments', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -616,7 +610,7 @@ export async function updateStudentAssignmentStatus(
         .eq('id', studentAssignmentId);
 
     if (error) {
-        console.error('Error updating student assignment:', error);
+        log.warn('error_updating_student_assignment', { error: error?.message || String(error) });
         toast.error('Failed to update assignment status');
         throw error;
     }
@@ -652,7 +646,7 @@ export async function sendMessage(
         .single();
 
     if (error) {
-        console.error('Error sending message:', error);
+        log.warn('error_sending_message', { error: error?.message || String(error) });
         toast.error('Failed to send message');
         throw error;
     }
@@ -682,7 +676,7 @@ export async function getUserMessages(userId: string): Promise<MessageWithSender
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching user messages:', error);
+        log.warn('error_fetching_user_messages', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -711,7 +705,7 @@ export async function getUnreadMessageCount(userId: string): Promise<number> {
         .eq('read', false);
 
     if (error) {
-        console.error('Error fetching unread message count:', error);
+        log.warn('error_fetching_unread_message_count', { error: error?.message || String(error) });
         throw error;
     }
 
@@ -728,7 +722,7 @@ export async function markMessageAsRead(messageId: string): Promise<void> {
         .eq('id', messageId);
 
     if (error) {
-        console.error('Error marking message as read:', error);
+        log.warn('error_marking_message_as_read', { error: error?.message || String(error) });
         throw error;
     }
 }

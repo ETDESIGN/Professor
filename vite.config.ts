@@ -42,7 +42,14 @@ export default defineConfig(({ mode }) => {
           short_name: 'Lessons',
           description: 'Interactive lesson platform for students and teachers',
           theme_color: '#ffffff',
-          icons: []
+          icons: [
+            {
+              src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="%234f46e5"/><text x="256" y="340" font-size="280" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold">P</text></svg>',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ]
         },
         workbox: {
           maximumFileSizeToCacheInBytes: 5000000,
