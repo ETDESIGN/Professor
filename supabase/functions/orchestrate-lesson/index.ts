@@ -120,31 +120,31 @@ serve(async (req) => {
         .replace('{{approvedAssets}}', JSON.stringify(approvedAssets));
 
       try {
-        let aiResponse;
+        let aiResponse: Response | null = null;
+        const models = [
+          Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
+          Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+        ];
 
-        const makeAiRequest = async (modelName: string) => {
-          return fetch(`${aiBaseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: modelName,
-              messages: [
-                { role: 'system', content: prompt.systemPrompt },
-                { role: 'user', content: userPrompt },
-              ],
-              temperature: 0.4,
-            }),
-          });
-        };
-
-        try {
-          aiResponse = await makeAiRequest(Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free');
-          if (!aiResponse.ok) throw new Error('Primary Model Failed');
-        } catch {
-          aiResponse = await makeAiRequest(Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free');
+        for (const modelName of models) {
+          try {
+            const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                model: modelName,
+                messages: [
+                  { role: 'system', content: prompt.systemPrompt },
+                  { role: 'user', content: userPrompt },
+                ],
+                temperature: 0.4,
+              }),
+            });
+            if (resp.ok) { aiResponse = resp; break; }
+          } catch { /* try next model */ }
         }
 
-        if (aiResponse.ok) {
+        if (aiResponse) {
           const aiData = await aiResponse.json();
 
           if (aiData.usage && supabaseUrl && supabaseKey) {

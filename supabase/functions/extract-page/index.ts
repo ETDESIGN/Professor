@@ -55,29 +55,39 @@ serve(async (req) => {
       },
     ];
 
-    let aiResponse;
-    const makeAiRequest = async (modelName: string) => {
-      return fetch(`${aiBaseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelName,
-          messages,
-          temperature: 0.1,
-          max_tokens: 1000,
-        }),
-      });
-    };
+    let aiResponse: Response | null = null;
+    let lastError = '';
+    const models = [
+      Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'openai/gpt-4o-mini',
+    ];
 
-    try {
-      aiResponse = await makeAiRequest(Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free');
-      if (!aiResponse.ok) throw new Error('Primary Vision Model Failed');
-    } catch {
-      aiResponse = await makeAiRequest(Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'openai/gpt-4o-mini');
+    for (const modelName of models) {
+      try {
+        const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: modelName, messages, temperature: 0.1, max_tokens: 1000 }),
+        });
+        if (resp.ok) { aiResponse = resp; break; }
+        const errBody = await resp.text().catch(() => '');
+        lastError = `Model ${modelName} returned ${resp.status}: ${errBody.slice(0, 200)}`;
+      } catch (err: any) {
+        lastError = `Model ${modelName} fetch failed: ${err.message}`;
+      }
     }
 
-    if (!aiResponse.ok) {
-      throw new Error(`Vision AI error: ${aiResponse.status}`);
+    if (!aiResponse) {
+      return {
+        success: true,
+        url: inputUrl,
+        metadata: {
+          extractedText: `Text extraction unavailable (${lastError}). Please try again later.`,
+          pageCount: 1,
+          language: 'en',
+          _debug: lastError,
+        },
+      };
     }
 
     const aiData = await aiResponse.json();

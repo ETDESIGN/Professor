@@ -55,7 +55,14 @@ export default defineConfig(({ mode }) => {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           cleanupOutdatedCaches: true,
-          navigateFallbackDenylist: [/^\/upload/],
+          navigateFallbackDenylist: [
+            /^\/api\/.*/,
+            /^\/auth\/.*/,
+            /^\/rest\/.*/,
+            /^\/realtime\/.*/,
+            /^\/functions\/.*/,
+          ],
+          navigateFallback: '/index.html',
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
@@ -69,6 +76,24 @@ export default defineConfig(({ mode }) => {
                 cacheableResponse: {
                   statuses: [0, 200]
                 }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-stylesheets',
+                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-webfonts',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] }
               }
             }
           ]

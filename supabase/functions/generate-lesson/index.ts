@@ -35,30 +35,31 @@ serve(async (req) => {
         .replace('{{text}}', text)
         .replace('{{theme}}', theme);
 
-      let aiResponse;
-      const makeAiRequest = async (modelName: string) => {
-        return fetch(`${aiBaseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: modelName,
-            messages: [
-              { role: 'system', content: prompt.systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.3,
-          }),
-        });
-      };
+      let aiResponse: Response | null = null;
+      const models = [
+        Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
+        Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+      ];
 
-      try {
-        aiResponse = await makeAiRequest(Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free');
-        if (!aiResponse.ok) throw new Error('Primary Model Failed');
-      } catch {
-        aiResponse = await makeAiRequest(Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free');
+      for (const modelName of models) {
+        try {
+          const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelName,
+              messages: [
+                { role: 'system', content: prompt.systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              temperature: 0.3,
+            }),
+          });
+          if (resp.ok) { aiResponse = resp; break; }
+        } catch { /* try next model */ }
       }
 
-      if (aiResponse.ok) {
+      if (aiResponse) {
         const aiData = await aiResponse.json();
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -155,30 +156,41 @@ serve(async (req) => {
       });
     }
 
-    let lessonAiResponse;
-    const makeLessonRequest = async (modelName: string) => {
-      return fetch(`${aiBaseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: modelName,
-          messages,
-          temperature: 0.7,
-          max_tokens: 2000,
-        }),
-      });
-    };
+    let lessonAiResponse: Response | null = null;
+    const lessonModels = [
+      Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
+      Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+    ];
 
-    try {
-      lessonAiResponse = await makeLessonRequest(Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free');
-      if (!lessonAiResponse.ok) throw new Error('Primary Model Failed');
-    } catch {
-      lessonAiResponse = await makeLessonRequest(Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free');
+    for (const modelName of lessonModels) {
+      try {
+        const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: modelName, messages, temperature: 0.7, max_tokens: 2000 }),
+        });
+        if (resp.ok) { lessonAiResponse = resp; break; }
+      } catch { /* try next model */ }
     }
 
-    if (!lessonAiResponse.ok) {
-      const errText = await lessonAiResponse.text();
-      throw new Error(`AI provider error: ${lessonAiResponse.status} - ${errText}`);
+    if (!lessonAiResponse) {
+      return {
+        textContent: {
+          title: `${topic} Lesson`,
+          description: `A lesson about ${topic} for ${gradeLevel} students.`,
+          visual_prompt: `Educational illustration about ${topic}`,
+          spoken_intro: `Welcome to today's lesson about ${topic}!`,
+          vocabulary: [
+            { word: topic, definition: `The main topic of this lesson`, image_prompt: `Illustration of ${topic}` },
+          ],
+          grammarRules: [{ rule: 'Basic Sentence Structure', explanation: 'Subject + Verb + Object' }],
+          sentences: [
+            { original: `We are learning about ${topic}.`, translation: `We are studying ${topic}.` },
+          ],
+        },
+        imageUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(topic)}`,
+        audioUrl: null,
+      };
     }
 
     const aiData = await lessonAiResponse.json();
