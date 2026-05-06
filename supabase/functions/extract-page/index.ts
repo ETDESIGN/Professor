@@ -56,10 +56,11 @@ serve(async (req) => {
     ];
 
     let aiResponse: Response | null = null;
+    let aiContent = '';
     let lastError = '';
     const models = [
-      Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
-      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'openai/gpt-4o-mini',
+      Deno.env.get('VISION_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
+      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'qwen/qwen2.5-vl-72b-instruct:free',
     ];
 
     for (const modelName of models) {
@@ -69,9 +70,20 @@ serve(async (req) => {
           headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ model: modelName, messages, temperature: 0.1, max_tokens: 1000 }),
         });
-        if (resp.ok) { aiResponse = resp; break; }
-        const errBody = await resp.text().catch(() => '');
-        lastError = `Model ${modelName} returned ${resp.status}: ${errBody.slice(0, 200)}`;
+        if (!resp.ok) {
+          const errBody = await resp.text().catch(() => '');
+          lastError = `Model ${modelName} returned ${resp.status}: ${errBody.slice(0, 200)}`;
+          continue;
+        }
+        const data = await resp.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        if (content.toLowerCase().includes('does not support image') || content.toLowerCase().includes('cannot read')) {
+          lastError = `Model ${modelName} does not support image input`;
+          continue;
+        }
+        aiResponse = resp;
+        aiContent = content;
+        break;
       } catch (err: any) {
         lastError = `Model ${modelName} fetch failed: ${err.message}`;
       }
@@ -90,8 +102,7 @@ serve(async (req) => {
       };
     }
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '';
+    const content = aiContent;
 
     try {
       const raw = content.replace(/```json/g, '').replace(/```/g, '').trim();
