@@ -55,6 +55,9 @@ export default defineConfig(({ mode }) => {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           cleanupOutdatedCaches: true,
+          // Force new SW to take control immediately — prevents stale CSP/content issues
+          skipWaiting: true,
+          clientsClaim: true,
           navigateFallbackDenylist: [
             /^\/api\/.*/,
             /^\/auth\/.*/,
@@ -65,12 +68,15 @@ export default defineConfig(({ mode }) => {
           navigateFallback: '/index.html',
           runtimeCaching: [
             {
+              // NetworkFirst: SW gracefully falls back to cache when network/CSP blocks
+              // the request, preventing uncaught errors in the dicebear CSP console flood.
               urlPattern: /^https:\/\/api\.dicebear\.com\/.*/i,
-              handler: 'CacheFirst',
+              handler: 'NetworkFirst',
               options: {
                 cacheName: 'dicebear-avatars',
+                networkTimeoutSeconds: 3,
                 expiration: {
-                  maxEntries: 50,
+                  maxEntries: 100,
                   maxAgeSeconds: 60 * 60 * 24 * 30
                 },
                 cacheableResponse: {

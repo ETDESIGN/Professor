@@ -396,34 +396,36 @@ export async function getParentStudents(parentId: string): Promise<StudentWithPr
 
     if (!links || links.length === 0) return [];
 
-    // Get progress for each student
-    const studentsWithProgress = await Promise.all(
-        links.map(async (link: any) => {
-            const studentId = link.student_id;
-            const { data: progress, error: progressError } = await supabase
-                .from('student_progress')
-                .select('*')
-                .eq('student_id', studentId)
-                .single();
+    const studentIds = links.map((link: any) => link.student_id);
 
-            if (progressError) {
-                log.warn('error_fetching_student_progress_for_student', { error: progressError?.message || String(progressError), metadata: { studentId } });
-                // Don't throw, just use default values
-            }
+    const { data: progressData, error: progressError } = await supabase
+        .from('student_progress')
+        .select('*')
+        .in('student_id', studentIds);
 
-            return {
-                id: link.profiles?.id,
-                email: link.profiles?.email,
-                full_name: link.profiles?.full_name,
-                avatar_url: link.profiles?.avatar_url,
-                student_id: studentId,
-                xp: progress?.xp || 0,
-                streak: progress?.streak || 0,
-                current_unit_id: progress?.current_unit_id || null,
-                completed_unit_ids: progress?.completed_unit_ids || [],
-            };
-        })
-    );
+    if (progressError) {
+        log.warn('error_fetching_progress_batch', { error: progressError?.message || String(progressError) });
+    }
+
+    const progressMap = new Map();
+    (progressData || []).forEach((p: any) => {
+        progressMap.set(p.student_id, p);
+    });
+
+    const studentsWithProgress = links.map((link: any) => {
+        const progress = progressMap.get(link.student_id) || {};
+        return {
+            id: link.profiles?.id,
+            email: link.profiles?.email,
+            full_name: link.profiles?.full_name,
+            avatar_url: link.profiles?.avatar_url,
+            student_id: link.student_id,
+            xp: progress.xp || 0,
+            streak: progress.streak || 0,
+            current_unit_id: progress.current_unit_id || null,
+            completed_unit_ids: progress.completed_unit_ids || [],
+        };
+    });
 
     return studentsWithProgress;
 }

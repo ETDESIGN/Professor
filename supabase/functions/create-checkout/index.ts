@@ -15,6 +15,7 @@ const supabase = createClient(
 Deno.serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'create-checkout',
+    requireAuth: true,
     rateLimit: { maxRequests: 10, windowMs: 60_000 },
     validationRules: [
       { field: 'priceId', required: true, type: 'string' },

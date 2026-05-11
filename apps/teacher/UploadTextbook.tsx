@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, Check, X, ArrowRight, Loader2, FileText, Trash2, Plus, AlertTriangle, ShieldCheck, ChevronRight, FileImage, Settings, Play } from 'lucide-react';
+import { UploadCloud, Check, X, ArrowRight, Loader2, FileText, Trash2, Plus, AlertTriangle, ShieldCheck, ChevronRight, FileImage, Settings, Play, Wand2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
@@ -7,6 +7,7 @@ import { AIService } from '../../services/AIService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { createClientLogger } from '../../services/logger';
+import AssetWorkshop from './AssetWorkshop';
 
 const log = createClientLogger('UploadTextbook');
 
@@ -21,8 +22,8 @@ const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, o
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
          {files.map((file: any, idx: number) => {
-            const scan = scans[idx];
-            return (
+             const scan = scans[idx];
+             return (
                <div
                   key={idx}
                   onClick={() => !isExtracting && setActiveFileIndex(idx)}
@@ -35,7 +36,7 @@ const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, o
                      <h4 className="text-sm font-bold text-slate-700 truncate">{file.name}</h4>
                      <div className="flex items-center gap-1 text-xs font-bold mt-1">
                         {scan && scan.status === 'success' ? (
-                            <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 20) || 'Page'} Extracted</span>
+                           <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 20) || 'Page'} Extracted</span>
                         ) : scan && scan.status === 'scanning' ? (
                            <span className="text-amber-500 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Scanning...</span>
                         ) : (
@@ -68,15 +69,15 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white shadow-sm z-10">
             <div>
                <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review & Edit</h2>
-                <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 30) || 'Draft'})` : 'Extraction Draft'}</p>
+               <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 30) || 'Draft'})` : 'Extraction Draft'}</p>
             </div>
             <button
                className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                disabled={!scan || scan.status !== 'success' || isOrchestrating}
                onClick={() => onApprove()}
             >
-               {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Approve & Generate Assets'}
-               {!isOrchestrating && <ChevronRight size={18} />}
+                {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Review & Enrich Content'}
+                {!isOrchestrating && <ChevronRight size={18} />}
             </button>
          </div>
 
@@ -111,19 +112,19 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                         <strong>Error:</strong> {scan.error}
                      </div>
                   ) : (
-                      <div className="space-y-6">
-                         {scan.data?.metadata?.extractedText && !scan.data?.pedagogy && !scan.data?.extracted_content && (
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                               <h3 className="font-bold text-blue-800 text-lg mb-2">Extracted Text</h3>
-                               <p className="text-sm text-blue-700 whitespace-pre-wrap">{scan.data.metadata.extractedText}</p>
-                               <div className="flex gap-2 mt-3 text-xs text-blue-500">
-                                  <span>Pages: {scan.data.metadata.pageCount || 1}</span>
-                                  <span>Language: {scan.data.metadata.language || 'en'}</span>
-                               </div>
-                            </div>
-                         )}
+                     <div className="space-y-6">
+                        {scan.data?.metadata?.extractedText && !scan.data?.pedagogy && !scan.data?.extracted_content && (
+                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <h3 className="font-bold text-blue-800 text-lg mb-2">Extracted Text</h3>
+                              <p className="text-sm text-blue-700 whitespace-pre-wrap">{scan.data.metadata.extractedText}</p>
+                              <div className="flex gap-2 mt-3 text-xs text-blue-500">
+                                 <span>Pages: {scan.data.metadata.pageCount || 1}</span>
+                                 <span>Language: {scan.data.metadata.language || 'en'}</span>
+                              </div>
+                           </div>
+                        )}
 
-                         {/* Rich Pedagogical Rendering */}
+                        {/* Rich Pedagogical Rendering */}
                         {scan.data?.pedagogy && (
                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h3 className="font-bold text-blue-800 text-lg mb-1">{scan.data.pedagogy.topic || "Unknown Topic"}</h3>
@@ -136,7 +137,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                         {scan.data?.extracted_content?.vocabulary && scan.data.extracted_content.vocabulary.length > 0 && (
+                        {scan.data?.extracted_content?.vocabulary && scan.data.extracted_content.vocabulary.length > 0 && (
                            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                               <h4 className="font-bold text-emerald-800 mb-3 flex items-center gap-2"><FileText size={16} /> Vocabulary Maps</h4>
                               <div className="grid grid-cols-2 gap-3">
@@ -150,7 +151,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                         {scan.data?.extracted_content?.comic_panels && scan.data.extracted_content.comic_panels.length > 0 && (
+                        {scan.data?.extracted_content?.comic_panels && scan.data.extracted_content.comic_panels.length > 0 && (
                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                               <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2"><FileImage size={16} /> Story & Comics</h4>
                               <div className="space-y-4">
@@ -171,7 +172,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                         {scan.data?.extracted_content?.grammar_boxes && scan.data.extracted_content.grammar_boxes.length > 0 && (
+                        {scan.data?.extracted_content?.grammar_boxes && scan.data.extracted_content.grammar_boxes.length > 0 && (
                            <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                               <h4 className="font-bold text-indigo-800 mb-3 flex items-center gap-2"><Settings size={16} /> Grammar & Formulas</h4>
                               <div className="space-y-3">
@@ -189,7 +190,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                            </div>
                         )}
 
-                         {scan.data?.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
+                        {scan.data?.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
                            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                               <h4 className="font-bold text-purple-800 mb-3 flex items-center gap-2"><Settings size={16} /> Exercises</h4>
                               <div className="space-y-3">
@@ -232,41 +233,31 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const [isExtracting, setIsExtracting] = useState<boolean>(false);
    const [isOrchestrating, setIsOrchestrating] = useState<boolean>(false);
    const [draftUnitId, setDraftUnitId] = useState<string | null>(null);
+   const [showWorkshop, setShowWorkshop] = useState<boolean>(false);
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
    const handleApprove = async () => {
-      // Phase A Fix: Surface error instead of silent return
       if (!draftUnitId) {
          toast.error('No draft unit found. Upload a page first.');
          return;
       }
+      const successScans = Object.values(scans).filter((s: any) => s.status === 'success');
+      if (successScans.length === 0) {
+         toast.error('No successfully extracted pages found.');
+         return;
+      }
+      setShowWorkshop(true);
+   };
+
+   const handleWorkshopOrchestrate = async (unitId: string, enriched: any) => {
+      setIsOrchestrating(true);
       try {
-         setIsOrchestrating(true);
-         log.info('approving_unit', { metadata: { unitId: draftUnitId } });
-
-         // Phase A Fix: Aggregate ALL successfully scanned pages, not just the current one
-         const allAssets = Object.values(scans)
-            .filter((s: any) => s.status === 'success')
-            .map((s: any) => s.data);
-
-         if (allAssets.length === 0) {
-            toast.error('No successfully extracted pages found.');
-            setIsOrchestrating(false);
-            return;
-         }
-
-         await AIService.orchestrateLesson(draftUnitId, allAssets);
-
          toast.success('Lesson orchestrated and published!');
          navigate('/teacher/curriculum');
-
-         if (onFinish) {
-            onFinish();
-         }
+         if (onFinish) onFinish();
       } catch (err: any) {
-         log.warn('orchestration_error', { error: err?.message || String(err) });
-         toast.error(err.message || "Failed to orchestrate lesson");
+         toast.error(err.message || 'Navigation failed');
       } finally {
          setIsOrchestrating(false);
       }
@@ -287,33 +278,33 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
 
          setFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, fileUrl: fileUrl } : f));
 
-          // 2. Invoke extract-page Agent 1 Function
-          let aiData: any;
-          try {
-             const { data, error: aiError } = await supabase.functions.invoke('extract-page', {
-                body: { fileUrl, pageNumber: fileIndex + 1 }
-             });
-             if (aiError) throw aiError;
-             aiData = data;
-             if (!aiData.success) throw new Error(aiData.error || "Unknown Edge Function error");
-          } catch (extractErr: any) {
-             const msg = extractErr?.message || String(extractErr);
-             const isDeployError = msg.includes('non-2xx') || msg.includes('500') || msg.includes('Edge Function');
-             if (isDeployError) {
-                aiData = {
-                   success: true,
-                   extraction: {
-                      url: fileUrl,
-                      metadata: { extractedText: 'Text extraction is being updated. Your file has been uploaded and will be processed shortly.', pageCount: 1, language: 'en' }
-                   }
-                };
-                log.warn('extraction_fallback', { error: msg });
-             } else {
-                throw extractErr;
-             }
-          }
+         // 2. Invoke extract-page Agent 1 Function
+         let aiData: any;
+         try {
+            const { data, error: aiError } = await supabase.functions.invoke('extract-page', {
+               body: { fileUrl, pageNumber: fileIndex + 1 }
+            });
+            if (aiError) throw aiError;
+            aiData = data;
+            if (!aiData.success) throw new Error(aiData.error || "Unknown Edge Function error");
+         } catch (extractErr: any) {
+            const msg = extractErr?.message || String(extractErr);
+            const isDeployError = msg.includes('non-2xx') || msg.includes('500') || msg.includes('Edge Function');
+            if (isDeployError) {
+               // Fallback shape mirrors the real edge function response (flat, no wrapper key)
+               aiData = {
+                  success: true,
+                  url: fileUrl,
+                  metadata: { extractedText: 'Text extraction is being updated. Your file has been uploaded and will be processed shortly.', pageCount: 1, language: 'en' }
+               };
+               log.warn('extraction_fallback', { error: msg });
+            } else {
+               throw extractErr;
+            }
+         }
 
-         setScans(prev => ({ ...prev, [fileIndex]: { status: 'success', data: aiData.extraction } }));
+         // The edge function returns { success, url, metadata } directly — no .extraction wrapper
+         setScans(prev => ({ ...prev, [fileIndex]: { status: 'success', data: aiData } }));
 
          // 3. Save into draft
          let activeUnitId = currentDraftId;
@@ -326,7 +317,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                status: 'Draft',
                lessons: 1,
                flow: [],
-               scanned_assets: [aiData.extraction]
+               scanned_assets: [aiData] // flat response shape — no .extraction wrapper
             }).select().single();
             if (createError) throw createError;
             activeUnitId = newUnit.id;
@@ -336,7 +327,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             const { data: existingUnit } = await supabase.from('units').select('scanned_assets').eq('id', activeUnitId).single();
             const currentAssets = existingUnit?.scanned_assets || [];
             await supabase.from('units').update({
-               scanned_assets: [...currentAssets, aiData.extraction]
+               scanned_assets: [...currentAssets, aiData] // flat response shape — no .extraction wrapper
             }).eq('id', activeUnitId);
          }
 
@@ -367,15 +358,25 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       if (fileInputRef.current) fileInputRef.current.value = '';
    };
 
-   return (
-      <div className="flex-1 flex h-[calc(100vh-64px)] overflow-hidden bg-white">
+    if (showWorkshop && draftUnitId) {
+       return (
+          <AssetWorkshop
+             unitId={draftUnitId}
+             onBack={() => setShowWorkshop(false)}
+             onOrchestrate={handleWorkshopOrchestrate}
+          />
+       );
+    }
+
+    return (
+       <div className="flex-1 flex h-[calc(100vh-64px)] overflow-hidden bg-white">
          <input
             type="file"
             ref={fileInputRef}
             className="hidden"
             onChange={handleFileSelect}
-             accept=".jpg,.jpeg,.png,.pdf"
-             multiple={true}
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
          />
 
          <WorkspaceSidebar

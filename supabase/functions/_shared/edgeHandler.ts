@@ -17,6 +17,7 @@ export interface EdgeFunctionConfig {
   name: string;
   rateLimit: { maxRequests: number; windowMs: number };
   validationRules: ValidationRule[];
+  requireAuth?: boolean;
 }
 
 export function validateBody(body: any, rules: ValidationRule[]): { valid: boolean; errors: string[] } {
@@ -77,6 +78,10 @@ export async function serveEdgeFunction(req: Request, config: EdgeFunctionConfig
 
     const auth = await softAuthenticate(req);
     const userId = auth?.userId;
+
+    if (config.requireAuth && !userId) {
+      return errorResponse('Unauthorized', 401);
+    }
 
     const body = await req.json();
 

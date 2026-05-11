@@ -98,12 +98,17 @@ export function useAllTeacherAssignments(teacherId: string | undefined) {
     queryKey: ['allTeacherAssignments', teacherId],
     queryFn: async () => {
       const classes = await getTeacherClasses(teacherId!);
-      const allAssignments: Assignment[] = [];
-      for (const cls of classes) {
-        const classAssignments = await getClassAssignments(cls.id);
-        allAssignments.push(...classAssignments);
-      }
-      return { assignments: allAssignments, classes };
+      const classIds = classes.map(c => c.id);
+      if (classIds.length === 0) return { assignments: [] as Assignment[], classes };
+
+      const { data, error } = await supabase
+        .from('assignments')
+        .select('*')
+        .in('class_id', classIds)
+        .order('due_date', { ascending: true, nullsFirst: false });
+
+      if (error) throw error;
+      return { assignments: (data || []) as Assignment[], classes };
     },
     enabled: !!teacherId,
     staleTime: 15_000,

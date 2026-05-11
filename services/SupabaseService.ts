@@ -44,7 +44,7 @@ const isSupabaseConfigured = (): boolean => {
 
 const getMockEngine = async () => {
     log.warn('using_mock_engine', { metadata: { message: 'VITE_SUPABASE_URL not set' } });
-    const mod = await import('./MockEngine');
+    const mod = await import('../test/MockEngine');
     return mod.MockEngine;
 };
 

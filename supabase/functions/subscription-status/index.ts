@@ -9,6 +9,7 @@ const supabase = createClient(
 Deno.serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'subscription-status',
+    requireAuth: true,
     rateLimit: { maxRequests: 30, windowMs: 60_000 },
     validationRules: [],
   }, async (_body, auth) => {

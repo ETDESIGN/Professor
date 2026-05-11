@@ -1,6 +1,6 @@
 
 import { LessonManifest } from '../types/pipeline';
-import { transformManifestToFlow } from './LessonTransformer';
+import { transformManifestToFlow } from '../services/LessonTransformer';
 
 export interface ScannedAsset {
   id: string;

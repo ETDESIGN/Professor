@@ -15,6 +15,7 @@ const supabase = createClient(
 Deno.serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'customer-portal',
+    requireAuth: true,
     rateLimit: { maxRequests: 10, windowMs: 60_000 },
     validationRules: [
       { field: 'returnUrl', required: true, type: 'string' },

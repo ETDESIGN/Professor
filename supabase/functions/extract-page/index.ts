@@ -1,10 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PROMPTS } from '../_shared/prompts/index.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'extract-page',
+    requireAuth: true,
     rateLimit: { maxRequests: 15, windowMs: 60 * 1000 },
     validationRules: [
       { field: 'imageBase64', required: false, type: 'string', minLength: 100 },
@@ -59,8 +61,9 @@ serve(async (req) => {
     let aiContent = '';
     let lastError = '';
     const models = [
-      Deno.env.get('VISION_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
-      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'qwen/qwen2.5-vl-72b-instruct:free',
+      Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen3.6-plus',
+      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'nvidia/nemotron-nano-12b-v2-vl:free',
+      'google/gemini-2.5-flash-lite-preview-09-2025',
     ];
 
     for (const modelName of models) {
@@ -76,6 +79,10 @@ serve(async (req) => {
           continue;
         }
         const data = await resp.json();
+        if (data.error) {
+          lastError = `Model ${modelName} API error: ${JSON.stringify(data.error)}`;
+          continue;
+        }
         const content = data.choices?.[0]?.message?.content || '';
         if (content.toLowerCase().includes('does not support image') || content.toLowerCase().includes('cannot read')) {
           lastError = `Model ${modelName} does not support image input`;
@@ -83,6 +90,20 @@ serve(async (req) => {
         }
         aiResponse = resp;
         aiContent = content;
+
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        if (data.usage && supabaseUrl && supabaseKey) {
+          const sbClient = createClient(supabaseUrl, supabaseKey);
+          await sbClient.from('llm_telemetry').insert({
+            function_name: 'extract-page',
+            model_used: data.model || modelName,
+            prompt_tokens: data.usage.prompt_tokens || 0,
+            completion_tokens: data.usage.completion_tokens || 0,
+            total_tokens: data.usage.total_tokens || 0,
+          });
+        }
+
         break;
       } catch (err: any) {
         lastError = `Model ${modelName} fetch failed: ${err.message}`;
@@ -107,7 +128,7 @@ serve(async (req) => {
     try {
       const raw = content.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
-      return {
+      const result = {
         success: true,
         url: inputUrl,
         metadata: {
@@ -119,7 +140,15 @@ serve(async (req) => {
           gradeLevel: parsed.gradeLevel || '',
         },
       };
-    } catch {
+      console.log('extract-page SUCCESS:', JSON.stringify({
+        hasTopic: !!result.metadata.topic,
+        vocabCount: result.metadata.vocabulary.length,
+        textLength: result.metadata.extractedText.length,
+        gradeLevel: result.metadata.gradeLevel,
+      }));
+      return result;
+    } catch (parseErr: any) {
+      console.log('extract-page JSON_PARSE_FAILED:', parseErr.message, 'raw content preview:', content.substring(0, 200));
       return {
         success: true,
         url: inputUrl,

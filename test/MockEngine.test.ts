@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MockEngine } from '../services/MockEngine';
+import { MockEngine } from './MockEngine';
 
 describe('MockEngine - SuperMemo-2 SRS Algorithm', () => {
   it('should return SRS items that are due for review', async () => {

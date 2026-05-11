@@ -60,6 +60,7 @@ function generateDetailedFeedback(similarity: number, target: string, transcript
 serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'evaluate-pronunciation',
+    requireAuth: true,
     rateLimit: { maxRequests: 30, windowMs: 60 * 1000 },
     validationRules: [
       {
@@ -111,7 +112,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
+          model: Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
           messages: [
             {
               role: 'system',

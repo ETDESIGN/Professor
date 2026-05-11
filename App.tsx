@@ -35,6 +35,14 @@ const PageLoader = () => (
   </div>
 );
 
+const NotFound = () => (
+  <div className="flex flex-col items-center justify-center h-screen bg-slate-50 text-slate-700">
+    <h1 className="text-6xl font-bold mb-4">404</h1>
+    <p className="text-xl mb-6">Page not found</p>
+    <button onClick={() => window.location.assign('/')} className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700">Back to Hub</button>
+  </div>
+);
+
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -147,6 +155,7 @@ const App: React.FC = () => {
           useAppStore.getState().clearUserProfile();
           window.location.assign(window.location.origin);
         }} /></Suspense>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       {/* Global "Exit Prototype" button to return to Hub */}

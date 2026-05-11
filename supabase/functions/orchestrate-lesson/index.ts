@@ -98,6 +98,7 @@ function transformManifestToFlow(manifest: any): any[] {
 serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'orchestrate-lesson',
+    requireAuth: true,
     rateLimit: { maxRequests: 10, windowMs: 60 * 1000 },
     validationRules: [
       { field: 'unitId', required: true, type: 'string' },
@@ -122,7 +123,7 @@ serve(async (req) => {
       try {
         let aiResponse: Response | null = null;
         const models = [
-          Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-vl-a3b-thinking:free',
+          Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
           Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
         ];
 
@@ -206,6 +207,8 @@ serve(async (req) => {
       ];
     }
 
+    const errors: string[] = [];
+
     if (supabaseUrl && supabaseKey) {
       try {
         const sbClient = createClient(supabaseUrl, supabaseKey);
@@ -213,31 +216,43 @@ serve(async (req) => {
         const updatePayload: any = { flow, status: 'Active' };
         if (manifest) updatePayload.manifest = manifest;
 
-        await sbClient
+        const { error: updateError } = await sbClient
           .from('units')
           .update(updatePayload)
           .eq('id', unitId);
 
+        if (updateError) {
+          errors.push(`units update failed: ${updateError.message}`);
+        }
+
         const vocab = manifest?.knowledge_graph?.vocabulary || [];
-        if (vocab.length > 0) {
+        if (vocab.length > 0 && auth?.userId) {
           for (const v of vocab) {
             try {
               await sbClient.from('srs_items').insert({
                 word: v.word,
                 translation: v.definition || '',
                 unit_id: unitId,
+                student_id: auth.userId,
               });
-            } catch { /* non-fatal */ }
+            } catch (srsErr: any) {
+              errors.push(`srs_item insert failed for "${v.word}": ${srsErr?.message || String(srsErr)}`);
+            }
           }
+        } else if (vocab.length > 0 && !auth?.userId) {
+          errors.push('srs_items skipped: no authenticated user');
         }
-      } catch { /* non-critical */ }
+      } catch (err: any) {
+        errors.push(`persistence error: ${err?.message || String(err)}`);
+      }
     }
 
     return {
-      success: true,
+      success: errors.length === 0,
       unitId,
       manifest,
       timelineId: `timeline_${Date.now()}`,
+      ...(errors.length > 0 ? { errors } : {}),
     };
   });
 });

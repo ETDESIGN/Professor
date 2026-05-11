@@ -59,9 +59,9 @@ describe('DataService', () => {
 
       mockFrom.mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { xp: 100, streak: 5, current_unit_id: 'u1', completed_unit_ids: ['u1'] },
+        in: vi.fn().mockResolvedValue({
+          data: [{ student_id: 's1', xp: 100, streak: 5, current_unit_id: 'u1', completed_unit_ids: ['u1'] }],
+          error: null,
         }),
       });
 

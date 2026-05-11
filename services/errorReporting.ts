@@ -14,6 +14,9 @@ let isInitialized = false;
 
 export function initErrorReporting(config?: { dsn?: string; environment?: string; release?: string }) {
   if (!config?.dsn) {
+    if (import.meta.env.DEV) {
+      console.warn('[Sentry] VITE_SENTRY_DSN is not set — error reporting is disabled. Set it in .env to enable.');
+    }
     isInitialized = false;
     return;
   }

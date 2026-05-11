@@ -135,15 +135,29 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
         if (error) throw error;
         if (data?.success === false) throw new Error(data.error || `Enrichment failed for ${category}`);
         if (data?.enriched) {
-          // Merge with previous state to avoid race conditions!
+          // Deep merge with previous state to avoid race conditions
           setEnriched(prev => {
             const patched = ensureApprovalStates(data.enriched);
             if (!prev) return patched;
-            return {
-              ...prev,
-              [category === 'media' ? 'song_suggestions' : category]: patched[category === 'media' ? 'song_suggestions' : category],
-              [category === 'media' ? 'video_suggestions' : category]: patched[category === 'media' ? 'video_suggestions' : category],
-            } as any;
+
+            const merged = { ...prev };
+
+            // Always update metadata if present
+            if (patched.title && patched.title !== 'Enriching...') merged.title = patched.title;
+            if (patched.topic) merged.topic = patched.topic;
+            if (patched.gradeLevel) merged.gradeLevel = patched.gradeLevel;
+            if (patched.description) merged.description = patched.description;
+
+            // Update category-specific arrays only if non-empty
+            if (patched.vocabulary?.length > 0) merged.vocabulary = patched.vocabulary;
+            if (patched.grammar?.length > 0) merged.grammar = patched.grammar;
+            if (patched.characters?.length > 0) merged.characters = patched.characters;
+            if (patched.story?.pages?.length > 0) merged.story = patched.story;
+            if (patched.song_suggestions?.length > 0) merged.song_suggestions = patched.song_suggestions;
+            if (patched.video_suggestions?.length > 0) merged.video_suggestions = patched.video_suggestions;
+            if (patched.dialogues?.length > 0) merged.dialogues = patched.dialogues;
+
+            return merged;
           });
         }
       } catch (err: any) {

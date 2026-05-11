@@ -4,6 +4,7 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'generate-media',
+    requireAuth: true,
     rateLimit: { maxRequests: 20, windowMs: 60 * 1000 },
     validationRules: [
       { field: 'action', required: true, type: 'string' },
