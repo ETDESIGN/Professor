@@ -61,9 +61,9 @@ serve(async (req) => {
     let lastError = '';
     let usedModel = '';
     const models = [
-      Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.5-flash',
-      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'google/gemma-4-31b-it:free',
-      'qwen/qwen-2.5-vl-72b-instruct',
+      Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-flash-latest',
+      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'qwen/qwen-2.5-vl-72b-instruct',
+      'google/gemma-4-31b-it:free',
     ];
 
     for (const modelName of models) {

@@ -55,8 +55,9 @@ serve(async (req) => {
     }
 
     const models = [
-      Deno.env.get('AI_MODEL_NAME') || 'google/gemini-2.5-flash',
-      Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemma-4-31b-it:free',
+      Deno.env.get('AI_MODEL_NAME') || 'google/gemini-flash-latest',
+      Deno.env.get('FALLBACK_MODEL_NAME') || 'moonshotai/kimi-k2.6',
+      'google/gemma-4-31b-it:free',
     ];
 
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
