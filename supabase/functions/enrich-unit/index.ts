@@ -219,9 +219,34 @@ ${categoryRules}
       song_suggestions: [], video_suggestions: [], dialogues: []
     };
 
-    const mergedManifest = { ...currentManifest, ...enriched };
-    if (enriched.story) {
-      mergedManifest.story = { ...currentManifest.story, ...enriched.story };
+    // SMART MERGE: Only update keys that belong to the current category
+    // The AI often returns empty arrays for unrelated categories — never let those overwrite existing data
+    const mergedManifest = { ...currentManifest };
+    
+    // Always update metadata if the AI returned it
+    if (enriched.title) mergedManifest.title = enriched.title;
+    if (enriched.topic) mergedManifest.topic = enriched.topic;
+    if (enriched.gradeLevel) mergedManifest.gradeLevel = enriched.gradeLevel;
+    if (enriched.description) mergedManifest.description = enriched.description;
+
+    // Only update the specific category array if non-empty
+    const categoryKeyMap: Record<string, string[]> = {
+      vocabulary: ['vocabulary'],
+      grammar: ['grammar'],
+      characters: ['characters'],
+      story: ['story'],
+      media: ['song_suggestions', 'video_suggestions'],
+      dialogues: ['dialogues'],
+      all: ['vocabulary', 'grammar', 'characters', 'story', 'song_suggestions', 'video_suggestions', 'dialogues'],
+    };
+    
+    const keysToUpdate = categoryKeyMap[category] || Object.keys(enriched);
+    for (const key of keysToUpdate) {
+      if (key === 'story' && enriched.story?.pages?.length > 0) {
+        mergedManifest.story = { ...currentManifest.story, ...enriched.story };
+      } else if (Array.isArray(enriched[key]) && enriched[key].length > 0) {
+        mergedManifest[key] = enriched[key];
+      }
     }
 
     await sbClient
