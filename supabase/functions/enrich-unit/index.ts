@@ -63,7 +63,7 @@ serve(async (req) => {
       for (const modelName of models) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for progressive loads
+          const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s — free models queue
           
           const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
             method: 'POST',
@@ -75,20 +75,21 @@ serve(async (req) => {
                 { role: 'user', content: userPrompt },
               ],
               temperature,
-              max_tokens: category === 'all' ? 2000 : 800,
+              max_tokens: category === 'all' ? 3000 : 1500,
+              response_format: { type: 'json_object' },
             }),
             signal: controller.signal
           });
           clearTimeout(timeoutId);
           if (!resp.ok) {
              const errBody = await resp.text().catch(() => '');
-             console.error(`OpenRouter HTTP ${resp.status} for ${modelName}:`, errBody.substring(0, 200));
+             console.error(`enrich-unit HTTP ${resp.status} for ${modelName}:`, errBody.substring(0, 200));
              continue;
           }
           const data = await resp.json();
           if (data.error) {
-             console.error(`OpenRouter API error for ${modelName}:`, data.error);
-             continue; // try next model
+             console.error(`enrich-unit API error for ${modelName}:`, data.error);
+             continue;
           }
           let content = data.choices?.[0]?.message?.content || '{}';
           content = content.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -104,8 +105,20 @@ serve(async (req) => {
             });
           }
 
-          return JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || content.match(/\[[\s\S]*\]/)?.[0] || '{}');
-        } catch { /* try next model */ }
+          const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || content.match(/\[[\s\S]*\]/)?.[0] || '{}');
+          console.log(`enrich-unit SUCCESS [${category}] model=${modelName}:`, JSON.stringify({
+            vocabCount: parsed.vocabulary?.length,
+            grammarCount: parsed.grammar?.length,
+            charCount: parsed.characters?.length,
+            storyPages: parsed.story?.pages?.length,
+            songs: parsed.song_suggestions?.length,
+            videos: parsed.video_suggestions?.length,
+            dialogues: parsed.dialogues?.length,
+          }));
+          return parsed;
+        } catch (err: any) {
+          console.error(`enrich-unit CATCH [${category}] model=${modelName}:`, err.message || String(err));
+        }
       }
       return null;
     }

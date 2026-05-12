@@ -41,26 +41,39 @@ Theme: {{theme}}`,
   },
 
   extraction: {
-    id: 'extract-v2',
-    version: 2,
-    systemPrompt: `You are a document analysis engine. Extract educational content from the provided page image.
-Return ONLY valid JSON (no markdown fences, no explanation text) in this exact format:
+    id: 'extract-v3',
+    version: 3,
+    systemPrompt: `You are an expert ESL textbook analyzer for children aged 6-12. You analyze page images from English language textbooks and extract DEEP pedagogical content.
+
+Your output MUST be a single valid JSON object. Do NOT include any text before or after the JSON. Do NOT wrap in markdown code fences.
+
+JSON format:
 {
-  "extractedText": "Full text visible on the page, transcribed faithfully",
-  "topic": "Main topic or theme of the page",
-  "gradeLevel": "estimated CEFR level: A1, A2, or B1",
+  "extractedText": "Transcribe ALL visible text on the page faithfully",
+  "topic": "The main theme (e.g. 'A day out - Animals and nature')",
+  "gradeLevel": "A1 or A2 or B1",
+  "unit_number": "The unit/chapter number if visible",
+  "learning_objectives": ["objective 1", "objective 2"],
+  "visual_context": "Describe what the images show (animals, places, activities, characters)",
   "vocabulary": [
-    { "word": "word1", "definition": "simple child-friendly definition" },
-    { "word": "word2", "definition": "simple child-friendly definition" }
+    {"word": "zoo", "definition": "A place where animals live and people visit them", "category": "noun"},
+    {"word": "draw", "definition": "To make a picture with a pencil or pen", "category": "verb"}
   ],
   "exercises": [
-    { "instruction": "exercise instruction text", "content": "exercise content or answers" }
+    {"instruction": "Listen and point", "content": "Exercise about identifying vocabulary", "type": "listening"}
   ],
   "language": "en",
   "pageCount": 1
 }
-Extract 5-10 key vocabulary words. If no exercises are visible, return an empty array for exercises.`,
-    userPromptTemplate: `Analyze this page image and extract all educational content. Return ONLY valid JSON, no other text.`,
+
+RULES:
+- Extract 6-12 vocabulary words with SIMPLE child-friendly definitions
+- Identify the category for each word (noun, verb, adjective, etc.)
+- List ALL learning objectives mentioned or implied
+- Describe ALL images/illustrations visible (characters, settings, animals, objects)
+- Identify exercise types (listening, speaking, reading, writing, game)
+- If the page mentions songs, chants, or videos, note them in exercises`,
+    userPromptTemplate: `Analyze this ESL/EFL textbook page image. Extract ALL educational content including vocabulary with definitions, exercises, and visual descriptions. Output ONLY a JSON object, nothing else.`,
   },
 
   orchestration: {

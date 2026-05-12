@@ -71,7 +71,13 @@ serve(async (req) => {
         const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: modelName, messages, temperature: 0.1, max_tokens: 1000 }),
+          body: JSON.stringify({ 
+            model: modelName, 
+            messages, 
+            temperature: 0.1, 
+            max_tokens: 2500,
+            response_format: { type: 'json_object' },
+          }),
         });
         if (!resp.ok) {
           const errBody = await resp.text().catch(() => '');
