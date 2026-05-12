@@ -55,20 +55,18 @@ serve(async (req) => {
     }
 
     const models = [
-      Deno.env.get('AI_MODEL_NAME') || 'google/gemma-3-27b-it:free',
-      Deno.env.get('FALLBACK_MODEL_NAME') || 'meta-llama/llama-3.3-70b-instruct:free',
+      Deno.env.get('AI_MODEL_NAME') || 'google/gemini-2.5-flash',
+      Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemma-4-31b-it:free',
     ];
 
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
       for (const modelName of models) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s — free models queue
-          
-          const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        for (const useJsonFormat of [true, false]) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 35000);
+            
+            const reqBody: any = {
               model: modelName,
               messages: [
                 { role: 'system', content: systemPrompt },
@@ -76,48 +74,65 @@ serve(async (req) => {
               ],
               temperature,
               max_tokens: category === 'all' ? 3000 : 1500,
-              response_format: { type: 'json_object' },
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-          if (!resp.ok) {
-             const errBody = await resp.text().catch(() => '');
-             console.error(`enrich-unit HTTP ${resp.status} for ${modelName}:`, errBody.substring(0, 200));
-             continue;
-          }
-          const data = await resp.json();
-          if (data.error) {
-             console.error(`enrich-unit API error for ${modelName}:`, data.error);
-             continue;
-          }
-          let content = data.choices?.[0]?.message?.content || '{}';
-          content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            };
+            if (useJsonFormat) {
+              reqBody.response_format = { type: 'json_object' };
+            }
 
-          if (supabaseUrl && supabaseKey && data.usage) {
-            const sb = createClient(supabaseUrl, supabaseKey);
-            await sb.from('llm_telemetry').insert({
-              function_name: 'enrich-unit',
-              model_used: data.model || modelName,
-              prompt_tokens: data.usage.prompt_tokens || 0,
-              completion_tokens: data.usage.completion_tokens || 0,
-              total_tokens: data.usage.total_tokens || 0,
+            const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(reqBody),
+              signal: controller.signal
             });
-          }
+            clearTimeout(timeoutId);
+            
+            if (!resp.ok) {
+              const errBody = await resp.text().catch(() => '');
+              if (resp.status === 400 && useJsonFormat) {
+                console.log(`enrich-unit [${category}]: ${modelName} rejected response_format, retrying without`);
+                continue;
+              }
+              console.error(`enrich-unit HTTP ${resp.status} for ${modelName}:`, errBody.substring(0, 200));
+              break; // skip to next model
+            }
+            const data = await resp.json();
+            if (data.error) {
+              if (useJsonFormat) {
+                console.log(`enrich-unit [${category}]: ${modelName} API error with response_format, retrying without`);
+                continue;
+              }
+              console.error(`enrich-unit API error for ${modelName}:`, data.error);
+              break;
+            }
+            let content = data.choices?.[0]?.message?.content || '{}';
+            content = content.replace(/```json/g, '').replace(/```/g, '').trim();
 
-          const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || content.match(/\[[\s\S]*\]/)?.[0] || '{}');
-          console.log(`enrich-unit SUCCESS [${category}] model=${modelName}:`, JSON.stringify({
-            vocabCount: parsed.vocabulary?.length,
-            grammarCount: parsed.grammar?.length,
-            charCount: parsed.characters?.length,
-            storyPages: parsed.story?.pages?.length,
-            songs: parsed.song_suggestions?.length,
-            videos: parsed.video_suggestions?.length,
-            dialogues: parsed.dialogues?.length,
-          }));
-          return parsed;
-        } catch (err: any) {
-          console.error(`enrich-unit CATCH [${category}] model=${modelName}:`, err.message || String(err));
+            if (supabaseUrl && supabaseKey && data.usage) {
+              const sb = createClient(supabaseUrl, supabaseKey);
+              await sb.from('llm_telemetry').insert({
+                function_name: 'enrich-unit',
+                model_used: data.model || modelName,
+                prompt_tokens: data.usage.prompt_tokens || 0,
+                completion_tokens: data.usage.completion_tokens || 0,
+                total_tokens: data.usage.total_tokens || 0,
+              });
+            }
+
+            const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || content.match(/\[[\s\S]*\]/)?.[0] || '{}');
+            console.log(`enrich-unit SUCCESS [${category}] model=${data.model || modelName}:`, JSON.stringify({
+              vocabCount: parsed.vocabulary?.length,
+              grammarCount: parsed.grammar?.length,
+              charCount: parsed.characters?.length,
+              storyPages: parsed.story?.pages?.length,
+              songs: parsed.song_suggestions?.length,
+              videos: parsed.video_suggestions?.length,
+              dialogues: parsed.dialogues?.length,
+            }));
+            return parsed;
+          } catch (err: any) {
+            console.error(`enrich-unit CATCH [${category}] model=${modelName}:`, err.message || String(err));
+          }
         }
       }
       return null;

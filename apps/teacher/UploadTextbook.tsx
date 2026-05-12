@@ -57,7 +57,7 @@ const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, o
    </div>
 );
 
-const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) => {
+const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove, onReextract }: any) => {
    if (!file) return (
       <div className="flex-1 flex items-center justify-center bg-slate-50 text-slate-400">
          Select a page from the sidebar to review extraction.
@@ -69,16 +69,27 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
          <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white shadow-sm z-10">
             <div>
                <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review & Edit</h2>
-               <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 30) || 'Draft'})` : 'Extraction Draft'}</p>
+               <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.metadata?.topic || scan.data?.metadata?.extractedText?.slice(0, 30) || 'Draft'})` : 'Extraction Draft'}</p>
             </div>
-            <button
-               className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-               disabled={!scan || scan.status !== 'success' || isOrchestrating}
-               onClick={() => onApprove()}
-            >
-                {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Review & Enrich Content'}
-                {!isOrchestrating && <ChevronRight size={18} />}
-            </button>
+            <div className="flex gap-2">
+               {scan?.status === 'success' && onReextract && (
+                  <button
+                     className="px-3 py-2 border border-blue-200 text-blue-600 font-bold rounded-lg flex items-center gap-2 hover:bg-blue-50 text-sm"
+                     onClick={onReextract}
+                     disabled={isOrchestrating}
+                  >
+                     <Wand2 size={16} /> Re-extract
+                  </button>
+               )}
+               <button
+                  className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                  disabled={!scan || scan.status !== 'success' || isOrchestrating}
+                  onClick={() => onApprove()}
+               >
+                   {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Review & Enrich Content'}
+                   {!isOrchestrating && <ChevronRight size={18} />}
+               </button>
+            </div>
          </div>
 
          <div className="flex-1 flex overflow-hidden">
@@ -96,7 +107,7 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                </div>
             </div>
 
-            {/* JSON/Text Editor Editor */}
+            {/* Extracted Content */}
             <div className="w-1/2 bg-white flex flex-col">
                <div className="p-3 border-b flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-50">
                   <Settings size={16} /> Extracted Content
@@ -112,98 +123,74 @@ const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove }: any) =
                         <strong>Error:</strong> {scan.error}
                      </div>
                   ) : (
-                     <div className="space-y-6">
-                        {scan.data?.metadata?.extractedText && !scan.data?.pedagogy && !scan.data?.extracted_content && (
+                     <div className="space-y-4">
+                        {/* Topic & Grade Header */}
+                        {(scan.data?.metadata?.topic || scan.data?.metadata?.gradeLevel) && (
                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h3 className="font-bold text-blue-800 text-lg mb-2">Extracted Text</h3>
-                              <p className="text-sm text-blue-700 whitespace-pre-wrap">{scan.data.metadata.extractedText}</p>
-                              <div className="flex gap-2 mt-3 text-xs text-blue-500">
-                                 <span>Pages: {scan.data.metadata.pageCount || 1}</span>
-                                 <span>Language: {scan.data.metadata.language || 'en'}</span>
+                              <h3 className="font-bold text-blue-800 text-lg mb-1">{scan.data.metadata.topic || 'Untitled'}</h3>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                 {scan.data.metadata.gradeLevel && (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">CEFR: {scan.data.metadata.gradeLevel}</span>
+                                 )}
+                                 {scan.data.metadata.unit_number && (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Unit {scan.data.metadata.unit_number}</span>
+                                 )}
+                                 <span className="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full">Language: {scan.data.metadata.language || 'en'}</span>
                               </div>
+                              {scan.data.metadata.visual_context && (
+                                 <p className="text-sm text-blue-600 mt-2 italic">{scan.data.metadata.visual_context}</p>
+                              )}
+                              {scan.data.metadata.learning_objectives?.length > 0 && (
+                                 <div className="flex flex-wrap gap-2 mt-3">
+                                    {scan.data.metadata.learning_objectives.map((obj: string, i: number) => (
+                                       <span key={i} className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">{obj}</span>
+                                    ))}
+                                 </div>
+                              )}
                            </div>
                         )}
 
-                        {/* Rich Pedagogical Rendering */}
-                        {scan.data?.pedagogy && (
-                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h3 className="font-bold text-blue-800 text-lg mb-1">{scan.data.pedagogy.topic || "Unknown Topic"}</h3>
-                              <p className="text-sm text-blue-600 mb-3">{scan.data.pedagogy.visual_context}</p>
-                              <div className="flex flex-wrap gap-2">
-                                 {scan.data.pedagogy.learning_objectives?.map((obj: string, i: number) => (
-                                    <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">{obj}</span>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {scan.data?.extracted_content?.vocabulary && scan.data.extracted_content.vocabulary.length > 0 && (
+                        {/* Vocabulary Cards */}
+                        {scan.data?.metadata?.vocabulary?.length > 0 && (
                            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                              <h4 className="font-bold text-emerald-800 mb-3 flex items-center gap-2"><FileText size={16} /> Vocabulary Maps</h4>
+                              <h4 className="font-bold text-emerald-800 mb-3 flex items-center gap-2"><FileText size={16} /> Vocabulary ({scan.data.metadata.vocabulary.length} words)</h4>
                               <div className="grid grid-cols-2 gap-3">
-                                 {scan.data.extracted_content.vocabulary.map((v: any, i: number) => (
+                                 {scan.data.metadata.vocabulary.map((v: any, i: number) => (
                                     <div key={i} className="p-3 bg-white border border-emerald-100 rounded shadow-sm">
                                        <div className="font-bold text-emerald-700">{v.word}</div>
-                                       <div className="text-sm text-emerald-600 mt-1">{v.definition_or_context}</div>
+                                       <div className="text-sm text-emerald-600 mt-1">{v.definition || v.definition_or_context}</div>
+                                       {v.category && <span className="text-xs text-slate-400 mt-1 inline-block">{v.category}</span>}
                                     </div>
                                  ))}
                               </div>
                            </div>
                         )}
 
-                        {scan.data?.extracted_content?.comic_panels && scan.data.extracted_content.comic_panels.length > 0 && (
-                           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                              <h4 className="font-bold text-amber-800 mb-3 flex items-center gap-2"><FileImage size={16} /> Story & Comics</h4>
-                              <div className="space-y-4">
-                                 {scan.data.extracted_content.comic_panels.map((panel: any, i: number) => (
-                                    <div key={i} className="p-3 bg-white border border-amber-100 rounded shadow-sm">
-                                       <div className="text-xs font-bold text-amber-500 uppercase mb-1">Panel {panel.panel_number}</div>
-                                       {panel.context && <div className="text-xs text-amber-700 italic mb-2 bg-amber-50 p-1 rounded border border-amber-100">{panel.context}</div>}
-                                       <div className="space-y-1">
-                                          {panel.dialogues?.map((d: any, j: number) => (
-                                             <div key={j} className="text-sm text-amber-900 border-l-2 border-amber-300 pl-2">
-                                                <span className="font-bold">{d.character}:</span> {d.text}
-                                             </div>
-                                          ))}
-                                       </div>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {scan.data?.extracted_content?.grammar_boxes && scan.data.extracted_content.grammar_boxes.length > 0 && (
-                           <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                              <h4 className="font-bold text-indigo-800 mb-3 flex items-center gap-2"><Settings size={16} /> Grammar & Formulas</h4>
-                              <div className="space-y-3">
-                                 {scan.data.extracted_content.grammar_boxes.map((box: any, i: number) => (
-                                    <div key={i} className="p-3 bg-white border border-indigo-100 rounded shadow-sm">
-                                       <div className="font-bold text-indigo-700 mb-2">{box.title}</div>
-                                       <div className="space-y-1 bg-indigo-50 p-2 rounded text-indigo-900 font-mono text-xs">
-                                          {box.formulas_and_examples?.map((f: string, j: number) => (
-                                             <div key={j}>• {f}</div>
-                                          ))}
-                                       </div>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {scan.data?.extracted_content?.exercises && scan.data.extracted_content.exercises.length > 0 && (
+                        {/* Exercises */}
+                        {scan.data?.metadata?.exercises?.length > 0 && (
                            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                               <h4 className="font-bold text-purple-800 mb-3 flex items-center gap-2"><Settings size={16} /> Exercises</h4>
                               <div className="space-y-3">
-                                 {scan.data.extracted_content.exercises.map((ex: any, i: number) => (
+                                 {scan.data.metadata.exercises.map((ex: any, i: number) => (
                                     <div key={i} className="p-3 bg-white border border-purple-100 rounded shadow-sm">
                                        <div className="font-bold text-purple-700 text-sm">{ex.instruction}</div>
                                        <div className="text-sm text-purple-600 mt-1">{ex.content}</div>
+                                       {ex.type && <span className="text-xs text-purple-400 mt-1 inline-block italic">{ex.type}</span>}
                                     </div>
                                  ))}
                               </div>
                            </div>
                         )}
 
+                        {/* Extracted Text Fallback */}
+                        {scan.data?.metadata?.extractedText && !scan.data?.metadata?.vocabulary?.length && (
+                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <h3 className="font-bold text-blue-800 text-lg mb-2">Extracted Text</h3>
+                              <p className="text-sm text-blue-700 whitespace-pre-wrap">{scan.data.metadata.extractedText}</p>
+                           </div>
+                        )}
+
+                        {/* Raw JSON Data Tracker */}
                         <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                            <h3 className="font-bold text-slate-700 mb-2">Raw JSON Data Tracker</h3>
                            <textarea
@@ -247,7 +234,38 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          toast.error('No successfully extracted pages found.');
          return;
       }
+      // Clear stale manifest so AssetWorkshop does a fresh enrichment
+      await supabase.from('units').update({ manifest: null }).eq('id', draftUnitId);
       setShowWorkshop(true);
+   };
+
+   const handleReextract = async () => {
+      const file = files[activeFileIndex];
+      if (!file?.fileUrl || activeFileIndex < 0) return;
+      setIsExtracting(true);
+      setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'scanning' } }));
+      try {
+         const { data, error } = await supabase.functions.invoke('extract-page', {
+            body: { fileUrl: file.fileUrl, pageNumber: activeFileIndex + 1 }
+         });
+         if (error) throw error;
+         if (!data?.success) throw new Error(data?.error || 'Re-extraction failed');
+         setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'success', data } }));
+
+         // Update scanned_assets in DB (replace, not append)
+         if (draftUnitId) {
+            const { data: unit } = await supabase.from('units').select('scanned_assets').eq('id', draftUnitId).single();
+            const assets = [...(unit?.scanned_assets || [])];
+            assets[activeFileIndex] = data;
+            await supabase.from('units').update({ scanned_assets: assets, manifest: null }).eq('id', draftUnitId);
+         }
+         toast.success('Page re-extracted with updated AI!');
+      } catch (err: any) {
+         setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'error', error: err.message } }));
+         toast.error(err.message || 'Re-extraction failed');
+      } finally {
+         setIsExtracting(false);
+      }
    };
 
    const handleWorkshopOrchestrate = async (unitId: string, enriched: any) => {
@@ -393,6 +411,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             scan={scans[activeFileIndex]}
             isOrchestrating={isOrchestrating}
             onApprove={handleApprove}
+            onReextract={handleReextract}
          />
       </div>
    );

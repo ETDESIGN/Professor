@@ -57,66 +57,84 @@ serve(async (req) => {
       },
     ];
 
-    let aiResponse: Response | null = null;
     let aiContent = '';
     let lastError = '';
+    let usedModel = '';
     const models = [
-      Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen3.6-plus',
-      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'nvidia/nemotron-nano-12b-v2-vl:free',
-      'google/gemini-2.5-flash-lite-preview-09-2025',
+      Deno.env.get('VISION_MODEL_NAME') || 'google/gemini-2.5-flash',
+      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'google/gemma-4-31b-it:free',
+      'qwen/qwen-2.5-vl-72b-instruct',
     ];
 
     for (const modelName of models) {
-      try {
-        const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+      // Try with response_format first, then without (some models reject it)
+      for (const useJsonFormat of [true, false]) {
+        try {
+          const reqBody: any = { 
             model: modelName, 
             messages, 
             temperature: 0.1, 
-            max_tokens: 2500,
-            response_format: { type: 'json_object' },
-          }),
-        });
-        if (!resp.ok) {
-          const errBody = await resp.text().catch(() => '');
-          lastError = `Model ${modelName} returned ${resp.status}: ${errBody.slice(0, 200)}`;
-          continue;
-        }
-        const data = await resp.json();
-        if (data.error) {
-          lastError = `Model ${modelName} API error: ${JSON.stringify(data.error)}`;
-          continue;
-        }
-        const content = data.choices?.[0]?.message?.content || '';
-        if (content.toLowerCase().includes('does not support image') || content.toLowerCase().includes('cannot read')) {
-          lastError = `Model ${modelName} does not support image input`;
-          continue;
-        }
-        aiResponse = resp;
-        aiContent = content;
+            max_tokens: 3000,
+          };
+          if (useJsonFormat) {
+            reqBody.response_format = { type: 'json_object' };
+          }
 
-        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-        if (data.usage && supabaseUrl && supabaseKey) {
-          const sbClient = createClient(supabaseUrl, supabaseKey);
-          await sbClient.from('llm_telemetry').insert({
-            function_name: 'extract-page',
-            model_used: data.model || modelName,
-            prompt_tokens: data.usage.prompt_tokens || 0,
-            completion_tokens: data.usage.completion_tokens || 0,
-            total_tokens: data.usage.total_tokens || 0,
+          const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody),
           });
-        }
+          if (!resp.ok) {
+            const errBody = await resp.text().catch(() => '');
+            // If 400 and we used response_format, retry without it
+            if (resp.status === 400 && useJsonFormat) {
+              console.log(`extract-page: ${modelName} rejected response_format, retrying without`);
+              continue;
+            }
+            lastError = `Model ${modelName} returned ${resp.status}: ${errBody.slice(0, 200)}`;
+            break; // skip to next model
+          }
+          const data = await resp.json();
+          if (data.error) {
+            if (useJsonFormat) {
+              console.log(`extract-page: ${modelName} API error with response_format, retrying without`);
+              continue;
+            }
+            lastError = `Model ${modelName} API error: ${JSON.stringify(data.error)}`;
+            break;
+          }
+          const content = data.choices?.[0]?.message?.content || '';
+          if (!content || content.toLowerCase().includes('does not support image') || content.toLowerCase().includes('cannot read')) {
+            lastError = `Model ${modelName} does not support image input`;
+            break;
+          }
+          
+          aiContent = content;
+          usedModel = data.model || modelName;
 
-        break;
-      } catch (err: any) {
-        lastError = `Model ${modelName} fetch failed: ${err.message}`;
+          const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+          const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+          if (data.usage && supabaseUrl && supabaseKey) {
+            const sbClient = createClient(supabaseUrl, supabaseKey);
+            await sbClient.from('llm_telemetry').insert({
+              function_name: 'extract-page',
+              model_used: usedModel,
+              prompt_tokens: data.usage.prompt_tokens || 0,
+              completion_tokens: data.usage.completion_tokens || 0,
+              total_tokens: data.usage.total_tokens || 0,
+            });
+          }
+          console.log(`extract-page: SUCCESS with ${usedModel} (json_format=${useJsonFormat})`);
+          break;
+        } catch (err: any) {
+          lastError = `Model ${modelName} fetch failed: ${err.message}`;
+        }
       }
+      if (aiContent) break; // got a result, stop model loop
     }
 
-    if (!aiResponse) {
+    if (!aiContent) {
       return {
         success: true,
         url: inputUrl,
@@ -144,6 +162,10 @@ serve(async (req) => {
           vocabulary: parsed.vocabulary || [],
           topic: parsed.topic || '',
           gradeLevel: parsed.gradeLevel || '',
+          unit_number: parsed.unit_number || '',
+          learning_objectives: parsed.learning_objectives || [],
+          visual_context: parsed.visual_context || '',
+          exercises: parsed.exercises || [],
         },
       };
       console.log('extract-page SUCCESS:', JSON.stringify({

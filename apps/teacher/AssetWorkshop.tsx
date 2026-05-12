@@ -84,6 +84,20 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
       const existing = unit?.manifest?.enriched_content;
       if (existing) {
         setEnriched(ensureApprovalStates(existing));
+
+        // Check which categories are empty and re-enrich only those
+        const emptyCategories: string[] = [];
+        if (!existing.vocabulary?.length) emptyCategories.push('vocabulary');
+        if (!existing.grammar?.length) emptyCategories.push('grammar');
+        if (!existing.characters?.length) emptyCategories.push('characters');
+        if (!existing.story?.pages?.length) emptyCategories.push('story');
+        if (!existing.song_suggestions?.length) emptyCategories.push('media');
+        if (!existing.dialogues?.length) emptyCategories.push('dialogues');
+
+        if (emptyCategories.length > 0) {
+          log.info('re_enriching_empty_categories', { categories: emptyCategories });
+          await handleEnrichCategories(emptyCategories);
+        }
         return;
       }
 
@@ -118,16 +132,22 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
   const handleEnrich = async () => {
     setLoadError(null);
     const categories = ['vocabulary', 'grammar', 'characters', 'story', 'media', 'dialogues'];
-    setLoadingCategories(new Set(categories));
-    
-    // Initialize empty manifest so the UI renders immediately for progressive pop-in
+    await handleEnrichCategories(categories);
+  };
+
+  const handleEnrichCategories = async (categories: string[]) => {
+    setLoadingCategories(prev => new Set([...prev, ...categories]));
+
+    // Initialize empty manifest so the UI renders immediately
     setEnriched(prev => prev || {
       title: 'Enriching...', topic: '', gradeLevel: 'A1', description: '',
       vocabulary: [], grammar: [], characters: [], story: { title: '', setting: '', pages: [] },
       song_suggestions: [], video_suggestions: [], dialogues: []
     } as any);
 
-    const promises = categories.map(async (category) => {
+    // Sequential enrichment with delay between categories
+    for (let i = 0; i < categories.length; i++) {
+      const category = categories[i];
       try {
         const { data, error } = await supabase.functions.invoke('enrich-unit', {
           body: { unitId, category },
@@ -135,20 +155,15 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
         if (error) throw error;
         if (data?.success === false) throw new Error(data.error || `Enrichment failed for ${category}`);
         if (data?.enriched) {
-          // Deep merge with previous state to avoid race conditions
           setEnriched(prev => {
             const patched = ensureApprovalStates(data.enriched);
             if (!prev) return patched;
 
             const merged = { ...prev };
-
-            // Always update metadata if present
             if (patched.title && patched.title !== 'Enriching...') merged.title = patched.title;
             if (patched.topic) merged.topic = patched.topic;
             if (patched.gradeLevel) merged.gradeLevel = patched.gradeLevel;
             if (patched.description) merged.description = patched.description;
-
-            // Update category-specific arrays only if non-empty
             if (patched.vocabulary?.length > 0) merged.vocabulary = patched.vocabulary;
             if (patched.grammar?.length > 0) merged.grammar = patched.grammar;
             if (patched.characters?.length > 0) merged.characters = patched.characters;
@@ -162,7 +177,7 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
         }
       } catch (err: any) {
         log.warn(`enrich_error_${category}`, { error: err?.message });
-        toast.error(`Failed to load ${category}`);
+        toast.error(`Failed to load ${category}: ${err?.message || 'Unknown error'}`);
       } finally {
         setLoadingCategories(prev => {
           const next = new Set(prev);
@@ -170,9 +185,13 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
           return next;
         });
       }
-    });
 
-    await Promise.allSettled(promises);
+      // 1.5s delay between categories
+      if (i < categories.length - 1) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+
     toast.success('Content enrichment complete!');
   };
 
