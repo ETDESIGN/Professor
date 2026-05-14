@@ -54,118 +54,148 @@ serve(async (req) => {
       return { success: false, error: 'No content found to enrich. Upload and extract pages first.' };
     }
 
+    // ── REGION-SAFE MODELS ──────────────────────────────────────────────
+    // User's OpenRouter region blocks Google, OpenAI, and Anthropic.
+    // Only use models from: Moonshot, Qwen, DeepSeek, Meta, NVIDIA, etc.
     const models = [
-      Deno.env.get('AI_MODEL_NAME') || 'google/gemini-flash-latest',
-      Deno.env.get('FALLBACK_MODEL_NAME') || 'moonshotai/kimi-k2.6',
-      'google/gemma-4-31b-it:free',
+      Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
+      Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
+      'deepseek/deepseek-r1-0528:free',
     ];
 
+    // ── AI CALL (no response_format — prompt-only JSON enforcement) ────
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
       for (const modelName of models) {
-        for (const useJsonFormat of [true, false]) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 35000);
-            
-            const reqBody: any = {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+          const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               model: modelName,
               messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt },
               ],
               temperature,
-              max_tokens: category === 'all' ? 3000 : 1500,
-            };
-            if (useJsonFormat) {
-              reqBody.response_format = { type: 'json_object' };
-            }
+              max_tokens: category === 'all' ? 4000 : 2000,
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
 
-            const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify(reqBody),
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            
-            if (!resp.ok) {
-              const errBody = await resp.text().catch(() => '');
-              if (resp.status === 400 && useJsonFormat) {
-                console.log(`enrich-unit [${category}]: ${modelName} rejected response_format, retrying without`);
-                continue;
-              }
-              console.error(`enrich-unit HTTP ${resp.status} for ${modelName}:`, errBody.substring(0, 200));
-              break; // skip to next model
-            }
-            const data = await resp.json();
-            if (data.error) {
-              if (useJsonFormat) {
-                console.log(`enrich-unit [${category}]: ${modelName} API error with response_format, retrying without`);
-                continue;
-              }
-              console.error(`enrich-unit API error for ${modelName}:`, data.error);
-              break;
-            }
-            let content = data.choices?.[0]?.message?.content || '{}';
-            content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-
-            if (supabaseUrl && supabaseKey && data.usage) {
-              const sb = createClient(supabaseUrl, supabaseKey);
-              await sb.from('llm_telemetry').insert({
-                function_name: 'enrich-unit',
-                model_used: data.model || modelName,
-                prompt_tokens: data.usage.prompt_tokens || 0,
-                completion_tokens: data.usage.completion_tokens || 0,
-                total_tokens: data.usage.total_tokens || 0,
-              });
-            }
-
-            const parsed = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || content.match(/\[[\s\S]*\]/)?.[0] || '{}');
-            console.log(`enrich-unit SUCCESS [${category}] model=${data.model || modelName}:`, JSON.stringify({
-              vocabCount: parsed.vocabulary?.length,
-              grammarCount: parsed.grammar?.length,
-              charCount: parsed.characters?.length,
-              storyPages: parsed.story?.pages?.length,
-              songs: parsed.song_suggestions?.length,
-              videos: parsed.video_suggestions?.length,
-              dialogues: parsed.dialogues?.length,
-            }));
-            return parsed;
-          } catch (err: any) {
-            console.error(`enrich-unit CATCH [${category}] model=${modelName}:`, err.message || String(err));
+          if (!resp.ok) {
+            const errBody = await resp.text().catch(() => '');
+            console.error(`enrich-unit [${category}] HTTP ${resp.status} for ${modelName}:`, errBody.substring(0, 300));
+            continue;
           }
+
+          const data = await resp.json();
+          if (data.error) {
+            console.error(`enrich-unit [${category}] API error for ${modelName}:`, JSON.stringify(data.error).substring(0, 300));
+            continue;
+          }
+
+          let content = data.choices?.[0]?.message?.content || '{}';
+          // Strip markdown, thinking tags, and code fences
+          content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+          content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+          // Log telemetry
+          if (supabaseUrl && supabaseKey && data.usage) {
+            const sb = createClient(supabaseUrl, supabaseKey);
+            await sb.from('llm_telemetry').insert({
+              function_name: 'enrich-unit',
+              model_used: data.model || modelName,
+              prompt_tokens: data.usage.prompt_tokens || 0,
+              completion_tokens: data.usage.completion_tokens || 0,
+              total_tokens: data.usage.total_tokens || 0,
+            });
+          }
+
+          // Extract JSON from response
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            console.error(`enrich-unit [${category}] ${modelName}: No JSON found in response. Content preview:`, content.substring(0, 200));
+            continue;
+          }
+
+          const parsed = JSON.parse(jsonMatch[0]);
+
+          // ── KEY NORMALIZATION ──────────────────────────────────────
+          // Different models return keys in different formats. Normalize them.
+          const normalized: any = {};
+          for (const [key, value] of Object.entries(parsed)) {
+            const lk = key.toLowerCase().replace(/[_\s-]/g, '');
+            if (lk === 'vocabulary' || lk === 'vocab' || lk === 'words' || lk === 'vocabularywords') {
+              normalized.vocabulary = value;
+            } else if (lk === 'grammar' || lk === 'grammarrules' || lk === 'rules') {
+              normalized.grammar = value;
+            } else if (lk === 'characters' || lk === 'chars') {
+              normalized.characters = value;
+            } else if (lk === 'story' || lk === 'storydata') {
+              normalized.story = value;
+            } else if (lk === 'songsuggestions' || lk === 'songs') {
+              normalized.song_suggestions = value;
+            } else if (lk === 'videosuggestions' || lk === 'videos') {
+              normalized.video_suggestions = value;
+            } else if (lk === 'dialogues' || lk === 'dialogs' || lk === 'dialogue') {
+              normalized.dialogues = value;
+            } else {
+              normalized[key] = value;
+            }
+          }
+
+          console.log(`enrich-unit SUCCESS [${category}] model=${data.model || modelName}:`, JSON.stringify({
+            rawKeys: Object.keys(parsed),
+            normalizedKeys: Object.keys(normalized),
+            vocabCount: Array.isArray(normalized.vocabulary) ? normalized.vocabulary.length : typeof normalized.vocabulary,
+            grammarCount: Array.isArray(normalized.grammar) ? normalized.grammar.length : typeof normalized.grammar,
+            charCount: Array.isArray(normalized.characters) ? normalized.characters.length : typeof normalized.characters,
+            storyPages: normalized.story?.pages?.length,
+            songs: Array.isArray(normalized.song_suggestions) ? normalized.song_suggestions.length : typeof normalized.song_suggestions,
+            videos: Array.isArray(normalized.video_suggestions) ? normalized.video_suggestions.length : typeof normalized.video_suggestions,
+            dialogues: Array.isArray(normalized.dialogues) ? normalized.dialogues.length : typeof normalized.dialogues,
+          }));
+
+          return normalized;
+        } catch (err: any) {
+          console.error(`enrich-unit CATCH [${category}] model=${modelName}:`, err.message || String(err));
         }
       }
       return null;
     }
 
+    // ── CATEGORY PROMPTS ────────────────────────────────────────────────
     let expectedOutputFormat = '';
     let categoryRules = '';
 
     switch (category) {
       case 'vocabulary':
-        expectedOutputFormat = `{ "title": "Unit title", "topic": "Main topic", "gradeLevel": "A1/A2/B1", "description": "2-3 sentence unit description", "vocabulary": [ { "word": "word", "definition": "simple definition", "example_sentence": "sentence", "translation": "translation", "image_prompt": "prompt", "distractors": ["wrong1", "wrong2"] } ] }`;
-        categoryRules = "- Extract exactly 5-8 key vocabulary words\n- Include child-friendly definitions, sentences, and translations.";
+        expectedOutputFormat = `{ "title": "Unit title", "topic": "Main topic", "gradeLevel": "A1/A2/B1", "description": "2-3 sentence unit description", "vocabulary": [ { "word": "word", "definition": "simple definition", "example_sentence": "sentence", "translation": "translation", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["wrong1", "wrong2"] } ] }`;
+        categoryRules = "- Extract exactly 6-10 key vocabulary words from the text\n- Include child-friendly definitions, example sentences, and translations\n- For image_prompt: describe a cute, simple, child-friendly cartoon illustration of each word\n- Include 2-3 distractors (wrong answer options) for each word.";
         break;
       case 'grammar':
-        expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2"] } ] }`;
-        categoryRules = "- Extract exactly 1-2 core grammar rules\n- Include simple explanations and 3 examples each.";
+        expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2", "example 3"] } ] }`;
+        categoryRules = "- Extract exactly 1-2 core grammar rules from the text\n- Include simple explanations suitable for children and 3 examples each.";
         break;
       case 'characters':
-        expectedOutputFormat = `{ "characters": [ { "name": "name", "role": "teacher/student", "personality": "brave/smart", "image_prompt": "visual prompt" } ] }`;
-        categoryRules = "- Create exactly 2-4 fun characters suitable for children\n- Give them distinct roles and personalities.";
+        expectedOutputFormat = `{ "characters": [ { "name": "name", "role": "teacher/student/friend", "personality": "brave/smart/funny", "image_prompt": "a friendly cartoon [role] named [name] who is [personality], children's book illustration style, bright colors, simple design" } ] }`;
+        categoryRules = "- Create exactly 2-4 fun characters suitable for children aged 6-12\n- Give them distinct roles, personalities, and visual descriptions in image_prompt\n- Characters should relate to the topic of the lesson.";
         break;
       case 'story':
-        expectedOutputFormat = `{ "story": { "title": "story title", "setting": "where it happens", "pages": [ { "text": "story text", "speaker": "name", "image_prompt": "scene prompt" } ] } }`;
-        categoryRules = "- Write exactly 3-4 story pages using the target vocabulary\n- Make the story highly engaging for a child.";
+        expectedOutputFormat = `{ "story": { "title": "story title", "setting": "where it happens", "pages": [ { "text": "story text (2-3 sentences)", "speaker": "character name", "image_prompt": "scene description for illustration" } ] } }`;
+        categoryRules = "- Write exactly 3-5 story pages using the target vocabulary words\n- Make the story engaging and age-appropriate for children 6-12\n- Each page should have a speaker and scene description.";
         break;
       case 'media':
-        expectedOutputFormat = `{ "song_suggestions": [ { "title": "song", "topic_relevance": "why it fits", "search_query": "query" } ], "video_suggestions": [ { "title": "video", "topic_relevance": "why it fits", "search_query": "query" } ] }`;
-        categoryRules = "- Suggest exactly 2 existing children's songs with YouTube queries\n- Suggest exactly 2 educational videos with YouTube queries.";
+        expectedOutputFormat = `{ "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this song" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this video" } ] }`;
+        categoryRules = "- Suggest exactly 2-3 REAL existing children's songs on YouTube with search queries\n- Suggest exactly 2-3 REAL existing educational videos on YouTube with search queries\n- Songs and videos must be age-appropriate and related to the lesson topic.";
         break;
       case 'dialogues':
-        expectedOutputFormat = `{ "dialogues": [ { "title": "dialogue name", "lines": [ {"speaker": "name", "text": "dialogue text"} ] } ] }`;
-        categoryRules = "- Write exactly 1-2 realistic dialogues using the target vocabulary.";
+        expectedOutputFormat = `{ "dialogues": [ { "title": "dialogue title", "lines": [ {"speaker": "character name", "text": "what they say"} ] } ] }`;
+        categoryRules = "- Write exactly 1-2 realistic dialogues using the target vocabulary\n- Each dialogue should have 4-6 lines between 2 speakers.";
         break;
       default:
         expectedOutputFormat = `{ "title": "...", "topic": "...", "gradeLevel": "...", "description": "...", "vocabulary": [], "grammar": [], "characters": [], "story": {"title":"", "setting":"", "pages":[]}, "song_suggestions": [], "video_suggestions": [], "dialogues": [] }`;
@@ -174,37 +204,41 @@ serve(async (req) => {
     }
 
     const enrichSystemPrompt = `You are Professor AI, an expert ESL/EFL curriculum designer for children aged 6-12.
-Given raw extracted text and vocabulary from a textbook page, extract ONLY the requested category of content.
-Return ONLY valid JSON matching the exact requested format (no markdown).`;
+Given raw extracted text and vocabulary from a textbook page, generate ONLY the requested category of content.
+
+CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no explanations, no text before or after the JSON.
+The JSON must match the exact format specified by the user.`;
 
     const enrichUserPrompt = `Topic: ${topic}
 Grade Level: ${gradeLevel}
 Extracted Text: ${extractedText.slice(0, 8000)}
 Raw Vocabulary Found: ${JSON.stringify(allVocab.slice(0, 20))}
 
-Generate the requested content for this unit.
-Return JSON in exactly this format:
+Generate the "${category}" content for this ESL lesson unit.
+
+You MUST return ONLY this JSON format (no other text):
 ${expectedOutputFormat}
 
 Rules:
 ${categoryRules}
-- All content must be age-appropriate and culturally sensitive.`;
+- All content must be age-appropriate and culturally sensitive.
+- Return ONLY the JSON object, nothing else.`;
 
     const enriched = await callAI(enrichSystemPrompt, enrichUserPrompt, 0.7);
 
     if (!enriched) {
-      return { success: false, error: `AI enrichment failed for category: ${category}. Please try again.` };
+      return { success: false, error: `AI enrichment failed for category: ${category}. All models failed. Check Supabase function logs for details.` };
     }
 
-    // Prepare images
-    if (enriched.vocabulary) {
+    // ── PREPARE PLACEHOLDER IMAGES ──────────────────────────────────────
+    if (enriched.vocabulary && Array.isArray(enriched.vocabulary)) {
       enriched.vocabulary = enriched.vocabulary.map((v: any) => ({
         ...v,
         image_url: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(v.word || 'item')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`,
         image_status: 'pending' as const,
       }));
     }
-    if (enriched.characters) {
+    if (enriched.characters && Array.isArray(enriched.characters)) {
       enriched.characters = enriched.characters.map((ch: any) => ({
         ...ch,
         image_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(ch.name || 'char')}`,
@@ -212,7 +246,8 @@ ${categoryRules}
       }));
     }
 
-    // Merge with existing manifest in DB - FETCH FRESH TO AVOID PARALLEL RACE CONDITIONS!
+    // ── ATOMIC MERGE ────────────────────────────────────────────────────
+    // Read FRESH manifest right before writing to avoid race conditions
     const { data: freshUnit } = await sbClient.from('units').select('manifest').eq('id', unitId).single();
     const currentManifest = freshUnit?.manifest?.enriched_content || {
       title: '', topic: '', gradeLevel: 'A1', description: '',
@@ -220,17 +255,22 @@ ${categoryRules}
       song_suggestions: [], video_suggestions: [], dialogues: []
     };
 
-    // SMART MERGE: Only update keys that belong to the current category
-    // The AI often returns empty arrays for unrelated categories — never let those overwrite existing data
+    // Log what we're merging
+    console.log(`enrich-unit MERGE [${category}]:`, JSON.stringify({
+      currentKeys: Object.entries(currentManifest).map(([k, v]) => `${k}:${Array.isArray(v) ? v.length : typeof v}`),
+      enrichedKeys: Object.entries(enriched).map(([k, v]) => `${k}:${Array.isArray(v) ? v.length : typeof v}`),
+    }));
+
+    // Start from current manifest (preserves all existing data)
     const mergedManifest = { ...currentManifest };
-    
-    // Always update metadata if the AI returned it
-    if (enriched.title) mergedManifest.title = enriched.title;
-    if (enriched.topic) mergedManifest.topic = enriched.topic;
+
+    // Update metadata if the AI returned it
+    if (enriched.title && enriched.title !== 'Unit title') mergedManifest.title = enriched.title;
+    if (enriched.topic && enriched.topic !== 'Main topic') mergedManifest.topic = enriched.topic;
     if (enriched.gradeLevel) mergedManifest.gradeLevel = enriched.gradeLevel;
     if (enriched.description) mergedManifest.description = enriched.description;
 
-    // Only update the specific category array if non-empty
+    // Category-specific merge: ONLY update the keys for this category
     const categoryKeyMap: Record<string, string[]> = {
       vocabulary: ['vocabulary'],
       grammar: ['grammar'],
@@ -240,31 +280,59 @@ ${categoryRules}
       dialogues: ['dialogues'],
       all: ['vocabulary', 'grammar', 'characters', 'story', 'song_suggestions', 'video_suggestions', 'dialogues'],
     };
-    
-    const keysToUpdate = categoryKeyMap[category] || Object.keys(enriched);
+
+    const keysToUpdate = categoryKeyMap[category] || [category];
     for (const key of keysToUpdate) {
-      if (key === 'story' && enriched.story?.pages?.length > 0) {
-        mergedManifest.story = { ...currentManifest.story, ...enriched.story };
-      } else if (Array.isArray(enriched[key]) && enriched[key].length > 0) {
-        mergedManifest[key] = enriched[key];
+      if (key === 'story') {
+        if (enriched.story && (enriched.story.pages?.length > 0 || enriched.story.title)) {
+          mergedManifest.story = { ...currentManifest.story, ...enriched.story };
+        }
+      } else if (enriched[key] !== undefined) {
+        // Accept any non-empty array
+        if (Array.isArray(enriched[key]) && enriched[key].length > 0) {
+          mergedManifest[key] = enriched[key];
+        }
       }
     }
 
-    await sbClient
+    // Log what we're writing
+    console.log(`enrich-unit WRITE [${category}]:`, JSON.stringify({
+      mergedKeys: Object.entries(mergedManifest).map(([k, v]) => `${k}:${Array.isArray(v) ? v.length : typeof v}`),
+    }));
+
+    // Write to DB
+    const { error: updateError } = await sbClient
       .from('units')
       .update({
-        manifest: { 
-          meta: { 
-            unit_title: mergedManifest.title || unit.title, 
-            theme: mergedManifest.topic || topic, 
-            difficulty_cefr: mergedManifest.gradeLevel 
-          }, 
-          enriched_content: mergedManifest 
+        manifest: {
+          meta: {
+            unit_title: mergedManifest.title || unit.title,
+            theme: mergedManifest.topic || topic,
+            difficulty_cefr: mergedManifest.gradeLevel
+          },
+          enriched_content: mergedManifest
         },
         topic: mergedManifest.topic || unit.topic || topic,
         title: mergedManifest.title || unit.title,
       })
       .eq('id', unitId);
+
+    if (updateError) {
+      console.error(`enrich-unit DB UPDATE ERROR [${category}]:`, updateError.message);
+    }
+
+    // Verify write by reading back
+    const { data: verifyUnit } = await sbClient.from('units').select('manifest').eq('id', unitId).single();
+    const verifyContent = verifyUnit?.manifest?.enriched_content || {};
+    console.log(`enrich-unit VERIFY [${category}]:`, JSON.stringify({
+      vocab: Array.isArray(verifyContent.vocabulary) ? verifyContent.vocabulary.length : 0,
+      grammar: Array.isArray(verifyContent.grammar) ? verifyContent.grammar.length : 0,
+      chars: Array.isArray(verifyContent.characters) ? verifyContent.characters.length : 0,
+      storyPages: verifyContent.story?.pages?.length || 0,
+      songs: Array.isArray(verifyContent.song_suggestions) ? verifyContent.song_suggestions.length : 0,
+      videos: Array.isArray(verifyContent.video_suggestions) ? verifyContent.video_suggestions.length : 0,
+      dialogues: Array.isArray(verifyContent.dialogues) ? verifyContent.dialogues.length : 0,
+    }));
 
     return {
       success: true,
