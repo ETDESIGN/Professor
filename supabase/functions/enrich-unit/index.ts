@@ -115,36 +115,57 @@ serve(async (req) => {
             });
           }
 
-          // Extract JSON from response
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          // Extract JSON from response: try to match an object OR an array
+          const jsonMatch = content.match(/\{[\s\S]*\}/) || content.match(/\[[\s\S]*\]/);
           if (!jsonMatch) {
             console.error(`enrich-unit [${category}] ${modelName}: No JSON found in response. Content preview:`, content.substring(0, 200));
             continue;
           }
 
-          const parsed = JSON.parse(jsonMatch[0]);
+          let parsed = JSON.parse(jsonMatch[0]);
 
           // ── KEY NORMALIZATION ──────────────────────────────────────
-          // Different models return keys in different formats. Normalize them.
           const normalized: any = {};
-          for (const [key, value] of Object.entries(parsed)) {
-            const lk = key.toLowerCase().replace(/[_\s-]/g, '');
-            if (lk === 'vocabulary' || lk === 'vocab' || lk === 'words' || lk === 'vocabularywords') {
-              normalized.vocabulary = value;
-            } else if (lk === 'grammar' || lk === 'grammarrules' || lk === 'rules') {
-              normalized.grammar = value;
-            } else if (lk === 'characters' || lk === 'chars') {
-              normalized.characters = value;
-            } else if (lk === 'story' || lk === 'storydata') {
-              normalized.story = value;
-            } else if (lk === 'songsuggestions' || lk === 'songs') {
-              normalized.song_suggestions = value;
-            } else if (lk === 'videosuggestions' || lk === 'videos') {
-              normalized.video_suggestions = value;
-            } else if (lk === 'dialogues' || lk === 'dialogs' || lk === 'dialogue') {
-              normalized.dialogues = value;
-            } else {
-              normalized[key] = value;
+          
+          if (Array.isArray(parsed)) {
+            // Model returned a raw array! Map it to the requested category.
+            if (category === 'vocabulary') normalized.vocabulary = parsed;
+            else if (category === 'grammar') normalized.grammar = parsed;
+            else if (category === 'characters') normalized.characters = parsed;
+            else if (category === 'dialogues') normalized.dialogues = parsed;
+            else if (category === 'media') {
+              // Usually it's songs or videos. Default to songs so we don't lose data
+              normalized.song_suggestions = parsed;
+            }
+          } else {
+            // Un-nest category wrapper if present
+            if (category === 'media' && parsed.media) {
+              parsed = { ...parsed, ...parsed.media };
+            }
+            if (category === 'vocabulary' && parsed.vocabulary && typeof parsed.vocabulary === 'object' && !Array.isArray(parsed.vocabulary)) {
+               const possibleArray = Object.values(parsed.vocabulary).find(v => Array.isArray(v));
+               if (possibleArray) parsed.vocabulary = possibleArray;
+            }
+
+            for (const [key, value] of Object.entries(parsed)) {
+              const lk = key.toLowerCase().replace(/[_\s-]/g, '');
+              if (lk === 'vocabulary' || lk === 'vocab' || lk === 'words' || lk === 'vocabularywords') {
+                normalized.vocabulary = value;
+              } else if (lk === 'grammar' || lk === 'grammarrules' || lk === 'rules') {
+                normalized.grammar = value;
+              } else if (lk === 'characters' || lk === 'chars') {
+                normalized.characters = value;
+              } else if (lk === 'story' || lk === 'storydata') {
+                normalized.story = value;
+              } else if (lk === 'songsuggestions' || lk === 'songs' || lk === 'songsuggestion') {
+                normalized.song_suggestions = value;
+              } else if (lk === 'videosuggestions' || lk === 'videos' || lk === 'videosuggestion') {
+                normalized.video_suggestions = value;
+              } else if (lk === 'dialogues' || lk === 'dialogs' || lk === 'dialogue') {
+                normalized.dialogues = value;
+              } else {
+                normalized[key] = value;
+              }
             }
           }
 
@@ -310,7 +331,8 @@ ${categoryRules}
             theme: mergedManifest.topic || topic,
             difficulty_cefr: mergedManifest.gradeLevel
           },
-          enriched_content: mergedManifest
+          enriched_content: mergedManifest,
+          _debug: { category, parsed, normalized }
         },
         topic: mergedManifest.topic || unit.topic || topic,
         title: mergedManifest.title || unit.title,
