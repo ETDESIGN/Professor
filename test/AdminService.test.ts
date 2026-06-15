@@ -7,6 +7,9 @@ const { mockFrom } = vi.hoisted(() => ({
 vi.mock('../services/supabaseClient', () => ({
   supabase: {
     from: mockFrom,
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'admin-1' } } }),
+    },
   },
 }));
 
@@ -90,12 +93,22 @@ function deleteChain(error?: any) {
 }
 
 describe('AdminService', () => {
+  const adminProfileChain = selectChain({ id: 'admin-1', role: 'admin' });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
+  function withAdminAuth(mockFn: () => void) {
+    return () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
+      mockFn();
+    };
+  }
+
   describe('getDistrictMetrics', () => {
     it('returns computed metrics from database', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       const profilesChain = selectChain([
         { role: 'teacher' }, { role: 'teacher' },
         { role: 'student' }, { role: 'student' }, { role: 'student' },
@@ -133,6 +146,7 @@ describe('AdminService', () => {
     });
 
     it('returns zeros when no data', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom
         .mockReturnValueOnce(selectChain([]))
         .mockReturnValueOnce(selectChain([]))
@@ -150,6 +164,7 @@ describe('AdminService', () => {
 
   describe('getTeacherSummaries', () => {
     it('returns empty array when no teachers', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(selectChain([]));
 
       const summaries = await AdminService.getTeacherSummaries();
@@ -157,6 +172,7 @@ describe('AdminService', () => {
     });
 
     it('returns teacher summaries with class and student counts', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom
         .mockReturnValueOnce(selectChain([
           { id: 't1', full_name: 'Ms. Smith', email: 'ms@school.com', avatar_url: null, created_at: '2024-01-01' },
@@ -187,6 +203,7 @@ describe('AdminService', () => {
 
   describe('getStudentSummaries', () => {
     it('returns student summaries with progress and class info', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom
         .mockReturnValueOnce(selectChain([
           { id: 's1', full_name: 'Alice', email: 'a@t.com', avatar_url: null, created_at: '2026-01-01' },
@@ -211,6 +228,7 @@ describe('AdminService', () => {
     });
 
     it('returns empty result when no students', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(selectChain([]));
       const result = await AdminService.getStudentSummaries();
       expect(result.data).toEqual([]);
@@ -220,6 +238,7 @@ describe('AdminService', () => {
 
   describe('getContentForModeration', () => {
     it('returns content items with computed flags', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(selectChain([
         { id: 'u1', title: 'Unit 1', status: 'Active', level: 'A1', topic: 'Colors', lessons: 5, flow: [{ type: 'INTRO' }], manifest: { steps: [] }, last_updated: '2024-03-01' },
         { id: 'u2', title: 'Unit 2', status: 'Draft', level: 'A2', topic: null, lessons: 0, flow: null, manifest: null, last_updated: '2024-03-02' },
@@ -237,6 +256,7 @@ describe('AdminService', () => {
     });
 
     it('throws on database error', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       const errorChain = selectChain(null, { message: 'DB error' });
       errorChain.error = { message: 'DB error' };
       mockFrom.mockReturnValueOnce(errorChain);
@@ -247,12 +267,14 @@ describe('AdminService', () => {
 
   describe('updateUnitStatus', () => {
     it('calls update with correct status', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(updateChain());
 
       await expect(AdminService.updateUnitStatus('u1', 'Active')).resolves.toBeUndefined();
     });
 
     it('throws on error', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(updateChain({ message: 'fail' }));
 
       await expect(AdminService.updateUnitStatus('u1', 'Active')).rejects.toEqual({ message: 'fail' });
@@ -261,6 +283,7 @@ describe('AdminService', () => {
 
   describe('updateUserRole', () => {
     it('calls profile update with role', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(updateChain());
 
       await expect(AdminService.updateUserRole('user-1', 'teacher')).resolves.toBeUndefined();
@@ -269,12 +292,14 @@ describe('AdminService', () => {
 
   describe('deleteUser', () => {
     it('deletes profile row', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(deleteChain());
 
       await expect(AdminService.deleteUser('user-1')).resolves.toBeUndefined();
     });
 
     it('throws on delete error', async () => {
+      mockFrom.mockReturnValueOnce(adminProfileChain);
       mockFrom.mockReturnValueOnce(deleteChain({ message: 'forbidden' }));
 
       await expect(AdminService.deleteUser('user-1')).rejects.toEqual({ message: 'forbidden' });

@@ -200,16 +200,7 @@ export function useLeaderboard(classId?: string) {
 export function useStudentGems() {
   return useQuery({
     queryKey: ['studentGems'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return 0;
-      const { data } = await supabase
-        .from('student_progress')
-        .select('gems')
-        .eq('student_id', user.id)
-        .single();
-      return data?.gems || 0;
-    },
+    queryFn: () => GamificationService.getStudentGems(),
     staleTime: 30_000,
   });
 }

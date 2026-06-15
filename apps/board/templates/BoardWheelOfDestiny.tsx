@@ -9,12 +9,15 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
   const [rotation, setRotation] = useState(0);
   const [winner, setWinner] = useState<any>(null);
 
-  // Filter valid students and ensure we have data
-  const students = useMemo(() => state.students.length > 0 ? state.students : [
-    { id: '1', name: 'Student 1', avatar: '🙂' },
-    { id: '2', name: 'Student 2', avatar: '😎' },
-    { id: '3', name: 'Student 3', avatar: '🤠' }
-  ], [state.students]);
+  const students = useMemo(() => state.students, [state.students]);
+
+  if (students.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
+        <h2 className="text-4xl font-bold text-slate-500">Waiting for Students to Join...</h2>
+      </div>
+    );
+  }
 
   const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 

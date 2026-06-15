@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from '../../store/SessionContext';
 import { Clock, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +9,7 @@ import ConfettiSystem from '../../components/effects/ConfettiSystem';
 import DrawingLayer from '../../components/shared/DrawingLayer';
 
 // Import enhanced templates
+import BoardGameArena from './templates/BoardGameArena';
 import BoardMediaPlayer from './templates/BoardMediaPlayer';
 import BoardFocusCards from './templates/BoardFocusCards';
 import BoardStoryStage from './templates/BoardStoryStage';
@@ -26,13 +27,21 @@ import BoardUnitSelection from './templates/BoardUnitSelection';
 import BoardPoll from './templates/BoardPoll';
 import BoardWheelOfDestiny from './templates/BoardWheelOfDestiny';
 import BoardOverlayLayer from './templates/BoardOverlayLayer';
+import BoardFlashMatch from './templates/BoardFlashMatch';
+import BoardListenTap from './templates/BoardListenTap';
 
 const ClassroomBoard: React.FC = () => {
   const { state } = useSession();
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // CRITICAL FIX: Use state.activeSlideData instead of MOCK_LESSON_FLOW
-  // This ensures the board displays what is currently selected in the session
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const currentStep = state.activeSlideData;
+
+  const timeString = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   if (!state.isConnected) {
     return (
@@ -47,7 +56,7 @@ const ClassroomBoard: React.FC = () => {
         <div className="bg-slate-900 px-6 py-3 rounded-xl border border-slate-800 font-mono text-xl text-slate-400">
           Waiting for Teacher Connection...
         </div>
-        <p className="mt-8 text-slate-600 font-mono text-sm">Room ID: 304-B</p>
+        <p className="mt-8 text-slate-600 font-mono text-sm">Waiting for connection...</p>
       </div>
     );
   }
@@ -83,7 +92,7 @@ const ClassroomBoard: React.FC = () => {
         <div className="absolute top-6 right-6 z-50 flex gap-4 pointer-events-none">
           <div className="bg-black/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-mono text-2xl flex items-center gap-3 shadow-lg border border-white/10">
             <Clock size={24} className="text-duo-green" />
-            10:45 AM
+            {timeString}
           </div>
         </div>
 
@@ -117,7 +126,7 @@ const ClassroomBoard: React.FC = () => {
             {currentStep.type === 'MEDIA_PLAYER' && <BoardMediaPlayer data={currentStep.data} />}
             {currentStep.type === 'LIVE_WARMUP' && <BoardLiveClassWarmup data={currentStep.data} />}
             {currentStep.type === 'FOCUS_CARDS' && <BoardFocusCards data={currentStep.data} />}
-            {currentStep.type === 'GAME_ARENA' && <BoardSpeedQuiz data={currentStep.data} />}
+            {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
             {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
             {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
             {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}
@@ -125,11 +134,14 @@ const ClassroomBoard: React.FC = () => {
             {currentStep.type === 'WHATS_MISSING' && <BoardWhatsMissing data={currentStep.data} />}
             {currentStep.type === 'SPEED_QUIZ' && <BoardSpeedQuiz data={currentStep.data} />}
             {currentStep.type === 'STORY_SEQUENCING' && <BoardStorySequencing data={currentStep.data} />}
-            {currentStep.type === 'I_SAY_YOU_SAY' && <BoardISayYouSay data={currentStep.data} />}
+            {(currentStep.type === 'I_SAY_YOU_SAY' || currentStep.type === 'SPEAKING') && <BoardISayYouSay data={currentStep.data} />}
             {currentStep.type === 'MAGIC_EYES' && <BoardMagicEyes data={currentStep.data} />}
             {currentStep.type === 'POLL' && <BoardPoll data={currentStep.data} />}
             {currentStep.type === 'WHEEL_OF_DESTINY' && <BoardWheelOfDestiny data={currentStep.data} />}
             {currentStep.type === 'UNIT_SELECTION' && <BoardUnitSelection />}
+            {(currentStep.type === 'SCRAMBLE') && <BoardUnscramble data={currentStep.data} />}
+            {currentStep.type === 'FLASH_MATCH' && <BoardFlashMatch data={currentStep.data} />}
+            {currentStep.type === 'LISTEN_TAP' && <BoardListenTap data={currentStep.data} />}
           </motion.div>
         </AnimatePresence>
 

@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
 import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
+import { GamificationService } from '../services/GamificationService';
 import { createClientLogger } from '../services/logger';
 
 const log = createClientLogger('SessionContext');
@@ -281,11 +282,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const nextSlide = () => goToSlide(state.currentStepIndex + 1);
   const prevSlide = () => goToSlide(state.currentStepIndex - 1);
 
-  const addPoints = (studentId: string, amount: number) => {
+  const addPoints = useCallback((studentId: string, amount: number) => {
     const action = { type: 'POINTS_AWARDED', payload: { studentId, amount }, timestamp: Date.now() };
     broadcastAction(action);
 
-    // Optimistic update
     setState(prev => ({
       ...prev,
       students: prev.students.map(s =>
@@ -295,7 +295,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       confettiTrigger: amount > 0 ? Date.now() : prev.confettiTrigger,
       lastAction: action
     }));
-  };
+
+    if (amount > 0) {
+      GamificationService.awardXP(amount, 'classroom_points').catch(err => {
+        log.warn('xp_persist_failed', { error: err instanceof Error ? err.message : String(err) });
+      });
+    }
+  }, [broadcastAction]);
 
   const deductAllPoints = (amount: number) => {
     const action = { type: 'MASS_PENALTY', payload: { amount }, timestamp: Date.now() };

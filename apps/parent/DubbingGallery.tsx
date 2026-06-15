@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Share2, Download, MoreHorizontal, Play, Star, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
 import { createClientLogger } from '../../services/logger';
@@ -61,19 +62,11 @@ const DubbingGallery: React.FC<DubbingGalleryProps> = ({ onBack }) => {
     }
   };
 
-  const displayItems = recordings.length > 0 ? recordings : Array.from({ length: 6 }, (_, i) => ({
-    id: String(i + 1),
-    title: `Dubbing Take ${i + 1}`,
-    score: 70 + Math.floor(Math.random() * 30),
-    date: new Date(Date.now() - i * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    audioUrl: '',
-    transcript: '',
-    storyTitle: 'The Lost Hat',
-  }));
+  const displayItems = recordings;
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    alert('Sharing video link copied!');
+    toast.success('Sharing video link copied!');
   };
 
   const avgScore = displayItems.length > 0

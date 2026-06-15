@@ -195,7 +195,11 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const deductAllPoints = (amount: number) => {
-    setState(prev => ({ ...prev }));
+    setState(prev => ({
+      ...prev,
+      score: Math.max(0, prev.score - amount),
+      lastAction: { type: 'MASS_PENALTY', payload: { amount }, timestamp: Date.now() },
+    }));
   };
 
   const toggleConnection = () => {

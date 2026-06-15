@@ -66,6 +66,7 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
   const [loadingCategories, setLoadingCategories] = useState<Set<string>>(new Set());
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [mediaProgress, setMediaProgress] = useState({ generating: false, total: 0, done: 0 });
 
   useEffect(() => {
     loadExistingEnrichment();
@@ -107,6 +108,89 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
       setLoadError('Failed to load unit data.');
     }
   };
+
+  // Background Media Orchestrator
+  useEffect(() => {
+    if (!enriched) return;
+    
+    const pendingVocab = enriched.vocabulary.findIndex(v => v.image_status === 'pending');
+    const pendingChar = enriched.characters.findIndex(c => c.image_status === 'pending');
+    
+    if (pendingVocab === -1 && pendingChar === -1) {
+      if (mediaProgress.generating) setMediaProgress(prev => ({ ...prev, generating: false }));
+      return;
+    }
+
+    if (!mediaProgress.generating) {
+      const total = enriched.vocabulary.filter(v => v.image_status === 'pending').length + 
+                    enriched.characters.filter(c => c.image_status === 'pending').length;
+      setMediaProgress({ generating: true, total, done: 0 });
+    }
+
+    const processNext = async () => {
+      let category: 'vocabulary' | 'characters' = 'vocabulary';
+      let index = pendingVocab;
+      if (index === -1) {
+        category = 'characters';
+        index = pendingChar;
+      }
+      
+      const item = category === 'vocabulary' ? enriched.vocabulary[index] : enriched.characters[index];
+      const prompt = item.image_prompt || item.word || item.name;
+
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-media', {
+          body: { action: 'generate-image', unitId, prompt }
+        });
+        
+        if (error) throw error;
+        const newUrl = data?.url || item.image_url;
+        
+        setEnriched(prev => {
+          if (!prev) return prev;
+          const updated = { ...prev };
+          updated[category] = [...updated[category]];
+          updated[category][index] = { ...updated[category][index], image_url: newUrl, image_status: 'completed' };
+          return updated;
+        });
+        
+        setMediaProgress(prev => ({ ...prev, done: prev.done + 1 }));
+
+        // Persist to DB asynchronously
+        supabase.from('units').select('manifest').eq('id', unitId).single().then(({ data: unit }) => {
+          if (unit?.manifest) {
+             const newManifest = { ...unit.manifest };
+             if (newManifest.enriched_content) {
+               newManifest.enriched_content[category] = updatedArray(newManifest.enriched_content[category], index, newUrl);
+               supabase.from('units').update({ manifest: newManifest }).eq('id', unitId).then();
+             }
+          }
+        });
+      } catch (err) {
+        log.warn('media_gen_failed', { error: err });
+        setEnriched(prev => {
+          if (!prev) return prev;
+          const updated = { ...prev };
+          updated[category] = [...updated[category]];
+          updated[category][index] = { ...updated[category][index], image_status: 'failed' };
+          return updated;
+        });
+      }
+    };
+
+    // Helper for DB persistence
+    const updatedArray = (arr: any[], idx: number, url: string) => {
+      if (!arr) return arr;
+      const copy = [...arr];
+      if (copy[idx]) copy[idx] = { ...copy[idx], image_url: url, image_status: 'completed' };
+      return copy;
+    };
+
+    // Add a small 1-second delay to avoid hammering the API
+    const timer = setTimeout(() => processNext(), 1000);
+    return () => clearTimeout(timer);
+
+  }, [enriched?.vocabulary, enriched?.characters]);
 
   const ensureApprovalStates = (data: any): EnrichedManifest => {
     const patch = (arr: any[]) => arr.map((item: any) => ({ ...item, _approved: item._approved !== false }));
@@ -443,6 +527,12 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
         </div>
 
         <div className="flex items-center gap-4">
+          {mediaProgress.generating && (
+            <div className="flex items-center gap-2 text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+              <Loader2 size={14} className="animate-spin" />
+              Generating AI images ({mediaProgress.done}/{mediaProgress.total})
+            </div>
+          )}
           <div className="text-right mr-2">
             <p className="text-sm font-bold text-slate-700">{totalApproved}/{totalItems} approved</p>
             <div className="w-32 h-2 bg-slate-200 rounded-full mt-1 overflow-hidden">
@@ -552,11 +642,16 @@ const ApprovalBadge = ({ approved, onToggle }: { approved: boolean; onToggle: ()
 const VocabCard = ({ item, index, color, onToggle }: any) => (
   <div className={`rounded-xl border-2 transition-all ${item._approved !== false ? `${color.bg} ${color.border}` : 'bg-slate-100 border-slate-300 opacity-60'}`}>
     <div className="p-4 flex gap-4">
-      <div className="w-20 h-20 rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0">
+      <div className="w-20 h-20 rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 relative">
         {item.image_url ? (
-          <img src={item.image_url} alt={item.word} className="w-full h-full object-cover" />
+          <img src={item.image_url} alt={item.word} className={`w-full h-full object-cover transition-all duration-500 ${item.image_status === 'pending' ? 'opacity-40 blur-sm scale-110' : 'opacity-100 blur-0 scale-100'}`} />
         ) : (
           <Image size={24} className="text-slate-300" />
+        )}
+        {item.image_status === 'pending' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px]">
+            <Loader2 size={18} className="animate-spin text-blue-600 drop-shadow-md" />
+          </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -609,11 +704,16 @@ const CharacterCard = ({ item, index, color, onToggle }: any) => (
     <div className="flex justify-end mb-2">
       <ApprovalBadge approved={item._approved !== false} onToggle={onToggle} />
     </div>
-    <div className="w-20 h-20 mx-auto rounded-full overflow-hidden bg-white border-2 border-slate-200 mb-3">
+    <div className="w-20 h-20 mx-auto rounded-full overflow-hidden bg-white border-2 border-slate-200 mb-3 relative">
       {item.image_url ? (
-        <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+        <img src={item.image_url} alt={item.name} className={`w-full h-full object-cover transition-all duration-500 ${item.image_status === 'pending' ? 'opacity-40 blur-sm scale-110' : 'opacity-100 blur-0 scale-100'}`} />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-3xl">👤</div>
+      )}
+      {item.image_status === 'pending' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-[1px]">
+          <Loader2 size={18} className="animate-spin text-blue-600 drop-shadow-md" />
+        </div>
       )}
     </div>
     <h4 className={`font-bold ${color.text}`}>{item.name}</h4>

@@ -46,10 +46,10 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
    // Initialize Timeline from Manifest
    useEffect(() => {
       if (activeUnit) {
-         if (activeUnit.manifest?.knowledge_graph?.vocabulary) {
-            setEditableVocab(activeUnit.manifest.knowledge_graph.vocabulary);
+           if (activeUnit.manifest?.knowledge_graph?.vocabulary || activeUnit.manifest?.enriched_content?.vocabulary) {
+              setEditableVocab(activeUnit.manifest.knowledge_graph?.vocabulary || activeUnit.manifest?.enriched_content?.vocabulary);
          }
-         if (activeUnit.manifest && activeUnit.manifest.timeline.length > 0) {
+          if (activeUnit.manifest?.timeline && activeUnit.manifest.timeline.length > 0) {
             // New Manifest-based hydration
             const blocks: TimelineBlock[] = activeUnit.manifest.timeline.map((item, idx) => {
                let assetType: TimelineBlock['assetType'] = 'text';
@@ -64,7 +64,7 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
                   duration: item.duration || 5,
                   assetType: assetType,
                   status: 'review',
-                  data: item.config // Map 'config' to 'data'
+                   data: item.data || item.config
                };
             });
             setTimeline(blocks);

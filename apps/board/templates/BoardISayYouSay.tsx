@@ -7,11 +7,15 @@ const BoardISayYouSay = ({ data }: { data: any }) => {
   const [phase, setPhase] = useState<'listen' | 'repeat'>('listen');
   const [activeItemIndex, setActiveItemIndex] = useState(0);
   
-  const items = data.items || [
-    { text: "The cat is on the mat.", emphasis: "on" },
-    { text: "The dog is under the table.", emphasis: "under" },
-    { text: "The bird is in the tree.", emphasis: "in" }
-  ];
+  const items = data.items || (data.targetSentence ? [{ text: data.targetSentence, emphasis: data.targetWord || '' }] : []);
+
+  if (items.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
+        <h2 className="text-4xl font-bold text-slate-500">Waiting for Speaking Practice...</h2>
+      </div>
+    );
+  }
   
   const currentItem = items[activeItemIndex];
 

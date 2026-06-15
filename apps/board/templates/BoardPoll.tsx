@@ -10,12 +10,15 @@ const BoardPoll = ({ data }: { data: any }) => {
   const [timeLeft, setTimeLeft] = useState(30);
   const [isRevealed, setIsRevealed] = useState(false);
 
-  const options = data.options || [
-    { id: 'A', text: 'To learn about space', color: 'bg-red-500', ring: 'ring-red-500' },
-    { id: 'B', text: 'To find a new home', color: 'bg-blue-500', ring: 'ring-blue-500' },
-    { id: 'C', text: 'Because he was lost', color: 'bg-yellow-500', ring: 'ring-yellow-500' },
-    { id: 'D', text: 'To meet aliens', color: 'bg-green-500', ring: 'ring-green-500' }
-  ];
+  const options = data.options || [];
+
+  if (options.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
+        <h2 className="text-4xl font-bold text-slate-500">Waiting for Poll Data...</h2>
+      </div>
+    );
+  }
 
   // Listen for remote events
   useEffect(() => {
@@ -33,20 +36,11 @@ const BoardPoll = ({ data }: { data: any }) => {
     }
   }, [state.lastAction, isRevealed, triggerConfetti]);
 
-  // Simulate incoming votes
   useEffect(() => {
     let timer: any;
     if (timeLeft > 0 && !isRevealed) {
       timer = setInterval(() => {
         setTimeLeft(t => t - 1);
-        // Randomly add a vote based on "popularity" simulation
-        // Let's pretend option B is popular
-        if (Math.random() > 0.4) {
-           const opts = ['A', 'B', 'B', 'C', 'D']; // B appears twice to simulate bias
-           const pick = opts[Math.floor(Math.random() * opts.length)];
-           setVotes(prev => ({ ...prev, [pick]: prev[pick] + 1 }));
-           setTotalVotes(prev => prev + 1);
-        }
       }, 1000);
     } else if (timeLeft === 0 && !isRevealed) {
        setIsRevealed(true);
@@ -87,7 +81,7 @@ const BoardPoll = ({ data }: { data: any }) => {
              <div>
                 <div className="text-indigo-400 font-bold uppercase tracking-widest text-sm mb-2">Live Poll</div>
                 <h1 className="text-5xl font-black max-w-4xl leading-tight drop-shadow-md">
-                   {data.question || "Why did the astronaut go to Mars?"}
+                   {data.question || "Poll Question"}
                 </h1>
              </div>
           </div>

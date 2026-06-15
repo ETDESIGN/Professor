@@ -10,7 +10,6 @@ const BoardUnitSelection = () => {
    const featuredUnit = units.length > 0 ? units[0] : null;
 
    const handleLaunch = () => {
-      // Start the session and move to the first slide (Intro Splash)
       startSession();
       nextSlide();
    };
@@ -21,18 +20,17 @@ const BoardUnitSelection = () => {
 
    return (
       <div className="h-full bg-slate-50 flex flex-col font-sans p-12 overflow-hidden">
-         {/* Header */}
          <header className="flex justify-between items-start mb-12">
             <div className="flex items-center gap-6">
                <div className="w-20 h-20 bg-duo-green rounded-3xl flex items-center justify-center shadow-xl shadow-green-200">
                   <BookOpen size={40} className="text-white" />
                </div>
                <div>
-                  <h1 className="text-4xl font-display font-bold text-slate-800">English Level 3</h1>
+                  <h1 className="text-4xl font-display font-bold text-slate-800">Classroom Dashboard</h1>
                   <div className="flex items-center gap-3 text-slate-500 font-medium text-xl mt-1">
-                     <span>Ms. Frizzle</span>
+                     <span>Professor AI</span>
                      <div className="w-2 h-2 rounded-full bg-slate-300"></div>
-                     <span>Room 3B</span>
+                     <span>Live Class</span>
                   </div>
                </div>
             </div>
@@ -51,11 +49,10 @@ const BoardUnitSelection = () => {
          </header>
 
          <div className="flex-1 overflow-y-auto pr-4 -mr-4 pb-8">
-            {/* Featured Card */}
             {!searchTerm && featuredUnit && (
                <div className="w-full h-80 bg-slate-900 rounded-[3rem] relative overflow-hidden shadow-2xl mb-12 group cursor-pointer" onClick={handleLaunch}>
                   <img
-                     src={featuredUnit.coverImage || "https://images.unsplash.com/photo-1564419434663-c49967363849?q=80&w=1920"}
+                     src={featuredUnit.coverImage || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(featuredUnit.title || 'unit')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`}
                      className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
                      alt="Featured"
                   />
@@ -85,7 +82,6 @@ const BoardUnitSelection = () => {
                </div>
             )}
 
-            {/* Grid */}
             <div>
                <div className="flex items-center gap-4 mb-6">
                   <h3 className="text-2xl font-bold text-slate-800">{searchTerm ? 'Search Results' : 'All Units'}</h3>
@@ -102,7 +98,7 @@ const BoardUnitSelection = () => {
                         >
                            <div className="aspect-video bg-slate-100 rounded-2xl mb-4 relative overflow-hidden">
                               <img
-                                 src={unit.coverImage || `https://source.unsplash.com/random/400x300?education&sig=${i}`}
+                                 src={unit.coverImage || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(unit.title || 'unit')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`}
                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                  alt={unit.title}
                               />
@@ -112,7 +108,7 @@ const BoardUnitSelection = () => {
                               {unit.status === 'Locked' && (
                                  <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center backdrop-blur-[2px]">
                                     <div className="bg-white/20 backdrop-blur-md p-4 rounded-full border border-white/30 text-white">
-                                       <div className="w-8 h-8 flex items-center justify-center text-2xl">🔒</div>
+                                       <div className="w-8 h-8 flex items-center justify-center text-2xl">&#x1f512;</div>
                                     </div>
                                  </div>
                               )}
@@ -128,11 +124,7 @@ const BoardUnitSelection = () => {
                               <h4 className="text-xl font-bold text-slate-800 mb-1 line-clamp-1">{unit.title}</h4>
                               <div className="flex justify-between items-center text-slate-500 text-sm font-medium">
                                  <span>{unit.lessons || 0} Lessons</span>
-                                 <div className="flex items-center gap-1 text-yellow-500">
-                                    <Star size={16} fill="currentColor" />
-                                    <Star size={16} fill="currentColor" />
-                                    <Star size={16} fill="currentColor" />
-                                 </div>
+                                 <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100">{unit.level || 'Beginner'}</span>
                               </div>
                            </div>
                         </button>

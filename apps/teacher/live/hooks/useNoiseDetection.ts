@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { createClientLogger } from '../../../../services/logger';
 
 const log = createClientLogger('useNoiseDetection');
@@ -78,7 +79,7 @@ export const useNoiseDetection = (
 
     } catch (err) {
       log.warn('mic_error', { error: err instanceof Error ? err.message : String(err) });
-      alert("Microphone access required for Quiet Mode.");
+      toast.error("Microphone access required for Quiet Mode.");
     }
   };
 

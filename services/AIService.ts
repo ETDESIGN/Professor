@@ -46,28 +46,6 @@ export interface GeneratedLesson {
 }
 
 export const AIService = {
-    async generateLiveFeedback(context: string): Promise<any> {
-        log.info('generate_live_feedback');
-
-        const span = trackEdgeFunctionCall('generate-lesson');
-        const { data, error } = await invokeWithRetry('generate-lesson', { action: 'live-feedback', context });
-
-        if (error) {
-            span.error = error.message;
-            log.error('edge_function_error', { error: error.message, metadata: { fn: 'generate-lesson' } });
-            reportApiError('generate-lesson', 0, error.message);
-            throw new Error(error.message || 'Failed to generate live feedback.');
-        }
-
-        if (data && data.success === false) {
-            log.error('edge_function_body_error', { error: data.error });
-            reportApiError('generate-lesson', 200, data.error);
-            throw new Error(data.error || 'Edge Function failed');
-        }
-
-        return data;
-    },
-
     async orchestrateLesson(unitId: string, approvedAssets: object): Promise<any> {
         log.info('orchestrate_lesson', { metadata: { unitId } });
 

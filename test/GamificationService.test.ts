@@ -260,12 +260,13 @@ describe('GamificationService', () => {
       let fromCallCount = 0;
       fromMock.mockImplementation((table: string) => {
         fromCallCount++;
-        if (fromCallCount === 1) return { select: selectChain, update: updateChain };
+        if (fromCallCount === 1) return { select: selectChain };
+        if (fromCallCount === 2) return { update: updateChain };
         if (table === 'student_progress') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: { xp: 100, total_xp_earned: 500 }, error: null }),
+                single: vi.fn().mockResolvedValue({ data: { xp: 100, total_xp_earned: 500, gems: 50 }, error: null }),
               }),
             }),
             update: vi.fn().mockReturnValue({

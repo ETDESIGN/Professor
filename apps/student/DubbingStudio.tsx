@@ -253,7 +253,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
 
     } catch (err) {
       log.warn('mic_error', { error: err instanceof Error ? err.message : String(err) });
-      alert("Microphone access denied.");
+      toast.error("Microphone access denied.");
     }
   };
 

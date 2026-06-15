@@ -114,6 +114,19 @@ export interface LessonManifest {
     narrative_arc?: string;
   };
   timeline: ActivityBlock[];
+  enriched_content?: {
+    title?: string;
+    topic?: string;
+    gradeLevel?: string;
+    description?: string;
+    vocabulary: any[];
+    grammar: any[];
+    characters: any[];
+    story: { title: string; setting: string; pages: any[] };
+    song_suggestions: any[];
+    video_suggestions: any[];
+    dialogues: any[];
+  };
 }
 
 // --- THE MASTER PIPELINE OBJECT ---

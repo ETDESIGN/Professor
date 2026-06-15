@@ -1,6 +1,4 @@
-// SupabaseService.ts — Drop-in replacement for MockEngine
-// Uses Supabase for all data persistence. Falls back to MockEngine locally
-// if Supabase env vars are not configured (for local dev without a DB).
+// SupabaseService.ts — Data persistence layer using Supabase
 
 import { supabase } from './supabaseClient';
 import { LessonManifest } from '../types/pipeline';
@@ -31,21 +29,11 @@ export interface LessonUnit {
     topic?: string;
 }
 
-// Helper: check if Supabase is configured
-const isSupabaseConfigured = (): boolean => {
+const requireSupabase = (): void => {
     const url = import.meta.env.VITE_SUPABASE_URL;
-    return Boolean(url && url.length > 0);
-};
-
-// ------------------------------------------------------------------
-// If Supabase is not configured, delegate to MockEngine at runtime.
-// This lets the app work in pure-frontend/dev mode seamlessly.
-// ------------------------------------------------------------------
-
-const getMockEngine = async () => {
-    log.warn('using_mock_engine', { metadata: { message: 'VITE_SUPABASE_URL not set' } });
-    const mod = await import('../test/MockEngine');
-    return mod.MockEngine;
+    if (!url || url.length === 0) {
+        throw new Error('Database not configured. Please set VITE_SUPABASE_URL in your environment.');
+    }
 };
 
 // ------------------------------------------------------------------
@@ -89,11 +77,13 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
         generatedFlow = await transformManifestToFlow(manifest);
     }
 
-    const row = {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const row: any = {
         title: manifest?.meta.unit_title || title,
         level: manifest?.meta.difficulty_cefr || 'Draft',
         status: 'Processing',
-        lessons: manifest?.timeline.length || 0,
+        lessons: manifest?.timeline?.length || 0,
         cover_image: manifest?.meta.theme
             ? `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(manifest.meta.theme)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`
             : `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`,
@@ -102,6 +92,10 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
         manifest: manifest ?? null,
         topic: manifest?.meta.theme || 'General',
     };
+
+    if (user) {
+        row.teacher_id = user.id;
+    }
 
     const { data, error } = await supabase.from('units').insert(row).select().single();
     if (error) throw error;
@@ -164,17 +158,18 @@ const supabaseUpdateUnit = async (id: string, updates: Partial<LessonUnit>): Pro
 };
 
 const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
-    // Mark current unit as Completed
-    await supabase.from('units').update({ status: 'Completed' }).eq('id', currentId);
+    const { error: completeError } = await supabase.from('units').update({ status: 'Completed' }).eq('id', currentId);
+    if (completeError) {
+        log.warn('unlock_complete_unit_failed', { error: completeError.message });
+        throw completeError;
+    }
 
-    // Get authenticated user ID
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         log.warn('no_authenticated_user', { metadata: { context: 'unlockNextUnit' } });
         return;
     }
 
-    // Update student progress
     const { data: progress } = await supabase
         .from('student_progress')
         .select('*')
@@ -186,24 +181,35 @@ const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
         if (!completedIds.includes(currentId)) {
             completedIds.push(currentId);
         }
-        await supabase.from('student_progress').update({
+        const { error: progressError } = await supabase.from('student_progress').update({
             completed_unit_ids: completedIds,
         }).eq('student_id', user.id);
+        if (progressError) {
+            log.warn('unlock_progress_update_failed', { error: progressError.message });
+        }
     }
 
-    // Find and unlock the next unit (by position in the database)
-    const { data: allUnits } = await supabase
+    const { data: currentUnitData } = await supabase
+        .from('units')
+        .select('created_at')
+        .eq('id', currentId)
+        .single();
+
+    if (!currentUnitData) return;
+
+    const { data: nextUnit } = await supabase
         .from('units')
         .select('id, status')
-        .order('created_at', { ascending: true });
+        .gt('created_at', currentUnitData.created_at)
+        .eq('status', 'Locked')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-    if (allUnits) {
-        const idx = allUnits.findIndex(u => u.id === currentId);
-        if (idx !== -1 && idx < allUnits.length - 1) {
-            const nextUnit = allUnits[idx + 1];
-            if (nextUnit.status === 'Locked') {
-                await supabase.from('units').update({ status: 'Active' }).eq('id', nextUnit.id);
-            }
+    if (nextUnit) {
+        const { error: unlockError } = await supabase.from('units').update({ status: 'Active' }).eq('id', nextUnit.id);
+        if (unlockError) {
+            log.warn('unlock_next_unit_failed', { error: unlockError.message });
         }
     }
 };
@@ -248,7 +254,10 @@ const supabaseUpdateStudentProgress = async (updates: any) => {
     if (updates.completedUnitIds !== undefined) row.completed_unit_ids = updates.completedUnitIds;
     if (updates.currentUnitId !== undefined) row.current_unit_id = updates.currentUnitId;
 
-    await supabase.from('student_progress').update(row).eq('student_id', user.id);
+    const { error: progressError } = await supabase.from('student_progress').update(row).eq('student_id', user.id);
+    if (progressError) {
+        log.warn('student_progress_update_failed', { error: progressError.message });
+    }
 
     return { ...updates };
 };
@@ -257,7 +266,11 @@ const supabaseFetchSRSItems = async (studentId?: string) => {
     let effectiveId = studentId;
     if (!effectiveId) {
         const { data: { user } } = await supabase.auth.getUser();
-        effectiveId = user?.id || 'default_student';
+        if (!user) {
+            log.warn('no_authenticated_user', { metadata: { context: 'fetchSRSItems' } });
+            return [];
+        }
+        effectiveId = user.id;
     }
 
     const { data, error } = await supabase
@@ -300,10 +313,13 @@ const supabaseUpdateSRSItem = async (id: string, quality: number) => {
     const nextReview = new Date();
     nextReview.setDate(nextReview.getDate() + interval);
 
-    await supabase.from('srs_items').update({
+    const { error: srsError } = await supabase.from('srs_items').update({
         interval, repetition, efactor,
         next_review: nextReview.toISOString(),
     }).eq('id', id);
+    if (srsError) {
+        log.warn('srs_item_update_failed', { error: srsError.message });
+    }
 };
 
 const supabaseEnsureStudentSRSItems = async (unitId: string, studentId: string): Promise<void> => {
@@ -319,7 +335,7 @@ const supabaseEnsureStudentSRSItems = async (unitId: string, studentId: string):
     const { data: templates } = await supabase
         .from('srs_items')
         .select('*')
-        .eq('student_id', 'unit_template')
+        .is('student_id', null)
         .eq('unit_id', unitId);
 
     if (!templates || templates.length === 0) return;
@@ -335,66 +351,70 @@ const supabaseEnsureStudentSRSItems = async (unitId: string, studentId: string):
         next_review: new Date().toISOString(),
     }));
 
-    await supabase.from('srs_items').insert(clones);
+    const { error: cloneError } = await supabase.from('srs_items').insert(clones);
+    if (cloneError) {
+        log.warn('srs_items_clone_failed', { error: cloneError.message });
+    }
 };
 
 // ------------------------------------------------------------------
-// Unified Engine — delegates to Supabase or MockEngine
+// Unified Engine — delegates to Supabase
 // ------------------------------------------------------------------
 
 export const Engine = {
     fetchUnits: async (): Promise<LessonUnit[]> => {
-        if (isSupabaseConfigured()) return supabaseFetchUnits();
-        return (await getMockEngine()).fetchUnits();
+        requireSupabase();
+        return supabaseFetchUnits();
     },
 
     createUnit: async (title: string, manifest?: LessonManifest): Promise<LessonUnit> => {
-        if (isSupabaseConfigured()) return supabaseCreateUnit(title, manifest);
-        return (await getMockEngine()).createUnit(title, manifest);
+        requireSupabase();
+        return supabaseCreateUnit(title, manifest);
     },
 
     getUnitById: async (id: string): Promise<LessonUnit | undefined> => {
-        if (isSupabaseConfigured()) return supabaseGetUnitById(id);
-        return (await getMockEngine()).getUnitById(id);
+        requireSupabase();
+        return supabaseGetUnitById(id);
     },
 
     updateUnit: async (id: string, updates: Partial<LessonUnit>): Promise<void> => {
-        if (isSupabaseConfigured()) return supabaseUpdateUnit(id, updates);
-        return (await getMockEngine()).updateUnit(id, updates);
+        requireSupabase();
+        return supabaseUpdateUnit(id, updates);
     },
 
     unlockNextUnit: async (currentId: string): Promise<void> => {
-        if (isSupabaseConfigured()) return supabaseUnlockNextUnit(currentId);
-        return (await getMockEngine()).unlockNextUnit(currentId);
+        requireSupabase();
+        return supabaseUnlockNextUnit(currentId);
     },
 
     getStudentProgress: async () => {
-        if (isSupabaseConfigured()) return supabaseGetStudentProgress();
-        return (await getMockEngine()).getStudentProgress();
+        requireSupabase();
+        return supabaseGetStudentProgress();
     },
 
     updateStudentProgress: async (updates: any) => {
-        if (isSupabaseConfigured()) return supabaseUpdateStudentProgress(updates);
-        return (await getMockEngine()).updateStudentProgress(updates);
+        requireSupabase();
+        return supabaseUpdateStudentProgress(updates);
     },
 
     fetchSRSItems: async (studentId?: string) => {
-        if (isSupabaseConfigured()) return supabaseFetchSRSItems(studentId);
-        return (await getMockEngine()).fetchSRSItems(studentId);
+        requireSupabase();
+        return supabaseFetchSRSItems(studentId);
     },
 
     updateSRSItem: async (id: string, quality: number) => {
-        if (isSupabaseConfigured()) return supabaseUpdateSRSItem(id, quality);
-        return (await getMockEngine()).updateSRSItem(id, quality);
+        requireSupabase();
+        return supabaseUpdateSRSItem(id, quality);
     },
 
     ensureStudentSRSItems: async (unitId: string, studentId: string): Promise<void> => {
-        if (isSupabaseConfigured()) return supabaseEnsureStudentSRSItems(unitId, studentId);
+        requireSupabase();
+        return supabaseEnsureStudentSRSItems(unitId, studentId);
     },
 
     simulateScan: async (fileName: string): Promise<LessonUnit> => {
-        if (isSupabaseConfigured()) return supabaseCreateUnit(fileName);
-        return (await getMockEngine()).simulateScan(fileName);
+        requireSupabase();
+        return supabaseCreateUnit(fileName);
     },
 
     generateMockLessonData: (fileName: string) => {

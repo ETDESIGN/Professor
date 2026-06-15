@@ -4,6 +4,19 @@ import type { PaginatedResult, PaginationOptions } from './pagination';
 
 const log = createClientLogger('AdminService');
 
+async function requireAdmin(): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  if (!profile || (profile.role !== 'admin' && profile.role !== 'teacher')) {
+    throw new Error('Insufficient permissions. Admin or teacher role required.');
+  }
+}
+
 export interface DistrictMetrics {
   totalSchools: number;
   totalTeachers: number;
@@ -66,8 +79,9 @@ export interface ContentModerationItem {
 export const AdminService = {
   async getDistrictMetrics(): Promise<DistrictMetrics> {
     log.info('get_district_metrics');
+    await requireAdmin();
 
-    const [profilesRes, unitsRes, progressRes, classesRes] = await Promise.all([
+    const [profilesRes, unitStatsRes, progressStatsRes, classesRes] = await Promise.all([
       supabase.from('profiles').select('role'),
       supabase.from('units').select('status'),
       supabase.from('student_progress').select('xp, streak, completed_unit_ids, current_unit_id'),
@@ -75,37 +89,28 @@ export const AdminService = {
     ]);
 
     const profiles = profilesRes.data || [];
-    const units = unitsRes.data || [];
-    const progress = progressRes.data || [];
+    const units = unitStatsRes.data || [];
+    const progress = progressStatsRes.data || [];
 
-    const totalTeachers = profiles.filter(p => p.role === 'teacher').length;
     const totalStudents = profiles.filter(p => p.role === 'student').length;
-    const totalParents = profiles.filter(p => p.role === 'parent').length;
-
-    const totalXp = progress.reduce((sum, p) => sum + (p.xp || 0), 0);
-    const totalStreak = progress.reduce((sum, p) => sum + (p.streak || 0), 0);
-    const totalCompletedUnits = progress.reduce((sum, p) => sum + (p.completed_unit_ids?.length || 0), 0);
-    const studentsWithCurrentUnit = progress.filter(p => p.current_unit_id).length;
-
-    const activeUnits = units.filter(u => u.status === 'Active').length;
-    const draftUnits = units.filter(u => u.status === 'Draft').length;
 
     return {
       totalSchools: classesRes.count || 0,
-      totalTeachers,
+      totalTeachers: profiles.filter(p => p.role === 'teacher').length,
       totalStudents,
-      totalParents,
+      totalParents: profiles.filter(p => p.role === 'parent').length,
       totalUnits: units.length,
-      activeUnits,
-      draftUnits,
-      avgXpPerStudent: totalStudents > 0 ? Math.round(totalXp / totalStudents) : 0,
-      avgStreak: totalStudents > 0 ? Math.round(totalStreak / totalStudents) : 0,
-      completionRate: totalStudents > 0 ? Math.round((studentsWithCurrentUnit / totalStudents) * 100) : 0,
+      activeUnits: units.filter(u => u.status === 'Active').length,
+      draftUnits: units.filter(u => u.status === 'Draft').length,
+      avgXpPerStudent: totalStudents > 0 ? Math.round(progress.reduce((s, p) => s + (p.xp || 0), 0) / totalStudents) : 0,
+      avgStreak: totalStudents > 0 ? Math.round(progress.reduce((s, p) => s + (p.streak || 0), 0) / totalStudents) : 0,
+      completionRate: totalStudents > 0 ? Math.round((progress.filter(p => p.current_unit_id).length / totalStudents) * 100) : 0,
     };
   },
 
   async getSchoolGroups(): Promise<SchoolGroup[]> {
     log.info('get_school_groups');
+    await requireAdmin();
 
     const { data: classes, error } = await supabase
       .from('classes')
@@ -127,7 +132,7 @@ export const AdminService = {
 
     const { data: progressData } = await supabase
       .from('class_enrollments')
-      .select('class_id, student_id, student_progress:xp')
+      .select('class_id, student_id')
       .in('class_id', classIds);
 
     const enrollmentCounts = new Map<string, number>();
@@ -136,21 +141,48 @@ export const AdminService = {
       enrollmentCounts.set(c.id, count);
     });
 
-    return (classes || []).map((c: any) => ({
-      classId: c.id,
-      className: c.name,
-      teacherName: c.teacher?.full_name || 'Unknown',
-      subject: c.subject,
-      gradeLevel: c.grade_level,
-      studentCount: enrollmentCounts.get(c.id) || 0,
-      avgXp: 0,
-      avgStreak: 0,
-      code: c.code,
-    }));
+    const studentIds = [...new Set((progressData || []).map((e: any) => e.student_id))];
+    const avgMap = new Map<string, { totalXp: number; totalStreak: number; count: number }>();
+
+    if (studentIds.length > 0) {
+      const { data: studentProgress } = await supabase
+        .from('student_progress')
+        .select('student_id, xp, streak')
+        .in('student_id', studentIds);
+
+      const progressByStudent = new Map<string, { xp: number; streak: number }>();
+      (studentProgress || []).forEach((p: any) => progressByStudent.set(p.student_id, p));
+
+      (progressData || []).forEach((e: any) => {
+        const p = progressByStudent.get(e.student_id);
+        const entry = avgMap.get(e.class_id) || { totalXp: 0, totalStreak: 0, count: 0 };
+        entry.totalXp += p?.xp || 0;
+        entry.totalStreak += p?.streak || 0;
+        entry.count += 1;
+        avgMap.set(e.class_id, entry);
+      });
+    }
+
+    return (classes || []).map((c: any) => {
+      const stats = avgMap.get(c.id);
+      const count = stats?.count || 0;
+      return {
+        classId: c.id,
+        className: c.name,
+        teacherName: c.teacher?.full_name || 'Unknown',
+        subject: c.subject,
+        gradeLevel: c.grade_level,
+        studentCount: enrollmentCounts.get(c.id) || 0,
+        avgXp: count > 0 ? Math.round(stats.totalXp / count) : 0,
+        avgStreak: count > 0 ? Math.round(stats.totalStreak / count) : 0,
+        code: c.code,
+      };
+    });
   },
 
   async getTeacherSummaries(): Promise<TeacherSummary[]> {
     log.info('get_teacher_summaries');
+    await requireAdmin();
 
     const { data: teachers, error } = await supabase
       .from('profiles')
@@ -213,6 +245,7 @@ export const AdminService = {
 
   async getStudentSummaries(limit: number = 50, cursor?: string): Promise<PaginatedResult<StudentSummary>> {
     log.info('get_student_summaries', { metadata: { limit, cursor } });
+    await requireAdmin();
 
     let query = supabase
       .from('profiles')
@@ -272,6 +305,7 @@ export const AdminService = {
 
   async getContentForModeration(): Promise<ContentModerationItem[]> {
     log.info('get_content_for_moderation');
+    await requireAdmin();
 
     const { data: units, error } = await supabase
       .from('units')
@@ -298,6 +332,7 @@ export const AdminService = {
 
   async updateUnitStatus(unitId: string, status: string): Promise<void> {
     log.info('update_unit_status', { metadata: { unitId, status } });
+    await requireAdmin();
 
     const { error } = await supabase
       .from('units')
@@ -312,6 +347,7 @@ export const AdminService = {
 
   async updateUserRole(userId: string, role: 'admin' | 'teacher' | 'student' | 'parent'): Promise<void> {
     log.info('update_user_role', { metadata: { userId, role } });
+    await requireAdmin();
 
     const { error } = await supabase
       .from('profiles')
@@ -326,6 +362,7 @@ export const AdminService = {
 
   async deleteUser(userId: string): Promise<void> {
     log.info('delete_user', { metadata: { userId } });
+    await requireAdmin();
 
     const { error } = await supabase
       .from('profiles')

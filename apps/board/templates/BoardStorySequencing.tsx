@@ -29,7 +29,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
   }, [state.lastAction]);
 
   const initializeGame = () => {
-    const items: StoryCard[] = data.cards.map((c: any, i: number) => ({ ...c, order: i }));
+    const items: StoryCard[] = (data?.cards || []).map((c: any, i: number) => ({ ...c, order: i }));
     setCards([...items].sort(() => Math.random() - 0.5));
     setSlots(new Array(items.length).fill(null));
     setIsCorrect(false);

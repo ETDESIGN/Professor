@@ -35,13 +35,13 @@ const BoardLiveClassWarmup = ({ data }: { data: any }) => {
             <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center text-white font-bold animate-pulse">
                LIVE
             </div>
-            <div>
-               <h1 className="text-3xl font-display font-bold text-white">Warm Up Phase</h1>
-               <p className="text-slate-400">Unit 1: Jungle Safari</p>
-            </div>
-         </div>
-         <div className="text-6xl font-black text-white/10 tracking-widest">
-            05:00
+             <div>
+                <h1 className="text-3xl font-display font-bold text-white">Warm Up Phase</h1>
+                <p className="text-slate-400">{data?.theme || 'Unit Setup'}</p>
+             </div>
+          </div>
+          <div className="text-6xl font-black text-white/10 tracking-widest">
+             {data?.duration ? `${String(Math.floor(data.duration / 60)).padStart(2, '0')}:${String(data.duration % 60).padStart(2, '0')}` : '05:00'}
          </div>
       </div>
 
@@ -51,7 +51,7 @@ const BoardLiveClassWarmup = ({ data }: { data: any }) => {
          {/* Video Player */}
          <div className="flex-1 bg-black rounded-[2rem] overflow-hidden relative group shadow-2xl border-4 border-slate-800">
             <img 
-               src={data.videoThumbnail || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920"} 
+                src={data.videoThumbnail || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(data?.theme || 'warmup')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`}
                className="w-full h-full object-cover opacity-80" 
                alt="Warmup"
             />
@@ -59,29 +59,29 @@ const BoardLiveClassWarmup = ({ data }: { data: any }) => {
             {/* Overlay UI */}
             <div className="absolute inset-0 flex flex-col justify-between p-8">
                <div className="self-end bg-black/60 backdrop-blur px-4 py-2 rounded-lg text-white font-mono text-sm">
-                  Video: The Jungle Song
-               </div>
+                   Video: {data?.title || 'Warmup Video'}
+                </div>
 
-               <div className="flex justify-center">
-                  {!isPlaying && (
-                     <button 
-                        onClick={() => setIsPlaying(true)}
-                        className="w-24 h-24 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer border-4 border-white/50"
-                     >
-                        <Play size={48} fill="white" className="ml-2 text-white" />
-                     </button>
-                  )}
-               </div>
+                <div className="flex justify-center">
+                   {!isPlaying && (
+                      <button 
+                         onClick={() => setIsPlaying(true)}
+                         className="w-24 h-24 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer border-4 border-white/50"
+                      >
+                         <Play size={48} fill="white" className="ml-2 text-white" />
+                      </button>
+                   )}
+                </div>
 
-               {/* Controls */}
-               <div className="bg-black/60 backdrop-blur rounded-2xl p-4 flex items-center gap-4 border border-white/10">
-                  <button onClick={() => setIsPlaying(!isPlaying)} className="text-white hover:text-green-400">
-                     {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
-                  </button>
-                  <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
-                     <div className="h-full bg-red-500" style={{ width: `${progress}%` }}></div>
-                  </div>
-                  <div className="text-white font-mono text-sm">01:45 / 03:20</div>
+                {/* Controls */}
+                <div className="bg-black/60 backdrop-blur rounded-2xl p-4 flex items-center gap-4 border border-white/10">
+                   <button onClick={() => setIsPlaying(!isPlaying)} className="text-white hover:text-green-400">
+                      {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
+                   </button>
+                   <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-red-500" style={{ width: `${progress}%` }}></div>
+                   </div>
+                   <div className="text-white font-mono text-sm">{data?.videoTimestamp || ''}</div>
                   <button className="text-white hover:text-blue-400"><Volume2 size={24} /></button>
                </div>
             </div>

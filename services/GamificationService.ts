@@ -24,10 +24,15 @@ export const GamificationService = {
     const newTotal = (progress.total_xp_earned || 0) + amount;
     const newLevel = Math.floor(newXP / 1000) + 1;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('student_progress')
       .update({ xp: newXP, total_xp_earned: newTotal })
       .eq('student_id', user.id);
+
+    if (updateError) {
+      log.warn('award_xp_write_failed', { error: updateError.message });
+      return { newXP: progress.xp || 0, newLevel: Math.floor((progress.xp || 0) / 1000) + 1 };
+    }
 
     log.info('xp_awarded', { metadata: { amount, reason, newXP, newLevel } });
     return { newXP, newLevel };
@@ -46,10 +51,15 @@ export const GamificationService = {
     if (!progress) return 0;
 
     const newGems = (progress.gems || 0) + amount;
-    await supabase
+    const { error: gemError } = await supabase
       .from('student_progress')
       .update({ gems: newGems })
       .eq('student_id', user.id);
+
+    if (gemError) {
+      log.warn('award_gems_write_failed', { error: gemError.message });
+      return progress.gems || 0;
+    }
 
     return newGems;
   },
@@ -69,13 +79,29 @@ export const GamificationService = {
     }
 
     const newGems = progress.gems - amount;
-    await supabase
+    const { error: spendError } = await supabase
       .from('student_progress')
       .update({ gems: newGems })
       .eq('student_id', user.id);
 
+    if (spendError) {
+      log.warn('spend_gems_write_failed', { error: spendError.message });
+      return { success: false, newGems: progress.gems };
+    }
+
     return { success: true, newGems };
   },
+  async getStudentGems(): Promise<number> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 0;
+    const { data } = await supabase
+      .from('student_progress')
+      .select('gems')
+      .eq('student_id', user.id)
+      .single();
+    return data?.gems || 0;
+  },
+
 
   async checkAndUpdateStreak(): Promise<{ streak: number; streakBroken: boolean }> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -117,7 +143,7 @@ export const GamificationService = {
 
     const xpBonus = newStreak > 1 ? XP_REWARDS.DAILY_STREAK : 0;
 
-    await supabase
+    const { error: streakError } = await supabase
       .from('student_progress')
       .update({
         streak: newStreak,
@@ -125,6 +151,10 @@ export const GamificationService = {
         longest_streak: longestStreak,
       })
       .eq('student_id', user.id);
+
+    if (streakError) {
+      log.warn('streak_update_failed', { error: streakError.message });
+    }
 
     if (xpBonus > 0) {
       await GamificationService.awardXP(xpBonus, 'daily_streak');
@@ -201,10 +231,14 @@ export const GamificationService = {
     if (!quest) return;
 
     const newCurrent = Math.min((quest.current || 0) + increment, quest.target);
-    await supabase
+    const { error: questError } = await supabase
       .from('student_quests')
       .update({ current: newCurrent })
       .eq('id', quest.id);
+
+    if (questError) {
+      log.warn('quest_progress_update_failed', { error: questError.message });
+    }
   },
 
   async claimQuestReward(questId: string): Promise<{ xp: number; gems: number } | null> {
@@ -216,10 +250,15 @@ export const GamificationService = {
 
     if (!quest || quest.current < quest.target || quest.claimed) return null;
 
-    await supabase
+    const { error: claimError } = await supabase
       .from('student_quests')
       .update({ claimed: true })
       .eq('id', questId);
+
+    if (claimError) {
+      log.warn('quest_claim_failed', { error: claimError.message });
+      return null;
+    }
 
     await GamificationService.awardXP(quest.reward_xp, 'quest_complete');
     await GamificationService.awardGems(quest.reward_gems, 'quest_complete');
@@ -234,10 +273,15 @@ export const GamificationService = {
     const spent = await GamificationService.spendGems(cost);
     if (!spent.success) return { success: false };
 
-    await supabase.from('student_inventory').insert({
+    const { error: invError } = await supabase.from('student_inventory').insert({
       student_id: user.id,
       item_id: itemId,
     });
+
+    if (invError) {
+      log.warn('inventory_insert_failed', { error: invError.message });
+      return { success: false };
+    }
 
     return { success: true };
   },
@@ -344,37 +388,5 @@ export const GamificationService = {
     return true;
   },
 
-  async generateCharacterFromUnit(unitId: string): Promise<any | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
 
-    const { data: unit } = await supabase
-      .from('units')
-      .select('title, description, vocabulary')
-      .eq('id', unitId)
-      .single();
-
-    if (!unit) return null;
-
-    const { data, error } = await supabase.functions.invoke('generate-lesson', {
-      body: {
-        action: 'generate-characters',
-        unitId,
-        unitTitle: unit.title,
-        unitDescription: unit.description,
-        vocabulary: unit.vocabulary,
-      },
-    });
-
-    if (error || !data?.characters) {
-      log.warn('generate_character_error', { error: error?.message });
-      return null;
-    }
-
-    for (const char of data.characters) {
-      await GamificationService.addCharacter(unitId, char);
-    }
-
-    return data.characters;
-  },
 };

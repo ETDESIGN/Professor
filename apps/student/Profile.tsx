@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { ChevronLeft, Settings, Camera, Flame, Zap, Trophy, Mic, Play, Share2, Unlock } from 'lucide-react';
+import { ChevronLeft, Settings, Camera, Flame, Zap, Trophy, Mic, Play, Share2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { useAppStore } from '../../store/useAppStore';
+import { XP_LEVELS } from '../../constants/gamification';
 
 interface ProfileProps {
    onBack: () => void;
@@ -18,16 +19,11 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
-   const { unlockNextLevel, state } = useSoloSession();
+   const { state } = useSoloSession();
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 
-   const handleDebugComplete = () => {
-      // Unlock next level after current one
-      const currentId = state.units.find(u => u.status === 'Active')?.id || 'u1';
-      unlockNextLevel(currentId);
-      alert("Debug: Next Level Unlocked!");
-   };
+   const levelLabel = XP_LEVELS.getTitleForLevel(stats.level);
 
    return (
       <div className="h-full bg-slate-50 flex flex-col font-sans">
@@ -69,7 +65,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
 
                <h1 className="text-2xl font-bold text-slate-800 mb-1">{displayName}</h1>
                <div className="bg-duo-green/10 text-duo-green-dark px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-6">
-                  Level {stats.level}: Intermediate
+                  Level {stats.level}: {levelLabel}
                </div>
 
                {/* Stats Row */}
@@ -140,7 +136,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
 
                   {/* Video Card */}
                   <div className="aspect-[4/5] bg-slate-800 rounded-xl overflow-hidden relative group">
-                     <img src="https://source.unsplash.com/random/400x500?cartoon,kids&sig=99" className="w-full h-full object-cover opacity-80" alt="Video" />
+                      <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=studio&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} className="w-full h-full object-cover opacity-80" alt="Video" />
                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3">
                         <h3 className="text-white font-bold text-sm truncate">The Lost Hat</h3>
                         <div className="text-xs text-white/60 mb-2">Oct 24 • Level 1</div>
@@ -168,17 +164,6 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                      Start Now
                   </button>
                </div>
-            </div>
-
-            {/* DEBUG: Unlocker */}
-            <div className="mt-8 p-4 border-2 border-dashed border-red-200 rounded-xl bg-red-50 text-center">
-               <p className="text-xs font-bold text-red-400 uppercase mb-2">Developer Tools</p>
-               <button
-                  onClick={handleDebugComplete}
-                  className="bg-white border border-red-300 text-red-500 text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 mx-auto"
-               >
-                  <Unlock size={14} /> Instant Complete Level
-               </button>
             </div>
 
          </div>

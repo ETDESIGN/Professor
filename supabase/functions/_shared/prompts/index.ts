@@ -89,7 +89,8 @@ Generate a timeline with these activity types (in order, mix and match as approp
 3. FOCUS_CARDS — Vocabulary cards (use word, definition, example_sentence, image_prompt, distractors)
 4. GRAMMAR_SANDBOX — Grammar rules with examples
 5. STORY_STAGE — Story pages using characters and dialogue
-6. GAME_ARENA — Quiz questions derived from vocabulary (use distractors as wrong answers)
+9. LISTEN_TAP — Listening comprehension using vocabulary words
+6. TEAM_BATTLE — Team-based quiz questions (data: { questions: [{ text: "What does X mean?", options: ["def", "dis1", "dis2", "dis3"], correct: "def" }] })
 7. SPEAKING — Pronunciation practice using vocabulary words
 8. FLASH_MATCH — Word-definition matching pairs
 

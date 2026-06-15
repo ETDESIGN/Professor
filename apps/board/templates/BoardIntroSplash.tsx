@@ -25,9 +25,9 @@ const BoardIntroSplash = ({ data }: { data: any }) => {
       <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(white 2px, transparent 2px)', backgroundSize: '60px 60px' }}></div>
 
       <div className="relative z-10 text-center flex flex-col items-center max-w-5xl">
-        <div className="text-4xl font-light tracking-[0.5em] uppercase mb-12 text-indigo-300 animate-slide-down border-b border-indigo-500/30 pb-4">
-           Class 3B • English
-        </div>
+         <div className="text-4xl font-light tracking-[0.5em] uppercase mb-12 text-indigo-300 animate-slide-down border-b border-indigo-500/30 pb-4">
+            {data.class_name || 'English Class'}
+         </div>
         
         <h1 className="text-[12rem] leading-none font-fun mb-16 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400 drop-shadow-2xl animate-scale-in">
           {data.theme}

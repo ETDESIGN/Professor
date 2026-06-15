@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Share2, TrendingUp, Mic, Book, Headphones, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress, getStudentSRSWords } from '../../services/DataService';
 import { createClientLogger } from '../../services/logger';
@@ -46,7 +47,7 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
    const grammarScore = Math.min(100, Math.round(xp / 16));
 
    const handleShare = () => {
-      alert("Report link copied to clipboard!");
+      toast.success("Report link copied to clipboard!");
    };
 
    return (

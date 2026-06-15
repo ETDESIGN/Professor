@@ -15,8 +15,7 @@ serve(async (req) => {
             if (!body.text) return 'Missing required field for differentiate: text';
             return null;
           }
-          if (body.action === 'live-feedback') return null;
-          if (body.action === 'generate-characters') return null;
+
           if (!body.topic) return 'Missing required field: topic';
           if (!body.gradeLevel) return 'Missing required field: gradeLevel';
           return null;
@@ -40,7 +39,7 @@ serve(async (req) => {
       let aiResponse: Response | null = null;
       const models = [
         Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
-        Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+        Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
       ];
 
       for (const modelName of models) {
@@ -88,7 +87,7 @@ serve(async (req) => {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              model: Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+              model: Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
               messages: [
                 { role: 'system', content: 'You are a JSON parser repair agent. Return ONLY fully corrected, strictly valid JSON representation. Do NOT emit markdown backticks.' },
                 { role: 'user', content: `Repair this broken JSON:\n${content}` }
@@ -111,99 +110,6 @@ serve(async (req) => {
       }
     }
 
-    if (action === 'live-feedback') {
-      if (!aiApiKey) {
-        return { suggestion: 'Consider reviewing the previous concept before moving forward.', context: body.context || '' };
-      }
-
-      const feedbackPrompt = `A teacher is conducting a live class. Based on the classroom context, provide a brief, actionable teaching suggestion (1-2 sentences).
-
-Context: ${body.context || 'General classroom session'}
-Recent activity: ${body.recentActivity || 'No recent activity'}
-
-Respond with a JSON object: { "suggestion": "...", "context": "..." }`;
-
-      let feedbackResponse: Response | null = null;
-      const feedbackModels = [
-        Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
-        Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
-      ];
-
-      for (const modelName of feedbackModels) {
-        try {
-          const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: modelName,
-              messages: [
-                { role: 'system', content: 'You are an expert teaching assistant. Provide concise, actionable feedback. Return ONLY valid JSON.' },
-                { role: 'user', content: feedbackPrompt },
-              ],
-              temperature: 0.6,
-              max_tokens: 200,
-            }),
-          });
-          if (resp.ok) { feedbackResponse = resp; break; }
-        } catch { /* try next */ }
-      }
-
-      if (!feedbackResponse) {
-        return { suggestion: 'Consider reviewing the previous concept before moving forward.', context: body.context || '' };
-      }
-
-      try {
-        const fbData = await feedbackResponse.json();
-        let fbContent = fbData.choices?.[0]?.message?.content || '{}';
-        fbContent = fbContent.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(fbContent.match(/\{[\s\S]*\}/)?.[0] || '{}');
-      } catch {
-        return { suggestion: 'Consider reviewing the previous concept before moving forward.', context: body.context || '' };
-      }
-    }
-
-    if (action === 'generate-characters') {
-      if (!aiApiKey) {
-        return { characters: [] };
-      }
-      const charPrompt = `Generate 3-5 unique characters for an educational unit about "${body.unitTitle || 'General'}". ${body.unitDescription ? `Description: ${body.unitDescription}.` : ''} ${body.vocabulary ? `Key vocabulary to weave in: ${JSON.stringify(body.vocabulary)}.` : ''} Return a JSON array of objects with keys: name, role, emoji, description. Only return valid JSON, no markdown.`;
-
-      let charResponse: Response | null = null;
-      const charModels = [
-        Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
-        Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
-      ];
-
-      for (const modelName of charModels) {
-        try {
-          const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: modelName,
-              messages: [
-                { role: 'system', content: 'You are a creative educational character designer. Return ONLY valid JSON arrays, no markdown.' },
-                { role: 'user', content: charPrompt },
-              ],
-              temperature: 0.8,
-            }),
-          });
-          if (resp.ok) { charResponse = resp; break; }
-        } catch { /* try next */ }
-      }
-
-      if (!charResponse) return { characters: [] };
-
-      const charData = await charResponse.json();
-      let charContent = charData.choices?.[0]?.message?.content || '[]';
-      charContent = charContent.replace(/```json/g, '').replace(/```/g, '').trim();
-      try {
-        const parsed = JSON.parse(charContent.match(/\[[\s\S]*\]/)?.[0] || '[]');
-        return { characters: Array.isArray(parsed) ? parsed : [] };
-      } catch {
-        return { characters: [] };
-      }
-    }
 
     if (!aiApiKey) {
       return {
@@ -251,7 +157,7 @@ Respond with a JSON object: { "suggestion": "...", "context": "..." }`;
     let lessonAiResponse: Response | null = null;
     const lessonModels = [
       Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
-      Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+      Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
     ];
 
     for (const modelName of lessonModels) {
@@ -259,7 +165,7 @@ Respond with a JSON object: { "suggestion": "...", "context": "..." }`;
         const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: modelName, messages, temperature: 0.7, max_tokens: 2000 }),
+          body: JSON.stringify({ model: modelName, messages, temperature: 0.7, max_tokens: 25000 }),
         });
         if (resp.ok) { lessonAiResponse = resp; break; }
       } catch { /* try next model */ }
@@ -313,7 +219,7 @@ Respond with a JSON object: { "suggestion": "...", "context": "..." }`;
         method: 'POST',
         headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: Deno.env.get('FALLBACK_MODEL_NAME') || 'google/gemini-2.0-flash-exp:free',
+          model: Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
           messages: [
             { role: 'system', content: 'You are a JSON parser repair agent. Return ONLY fully corrected, strictly valid JSON representation.' },
             { role: 'user', content: `Repair this broken JSON:\n${content}` }

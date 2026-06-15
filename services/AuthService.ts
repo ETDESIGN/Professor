@@ -58,32 +58,28 @@ export async function signInWithPassword(
         if (!profile) {
             log.info('profile_self_healing_attempt', { metadata: { email: data.user.email } });
 
-            // Wait briefly to allow RLS policies or trigger to catch up
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const defaultRole = data.user.user_metadata?.role ? data.user.user_metadata.role.toLowerCase() : 'student';
             const defaultFullName = data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Unknown User';
 
-            const { data: newProfile, error: insertError } = await supabase
+            const { data: upsertedProfile, error: upsertError } = await supabase
                 .from('profiles')
-                .insert({
+                .upsert({
                     id: data.user.id,
                     email: data.user.email,
-                    role: defaultRole, // Will be cast to enum in Supabase if properly defined, otherwise string representation is fine for JS client
-                    full_name: defaultFullName
-                })
+                    role: 'student',
+                    full_name: defaultFullName,
+                }, { onConflict: 'id' })
                 .select('id, email, role, full_name, avatar_url')
                 .single();
 
-            if (insertError) {
-                log.warn('self_healing_failed', { error: insertError?.message || String(insertError) });
+            if (upsertError) {
+                log.warn('self_healing_failed', { error: upsertError?.message || String(upsertError) });
                 return {
                     success: false,
                     error: 'Profile setup incomplete. Please try signing up again or contact support.'
                 };
             }
 
-            profile = newProfile;
+            profile = upsertedProfile;
             log.info('profile_self_healed', { metadata: { profileId: profile.id } });
         }
 
@@ -127,7 +123,6 @@ export async function signUp(
                 emailRedirectTo: redirectUrl,
                 data: {
                     full_name: fullName || email.split('@')[0],
-                    role: role.toLowerCase(),
                 },
             },
         });

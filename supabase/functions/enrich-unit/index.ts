@@ -11,12 +11,16 @@ serve(async (req) => {
       { field: 'unitId', required: true, type: 'string' },
       { field: 'category', required: false, type: 'string' },
     ],
-  }, async (body, _auth) => {
+  }, async (body, auth) => {
     const { unitId, category = 'all' } = body;
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
     const aiApiKey = Deno.env.get('AI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+    if (!auth?.userId) {
+      return { success: false, error: 'Authentication required' };
+    }
 
     if (!aiApiKey) {
       return { success: false, error: 'AI_API_KEY not configured' };
@@ -31,6 +35,10 @@ serve(async (req) => {
 
     if (unitError || !unit) {
       return { success: false, error: 'Unit not found' };
+    }
+
+    if (unit.teacher_id && unit.teacher_id !== auth.userId) {
+      return { success: false, error: 'You do not own this unit' };
     }
 
     const scannedAssets = unit.scanned_assets || [];
@@ -65,6 +73,7 @@ serve(async (req) => {
 
     // ── AI CALL (no response_format — prompt-only JSON enforcement) ────
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
+      let lastError = '';
       for (const modelName of models) {
         try {
           const controller = new AbortController();
@@ -80,7 +89,7 @@ serve(async (req) => {
                 { role: 'user', content: userPrompt },
               ],
               temperature,
-              max_tokens: category === 'all' ? 4000 : 2000,
+              max_tokens: 25000,
             }),
             signal: controller.signal,
           });
@@ -101,7 +110,8 @@ serve(async (req) => {
           let content = data.choices?.[0]?.message?.content || '{}';
           // Strip markdown, thinking tags, and code fences
           content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-          content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+          content = content.replace(/<(think|reasoning)>[\s\S]*?(<\/(think|reasoning)>|$)/gi, '').trim();
+          content = content.replace(/\|begin_thinking\|[\s\S]*?(\|end_thinking\||$)/gi, '').trim();
 
           // Log telemetry
           if (supabaseUrl && supabaseKey && data.usage) {
@@ -115,57 +125,36 @@ serve(async (req) => {
             });
           }
 
-          // Extract JSON from response: try to match an object OR an array
-          const jsonMatch = content.match(/\{[\s\S]*\}/) || content.match(/\[[\s\S]*\]/);
+          // Extract JSON from response
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
           if (!jsonMatch) {
             console.error(`enrich-unit [${category}] ${modelName}: No JSON found in response. Content preview:`, content.substring(0, 200));
             continue;
           }
 
-          let parsed = JSON.parse(jsonMatch[0]);
+          const parsed = JSON.parse(jsonMatch[0]);
 
           // ── KEY NORMALIZATION ──────────────────────────────────────
+          // Different models return keys in different formats. Normalize them.
           const normalized: any = {};
-          
-          if (Array.isArray(parsed)) {
-            // Model returned a raw array! Map it to the requested category.
-            if (category === 'vocabulary') normalized.vocabulary = parsed;
-            else if (category === 'grammar') normalized.grammar = parsed;
-            else if (category === 'characters') normalized.characters = parsed;
-            else if (category === 'dialogues') normalized.dialogues = parsed;
-            else if (category === 'media') {
-              // Usually it's songs or videos. Default to songs so we don't lose data
-              normalized.song_suggestions = parsed;
-            }
-          } else {
-            // Un-nest category wrapper if present
-            if (category === 'media' && parsed.media) {
-              parsed = { ...parsed, ...parsed.media };
-            }
-            if (category === 'vocabulary' && parsed.vocabulary && typeof parsed.vocabulary === 'object' && !Array.isArray(parsed.vocabulary)) {
-               const possibleArray = Object.values(parsed.vocabulary).find(v => Array.isArray(v));
-               if (possibleArray) parsed.vocabulary = possibleArray;
-            }
-
-            for (const [key, value] of Object.entries(parsed)) {
-              const lk = key.toLowerCase().replace(/[_\s-]/g, '');
-              if (lk === 'vocabulary' || lk === 'vocab' || lk === 'words' || lk === 'vocabularywords') {
-                normalized.vocabulary = value;
-              } else if (lk === 'grammar' || lk === 'grammarrules' || lk === 'rules') {
-                normalized.grammar = value;
-              } else if (lk === 'characters' || lk === 'chars') {
-                normalized.characters = value;
-              } else if (lk === 'story' || lk === 'storydata') {
-                normalized.story = value;
-              } else if (lk === 'songsuggestions' || lk === 'songs' || lk === 'songsuggestion') {
-                normalized.song_suggestions = value;
-              } else if (lk === 'videosuggestions' || lk === 'videos' || lk === 'videosuggestion') {
-                normalized.video_suggestions = value;
-              } else if (lk === 'dialogues' || lk === 'dialogs' || lk === 'dialogue') {
-                normalized.dialogues = value;
-              } else {
-                normalized[key] = value;
-              }
+          for (const [key, value] of Object.entries(parsed)) {
+            const lk = key.toLowerCase().replace(/[_\s-]/g, '');
+            if (lk === 'vocabulary' || lk === 'vocab' || lk === 'words' || lk === 'vocabularywords') {
+              normalized.vocabulary = value;
+            } else if (lk === 'grammar' || lk === 'grammarrules' || lk === 'rules') {
+              normalized.grammar = value;
+            } else if (lk === 'characters' || lk === 'chars') {
+              normalized.characters = value;
+            } else if (lk === 'story' || lk === 'storydata') {
+              normalized.story = value;
+            } else if (lk === 'songsuggestions' || lk === 'songs') {
+              normalized.song_suggestions = value;
+            } else if (lk === 'videosuggestions' || lk === 'videos') {
+              normalized.video_suggestions = value;
+            } else if (lk === 'dialogues' || lk === 'dialogs' || lk === 'dialogue') {
+              normalized.dialogues = value;
+            } else {
+              normalized[key] = value;
             }
           }
 
@@ -181,12 +170,17 @@ serve(async (req) => {
             dialogues: Array.isArray(normalized.dialogues) ? normalized.dialogues.length : typeof normalized.dialogues,
           }));
 
-          return normalized;
+          if (Object.keys(normalized).length > 0) {
+            return normalized;
+          } else {
+            throw new Error('AI returned an empty object or invalid keys.');
+          }
         } catch (err: any) {
           console.error(`enrich-unit CATCH [${category}] model=${modelName}:`, err.message || String(err));
+          lastError = err.message || String(err);
         }
       }
-      return null;
+      return { _error: lastError || 'All models failed to produce valid JSON due to token truncation or invalid format.' };
     }
 
     // ── CATEGORY PROMPTS ────────────────────────────────────────────────
@@ -247,8 +241,8 @@ ${categoryRules}
 
     const enriched = await callAI(enrichSystemPrompt, enrichUserPrompt, 0.7);
 
-    if (!enriched) {
-      return { success: false, error: `AI enrichment failed for category: ${category}. All models failed. Check Supabase function logs for details.` };
+    if (enriched._error) {
+      return { success: false, error: enriched._error };
     }
 
     // ── PREPARE PLACEHOLDER IMAGES ──────────────────────────────────────
@@ -331,8 +325,7 @@ ${categoryRules}
             theme: mergedManifest.topic || topic,
             difficulty_cefr: mergedManifest.gradeLevel
           },
-          enriched_content: mergedManifest,
-          _debug: { category, parsed, normalized }
+          enriched_content: mergedManifest
         },
         topic: mergedManifest.topic || unit.topic || topic,
         title: mergedManifest.title || unit.title,

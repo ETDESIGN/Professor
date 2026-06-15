@@ -32,9 +32,19 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
     throw new AuthError('Invalid or expired token', 401);
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new AuthError('User profile not found', 403);
+  }
+
   return {
     userId: user.id,
-    role: (user as any).role || 'authenticated',
+    role: profile.role || 'student',
     supabase,
   };
 }

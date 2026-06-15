@@ -15,14 +15,17 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [winner, setWinner] = useState<'red' | 'blue' | 'draw' | null>(null);
 
-  // Safety check for data
   const questions = data?.questions || [];
-  const currentQ = questions[currentQuestionIdx] || { 
-     text: "No Question Available", 
-     image: "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000", 
-     options: ["Option A", "Option B"], 
-     correct: "Option A" 
-  };
+
+  if (questions.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
+        <h2 className="text-4xl font-bold text-slate-500">Waiting for Quiz Data...</h2>
+      </div>
+    );
+  }
+
+  const currentQ = questions[currentQuestionIdx];
 
   // Listen for remote events
   useEffect(() => {
@@ -132,8 +135,8 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
      setCurrentQuestionIdx(prev => (prev + 1) % questions.length);
   };
 
-  const redScore = grid.filter(c => c === 'red').length * 100 + 450;
-  const blueScore = grid.filter(c => c === 'blue').length * 100 + 420;
+  const redScore = grid.filter(c => c === 'red').length * 100;
+  const blueScore = grid.filter(c => c === 'blue').length * 100;
 
   return (
     <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden select-none">
@@ -187,7 +190,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
              </div>
 
              <div className="flex justify-between items-center mb-6">
-                <span className="bg-white/10 text-white/80 px-3 py-1 rounded-full text-sm font-bold border border-white/10">Grammar • Past Simple</span>
+                <span className="bg-white/10 text-white/80 px-3 py-1 rounded-full text-sm font-bold border border-white/10">{data?.topic || 'Team Quiz'}</span>
                 <div className={`flex items-center gap-2 font-mono font-bold text-xl ${timeLeft < 5 ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`}>
                    <Clock size={24} /> {timeLeft}s
                 </div>

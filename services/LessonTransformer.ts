@@ -39,11 +39,12 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
     try {
       const cachedImage = MediaService.getCachedImage(unitId, v.word);
       if (cachedImage) return { word: v.word, url: cachedImage };
+      if (v.image_url && v.image_url.startsWith('http')) return { word: v.word, url: v.image_url };
       const url = await MediaService.getVocabImage(unitId, v.word, v.definition);
       return { word: v.word, url };
     } catch (err: any) {
       log.warn('vocab_image_error', { error: err.message, metadata: { word: v.word } } as any);
-      return { word: v.word, url: '' };
+      return { word: v.word, url: v.image_url || '' };
     }
   });
 

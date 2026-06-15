@@ -11,7 +11,7 @@ interface Word {
 const BoardUnscramble = ({ data }: { data: any }) => {
   const { state, triggerAction } = useSession();
   const [scrambledWords, setScrambledWords] = useState<Word[]>(
-    data.words.map((w: string, i: number) => ({ id: `w-${i}`, text: w }))
+    (data?.words || []).map((w: string, i: number) => ({ id: `w-${i}`, text: w }))
   );
   const [placedWords, setPlacedWords] = useState<Word[]>([]);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -21,7 +21,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   useEffect(() => {
     if (state.lastAction?.type === 'RESET_GAME') {
        // Reset to initial
-       setScrambledWords(data.words.map((w: string, i: number) => ({ id: `w-${i}`, text: w })));
+       setScrambledWords((data?.words || []).map((w: string, i: number) => ({ id: `w-${i}`, text: w })));
        setPlacedWords([]);
        setIsCorrect(false);
        setIsWrong(false);
@@ -72,7 +72,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     const currentSentence = placedWords.map(w => w.text).join(' ');
     // Strip punctuation for loose comparison if needed, but exact match is better for grammar
     const cleanCurrent = currentSentence.replace(/[.,!]/g, '').trim();
-    const cleanTarget = data.targetSentence.replace(/[.,!]/g, '').trim();
+    const cleanTarget = (data?.targetSentence || '').replace(/[.,!]/g, '').trim();
 
     if (cleanCurrent === cleanTarget) {
        setIsCorrect(true);

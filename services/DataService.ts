@@ -212,12 +212,33 @@ export async function getStudentProgress(studentId: string): Promise<{
 /**
  * Create a new class
  */
+function generateClassCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+async function generateUniqueClassCode(): Promise<string> {
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const code = generateClassCode();
+        const { data } = await supabase
+            .from('classes')
+            .select('id')
+            .eq('code', code)
+            .maybeSingle();
+        if (!data) return code;
+    }
+    throw new Error('Failed to generate a unique class code. Please try again.');
+}
+
 export async function createClass(
     teacherId: string,
     classData: Partial<ClassData>
 ): Promise<ClassData> {
-    // Generate a random class code
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const code = await generateUniqueClassCode();
 
     const { data, error } = await supabase
         .from('classes')
@@ -661,6 +682,11 @@ export async function sendMessage(
  * Get all messages for a user (sent and received)
  */
 export async function getUserMessages(userId: string): Promise<MessageWithSender[]> {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+        throw new Error('Invalid user ID format');
+    }
+
     const { data, error } = await supabase
         .from('messages')
         .select(`
