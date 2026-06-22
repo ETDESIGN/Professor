@@ -1,5 +1,10 @@
 -- Tier 1: Add missing foreign key constraints and fix type mismatches
 
+-- Ordering fix: teacher_students_view depends on student_progress.current_unit_id,
+-- so it must be dropped BEFORE we alter that column's type. tier4 also drops it
+-- (IF EXISTS, no-op here). The view is unused per the tier4 notes.
+DROP VIEW IF EXISTS public.teacher_students_view;
+
 -- Fix student_progress.current_unit_id: TEXT -> UUID with FK
 ALTER TABLE public.student_progress
   ALTER COLUMN current_unit_id TYPE UUID USING current_unit_id::uuid,
