@@ -6,16 +6,32 @@ import '@testing-library/jest-dom';
 vi.mock('../services/supabaseClient', () => {
   const channelMock = {
     on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn().mockImplementation((cb: (s: string) => void) => {
-      cb('SUBSCRIBED');
+    subscribe: vi.fn().mockImplementation((cb?: (s: string) => void) => {
+      if (typeof cb === 'function') cb('SUBSCRIBED');
       return channelMock;
     }),
     send: vi.fn(),
   };
+
+  // Chainable query builder mock for classroom_sessions persistence.
+  const updateSpy = vi.fn();
+  const upsertSpy = vi.fn();
+  const builder: any = {
+    select: vi.fn(() => builder),
+    eq: vi.fn(() => builder),
+    maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+    update: vi.fn((patch: any) => { updateSpy(patch); return builder; }),
+    upsert: vi.fn((row: any) => { upsertSpy(row); return builder; }),
+  };
+
   return {
     supabase: {
       channel: vi.fn().mockReturnValue(channelMock),
       removeChannel: vi.fn(),
+      auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'teacher-1' } } })) },
+      from: vi.fn(() => builder),
+      __updateSpy: updateSpy,
+      __upsertSpy: upsertSpy,
     },
   };
 });
@@ -52,9 +68,10 @@ vi.mock('../services/SupabaseService', () => ({
 }));
 
 import { SessionProvider, useSession } from '../store/SessionContext';
+import { supabase } from '../services/supabaseClient';
 
 const TestConsumer = () => {
-  const { state, startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints } = useSession();
+  const { state, startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, setActiveUnit } = useSession();
 
   return (
     <div>
@@ -69,6 +86,7 @@ const TestConsumer = () => {
       <button data-testid="btn-prev" onClick={prevSlide}>Prev</button>
       <button data-testid="btn-goto-2" onClick={() => goToSlide(2)}>GoTo 2</button>
       <button data-testid="btn-points" onClick={() => addPoints('s1', 10)}>Add Points</button>
+      <button data-testid="btn-set-unit" onClick={() => setActiveUnit('unit-1')}>Set Unit</button>
     </div>
   );
 };
@@ -185,5 +203,56 @@ describe('SessionContext - Students', () => {
   it('starts with students loaded from DataService', async () => {
     renderWithProvider();
     expect(await screen.findByTestId('students-count')).toHaveTextContent('0');
+  });
+});
+
+describe('SessionContext - Classroom Session Sync (Phase 1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('persists unit selection to classroom_sessions (upsert) on setActiveUnit', async () => {
+    renderWithProvider();
+    await screen.findByTestId('status');
+
+    await act(async () => {
+      screen.getByTestId('btn-set-unit').click();
+    });
+
+    const upsertSpy = (supabase as any).__upsertSpy;
+    expect(upsertSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ teacher_id: 'teacher-1', unit_id: 'unit-1', current_index: 0, status: 'LIVE' }),
+    );
+  });
+
+  it('persists current_index to classroom_sessions on goToSlide', async () => {
+    renderWithProvider();
+    await screen.findByTestId('status');
+
+    await act(async () => {
+      screen.getByTestId('btn-set-unit').click();
+    });
+
+    await act(async () => {
+      screen.getByTestId('btn-goto-2').click();
+    });
+
+    const updateSpy = (supabase as any).__updateSpy;
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ current_index: 2 }));
+  });
+
+  it('persists status to classroom_sessions on startSession / endSession', async () => {
+    renderWithProvider();
+    await screen.findByTestId('status');
+
+    await act(async () => {
+      screen.getByTestId('btn-start').click();
+    });
+    expect((supabase as any).__updateSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'LIVE' }));
+
+    await act(async () => {
+      screen.getByTestId('btn-end').click();
+    });
+    expect((supabase as any).__updateSpy).toHaveBeenCalledWith(expect.objectContaining({ status: 'IDLE', current_index: 0 }));
   });
 });

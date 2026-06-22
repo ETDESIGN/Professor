@@ -68,11 +68,11 @@ export const AIService = {
         return data;
     },
 
-    async evaluatePronunciation(audioBase64: string, targetText: string, targetEmotion?: string, language?: string): Promise<any> {
-        log.info('evaluate_pronunciation', { metadata: { targetTextLength: targetText.length, language: language || 'en' } });
+    async evaluatePronunciation(audioBase64: string, targetText: string, targetEmotion?: string, language?: string, transcript?: string): Promise<any> {
+        log.info('evaluate_pronunciation', { metadata: { targetTextLength: targetText.length, language: language || 'en', hasClientTranscript: !!transcript } });
 
         const span = trackEdgeFunctionCall('evaluate-pronunciation');
-        const { data, error } = await invokeWithRetry('evaluate-pronunciation', { audioBase64, targetText, targetEmotion, language: language || 'en' });
+        const { data, error } = await invokeWithRetry('evaluate-pronunciation', { audioBase64, transcript: transcript || '', targetText, targetEmotion, language: language || 'en' });
 
         if (error) {
             span.error = error.message;

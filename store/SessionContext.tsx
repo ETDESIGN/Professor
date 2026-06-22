@@ -51,6 +51,7 @@ interface SessionState {
   score?: number;
   totalCorrect?: number;
   totalAttempts?: number;
+  sessionId?: string | null;
 }
 
 // Map StudentWithProgress to the format expected by components
@@ -117,10 +118,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     quietModeActive: false,
     noiseLevel: 0,
     units: [],
+    sessionId: null,
   });
 
   const [currentStrokeId, setCurrentStrokeId] = useState<string | null>(null);
   const channelRef = useRef<any>(null);
+  const activeUnitRef = useRef<LessonUnit | null>(null);
 
   useEffect(() => {
     loadUnits();
@@ -191,6 +194,111 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, []);
 
+  // ---- Authoritative classroom session (Phase 1, audit P0-1) ----
+  // The projector board, teacher remote and commander are separate React roots.
+  // They converge on this teacher's classroom_sessions row via Realtime instead
+  // of relying on local-only state that never crossed tabs.
+  const applySessionRow = useCallback(async (row: any) => {
+    if (!row || !row.unit_id) return;
+
+    let unit = activeUnitRef.current;
+    if (!unit || unit.id !== row.unit_id) {
+      const fresh = await Engine.getUnitById(row.unit_id);
+      if (!fresh) return;
+      unit = fresh;
+      activeUnitRef.current = fresh;
+    }
+
+    const flow = unit.flow || [];
+    const idx = Math.min(Math.max(0, row.current_index ?? 0), Math.max(0, flow.length - 1));
+    setState(prev => ({
+      ...prev,
+      activeUnit: unit!,
+      sessionId: row.id,
+      currentStepIndex: idx,
+      activeSlideData: flow[idx] ?? null,
+      status: (row.status as SessionStatus) || prev.status,
+    }));
+  }, []);
+
+  // Best-effort current teacher id. Persistence is optional: if Supabase/auth
+  // is unavailable (e.g. tests, misconfigured env), local state still updates and
+  // the UI keeps working; the board simply won't converge until the next event.
+  const getTeacherId = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await supabase.auth.getUser();
+      return res?.data?.user?.id || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    let channel: any;
+    let active = true;
+
+    (async () => {
+      const userId = await getTeacherId();
+      if (!userId || !active) return;
+
+      try {
+        // Hydrate from any existing session row (e.g. board opened after teacher).
+        const { data: existing } = await supabase
+          .from('classroom_sessions')
+          .select('*')
+          .eq('teacher_id', userId)
+          .maybeSingle();
+        if (existing && active) await applySessionRow(existing);
+      } catch {
+        // Hydration is best-effort.
+      }
+
+      channel = supabase
+        .channel('classroom_session_sync')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'classroom_sessions', filter: `teacher_id=eq.${userId}` },
+          (payload: any) => {
+            if (payload.new) applySessionRow(payload.new);
+          },
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      active = false;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [applySessionRow, getTeacherId]);
+
+  const persistSessionIndex = useCallback(async (index: number) => {
+    const userId = await getTeacherId();
+    if (!userId) return;
+    try {
+      await supabase
+        .from('classroom_sessions')
+        .update({ current_index: index, updated_at: new Date().toISOString() })
+        .eq('teacher_id', userId);
+    } catch {
+      // Best-effort: local state already updated optimistically.
+    }
+  }, [getTeacherId]);
+
+  const persistSessionStatus = useCallback(async (status: SessionStatus) => {
+    const userId = await getTeacherId();
+    if (!userId) return;
+    const patch: any = { status, updated_at: new Date().toISOString() };
+    if (status === 'IDLE') patch.current_index = 0;
+    try {
+      await supabase
+        .from('classroom_sessions')
+        .update(patch)
+        .eq('teacher_id', userId);
+    } catch {
+      // Best-effort: local state already updated optimistically.
+    }
+  }, [getTeacherId]);
+
   const broadcastAction = (action: SessionAction) => {
     channelRef.current?.send({ type: 'broadcast', event: 'classroom_action', payload: action });
   };
@@ -223,6 +331,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       unit = await Engine.getUnitById(unitId);
     }
     if (unit) {
+      activeUnitRef.current = unit;
       const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : [];
       setState(prev => ({
         ...prev,
@@ -230,6 +339,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         activeSlideData: initialFlow[0],
         currentStepIndex: 0
       }));
+
+      // Persist so the projector board / remote follow this unit.
+      const userId = await getTeacherId();
+      if (userId) {
+        try {
+          await supabase
+            .from('classroom_sessions')
+            .upsert(
+              { teacher_id: userId, unit_id: unitId, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
+              { onConflict: 'teacher_id' },
+            );
+        } catch {
+          // Best-effort: local state already updated optimistically.
+        }
+      }
     }
   };
 
@@ -251,12 +375,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const startSession = () => {
     setState(prev => ({ ...prev, status: 'LIVE', currentStepIndex: 0, selectionHistory: [] }));
+    persistSessionStatus('LIVE');
   };
 
   const endSession = () => {
     const action = { type: 'END_SESSION', timestamp: Date.now() };
     broadcastAction(action);
     setState(prev => ({ ...prev, status: 'IDLE', currentStepIndex: 0, activeOverlay: 'NONE', drawings: [] }));
+    persistSessionStatus('IDLE');
   };
 
   const getFlow = () => {
@@ -276,6 +402,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         drawings: [],
         activeOverlay: 'NONE'
       }));
+      // Persist so the projector board / remote follow the teacher.
+      persistSessionIndex(index);
     }
   };
 

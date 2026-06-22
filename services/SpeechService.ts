@@ -146,6 +146,44 @@ export function startPronunciationCheck(
   return recognition;
 }
 
+/**
+ * Start a continuous Web Speech recognition session that accumulates final
+ * transcripts. Used by the Dubbing Studio to obtain a region-free transcript
+ * alongside MediaRecorder audio, so pronunciation scoring never depends on a
+ * region-blocked STT API. Returns null when Web Speech is unavailable; callers
+ * must treat the transcript as best-effort.
+ */
+export function captureTranscript(onUpdate?: (fullTranscript: string) => void): SpeechRecognitionInstance | null {
+  const SpeechRecognition = getSpeechRecognition();
+  if (!SpeechRecognition) return null;
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  let accumulated = '';
+  recognition.onresult = (event: SpeechRecognitionEvent) => {
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        accumulated += (accumulated ? ' ' : '') + event.results[i][0].transcript;
+      }
+    }
+    onUpdate?.(accumulated);
+  };
+  recognition.onerror = () => {
+    // Best-effort capture; ignore transient errors so audio recording continues.
+  };
+
+  try {
+    recognition.start();
+  } catch {
+    // start() throws if already started; safe to ignore.
+  }
+  return recognition;
+}
+
 const audioCache = new Map<string, HTMLAudioElement>();
 
 export async function speakText(text: string, rate: number = 0.9): Promise<void> {

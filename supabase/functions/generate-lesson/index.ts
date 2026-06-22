@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PROMPTS } from '../_shared/prompts/index.ts';
+import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -76,12 +77,11 @@ serve(async (req) => {
           });
         }
 
-        let content = aiData.choices?.[0]?.message?.content || '{}';
-        content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+        let content = stripReasoning(aiData.choices?.[0]?.message?.content || '{}');
 
         let validatedJson;
         try {
-          validatedJson = JSON.parse(content);
+          validatedJson = JSON.parse(extractJsonObject(content));
         } catch (error) {
           const healerResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
             method: 'POST',
@@ -98,8 +98,8 @@ serve(async (req) => {
 
           if (healerResponse.ok) {
             const healerData = await healerResponse.json();
-            const healedContent = (healerData.choices[0]?.message?.content || '{}').replace(/```json/g, '').replace(/```/g, '').trim();
-            validatedJson = JSON.parse(healedContent);
+            const healedContent = stripReasoning(healerData.choices[0]?.message?.content || '{}');
+            validatedJson = JSON.parse(extractJsonObject(healedContent));
           } else {
             throw new Error("Self-healing JSON DAG failed for differentiation.");
           }
@@ -207,12 +207,11 @@ serve(async (req) => {
       });
     }
 
-    let content = aiData.choices?.[0]?.message?.content || '{}';
-    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    let content = stripReasoning(aiData.choices?.[0]?.message?.content || '{}');
 
     let finalJson;
     try {
-      finalJson = JSON.parse(content.match(/\{[\s\S]*\}/)?.[0] || '{}');
+      finalJson = JSON.parse(extractJsonObject(content));
     } catch (e) {
       // Agentic Healer DAG
       const healerResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
@@ -230,8 +229,8 @@ serve(async (req) => {
 
       if (healerResponse.ok) {
         const healerData = await healerResponse.json();
-        const healedContent = (healerData.choices[0]?.message?.content || '{}').replace(/```json/g, '').replace(/```/g, '').trim();
-        finalJson = JSON.parse(healedContent.match(/\{[\s\S]*\}/)?.[0] || '{}');
+        const healedContent = stripReasoning(healerData.choices[0]?.message?.content || '{}');
+        finalJson = JSON.parse(extractJsonObject(healedContent));
       } else {
         throw new Error("Self-healing JSON DAG failed for core generation.");
       }

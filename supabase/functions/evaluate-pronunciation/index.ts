@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
+import { transcribe } from '../_shared/stt.ts';
 
 function levenshteinDistance(a: string, b: string): number {
   const matrix: number[][] = [];
@@ -13,7 +14,7 @@ function levenshteinDistance(a: string, b: string): number {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
           matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+          matrix[i - 1][j] + 1,
         );
       }
     }
@@ -65,79 +66,37 @@ serve(async (req) => {
     validationRules: [
       {
         custom: (_value: any, body: any) => {
-          if (!body.audioBase64 || !body.targetText) {
-            return 'Missing required fields: audioBase64, targetText';
+          // Either a client-side Web Speech transcript OR raw audio is required.
+          // Web Speech is region-free (runs in the browser) and is the default
+          // path; audio is only used when a region-safe STT provider is wired up.
+          if (!body.targetText) return 'Missing required field: targetText';
+          if (!body.transcript && !body.audioBase64) {
+            return 'Missing required field: transcript or audioBase64';
           }
           return null;
         },
       },
     ],
   }, async (body, _auth) => {
-    const { audioBase64, targetText, targetEmotion, language } = body;
+    const { audioBase64, targetText, targetEmotion, language, transcript: clientTranscript } = body;
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
-    const aiApiKey = Deno.env.get('AI_API_KEY');
-
+    // Resolve a transcript without ever calling a region-blocked provider.
+    // Priority: configured region-safe STT provider > client Web Speech transcript.
     let transcript = '';
-    let whisperConfidence = 0;
+    let providerConfidence = 0;
 
-    if (openaiApiKey) {
-      const audioBytes = Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0));
-      const audioBlob = new Blob([audioBytes], { type: 'audio/webm' });
-
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', language || 'en');
-      formData.append('response_format', 'verbose_json');
-
-      const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${openaiApiKey}` },
-        body: formData,
-      });
-
-      if (whisperResponse.ok) {
-        const whisperData = await whisperResponse.json();
-        transcript = whisperData.text || '';
-        const rawLogprob = whisperData.segments?.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / (whisperData.segments?.length || 1);
-        whisperConfidence = rawLogprob < 0 ? Math.max(0, Math.min(1, (rawLogprob + 5) / 5)) : rawLogprob;
-      }
-    } else if (aiApiKey) {
-      const aiResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${aiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a pronunciation evaluator. Given an audio transcription and a target text, evaluate pronunciation accuracy. Return ONLY valid JSON: {"transcript": "string", "confidence": number, "emotion_score": number}',
-            },
-            {
-              role: 'user',
-              content: `Target text: "${targetText}"${targetEmotion ? `\nTarget emotion: ${targetEmotion}` : ''}\n\nAnalyze this audio and provide your evaluation.`,
-            },
-          ],
-          temperature: 0.1,
-        }),
-      });
-
-      if (aiResponse.ok) {
-        const aiData = await aiResponse.json();
-        const aiText = aiData.choices?.[0]?.message?.content || '{}';
-        try {
-          const parsed = JSON.parse(aiText.match(/\{[\s\S]*\}/)?.[0] || '{}');
-          transcript = parsed.transcript || '';
-          whisperConfidence = parsed.confidence || 0;
-        } catch { /* parse failure handled below */ }
-      }
+    const sttResult = await transcribe(audioBase64, language || 'en');
+    if (sttResult) {
+      transcript = sttResult.transcript;
+      providerConfidence = sttResult.confidence;
+    } else if (typeof clientTranscript === 'string' && clientTranscript.trim()) {
+      transcript = clientTranscript.trim();
+      // Browser Web Speech does not expose a calibrated confidence; treat as
+      // neutral and let Levenshtein similarity drive the score.
+      providerConfidence = 0.5;
     }
 
+    // Honest "could not evaluate" instead of fabricating a transcript.
     if (!transcript) {
       return {
         success: true,
@@ -147,22 +106,23 @@ serve(async (req) => {
           similarity: 0,
           isCorrect: false,
           score: 0,
-          feedback: 'Could not process audio. Please try again.',
+          feedback: 'Could not capture your speech. Check microphone permissions and try again.',
           emotionMatch: 'low',
           timing: 'unknown',
           confidence: 0,
+          provider: 'none',
         },
       };
     }
 
     const similarity = calculateSimilarity(transcript, targetText);
-    const normalizedConfidence = Math.max(0, Math.min(1, whisperConfidence));
+    const normalizedConfidence = Math.max(0, Math.min(1, providerConfidence));
     const emotionScore = targetEmotion ? Math.min(1, similarity * 0.7 + normalizedConfidence * 0.3) : similarity;
 
     const pronunciationScore = Math.round(
       similarity * 60 +
       normalizedConfidence * 25 +
-      emotionScore * 15
+      emotionScore * 15,
     );
 
     const evaluation = {
@@ -175,6 +135,7 @@ serve(async (req) => {
       emotionMatch: emotionScore >= 0.7 ? 'high' : emotionScore >= 0.4 ? 'medium' : 'low' as const,
       timing: similarity >= 0.8 ? 'perfect' : similarity >= 0.6 ? 'slight_offset' : 'off' as const,
       confidence: Math.round(normalizedConfidence * 100) / 100,
+      provider: sttResult ? Deno.env.get('STT_PROVIDER') || 'stt' : 'web-speech',
     };
 
     return { success: true, evaluation };

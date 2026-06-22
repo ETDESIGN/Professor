@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, MoreHorizontal, Headphones, Mic, Play, StopCircle, Loader2, Star, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
-import { speakText } from '../../services/SpeechService';
+import { speakText, captureTranscript } from '../../services/SpeechService';
 import { toast } from 'sonner';
 import { createClientLogger } from '../../services/logger';
 
@@ -43,6 +43,8 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const transcriptRef = useRef<string>('');
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -112,11 +114,12 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
     draw();
   };
 
-  const evaluateDubbing = async (audioBase64: string): Promise<DubbingResult | null> => {
+  const evaluateDubbing = async (audioBase64: string, transcript?: string): Promise<DubbingResult | null> => {
     try {
       const { data: responseData, error } = await supabase.functions.invoke('evaluate-pronunciation', {
         body: {
           audioBase64,
+          transcript: transcript || '',
           targetText,
           targetEmotion,
           language: 'en'
@@ -226,7 +229,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
         reader.onloadend = async () => {
           const base64data = reader.result?.toString().split(',')[1];
           if (base64data) {
-            const evalResult = await evaluateDubbing(base64data);
+            const evalResult = await evaluateDubbing(base64data, transcriptRef.current);
             setResult(evalResult);
           }
           setIsEvaluating(false);
@@ -238,6 +241,16 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
       setAudioUrl(null);
       setResult(null);
       setProgress(0);
+
+      // Region-free transcript capture (Web Speech). Best-effort: scoring still
+      // works via server STT provider if configured; otherwise this transcript
+      // feeds Levenshtein similarity in the edge function.
+      transcriptRef.current = '';
+      try {
+        recognitionRef.current = captureTranscript((t) => { transcriptRef.current = t; });
+      } catch (recErr) {
+        log.warn('transcript_capture_failed', { error: recErr instanceof Error ? recErr.message : String(recErr) });
+      }
 
       setTimeout(drawWaveform, 100);
 
@@ -262,6 +275,10 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      recognitionRef.current = null;
     }
   };
 

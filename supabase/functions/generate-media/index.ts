@@ -1,5 +1,39 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
+import { resolveImageProvider } from '../_shared/imageProvider.ts';
+
+// Download a generated image (http(s) or data URL) and persist it to the
+// generated-media bucket, returning a public Supabase URL. Proxying through
+// Storage keeps the browser CSP img-src (allow-listed for *.supabase.co)
+// satisfied regardless of which image provider produced the bytes.
+async function proxyToStorage(
+  imageUrl: string,
+  unitId: string,
+): Promise<string | null> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  const imgResp = await fetch(imageUrl);
+  if (!imgResp.ok) return null;
+
+  const imgBuffer = await imgResp.arrayBuffer();
+  const contentType = imgResp.headers.get('content-type') || 'image/png';
+  const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
+  const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
+
+  const uploadResponse = await fetch(
+    `${supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${supabaseKey}`, 'Content-Type': contentType },
+      body: imgBuffer,
+    },
+  );
+
+  if (!uploadResponse.ok) return null;
+  return `${supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
+}
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -14,74 +48,33 @@ serve(async (req) => {
 
     switch (action) {
       case 'generate-image': {
-        const aiApiKey = Deno.env.get('AI_API_KEY') || '';
-        const modelName = Deno.env.get('IMAGE_GEN_MODEL') || 'black-forest-labs/flux-schnell';
-
-        if (!aiApiKey) {
+        const provider = resolveImageProvider();
+        if (!provider) {
           return { url: '', error: 'Image generation not configured (AI_API_KEY required)' };
         }
 
         try {
-          // Attempt OpenRouter image generation
-          const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: modelName,
-              messages: [
-                { role: 'user', content: `Generate a child-friendly educational illustration: ${prompt || 'Educational item'}. Style: simple, colorful, flat vector illustration, suitable for kids aged 6-12. No text.` }
-              ],
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const content = data.choices?.[0]?.message?.content || '';
-            
-            // Extract Markdown image URL from OpenRouter's response (e.g. ![alt](https://...))
-            const imgMatch = content.match(/!\[.*?\]\((https?:\/\/.*?)\)/);
-            let imageUrl = imgMatch ? imgMatch[1] : null;
-
-            // Fallback to DiceBear if OpenRouter didn't return a standard image URL
-            if (!imageUrl) {
-               imageUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(prompt || 'item')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
-            }
-
-            const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-            const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-
-            if (supabaseUrl && supabaseKey && imageUrl) {
-              // Fetch the image from the URL so we can save it to our own storage
-              const imgResp = await fetch(imageUrl);
-              if (imgResp.ok) {
-                const imgBuffer = await imgResp.arrayBuffer();
-                const contentType = imgResp.headers.get('content-type') || 'image/png';
-                const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
-                const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
-
-                const uploadResponse = await fetch(
-                  `${supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${supabaseKey}`,
-                      'Content-Type': contentType,
-                    },
-                    body: imgBuffer,
-                  }
-                );
-
-                if (uploadResponse.ok) {
-                  return { url: `${supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}` };
-                }
-              }
-            }
-            // If storage fails or wasn't configured, just return the external URL directly
-            return { url: imageUrl };
+          const generated = await provider.generate(prompt || 'Educational item');
+          if (!generated || !generated.imageUrl) {
+            return {
+              url: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(prompt || 'item')}`,
+              error: 'Image provider returned no image',
+            };
           }
-          return { url: '', error: `Image gen failed: ${response.status}` };
+
+          // Proxy through Supabase Storage so CSP img-src is satisfied.
+          const proxied = await proxyToStorage(generated.imageUrl, unitId || 'default');
+          if (proxied) {
+            return { url: proxied, provider: generated.provider };
+          }
+
+          // Storage unavailable/unconfigured: return the provider URL directly.
+          return { url: generated.imageUrl, provider: generated.provider };
         } catch (err: any) {
-          return { url: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(prompt || 'item')}`, error: err.message };
+          return {
+            url: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(prompt || 'item')}`,
+            error: err.message,
+          };
         }
       }
 

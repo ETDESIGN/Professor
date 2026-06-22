@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PROMPTS } from '../_shared/prompts/index.ts';
+import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -135,14 +136,11 @@ serve(async (req) => {
       };
     }
 
-    // Strip markdown, thinking tags, and code fences
-    let content = aiContent;
-    content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Strip markdown, thinking tags, and code fences (shared util)
+    const content = stripReasoning(aiContent);
 
     try {
-      const raw = content.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
+      const parsed = JSON.parse(extractJsonObject(content));
       const result = {
         success: true,
         url: inputUrl,
