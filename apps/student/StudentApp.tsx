@@ -171,7 +171,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
-  // Get the lesson playlist from the active unit's flow, or fall back to mock data
+  // Get the lesson playlist from the active unit's flow, or return empty.
   const getLessonPlaylist = (): { type: ActivityType, id: string, data?: any }[] => {
     // If we have an active unit with flow, use it
     if (state.activeUnit?.flow && state.activeUnit.flow.length > 0) {

@@ -7,7 +7,7 @@ interface VoiceCommandModalProps {
 }
 
 const VoiceCommandModal: React.FC<VoiceCommandModalProps> = ({ onClose }) => {
-  const { triggerAction, nextSlide, prevSlide, addPoints } = useSession();
+  const { triggerAction, nextSlide, prevSlide, addPoints, state } = useSession();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -62,8 +62,14 @@ const VoiceCommandModal: React.FC<VoiceCommandModalProps> = ({ onClose }) => {
       prevSlide();
       setFeedback('Navigated to Previous Slide');
     } else if (cmd.includes('points') && cmd.includes('leo')) {
-      addPoints('s1', 10); // Mock Leo ID
-      setFeedback('Awarded 10 Points to Leo');
+      // Award to a real student in the session (never a phantom id).
+      const target = state.students[0];
+      if (target) {
+        addPoints(target.id, 10);
+        setFeedback(`Awarded 10 Points to ${target.name || target.id}`);
+      } else {
+        setFeedback('No students in session to award');
+      }
     } else if (cmd.includes('spin')) {
       triggerAction('SPIN_WHEEL');
       setFeedback('Spinning Wheel...');

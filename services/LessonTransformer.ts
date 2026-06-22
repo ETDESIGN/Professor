@@ -1,6 +1,5 @@
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
-import { MediaService } from './MediaService';
 import { normalizeManifest } from './manifest';
 
 const log = createClientLogger('LessonTransformer');
@@ -36,27 +35,18 @@ export const transformManifestToFlow = async (manifest: any): Promise<any[]> => 
   // Normalize any manifest shape (knowledge_graph / enriched_content / flat /
   // null) into the canonical flat view so this never crashes on partial data.
   const m = normalizeManifest(manifest);
-  const unitId = (m.meta as any).unit_id || m.meta.unit_title || 'unknown';
 
-  const vocabImagePromises = m.vocabulary.map(async (v: any) => {
-    try {
-      const cachedImage = MediaService.getCachedImage(unitId, v.word);
-      if (cachedImage) return { word: v.word, url: cachedImage };
-      if (v.image_url && v.image_url.startsWith('http')) return { word: v.word, url: v.image_url };
-      const url = await MediaService.getVocabImage(unitId, v.word, v.definition);
-      return { word: v.word, url };
-    } catch (err: any) {
-      log.warn('vocab_image_error', { error: err.message, metadata: { word: v.word } } as any);
-      return { word: v.word, url: v.image_url || '' };
-    }
-  });
-
-  const vocabImages = await Promise.all(vocabImagePromises);
-  const imageMap = new Map(vocabImages.filter(v => v.url).map(v => [v.word, v.url]));
-
-  const getImageForWord = (word: string): string => {
-    return imageMap.get(word) || getAssetUrl(word);
-  };
+  // Phase 6 (P2-9): image GENERATION belongs to the dedicated media pipeline
+  // (AssetWorkshop / generate-media). Here we only surface an already-generated
+  // image_url if present, else fall back to a deterministic placeholder. This
+  // removes the duplicate per-vocab AI image path that fired on every
+  // create/update (the media pipeline now owns images).
+  const imageMap = new Map(
+    m.vocabulary
+      .filter((v) => v.image_url && /^https?:\/\//.test(v.image_url as string))
+      .map((v) => [v.word, v.image_url as string]),
+  );
+  const getImageForWord = (word: string): string => imageMap.get(word) || getAssetUrl(word);
 
   const introSlide = {
     id: 'step_intro',

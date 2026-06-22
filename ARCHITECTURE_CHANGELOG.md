@@ -13,6 +13,40 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-22 — Phase 6: Hygiene / cleanup (P2-1, P2-4, P2-9)
+
+### P2-1 — Stray root `supabase/` directory
+Deleted the orphaned `/teacher app/supabase/` (outside the git repo; held an
+empty root-owned `functions/` dir and a 0-byte `remote_schema.sql`). The real
+codebase lives in `professor-0.1 (1)/supabase/`. Local-only artifact; not part
+of any deploy.
+
+### P2-4 — Mock data in live UI paths
+- `VoiceCommandModal`: it awarded points to a **phantom hardcoded student `'s1'`**
+  (data corruption risk). Now awards to a real student in the session (or shows
+  "no students" instead of fabricating).
+- `StudentApp.getLessonPlaylist`: fixed the misleading "fall back to mock data"
+  comment — it returns `[]` (no mock).
+- `LessonEditor` (`/teacher/mobile-editor`): was a fully static mock (hardcoded
+  "Unit 1: The Zoo" timeline, non-functional buttons). Replaced with an honest
+  empty state that directs to Lesson Studio.
+- Left in place (honestly labeled WIP / dead code, not silently masquerading):
+  `ListenTap` 2s interaction timer, `ParentReports` "(Mock)" skills radar,
+  `StudentOnboarding` (orphaned, unreachable).
+
+### P2-9 — Duplicate client image-generation path
+`LessonTransformer.transformManifestToFlow` previously fired **per-vocab AI image
+generation** on every unit create/update (duplicate of the AssetWorkshop /
+`generate-media` pipeline). Removed: it now only surfaces an already-generated
+`image_url` if present, else a deterministic DiceBear placeholder. Image
+generation is owned solely by the media pipeline.
+
+### Verification / deploy
+- `npm run lint`: 0 non-Deno errors. `npm test`: 225 passed | 1 skipped.
+- Client-only changes → frontend redeploy.
+
+---
+
 ## 2026-06-22 — Phase 5: Security — units tenant isolation + CSP (P2-2, P2-7)
 
 ### P2-2 — Tenant-isolate `units` SELECT
@@ -279,5 +313,7 @@ to DiceBear; even successful external URLs were blocked by CSP `img-src`.
   `STT_PROVIDER`, `STT_AUDIO_MODEL`, `IMAGE_PROVIDER`, `IMAGE_GEN_MODEL`.
 
 ### Remaining (deferred phases, not in this pass)
-- **Phase 6** — hygiene: delete stray root `supabase/` dir (P2-1); remove
-  remaining mock data (P2-4); collapse duplicate client image-gen path (P2-9).
+All audit phases (0–6) are now complete. Remaining work is incremental product
+features (e.g. real YouTube playback when an embeddable source is available,
+parent unit access, multi-teacher classroom-session codes) rather than the
+P0–P2 defects from the original audit.
