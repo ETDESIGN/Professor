@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
 import { createClientLogger } from './logger';
+import { diffMissingSRSWords, SRS_DEFAULTS } from './srs';
 
 const log = createClientLogger('SupabaseService');
 
@@ -323,31 +324,38 @@ const supabaseUpdateSRSItem = async (id: string, quality: number) => {
 };
 
 const supabaseEnsureStudentSRSItems = async (unitId: string, studentId: string): Promise<void> => {
-    const { data: existing } = await supabase
+    // Phase 3 (P0-3): RECONCILE the student's deck against the unit's templates.
+    // Previously this cloned only when the student had ZERO items, so a teacher
+    // re-orchestrating a unit (adding/changing vocab) never reached students who
+    // had already started. Now we add only the MISSING words, preserving each
+    // existing item's SM-2 state. Non-destructive (never deletes or resets).
+    const { data: templates, error: tErr } = await supabase
         .from('srs_items')
-        .select('id')
-        .eq('student_id', studentId)
-        .eq('unit_id', unitId)
-        .limit(1);
-
-    if (existing && existing.length > 0) return;
-
-    const { data: templates } = await supabase
-        .from('srs_items')
-        .select('*')
+        .select('word, translation')
         .is('student_id', null)
         .eq('unit_id', unitId);
 
+    if (tErr) {
+        log.warn('srs_templates_fetch_failed', { error: tErr.message });
+        return;
+    }
     if (!templates || templates.length === 0) return;
 
-    const clones = templates.map((t: any) => ({
-        unit_id: t.unit_id,
+    const { data: existing } = await supabase
+        .from('srs_items')
+        .select('word')
+        .eq('student_id', studentId)
+        .eq('unit_id', unitId);
+
+    const toClone = diffMissingSRSWords(templates as { word: string }[], (existing || []) as { word: string }[]);
+    if (toClone.length === 0) return; // already in sync
+
+    const clones = toClone.map((t) => ({
+        unit_id: unitId,
         student_id: studentId,
         word: t.word,
-        translation: t.translation,
-        interval: 0,
-        repetition: 0,
-        efactor: 2.5,
+        translation: (templates as any[]).find((tp) => tp.word === t.word)?.translation ?? '',
+        ...SRS_DEFAULTS,
         next_review: new Date().toISOString(),
     }));
 

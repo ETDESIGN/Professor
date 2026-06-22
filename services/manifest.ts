@@ -8,7 +8,7 @@
 //        — written by the enrich-unit edge function (incremental enrichment).
 //   3. flat { title, topic, vocabulary, grammar, ... }
 //        — the "approvedAssets" payload passed to orchestrate-lesson.
-// Plus units with NO manifest at all (created via GenerateLessonModal).
+// Plus units with NO manifest at all (created before enrichment).
 //
 // normalizeManifest() accepts ANY of these (or null) and returns one flat
 // CanonicalManifest so every consumer (LessonTransformer, LessonStudio,

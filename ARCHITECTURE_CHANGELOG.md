@@ -13,6 +13,36 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-22 — Phase 3: SRS correctness (fixes P0-3 remainder)
+
+### Problem
+`ensureStudentSRSItems` cloned a unit's SRS templates into a student's deck
+**only when the student had zero items** for that unit. So when a teacher
+re-orchestrated a unit (adding/changing vocabulary), every student who had
+already started was stuck with the **stale deck forever** — new words never
+propagated. Separately, `GenerateLessonModal` held a second, divergent
+template-insertion path (it turned out to be orphaned dead code, never
+imported).
+
+### Change
+- `ensureStudentSRSItems` (`services/SupabaseService.ts`) now **reconciles**:
+  it diffs the unit's templates (student_id IS NULL) against the student's
+  existing words and inserts only the **missing** ones, preserving each
+  existing item's SM-2 interval/repetition/efactor. Non-destructive (never
+  deletes or resets). This fixes re-orchestration propagation.
+- Extracted the pure diff into `services/srs.ts` (`diffMissingSRSWords`,
+  `SRS_DEFAULTS`) so the core logic is unit-tested.
+- Deleted the orphaned `apps/teacher/GenerateLessonModal.tsx`, making
+  `orchestrate-lesson` the **single** SRS template-insertion path (it was
+  already the only *live* one; the dead duplicate is now gone).
+- Added `test/srs.test.ts` (6 cases). 225 tests pass; lint fully clean.
+
+### Verification / deploy
+- `npm run lint`: 0 non-Deno errors. `npm test`: 225 passed | 1 skipped.
+- Client-only change → frontend redeploy (no edge function change).
+
+---
+
 ## 2026-06-22 — Phase 2: Unified manifest data contract (fixes P1-1, P1-2)
 
 ### Problem
@@ -169,8 +199,6 @@ to DiceBear; even successful external URLs were blocked by CSP `img-src`.
   `STT_PROVIDER`, `STT_AUDIO_MODEL`, `IMAGE_PROVIDER`, `IMAGE_GEN_MODEL`.
 
 ### Remaining (deferred phases, not in this pass)
-- **Phase 3** — SRS correctness: single template-insertion path; upsert
-  per-student items on re-orchestration (P0-3 remainder).
 - **Phase 4** — media: parallelize the `generate-media` `batch` action (P1-6);
   wire `MEDIA_PLAYER` to song/video suggestions (P2-6).
 - **Phase 5** — scope `units` SELECT by teacher/enrollment (P2-2); CSP
