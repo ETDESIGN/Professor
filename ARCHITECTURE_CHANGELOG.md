@@ -13,6 +13,46 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-22 — Phase 5: Security — units tenant isolation + CSP (P2-2, P2-7)
+
+### P2-2 — Tenant-isolate `units` SELECT
+**Problem:** `units_select_policy` was `USING (true)` — every authenticated user
+saw every unit across ALL teachers (a real multi-tenant data leak).
+
+**Change (migration `20260622000001_units_tenant_isolation.sql`):**
+- Added `SECURITY DEFINER` helper `student_class_teacher_ids()` (returns the
+  teacher ids of a student's enrolled classes) so the lookup bypasses
+  class_enrollments/classes RLS (no recursion).
+- New `units_select_policy`:
+  - **admin** → all units
+  - **teacher** → own units (`teacher_id = auth.uid()`); legacy NULL-teacher
+    units stay visible to teachers/admins (nothing hidden)
+  - **student** → units owned by the teachers of any class they're enrolled in
+    (class-teacher model; does not depend on the assignments table, so enrolled
+    students keep seeing their teacher's catalog)
+  - parents get no direct unit SELECT (revisit if reports need it)
+
+**Behavior change / verification:** students now see only their teachers' units
+(not the whole platform). Verify by logging in as a teacher (own units) and a
+student (their teacher's units). Reversible: `DROP POLICY units_select_policy`
+and recreate `USING (true)`.
+
+### P2-7 — Remove CSP `script-src 'unsafe-inline'`
+**Problem:** `script-src 'self' 'unsafe-inline' blob:` weakened XSS protection.
+
+**Change (`vercel.json`):** removed `'unsafe-inline'` from `script-src` →
+`'self' blob:`. Verified the production build has **no inline scripts** (the
+PWA registers via external `/registerSW.js`; the entry is external; React uses
+no inline HTML handlers). `style-src 'unsafe-inline'` is retained (required for
+React inline styles).
+
+### Verification / deploy
+- Migration applied to live (policy + helper confirmed via schema dump).
+- `npm run lint`: 0 non-Deno errors. `npm test`: 225 passed | 1 skipped.
+- Frontend redeploy for the CSP header change.
+
+---
+
 ## 2026-06-22 — Phase 4: Media pipeline (fixes P1-6, P2-6)
 
 ### P1-6 — Parallelize `generate-media` batch
@@ -239,7 +279,5 @@ to DiceBear; even successful external URLs were blocked by CSP `img-src`.
   `STT_PROVIDER`, `STT_AUDIO_MODEL`, `IMAGE_PROVIDER`, `IMAGE_GEN_MODEL`.
 
 ### Remaining (deferred phases, not in this pass)
-- **Phase 5** — scope `units` SELECT by teacher/enrollment (P2-2); CSP
-  hardening (P2-7).
 - **Phase 6** — hygiene: delete stray root `supabase/` dir (P2-1); remove
   remaining mock data (P2-4); collapse duplicate client image-gen path (P2-9).
