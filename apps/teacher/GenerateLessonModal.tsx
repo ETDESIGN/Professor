@@ -52,6 +52,9 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
       const generated = await AIService.generateLessonContent(topic, gradeLevel);
 
       // Insert new unit
+      // NOTE: units.image_url / units.audio_url were removed by the
+      // 20260518 tier4 cleanup migration; the cover image is stored in
+      // cover_image. Audio is generated lazily via the media pipeline.
       const { data: newUnit, error: unitError } = await supabase
         .from('units')
         .insert({
@@ -61,8 +64,6 @@ const GenerateLessonModal: React.FC<GenerateLessonModalProps> = ({ onClose, onSu
           status: 'Draft',
           lessons: 1,
           cover_image: generated.imageUrl,
-          image_url: generated.imageUrl,
-          audio_url: generated.audioUrl
         })
         .select()
         .single();
