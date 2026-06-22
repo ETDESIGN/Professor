@@ -27,6 +27,11 @@ interface GrammarRule {
 const exampleSentenceOf = (v: VocabItem): string => v.example_sentence || v.context_sentence || '';
 const grammarExamplesOf = (g: GrammarRule): string[] => g.examples || g.world_examples || [];
 
+// YouTube Data API is region-blocked, so we surface a search URL the teacher
+// can open to play the recommended song/video (no embed/API required).
+const youtubeSearchUrl = (q: string): string =>
+  `https://www.youtube.com/results?search_query=${encodeURIComponent(q || '')}`;
+
 function transformManifestToFlow(assets: any): any[] {
   const flow: any[] = [];
   const vocab: VocabItem[] = assets?.vocabulary || [];
@@ -43,6 +48,29 @@ function transformManifestToFlow(assets: any): any[] {
     type: 'INTRO_SPLASH',
     data: { title, subtitle: topic, description: assets?.description || '' },
   });
+
+  // Phase 4 (P2-6): lead with a warm-up MEDIA_PLAYER built from the first
+  // song/video suggestion so the board has real media to present (with an
+  // "open on YouTube" link) instead of a dead "no media" state.
+  const mediaSuggestions = [
+    ...(Array.isArray(assets?.song_suggestions) ? assets.song_suggestions : []),
+    ...(Array.isArray(assets?.video_suggestions) ? assets.video_suggestions : []),
+  ];
+  if (mediaSuggestions.length > 0) {
+    const m = mediaSuggestions[0];
+    const sq = m?.search_query || m?.title || topic;
+    flow.push({
+      type: 'MEDIA_PLAYER',
+      data: {
+        title: m?.title || 'Warm-up Media',
+        kind: assets?.song_suggestions?.includes(m) ? 'song' : 'video',
+        search_query: sq,
+        topic_relevance: m?.topic_relevance || '',
+        youtubeUrl: youtubeSearchUrl(sq),
+        lyrics: [],
+      },
+    });
+  }
 
   if (vocab.length > 0) {
     flow.push({
@@ -172,6 +200,9 @@ function toFlowAssets(c: CanonicalManifest, fallbackTitle?: string): any {
     grammar: c.grammar,
     characters: c.characters,
     story: c.story,
+    song_suggestions: c.song_suggestions,
+    video_suggestions: c.video_suggestions,
+    dialogues: c.dialogues,
   };
 }
 

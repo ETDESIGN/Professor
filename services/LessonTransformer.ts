@@ -71,7 +71,8 @@ export const transformManifestToFlow = async (manifest: any): Promise<any[]> => 
     const upperType = block.type.toUpperCase();
 
     switch (true) {
-      case upperType.includes('MEDIA') || upperType.includes('VIDEO'):
+      case upperType.includes('MEDIA') || upperType.includes('VIDEO'): {
+        const sq = block.config?.search_query || block.config?.title || block.title || m.meta.theme;
         return {
           id: stepId,
           type: 'MEDIA_PLAYER',
@@ -82,11 +83,17 @@ export const transformManifestToFlow = async (manifest: any): Promise<any[]> => 
             script: `Let's watch a video about ${m.meta.theme}.`,
           },
           data: {
-            title: block.title,
-            videoThumbnail: getImageForWord(block.config?.search_query || m.meta.theme),
-            lyrics: []
-          }
+            title: block.config?.title || block.title,
+            kind: block.config?.kind,
+            search_query: sq,
+            topic_relevance: block.config?.topic_relevance || '',
+            youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(sq)}`,
+            videoUrl: block.config?.videoUrl,
+            videoThumbnail: getImageForWord(sq),
+            lyrics: block.config?.lyrics || [],
+          },
         };
+      }
 
       case upperType.includes('FOCUS') || upperType.includes('VOCAB'):
         const vocabSource = (block.config?.items && block.config.items.length > 0)

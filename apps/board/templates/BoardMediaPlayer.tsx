@@ -61,6 +61,15 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
   const hasLyrics = lyrics.length > 0;
   const hasContent = hasVideo || hasAudio || hasLyrics;
 
+  // Phase 4 (P2-6): when there is no directly playable URL, surface the
+  // recommended song/video suggestion with an "open on YouTube" action. The
+  // YouTube Data API is region-blocked, so we cannot auto-resolve a video id;
+  // a search link is the region-safe fallback.
+  const youtubeUrl =
+    data.youtubeUrl ||
+    (data.search_query ? `https://www.youtube.com/results?search_query=${encodeURIComponent(data.search_query)}` : '');
+  const hasSuggestion = !hasContent && Boolean(youtubeUrl);
+
   return (
     <div className="h-full bg-black relative flex flex-col group overflow-hidden">
       {/* Video Layer */}
@@ -143,12 +152,29 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
               {nextLine}
             </p>
           </div>
+        ) : hasSuggestion ? (
+          <div className="text-center max-w-3xl">
+            <div className="inline-flex items-center gap-2 bg-red-600/20 text-red-300 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider mb-6 border border-red-500/30">
+              <Volume2 size={16} /> Recommended {data.kind === 'song' ? 'Song' : 'Video'}
+            </div>
+            <h2 className="text-5xl font-display font-bold text-white mb-4 drop-shadow-lg">{data.title || 'Media'}</h2>
+            {data.topic_relevance && (
+              <p className="text-2xl text-white/60 font-fun mb-8">{data.topic_relevance}</p>
+            )}
+            <a
+              href={youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl text-xl font-bold transition-colors shadow-lg shadow-red-900/40"
+            >
+              <Play size={24} fill="white" /> Play on YouTube
+            </a>
+            <p className="text-sm text-white/30 mt-6 font-mono">Opens in a new tab (YouTube API is region-restricted)</p>
+          </div>
         ) : (
           <div className="text-center">
             <Volume2 size={80} className="text-white/20 mx-auto mb-6" />
-            <p className="text-3xl text-white/40 font-fun">
-              {hasContent ? "Press play to start the media" : "No media content available for this step"}
-            </p>
+            <p className="text-3xl text-white/40 font-fun">No media content available for this step</p>
           </div>
         )}
       </div>
@@ -175,7 +201,10 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
               <SkipBack size={32} />
             </button>
             <button
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={() => {
+                if (hasContent) setIsPlaying(!isPlaying);
+                else if (youtubeUrl) window.open(youtubeUrl, '_blank', 'noopener');
+              }}
               className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-transform"
             >
               {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} fill="black" className="ml-1" />}

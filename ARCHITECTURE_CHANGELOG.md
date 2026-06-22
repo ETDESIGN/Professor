@@ -13,6 +13,46 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-22 — Phase 4: Media pipeline (fixes P1-6, P2-6)
+
+### P1-6 — Parallelize `generate-media` batch
+**Problem:** the `batch` action sequentially self-`fetch(req.url)`-ed this same
+endpoint once per item, re-running auth + rate-limit each time and stalling on
+slow image models.
+
+**Change:** extracted `generateImage` / `generateAudio` as in-branch helpers and
+run the batch through `mapWithConcurrency` (image cap 4, audio cap 3) via
+`Promise.all` workers. No more self-fetch; one authenticated request; parallel
+with a bounded concurrency to avoid provider rate limits.
+
+### P2-6 — Wire `MEDIA_PLAYER` to song/video suggestions
+**Problem:** `MEDIA_PLAYER` flow blocks were generated without any playable URL,
+so `BoardMediaPlayer` always showed "No media content available". The
+`youtube-search` action returned an empty stub (YouTube Data API is
+region-blocked).
+
+**Change:**
+- `generate-media` `youtube-search` now returns a usable YouTube **search URL**
+  instead of an empty list (region-safe, no API/embed).
+- `orchestrate-lesson` transformer now leads with a warm-up `MEDIA_PLAYER` built
+  from the first song/video suggestion, carrying `title`, `kind`,
+  `search_query`, `topic_relevance`, and `youtubeUrl`. (`toFlowAssets` now
+  includes the suggestion arrays.)
+- `LessonTransformer` MEDIA_PLAYER case carries the same suggestion fields
+  (plus optional `videoUrl` for a teacher-pasted direct link).
+- `BoardMediaPlayer`: when there is no directly playable `videoUrl`/`audioUrl`
+  but a suggestion exists, it renders a "Recommended Media" card with an
+  **"Play on YouTube"** action (opens in a new tab). The play button opens
+  YouTube when no in-board media is available. Direct playback via
+  `react-player` still works when a real URL is provided.
+
+### Verification / deploy
+- `npm run lint`: 0 non-Deno errors. `npm test`: 225 passed | 1 skipped.
+- Redeploy edge functions: `generate-media`, `orchestrate-lesson`.
+- Frontend redeploy (BoardMediaPlayer + LessonTransformer).
+
+---
+
 ## 2026-06-22 — Phase 3: SRS correctness (fixes P0-3 remainder)
 
 ### Problem
@@ -199,8 +239,6 @@ to DiceBear; even successful external URLs were blocked by CSP `img-src`.
   `STT_PROVIDER`, `STT_AUDIO_MODEL`, `IMAGE_PROVIDER`, `IMAGE_GEN_MODEL`.
 
 ### Remaining (deferred phases, not in this pass)
-- **Phase 4** — media: parallelize the `generate-media` `batch` action (P1-6);
-  wire `MEDIA_PLAYER` to song/video suggestions (P2-6).
 - **Phase 5** — scope `units` SELECT by teacher/enrollment (P2-2); CSP
   hardening (P2-7).
 - **Phase 6** — hygiene: delete stray root `supabase/` dir (P2-1); remove
