@@ -96,7 +96,7 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
         if (!existing.dialogues?.length) emptyCategories.push('dialogues');
 
         if (emptyCategories.length > 0) {
-          log.info('re_enriching_empty_categories', { categories: emptyCategories });
+          log.info('re_enriching_empty_categories', { metadata: { categories: emptyCategories } });
           await handleEnrichCategories(emptyCategories);
         }
         return;
