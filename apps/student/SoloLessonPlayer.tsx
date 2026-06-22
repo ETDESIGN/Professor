@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { MediaService } from '../../services/MediaService';
+import { getVocabulary } from '../../services/manifest';
 import { GamificationService } from '../../services/GamificationService';
 import { XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import ListenTap from './ListenTap';
@@ -55,12 +56,18 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   }, []);
 
   useEffect(() => {
-    if (state.activeUnit?.id && state.activeUnit?.manifest?.knowledge_graph?.vocabulary) {
-      MediaService.preloadUnitAssets(
-        state.activeUnit.id,
-        state.activeUnit.manifest.knowledge_graph.vocabulary
-      );
+    const unit = state.activeUnit;
+    if (unit?.id) {
+      // Tolerant of any manifest shape (knowledge_graph / enriched_content).
+      const vocab = getVocabulary(unit.manifest).map(v => ({
+        word: v.word,
+        context_sentence: v.example_sentence,
+      }));
+      if (vocab.length > 0) {
+        MediaService.preloadUnitAssets(unit.id, vocab);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.activeUnit?.id]);
 
   useEffect(() => {

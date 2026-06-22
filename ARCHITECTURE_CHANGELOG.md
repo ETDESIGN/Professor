@@ -13,6 +13,50 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-22 — Phase 2: Unified manifest data contract (fixes P1-1, P1-2)
+
+### Problem
+`units.manifest` was written in **three different shapes** by different
+producers (`{meta, knowledge_graph}`, `{meta, enriched_content}`, and the flat
+`approvedAssets` payload), plus units with no manifest at all. Consumers each
+read different keys, and the client `LessonTransformer.transformManifestToFlow`
+**required** `manifest.knowledge_graph.vocabulary` with no null-guard — so any
+unit produced via `enrich-unit` (which writes only `enriched_content`) crashed
+on create/update. `SoloLessonPlayer` also only checked `knowledge_graph`.
+
+### Change
+- Added a canonical normalizer, **mirrored** in client (`services/manifest.ts`)
+  and edge (`supabase/functions/_shared/manifest.ts`) — they cannot share a
+  module root (bundler vs Deno) and are documented as intentionally synced.
+  `normalizeManifest(raw)` accepts any shape (or null) and returns one flat
+  `CanonicalManifest` (meta, vocabulary, grammar, characters, story, media,
+  dialogues, timeline), deriving missing parts and normalizing field aliases
+  (`example_sentence || context_sentence`, `examples || world_examples`).
+- Client `LessonTransformer.transformManifestToFlow` now normalizes at entry →
+  **crash-proof** on any manifest shape (P1-2).
+- `SoloLessonPlayer` preloads vocab via `getVocabulary()` (tolerant of any shape).
+- `orchestrate-lesson` normalizes the incoming `approvedAssets` and **falls back
+  to the unit's stored `manifest`** when the payload is empty (single contract).
+  Both the AI prompt and the deterministic transformer now consume the canonical
+  `assetsForFlow` shape (P1-1).
+- Added `test/manifest.test.ts` (6 cases covering all three shapes, null, and
+  field normalization). 219 tests pass; lint fully clean.
+
+### Note on transformManifestToFlow consolidation
+The two `transformManifestToFlow` implementations are **not merged**: they serve
+different inputs (the client maps an existing `timeline` to flow blocks for the
+Lesson Studio editor; the edge derives a flow from canonical content). Both now
+share the canonical schema via the normalizer, which removes the divergence that
+mattered (the unshared, crash-prone input contract). Merging them would be a
+high-risk refactor with marginal benefit and is intentionally deferred.
+
+### Verification
+- `npm run lint`: 0 non-Deno errors. `npm test`: 219 passed | 1 skipped.
+- Redeploy edge function: `orchestrate-lesson` (consumes `_shared/manifest.ts`).
+- Frontend redeploy recommended (LessonTransformer + SoloLessonPlayer changes).
+
+---
+
 ## 2026-06-19 — Phase 0 + Phase 1 + Image Provider Abstraction
 
 ### Phase 0.1 — Pronunciation evaluator (fixes P0-2)
@@ -125,12 +169,8 @@ to DiceBear; even successful external URLs were blocked by CSP `img-src`.
   `STT_PROVIDER`, `STT_AUDIO_MODEL`, `IMAGE_PROVIDER`, `IMAGE_GEN_MODEL`.
 
 ### Remaining (deferred phases, not in this pass)
-- **Phase 2** — unify the manifest data contract (`knowledge_graph` vs
-  `enriched_content` vs flat `assets`) and consolidate the two
-  `transformManifestToFlow` implementations (P1-1, P1-2).
 - **Phase 3** — SRS correctness: single template-insertion path; upsert
-  per-student items on re-orchestration; fix `student_id` TEXT-vs-UUID typing
-  landmine (P0-3 remainder).
+  per-student items on re-orchestration (P0-3 remainder).
 - **Phase 4** — media: parallelize the `generate-media` `batch` action (P1-6);
   wire `MEDIA_PLAYER` to song/video suggestions (P2-6).
 - **Phase 5** — scope `units` SELECT by teacher/enrollment (P2-2); CSP

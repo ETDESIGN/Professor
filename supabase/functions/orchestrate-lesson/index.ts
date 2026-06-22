@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PROMPTS } from '../_shared/prompts/index.ts';
 import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 import { validateAndNormalizeFlow } from '../_shared/flowTypes.ts';
+import { normalizeManifest, CanonicalManifest } from '../_shared/manifest.ts';
 
 interface VocabItem {
   word: string;
@@ -160,6 +161,20 @@ function transformManifestToFlow(assets: any): any[] {
   return flow;
 }
 
+// Shape the canonical manifest into the flat "assets" view that
+// transformManifestToFlow and the AI prompt consume.
+function toFlowAssets(c: CanonicalManifest, fallbackTitle?: string): any {
+  return {
+    title: c.meta.unit_title || fallbackTitle || 'Lesson',
+    topic: c.meta.theme,
+    description: c.meta.description,
+    vocabulary: c.vocabulary,
+    grammar: c.grammar,
+    characters: c.characters,
+    story: c.story,
+  };
+}
+
 serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'orchestrate-lesson',
@@ -180,6 +195,12 @@ serve(async (req) => {
       return { success: false, error: 'Authentication required' };
     }
 
+    // Phase 2: normalize the approvedAssets payload into one canonical flat
+    // shape (tolerant of knowledge_graph / enriched_content / flat). Falls back
+    // to the unit's stored manifest below if approvedAssets has no vocabulary.
+    let canonical = normalizeManifest(approvedAssets);
+    let assetsForFlow = toFlowAssets(canonical);
+
     let rawFlow: any[] = [];
     let aiSource = 'fallback';
 
@@ -187,7 +208,7 @@ serve(async (req) => {
       const sbClient = createClient(supabaseUrl, supabaseKey);
       const { data: unit, error: unitError } = await sbClient
         .from('units')
-        .select('teacher_id, title')
+        .select('teacher_id, title, manifest')
         .eq('id', unitId)
         .single();
 
@@ -199,11 +220,17 @@ serve(async (req) => {
         return { success: false, error: 'You do not own this unit' };
       }
 
+      // Fall back to the stored manifest if the client payload was empty.
+      if (canonical.vocabulary.length === 0 && unit.manifest) {
+        canonical = normalizeManifest(unit.manifest);
+        assetsForFlow = toFlowAssets(canonical, unit.title);
+      }
+
       if (aiApiKey) {
         const prompt = PROMPTS.orchestration;
         const userPrompt = prompt.userPromptTemplate
           .replace('{{unitId}}', unitId)
-          .replace('{{approvedAssets}}', JSON.stringify(approvedAssets));
+          .replace('{{approvedAssets}}', JSON.stringify(assetsForFlow));
 
         try {
           let aiResponse: Response | null = null;
@@ -292,13 +319,13 @@ serve(async (req) => {
     }
 
     if (rawFlow.length === 0) {
-      rawFlow = transformManifestToFlow(approvedAssets);
+      rawFlow = transformManifestToFlow(assetsForFlow);
       aiSource = rawFlow.length > 1 ? 'transformer' : 'empty';
     }
 
     // Validate + normalise before persisting so units.flow always conforms to
     // the Board's data contract (supported types, intro at index 0, data obj).
-    const fallbackTitle = approvedAssets?.title || 'Lesson';
+    const fallbackTitle = assetsForFlow.title || 'Lesson';
     const { flow, dropped } = validateAndNormalizeFlow(rawFlow, fallbackTitle);
 
     const errors: string[] = [];
@@ -316,7 +343,7 @@ serve(async (req) => {
           errors.push(`units update failed: ${updateError.message}`);
         }
 
-        const vocab = approvedAssets?.vocabulary || [];
+        const vocab = canonical.vocabulary;
         if (vocab.length > 0) {
           const srsRows = vocab.map((v: any) => ({
             word: v.word,

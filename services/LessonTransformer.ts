@@ -1,7 +1,7 @@
-import { LessonManifest } from '../types/pipeline';
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
 import { MediaService } from './MediaService';
+import { normalizeManifest } from './manifest';
 
 const log = createClientLogger('LessonTransformer');
 
@@ -32,10 +32,13 @@ const getAssetUrl = (keyword: string) => {
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(keyword || 'vocab')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
 };
 
-export const transformManifestToFlow = async (manifest: LessonManifest): Promise<any[]> => {
-  const unitId = (manifest.meta as any).unit_id || manifest.meta.unit_title || 'unknown';
+export const transformManifestToFlow = async (manifest: any): Promise<any[]> => {
+  // Normalize any manifest shape (knowledge_graph / enriched_content / flat /
+  // null) into the canonical flat view so this never crashes on partial data.
+  const m = normalizeManifest(manifest);
+  const unitId = (m.meta as any).unit_id || m.meta.unit_title || 'unknown';
 
-  const vocabImagePromises = manifest.knowledge_graph.vocabulary.map(async (v: any) => {
+  const vocabImagePromises = m.vocabulary.map(async (v: any) => {
     try {
       const cachedImage = MediaService.getCachedImage(unitId, v.word);
       if (cachedImage) return { word: v.word, url: cachedImage };
@@ -58,12 +61,12 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
   const introSlide = {
     id: 'step_intro',
     type: 'INTRO_SPLASH',
-    title: `Welcome to ${manifest.meta.unit_title}`,
+    title: `Welcome to ${m.meta.unit_title}`,
     duration: 5,
-    data: { theme: manifest.meta.theme }
+    data: { theme: m.meta.theme }
   };
 
-  const flowSlidesPromises = manifest.timeline.map(async (block, index) => {
+  const flowSlidesPromises = m.timeline.map(async (block, index) => {
     const stepId = `step_${index + 1}`;
     const upperType = block.type.toUpperCase();
 
@@ -76,11 +79,11 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
           duration: block.duration || 300,
           teacherGuide: {
             instruction: "Play the video to introduce the topic.",
-            script: `Let's watch a video about ${manifest.meta.theme}.`,
+            script: `Let's watch a video about ${m.meta.theme}.`,
           },
           data: {
             title: block.title,
-            videoThumbnail: getImageForWord(block.config?.search_query || manifest.meta.theme),
+            videoThumbnail: getImageForWord(block.config?.search_query || m.meta.theme),
             lyrics: []
           }
         };
@@ -88,7 +91,7 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
       case upperType.includes('FOCUS') || upperType.includes('VOCAB'):
         const vocabSource = (block.config?.items && block.config.items.length > 0)
           ? block.config.items
-          : manifest.knowledge_graph.vocabulary;
+          : m.vocabulary;
 
         return {
           id: stepId,
@@ -112,7 +115,7 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
         };
 
       case upperType.includes('GAME') || upperType.includes('ARENA') || upperType.includes('QUIZ'):
-        const quizQuestions = manifest.knowledge_graph.vocabulary.slice(0, 5).map((v, i) => ({
+        const quizQuestions = m.vocabulary.slice(0, 5).map((v, i) => ({
           id: `q_${i}`,
           text: `Which one is the ${v.word}?`,
           image: getImageForWord(v.word),
@@ -131,13 +134,13 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
             answerKey: quizQuestions.map(q => q.correct).join(', ')
           },
           data: {
-            topic: manifest.meta.theme,
+            topic: m.meta.theme,
             questions: quizQuestions
           }
         };
 
       case upperType.includes('LISTEN') || upperType.includes('LISTEN_TAP'):
-        const listenVocab = manifest.knowledge_graph.vocabulary.slice(0, 4);
+        const listenVocab = m.vocabulary.slice(0, 4);
         const listenOptions = listenVocab.length > 0 ? listenVocab.map((v, i) => ({
           id: i,
           img: getImageForWord(v.word),
@@ -176,7 +179,7 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
         };
 
       case upperType.includes('FLASH') || upperType.includes('MATCH') || upperType.includes('FLASH_MATCH'):
-        const matchVocab = manifest.knowledge_graph.vocabulary.slice(0, 5);
+        const matchVocab = m.vocabulary.slice(0, 5);
         if (matchVocab.length >= 2) {
           const matchPairs = matchVocab.map((v, i) => ({
             id: `p_${i}`,
@@ -201,10 +204,10 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
         };
 
       case upperType.includes('SCRAMBLE') || upperType.includes('SENTENCE'):
-        const scrambleVocab = manifest.knowledge_graph.vocabulary.slice(0, 3);
+        const scrambleVocab = m.vocabulary.slice(0, 3);
         if (scrambleVocab.length > 0) {
           const target = scrambleVocab[Math.floor(Math.random() * scrambleVocab.length)];
-          const sentence = target.context_sentence || target.example_sentence || `The ${target.word} is very interesting`;
+          const sentence = target.example_sentence || `The ${target.word} is very interesting`;
           const words = sentence.split(/\s+/).filter(w => w.length > 0);
           const distractors = scrambleVocab
             .filter(v => v.word !== target.word)
@@ -238,7 +241,7 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
         };
 
       case upperType.includes('SPEAK') || upperType.includes('PRONUNCIATION'):
-        const speakVocab = manifest.knowledge_graph.vocabulary.slice(0, 3);
+        const speakVocab = m.vocabulary.slice(0, 3);
         if (speakVocab.length > 0) {
           const word = speakVocab[Math.floor(Math.random() * speakVocab.length)];
           return {
@@ -247,7 +250,7 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
             title: block.title || 'Pronunciation Practice',
             duration: block.duration || 120,
             data: {
-              targetSentence: word.context_sentence || word.example_sentence || word.word,
+              targetSentence: word.example_sentence || word.word,
               targetWord: word.word
             }
           };
@@ -261,8 +264,8 @@ export const transformManifestToFlow = async (manifest: LessonManifest): Promise
         };
 
       case upperType.includes('STORY') || upperType.includes('READING'):
-        const baseText = block.config?.text || `One day in the ${manifest.meta.theme}, something unexpected happened.`;
-        const readingLevels = await differentiateText(baseText, manifest.meta.theme);
+        const baseText = block.config?.text || `One day in the ${m.meta.theme}, something unexpected happened.`;
+        const readingLevels = await differentiateText(baseText, m.meta.theme);
 
         return {
           id: stepId,
