@@ -3,6 +3,7 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PROMPTS } from '../_shared/prompts/index.ts';
 import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
+import { fetchChatCompletion } from '../_shared/ai.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -69,58 +70,38 @@ serve(async (req) => {
       'moonshotai/kimi-k2.6',
     ];
 
-    for (const modelName of models) {
-      try {
-        const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: modelName,
-            messages,
-            temperature: 0.1,
-            max_tokens: 3000,
-          }),
-        });
-        if (!resp.ok) {
-          const errBody = await resp.text().catch(() => '');
-          lastError = `Model ${modelName} returned ${resp.status}: ${errBody.slice(0, 200)}`;
-          console.error(`extract-page: ${lastError}`);
-          continue;
-        }
-        const data = await resp.json();
-        if (data.error) {
-          lastError = `Model ${modelName} API error: ${JSON.stringify(data.error)}`;
-          console.error(`extract-page: ${lastError}`);
-          continue;
-        }
-        const content = data.choices?.[0]?.message?.content || '';
-        if (!content || content.toLowerCase().includes('does not support image') || content.toLowerCase().includes('cannot read')) {
-          lastError = `Model ${modelName} does not support image input`;
-          console.error(`extract-page: ${lastError}`);
-          continue;
-        }
+    const result = await fetchChatCompletion(messages, {
+      temperature: 0.1,
+      maxTokens: 3000,
+      timeoutMs: 40000,
+      models,
+    });
 
-        aiContent = content;
-        usedModel = data.model || modelName;
+    if (result) {
+      const low = result.content.toLowerCase();
+      if (low.includes('does not support image') || low.includes('cannot read')) {
+        lastError = `Model ${result.model} does not support image input`;
+        console.error(`extract-page: ${lastError}`);
+      } else {
+        aiContent = result.content;
+        usedModel = result.model;
 
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-        if (data.usage && supabaseUrl && supabaseKey) {
+        if (result.usage && supabaseUrl && supabaseKey) {
           const sbClient = createClient(supabaseUrl, supabaseKey);
           await sbClient.from('llm_telemetry').insert({
             function_name: 'extract-page',
             model_used: usedModel,
-            prompt_tokens: data.usage.prompt_tokens || 0,
-            completion_tokens: data.usage.completion_tokens || 0,
-            total_tokens: data.usage.total_tokens || 0,
+            prompt_tokens: result.usage.prompt_tokens || 0,
+            completion_tokens: result.usage.completion_tokens || 0,
+            total_tokens: result.usage.total_tokens || 0,
           });
         }
         console.log(`extract-page: SUCCESS with ${usedModel}`);
-        break;
-      } catch (err: any) {
-        lastError = `Model ${modelName} fetch failed: ${err.message}`;
-        console.error(`extract-page: ${lastError}`);
       }
+    } else {
+      lastError = lastError || 'All models failed or timed out';
     }
 
     if (!aiContent) {

@@ -77,7 +77,7 @@ serve(async (req) => {
       for (const modelName of models) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 45000);
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
 
           const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
             method: 'POST',
@@ -89,7 +89,7 @@ serve(async (req) => {
                 { role: 'user', content: userPrompt },
               ],
               temperature,
-              max_tokens: 25000,
+              max_tokens: 5000,
             }),
             signal: controller.signal,
           });

@@ -13,6 +13,33 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-23 — Hotfix: systemic edge-function 546 (unbounded AI fetches)
+
+**Symptom:** after the orchestrate-lesson fix, the lesson builder then failed at
+**enrich-unit** with the same 546. Root cause was systemic: EVERY AI-calling edge
+function (`extract-page`, `generate-lesson`, `enrich-unit`) had **unbounded AI
+fetches + `max_tokens: 25000`**. `enrich-unit` compounded it (3 models × 45 s =
+135 s > wall-clock). Any slow/hung model stalled the function until the platform
+killed it (546).
+
+**Fix — bounded every AI fetch:**
+- New shared helper `_shared/ai.ts` (`fetchChatCompletion` / `healJson`) with a
+  built-in `AbortSignal.timeout` + capped `max_tokens` + model fallback.
+  `extract-page` now routes through it.
+- `enrich-unit`: per-model timeout 45 s → 25 s; `max_tokens` 25000 → 5000.
+- `generate-lesson`: all 4 fetches (differentiate, core, 2 healers) bounded
+  (25–30 s) + `max_tokens` capped to 3000–6000.
+- (`orchestrate-lesson` was already bounded in the prior hotfix.)
+
+**Result:** no AI-calling function can hang past the wall-clock limit. A slow or
+unreachable model now times out and falls back to the next model / deterministic
+path instead of 546-ing.
+
+### Verification / deploy
+- Redeployed `extract-page`, `generate-lesson`, `enrich-unit`. No new lint errors.
+
+---
+
 ## 2026-06-23 — Hotfix: orchestrate-lesson 546 (AI call hang / timeout)
 
 **Symptom:** building a lesson failed with "Edge Function returned a non-2xx

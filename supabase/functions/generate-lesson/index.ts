@@ -55,7 +55,9 @@ serve(async (req) => {
                 { role: 'user', content: userPrompt },
               ],
               temperature: 0.3,
+              max_tokens: 3000,
             }),
+            signal: AbortSignal.timeout(30000),
           });
           if (resp.ok) { aiResponse = resp; break; }
         } catch { /* try next model */ }
@@ -92,8 +94,10 @@ serve(async (req) => {
                 { role: 'system', content: 'You are a JSON parser repair agent. Return ONLY fully corrected, strictly valid JSON representation. Do NOT emit markdown backticks.' },
                 { role: 'user', content: `Repair this broken JSON:\n${content}` }
               ],
-              temperature: 0.1
-            })
+              temperature: 0.1,
+              max_tokens: 6000,
+            }),
+            signal: AbortSignal.timeout(25000),
           });
 
           if (healerResponse.ok) {
@@ -165,7 +169,8 @@ serve(async (req) => {
         const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: modelName, messages, temperature: 0.7, max_tokens: 25000 }),
+          body: JSON.stringify({ model: modelName, messages, temperature: 0.7, max_tokens: 6000 }),
+          signal: AbortSignal.timeout(30000),
         });
         if (resp.ok) { lessonAiResponse = resp; break; }
       } catch { /* try next model */ }
@@ -223,8 +228,10 @@ serve(async (req) => {
             { role: 'system', content: 'You are a JSON parser repair agent. Return ONLY fully corrected, strictly valid JSON representation.' },
             { role: 'user', content: `Repair this broken JSON:\n${content}` }
           ],
-          temperature: 0.1
-        })
+          temperature: 0.1,
+          max_tokens: 6000,
+        }),
+        signal: AbortSignal.timeout(25000),
       });
 
       if (healerResponse.ok) {
