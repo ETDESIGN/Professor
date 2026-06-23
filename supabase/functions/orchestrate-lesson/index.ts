@@ -275,6 +275,11 @@ serve(async (req) => {
               const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+                // Bounded timeout: never let a slow/hung model hang the
+                // invocation past Supabase's wall-clock limit (the prior cause
+                // of status 546). On timeout we fall back to the next model or
+                // to the deterministic transformer.
+                signal: AbortSignal.timeout(30000),
                 body: JSON.stringify({
                   model: modelName,
                   messages: [
@@ -282,11 +287,13 @@ serve(async (req) => {
                     { role: 'user', content: userPrompt },
                   ],
                   temperature: 0.4,
-                  max_tokens: 25000,
+                  // A flow JSON is a few KB; 25000 tokens made the model reason
+                  // far too long. 6000 is plenty and returns much faster.
+                  max_tokens: 6000,
                 }),
               });
               if (resp.ok) { aiResponse = resp; break; }
-            } catch { /* try next model */ }
+            } catch { /* try next model (incl. timeout) */ }
           }
 
           if (aiResponse) {
@@ -314,6 +321,7 @@ serve(async (req) => {
                 const healerResponse = await fetch(`${aiBaseUrl}/chat/completions`, {
                   method: 'POST',
                   headers: { 'Authorization': `Bearer ${aiApiKey}`, 'Content-Type': 'application/json' },
+                  signal: AbortSignal.timeout(25000),
                   body: JSON.stringify({
                     model: Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
                     messages: [
@@ -349,17 +357,30 @@ serve(async (req) => {
       }
     }
 
-    if (rawFlow.length === 0) {
-      rawFlow = transformManifestToFlow(assetsForFlow);
-      aiSource = rawFlow.length > 1 ? 'transformer' : 'empty';
-    }
-
-    // Validate + normalise before persisting so units.flow always conforms to
-    // the Board's data contract (supported types, intro at index 0, data obj).
     const fallbackTitle = assetsForFlow.title || 'Lesson';
-    const { flow, dropped } = validateAndNormalizeFlow(rawFlow, fallbackTitle);
-
     const errors: string[] = [];
+    let flow: any[];
+    let dropped = 0;
+
+    try {
+      if (rawFlow.length === 0) {
+        rawFlow = transformManifestToFlow(assetsForFlow);
+        aiSource = rawFlow.length > 1 ? 'transformer' : 'empty';
+      }
+
+      // Validate + normalise before persisting so units.flow always conforms to
+      // the Board's data contract (supported types, intro at index 0, data obj).
+      const normalized = validateAndNormalizeFlow(rawFlow, fallbackTitle);
+      flow = normalized.flow;
+      dropped = normalized.dropped;
+    } catch (flowErr: any) {
+      // Defense-in-depth: flow generation must NEVER crash the invocation
+      // (a throw here would surface as a 546). Fall back to a minimal valid
+      // flow so the unit still publishes and the error is reported, not fatal.
+      flow = [{ type: 'INTRO_SPLASH', data: { title: fallbackTitle, subtitle: '', description: '' } }];
+      errors.push(`flow generation failed: ${flowErr?.message || String(flowErr)}`);
+      aiSource = 'minimal-fallback';
+    }
 
     if (supabaseUrl && supabaseKey) {
       try {

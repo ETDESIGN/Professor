@@ -13,6 +13,39 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-23 — Hotfix: orchestrate-lesson 546 (AI call hang / timeout)
+
+**Symptom:** building a lesson failed with "Edge Function returned a non-2xx
+status code" / HTTP **546** from `orchestrate-lesson`.
+
+**Root cause:** the function booted fine (401 without auth, identical to a
+working function), and `serveEdgeFunction` catches all throws and returns 500 —
+so a 546 meant the platform **killed the function (wall-clock timeout)**. The
+AI call (`moonshotai/kimi-k2.6`, reasoning model) had `max_tokens: 25000` and
+**no fetch timeout**, so a slow/hung model stalled the invocation until
+Supabase's limit killed it. (Had the key been invalid it would have
+fast-fallen-back to the transformer and succeeded, not 546'd.)
+
+**Fix (`orchestrate-lesson`):**
+- Bounded the AI + healer fetches with `AbortSignal.timeout(30000 / 25000)`. A
+  slow/hung model now times out and falls back to the next model or the
+  deterministic transformer instead of hanging.
+- Reduced `max_tokens` 25000 → 6000 (a flow JSON is a few KB; the old cap made
+  the model reason far too long).
+- Defense-in-depth: wrapped flow generation (`transformManifestToFlow` +
+  `validateAndNormalizeFlow`) in try/catch so an unexpected throw yields a
+  minimal valid flow + a reported error rather than a crash.
+
+**Result:** the function can no longer hang or 546 — if the AI is slow/down it
+publishes a complete deterministic flow (INTRO + FOCUS/LISTEN/TEAM/FLASH/
+SPEAK/SCRAMBLE/GRAMMAR/STORY/MEDIA) from the approved assets.
+
+### Verification / deploy
+- Redeployed `orchestrate-lesson`. Boot confirmed (401 without auth). No new
+  lint errors.
+
+---
+
 ## 2026-06-22 — Phase 6: Hygiene / cleanup (P2-1, P2-4, P2-9)
 
 ### P2-1 — Stray root `supabase/` directory
