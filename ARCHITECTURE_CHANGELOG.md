@@ -13,6 +13,34 @@ Canonical source-of-truth rules introduced here:
 
 ---
 
+## 2026-06-24 — Hotfix: generate-media 546 (unbounded image/audio fetches)
+
+**Symptom:** after the chat-function fixes, media generation still failed —
+`generate-media` had the same unbounded-fetch bug: the image-provider
+(OpenRouter flux) call, the generated-image download (`proxyToStorage`), and the
+ElevenLabs TTS call all lacked timeouts. `preloadUnitAssets` fires a batch of
+these per vocab word, so one slow flux call hung the whole batch → 546. (Phase 6's
+P2-9 removal of the client-side image fallback made this path the sole image
+source, exposing it.)
+
+**Fix:** bounded all three fetches with `AbortSignal.timeout` — image provider
+30 s, image download 20 s, ElevenLabs 30 s. A slow provider now times out and
+returns a DiceBear placeholder instead of hanging.
+
+### Note (separate, not in this hotfix)
+If images come back as **DiceBear placeholders** (not an error) after this, that
+is the original P1-3 concern: whether `flux-schnell` via OpenRouter
+`/chat/completions` returns a parseable image URL. The provider already tries
+markdown/bare-URL/base64/structured envelopes; if the real response shape
+differs, swap `IMAGE_GEN_MODEL` to a model that returns images reliably, or
+wire a dedicated image endpoint.
+
+### Verification / deploy
+- Redeployed `generate-media` (bundles the `_shared/imageProvider.ts` fix).
+- No new lint errors.
+
+---
+
 ## 2026-06-23 — Hotfix: systemic edge-function 546 (unbounded AI fetches)
 
 **Symptom:** after the orchestrate-lesson fix, the lesson builder then failed at

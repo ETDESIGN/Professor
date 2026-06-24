@@ -14,7 +14,7 @@ async function proxyToStorage(
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   if (!supabaseUrl || !supabaseKey) return null;
 
-  const imgResp = await fetch(imageUrl);
+  const imgResp = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
   if (!imgResp.ok) return null;
 
   const imgBuffer = await imgResp.arrayBuffer();
@@ -68,6 +68,7 @@ async function generateAudio(unitId: string, text: string): Promise<{ url: strin
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: { 'xi-api-key': elevenlabsKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
         text: text || 'Hello',
         model_id: 'eleven_monolingual_v1',

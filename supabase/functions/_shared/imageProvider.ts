@@ -42,6 +42,8 @@ function openRouterImageProvider(): ImageProvider {
       const resp = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        // Bounded: a slow/hung image model must not stall the function (546).
+        signal: AbortSignal.timeout(30000),
         body: JSON.stringify({
           model,
           messages: [
