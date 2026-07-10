@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { getTeacherStudents, getClassAnalytics, StudentWithProgress, ClassAnalytics } from '../../services/DataService';
 import { useAppStore } from '../../store/useAppStore';
+import { Engine } from '../../services/SupabaseService';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('Reports');
@@ -13,10 +14,11 @@ const Reports: React.FC = () => {
    const [timeframe, setTimeframe] = useState('This Week');
    const [students, setStudents] = useState<StudentWithProgress[]>([]);
    const [analytics, setAnalytics] = useState<ClassAnalytics | null>(null);
+   const [masteryByStudent, setMasteryByStudent] = useState<Map<string, { mastered: number; cracked: number }>>(new Map());
    const [loading, setLoading] = useState(true);
    const { userProfile } = useAppStore();
 
-   // Fetch students and analytics on mount
+   // Fetch students, analytics, and REAL mastery (plan 4.5) on mount.
    useEffect(() => {
       const fetchData = async () => {
          try {
@@ -28,6 +30,14 @@ const Reports: React.FC = () => {
                ]);
                setStudents(teacherStudents);
                setAnalytics(classAnalytics);
+               // Real per-student mastery from the LearnerState (replaces XP-only views).
+               const ids = teacherStudents.map((s) => s.id).filter(Boolean);
+               if (ids.length > 0) {
+                  const counts = await Engine.getClassMasteryCounts(ids);
+                  const m = new Map<string, { mastered: number; cracked: number }>();
+                  counts.forEach((c, sid) => m.set(sid, { mastered: c.mastered, cracked: c.cracked }));
+                  setMasteryByStudent(m);
+               }
             }
          } catch (error) {
              log.warn('error_fetching_data', { error: error instanceof Error ? error.message : String(error) });
@@ -48,7 +58,9 @@ const Reports: React.FC = () => {
    };
 
    const skills = analytics?.skills || [];
-   const atRiskStudents = students.filter(s => (s.xp || 0) < 100);
+   // "Needs attention" = students who haven't acquired ANY skill yet (real mastery,
+   // not XP) — surfaces genuine non-starters rather than just low-XP students.
+   const atRiskStudents = students.filter(s => (masteryByStudent.get(s.id)?.mastered ?? -1) === 0);
 
    // Show loading state
    if (loading) {
@@ -213,47 +225,59 @@ const Reports: React.FC = () => {
                <button className="text-indigo-600 font-bold text-sm hover:underline">View All Students</button>
             </div>
             <table className="w-full text-left border-collapse">
-               <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
-                  <tr>
-                     <th className="p-4 pl-6">Rank</th>
-                     <th className="p-4">Student</th>
-                     <th className="p-4">Accuracy</th>
-                     <th className="p-4">Time Spent</th>
-                     <th className="p-4">Status</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100 text-sm">
-                  {students.sort((a, b) => (b.xp || 0) - (a.xp || 0)).map((s, i) => (
-                     <motion.tr
-                        key={s.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.9 + (i * 0.05) }}
-                        className="hover:bg-slate-50 transition-colors"
-                     >
-                        <td className="p-4 pl-6 font-bold text-slate-400">#{i + 1}</td>
-                        <td className="p-4">
-                           <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
-                                 {s.avatar_url ? <img src={s.avatar_url} alt="" className="w-8 h-8 rounded-full" /> : (s.full_name?.[0] || '?')}
-                              </div>
-                              <span className="font-bold text-slate-700">{s.full_name || s.email}</span>
-                           </div>
-                        </td>
-                        <td className="p-4 font-mono font-bold text-slate-600">
-                           {Math.min(100, Math.round((s.xp || 0) / 10))}%
-                        </td>
-                        <td className="p-4 text-slate-500">
-                           {Math.round((s.xp || 0) / 15)}m
-                        </td>
-                        <td className="p-4">
-                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${(s.xp || 0) > 100 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {(s.xp || 0) > 100 ? 'On Track' : 'Improving'}
-                           </span>
-                        </td>
-                     </motion.tr>
-                  ))}
-               </tbody>
+                <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase">
+                   <tr>
+                      <th className="p-4 pl-6">Rank</th>
+                      <th className="p-4">Student</th>
+                      <th className="p-4">Skills Mastered</th>
+                      <th className="p-4">XP</th>
+                      <th className="p-4">Status</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                   {students.sort((a, b) => {
+                      const ma = masteryByStudent.get(a.id)?.mastered || 0;
+                      const mb = masteryByStudent.get(b.id)?.mastered || 0;
+                      return mb - ma || (b.xp || 0) - (a.xp || 0);
+                   }).map((s, i) => {
+                      const m = masteryByStudent.get(s.id);
+                      return (
+                      <motion.tr
+                         key={s.id}
+                         initial={{ opacity: 0, x: -10 }}
+                         animate={{ opacity: 1, x: 0 }}
+                         transition={{ delay: 0.9 + (i * 0.05) }}
+                         className="hover:bg-slate-50 transition-colors"
+                      >
+                         <td className="p-4 pl-6 font-bold text-slate-400">#{i + 1}</td>
+                         <td className="p-4">
+                            <div className="flex items-center gap-3">
+                               <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200">
+                                  {s.avatar_url ? <img src={s.avatar_url} alt="" className="w-8 h-8 rounded-full" /> : (s.full_name?.[0] || '?')}
+                               </div>
+                               <span className="font-bold text-slate-700">{s.full_name || s.email}</span>
+                            </div>
+                         </td>
+                         <td className="p-4">
+                            <div className="flex items-center gap-2">
+                               <span className="font-mono font-bold text-green-700">{m?.mastered ?? 0}</span>
+                               {!!m?.cracked && (
+                                  <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full" title="Skills that have decayed and need review">
+                                     {m.cracked} cracked
+                                  </span>
+                               )}
+                            </div>
+                         </td>
+                         <td className="p-4 font-mono font-bold text-slate-600">{(s.xp || 0).toLocaleString()}</td>
+                         <td className="p-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${(m?.mastered ?? 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                               {(m?.mastered ?? 0) > 0 ? 'On Track' : 'Getting Started'}
+                            </span>
+                         </td>
+                      </motion.tr>
+                      );
+                   })}
+                </tbody>
             </table>
          </motion.div>
       </div>

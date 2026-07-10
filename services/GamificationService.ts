@@ -193,6 +193,7 @@ export const GamificationService = {
           { type: 'earn_xp', title: 'Earn 50 XP', target: 50, reward_gems: 10, reward_xp: 15 },
           { type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, reward_gems: 10, reward_xp: 15 },
           { type: 'perfect_speaking', title: 'Score Perfect in Speaking', target: 1, reward_gems: 10, reward_xp: 15 },
+          { type: 'reach_familiar', title: 'Master 3 Words', target: 3, reward_gems: 10, reward_xp: 15 },
         ];
 
     const quests = templates.map(t => ({

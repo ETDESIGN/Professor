@@ -14,6 +14,7 @@ import BoardMediaPlayer from './templates/BoardMediaPlayer';
 import BoardFocusCards from './templates/BoardFocusCards';
 import BoardStoryStage from './templates/BoardStoryStage';
 import BoardGrammarSandbox from './templates/BoardGrammarSandbox';
+import BoardGrammarPractice from './templates/BoardGrammarPractice';
 import BoardTeamBattle from './templates/BoardTeamBattle';
 import BoardIntroSplash from './templates/BoardIntroSplash';
 import BoardUnscramble from './templates/BoardUnscramble';
@@ -29,6 +30,7 @@ import BoardWheelOfDestiny from './templates/BoardWheelOfDestiny';
 import BoardOverlayLayer from './templates/BoardOverlayLayer';
 import BoardFlashMatch from './templates/BoardFlashMatch';
 import BoardListenTap from './templates/BoardListenTap';
+import ClassWeakBanner from './ClassWeakBanner';
 
 const ClassroomBoard: React.FC = () => {
   const { state } = useSession();
@@ -74,6 +76,21 @@ const ClassroomBoard: React.FC = () => {
   const totalSlides = state.activeUnit?.flow?.length || 1;
   const progressPercent = ((state.currentStepIndex + 1) / totalSlides) * 100;
 
+  // Phase-aware timeline (audit A1/G8): surface the step's pedagogical phase so
+  // the teacher sees where they are in the Warm-up -> Input -> Practice ->
+  // Output -> Assess -> Wrap-up flow.
+  const phase: string = (currentStep as any)?.phase || '';
+  const PHASE_META: Record<string, { label: string; color: string }> = {
+    WARMUP: { label: 'Warm-up', color: 'bg-amber-500' },
+    INPUT: { label: 'Input', color: 'bg-sky-500' },
+    PRACTICE: { label: 'Practice', color: 'bg-duo-green' },
+    OUTPUT: { label: 'Output', color: 'bg-purple-500' },
+    ASSESS: { label: 'Assess', color: 'bg-rose-500' },
+    WRAPUP: { label: 'Wrap-up', color: 'bg-slate-500' },
+    REVIEW: { label: 'Review', color: 'bg-indigo-500' },
+  };
+  const phaseMeta = phase ? PHASE_META[phase] : null;
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-black flex items-center justify-center relative">
       {/* 16:9 Container - Ensures consistent layout on all projectors */}
@@ -88,8 +105,17 @@ const ClassroomBoard: React.FC = () => {
         {/* Global Quick Wheel Overlay */}
         <BoardOverlayLayer />
 
+        {/* Class-weak suggestions during practice/assess (plan 3.4) */}
+        {(phase === 'PRACTICE' || phase === 'ASSESS') && <ClassWeakBanner />}
+
         {/* Persistent Overlay (Time & Status) */}
         <div className="absolute top-6 right-6 z-50 flex gap-4 pointer-events-none">
+          {phaseMeta && (
+            <div className={`bg-black/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-mono text-2xl flex items-center gap-3 shadow-lg border border-white/10`}>
+              <span className={`w-3 h-3 rounded-full ${phaseMeta.color}`} />
+              <span className="font-bold tracking-wider uppercase">{phaseMeta.label}</span>
+            </div>
+          )}
           <div className="bg-black/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-mono text-2xl flex items-center gap-3 shadow-lg border border-white/10">
             <Clock size={24} className="text-duo-green" />
             {timeString}
@@ -129,6 +155,7 @@ const ClassroomBoard: React.FC = () => {
             {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
             {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
             {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
+            {currentStep.type === 'GRAMMAR_PRACTICE' && <BoardGrammarPractice data={currentStep.data} />}
             {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}
             {currentStep.type === 'UNSCRAMBLE' && <BoardUnscramble data={currentStep.data} />}
             {currentStep.type === 'WHATS_MISSING' && <BoardWhatsMissing data={currentStep.data} />}

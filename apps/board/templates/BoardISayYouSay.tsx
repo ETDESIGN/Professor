@@ -1,18 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Mic, Volume2, User, Users } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useBoardPool } from '../useBoardPool';
+
+interface DrillItem {
+  text: string;
+  emphasis: string;
+  audio?: string;
+}
 
 const BoardISayYouSay = ({ data }: { data: any }) => {
   const { state } = useSession();
+  const unitId = state.activeUnit?.id || '';
   const [phase, setPhase] = useState<'listen' | 'repeat'>('listen');
   const [activeItemIndex, setActiveItemIndex] = useState(0);
-  
-  const items = data.items || (data.targetSentence ? [{ text: data.targetSentence, emphasis: data.targetWord || '' }] : []);
 
-  if (items.length === 0) {
+  // Frozen source first; else pull SPEAK_SENTENCE pool items (choral listen/repeat).
+  const frozenItems: DrillItem[] = useMemo(
+    () => (Array.isArray(data?.items) && data.items.length > 0
+      ? data.items
+      : data?.targetSentence ? [{ text: data.targetSentence, emphasis: data.targetWord || '' }] : []),
+    [data?.items, data?.targetSentence, data?.targetWord],
+  );
+  const usingFrozen = frozenItems.length > 0;
+  const { items: poolItems, loading } = useBoardPool({ unitId, exerciseTypes: ['SPEAK_SENTENCE'] });
+
+  const items: DrillItem[] = useMemo(() => {
+    if (usingFrozen) return frozenItems;
+    return poolItems.map((it) => {
+      const c: any = it.content;
+      return { text: c?.target_sentence || '', emphasis: c?.target_word || '', audio: c?.target_audio };
+    }).filter((d) => d.text);
+  }, [usingFrozen, frozenItems, poolItems]);
+
+  if (loading || items.length === 0) {
     return (
-      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
-        <h2 className="text-4xl font-bold text-slate-500">Waiting for Speaking Practice...</h2>
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center text-center px-8">
+        <h2 className="text-4xl font-bold text-slate-500 mb-2">I Say, You Say</h2>
+        <p className="text-slate-600 text-xl">{loading ? 'Loading…' : 'No speaking drills. Generate the exercise pool for this unit.'}</p>
       </div>
     );
   }

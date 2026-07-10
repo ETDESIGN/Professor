@@ -1,11 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sword, Shield, Clock, X, Circle, Trophy, Lock, AlertCircle, RefreshCw } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useBoardPool } from '../useBoardPool';
+
+interface BattleQuestion {
+  text: string;
+  image?: string;
+  options: string[];
+  correct: string;
+}
 
 const BoardTeamBattle = ({ data }: { data: any }) => {
   const { state, triggerConfetti } = useSession();
-  
+  const unitId = state.activeUnit?.id || '';
+
   // Game State
   const [grid, setGrid] = useState<(string | null)[]>(Array(9).fill(null));
   const [activeTurn, setActiveTurn] = useState<'red' | 'blue'>('red');
@@ -15,12 +24,24 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [winner, setWinner] = useState<'red' | 'blue' | 'draw' | null>(null);
 
-  const questions = data?.questions || [];
+  // Frozen source first; else pull MEANING_MATCH pool items -> team-quiz questions.
+  const frozenQuestions: BattleQuestion[] = useMemo(() => (Array.isArray(data?.questions) ? data.questions : []), [data?.questions]);
+  const { items: poolItems, loading } = useBoardPool({ unitId, exerciseTypes: ['MEANING_MATCH'], classWeak: true, limit: 12 });
+  const questions: BattleQuestion[] = useMemo(() => {
+    if (frozenQuestions.length > 0) return frozenQuestions;
+    return poolItems.map((it) => {
+      const c: any = it.content;
+      const correct = c?.options?.[c.correct_index];
+      return { text: `What does "${c?.prompt}" mean?`, options: c?.options || [], correct };
+    }).filter((q) => q.options.length > 1 && q.correct);
+  }, [frozenQuestions, poolItems]);
 
-  if (questions.length === 0) {
+  if (loading || questions.length === 0) {
     return (
-      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
-        <h2 className="text-4xl font-bold text-slate-500">Waiting for Quiz Data...</h2>
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center text-center px-8">
+        <Sword size={56} className="text-slate-600 mx-auto mb-4" />
+        <h2 className="text-4xl font-bold text-slate-500 mb-2">Team Battle</h2>
+        <p className="text-slate-600 text-xl">{loading ? 'Loading…' : 'No quiz questions. Generate the exercise pool for this unit.'}</p>
       </div>
     );
   }

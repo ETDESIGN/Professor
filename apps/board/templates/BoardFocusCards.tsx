@@ -110,10 +110,12 @@ const BoardFocusCards = ({ data }: { data: any }) => {
               <div className="flex-1 flex flex-col items-center justify-center w-full">
                  <h3 className="text-9xl font-display font-bold mb-8 tracking-tight drop-shadow-md">{activeCard.back}</h3>
                  
-                 <div className="bg-white/20 backdrop-blur-md px-10 py-5 rounded-full flex items-center gap-6 text-4xl font-mono shadow-inner border border-white/20">
-                    <Volume2 size={48} className="text-yellow-300" />
-                    {activeCard.pronunciation}
-                 </div>
+                  {(activeCard.phonetic || activeCard.pronunciation) && (
+                    <div className="bg-white/20 backdrop-blur-md px-10 py-5 rounded-full flex items-center gap-6 text-4xl font-mono shadow-inner border border-white/20">
+                       <Volume2 size={48} className="text-yellow-300" />
+                       {activeCard.phonetic || activeCard.pronunciation}
+                    </div>
+                  )}
               </div>
               
                <div className="w-full bg-black/20 p-6 rounded-2xl text-center backdrop-blur-sm border border-white/10">

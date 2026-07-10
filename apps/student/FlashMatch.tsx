@@ -21,14 +21,19 @@ const FlashMatch: React.FC<FlashMatchProps> = ({
   onResult,
   data
 }) => {
-  const defaultPairs = [
-    { id: '1', left: 'Apple', right: 'Manzana' },
-    { id: '2', left: 'Dog', right: 'Perro' },
-    { id: '3', left: 'Cat', right: 'Gato' },
-    { id: '4', left: 'House', right: 'Casa' },
-  ];
+  const defaultPairs: FlashMatchProps['data']['pairs'] = [];
 
   const pairs = data?.pairs || defaultPairs;
+
+  // No-content empty state (replaces the hardcoded Apple/Manzana Spanish defaults).
+  if (pairs.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-slate-400 font-bold mb-1">No matching content for this activity.</p>
+        <p className="text-slate-300 text-sm">Tap Continue to proceed.</p>
+      </div>
+    );
+  }
 
   const [leftItems, setLeftItems] = useState<{ id: string; text: string; state: 'idle' | 'selected' | 'matched' | 'error' }[]>([]);
   const [rightItems, setRightItems] = useState<{ id: string; text: string; state: 'idle' | 'selected' | 'matched' | 'error' }[]>([]);

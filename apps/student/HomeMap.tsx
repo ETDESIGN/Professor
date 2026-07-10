@@ -1,7 +1,9 @@
 
-import React from 'react';
-import { Star, Play, Lock, Headphones, Activity, Mic, LayoutGrid, Check, Flame, Gift, Target, BookOpen } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, Play, Lock, Headphones, Activity, Mic, LayoutGrid, Check, Flame, Gift, Target, BookOpen, Crown, AlertTriangle } from 'lucide-react';
 import { useSoloSession } from '../../store/SoloSessionContext';
+import { supabase } from '../../services/supabaseClient';
+import { Engine } from '../../services/SupabaseService';
 import { motion } from 'framer-motion';
 
 interface HomeMapProps {
@@ -22,6 +24,32 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
   const hoursLeft = 24 - now.getHours();
   const xpGoal = 50;
   const xpProgress = Math.min(studentXp / xpGoal, 1);
+
+  // Mastery loop (Phase 4): per-unit crowns + cracked-node state from the
+  // LearnerState. Crowns (familiar/mastered) are the real "did they learn it?"
+  // signal; a mastered objective whose R fell below 0.85 cracks and prompts a
+  // review lesson. compute-on-read, no cron.
+  const [studentId, setStudentId] = useState('');
+  const [masteryByUnit, setMasteryByUnit] = useState<Record<string, { crowns: number; total: number; crackedCount: number; isComplete: boolean }>>({});
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => { if (user) setStudentId(user.id); }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!studentId || units.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const next: Record<string, { crowns: number; total: number; crackedCount: number; isComplete: boolean }> = {};
+      for (const u of units) {
+        const s = await Engine.getUnitMasterySummary(studentId, u.id);
+        next[u.id] = { crowns: s.crowns, total: s.total, crackedCount: s.crackedCount, isComplete: s.isComplete };
+      }
+      if (!cancelled) setMasteryByUnit(next);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId, units]);
 
   // Helper to generate the path string
   const generatePath = (startIndex: number) => {
@@ -99,6 +127,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
       </div>
 
       {units.map((unit, unitIndex) => {
+        const summary = masteryByUnit[unit.id];
         return (
           <div key={unit.id} className="relative z-10 pb-8">
             {/* Unit Header */}
@@ -107,9 +136,28 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
                 <div>
                   <h3 className="font-display font-bold text-2xl tracking-wide">{unit.title}</h3>
                   <p className="opacity-90 text-sm font-medium mt-1">{unit.topic} • {unit.level}</p>
+                  {/* Mastery crowns (distinct from XP). Cracked objectives prompt a review. */}
+                  {summary && summary.total > 0 && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
+                        <Crown size={13} className="text-yellow-300" />
+                        {summary.crowns}/{summary.total}
+                      </span>
+                      {summary.crackedCount > 0 && (
+                        <button
+                          onClick={() => onNavigate('practice', unit.id)}
+                          className="flex items-center gap-1 bg-amber-400/90 text-amber-950 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse"
+                          title={`${summary.crackedCount} skill(s) need review`}
+                        >
+                          <AlertTriangle size={13} />
+                          {summary.crackedCount} cracked
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                  {unit.status === 'Locked' ? <Lock size={24} /> : <BookOpen size={24} />}
+                  {unit.status === 'Locked' ? <Lock size={24} /> : summary?.isComplete ? <Crown size={24} className="text-yellow-300" /> : <BookOpen size={24} />}
                 </div>
               </div>
             </div>
@@ -141,12 +189,19 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
                 if (i % 4 === 1) offsetClass = 'translate-x-16';
                 if (i % 4 === 3) offsetClass = '-translate-x-16';
 
-                let Icon = Star;
-                let action = () => { };
-                if (i === 0) { Icon = Headphones; action = () => onNavigate('listen', unit.id); }
-                else if (i === 1) { Icon = Activity; action = () => onNavigate('pronounce', unit.id); }
-                else if (i === 2) { Icon = Mic; action = () => onNavigate('dubbing', unit.id); }
-                else { Icon = LayoutGrid; action = () => onNavigate('scramble', unit.id); }
+                // Bug #8 fix: derive each node from the unit's ACTUAL lesson flow
+                // (phase/type) instead of a fixed listen/pronounce/dubbing/scramble
+                // mapping, so the path represents the real lesson. Falls back to a
+                // neutral book icon when the unit has no flow step at this index.
+                const flowStep = (unit.flow?.[i] || unit.flow?.[i % Math.max(1, (unit.flow?.length || 1))]) as any;
+                const nodePhase: string = flowStep?.phase || (i === 0 ? 'WARMUP' : i === 1 ? 'INPUT' : i === 2 ? 'PRACTICE' : 'OUTPUT');
+                let Icon = BookOpen;
+                if (nodePhase === 'WARMUP' || flowStep?.type === 'MEDIA_PLAYER') Icon = Headphones;
+                else if (nodePhase === 'INPUT') Icon = BookOpen;
+                else if (nodePhase === 'PRACTICE') Icon = Activity;
+                else if (nodePhase === 'OUTPUT' || flowStep?.type === 'STORY_STAGE') Icon = Mic;
+                else if (nodePhase === 'ASSESS') Icon = Star;
+                const action = () => onNavigate('lesson', unit.id);
 
                 return (
                   <motion.div

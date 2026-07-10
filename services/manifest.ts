@@ -21,9 +21,20 @@ export interface CanonicalVocab {
   /** Normalised from example_sentence || context_sentence. */
   example_sentence?: string;
   translation?: string;
+  /** Simplified Chinese (L1) translation — STRICT L1 for the Chinese market. */
+  l1_translation?: string;
+  /** IPA phonetic transcription (BoardFocusCards reads this, not a missing `pronunciation`). */
+  phonetic?: string;
+  part_of_speech?: string;
   image_prompt?: string;
   image_url?: string;
+  /** TTS narration of the word (generated at enrich time). */
+  audio_url?: string;
+  /** TTS narration of the example_sentence (generated at enrich time). */
+  example_audio_url?: string;
   distractors?: string[];
+  /** Words easily confused with this one (spelling/sound/meaning). */
+  confusables?: string[];
 }
 
 export interface CanonicalGrammar {
@@ -31,6 +42,12 @@ export interface CanonicalGrammar {
   explanation?: string;
   /** Normalised from examples || world_examples. */
   examples?: string[];
+  /** Fill-in-the-blank structure for substitution drills. */
+  pattern_template?: string;
+  /** Pairs showing a grammar transformation (affirmative->negative, etc.). */
+  transformation_pairs?: any[];
+  /** Common learner errors with corrections (for ERROR_SPOT). */
+  error_examples?: any[];
 }
 
 export interface CanonicalManifest {
@@ -72,9 +89,15 @@ function normalizeVocab(v: any): CanonicalVocab {
     definition: v?.definition ?? v?.meaning,
     example_sentence: v?.example_sentence ?? v?.context_sentence ?? v?.sentence,
     translation: v?.translation,
+    l1_translation: v?.l1_translation,
+    phonetic: v?.phonetic ?? v?.ipa ?? v?.pronunciation,
+    part_of_speech: v?.part_of_speech ?? v?.pos ?? v?.category,
     image_prompt: v?.image_prompt ?? v?.visual_prompt,
     image_url: v?.image_url,
+    audio_url: v?.audio_url,
+    example_audio_url: v?.example_audio_url,
     distractors: asArray(v?.distractors),
+    confusables: asArray(v?.confusables),
   };
   if (!out.word) return out;
   Object.keys(out).forEach((k) => (out as any)[k] === undefined && delete (out as any)[k]);
@@ -86,8 +109,12 @@ function normalizeGrammar(g: any): CanonicalGrammar {
     rule: String(g?.rule ?? g?.name ?? '').trim(),
     explanation: g?.explanation,
     examples: asArray(g?.examples ?? g?.world_examples),
+    pattern_template: g?.pattern_template ?? g?.pattern,
+    transformation_pairs: asArray(g?.transformation_pairs),
+    error_examples: asArray(g?.error_examples),
   };
   if (!out.rule) return out;
+  Object.keys(out).forEach((k) => (out as any)[k] === undefined && delete (out as any)[k]);
   return out;
 }
 
@@ -133,4 +160,23 @@ export function normalizeManifest(raw: any): CanonicalManifest {
 /** Convenience accessor: vocabulary (tolerant of any manifest shape). */
 export function getVocabulary(manifest: any): CanonicalVocab[] {
   return normalizeManifest(manifest).vocabulary;
+}
+
+export interface StoryPage {
+  text?: string;
+  speaker?: string;
+  image?: string;
+  image_prompt?: string;
+  comprehension_questions?: { question?: string; options?: string[]; answer?: number }[];
+}
+
+export interface CanonicalStory {
+  title?: string;
+  setting?: string;
+  pages: StoryPage[];
+}
+
+/** The unit's story (title/setting + pages with text/image/comprehension). */
+export function getStory(manifest: any): CanonicalStory {
+  return normalizeManifest(manifest).story;
 }

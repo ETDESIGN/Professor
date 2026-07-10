@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { History, Check, RefreshCcw, ArrowRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { getStory } from '../../../services/manifest';
 
 interface StoryCard {
   id: string;
@@ -15,9 +16,23 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
   const [slots, setSlots] = useState<(StoryCard | null)[]>([]);
   const [isCorrect, setIsCorrect] = useState(false);
 
+  // Build the ordered card set: frozen data.cards first, else the active unit's
+  // story pages (narrative order). Story-sequencing needs the story's order, so
+  // this uses getStory (not the exercise pool).
+  const buildCards = (): StoryCard[] => {
+    if (Array.isArray(data?.cards) && data.cards.length > 0) {
+      return data.cards.map((c: any, i: number) => ({ ...c, order: i }));
+    }
+    const pages = getStory(state.activeUnit?.manifest).pages || [];
+    return pages
+      .map((p: any, i: number) => ({ id: `story-${i}`, image: p.image || '', text: p.text || '', order: i }))
+      .filter((c) => c.text);
+  };
+
   useEffect(() => {
     initializeGame();
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.activeUnit?.id, data?.cards]);
 
   // Listen for remote events
   useEffect(() => {
@@ -26,13 +41,14 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     } else if (state.lastAction?.type === 'CHECK_ANSWER') {
        checkOrder();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
 
   const initializeGame = () => {
-    const items: StoryCard[] = (data?.cards || []).map((c: any, i: number) => ({ ...c, order: i }));
-    setCards([...items].sort(() => Math.random() - 0.5));
-    setSlots(new Array(items.length).fill(null));
-    setIsCorrect(false);
+     const items = buildCards();
+     setCards([...items].sort(() => Math.random() - 0.5));
+     setSlots(new Array(items.length).fill(null));
+     setIsCorrect(false);
   };
 
   const handleCardClick = (card: StoryCard) => {
@@ -72,6 +88,16 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
       setCards([...cards, ...returnedCards]);
     }
   };
+
+  if (buildCards().length === 0) {
+    return (
+      <div className="h-full bg-slate-100 flex flex-col items-center justify-center text-center p-8">
+        <History size={56} className="text-slate-300 mb-4" />
+        <h1 className="text-3xl font-bold text-slate-400 mb-2">Story Sequencing</h1>
+        <p className="text-slate-400 max-w-sm">No story for this unit yet. Stories are generated during enrichment.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-slate-100 flex flex-col p-8 font-sans">

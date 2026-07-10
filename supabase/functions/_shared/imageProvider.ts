@@ -83,19 +83,44 @@ function openRouterImageProvider(): ImageProvider {
 }
 
 /**
- * Resolve the active image provider from env. Returns null when disabled or
- * when AI_API_KEY is absent so callers can fall back to placeholders.
+ * Default provider: Pollinations.ai — region-safe (no key, no Google/OpenAI/
+ * Anthropic), Flux-backed, and returns a real image at a deterministic URL
+ * (same prompt → same image, which also satisfies prompt_hash dedup). Unlike
+ * calling an image model through OpenRouter's chat/completions (which returns
+ * text, not images), this reliably yields a fetchable JPEG. The caller still
+ * proxies the bytes into Supabase Storage for the browser CSP.
+ *
+ * model=flux gives the best child-friendly illustration quality; nologo hides
+ * the watermark. Width/height 768 balances detail vs. generation time.
+ */
+function pollinationsProvider(): ImageProvider {
+  return {
+    name: 'pollinations',
+    async generate(prompt): Promise<GeneratedImage> {
+      const enc = encodeURIComponent(`children's educational illustration: ${prompt}. simple, colorful, flat vector style, kids 6-12, no text`);
+      const url = `https://image.pollinations.ai/prompt/${enc}?width=768&height=768&nologo=true&model=flux`;
+      return { imageUrl: url, provider: 'pollinations' };
+    },
+  };
+}
+
+/**
+ * Resolve the active image provider from env. Returns null only when explicitly
+ * disabled. Defaults to Pollinations (works with zero extra config/secrets);
+ * OpenRouter remains available via IMAGE_PROVIDER=openrouter for a keyed model.
  */
 export function resolveImageProvider(): ImageProvider | null {
-  const name = (Deno.env.get('IMAGE_PROVIDER') || 'openrouter').toLowerCase();
+  const name = (Deno.env.get('IMAGE_PROVIDER') || 'pollinations').toLowerCase();
   switch (name) {
+    case 'pollinations':
+      return pollinationsProvider();
     case 'openrouter':
       return openRouterImageProvider();
     // Future providers register here, e.g.:
     //   case 'self-hosted': return selfHostedProvider();
     //   case 'sd-webui':   return sdWebuiProvider();
     default:
-      console.error(`image_provider_unknown: "${name}" — falling back to openrouter`);
-      return openRouterImageProvider();
+      console.error(`image_provider_unknown: "${name}" — falling back to pollinations`);
+      return pollinationsProvider();
   }
 }

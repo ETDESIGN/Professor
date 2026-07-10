@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Check, RefreshCcw } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useBoardPool } from '../useBoardPool';
 
 interface MatchPair {
   id: string;
@@ -11,15 +12,42 @@ interface MatchPair {
 
 const BoardFlashMatch = ({ data }: { data: any }) => {
   const { state, triggerAction } = useSession();
-  const pairs: MatchPair[] = data?.pairs || [];
+  const unitId = state.activeUnit?.id || '';
+  const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
-  const [leftItems, setLeftItems] = useState(() =>
-    pairs.map((p, i) => ({ id: `l_${i}`, pairId: p.id, text: p.left, matched: false }))
+  // Memoize the frozen source so its reference is stable across renders — an
+  // inline `data?.pairs || []` is a fresh array every render, which (via the
+  // pairs/rebuild/effect chain) caused an infinite setState loop in pool mode.
+  const frozenPairs: MatchPair[] = useMemo(
+    () => (Array.isArray(data?.pairs) ? data.pairs.slice(0, 8) : []),
+    [data?.pairs],
   );
-  const [rightItems, setRightItems] = useState(() => {
-    const shuffled = pairs.map((p, i) => ({ id: `r_${i}`, pairId: p.id, text: p.right, matched: false }));
-    return shuffled.sort(() => Math.random() - 0.5);
+  // Pool fallback (class-weak-first): MEANING_MATCH items -> word/meaning pairs.
+  const { items: poolItems, loading } = useBoardPool({
+    unitId,
+    exerciseTypes: ['MEANING_MATCH'],
+    classWeak: true,
+    roster,
+    limit: 8,
   });
+
+  const pairs: MatchPair[] = useMemo(() => {
+    if (frozenPairs.length > 0) return frozenPairs.slice(0, 8);
+    const seen = new Set<string>();
+    const out: MatchPair[] = [];
+    for (const it of poolItems) {
+      if (seen.has(it.objective_id)) continue;
+      seen.add(it.objective_id);
+      const c: any = it.content;
+      const right = c?.options?.[c.correct_index];
+      if (c?.prompt && right) out.push({ id: it.objective_id, left: c.prompt, right });
+      if (out.length >= 6) break;
+    }
+    return out;
+  }, [frozenPairs, poolItems]);
+
+  const [leftItems, setLeftItems] = useState<{ id: string; pairId: string; text: string; matched: boolean }[]>([]);
+  const [rightItems, setRightItems] = useState<{ id: string; pairId: string; text: string; matched: boolean }[]>([]);
 
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
   const [selectedRight, setSelectedRight] = useState<string | null>(null);
@@ -27,17 +55,23 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const [isWrong, setIsWrong] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
 
+  // (Re)build the board whenever the pair set resolves (frozen sync OR pool
+  // async) — and on a remote RESET_GAME.
+  const rebuild = useCallback(() => {
+    setLeftItems(pairs.map((p, i) => ({ id: `l_${i}`, pairId: p.id, text: p.left, matched: false })));
+    setRightItems(pairs.map((p, i) => ({ id: `r_${i}`, pairId: p.id, text: p.right, matched: false })).sort(() => Math.random() - 0.5));
+    setSelectedLeft(null);
+    setSelectedRight(null);
+    setMatchedCount(0);
+    setIsWrong(false);
+    setIsComplete(false);
+  }, [pairs]);
+
+  useEffect(() => { rebuild(); }, [rebuild]);
+
   useEffect(() => {
-    if (state.lastAction?.type === 'RESET_GAME') {
-      setSelectedLeft(null);
-      setSelectedRight(null);
-      setMatchedCount(0);
-      setIsWrong(false);
-      setIsComplete(false);
-      setLeftItems(prev => prev.map(l => ({ ...l, matched: false })));
-      setRightItems(prev => prev.map(r => ({ ...r, matched: false })).sort(() => Math.random() - 0.5));
-    }
-  }, [state.lastAction]);
+    if (state.lastAction?.type === 'RESET_GAME') rebuild();
+  }, [state.lastAction, rebuild]);
 
   const handleLeftClick = useCallback((id: string) => {
     if (isComplete) return;
@@ -92,10 +126,13 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     setSelectedRight(null);
   };
 
-  if (pairs.length === 0) {
+  if (loading || pairs.length === 0) {
     return (
-      <div className="h-full bg-slate-900 flex items-center justify-center text-white">
-        <h2 className="text-4xl font-bold text-slate-500">No matching pairs available</h2>
+      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
+        <h2 className="text-4xl font-bold text-slate-500 mb-2">Flash Match</h2>
+        <p className="text-slate-600 text-xl">
+          {loading ? 'Loading…' : 'No matching pairs available. Generate the exercise pool for this unit.'}
+        </p>
       </div>
     );
   }

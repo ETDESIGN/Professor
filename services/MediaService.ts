@@ -16,6 +16,17 @@ const cache: MediaCache = {
 const preloadQueue: Set<string> = new Set();
 let isPreloading = false;
 
+/**
+ * Direct Pollinations image URL (region-safe, no key). Mirrors the edge
+ * provider's prompt format. Used as a reliable fallback when the generate-media
+ * edge function fails/times out — the browser loads the image directly from
+ * Pollinations (now CSP-allow-listed), which caches server-side after first gen.
+ */
+export function pollinationsImageUrl(prompt: string, size = 768): string {
+  const enc = encodeURIComponent(`children's educational illustration: ${prompt}. simple, colorful, flat vector style, kids 6-12, no text`);
+  return `https://image.pollinations.ai/prompt/${enc}?width=${size}&height=${size}&nologo=true&model=flux`;
+}
+
 async function hashPrompt(prompt: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(prompt.toLowerCase().trim());
@@ -65,18 +76,19 @@ export const MediaService = {
       prompt,
     });
 
-    const url = result?.url || '';
-    if (url) {
-      cache.images.set(cacheKey, url);
-      supabase.from('assets').insert({
-        unit_id: unitId,
-        type: 'image',
-        prompt: word,
-        prompt_hash: promptHash,
-        storage_path: 'external',
-        public_url: url
-      }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
-    }
+    let url = result?.url || '';
+    // Fallback: if the edge function failed/timed out (no URL), serve the image
+    // directly from Pollinations (CSP-allowed). Reliable + cached after first load.
+    if (!url) url = pollinationsImageUrl(prompt);
+    cache.images.set(cacheKey, url);
+    supabase.from('assets').insert({
+      unit_id: unitId,
+      type: 'image',
+      prompt: word,
+      prompt_hash: promptHash,
+      storage_path: 'external',
+      public_url: url
+    }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
     return url;
   },
 

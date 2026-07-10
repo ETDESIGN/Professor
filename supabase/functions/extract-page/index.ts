@@ -65,7 +65,7 @@ serve(async (req) => {
 
     // REGION-SAFE: No Google, OpenAI, or Anthropic (blocked in user's region)
     const models = [
-      Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen-2.5-vl-72b-instruct',
+      Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen2.5-vl-72b-instruct',
       Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
       'moonshotai/kimi-k2.6',
     ];

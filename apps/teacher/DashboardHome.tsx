@@ -4,6 +4,7 @@ import { Calendar, Clock, Users, CheckCircle, Bell, ArrowRight, Play, MessageSqu
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { getClassAnalytics, getTeacherStudents } from '../../services/DataService';
+import { Engine } from '../../services/SupabaseService';
 import { useUnits } from '../../hooks/useQueries';
 import { useQuery } from '@tanstack/react-query';
 import { createClientLogger } from '../../services/logger';
@@ -27,6 +28,16 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
     queryFn: () => getTeacherStudents(userProfile!.id!),
     enabled: !!userProfile?.id,
   });
+  // Real class mastery from the LearnerState (plan 4.5) — total skills the class
+  // has acquired (familiar+) and how many have decayed (need review).
+  const studentIds = students.map((s: any) => s.id).filter(Boolean);
+  const { data: classMastery } = useQuery({
+    queryKey: ['classMastery', studentIds.join(',')],
+    queryFn: () => Engine.getClassMasteryCounts(studentIds),
+    enabled: studentIds.length > 0,
+  });
+  const masteredTotal = Array.from(classMastery?.values() ?? []).reduce((sum, c) => sum + c.mastered, 0);
+  const crackedTotal = Array.from(classMastery?.values() ?? []).reduce((sum, c) => sum + c.cracked, 0);
   const loading = isLoadingUnits || isLoadingStudents || !analytics;
 
   if (loading) {
@@ -103,12 +114,26 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
             transition={{ delay: 0.2 }}
             className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1"
           >
-            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-              <CheckCircle size={24} />
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+              <Zap size={24} />
             </div>
             <div>
-              <div className="text-3xl font-bold text-slate-800">{analytics?.completion || 0}%</div>
-              <div className="text-xs font-bold text-slate-400 uppercase">Completion Rate</div>
+              <div className="text-3xl font-bold text-slate-800">{masteredTotal}</div>
+              <div className="text-xs font-bold text-slate-400 uppercase">Skills Mastered</div>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1"
+          >
+            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+              <Bell size={24} />
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-slate-800">{crackedTotal}</div>
+              <div className="text-xs font-bold text-slate-400 uppercase">Need Review</div>
             </div>
           </motion.div>
           <motion.div
@@ -117,12 +142,12 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
             transition={{ delay: 0.3 }}
             className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1"
           >
-            <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center">
-              <Bell size={24} />
+            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
+              <CheckCircle size={24} />
             </div>
             <div>
-              <div className="text-3xl font-bold text-slate-800">{students.length}</div>
-              <div className="text-xs font-bold text-slate-400 uppercase">Total Students</div>
+              <div className="text-3xl font-bold text-slate-800">{analytics?.completion || 0}%</div>
+              <div className="text-xs font-bold text-slate-400 uppercase">Completion Rate</div>
             </div>
           </motion.div>
         </div>

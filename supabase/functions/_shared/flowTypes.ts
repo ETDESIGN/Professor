@@ -5,6 +5,33 @@
 //
 // Keep this list in sync with the Board's render switch.
 
+/**
+ * Pedagogical phase of a lesson step. Encoded on every block so renderers
+ * (board timeline + student phase bar) know the step's instructional role:
+ * WARMUP (switch to English), INPUT (present vocab/grammar), PRACTICE
+ * (controlled exercises), OUTPUT (free production), ASSESS (mastery check),
+ * WRAPUP (score/homework). REVIEW is a cross-unit spaced-repetition phase.
+ * This realizes the Pre-In-Post / PPP model the docs promised (audit G8/A1).
+ */
+export type Phase =
+  | 'WARMUP'
+  | 'INPUT'
+  | 'PRACTICE'
+  | 'OUTPUT'
+  | 'ASSESS'
+  | 'WRAPUP'
+  | 'REVIEW';
+
+export const SUPPORTED_PHASES: ReadonlySet<string> = new Set<Phase>([
+  'WARMUP',
+  'INPUT',
+  'PRACTICE',
+  'OUTPUT',
+  'ASSESS',
+  'WRAPUP',
+  'REVIEW',
+]);
+
 export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   'INTRO_SPLASH',
   'MEDIA_PLAYER',
@@ -13,6 +40,7 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   'GAME_ARENA',
   'STORY_STAGE',
   'GRAMMAR_SANDBOX',
+  'GRAMMAR_PRACTICE',
   'TEAM_BATTLE',
   'UNSCRAMBLE',
   'WHATS_MISSING',
@@ -34,6 +62,8 @@ export interface FlowBlock {
   data: Record<string, any>;
   title?: string;
   duration?: number;
+  /** Pedagogical phase of this step (see Phase). Passed through untouched. */
+  phase?: Phase;
 }
 
 /**
@@ -67,6 +97,14 @@ export function validateAndNormalizeFlow(
       dropped++;
       continue;
     }
+    // Pass-through phase (validated against the allow-list; unknown/dropped so
+    // a renderer never sees a typo). PRACTICE/ASSESS blocks are pool-driven at
+    // runtime; INPUT/WARMUP/OUTPUT/WRAPUP are passive/presentation.
+    let phase: Phase | undefined;
+    if (typeof block.phase === 'string') {
+      const p = block.phase.toUpperCase();
+      if (SUPPORTED_PHASES.has(p)) phase = p as Phase;
+    }
     flow.push({
       type,
       title: typeof block.title === 'string' ? block.title : undefined,
@@ -75,6 +113,7 @@ export function validateAndNormalizeFlow(
         block.data && typeof block.data === 'object' && !Array.isArray(block.data)
           ? block.data
           : {},
+      ...(phase ? { phase } : {}),
     });
   }
 

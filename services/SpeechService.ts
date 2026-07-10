@@ -255,3 +255,37 @@ export function stopSpeaking(): void {
 export function preloadVocabAudio(unitId: string, vocabulary: { word: string; context_sentence?: string }[]): Promise<void> {
   return MediaService.preloadUnitAssets(unitId, vocabulary);
 }
+
+const urlAudioCache = new Map<string, HTMLAudioElement>();
+
+/**
+ * Play a generated audio_url (from a pool item) directly. If the URL is missing
+ * or playback fails, fall back to speakText() (ElevenLabs via MediaService, then
+ * window.speechSynthesis). Returns true if audio actually played. This is the
+ * single audio seam every exercise component uses (fixes the mock playAudio bug).
+ */
+export async function playAudioUrl(url?: string, fallbackText?: string): Promise<boolean> {
+  if (url) {
+    try {
+      let audio = urlAudioCache.get(url);
+      if (!audio) {
+        audio = new Audio(url);
+        urlAudioCache.set(url, audio);
+      }
+      audio.currentTime = 0;
+      await audio.play();
+      return true;
+    } catch (err: any) {
+      log.warn('audio_url_play_failed', { error: err?.message || String(err) });
+    }
+  }
+  if (fallbackText) {
+    try {
+      await speakText(fallbackText);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}

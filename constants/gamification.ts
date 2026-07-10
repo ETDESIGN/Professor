@@ -34,6 +34,9 @@ export const QUEST_TYPES = {
   PERFECT_SPEAKING: 'perfect_speaking',
   REVIEW_WORDS: 'review_words',
   DUBBING_TAKE: 'dubbing_take',
+  // Mastery-tied (plan 4.3): reach 'familiar' on N words — measures real learning,
+  // not raw XP.
+  REACH_FAMILIAR: 'reach_familiar',
 } as const;
 
 export const DAILY_QUEST_TEMPLATES = [
@@ -42,6 +45,7 @@ export const DAILY_QUEST_TEMPLATES = [
   { type: QUEST_TYPES.PERFECT_SPEAKING, title: 'Score Perfect in Speaking', target: 1, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
   { type: QUEST_TYPES.REVIEW_WORDS, title: 'Review {target} Words', target: 5, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
   { type: QUEST_TYPES.DUBBING_TAKE, title: 'Record {target} Dubbing Take', target: 1, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
+  { type: QUEST_TYPES.REACH_FAMILIAR, title: 'Master {target} Words', target: 3, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
 ] as const;
 
 export const SHOP_ITEMS = {

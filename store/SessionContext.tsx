@@ -94,6 +94,9 @@ export interface SessionContextType {
   setQuietMode: (active: boolean) => void;
   updateNoiseLevel: (level: number) => void;
   unlockNextLevel: (currentUnitId: string) => Promise<void>;
+  /** Per-student board capture (Phase 3.3): record a teacher Correct/Wrong grade
+   * for the selected student on a vocab item into the shared LearnerState. */
+  gradeStudent: (studentId: string, word: string, correct: boolean) => Promise<void>;
 }
 
 export const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -431,6 +434,19 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [broadcastAction]);
 
+  // Per-student board capture (Phase 3.3): writes a teacher grade into the shared
+  // LearnerState for the active unit. Non-fatal; logged on failure.
+  const gradeStudent = useCallback(async (studentId: string, word: string, correct: boolean) => {
+    const unitId = state.activeUnit?.id || '';
+    if (!unitId || !studentId || !word) return;
+    try {
+      const { gradeStudent: grade } = await import('../services/boardLearner');
+      await grade(studentId, unitId, word, correct);
+    } catch (err) {
+      log.warn('grade_student_failed', { error: err instanceof Error ? err.message : String(err) });
+    }
+  }, [state.activeUnit?.id]);
+
   const deductAllPoints = (amount: number) => {
     const action = { type: 'MASS_PENALTY', payload: { amount }, timestamp: Date.now() };
     broadcastAction(action);
@@ -616,7 +632,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, closeOverlay,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
-      triggerConfetti, setQuietMode, updateNoiseLevel
+      triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent
     }}>
       {children}
     </SessionContext.Provider>

@@ -81,6 +81,7 @@ function transformManifestToFlow(assets: any): any[] {
           front: v.word,
           back: v.definition || '',
           context_sentence: exampleSentenceOf(v),
+          phonetic: (v as any)?.phonetic,
           image: getImg(v),
         })),
       },
@@ -165,6 +166,14 @@ function transformManifestToFlow(assets: any): any[] {
         examples: grammarExamplesOf(g),
       },
     });
+
+    // Grammar PRACTICE strand (audit G2): a pool-driven step consuming the
+    // ERROR_SPOT / TRANSFORM items generated for this unit. Presentation (above)
+    // + controlled practice, not presentation-only.
+    flow.push({
+      type: 'GRAMMAR_PRACTICE',
+      data: { title: `${g.rule} — Practice`, poolDriven: true },
+    });
   }
 
   if (story.length > 0) {
@@ -184,6 +193,44 @@ function transformManifestToFlow(assets: any): any[] {
         }),
       },
     });
+  }
+
+  // Phase tagging (plan Phase 1.5): every step carries its pedagogical phase so
+  // the board timeline + student phase bar know the step's role. PRACTICE/
+  // ASSESS blocks are pool-driven (the runtime pulls pool_items by mastery/SRS
+  // instead of the frozen block data); their data stays as a fallback.
+  const PHASE_FOR_TYPE: Record<string, string> = {
+    INTRO_SPLASH: 'WARMUP',
+    MEDIA_PLAYER: 'WARMUP',
+    LIVE_WARMUP: 'WARMUP',
+    FOCUS_CARDS: 'INPUT',
+    GRAMMAR_SANDBOX: 'INPUT',
+    GRAMMAR_PRACTICE: 'PRACTICE',
+    STORY_STAGE: 'OUTPUT',
+    LISTEN_TAP: 'PRACTICE',
+    FLASH_MATCH: 'PRACTICE',
+    SCRAMBLE: 'PRACTICE',
+    SPEAKING: 'PRACTICE',
+    TEAM_BATTLE: 'ASSESS',
+    SPEED_QUIZ: 'ASSESS',
+    MAGIC_EYES: 'PRACTICE',
+    WHATS_MISSING: 'PRACTICE',
+    STORY_SEQUENCING: 'PRACTICE',
+    I_SAY_YOU_SAY: 'PRACTICE',
+    UNSCRAMBLE: 'PRACTICE',
+    WHEEL_OF_DESTINY: 'ASSESS',
+    POLL: 'WRAPUP',
+    GAME_ARENA: 'WRAPUP',
+    UNIT_SELECTION: 'WRAPUP',
+  };
+  const POOL_DRIVEN_TYPES = new Set([
+    'LISTEN_TAP', 'FLASH_MATCH', 'SCRAMBLE', 'SPEAKING', 'TEAM_BATTLE',
+    'SPEED_QUIZ', 'MAGIC_EYES', 'WHATS_MISSING', 'STORY_SEQUENCING',
+    'I_SAY_YOU_SAY', 'UNSCRAMBLE', 'WHEEL_OF_DESTINY',
+  ]);
+  for (const block of flow) {
+    if (PHASE_FOR_TYPE[block.type]) block.phase = PHASE_FOR_TYPE[block.type];
+    if (POOL_DRIVEN_TYPES.has(block.type)) block.data = { ...(block.data || {}), poolDriven: true };
   }
 
   return flow;
@@ -422,6 +469,25 @@ serve(async (req) => {
         }
       } catch (err: any) {
         errors.push(`persistence error: ${err?.message || String(err)}`);
+      }
+
+      // Trigger the exercise-pool generation (plan Phase 1.5). Runs AFTER flow +
+      // srs templates are written so it has the full sibling pool. Fire-and-
+      // forget (NOT awaited): generate-exercises does per-word image generation
+      // which can run long; awaiting it would consume THIS function's wall-clock
+      // budget and 546-kill the publish (defeating the "non-fatal" intent). The
+      // pool is regenerated on demand if this detached call is cut short.
+      try {
+        const authHeader = req.headers.get('authorization');
+        const fnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-exercises`;
+        // Detach: resolve the promise but don't block the response on it.
+        fetch(fnUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(authHeader ? { Authorization: authHeader } : {}) },
+          body: JSON.stringify({ unitId }),
+        }).catch((e) => console.error('generate-exercises detached trigger failed:', e?.message || e));
+      } catch (genErr: any) {
+        console.error('generate-exercises trigger failed (non-fatal):', genErr?.message || genErr);
       }
     }
 

@@ -1,14 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Eye, EyeOff, HelpCircle } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useBoardPool } from '../useBoardPool';
+
+interface MemoryCard { image: string; name: string; }
 
 const BoardWhatsMissing = ({ data }: { data: any }) => {
   const { state } = useSession();
+  const unitId = state.activeUnit?.id || '';
+  const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
   const [phase, setPhase] = useState<'memorize' | 'hidden' | 'reveal'>('memorize');
   const [timer, setTimer] = useState(10);
   const [missingIndex, setMissingIndex] = useState<number | null>(null);
 
-  const items = data.items || [];
+  // Pool fallback: when the frozen flow has no items, build the memorize grid from
+  // IMAGE_SELECT pool items (class-weak-first) — one card per objective's image.
+  // Stable reference for the frozen source (avoids per-render recompute of the
+  // derived `items` memo). See BoardFlashMatch for the same pattern.
+  const frozenItems: MemoryCard[] = useMemo(
+    () => (Array.isArray(data?.items) ? data.items.slice(0, 8) : []),
+    [data?.items],
+  );
+  const { items: poolItems, loading } = useBoardPool({
+    unitId,
+    exerciseTypes: ['IMAGE_SELECT'],
+    classWeak: true,
+    roster,
+    limit: 8,
+  });
+
+  const items: MemoryCard[] = useMemo(() => {
+    if (frozenItems.length > 0) return frozenItems.slice(0, 8);
+    const seen = new Set<string>();
+    const cards: MemoryCard[] = [];
+    for (const it of poolItems) {
+      if (seen.has(it.objective_id)) continue;
+      seen.add(it.objective_id);
+      const c: any = it.content;
+      const correct = c?.options?.[c.correct_index];
+      const word = c?.prompt || correct?.label || '';
+      const image = correct?.image_url || '';
+      if (image && word) cards.push({ image, name: word });
+      if (cards.length >= 6) break;
+    }
+    return cards;
+  }, [frozenItems, poolItems]);
 
   // Listen for remote events
   useEffect(() => {
@@ -23,13 +59,14 @@ const BoardWhatsMissing = ({ data }: { data: any }) => {
 
   useEffect(() => {
     let interval: any;
-    if (phase === 'memorize' && timer > 0) {
+    // Only run the memorize countdown once we have enough cards to play.
+    if (phase === 'memorize' && items.length >= 3 && timer > 0) {
       interval = setInterval(() => setTimer(t => t - 1), 1000);
-    } else if (phase === 'memorize' && timer === 0) {
+    } else if (phase === 'memorize' && items.length >= 3 && timer === 0) {
       startRecall();
     }
     return () => clearInterval(interval);
-  }, [phase, timer]);
+  }, [phase, timer, items.length]);
 
   const startRecall = () => {
     const idx = Math.floor(Math.random() * items.length);
@@ -40,6 +77,17 @@ const BoardWhatsMissing = ({ data }: { data: any }) => {
   const reveal = () => {
     setPhase('reveal');
   };
+
+  if (loading || items.length < 3) {
+    return (
+      <div className="h-full bg-indigo-950 flex flex-col items-center justify-center text-white text-center px-8">
+        <h1 className="text-4xl font-display font-bold text-indigo-300 mb-2">What's Missing?</h1>
+        <p className="text-indigo-400 text-xl">
+          {loading ? 'Loading…' : 'Not enough images to play. Generate the exercise pool for this unit.'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-indigo-950 flex flex-col relative overflow-hidden">

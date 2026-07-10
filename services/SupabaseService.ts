@@ -5,6 +5,16 @@ import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
 import { createClientLogger } from './logger';
 import { diffMissingSRSWords, SRS_DEFAULTS } from './srs';
+import {
+  getLearnerState,
+  recordAttempt,
+  ensureStudentLearnerState,
+  getHearts,
+  loseHeart,
+  restoreHeart,
+  gradeFromResult,
+  getUnitMasterySummary,
+} from './learnerState';
 
 const log = createClientLogger('SupabaseService');
 
@@ -418,6 +428,55 @@ export const Engine = {
     ensureStudentSRSItems: async (unitId: string, studentId: string): Promise<void> => {
         requireSupabase();
         return supabaseEnsureStudentSRSItems(unitId, studentId);
+    },
+
+    // --- LearnerState (FSRS) seam (Phase 0.7) ---
+    getLearnerState: async (studentId: string, objectiveIds: string[]) => {
+        requireSupabase();
+        return getLearnerState(studentId, objectiveIds);
+    },
+
+    recordAttempt: async (
+        studentId: string | undefined,
+        objectiveId: string,
+        grade: import('./fsrs').Grade,
+        opts?: { exerciseType?: import('../types/exercise').ExerciseType; modality?: import('../types/exercise').Modality },
+    ) => {
+        requireSupabase();
+        return recordAttempt(studentId, objectiveId, grade, opts);
+    },
+
+    ensureStudentLearnerState: async (unitId: string, studentId: string): Promise<void> => {
+        requireSupabase();
+        return ensureStudentLearnerState(unitId, studentId);
+    },
+
+    getHearts: async (studentId?: string) => {
+        requireSupabase();
+        return getHearts(studentId);
+    },
+
+    loseHeart: async (studentId: string, isProductive: boolean) => {
+        requireSupabase();
+        return loseHeart(studentId, isProductive);
+    },
+
+    restoreHeart: async (studentId: string) => {
+        requireSupabase();
+        return restoreHeart(studentId);
+    },
+
+  gradeFromResult,
+
+    getUnitMasterySummary: async (studentId: string, unitId: string) => {
+        requireSupabase();
+        return getUnitMasterySummary(studentId, unitId);
+    },
+
+    getClassMasteryCounts: async (studentIds: string[]) => {
+        requireSupabase();
+        const { getClassMasteryCounts: fn } = await import('./learnerState');
+        return fn(studentIds);
     },
 
     simulateScan: async (fileName: string): Promise<LessonUnit> => {

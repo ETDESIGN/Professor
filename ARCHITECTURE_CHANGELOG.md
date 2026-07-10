@@ -10,8 +10,20 @@ Canonical source-of-truth rules introduced here:
 - **Speech-to-text** → `supabase/functions/_shared/stt.ts`
 - **Image generation** → `supabase/functions/_shared/imageProvider.ts`
 - **Live classroom session** → `classroom_sessions` table + Realtime
+- **Exercise / LearnerState engine (Core v1)** → `types/exercise.ts`, `services/fsrs.ts`, `services/learnerState.ts`, `services/poolService.ts`, `supabase/functions/generate-exercises` (see `EXERCISE_ENGINE_CORE_V1.md`)
 
 ---
+
+## 2026-06-29 — Core-v1 Exercise / Learning Engine redesign
+
+Implements `professor-exercise-engine-core-v1.md`. Adds the `objectives` +
+`pool_items` tables and evolves `srs_items` into an FSRS LearnerState, a
+deterministic `generate-exercises` pool builder, a 12-type student exercise
+engine (`ExerciseRunner` + registry), pool-driven lesson/practice modes, and
+board per-student capture — spanning both tracks. Mock playAudio, Spanish
+defaults, single-item-per-activity, siloed SRS and the decorative HomeMap are
+fixed. Six-track code review applied (18 findings, all resolved). Full detail:
+`EXERCISE_ENGINE_CORE_V1.md`.
 
 ## 2026-06-24 — Hotfix: generate-media 546 (unbounded image/audio fetches)
 

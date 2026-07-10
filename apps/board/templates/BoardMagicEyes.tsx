@@ -28,6 +28,18 @@ const BoardMagicEyes = ({ data }: { data: any }) => {
     return () => clearInterval(interval);
   }, [phase, timeLeft]);
 
+  // Clean empty state when the teacher hasn't supplied an image/question for this
+  // observation game (it is content-provided, not pool-driven).
+  if (!data?.image) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
+        <Eye size={56} className="text-slate-600 mb-4" />
+        <h1 className="text-4xl font-display font-bold text-slate-500 mb-2">Magic Eyes</h1>
+        <p className="text-slate-600 text-xl">Add an image and question in the lesson editor to play this round.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden">
       {/* HUD */}

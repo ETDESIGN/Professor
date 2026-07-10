@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Zap, Volume2, ArrowRight, Trophy } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Zap, ArrowRight, Trophy } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useBoardPool } from '../useBoardPool';
+import { gradeStudent } from '../../../services/boardLearner';
 
 interface QuizQuestion {
   id: string;
+  word?: string; // vocab word for per-student capture
   text: string;
   image?: string;
   options: string[];
@@ -11,8 +14,21 @@ interface QuizQuestion {
 }
 
 const BoardSpeedQuiz = ({ data }: { data: any }) => {
-  const { state } = useSession();
-  const questions: QuizQuestion[] = data.questions || [];
+  const { state, gradeStudent: grade } = useSession();
+  const unitId = state.activeUnit?.id || '';
+
+  const frozenQuestions: QuizQuestion[] = useMemo(() => (Array.isArray(data?.questions) ? data.questions : []), [data?.questions]);
+  // Pool fallback: MEANING_MATCH items -> "what does X mean?" questions.
+  const { items: poolItems, loading } = useBoardPool({ unitId, exerciseTypes: ['MEANING_MATCH'], classWeak: true, limit: 8 });
+
+  const questions: QuizQuestion[] = useMemo(() => {
+    if (frozenQuestions.length > 0) return frozenQuestions;
+    return poolItems.map((it) => {
+      const c: any = it.content;
+      const correct = c?.options?.[c.correct_index];
+      return { id: it.id, word: c?.prompt, text: `What does "${c?.prompt}" mean?`, options: c?.options || [], correct };
+    }).filter((q) => q.options.length > 1 && q.correct);
+  }, [frozenQuestions, poolItems]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -63,15 +79,26 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
     const isCorrect = option === currentQuestion.correct;
     if (isCorrect) setScore(prev => prev + 1);
     setIsRevealed(true);
+
+    // Per-student capture: credit the currently-selected student on this word.
+    const selected = state.quickWheelWinner;
+    if (selected && unitId && currentQuestion.word) {
+      try {
+        if (grade) grade(selected, currentQuestion.word, isCorrect);
+        else gradeStudent(selected, unitId, currentQuestion.word, isCorrect);
+      } catch { /* non-fatal */ }
+    }
   };
 
-  if (totalQuestions === 0) {
+  if (loading || totalQuestions === 0) {
     return (
       <div className="h-full bg-slate-900 flex items-center justify-center text-white font-display">
         <div className="text-center">
           <Zap size={64} className="text-duo-blue mx-auto mb-4 opacity-50" />
-          <h2 className="text-4xl font-bold mb-2">No Questions Available</h2>
-          <p className="text-slate-400 text-xl">Questions will appear here when a lesson is active.</p>
+          <h2 className="text-4xl font-bold mb-2">{loading ? 'Loading…' : 'No Questions Available'}</h2>
+          <p className="text-slate-400 text-xl">
+            {loading ? 'Loading…' : 'Questions will appear here when a lesson is active.'}
+          </p>
         </div>
       </div>
     );

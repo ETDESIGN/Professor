@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { generateAndStoreAudio, mapWithConcurrency } from '../_shared/tts.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -189,20 +190,20 @@ serve(async (req) => {
 
     switch (category) {
       case 'vocabulary':
-        expectedOutputFormat = `{ "title": "Unit title", "topic": "Main topic", "gradeLevel": "A1/A2/B1", "description": "2-3 sentence unit description", "vocabulary": [ { "word": "word", "definition": "simple definition", "example_sentence": "sentence", "translation": "translation", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["wrong1", "wrong2"] } ] }`;
-        categoryRules = "- Extract exactly 6-10 key vocabulary words from the text\n- Include child-friendly definitions, example sentences, and translations\n- For image_prompt: describe a cute, simple, child-friendly cartoon illustration of each word\n- Include 2-3 distractors (wrong answer options) for each word.";
+        expectedOutputFormat = `{ "title": "Unit title", "topic": "Main topic", "gradeLevel": "A1/A2/B1", "description": "2-3 sentence unit description", "vocabulary": [ { "word": "word", "phonetic": "/IPA pronunciation/", "part_of_speech": "noun", "definition": "simple child-friendly English definition", "l1_translation": "简体中文翻译 (Simplified Chinese)", "example_sentence": "a short sentence using the word", "translation": "简体中文翻译 (same as l1_translation)", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["plausible wrong meaning 1", "plausible wrong meaning 2", "plausible wrong meaning 3"], "confusables": ["a word easily confused with this one"] } ] }`;
+        categoryRules = "- Extract exactly 6-10 key vocabulary words from the text\n- For each word include: phonetic (IPA transcription), part_of_speech, a child-friendly English definition, an example_sentence using the word\n- l1_translation and translation MUST be Simplified Chinese (简体中文) — the learners' native language is Chinese\n- Include 2-3 plausible distractors (wrong meaning options) per word\n- Include 1-2 confusables per word (words easily confused in spelling/sound/meaning)\n- For image_prompt: describe a cute, simple, child-friendly cartoon illustration of each word";
         break;
       case 'grammar':
-        expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2", "example 3"] } ] }`;
-        categoryRules = "- Extract exactly 1-2 core grammar rules from the text\n- Include simple explanations suitable for children and 3 examples each.";
+        expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2", "example 3"], "pattern_template": "Subject + ___ + Object", "transformation_pairs": [ {"original": "I play.", "transformed": "I am playing."} ], "error_examples": [ {"wrong": "He play.", "correct": "He plays."} ] } ] }`;
+        categoryRules = "- Extract exactly 1-2 core grammar rules from the text\n- Include simple explanations suitable for children and 3 examples each\n- pattern_template: a fill-in-the-blank structure showing how the rule forms a sentence\n- transformation_pairs: 2-4 pairs showing a transformation (e.g. affirmative->negative, singular->plural, statement->question)\n- error_examples: 2-3 common learner errors with the corrected form";
         break;
       case 'characters':
         expectedOutputFormat = `{ "characters": [ { "name": "name", "role": "teacher/student/friend", "personality": "brave/smart/funny", "image_prompt": "a friendly cartoon [role] named [name] who is [personality], children's book illustration style, bright colors, simple design" } ] }`;
         categoryRules = "- Create exactly 2-4 fun characters suitable for children aged 6-12\n- Give them distinct roles, personalities, and visual descriptions in image_prompt\n- Characters should relate to the topic of the lesson.";
         break;
       case 'story':
-        expectedOutputFormat = `{ "story": { "title": "story title", "setting": "where it happens", "pages": [ { "text": "story text (2-3 sentences)", "speaker": "character name", "image_prompt": "scene description for illustration" } ] } }`;
-        categoryRules = "- Write exactly 3-5 story pages using the target vocabulary words\n- Make the story engaging and age-appropriate for children 6-12\n- Each page should have a speaker and scene description.";
+        expectedOutputFormat = `{ "story": { "title": "story title", "setting": "where it happens", "pages": [ { "text": "story text (2-3 sentences)", "speaker": "character name", "image_prompt": "scene description for illustration", "comprehension_questions": [ {"question": "yes/no or simple WH question", "options": ["a","b","c"], "answer": 0} ] } ] } }`;
+        categoryRules = "- Write exactly 3-5 story pages using the target vocabulary words\n- Make the story engaging and age-appropriate for children 6-12\n- Each page should have a speaker and scene description\n- Each page MUST include 1-2 comprehension_questions with 3 options and the 0-based answer index, so the story has a real reading-comprehension quiz";
         break;
       case 'media':
         expectedOutputFormat = `{ "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this song" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this video" } ] }`;
@@ -252,6 +253,37 @@ ${categoryRules}
         image_url: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(v.word || 'item')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`,
         image_status: 'pending' as const,
       }));
+    }
+
+    // ── TTS AUDIO per vocab word + example_sentence (Phase 1.2) ────────────
+    // Best-effort, bounded concurrency. Stores audio_url (word) + example_audio_url
+    // (the example_sentence) so LISTEN_SELECT/FOCUS_CARDS (word) AND
+    // DICTATION/SPEAK_SENTENCE (sentence) have real audio. On failure the field is
+    // left empty and the client SpeechService falls back to window.speechSynthesis.
+    if ((category === 'vocabulary' || category === 'all') && Array.isArray(enriched.vocabulary) && enriched.vocabulary.length > 0) {
+      // Word audio.
+      const wordInputs = enriched.vocabulary.map((v: any) => String(v.word || '')).filter(Boolean);
+      const wordResults = await mapWithConcurrency(wordInputs, 3, (w) =>
+        generateAndStoreAudio(w, unitId).then((r) => ({ word: w, url: r.url })),
+      );
+      const audioMap = new Map(wordResults.filter((r) => r.url).map((r) => [r.word, r.url]));
+      // Example-sentence audio (bounded: up to 2x words to limit cost/latency).
+      const sentInputs = enriched.vocabulary
+        .map((v: any) => ({ word: String(v.word || ''), sentence: String(v.example_sentence || v.context_sentence || '') }))
+        .filter((v) => v.word && v.sentence);
+      const sentResults = await mapWithConcurrency(sentInputs.slice(0, wordInputs.length * 2), 3, (vi) =>
+        generateAndStoreAudio(vi.sentence, unitId).then((r) => ({ word: vi.word, url: r.url })),
+      );
+      const sentMap = new Map(sentResults.filter((r) => r.url).map((r) => [r.word, r.url]));
+
+      enriched.vocabulary = enriched.vocabulary.map((v: any) => {
+        const w = String(v.word || '');
+        const patch: any = {};
+        if (audioMap.has(w)) patch.audio_url = audioMap.get(w);
+        if (sentMap.has(w)) patch.example_audio_url = sentMap.get(w);
+        return Object.keys(patch).length ? { ...v, ...patch } : v;
+      });
+      console.log(`enrich-unit AUDIO [${category}]: ${audioMap.size}/${wordInputs.length} word audio, ${sentMap.size}/${sentInputs.length} sentence audio`);
     }
     if (enriched.characters && Array.isArray(enriched.characters)) {
       enriched.characters = enriched.characters.map((ch: any) => ({

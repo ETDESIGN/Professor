@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Heart, ArrowRight, ArrowLeft, Check, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX } from 'lucide-react';
+import { X, Heart, ArrowRight, ArrowLeft, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { MediaService } from '../../services/MediaService';
 import { getVocabulary } from '../../services/manifest';
-import { GamificationService } from '../../services/GamificationService';
-import { XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
-import ListenTap from './ListenTap';
-import SentenceScramble from './SentenceScramble';
-import PronunciationCoach from './PronunciationCoach';
-import FlashMatch from './FlashMatch';
+import { supabase } from '../../services/supabaseClient';
+import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
+import ExerciseRunner from './exercises/ExerciseRunner';
 import ReactPlayer from 'react-player/lazy';
 
 interface SoloLessonPlayerProps {
@@ -44,9 +41,12 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   const [currentLineIdx, setCurrentLineIdx] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const playerRef = useRef<any>(null);
-  const [gameActivityReady, setGameActivityReady] = useState(false);
-  const [gameValidateTrigger, setGameValidateTrigger] = useState(0);
-  const [gameResult, setGameResult] = useState<'idle' | 'correct' | 'wrong'>('idle');
+
+  // Pool-driven exercise battery (Phase 2.5-2.6). Loaded when the current step
+  // is a PRACTICE/ASSESS block; the ExerciseRunner self-completes and advances.
+  const [studentId, setStudentId] = useState<string>('');
+  const [exerciseItems, setExerciseItems] = useState<any[]>([]);
+  const [exerciseLoading, setExerciseLoading] = useState(false);
 
   const progress = totalSteps > 0 ? ((currentIndex + 1) / totalSteps) * 100 : 0;
   const startTime = React.useRef(Date.now());
@@ -54,6 +54,31 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   useEffect(() => {
     startTime.current = Date.now();
   }, []);
+
+  // Resolve the student id once (the auth user).
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => { if (user) setStudentId(user.id); }).catch(() => {});
+  }, []);
+
+  // Detect pool-driven steps (phase tag from orchestrate-lesson, or explicit flag).
+  const unitId = state.activeUnit?.id || '';
+  const isPoolStep = Boolean(
+    currentStep?.data?.poolDriven || currentStep?.phase === 'PRACTICE' || currentStep?.phase === 'ASSESS',
+  );
+
+  // Load the weakest-first battery for the current pool-driven step.
+  useEffect(() => {
+    if (!isPoolStep || !unitId || !studentId) { setExerciseItems([]); return; }
+    let cancelled = false;
+    setExerciseLoading(true);
+    (async () => {
+      await prepareUnitForStudent(unitId, studentId);
+      const items = await selectLessonItems(unitId, studentId, 14);
+      if (!cancelled) { setExerciseItems(items); setExerciseLoading(false); }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPoolStep, unitId, studentId, currentIndex]);
 
   useEffect(() => {
     const unit = state.activeUnit;
@@ -78,9 +103,6 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     setActiveExampleIndex(0);
     setActivePageIndex(0);
     setActiveQuizIndex(0);
-    setGameActivityReady(false);
-    setGameValidateTrigger(0);
-    setGameResult('idle');
   }, [currentIndex]);
 
   const handleNext = useCallback(() => {
@@ -520,41 +542,35 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     );
   };
 
-  const handleGameResult = useCallback((isCorrect: boolean) => {
-    if (isCorrect) {
-      setGameResult('correct');
-      addPoints('solo', XP_REWARDS.CORRECT_ANSWER);
-      toast.success(`+${XP_REWARDS.CORRECT_ANSWER} XP!`, { icon: '⭐' });
-      GamificationService.updateQuestProgress(QUEST_TYPES.EARN_XP, XP_REWARDS.CORRECT_ANSWER);
-    } else {
-      setGameResult('wrong');
-      setLives(l => Math.max(0, l - 1));
-      if (navigator.vibrate) navigator.vibrate(200);
+  // Pool-driven PRACTICE/ASSESS step: render the FSRS-driven exercise battery via
+  // the shared registry (replaces the 4 mock games — fixes the mock playAudio
+  // bug, Spanish defaults, and the single-item-per-activity bug).
+  const renderExerciseBattery = () => {
+    if (!studentId) return <EmptyStep title="Loading" />;
+    if (exerciseLoading) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-slate-400 font-bold">
+          Preparing exercises…
+        </div>
+      );
     }
-  }, [addPoints]);
-
-  const isGameActivity = (type: string) => ['LISTEN_TAP', 'FLASH_MATCH', 'SCRAMBLE', 'SPEAKING'].includes(type);
-
-  const renderGameActivity = () => {
-    const commonProps = {
-      mode: 'embedded' as const,
-      onReady: (ready: boolean) => setGameActivityReady(ready),
-      validateTrigger: gameValidateTrigger,
-      onResult: handleGameResult,
-      data: currentStep.data,
-      onBack: () => {},
-    };
-
-    switch (currentStep.type) {
-      case 'LISTEN_TAP': return <ListenTap {...commonProps} />;
-      case 'FLASH_MATCH': return <FlashMatch {...commonProps} />;
-      case 'SCRAMBLE': return <SentenceScramble {...commonProps} />;
-      case 'SPEAKING': return <PronunciationCoach {...commonProps} />;
-      default: return <EmptyStep title="Activity" />;
-    }
+    return (
+      <div className="h-full">
+        <ExerciseRunner
+          items={exerciseItems}
+          studentId={studentId}
+          unitId={unitId}
+          title={currentStep.title}
+          onExit={onExit}
+          onDone={() => handleNext()}
+        />
+      </div>
+    );
   };
 
   const renderCurrentStep = () => {
+    // Pool-driven PRACTICE/ASSESS steps render the FSRS exercise battery.
+    if (isPoolStep) return renderExerciseBattery();
     switch (currentStep.type) {
       case 'INTRO_SPLASH': return renderIntroSplash();
       case 'FOCUS_CARDS': return renderFocusCards();
@@ -563,16 +579,33 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       case 'STORY_STAGE': return renderStoryStage();
       case 'GRAMMAR_SANDBOX': return renderGrammarSandbox();
       case 'MEDIA_PLAYER': return renderMediaPlayer();
-      case 'LISTEN_TAP':
-      case 'FLASH_MATCH':
-      case 'SCRAMBLE':
-      case 'SPEAKING': return renderGameActivity();
       default: return renderGenericStep();
     }
   };
 
   const showNavigation = currentStep.type !== 'INTRO_SPLASH';
-  const isGame = isGameActivity(currentStep.type);
+
+  // When running a pool-driven battery, the ExerciseRunner owns the full
+  // screen (its own header with real hearts + battery progress). The player
+  // shell returns for passive steps.
+  if (isPoolStep) {
+    return (
+      <div className="h-full bg-slate-50 flex flex-col font-sans relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`battery-${currentIndex}`}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.25 }}
+            className="h-full w-full"
+          >
+            {renderExerciseBattery()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-slate-50 flex flex-col font-sans relative overflow-hidden">
@@ -611,60 +644,22 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
       {showNavigation && (
         <div className="p-4 bg-white border-t border-slate-100 shrink-0">
-          {isGame && gameResult === 'idle' ? (
-            <div className="flex gap-3">
-              <button
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold disabled:opacity-30 flex items-center gap-1"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <button
-                onClick={() => setGameValidateTrigger(v => v + 1)}
-                disabled={!gameActivityReady}
-                className="flex-1 bg-duo-green text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform disabled:bg-slate-200 disabled:text-slate-400"
-              >
-                Check
-              </button>
-            </div>
-          ) : isGame && gameResult !== 'idle' ? (
-            <div className={`p-4 rounded-xl ${gameResult === 'correct' ? 'bg-green-100' : 'bg-red-100'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${gameResult === 'correct' ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {gameResult === 'correct' ? <Check size={18} strokeWidth={4} /> : <X size={18} strokeWidth={4} />}
-                  </div>
-                  <span className={`font-bold ${gameResult === 'correct' ? 'text-green-700' : 'text-red-700'}`}>
-                    {gameResult === 'correct' ? 'Excellent!' : 'Try again next time!'}
-                  </span>
-                </div>
-                <button
-                  onClick={handleNext}
-                  className="bg-duo-green text-white font-bold py-3 px-6 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex items-center gap-2"
-                >
-                  {currentIndex >= totalSteps - 1 ? 'Finish' : 'Continue'} <ArrowRight size={18} />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex gap-3">
-              <button
-                onClick={handlePrev}
-                disabled={currentIndex === 0}
-                className="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold disabled:opacity-30 flex items-center gap-1"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <button
-                onClick={handleNext}
-                className="flex-1 bg-duo-green text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform"
-              >
-                {currentIndex >= totalSteps - 1 ? 'Finish Lesson' : 'Continue'}
-                <ArrowRight size={18} />
-              </button>
-            </div>
-          )}
+          <div className="flex gap-3">
+            <button
+              onClick={handlePrev}
+              disabled={currentIndex === 0}
+              className="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold disabled:opacity-30 flex items-center gap-1"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <button
+              onClick={handleNext}
+              className="flex-1 bg-duo-green text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform"
+            >
+              {currentIndex >= totalSteps - 1 ? 'Finish Lesson' : 'Continue'}
+              <ArrowRight size={18} />
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Volume2, Check, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { playAudioUrl } from '../../services/SpeechService';
 
 interface ListenTapProps {
   onBack: () => void;
@@ -29,12 +30,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle');
 
-  const defaultOptions = [
-    { id: 1, img: 'https://img.freepik.com/free-vector/cute-lion-cartoon-character_1308-106575.jpg', label: 'Lion' },
-    { id: 2, img: 'https://img.freepik.com/free-vector/cute-elephant-sitting-cartoon-vector-icon-illustration_138676-2220.jpg', label: 'Elephant', correct: true },
-    { id: 3, img: 'https://img.freepik.com/free-vector/cute-giraffe-cartoon-vector-icon-illustration_138676-2222.jpg', label: 'Giraffe' },
-    { id: 4, img: 'https://img.freepik.com/free-vector/cute-zebra-sitting-cartoon-vector-icon-illustration_138676-2223.jpg', label: 'Zebra' },
-  ];
+  const defaultOptions: ListenTapProps['data']['options'] = [];
 
   const options = data?.options || defaultOptions;
   const instruction = data?.instruction || 'Listen and select the correct image';
@@ -53,10 +49,25 @@ const ListenTap: React.FC<ListenTapProps> = ({
     }
   }, [validateTrigger]);
 
-  const playAudio = () => {
+  // Real audio playback (fixes Bug #1: mock playAudio that never played sound).
+  // Plays the provided audio_url, else synthesises the correct option's label.
+  const playAudio = async () => {
     setIsPlaying(true);
-    setTimeout(() => setIsPlaying(false), 2000); // Mock duration
+    const correct = options.find((o) => o.correct);
+    await playAudioUrl(data?.audioUrl, correct?.label);
+    setIsPlaying(false);
   };
+
+  // No-content empty state (replaces the hardcoded animal/Spanish defaults).
+  if (options.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+        <Volume2 size={48} className="text-slate-300 mb-3" />
+        <p className="text-slate-400 font-bold">No listening content for this activity.</p>
+        <p className="text-slate-300 text-sm">Tap Continue to proceed.</p>
+      </div>
+    );
+  }
 
   const checkAnswer = () => {
     const selectedOption = options.find(o => o.id === selectedId);

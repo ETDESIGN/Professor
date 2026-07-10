@@ -1,59 +1,90 @@
 
-import React, { useState, useEffect } from 'react';
-import { Check, RefreshCcw, ArrowRight, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Check, RefreshCcw, ArrowRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useBoardPool } from '../useBoardPool';
 
 interface Word {
   id: string;
   text: string;
 }
 
+const shuffle = <T,>(a: T[]): T[] => {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
 const BoardUnscramble = ({ data }: { data: any }) => {
   const { state, triggerAction } = useSession();
-  const [scrambledWords, setScrambledWords] = useState<Word[]>(
-    (data?.words || []).map((w: string, i: number) => ({ id: `w-${i}`, text: w }))
-  );
+  const unitId = state.activeUnit?.id || '';
+
+  // Pool fallback (WORD_BANK_BUILD): target_sentence + word_bank. Stable refs via
+  // useMemo so the reset effect (keyed on primitives) can't loop.
+  const frozenWords: string[] = useMemo(() => (Array.isArray(data?.words) ? data.words : []), [data?.words]);
+  const { items: poolItems, loading } = useBoardPool({ unitId, exerciseTypes: ['WORD_BANK_BUILD'], limit: 8 });
+
+  const [round, setRound] = useState(0);
+  const poolItem = poolItems[round % Math.max(1, poolItems.length)];
+  const usingPool = frozenWords.length === 0 && !!poolItem;
+
+  const target = (usingPool ? (poolItem!.content as any)?.target_sentence : data?.targetSentence) || '';
+  const bankWords: string[] = usingPool ? (poolItem!.content as any)?.word_bank || [] : frozenWords;
+
+  const [scrambledWords, setScrambledWords] = useState<Word[]>([]);
   const [placedWords, setPlacedWords] = useState<Word[]>([]);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isWrong, setIsWrong] = useState(false);
 
+  // (Re)build the board when the active item changes (frozen sync OR pool round).
+  // Keyed on a stable primitive signature to avoid a render loop.
+  const sig = `${usingPool ? poolItem?.id : 'frozen'}-${round}`;
+  useEffect(() => {
+    setScrambledWords(shuffle(bankWords).map((w, i) => ({ id: `w-${i}`, text: w })));
+    setPlacedWords([]);
+    setIsCorrect(false);
+    setIsWrong(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
+
   // Listen for remote events
   useEffect(() => {
     if (state.lastAction?.type === 'RESET_GAME') {
-       // Reset to initial
-       setScrambledWords((data?.words || []).map((w: string, i: number) => ({ id: `w-${i}`, text: w })));
-       setPlacedWords([]);
-       setIsCorrect(false);
-       setIsWrong(false);
+      setScrambledWords(shuffle(bankWords).map((w, i) => ({ id: `w-${i}`, text: w })));
+      setPlacedWords([]);
+      setIsCorrect(false);
+      setIsWrong(false);
+      if (usingPool) setRound((r) => r + 1);
     } else if (state.lastAction?.type === 'CHECK_ANSWER') {
-       checkAnswer();
+      checkAnswer();
     } else if (state.lastAction?.type === 'UNSCRAMBLE_MOVE') {
-       const { wordId, from } = state.lastAction.payload;
-       setIsWrong(false); // Reset error state on new move
-       
-       if (from === 'bank') {
-          // Move bank -> placed
-          setScrambledWords(prev => {
-             const word = prev.find(w => w.id === wordId);
-             if (word) {
-                setPlacedWords(prevPlaced => [...prevPlaced, word]);
-                return prev.filter(w => w.id !== wordId);
-             }
-             return prev;
-          });
-       } else {
-          // Move placed -> bank
-          setPlacedWords(prev => {
-             const word = prev.find(w => w.id === wordId);
-             if (word) {
-                setScrambledWords(prevScrambled => [...prevScrambled, word]);
-                return prev.filter(w => w.id !== wordId);
-             }
-             return prev;
-          });
-       }
-       setIsCorrect(false);
+      const { wordId, from } = state.lastAction.payload;
+      setIsWrong(false);
+      if (from === 'bank') {
+        setScrambledWords((prev) => {
+          const word = prev.find((w) => w.id === wordId);
+          if (word) {
+            setPlacedWords((prevPlaced) => [...prevPlaced, word]);
+            return prev.filter((w) => w.id !== wordId);
+          }
+          return prev;
+        });
+      } else {
+        setPlacedWords((prev) => {
+          const word = prev.find((w) => w.id === wordId);
+          if (word) {
+            setScrambledWords((prevScrambled) => [...prevScrambled, word]);
+            return prev.filter((w) => w.id !== wordId);
+          }
+          return prev;
+        });
+      }
+      setIsCorrect(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
 
   const handleWordClick = (word: Word, from: 'bank' | 'placed') => {
@@ -61,29 +92,32 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   };
 
   const checkAnswer = () => {
-    // 1. Check if all words are placed
     if (scrambledWords.length > 0) {
-       // Not finished
-       setIsWrong(true);
-       return;
+      setIsWrong(true);
+      return;
     }
-
-    // 2. Check if the order matches the target sentence
-    const currentSentence = placedWords.map(w => w.text).join(' ');
-    // Strip punctuation for loose comparison if needed, but exact match is better for grammar
-    const cleanCurrent = currentSentence.replace(/[.,!]/g, '').trim();
-    const cleanTarget = (data?.targetSentence || '').replace(/[.,!]/g, '').trim();
-
-    if (cleanCurrent === cleanTarget) {
-       setIsCorrect(true);
-       setIsWrong(false);
+    const cleanCurrent = placedWords.map((w) => w.text).join(' ').replace(/[.,!]/g, '').trim();
+    const cleanTarget = target.replace(/[.,!]/g, '').trim();
+    if (cleanCurrent && cleanTarget && cleanCurrent === cleanTarget) {
+      setIsCorrect(true);
+      setIsWrong(false);
     } else {
-       setIsCorrect(false);
-       setIsWrong(true);
-       // Auto-reset wrong state after animation
-       setTimeout(() => setIsWrong(false), 1000);
+      setIsCorrect(false);
+      setIsWrong(true);
+      setTimeout(() => setIsWrong(false), 1000);
     }
   };
+
+  if (loading || (!usingPool && frozenWords.length === 0)) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
+        <h1 className="text-4xl font-bold text-slate-500 mb-2">Unscramble</h1>
+        <p className="text-slate-600 text-xl">
+          {loading ? 'Loading…' : 'No sentence-building items. Generate the exercise pool for this unit.'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-slate-900 flex flex-col p-8 font-display">

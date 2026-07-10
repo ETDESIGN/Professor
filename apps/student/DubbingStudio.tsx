@@ -51,13 +51,13 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const targetText = data?.targetText || "Oh no! Where is my red hat?";
-  const targetEmotion = data?.targetEmotion || "surprised and sad";
-  const characterName = data?.characterName || "Rocky";
-  const characterEmoji = data?.characterEmoji || "🤖";
-  const sceneImage = data?.sceneImage || "https://img.freepik.com/free-vector/hand-drawn-style-cartoon-scene_23-2150827299.jpg";
-  const unitTitle = data?.unitTitle || "Unit 1";
-  const storyTitle = data?.storyTitle || "The Lost Hat";
+  const targetText = data?.targetText || '';
+  const targetEmotion = data?.targetEmotion || '';
+  const characterName = data?.characterName || '';
+  const characterEmoji = data?.characterEmoji || '';
+  const sceneImage = data?.sceneImage || '';
+  const unitTitle = data?.unitTitle || '';
+  const storyTitle = data?.storyTitle || '';
 
   useEffect(() => {
     return () => {

@@ -24,24 +24,22 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
   onResult,
   data
 }) => {
-  const [targetSentence] = useState(data?.targetSentence || {
-    en: "The cat is sleeping on the mat",
-    translation: "El gato está durmiendo en la alfombra"
-  });
-  
-  const [wordBank, setWordBank] = useState(data?.wordBank || [
-    { id: 'w1', text: 'is' },
-    { id: 'w2', text: 'sleeping' },
-    { id: 'w3', text: 'mat' },
-    { id: 'w4', text: 'on' },
-    { id: 'w5', text: 'the' },
-    { id: 'w6', text: 'The' },
-    { id: 'w7', text: 'cat' },
-    { id: 'w8', text: 'dog' }, // Distractor
-  ]);
+  const [targetSentence] = useState(data?.targetSentence || { en: '', translation: '' });
+
+  const [wordBank, setWordBank] = useState<{ id: string; text: string }[]>(data?.wordBank || []);
 
   const [placedWords, setPlacedWords] = useState<any[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // No-content empty state (replaces the hardcoded Spanish cat/mat defaults).
+  if (!targetSentence.en && wordBank.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-slate-400 font-bold mb-1">No sentence-building content for this activity.</p>
+        <p className="text-slate-300 text-sm">Tap Continue to proceed.</p>
+      </div>
+    );
+  }
 
   // Report readiness to parent
   useEffect(() => {
