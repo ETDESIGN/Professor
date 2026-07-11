@@ -77,6 +77,14 @@ export async function fetchChatCompletion(
         lastError = `${modelName} returned empty content`;
         continue;
       }
+      // A text model given an image returns HTTP 200 with an "I can't read
+      // images" message — treat that as a FAILURE so we fall through to the next
+      // (hopefully vision-capable) model instead of returning a useless answer.
+      const low = String(content).toLowerCase();
+      if (low.includes('does not support image') || low.includes("can't process images") || low.includes('cannot read') && low.includes('image')) {
+        lastError = `${modelName} does not support image input`;
+        continue;
+      }
       return { content: String(content), model: data.model || modelName, usage: data.usage };
     } catch (err: any) {
       // AbortError (timeout) or network failure -> try next model.

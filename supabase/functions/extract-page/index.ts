@@ -63,11 +63,14 @@ serve(async (req) => {
     let lastError = '';
     let usedModel = '';
 
-    // REGION-SAFE: No Google, OpenAI, or Anthropic (blocked in user's region)
+    // REGION-SAFE vision models. EVERY entry must be vision-capable (accept image
+    // input) AND a real OpenRouter slug. Verified-present: qwen3-vl-235b-a22b,
+    // qwen2.5-vl-72b, qwen3-vl-32b. Never fall back to a text model (kimi-k2.6)
+    // — it returns "this model does not support image input" and fails extraction.
     const models = [
-      Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen2.5-vl-72b-instruct',
-      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-      'moonshotai/kimi-k2.6',
+      Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen3-vl-235b-a22b-instruct',
+      Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'qwen/qwen2.5-vl-72b-instruct',
+      'qwen/qwen3-vl-32b-instruct',
     ];
 
     const result = await fetchChatCompletion(messages, {
