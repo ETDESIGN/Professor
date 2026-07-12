@@ -22,7 +22,25 @@ with audio + multi-modal binding at every step.
 
 ## 2. Current-state audit
 
-| Mechanism | What it does now | Weakness |
+> **Two tracks — two designs (read this first).** The product has two learner
+> surfaces with opposite design priorities, and they must NOT be built the same way:
+>
+> - **Track A — Live Board:** a **teacher-led, live group session** (10+ kids).
+>   The #1 requirement is **teacher control**: the teacher is the conductor — they
+>   decide *what* to show, *with whom* (one named kid, a group, the whole class),
+>   and *how many times* (do / redo / skip), at the pace of the room. The board is
+>   **presentation + elicitation + grading**, *not* a self-paced loop. Every per-
+>   student grade flows into Track B; choral/group rounds do engagement, not writes.
+> - **Track B — Student app:** the **reinforcement loop** (Word Lab → FSRS practice
+>   → mastery). Self-paced, adaptive, where the teach→recognize→recall→produce
+>   rigor (§4) lives.
+>
+> The redesign keeps these deliberately separate: **no auto-advancing loops on the
+> board** (the teacher advances), and **no teacher-baton manual grading on the
+> student app** (it's adaptive). The audit columns below note which track each
+> mechanism belongs to.
+
+| Mechanism | Track | What it does now | Weakness |
 |---|---|---|
 | **FOCUS_CARDS (vocab)** | One card at a time, flip to see word/IPA/example, "listen" button | One-at-a-time = no comparison/contrast; "listen" often silent (audio_url empty); no structured study phase; immediately jumps to exercises |
 | **Exercise battery (12)** | Self-completing, immediate feedback, pool-driven, FSRS-graded | Type selection is mastery-aware but the *sequence* isn't staged (receptive before productive can be skipped); no "teach then test" framing |
@@ -144,11 +162,48 @@ feels the structure.
 
 ---
 
-## 8. Live board redesign (same loop, teacher-led)
-- **Study:** BoardFocusCards shows the 5-card grid big-screen (choral repeat after the audio).
-- **Drill:** teacher-led IMAGE_SELECT/MEANING_MATCH (board games) over the same 5 words, class-weak-first.
-- **Assess (per-student):** Wheel/SpeedQuiz/TeamBattle pick a student → teacher grades → `recordAttempt` (already wired).
-- The class-weak banner (already built) tells the teacher which words to drill.
+## 8. Live board redesign (Track A — the teacher's baton)
+The board is **NOT a loop** — it is a live, teacher-controlled presentation +
+elicitation + grading console for a group of 10+ kids. The teacher, not the
+software, drives pacing and sequence. The board must make the teacher fast and
+powerful, never auto-advance or lock them out.
+
+### 8.1 Teacher control (the core requirement)
+- **Free pacing & sequence:** the phase timeline is a *guide*, never a constraint.
+  The teacher can jump to any step, **repeat/redo** the current exercise, go back,
+  or skip. No step ever auto-advances.
+- **Pick the responder:** a prominent, always-available control to choose *who*
+  answers this item — **one named student** (manual pick or the Wheel), a **group**
+  (e.g. "table 3"), or **whole class (choral)**. This is the heart of "with each
+  kid or by group."
+- **Do / redo / skip per item:** after any item the teacher sees three actions —
+  *Ask again* (same item, same or new responder — re-elicitation for
+  reinforcement/reticent kids), *Next item*, *Skip*. "Redo" is first-class.
+- **Two write modes, explicit:**
+  - *Individual* (a named student is up) → a Correct/Wrong grade → `recordAttempt`
+    (feeds Track B).
+  - *Group / choral* (everyone answers) → **no per-student write** (engagement
+    only). The UI must make this distinction obvious so the teacher knows whether
+    a round is "graded" or "practice."
+
+### 8.2 The board's pedagogical arc (teacher-led, not auto-run)
+A typical live lesson the teacher *conducts*:
+1. **Present** the word (board FocusCards grid, big + loud) → choral echo.
+2. **Elicit, group-first** → choral recognition round (WhatsMissing/FlashMatch) so
+   every kid answers with zero shame.
+3. **Elicit, individual** → pick a student (Wheel/pick) → recognition or recall →
+   Correct/Wrong → recorded. **Redo** for kids who hesitated.
+4. **Assess** → a timed individual round (SpeedQuiz/Wheel) for a measurable check.
+5. The teacher moves on when *they* judge the class is ready — repeat any step at will.
+
+### 8.3 What this means for the build
+- Add a persistent **Teacher Control Bar** (Track A flagship): *Redo · Next · Skip*
+  + *Responder: [Class] [Pick student] [Wheel] [Group…]* + a clear "graded /
+  practice" indicator. This is the single highest-value board feature.
+- Keep per-student capture (`gradeStudent`/`gradeObjective`) wired only to the
+  *Individual* path; choral/group rounds call nothing.
+- The class-weak banner stays (informs the teacher *what* to elicit next), but it
+  never auto-drives.
 
 ---
 
@@ -260,16 +315,24 @@ everywhere and is the backbone the round sequencer (P-C) implements.
 ---
 
 ## 20. Updated implementation roadmap
-- **P-A ✅** Audio guarantee (done — fallbackText on every speaker).
-- **P-B ✅** Word Lab grid (done — student app FOCUS_CARDS).
-- **P-B2** Word Lab for the **board** (BoardFocusCards → grid) + progress into the shared contract.
-- **P-C** Round sequencer: emit study→recognize→recall→produce per word; enforce "studied before tested"; re-teach cracked words.
-- **P-D** End-of-round summary + re-queue missed words.
-- **P-E** Story three-phase (pre/during/post + echo reading); Grammar guided-discovery + unit-vocab drills.
-- **P-F** Pronunciation tiered scoring (lenient) + discrimination-before-production ordering.
-- **P-G** Board loop staging (choral recognition → individual assess) + choral mode on SpeedQuiz/WhatsMissing.
-- **P-H** Mastery threshold (form+meaning+use) + DubbingStudio inside the loop.
-- **P-I** Practice session bucketing (re-teach → recognize → produce).
+> Track tags: **[B]** = student-app reinforcement loop · **[A]** = live board (teacher control).
 
-Each is independently shippable; P-C is the highest-leverage next step after P-B
-(it makes *every* mechanism behave as the loop intends).
+- **P-A ✅** Audio guarantee (done — fallbackText on every speaker). **[B+A]**
+- **P-B ✅** Word Lab grid (done — student app FOCUS_CARDS). **[B]**
+- **P-A1 (next, Track A flagship)** **Board Teacher Control Bar**: Redo / Next / Skip
+  + Responder picker (Class / Pick student / Wheel / Group) + graded-vs-practice
+  indicator + free pacing (never auto-advance). The highest-value board feature.
+  **[A]**
+- **P-C** **[B]** Round sequencer: study→recognize→recall→produce per word; enforce
+  "studied before tested"; re-teach cracked words. (Track B rigor.)
+- **P-D** **[B]** End-of-round summary + re-queue missed words.
+- **P-E** **[B]** Story three-phase + Grammar guided-discovery w/ unit-vocab drills.
+- **P-F** **[B]** Pronunciation tiered scoring (lenient) + discrimination-before-production.
+- **P-G** **[A]** Board game roles (choral recognition ↔ individual assess) +
+  explicit graded/practice modes per game.
+- **P-H** **[B]** Mastery threshold (form+meaning+use) + DubbingStudio inside the loop.
+- **P-I** **[B]** Practice session bucketing (re-teach → recognize → produce).
+
+**Next step:** P-A1 (board Teacher Control Bar) — it directly delivers the
+"teacher in control, do/redo/skip with each kid or group" requirement you flagged.
+Then P-C for the student-app loop.
