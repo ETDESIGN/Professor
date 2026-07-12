@@ -36,19 +36,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     }).filter((q) => q.options.length > 1 && q.correct);
   }, [frozenQuestions, poolItems]);
 
-  if (loading || questions.length === 0) {
-    return (
-      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center text-center px-8">
-        <Sword size={56} className="text-slate-600 mx-auto mb-4" />
-        <h2 className="text-4xl font-bold text-slate-500 mb-2">Team Battle</h2>
-        <p className="text-slate-600 text-xl">{loading ? 'Loading…' : 'No quiz questions. Generate the exercise pool for this unit.'}</p>
-      </div>
-    );
-  }
-
-  const currentQ = questions[currentQuestionIdx];
-
-  // Listen for remote events
+  // Listen for remote events (RULES OF HOOKS: hooks before any early return)
   useEffect(() => {
     if (state.lastAction?.type === 'SWITCH_TURN') {
        handleNextTurn();
@@ -71,6 +59,18 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
        handleNextTurn();
     }
   }, [timeLeft, winner, phase, feedback]);
+
+  if (loading || questions.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center text-center px-8">
+        <Sword size={56} className="text-slate-600 mx-auto mb-4" />
+        <h2 className="text-4xl font-bold text-slate-500 mb-2">Team Battle</h2>
+        <p className="text-slate-600 text-xl">{loading ? 'Loading…' : 'No quiz questions. Generate the exercise pool for this unit.'}</p>
+      </div>
+    );
+  }
+
+  const currentQ = questions[currentQuestionIdx];
 
   const resetGame = () => {
     setGrid(Array(9).fill(null));

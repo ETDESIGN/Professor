@@ -33,18 +33,7 @@ const BoardISayYouSay = ({ data }: { data: any }) => {
     }).filter((d) => d.text);
   }, [usingFrozen, frozenItems, poolItems]);
 
-  if (loading || items.length === 0) {
-    return (
-      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center text-center px-8">
-        <h2 className="text-4xl font-bold text-slate-500 mb-2">I Say, You Say</h2>
-        <p className="text-slate-600 text-xl">{loading ? 'Loading…' : 'No speaking drills. Generate the exercise pool for this unit.'}</p>
-      </div>
-    );
-  }
-  
-  const currentItem = items[activeItemIndex];
-
-  // Listen for remote events
+  // Listen for remote events (RULES OF HOOKS: must run before any early return)
   useEffect(() => {
     if (state.lastAction?.type === 'TOGGLE_PHASE') {
        setPhase(prev => prev === 'listen' ? 'repeat' : 'listen');
@@ -56,6 +45,17 @@ const BoardISayYouSay = ({ data }: { data: any }) => {
        setActiveItemIndex(prev => (prev - 1 + items.length) % items.length);
     }
   }, [state.lastAction, items.length]);
+
+  if (loading || items.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center text-center px-8">
+        <h2 className="text-4xl font-bold text-slate-500 mb-2">I Say, You Say</h2>
+        <p className="text-slate-600 text-xl">{loading ? 'Loading…' : 'No speaking drills. Generate the exercise pool for this unit.'}</p>
+      </div>
+    );
+  }
+
+  const currentItem = items[activeItemIndex];
 
   return (
     <div className={`h-full flex flex-col font-display relative overflow-hidden transition-colors duration-500 ${phase === 'listen' ? 'bg-blue-900' : 'bg-emerald-900'}`}>

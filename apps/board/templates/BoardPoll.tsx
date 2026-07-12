@@ -12,15 +12,7 @@ const BoardPoll = ({ data }: { data: any }) => {
 
   const options = data.options || [];
 
-  if (options.length === 0) {
-    return (
-      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
-        <h2 className="text-4xl font-bold text-slate-500">Waiting for Poll Data...</h2>
-      </div>
-    );
-  }
-
-  // Listen for remote events
+  // Listen for remote events (RULES OF HOOKS: hooks before any early return)
   useEffect(() => {
     if (state.lastAction?.type === 'SHOW_RESULTS') {
       if (!isRevealed) {
@@ -48,6 +40,14 @@ const BoardPoll = ({ data }: { data: any }) => {
     }
     return () => clearInterval(timer);
   }, [timeLeft, isRevealed, triggerConfetti]);
+
+  if (options.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
+        <h2 className="text-4xl font-bold text-slate-500">Waiting for Poll Data...</h2>
+      </div>
+    );
+  }
 
   // Determine winner
   const getWinnerId = () => {
