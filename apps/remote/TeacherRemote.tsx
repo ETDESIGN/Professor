@@ -8,6 +8,7 @@ import SoundBoardModal from './SoundBoardModal';
 import VoiceCommandModal from './VoiceCommandModal';
 import QuickSpinModal from './QuickSpinModal';
 import DrawingLayer from '../../components/shared/DrawingLayer';
+import { gradeStudentWeakest } from '../../services/boardLearner';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('TeacherRemote');
@@ -89,6 +90,20 @@ const TeacherRemote: React.FC = () => {
   const handleMagicSelect = (studentId: string) => {
     magicSelectStudent(studentId);
     setShowPointSelector(false);
+  };
+
+  // Teacher Baton manual grade: credit the picked responder (oral elicitation) on
+  // their weakest objective. Writes to the shared learner model (Track B).
+  const handleGradeResponder = async (correct: boolean) => {
+    const sid = state.quickWheelWinner;
+    const unitId = state.activeUnit?.id;
+    if (!sid || !unitId) return;
+    try {
+      await gradeStudentWeakest(sid, unitId, correct);
+      if (correct) addPoints(sid, 5);
+    } catch (err) {
+      log.warn('grade_responder_failed', { error: err instanceof Error ? err.message : String(err) });
+    }
   };
 
   // Dynamic Activity Controls based on Step Type
@@ -339,6 +354,24 @@ const TeacherRemote: React.FC = () => {
               <MonitorPlay size={16} /> Class
             </button>
           </div>
+          {/* Manual grade for the picked responder (oral elicitation). Credits the
+              student on their weakest objective; choral (no responder) hides this. */}
+          {state.quickWheelWinner && (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <button
+                onClick={() => handleGradeResponder(true)}
+                className="bg-emerald-600 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1 active:scale-95"
+              >
+                <Check size={16} /> Correct
+              </button>
+              <button
+                onClick={() => handleGradeResponder(false)}
+                className="bg-rose-600 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1 active:scale-95"
+              >
+                <X size={16} /> Wrong
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Main Navigation Pad */}

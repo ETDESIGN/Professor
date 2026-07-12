@@ -60,3 +60,31 @@ describe('pickForObjective (mastery escalation ladder)', () => {
     expect(pickForObjective(masteryState('mastered'), [])).toBeNull();
   });
 });
+
+import { loopStageRank, sortByLoopStage } from '../services/poolService';
+
+describe('loop-stage ordering (P-C round sequencer)', () => {
+  it('ranks recognize(0) < recall(1) < produce(2)', () => {
+    expect(loopStageRank('IMAGE_SELECT')).toBe(0);
+    expect(loopStageRank('WORD_BANK_BUILD')).toBe(1);
+    expect(loopStageRank('TYPE_TRANSLATE')).toBe(2);
+  });
+
+  it('orders a session recognize -> recall -> produce, weakest-first within each', () => {
+    const item = (type: any, oid: string): any => ({
+      id: `${type}-${oid}`, unit_id: 'u', objective_id: oid, exercise_type: type, difficulty: 2, content: { type } as any,
+    });
+    // Deliberately out of order: produce, recognize, recall.
+    const items = [
+      item('TYPE_TRANSLATE', 'a'), // produce, weak-ish
+      item('IMAGE_SELECT', 'b'),   // recognize, weak
+      item('WORD_BANK_BUILD', 'c'),// recall
+      item('MEANING_MATCH', 'd'),  // recognize, weakest
+    ];
+    const r = new Map([['a', 0.9], ['b', 0.5], ['d', 0.2]]);
+    const sorted = sortByLoopStage(items, r);
+    const types = sorted.map((s) => s.exercise_type);
+    // All receptive (d weakest, then b) first, then recall (c), then produce (a).
+    expect(types).toEqual(['MEANING_MATCH', 'IMAGE_SELECT', 'WORD_BANK_BUILD', 'TYPE_TRANSLATE']);
+  });
+});

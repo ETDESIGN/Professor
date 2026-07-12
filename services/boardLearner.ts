@@ -72,6 +72,61 @@ async function assertTeacherMayGrade(studentId: string, unitId: string): Promise
  * board practice (whose objective target is a rule/sound, not a vocab word).
  * Verifies the teacher owns the unit + the student is on their roster first.
  */
+/**
+ * Teacher Baton manual grade: credit the selected student on THEIR weakest
+ * objective in the unit (lowest retrievability). Used when the teacher elicits
+ * orally (no board-game auto-capture) and marks the responder Correct/Wrong.
+ * For a brand-new student (no srs_items yet) grades the first vocab objective.
+ */
+export async function gradeStudentWeakest(
+  studentId: string,
+  unitId: string,
+  correct: boolean,
+): Promise<boolean> {
+  const allowed = await assertTeacherMayGrade(studentId, unitId);
+  if (!allowed) {
+    log.warn('grade_weakest_unauthorized', { metadata: { studentId, unitId } });
+    return false;
+  }
+  let objectiveId: string | null = null;
+  try {
+    const { data: objs } = await supabase.from('objectives').select('id').eq('unit_id', unitId).eq('type', 'vocabulary');
+    if (!objs || objs.length === 0) return false;
+    const ids = objs.map((o) => o.id);
+    const { data: srs } = await supabase
+      .from('srs_items')
+      .select('id, objective_id, stability, last_review')
+      .eq('student_id', studentId)
+      .in('objective_id', ids);
+    if (srs && srs.length > 0) {
+      // weakest = lowest retrievability now.
+      let worst = { id: ids[0], r: 2 };
+      for (const r of srs) {
+        const elapsed = r.last_review ? (Date.now() - new Date(r.last_review).getTime()) / 86400000 : 0;
+        const rv = retrievability(Number(r.stability) || 0, elapsed);
+        if (rv < worst.r) worst = { id: r.objective_id as string, r: rv };
+      }
+      objectiveId = worst.id;
+    } else {
+      objectiveId = ids[0];
+    }
+  } catch (err) {
+    log.warn('grade_weakest_resolve_error', { error: err instanceof Error ? err.message : String(err) });
+    return false;
+  }
+  if (!objectiveId) return false;
+  const res = await recordAttempt(studentId, objectiveId, teacherGradeToFsrs(correct), {
+    modality: 'receptive',
+  });
+  return res !== null;
+}
+
+/**
+ * Per-student board capture (generic): record a teacher's Correct/Wrong grade
+ * for the selected student on a known objective id. Used by grammar/phonics
+ * board practice (whose objective target is a rule/sound, not a vocab word).
+ * Verifies the teacher owns the unit + the student is on their roster first.
+ */
 export async function gradeObjective(
   studentId: string,
   unitId: string,

@@ -21,6 +21,28 @@ const log = createClientLogger('PoolService');
 const RECEPTIVE = ['IMAGE_SELECT', 'LISTEN_SELECT', 'MEANING_MATCH', 'AUDIO_L1_SELECT', 'SPELL_CLOZE'];
 const CONSTRAINED = ['WORD_BANK_BUILD', 'ERROR_SPOT', 'TRANSFORM', 'MINIMAL_PAIR_SWIPE'];
 const FREE = ['TYPE_TRANSLATE', 'SPEAK_SENTENCE', 'DICTATION'];
+
+/** Loop-stage rank: 0 recognize → 1 recall → 2 produce (P-C round sequencer). */
+export function loopStageRank(type: string): number {
+  if (RECEPTIVE.includes(type)) return 0;
+  if (CONSTRAINED.includes(type)) return 1;
+  return 2;
+}
+
+/**
+ * Order a session's items into the teach→recognize→recall→produce ARC so a round
+ * never asks for production before recognition. Primary key = stage (receptive,
+ * constrained, free); secondary = weakest-first (lowest retrievability; unseen
+ * words count as 0 so brand-new vocabulary leads each stage). P-C.
+ */
+function sortByLoopStage(items: PoolItem[], rByObj: Map<string, number>): PoolItem[] {
+  return items.slice().sort(
+    (a, b) =>
+      loopStageRank(a.exercise_type) - loopStageRank(b.exercise_type) ||
+      (rByObj.get(a.objective_id) ?? 0) - (rByObj.get(b.objective_id) ?? 0),
+  );
+}
+export { sortByLoopStage };
 const ALL_TYPES = [...RECEPTIVE, ...CONSTRAINED, ...FREE];
 const CRACK_THRESHOLD = 0.85;
 
@@ -83,8 +105,11 @@ export async function selectLessonItems(unitId: string, studentId: string, count
       .in('id', chosenIds);
     if (fullErr || !full) return [];
     const byId = new Map(full.map((r) => [r.id, r]));
-    // Preserve the (weakest-first) selection order.
-    return chosenIds.map((id) => toPoolItem(byId.get(id))).filter((p): p is PoolItem => p !== null);
+    const picked = chosenIds.map((id) => toPoolItem(byId.get(id))).filter((p): p is PoolItem => p !== null);
+    // P-C: order the session recognize → recall → produce (weakest-first within
+    // each). Unseen objectives (absent from `states`) sort as weakest (0).
+    const rByObj = new Map<string, number>(objectives.map((oid) => [oid, states.get(oid)?.retrievability ?? 0]));
+    return sortByLoopStage(picked, rByObj);
   } catch (err) {
     log.warn('select_lesson_items_error', { error: err instanceof Error ? err.message : String(err) });
     return [];
@@ -166,7 +191,9 @@ export async function selectPracticeItems(studentId: string, count = 18): Promis
       const picked = pickForObjective(states.get(c.objective_id), byObjective.get(c.objective_id) || []);
       if (picked) out.push(picked);
     }
-    return out;
+    // P-C: order the session recognize → recall → produce (weakest-first within each).
+    const rByObj = new Map<string, number>(candidates.map((c) => [c.objective_id, c.r]));
+    return sortByLoopStage(out, rByObj);
   } catch (err) {
     log.warn('select_practice_items_error', { error: err instanceof Error ? err.message : String(err) });
     return [];
