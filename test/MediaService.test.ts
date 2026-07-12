@@ -60,14 +60,17 @@ describe('MediaService', () => {
     }));
   });
 
-  it('returns empty string on error', async () => {
+  it('falls back to a Pollinations URL on error (guarantees an image)', async () => {
     invokeMock.mockResolvedValueOnce({
       data: null,
       error: { message: 'fail' },
     });
 
     const url = await MediaService.getVocabImage('unit-1', 'cat');
-    expect(url).toBe('');
+    // No longer empty: the client now guarantees an image via direct Pollinations
+    // when the edge function fails (region-safe, CSP-allow-listed).
+    expect(url).toContain('image.pollinations.ai');
+    expect(url).toContain('cat');
   });
 
   it('caches image URLs on second call', async () => {

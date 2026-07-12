@@ -8,6 +8,7 @@ import { getVocabulary } from '../../services/manifest';
 import { supabase } from '../../services/supabaseClient';
 import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
 import ExerciseRunner from './exercises/ExerciseRunner';
+import WordLab from './WordLab';
 import ReactPlayer from 'react-player/lazy';
 
 interface SoloLessonPlayerProps {
@@ -136,77 +137,12 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   }
 
   const renderFocusCards = () => {
-    const cards = currentStep.data?.cards || [];
-    if (cards.length === 0) return <EmptyStep title="Vocabulary Cards" />;
-    const card = cards[activeCardIndex];
-    if (!card) return <EmptyStep title="Vocabulary Cards" />;
-
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${currentIndex}-${activeCardIndex}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="w-full max-w-sm"
-          >
-            <div
-              className="w-full cursor-pointer"
-              onClick={() => setIsFlipped(!isFlipped)}
-            >
-              {!isFlipped ? (
-                <div className="bg-white rounded-3xl shadow-xl border-2 border-slate-100 p-8 text-center">
-                  {card.image && card.image.startsWith('http') ? (
-                    <img src={card.image} alt={card.back} className="w-40 h-40 object-contain mx-auto mb-4 rounded-2xl" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="text-6xl mb-4">{card.front}</div>
-                  )}
-                  <h2 className="text-3xl font-bold text-slate-800">{card.back}</h2>
-                  <p className="text-slate-400 font-bold mt-6 animate-pulse">Tap to flip</p>
-                </div>
-              ) : (
-                <div className="bg-gradient-to-br from-indigo-500 to-blue-600 rounded-3xl shadow-xl p-8 text-white text-center">
-                  <h2 className="text-4xl font-black mb-4">{card.back}</h2>
-                  {card.pronunciation && (
-                    <div className="flex items-center justify-center gap-2 text-xl mb-4 bg-white/20 rounded-full px-4 py-2">
-                      <Volume2 size={20} className="text-yellow-300" />
-                      {card.pronunciation}
-                    </div>
-                  )}
-                  <p className="text-white/90 text-lg mt-4">
-                    {card.context_sentence || card.definition || 'No context available'}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-center gap-2 mt-4">
-              {cards.map((_: any, i: number) => (
-                <div key={i} className={`w-2.5 h-2.5 rounded-full transition-colors ${i === activeCardIndex ? 'bg-indigo-500' : 'bg-slate-200'}`} />
-              ))}
-            </div>
-
-            <div className="flex justify-between mt-4">
-              <button
-                onClick={(e) => { e.stopPropagation(); setActiveCardIndex(Math.max(0, activeCardIndex - 1)); setIsFlipped(false); }}
-                disabled={activeCardIndex === 0}
-                className="p-2 rounded-xl bg-white shadow-sm border border-slate-100 disabled:opacity-30"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setActiveCardIndex(Math.min(cards.length - 1, activeCardIndex + 1)); setIsFlipped(false); }}
-                disabled={activeCardIndex >= cards.length - 1}
-                className="p-2 rounded-xl bg-white shadow-sm border border-slate-100 disabled:opacity-30"
-              >
-                <ArrowRight size={20} />
-              </button>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    );
+    // Word Lab (pedagogical redesign): 5-card grid study phase with rich data
+    // (image + IPA + Chinese L1 + audio) from the unit manifest, guaranteed
+    // sound, independent flip, and a deliberate "I'm ready" gate before practice.
+    const vocab = getVocabulary(state.activeUnit?.manifest);
+    if (vocab.length === 0) return <EmptyStep title="Vocabulary Cards" />;
+    return <WordLab cards={vocab} onReady={handleNext} />;
   };
 
   const renderSpeedQuiz = () => {

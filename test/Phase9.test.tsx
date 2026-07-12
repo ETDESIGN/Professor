@@ -27,6 +27,13 @@ const mockSessionState: any = {
       { type: 'FOCUS_CARDS', data: { cards: [{ front: 'cat', back: 'cat' }] } },
       { type: 'SPEED_QUIZ', data: { questions: [{ id: 'q1', text: 'Q?', options: ['A', 'B'], correct: 'A' }] } },
     ],
+    manifest: {
+      enriched_content: {
+        vocabulary: [
+          { word: 'cat', definition: 'An animal', example_sentence: 'The cat sat.', l1_translation: '猫', phonetic: '/kæt/', image_url: '' },
+        ],
+      },
+    },
   },
   students: [],
   pointsLog: [],
