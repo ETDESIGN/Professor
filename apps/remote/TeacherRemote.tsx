@@ -295,6 +295,52 @@ const TeacherRemote: React.FC = () => {
         {/* Dynamic Activity Controls */}
         {renderActivityControls()}
 
+        {/* Teacher Baton — the conductor's control: WHO answers, REDO, graded/practice.
+            Track A core requirement: teacher controls do/redo with each kid or group. */}
+        <div className="bg-slate-800 rounded-2xl p-3 shadow-lg border border-slate-700 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Answering</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${state.quickWheelWinner ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-300'}`}>
+              {state.quickWheelWinner ? '✓ graded (writes progress)' : '📣 practice (choral)'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 bg-slate-900 rounded-lg px-3 py-2 text-sm font-bold truncate">
+              {state.quickWheelWinner
+                ? (state.students.find(s => s.id === state.quickWheelWinner)?.name || 'Student')
+                : 'Whole class'}
+            </div>
+            <button
+              onClick={() => triggerAction('RESET_GAME')}
+              className="bg-amber-500 text-slate-900 px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 active:scale-95"
+              title="Re-run this exercise from the start"
+            >
+              <RotateCw size={16} /> Redo
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => selectNextStudent()}
+              className="bg-yellow-500 text-black py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
+            >
+              <RotateCw size={16} /> Spin
+            </button>
+            <button
+              onClick={() => setShowPointSelector(true)}
+              className="bg-slate-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
+            >
+              <Star size={16} /> Pick
+            </button>
+            <button
+              onClick={() => triggerAction('CLEAR_RESPONDER')}
+              className="bg-slate-700 text-white py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-95"
+              title="Clear selection — whole-class / choral round"
+            >
+              <MonitorPlay size={16} /> Class
+            </button>
+          </div>
+        </div>
+
         {/* Main Navigation Pad */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <button

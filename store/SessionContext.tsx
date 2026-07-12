@@ -150,6 +150,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           } else if (action.type === 'CLOSE_OVERLAY') {
             newState.activeOverlay = 'NONE';
             newState.quickWheelWinner = null;
+          } else if (action.type === 'CLEAR_RESPONDER') {
+            // Teacher Baton "Class" — clear the selected responder for a choral/group round.
+            newState.quickWheelWinner = null;
           } else if (action.type === 'SPIN_WHEEL') {
             newState.activeOverlay = 'QUICK_WHEEL';
             newState.quickWheelWinner = action.payload.targetId;
