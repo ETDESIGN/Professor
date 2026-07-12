@@ -94,7 +94,9 @@ export function startPronunciationCheck(
   targetText: string,
   onResult: (result: PronunciationResult) => void,
   onError: (error: string) => void,
-  onInterim?: (transcript: string) => void
+  onInterim?: (transcript: string) => void,
+  /** Lenient for young learners (default 0.6); 0.8 is adult-harsh. P-F. */
+  passThreshold = 0.6,
 ): SpeechRecognitionInstance | null {
   const SpeechRecognition = getSpeechRecognition();
   if (!SpeechRecognition) {
@@ -120,7 +122,7 @@ export function startPronunciationCheck(
       const transcript = lastResult[0].transcript;
       const confidence = lastResult[0].confidence;
       const similarity = calculateSimilarity(transcript, targetText);
-      const isCorrect = similarity >= 0.8;
+      const isCorrect = similarity >= passThreshold;
 
       onResult({
         transcript,

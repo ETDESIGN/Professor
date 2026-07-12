@@ -1,9 +1,10 @@
-// SPEAK_SENTENCE — pronounce the target sentence. Uses Web Speech recognition
-// + the SpeechService Levenshtein pronunciation scorer. The upgraded
-// PronunciationCoach. Success threshold 0.8 similarity; degrades gracefully to
-// "tap to hear" when speech recognition is unavailable.
+// SPEAK_SENTENCE — pronounce the target sentence. Uses Web Speech recognition +
+// the SpeechService Levenshtein scorer. P-F: LENIENT TIERED scoring for young
+// learners — ≥0.6 = Great (pass), 0.4–0.6 = Almost (retry), <0.4 = Listen-again
+// (replay model + retry). No harsh single-fail; affect stays low (Krashen).
+// Degrades to "tap to hear" when speech recognition is unavailable.
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { BaseExerciseProps } from '../../../types/exercise';
@@ -12,6 +13,7 @@ import {
   isSpeechRecognitionSupported,
   generateFeedback,
 } from '../../../services/SpeechService';
+import { playAudioUrl } from '../../../services/SpeechService';
 import { AudioButton, FeedbackBanner, useElapsedMs, Feedback } from './shared';
 
 const SpeakSentence: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) => {
@@ -19,25 +21,43 @@ const SpeakSentence: React.FC<BaseExerciseProps> = ({ data, onComplete, onError 
   const elapsed = useElapsedMs();
   const [feedback, setFeedback] = useState<Feedback>('idle');
   const [listening, setListening] = useState(false);
+  const attemptsRef = useRef(0);
   const supported = isSpeechRecognitionSupported();
 
   const handleMic = () => {
-    if (!supported || feedback !== 'idle') return;
+    if (!supported || listening || feedback !== 'idle') return;
     setListening(true);
     startPronunciationCheck(
       c.target_sentence,
       (result) => {
         setListening(false);
-        const correct = result.isCorrect;
-        setFeedback(correct ? 'correct' : 'wrong');
-        toast(correct ? generateFeedback(result.similarity, c.target_sentence) : 'Try again next time');
-        setTimeout(() => onComplete({ success: correct, time_taken_ms: elapsed(), attempts: 1 }), 1200);
+        const sim = result.similarity;
+        attemptsRef.current += 1;
+        if (result.isCorrect) {
+          // Pass (≥0.6, lenient for kids).
+          setFeedback('correct');
+          toast.success(generateFeedback(sim, c.target_sentence));
+          setTimeout(() => onComplete({ success: true, time_taken_ms: elapsed(), attempts: attemptsRef.current }), 900);
+        } else if (sim >= 0.4) {
+          // Almost — let them try again (no fail).
+          setFeedback('wrong');
+          toast('Almost! Try once more 🎤', { icon: '🤏' });
+          setTimeout(() => setFeedback('idle'), 1400);
+        } else {
+          // Way off — replay the model, then retry.
+          setFeedback('wrong');
+          toast('Listen again, then try 🎧', { icon: '🔁' });
+          playAudioUrl(c.target_audio, c.target_sentence);
+          setTimeout(() => setFeedback('idle'), 1600);
+        }
       },
       (msg) => {
         setListening(false);
         onError?.(msg);
         toast.error(msg);
       },
+      undefined,
+      0.6, // lenient pass threshold (was 0.8)
     );
   };
 
@@ -64,7 +84,7 @@ const SpeakSentence: React.FC<BaseExerciseProps> = ({ data, onComplete, onError 
       {supported ? (
         <button
           onClick={handleMic}
-          disabled={feedback !== 'idle'}
+          disabled={listening || feedback !== 'idle'}
           className={`w-24 h-24 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform ${
             listening ? 'bg-duo-red animate-pulse' : 'bg-duo-blue'
           }`}
