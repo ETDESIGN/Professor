@@ -43,6 +43,26 @@ serve(async (req) => {
 
     const prompt = PROMPTS.extraction;
 
+    // Resolve the image to a model-readable form. If a URL is given, fetch it
+    // server-side and re-encode as base64 — this guarantees the VL model can
+    // actually READ the bytes (a private/non-public storage URL the model can't
+    // fetch is the usual cause of "Cannot read image" even on a VL model).
+    let imageDataUrl = imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : '';
+    if (!imageDataUrl && inputUrl) {
+      try {
+        const imgResp = await fetch(inputUrl, { signal: AbortSignal.timeout(20000) });
+        if (imgResp.ok) {
+          const buf = await imgResp.arrayBuffer();
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+          const ct = imgResp.headers.get('content-type') || 'image/jpeg';
+          imageDataUrl = `data:${ct};base64,${b64}`;
+        }
+      } catch {
+        /* fall back to the raw URL below */
+      }
+    }
+    const finalImage = imageDataUrl || inputUrl;
+
     const messages: any[] = [
       { role: 'system', content: prompt.systemPrompt },
       {
@@ -51,9 +71,7 @@ serve(async (req) => {
           { type: 'text', text: prompt.userPromptTemplate },
           {
             type: 'image_url',
-            image_url: {
-              url: inputUrl || `data:image/jpeg;base64,${imageBase64}`,
-            },
+            image_url: { url: finalImage },
           },
         ],
       },

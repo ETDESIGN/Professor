@@ -11,14 +11,6 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
 
   const students = useMemo(() => state.students, [state.students]);
 
-  if (students.length === 0) {
-    return (
-      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
-        <h2 className="text-4xl font-bold text-slate-500">Waiting for Students to Join...</h2>
-      </div>
-    );
-  }
-
   const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
   // Listen for remote events
@@ -43,6 +35,17 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
       setWinner(null);
     }
   }, [state.lastAction]);
+
+  // RULES OF HOOKS: the empty-state return must come AFTER all hooks (useState,
+  // useMemo, useEffect above), else the hook count changes when students join and
+  // React crashes ("Rendered more hooks than during the previous render").
+  if (students.length === 0) {
+    return (
+      <div className="h-full bg-slate-900 flex flex-col font-display relative overflow-hidden text-white items-center justify-center">
+        <h2 className="text-4xl font-bold text-slate-500">Waiting for Students to Join...</h2>
+      </div>
+    );
+  }
 
   const handleSpinToTarget = (targetId: string) => {
     if (isSpinning) return;

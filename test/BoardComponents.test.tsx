@@ -77,9 +77,9 @@ describe('BoardFocusCards', () => {
     expect(catElements.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders "Waiting to Flip..." hint', () => {
+  it('renders "Flip for meaning" hint', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText('Waiting to Flip...')).toBeInTheDocument();
+    expect(screen.getByText('Flip for meaning')).toBeInTheDocument();
   });
 
   it('renders gracefully with empty cards array', () => {
