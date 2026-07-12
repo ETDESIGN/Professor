@@ -185,3 +185,91 @@ Each phase is independently shippable and tested; P-A + P-B alone transform the
 1. **Confirm the ElevenLabs key** is valid (dashboard → Edge Functions → Secrets). If expired, refresh it — that single fix restores premium audio. Meanwhile P-A guarantees browser TTS works regardless.
 2. **Greenlight P-A → P-B** (audio + Word Lab grid) as the first build slice — that's the highest-impact, most-visible change.
 3. After P-B, decide whether to iterate the round sequencer (P-C) or the lesson arc (P-E) next.
+
+---
+
+# Part 2 — Per-mechanism audit & redesign (every learner surface)
+
+The same method applied to FOCUS_CARDS (§5), now for each remaining surface:
+**current behavior → research principle → redesign**, all feeding the §4 loop.
+
+## 13. Story / Reading (STORY_STAGE, ReadingReader)
+- **Today:** pages render with an image + speaker; ReadingReader adds tappable vocab + comprehension questions. Decent, but reading is a passive "page through"; no re-reading, no echo/choral, comprehension is a single end-quiz.
+- **Principles:** Krashen's extensive reading + comprehensible input; the **pre/during/post** reading frame; **repeated reading** for fluency; **echo + choral reading** (hear → repeat) for prosody; **story maps** for narrative structure.
+- **Redesign:** add the three phases:
+  - *Pre:* one-tap "picture walk" (preview images, predict the topic) + teach the 3 hardest words as mini-cards (warm the loop).
+  - *During:* line-by-line **read-along** — tap a sentence → hear it (highlight karaoke-style) → optional "repeat after me" (echo) → tap any word for instant image+audio pop-up (input binding).
+  - *Post:* 2–3 comprehension questions (already built) **plus one "use" task** — reorder the story (StorySequencing) or retell with a word bank (production, not just recognition).
+- **Result:** reading becomes a guided, multi-pass, speak-along experience that re-binds the vocab in context — the OUTPUT stage of the loop.
+
+## 14. Grammar (BoardGrammarSandbox + GRAMMAR_SANDBOX + ERROR_SPOT/TRANSFORM)
+- **Today:** BoardGrammarSandbox presents a rule + examples (deductive, one-way); BoardGrammarPractice drills ERROR_SPOT/TRANSFORM. Good bones, but the student-app GRAMMAR_SANDBOX is thin and grammar often feels disconnected from the vocab/story.
+- **Principles:** **guided discovery / inductive** noticing (Schmidt) beats pure rule-telling for retention; grammar must be taught on **form-meaning-use** (Nation) and practised in the *same* sentences the learner already met (transfer-appropriate processing); **sentence frames** scaffold production.
+- **Redesign:**
+  - Make GRAMMAR_SANDBOX **interactive**: show 2 example sentences from the unit's *story* with the target pattern highlighted; learner taps to "discover" the rule (guided induction) before the rule card reveals.
+  - Drill with the **learner's own vocabulary** in the pattern (e.g. transform *"The elephant is big"* → *"Is the elephant big?"*) — ERROR_SPOT/TRANSFORM already support this; wire the generator to use unit vocab, not generic sentences.
+  - Add a **sentence-frame builder** (WORD_BANK_BUILD variant): assemble the target structure from a frame + word tiles (controlled production).
+- **Result:** grammar is taught through the lesson's content, discovered not just told, and produced in familiar sentences.
+
+## 15. Pronunciation / Phonics (PhonicsPhlyer, SPEAK_SENTENCE, MINIMAL_PAIR_SWIPE, evaluate-pronunciation)
+- **Today:** SPEAK_SENTENCE scores via Levenshtein similarity (0.8 threshold); MINIMAL_PAIR_SWIPE distinguishes confusables; PhonicsPhlyer is pool-driven minimal-pairs. Solid mechanics, but discrimination (hear-the-difference) often isn't practised *before* production, and the 0.8 cut is adult-harsh for kids.
+- **Principles:** **auditory discrimination precedes production** (you can't say what you can't hear); **minimal pairs** are the gold-standard technique; production scoring for children must be **lenient + encouraging** (celebrate effort, scaffold retries); suprasegmentals (stress/intonation) matter as much as segmentals.
+- **Redesign:**
+  - Sequence **discrimination → production**: a MINIMAL_PAIR_SWIPE "which did you hear?" (recognition) must come *before* SPEAK_SENTENCE "say it" (production) for a given pair — enforce in the round sequencer.
+  - **Tiered scoring**: ≥0.6 "Great!" / 0.4–0.6 "Almost — try once more" / <0.4 "Listen again then try" with the model audio replay (not a hard fail). This lowers affect (Krashen) for young learners.
+  - **Playback before mic**: always let the learner hear the target audio first, then record (echo technique).
+  - Add **stress/clapping** cue for multi-syllable words (visual dots over the stressed syllable) — suprasegmental support.
+- **Result:** pronunciation is taught hear-first, scored kindly, and scaffolded — kids keep trying instead of failing.
+
+## 16. Board competitive games (Wheel, TeamBattle, SpeedQuiz, WhatsMissing, MagicEyes, FlashMatch)
+- **Today:** each is pool-driven + class-weak-aware + per-student capture. Individually fine, but they're an unstructured bag; anxiety can spike (public wrong answers); some are recognition-only forever.
+- **Principles:** games serve **retrieval practice + engagement**, not novelty for its own sake; mix **choral low-stakes** (everyone answers, no individual shame) with **individual high-stakes** (selected student) to balance motivation + measurement; **novelty + variety** sustain dopamine but each game should map to a loop stage.
+- **Redesign — give each game a defined job in the loop:**
+  | Game | Loop stage | Pedagogical job | Stakes |
+  |---|---|---|---|
+  | WhatsMissing / FlashMatch | Recognize | Form↔meaning binding, memory span | choral/low |
+  | MagicEyes | Recognize | Observation + describe (free recall prompt) | choral/low |
+  | SpeedQuiz | Assess | Timed retrieval (the test) | individual/high |
+  | TeamBattle | Assess | Cooperative retrieval + strategy | team/medium |
+  | WheelOfDestiny | Assess (per-student) | Equitable random selection → 1:1 check | individual/high |
+  | ISayYouSay | Recall (choral drill) | Echo/choral pronunciation practice | choral/low |
+  | Unscramble / StorySequencing | Recall/Produce | Sentence + narrative assembly | individual/medium |
+- **Operationalize:** the board's phase already tags PRACTICE/ASSESS — surface "these are *recognition* warm-ups" vs "this is the *assessment*" so the teacher sequences choral→individual (low→high stakes) instead of jumping to the wheel first. Add a **choral "all-answer" mode** to SpeedQuiz/WhatsMissing (everyone holds up / taps their own device) before the individual wheel, to de-risk public errors.
+
+## 17. Practice loop (SpacedRepetition → ExerciseRunner)
+- **Today:** pulls due+weak across units, mixed types, FSRS-driven, hearts. Correct, but a practice session can mix brand-new-forgotten words with long-mastered ones, and the type is mastery-aware but not loop-staged.
+- **Redesign:**
+  - **Bucket the session:** group words by loop stage (all "need re-teach" first as mini Word Lab cards, then recognize, then produce) so a practice session has the same coherent arc as a lesson — not a random shuffle.
+  - **Re-teach before re-test** for *cracked* words: a mastered-but-decayed word shows a 1-card mini-study (image+audio) before its exercise (the loop's STUDY step), rather than throwing the learner straight at a TYPE_TRANSLATE they've forgotten.
+  - Cap **session length ~15–20 items** (kid attention) with a visible "X words reviewed" progress.
+
+## 18. Dubbing / story production (DubbingStudio)
+- **Today:** learner dubs a story line with an emotion; standalone route.
+- **Principles:** **task-based language teaching** + affective engagement; dubbing = free production with a model (lowers the blank-page anxiety).
+- **Redesign:** integrate DubbingStudio as the lesson's **free-production** option (loop stage 4) for story units — "now YOU say the elephant's line" — scored leniently, feeding the speaking objective's mastery. It currently sits outside the loop; bring it inside.
+
+---
+
+## 19. Cross-cutting: the "studied word" contract
+To make the loop real across all mechanisms, define one shared contract: a word is
+**"studied"** when the learner has seen image+word+audio together (Word Lab). Only
+**studied** words enter the exercise battery in a given session; **un-studied**
+words are always taught first. This single rule enforces teach-before-test
+everywhere and is the backbone the round sequencer (P-C) implements.
+
+---
+
+## 20. Updated implementation roadmap
+- **P-A ✅** Audio guarantee (done — fallbackText on every speaker).
+- **P-B ✅** Word Lab grid (done — student app FOCUS_CARDS).
+- **P-B2** Word Lab for the **board** (BoardFocusCards → grid) + progress into the shared contract.
+- **P-C** Round sequencer: emit study→recognize→recall→produce per word; enforce "studied before tested"; re-teach cracked words.
+- **P-D** End-of-round summary + re-queue missed words.
+- **P-E** Story three-phase (pre/during/post + echo reading); Grammar guided-discovery + unit-vocab drills.
+- **P-F** Pronunciation tiered scoring (lenient) + discrimination-before-production ordering.
+- **P-G** Board loop staging (choral recognition → individual assess) + choral mode on SpeedQuiz/WhatsMissing.
+- **P-H** Mastery threshold (form+meaning+use) + DubbingStudio inside the loop.
+- **P-I** Practice session bucketing (re-teach → recognize → produce).
+
+Each is independently shippable; P-C is the highest-leverage next step after P-B
+(it makes *every* mechanism behave as the loop intends).
