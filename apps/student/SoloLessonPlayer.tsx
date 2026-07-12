@@ -7,6 +7,7 @@ import { MediaService } from '../../services/MediaService';
 import { getVocabulary } from '../../services/manifest';
 import { supabase } from '../../services/supabaseClient';
 import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
+import { playAudioUrl } from '../../services/SpeechService';
 import ExerciseRunner from './exercises/ExerciseRunner';
 import WordLab from './WordLab';
 import ReactPlayer from 'react-player/lazy';
@@ -48,6 +49,8 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   const [studentId, setStudentId] = useState<string>('');
   const [exerciseItems, setExerciseItems] = useState<any[]>([]);
   const [exerciseLoading, setExerciseLoading] = useState(false);
+  // P-E: the story word currently popped-up (tapped in the story text).
+  const [storyWord, setStoryWord] = useState<any>(null);
 
   const progress = totalSteps > 0 ? ((currentIndex + 1) / totalSteps) * 100 : 0;
   const startTime = React.useRef(Date.now());
@@ -233,23 +236,54 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
   const renderStoryStage = () => {
     const pages = currentStep.data?.pages || [];
-    const characters = currentStep.data?.characters || [];
     if (pages.length === 0) return <EmptyStep title="Story" />;
     const page = pages[activePageIndex];
     if (!page) return <EmptyStep title="Story" />;
 
+    // P-E "during" phase: build a vocab map so known words in the story text are
+    // tappable (tap = speak + show meaning = input binding / dual-coding).
+    const vocab = getVocabulary(state.activeUnit?.manifest);
+    const vocabMap = new Map<string, any>();
+    for (const v of vocab) if (v.word) vocabMap.set(v.word.toLowerCase(), v);
+
+    const renderText = (text: string) =>
+      (text || '').split(/(\s+)/).map((tok, i) => {
+        const cleaned = tok.replace(/[^a-zA-Z']/g, '').toLowerCase();
+        const v = vocabMap.get(cleaned);
+        if (v && cleaned) {
+          return (
+            <span key={i}>
+              <span
+                onClick={() => { setStoryWord(v); playAudioUrl(v.audio_url, v.word); }}
+                className="text-amber-700 font-bold cursor-pointer underline decoration-amber-300 decoration-2 underline-offset-2 hover:bg-amber-100 rounded px-0.5"
+              >
+                {tok}
+              </span>
+            </span>
+          );
+        }
+        return <span key={i}>{tok}</span>;
+      });
+
     return (
-      <div className="flex-1 flex flex-col p-6">
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 flex-1 border border-amber-100">
+      <div className="flex-1 flex flex-col p-6 max-w-2xl mx-auto w-full relative">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 flex-1 border border-amber-100 relative">
+          <button
+            onClick={() => playAudioUrl(page.audio, page.text)}
+            className="absolute top-4 right-4 flex items-center gap-1 bg-amber-500 text-white text-sm font-bold px-3 py-1.5 rounded-full active:scale-95 shadow"
+          >
+            <Volume2 size={16} /> Read along
+          </button>
           {page.speaker && (
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center text-sm font-bold">
-                {page.speaker.charAt(0)}
+              <div className="w-9 h-9 bg-amber-200 rounded-full flex items-center justify-center font-bold text-amber-700">
+                {page.avatar || page.speaker.charAt(0)}
               </div>
               <span className="font-bold text-amber-700">{page.speaker}</span>
             </div>
           )}
-          <p className="text-lg text-slate-800 leading-relaxed">{page.text}</p>
+          <p className="text-lg text-slate-800 leading-relaxed pr-24">{renderText(page.text)}</p>
+          <p className="text-xs text-amber-500/70 mt-3 font-bold">Tap any word to hear it 👆</p>
         </div>
 
         <div className="flex items-center justify-center gap-2 mt-4">
@@ -274,6 +308,21 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
             <ArrowRight size={20} />
           </button>
         </div>
+
+        {/* Tapped-word pop-up (input binding): word + IPA + Chinese + speak. */}
+        {storyWord && (
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 bg-white rounded-2xl shadow-2xl border border-amber-200 p-4 w-64" onClick={() => setStoryWord(null)}>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-lg font-black text-amber-700">{storyWord.word}</h3>
+              <button onClick={(e) => { e.stopPropagation(); playAudioUrl(storyWord.audio_url, storyWord.word); }} className="bg-amber-100 text-amber-700 rounded-full p-1.5">
+                <Volume2 size={16} />
+              </button>
+            </div>
+            {storyWord.phonetic && <p className="font-mono text-xs text-slate-400">{storyWord.phonetic}</p>}
+            {storyWord.l1_translation && <p className="text-slate-600 text-sm mt-1 font-bold">{storyWord.l1_translation}</p>}
+            {storyWord.definition && <p className="text-slate-500 text-xs mt-1">{storyWord.definition}</p>}
+          </div>
+        )}
       </div>
     );
   };
