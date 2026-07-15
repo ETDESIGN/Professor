@@ -233,6 +233,21 @@ function transformManifestToFlow(assets: any): any[] {
     if (POOL_DRIVEN_TYPES.has(block.type)) block.data = { ...(block.data || {}), poolDriven: true };
   }
 
+  // F4: Pedagogical ordering — sort the flow into the teaching arc
+  // (warm-up → input → output → practice → assess → wrap) using the phase tags.
+  // Stable (preserves the original push order within each phase group).
+  const PHASE_ORDER: Record<string, number> = {
+    WARMUP: 0, INPUT: 1, OUTPUT: 2, PRACTICE: 3, ASSESS: 4, WRAPUP: 5, REVIEW: 6,
+  };
+  flow = flow
+    .map((block, originalIndex) => ({ block, originalIndex }))
+    .sort(
+      (a, b) =>
+        (PHASE_ORDER[a.block.phase] ?? 9) - (PHASE_ORDER[b.block.phase] ?? 9) ||
+        a.originalIndex - b.originalIndex,
+    )
+    .map((x) => x.block);
+
   return flow;
 }
 
