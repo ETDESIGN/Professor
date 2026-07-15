@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, BookOpen } from 'lucide-react';
+import { ChevronRight, BookOpen, Volume2 } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { playAudioUrl } from '../../../services/SpeechService';
 
 const BoardStoryStage = ({ data }: { data: any }) => {
   const { state } = useSession();
@@ -97,6 +98,12 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 <p className="text-5xl font-fun text-slate-800 leading-tight">
                   "{current?.text || ""}"
                 </p>
+                <button
+                  onClick={() => playAudioUrl(current?.audio, current?.text)}
+                  className="mt-3 flex items-center gap-2 bg-duo-blue text-white px-4 py-2 rounded-xl font-bold text-lg active:scale-95 shadow"
+                >
+                  <Volume2 size={20} className="text-yellow-300" /> Read Page
+                </button>
               </div>
             </div>
           </div>
