@@ -302,7 +302,7 @@ export const useSoloSession = () => {
   if (!context) throw new Error('useSoloSession must be used within SoloSessionProvider');
   return {
     ...context,
-    state: context.state as SoloSessionState,
+    state: context.state as unknown as SoloSessionState,
     recordAnswer: (correct: boolean) => {
       (context as any).__recordAnswer?.(correct);
     },

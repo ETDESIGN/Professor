@@ -8,7 +8,7 @@ import { createClientLogger } from '../services/logger';
 const log = createClientLogger('SessionContext');
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
-type SelectionMode = 'RANDOM' | 'FAIR' | 'ELIMINATION';
+type SelectionMode = 'RANDOM' | 'FAIR' | 'ELIMINATION' | 'ROUND_ROBIN';
 
 interface SessionAction {
   type: string;
@@ -38,6 +38,10 @@ interface SessionState {
   pointsLog: any[];
   selectionHistory: string[];
   selectionMode: SelectionMode;
+  /** Strict round-robin: students who have already had a turn THIS exercise.
+   *  Reset when the step/exercise changes. Guarantees every kid goes once before
+   *  anyone repeats (locked decision 0.1.1). */
+  turnsThisExercise: string[];
   isConnected: boolean;
   liveSnapImage: string | null;
   lastAction: SessionAction | null;
@@ -110,7 +114,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     students: [],
     pointsLog: [],
     selectionHistory: [],
-    selectionMode: 'FAIR',
+    selectionMode: 'ROUND_ROBIN',
+    turnsThisExercise: [],
     isConnected: false,
     liveSnapImage: null,
     lastAction: null,
@@ -224,6 +229,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       currentStepIndex: idx,
       activeSlideData: flow[idx] ?? null,
       status: (row.status as SessionStatus) || prev.status,
+      // Step changed via realtime sync → reset per-exercise round-robin so the
+      // remote's picker matches the board (locked decision 0.1.1).
+      turnsThisExercise: idx === prev.currentStepIndex ? prev.turnsThisExercise : [],
     }));
   }, []);
 
@@ -380,7 +388,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const startSession = () => {
-    setState(prev => ({ ...prev, status: 'LIVE', currentStepIndex: 0, selectionHistory: [] }));
+    setState(prev => ({ ...prev, status: 'LIVE', currentStepIndex: 0, selectionHistory: [], turnsThisExercise: [] }));
     persistSessionStatus('LIVE');
   };
 
@@ -406,7 +414,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         currentStepIndex: index,
         activeSlideData: flow[index],
         drawings: [],
-        activeOverlay: 'NONE'
+        activeOverlay: 'NONE',
+        // New exercise → reset the per-exercise round-robin so every kid is
+        // eligible again (locked decision 0.1.1: one turn each before any repeat).
+        turnsThisExercise: index === prev.currentStepIndex ? prev.turnsThisExercise : [],
       }));
       // Persist so the projector board / remote follow the teacher.
       persistSessionIndex(index);
@@ -501,10 +512,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     const spinAction = { type: 'SPIN_WHEEL', payload: { targetId: studentId, magic: true, overlay: true }, timestamp: Date.now() };
     broadcastAction(spinAction);
 
-    // Optimistic update
+    // Optimistic update. A manual pick ALSO counts as a turn this exercise
+    // (strict round-robin coverage — locked decision 0.1.1).
     setState(prev => ({
       ...prev,
       selectionHistory: [...prev.selectionHistory, studentId],
+      turnsThisExercise: prev.turnsThisExercise.includes(studentId)
+        ? prev.turnsThisExercise
+        : [...prev.turnsThisExercise, studentId],
       activeOverlay: 'QUICK_WHEEL',
       quickWheelWinner: studentId,
       lastAction: spinAction
@@ -524,7 +539,20 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     let selectedId: string;
 
-    if (state.selectionMode === 'RANDOM') {
+    if (state.selectionMode === 'ROUND_ROBIN') {
+      // STRICT per-exercise round-robin (locked decision 0.1.1): prefer students
+      // who have NOT had a turn this exercise; when everyone has, start a new
+      // round (reset) so coverage repeats fairly. Teacher override (magicSelect)
+      // still works and counts as a turn.
+      const remaining = pool.filter(s => !state.turnsThisExercise.includes(s.id));
+      const eligible = remaining.length > 0 ? remaining : pool; // all gone → new round
+      const idx = Math.floor(Math.random() * eligible.length);
+      selectedId = eligible[idx].id;
+      // If we just emptied the pool (new round starting), reset the tracker.
+      if (remaining.length === 0) {
+        setState(prev => ({ ...prev, turnsThisExercise: [] }));
+      }
+    } else if (state.selectionMode === 'RANDOM') {
       const randomIndex = Math.floor(Math.random() * pool.length);
       selectedId = pool[randomIndex].id;
     } else {
@@ -546,10 +574,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     const spinAction = { type: 'SPIN_WHEEL', payload: { targetId: selectedId, overlay: useOverlay }, timestamp: Date.now() };
     broadcastAction(spinAction);
 
-    // Optimistic update
+    // Optimistic update (record the turn for strict round-robin coverage).
     setState(prev => ({
       ...prev,
       selectionHistory: [...prev.selectionHistory, selectedId],
+      turnsThisExercise: prev.turnsThisExercise.includes(selectedId)
+        ? prev.turnsThisExercise
+        : [...prev.turnsThisExercise, selectedId],
       activeOverlay: useOverlay ? 'QUICK_WHEEL' : 'NONE',
       quickWheelWinner: selectedId,
       lastAction: spinAction
