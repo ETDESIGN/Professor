@@ -3,17 +3,35 @@
 > Grounded in the **actual code** (audit dated below), not assumptions. Companion
 > to `PEDAGOGICAL_REDESIGN.md` (Track B). This document covers **Track A — the live
 > board / live class session** only: every exercise/game/interaction, the user
-> flows (teacher, student-device, teams, class), the design, and the pedagogy.
+> flows (teacher, teams, class), the design, and the pedagogy.
+
+## 0. Hardware & usage model (read first — the foundation of every decision)
+The product has **two separate usage contexts** that must never be conflated:
+
+| Context | Hardware | Surface | What happens |
+|---|---|---|---|
+| **At home** | student's own phone/computer | **Student app** (Track B) | Self-paced solo reinforcement loop: Word Lab, FSRS practice, mastery, daily quests. **No live board.** |
+| **At school (live class)** | **ONE screen** (projector) driven by the teacher; **students have NO devices** | **Live Board** (Track A) | Teacher leads 5–15 students in person: teaches material, tells stories, runs games. Students participate **one-by-one or by team — aloud / at the board**. |
+
+**Consequences that drive the whole design:**
+- The live board is a **single, teacher-controlled screen**. It must **never assume student devices**. There is no student-device live sync, no student "response pad," no per-student on-device answering during a live class.
+- **The teacher is the only operator** (board + remote). Students answer **aloud** or **come up to the board**; the teacher grades them from the remote (Baton Correct/Wrong).
+- **Teams/groups are physical**, not device-based: the teacher forms teams on-screen, students sit/compete together, a representative answers, the teacher grades.
+- **The bridge between the two contexts is the shared LearnerState** (not a live session): a teacher grading a student in class → writes their FSRS/mastery state → reshapes that student's **home** practice (weak/cracked words resurface). Same model, two contexts, **no realtime coupling between board and student devices**.
+- ⟹ The earlier "F1 — student-device live sync" assumption was **wrong and is removed**. The student-app "Join Live" path is a legacy/hybrid misunderstanding and should be **removed or left dormant** — it does not belong in the classroom model.
 
 ## Executive summary — the real state
 The board *looks* like a live-classroom tool but several of its core pipes are
 **broken or decorative**. Before any game-by-game upgrade, four foundations must
 be fixed, or the upgrades sit on sand:
 
-1. **Students can't actually "join" live.** `SoloSessionContext` (student device)
-   has **no realtime subscription** — it never sets `status='LIVE'` and never
-   follows the teacher's slide. The "Join Now" banner and the entire live branch
-   of `LessonSession` are **unreachable** today. (Solo/async works; live does not.)
+1. **The student-app "live" path is a legacy misunderstanding, not a gap.**
+   Students have **no devices in class**, so there is nothing to "join live" on a
+   device. `SoloSessionContext` has no realtime subscription and the "Join Now"
+   banner / `LessonSession` live branch are unreachable — which is **fine for the
+   classroom model**. Action: remove that dormant path (or leave it) and ensure the
+   board never assumes student devices. (The home student app is the only student
+   surface; it is **not** live-coupled to the board — see §0.)
 2. **Teams & groups are cosmetic.** `student.team` is never assigned; TeamBattle /
    GameArena / IntroSplash red/blue panels are **always empty (score 0)**. The
    Group-Maker broadcasts `GROUPS_UPDATED` that **no game consumes**.
@@ -33,17 +51,18 @@ pool-driven, and the lesson **orders practice/assess before grammar input**.
 
 ## Part 1 — Foundational fixes (do these first)
 
-### F1. Real student-device live sync (the biggest gap)
-- `SoloSessionContext` must open the **same** channels as `SessionContext`:
-  subscribe to `classroom_session_sync` (postgres_changes on `classroom_sessions`,
-  filtered to the student's teacher's session) to follow `currentStepIndex`, and
-  to `classroom_live` broadcast for live events.
-- A student "joins" by knowing their teacher's session: add a lightweight
-  **session-join** (class code or auto via enrollment → `class_enrollments` → the
-  teacher's active `classroom_sessions` row). On join, set local `status='LIVE'`
-  and hydrate `activeUnit`/`activeSlideData` from the session row.
-- This unblocks the live student path AND lets games push items to student
-  devices (real-time response, not just watching the board).
+### F1. Confirm the no-device classroom model + remove the dormant student-live path
+- Per §0, students have **no devices in class**. The board is a single,
+  teacher-controlled screen. **No realtime coupling between board and student
+  devices is required** (and must not be assumed).
+- Remove (or explicitly retire) the student-app "Join Live" banner and the live
+  branch of `LessonSession` — they are a legacy/hybrid misunderstanding, not a
+  feature gap. The home student app stays the **only** student surface and is
+  **not** live-synced to the board.
+- The **only** link between a live class and a student's home practice is the
+  **shared LearnerState**: teacher grades a student in class (Baton
+  Correct/Wrong) → `recordAttempt` → that student's home practice adapts. No live
+  session connects them.
 
 ### F2. A real Teams & Groups model
 - Persist `team` on `class_enrollments` (or a `class_teams` table). A **Team
@@ -136,20 +155,24 @@ Status key: 🔴 broken · 🟡 shallow · 🟢 solid. Capture: ✓ writes progr
 
 ---
 
-## Part 4 — User-flow redesign (teacher → students → teams → class)
+## Part 4 — User-flow redesign (teacher-led, single screen, no student devices)
 
-**Start (teacher):** LessonStudio → "Start Class" → session row created, board shows on projector, remote on phone, students see "Join Live" (requires F1).
+**Start (teacher):** LessonStudio → "Start Class" → board shows on the projector; remote on the teacher's phone/tablet; students are in the room (no devices).
 
-**Join (student):** Student app → "Join" (auto via enrollment, or class code) → device syncs to the teacher's current slide; the device either mirrors the board (passive steps) or becomes a **response pad** (active steps: tap the answer, speak, vote).
+**During a step (teacher-mediated, three modes on the Baton):**
+- **Present** — board shows the material (cards, story, video); teacher narrates / tells the story.
+- **Choral** — teacher asks the whole class; students answer **aloud** (or hold up / come up); teacher hears; **no per-student write**.
+- **Individual** — teacher **picks a student** (Wheel or Pick on the Baton); that student answers **aloud**; teacher taps **Correct/Wrong** → writes to that student's LearnerState (the only thing that feeds mastery).
+- **Team** — teacher assigns teams (Team Builder, on-screen); a team confers in person; a representative answers; teacher grades the rep.
 
-**During a step (the three-mode loop):** teacher presents → Baton mode = **Choral** (everyone answers, teacher hears) → teacher picks a student = **Individual** (Baton Correct/Wrong → writes mastery) → or assigns a **Group/Team** (team confers, rep graded). The mode is explicit on the Baton; choral never writes, individual always does.
+The Baton's mode badge ("graded / practice / team") makes it explicit which rounds measure anyone. **No student device is ever involved** — answers are spoken/physical; the teacher is the sole operator.
 
-**Grade:** Individual Correct/Wrong → `gradeStudent`/`gradeStudentWeakest` (already built). Team → one rep graded. Choral → nothing.
+**Grade → home bridge:** an individual/team-rep Correct/Wrong → `gradeStudent`/`gradeStudentWeakest` → updates that student's FSRS/mastery. Later, **at home**, that student's app surfaces weaker/cracked words in their solo practice. The two contexts share the model; they are **never live-coupled**.
 
-**End:** Wrap step → per-student XP + crowns earned shown → "these words cracked — practice at home" → hands off to the **solo reinforcement loop (Track B)**.
+**End:** Wrap step → per-student XP/crowns shown on the board → "these words cracked — practice at home tonight."
 
-### Team formation flow (new)
-A **Team Builder** as the first competitive step (or pre-session): teacher picks 2 teams (or N groups), engine assigns by roster (balanced by level/XP, optional). `class_enrollments.team` persisted. All team games read it. This is what makes TeamBattle/GameArena real.
+### Team formation flow (on-screen, physical)
+A **Team Builder** as the first competitive step (or pre-session): teacher picks 2 teams (or N groups), engine assigns the roster (balanced by level/XP, optional), `class_enrollments.team` persisted. Students physically group accordingly. All team games read the real assignment (fixes the empty red/blue panels). No devices.
 
 ---
 
@@ -164,44 +187,47 @@ A **Team Builder** as the first competitive step (or pre-session): teacher picks
 
 ---
 
-## Part 6 — Implementation roadmap (foundations → games)
+## Part 6 — Implementation roadmap (foundations → games; classroom-centric)
 
-**Phase 0 — Foundations (unblocks everything; do first)**
-- F1 Student-device live sync (the biggest broken pipe).
-- F3 Idempotent + scoped command bus.
-- F4 Pool readiness check + phase-correct lesson ordering.
-- F2 Teams/groups data model + Team Builder.
+**Phase 0 — Foundations (no-device classroom model)**
+- **F4** Lesson ordering + pool readiness (the board is THE teaching tool — it must
+  flow warm-up→input→practice→assess and never show empty/broken games mid-class).
+- **F2** Real teams/groups model + on-screen Team Builder (team games are core to
+  engagement; the empty red/blue panels must be fixed).
+- **F1** Remove/retire the dormant student-app "Join Live" path; confirm the board
+  never assumes student devices (cleanup, low risk).
+- **F3** Idempotent + scoped command bus (board↔remote robustness; idempotency
+  matters most here — duplicate/coalesced actions break live play).
 
-**Phase 1 — Make existing games honest**
-- Remove or content-fill the placeholders (Poll, LiveWarmup, MagicEyes) so no
-  game ships "empty/fake".
+**Phase 1 — Make every game honest**
+- Remove or content-fill the placeholders (Poll non-functional, LiveWarmup fake,
+  MagicEyes empty) so no game ships "empty/fake" in front of a class.
 - Fix the team-scoreboard empties (F2).
-- Add capture to the individual mode of FlashMatch/WhatsMissing/Unscramble/
-  StorySequencing (clone the BoardListenTap pattern).
-- Wire GrammarPractice remote controls.
+- Add capture to the **individual** mode of FlashMatch/WhatsMissing/Unscramble/
+  StorySequencing (clone the BoardListenTap pattern: teacher picks → grades).
+- Wire GrammarPractice remote controls (Reveal / Credit student).
 
-**Phase 2 — Pedagogical upgrades**
+**Phase 2 — Pedagogical upgrades (teacher-mediated)**
 - Explicit **Choral / Individual / Team** mode on the Baton, honored by every game.
-- Round/leaderboard recap screens (Kahoot-style).
+- Round/leaderboard recap screens (Kahoot-style) for SpeedQuiz/TeamBattle.
 - Real audio on StoryStage + ISayYouSay.
-- Wheel → always followed by a graded task.
+- Wheel → always followed by a graded individual task.
+- Board vocab as a studyable grid for the class (the 5-card treatment, board-side).
 
-**Phase 3 — Student-device interactivity**
-- With F1 done, turn the student device into a real **response pad** (tap-to-answer,
-  speak, vote) for active steps — true live interaction, not just mirroring.
-
-**Priority order:** F1 (students can actually join) is the single highest-value
-fix — without it, "live class" is teacher-only. Then F2/F3/F4, then the game
-honesty pass, then pedagogy, then device interactivity.
+**Priority order:** **F4** (lesson correctness + readiness) and **F2** (real teams)
+are the highest-value classroom fixes — a teacher must be able to run a clean,
+pedagogically-ordered, never-empty lesson with working team games. (The earlier
+"F1 student sync" priority was based on the wrong device assumption and is dropped.)
 
 ---
 
 ## What this changes vs. today
-The board stops being "a bag of disconnected games with broken teams and dormant
-student devices" and becomes a **coherent teacher-led live system**: students
-really join, teams are real, every round is explicitly choral/individual/team,
-individual rounds feed each student's mastery, and the lesson follows a real
-pedagogical arc — handing off to the solo loop at the end.
+The board stops being "a bag of disconnected games with fake teams and dormant
+student-device paths" and becomes a **coherent, single-screen, teacher-led live
+classroom tool**: a pedagogically-ordered lesson, real teams, every round
+explicitly choral/individual/team, individual rounds feeding each student's
+mastery (which then shapes their **home** practice) — with **no assumption of
+student devices** in the room.
 
-> Next step: confirm Phase 0 priority, then I implement **F1 (student live sync)**
-> first — it's the foundation that makes "live class" true.
+> Next step: confirm the no-device model, then implement **F4 (lesson ordering +
+> readiness) and F2 (real teams)** first.

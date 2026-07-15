@@ -25,12 +25,15 @@ with audio + multi-modal binding at every step.
 > **Two tracks — two designs (read this first).** The product has two learner
 > surfaces with opposite design priorities, and they must NOT be built the same way:
 >
-> - **Track A — Live Board:** a **teacher-led, live group session** (10+ kids).
->   The #1 requirement is **teacher control**: the teacher is the conductor — they
->   decide *what* to show, *with whom* (one named kid, a group, the whole class),
->   and *how many times* (do / redo / skip), at the pace of the room. The board is
->   **presentation + elicitation + grading**, *not* a self-paced loop. Every per-
->   student grade flows into Track B; choral/group rounds do engagement, not writes.
+> - **Track A — Live Board:** a **teacher-led, live, in-person class** (5–15
+>   students) on **ONE screen (projector)**. Students have **NO devices** in
+>   class. The teacher is the only operator (board + remote): they teach the
+>   material, tell stories, and run games where students participate **one-by-one
+>   or by team — aloud / at the board**. The teacher grades a picked student via
+>   the remote (Correct/Wrong → LearnerState); choral rounds write nothing. The
+>   board must **never assume student devices**. The only link to Track B is the
+>   shared LearnerState (a class grade reshapes that student's *home* practice) —
+>   the two contexts are **not** live-coupled.
 > - **Track B — Student app:** the **reinforcement loop** (Word Lab → FSRS practice
 >   → mastery). Self-paced, adaptive, where the teach→recognize→recall→produce
 >   rigor (§4) lives.
