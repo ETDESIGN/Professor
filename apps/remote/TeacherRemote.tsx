@@ -257,6 +257,17 @@ const TeacherRemote: React.FC = () => {
             </button>
           </div>
         );
+      case 'GRAMMAR_PRACTICE':
+        return (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button onClick={() => triggerAction('REVEAL_ANSWER')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              <Eye size={24} /> Reveal
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={24} /> Next
+            </button>
+          </div>
+        );
       default:
         return null;
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Mic, Volume2, User, Users } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
+import { playAudioUrl } from '../../../services/SpeechService';
 
 interface DrillItem {
   text: string;
@@ -108,6 +109,25 @@ const BoardISayYouSay = ({ data }: { data: any }) => {
                    );
                 })}
              </h1>
+
+             {/* Real audio — play the model sentence so the class hears + echoes.
+                 Phase C: was missing (no sound in the choral drill). */}
+             {phase === 'listen' && currentItem.audio && (
+                <button
+                   onClick={() => playAudioUrl(currentItem.audio, currentItem.text)}
+                   className="mt-8 flex items-center gap-3 bg-white/15 hover:bg-white/25 text-white px-8 py-4 rounded-2xl font-bold text-2xl active:scale-95 transition-all border border-white/20"
+                >
+                   <Volume2 size={32} className="text-yellow-300" /> Play Sentence
+                </button>
+             )}
+             {phase === 'listen' && !currentItem.audio && (
+                <button
+                   onClick={() => playAudioUrl(undefined, currentItem.text)}
+                   className="mt-8 flex items-center gap-3 bg-white/15 hover:bg-white/25 text-white px-8 py-4 rounded-2xl font-bold text-2xl active:scale-95 transition-all border border-white/20"
+                >
+                   <Volume2 size={32} className="text-yellow-300" /> Speak Sentence
+                </button>
+             )}
           </div>
 
           {/* Visual Waveform (Fake) */}
