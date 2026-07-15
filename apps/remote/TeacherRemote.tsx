@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useSession } from '../../store/SessionContext';
-import { ChevronLeft, ChevronRight, Wifi, Mic, VolumeX, Star, Zap, MonitorPlay, Camera, X, FileText, Play, Eye, RotateCw, RefreshCw, Clock, ArrowRight, ArrowLeft, Check, Volume2, BarChart2, PenTool, Eraser, LogOut, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Wifi, Mic, VolumeX, Star, Zap, MonitorPlay, Camera, X, FileText, Play, Eye, RotateCw, RefreshCw, Clock, ArrowRight, ArrowLeft, Check, Volume2, BarChart2, PenTool, Eraser, LogOut, Trophy, Users } from 'lucide-react';
 import StudentSelectorModal from '../teacher/StudentSelectorModal';
 import RemoteConnect from './RemoteConnect';
 import SoundBoardModal from './SoundBoardModal';
@@ -14,7 +14,7 @@ import { createClientLogger } from '../../services/logger';
 const log = createClientLogger('TeacherRemote');
 
 const TeacherRemote: React.FC = () => {
-  const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent } = useSession();
+  const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent, assignTeams } = useSession();
 
   // CRITICAL FIX: Use state.activeSlideData instead of MOCK_LESSON_FLOW
   const currentStep = state.activeSlideData;
@@ -104,6 +104,12 @@ const TeacherRemote: React.FC = () => {
     } catch (err) {
       log.warn('grade_responder_failed', { error: err instanceof Error ? err.message : String(err) });
     }
+  };
+
+  // Phase A.3 — form 2 balanced teams (Red vs Blue) from the roster.
+  const handleAssignTeams = () => {
+    if (state.students.length < 2) return;
+    assignTeams(2);
   };
 
   // Dynamic Activity Controls based on Step Type
@@ -338,6 +344,13 @@ const TeacherRemote: React.FC = () => {
               title="Show the class leaderboard (unified points)"
             >
               <Trophy size={16} /> Rank
+            </button>
+            <button
+              onClick={() => handleAssignTeams()}
+              className="bg-rose-500 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 active:scale-95"
+              title="Split the class into 2 balanced teams (Red vs Blue)"
+            >
+              <Users size={16} /> Teams
             </button>
           </div>
           <div className="grid grid-cols-3 gap-2">

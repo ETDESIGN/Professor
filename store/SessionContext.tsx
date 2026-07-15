@@ -68,7 +68,11 @@ const mapStudent = (s: StudentWithProgress) => ({
   xp: s.xp,
   streak: s.streak,
   points: s.xp, // For compatibility with components expecting 'points'
+  team: undefined as string | undefined, // Phase A.3: assigned by the Team Builder
 });
+
+// Team palette (red/blue/green/...). Phase A.3 — real team assignment.
+export const TEAM_COLORS = ['red', 'blue', 'green', 'amber', 'purple', 'pink'];
 
 export interface SessionContextType {
   state: SessionState;
@@ -89,6 +93,8 @@ export interface SessionContextType {
   selectNextStudent: (filterTeam?: string, useOverlay?: boolean) => void;
   magicSelectStudent: (studentId: string) => void;
   setSelectionMode: (mode: SelectionMode) => void;
+  /** Phase A.3: form N balanced teams from the roster (broadcasts to all devices). */
+  assignTeams: (count?: number) => void;
   closeOverlay: () => void;
   startDrawing: (x: number, y: number, color?: string) => void;
   addDrawingPoint: (x: number, y: number) => void;
@@ -161,6 +167,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           } else if (action.type === 'CLEAR_RESPONDER') {
             // Teacher Baton "Class" — clear the selected responder for a choral/group round.
             newState.quickWheelWinner = null;
+          } else if (action.type === 'TEAMS_ASSIGNED') {
+            // Phase A.3: Team Builder assigned teams. Payload = { assignments: { studentId: team } }.
+            const assignments = action.payload?.assignments || {};
+            newState.students = newState.students.map(s =>
+              assignments[s.id] ? { ...s, team: assignments[s.id] } : s
+            );
           } else if (action.type === 'SPIN_WHEEL') {
             newState.activeOverlay = 'QUICK_WHEEL';
             newState.quickWheelWinner = action.payload.targetId;
@@ -506,6 +518,29 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     setState(prev => ({ ...prev, selectionMode: mode }));
   };
 
+  /**
+   * Phase A.3 — Team Builder. Shuffles the roster into `count` balanced teams
+   * (round-robin by current points so teams are even) and broadcasts the
+   * assignment so board + remote + all games see real team membership. Fixes the
+   * always-empty red/blue panels (locked decision: real teams).
+   */
+  const assignTeams = (count: number = 2) => {
+    const n = Math.max(2, Math.min(count, TEAM_COLORS.length));
+    // Sort by points desc, then round-robin deal → balanced teams.
+    const sorted = [...state.students].sort((a, b) => (b.points || 0) - (a.points || 0));
+    const assignments: Record<string, string> = {};
+    sorted.forEach((s, i) => {
+      assignments[s.id] = TEAM_COLORS[i % n];
+    });
+    const action = { type: 'TEAMS_ASSIGNED', payload: { assignments, count: n }, timestamp: Date.now() };
+    broadcastAction(action);
+    setState(prev => ({
+      ...prev,
+      students: prev.students.map(s => (assignments[s.id] ? { ...s, team: assignments[s.id] } : s)),
+      lastAction: action,
+    }));
+  };
+
   const closeOverlay = () => {
     const action = { type: 'CLOSE_OVERLAY', timestamp: Date.now() };
     broadcastAction(action);
@@ -670,7 +705,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       state, loadUnits, loadStudents, setActiveUnit, saveUnit, unlockNextLevel,
       startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
-      selectNextStudent, magicSelectStudent, setSelectionMode, closeOverlay,
+      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
       triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent
     }}>
