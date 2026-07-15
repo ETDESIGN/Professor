@@ -28,13 +28,16 @@ The product has **two separate usage contexts** that must never be conflated:
 2. **Picking = Spin / Quick-pick / Manual-tap (teacher chooses per round).** The
    Wheel of Destiny is **one** (exciting) option, not mandatory every round.
    Whichever is used, the round-robin fairness still applies behind it.
-3. **Per-student tracking = a teacher-made roster (names/avatars), optionally
-   linked to a home account.** A live class runs with just names; if a student has
-   a home account, linking it lets a class grade feed their home practice.
-4. **Points = a fun per-student class-points/XP leaderboard (gamification) that
-   accumulates across sessions**, SEPARATE from the **FSRS mastery** that drives
-   home practice. Both are tracked; they serve different purposes (motivation in
-   class vs. real learning state at home).
+3. **Per-student tracking = a class roster of home-account-linked students.**
+   Students are **definitely** linked to their home account (not optional): class
+   material and home reinforcement are coupled through the **shared LearnerState**.
+   The teacher's class roster = the enrolled students for that class.
+4. **Points = a UNIFIED per-student total (class + home combined)** that all kids
+   see on a leaderboard to compete against each other — not two separate systems.
+   Class activities and home practice both contribute to one running total per
+   student (gamification/competition); FSRS mastery remains the real learning
+   state driving home practice. (The teacher may run the board/remote across any
+   combination of laptop/desktop/tablet/phone — already synced via SessionContext.)
 5. **Operating modes.** The teacher clicks the answer, **or** hands the
    mouse/keyboard to the student who comes up. Either way the answer is attributed
    to the **picked student** (the system always knows whose turn it is).
