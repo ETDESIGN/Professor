@@ -171,10 +171,13 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
              <div className="w-16 h-16 bg-red-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.5)]">
                 <Sword size={32} className="text-white" />
              </div>
-             <div>
-                <div className="text-red-400 font-bold uppercase tracking-wider text-sm">Team Red</div>
-                <div className="text-4xl font-black text-white">{redScore}</div>
-             </div>
+              <div>
+                 <div className="text-red-400 font-bold uppercase tracking-wider text-sm">Team Red</div>
+                 <div className="text-4xl font-black text-white">{redScore}</div>
+                 <div className="text-xs text-red-300/60 truncate max-w-[180px]">
+                   {state.students.filter(s => s.team === 'red').map(s => s.name).join(', ') || 'Use Teams button'}
+                 </div>
+              </div>
           </div>
 
           {/* VS Badge */}
@@ -184,10 +187,13 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
 
           {/* Blue Team */}
           <div className={`flex items-center gap-6 text-right transition-all duration-500 ${activeTurn === 'blue' ? 'opacity-100 scale-110' : 'opacity-50 grayscale'}`}>
-             <div>
-                <div className="text-blue-400 font-bold uppercase tracking-wider text-sm">Team Blue</div>
-                <div className="text-4xl font-black text-white">{blueScore}</div>
-             </div>
+              <div>
+                 <div className="text-blue-400 font-bold uppercase tracking-wider text-sm">Team Blue</div>
+                 <div className="text-4xl font-black text-white">{blueScore}</div>
+                 <div className="text-xs text-blue-300/60 truncate max-w-[180px] text-right">
+                   {state.students.filter(s => s.team === 'blue').map(s => s.name).join(', ') || 'Use Teams button'}
+                 </div>
+              </div>
              <div className="w-16 h-16 bg-blue-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.5)]">
                 <Shield size={32} className="text-white" />
              </div>
