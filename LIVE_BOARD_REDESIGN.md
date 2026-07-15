@@ -20,6 +20,27 @@ The product has **two separate usage contexts** that must never be conflated:
 - **The bridge between the two contexts is the shared LearnerState** (not a live session): a teacher grading a student in class → writes their FSRS/mastery state → reshapes that student's **home** practice (weak/cracked words resurface). Same model, two contexts, **no realtime coupling between board and student devices**.
 - ⟹ The earlier "F1 — student-device live sync" assumption was **wrong and is removed**. The student-app "Join Live" path is a legacy/hybrid misunderstanding and should be **removed or left dormant** — it does not belong in the classroom model.
 
+## 0.1 Locked design decisions (confirmed with the owner)
+1. **Turn rotation = strict round-robin.** Every kid gets exactly **one turn per
+   exercise** before anyone repeats. The system enforces this (the picker prefers
+   not-yet-picked students). The **teacher can override** the next pick anytime.
+   Per-exercise coverage of the whole roster is the goal.
+2. **Picking = Spin / Quick-pick / Manual-tap (teacher chooses per round).** The
+   Wheel of Destiny is **one** (exciting) option, not mandatory every round.
+   Whichever is used, the round-robin fairness still applies behind it.
+3. **Per-student tracking = a teacher-made roster (names/avatars), optionally
+   linked to a home account.** A live class runs with just names; if a student has
+   a home account, linking it lets a class grade feed their home practice.
+4. **Points = a fun per-student class-points/XP leaderboard (gamification) that
+   accumulates across sessions**, SEPARATE from the **FSRS mastery** that drives
+   home practice. Both are tracked; they serve different purposes (motivation in
+   class vs. real learning state at home).
+5. **Operating modes.** The teacher clicks the answer, **or** hands the
+   mouse/keyboard to the student who comes up. Either way the answer is attributed
+   to the **picked student** (the system always knows whose turn it is).
+6. **Competition = individual (kid-vs-kid, leaderboard) OR team-based.** Both
+   supported; team games need the F2 teams model.
+
 ## Executive summary — the real state
 The board *looks* like a live-classroom tool but several of its core pipes are
 **broken or decorative**. Before any game-by-game upgrade, four foundations must
