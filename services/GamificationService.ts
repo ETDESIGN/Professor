@@ -38,6 +38,35 @@ export const GamificationService = {
     return { newXP, newLevel };
   },
 
+  /**
+   * Award XP to a SPECIFIC student (used by the live board addPoints so class
+   * points persist into the student's home XP — the unified points total). This
+   * is the bridge: a class activity raises the student's home XP/leaderboard
+   * total (locked decision 0.1.4). Teacher-authenticated; the student_progress
+   * row must already exist (enrolled student).
+   */
+  async awardXPToStudent(studentId: string, amount: number, reason = 'classroom_points'): Promise<number> {
+    if (!studentId || amount === 0) return 0;
+    const { data: progress, error: fetchError } = await supabase
+      .from('student_progress')
+      .select('xp, total_xp_earned')
+      .eq('student_id', studentId)
+      .maybeSingle();
+    if (fetchError || !progress) {
+      log.warn('award_xp_student_no_progress', { metadata: { studentId, error: fetchError?.message } });
+      return 0;
+    }
+    const newXP = Math.max(0, (progress.xp || 0) + amount);
+    const newTotal = Math.max(0, (progress.total_xp_earned || 0) + Math.max(0, amount));
+    const { error: updateError } = await supabase
+      .from('student_progress')
+      .update({ xp: newXP, total_xp_earned: newTotal })
+      .eq('student_id', studentId);
+    if (updateError) log.warn('award_xp_student_write_failed', { metadata: { studentId, error: updateError.message } });
+    else log.info('xp_awarded_to_student', { metadata: { studentId, amount, reason, newXP } });
+    return newXP;
+  },
+
   async awardGems(amount: number, reason: string): Promise<number> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 0;

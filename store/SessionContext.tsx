@@ -47,7 +47,7 @@ interface SessionState {
   lastAction: SessionAction | null;
   drawings: DrawingStroke[];
   confettiTrigger: number;
-  activeOverlay: 'NONE' | 'QUICK_WHEEL';
+  activeOverlay: 'NONE' | 'QUICK_WHEEL' | 'LEADERBOARD';
   quickWheelWinner: string | null;
   quietModeActive: boolean;
   noiseLevel: number;
@@ -155,6 +155,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           } else if (action.type === 'CLOSE_OVERLAY') {
             newState.activeOverlay = 'NONE';
             newState.quickWheelWinner = null;
+          } else if (action.type === 'SHOW_LEADERBOARD') {
+            // Flash the unified class leaderboard (locked decision 0.1.4).
+            newState.activeOverlay = newState.activeOverlay === 'LEADERBOARD' ? 'NONE' : 'LEADERBOARD';
           } else if (action.type === 'CLEAR_RESPONDER') {
             // Teacher Baton "Class" — clear the selected responder for a choral/group round.
             newState.quickWheelWinner = null;
@@ -441,9 +444,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       lastAction: action
     }));
 
-    if (amount > 0) {
-      GamificationService.awardXP(amount, 'classroom_points').catch(err => {
-        log.warn('xp_persist_failed', { error: err instanceof Error ? err.message : String(err) });
+    if (amount !== 0) {
+      // Persist class points to the STUDENT's home XP (unified points total —
+      // locked decision 0.1.4). Previously awarded to the logged-in teacher by
+      // mistake, so class points never reached the student's home leaderboard.
+      GamificationService.awardXPToStudent(studentId, amount, 'classroom_points').catch((err: any) => {
+        log.warn('student_xp_persist_failed', { error: err instanceof Error ? err.message : String(err) });
       });
     }
   }, [broadcastAction]);

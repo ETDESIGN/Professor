@@ -31,6 +31,7 @@ import BoardOverlayLayer from './templates/BoardOverlayLayer';
 import BoardFlashMatch from './templates/BoardFlashMatch';
 import BoardListenTap from './templates/BoardListenTap';
 import ClassWeakBanner from './ClassWeakBanner';
+import ClassLeaderboard from './ClassLeaderboard';
 
 const ClassroomBoard: React.FC = () => {
   const { state } = useSession();
@@ -107,6 +108,9 @@ const ClassroomBoard: React.FC = () => {
 
         {/* Class-weak suggestions during practice/assess (plan 3.4) */}
         {(phase === 'PRACTICE' || phase === 'ASSESS') && <ClassWeakBanner />}
+
+        {/* Unified class leaderboard overlay (locked decision 0.1.4) */}
+        {state.activeOverlay === 'LEADERBOARD' && <ClassLeaderboard />}
 
         {/* Persistent Overlay (Time & Status) */}
         <div className="absolute top-6 right-6 z-50 flex gap-4 pointer-events-none">

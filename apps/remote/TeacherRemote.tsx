@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useSession } from '../../store/SessionContext';
-import { ChevronLeft, ChevronRight, Wifi, Mic, VolumeX, Star, Zap, MonitorPlay, Camera, X, FileText, Play, Eye, RotateCw, RefreshCw, Clock, ArrowRight, ArrowLeft, Check, Volume2, BarChart2, PenTool, Eraser, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Wifi, Mic, VolumeX, Star, Zap, MonitorPlay, Camera, X, FileText, Play, Eye, RotateCw, RefreshCw, Clock, ArrowRight, ArrowLeft, Check, Volume2, BarChart2, PenTool, Eraser, LogOut, Trophy } from 'lucide-react';
 import StudentSelectorModal from '../teacher/StudentSelectorModal';
 import RemoteConnect from './RemoteConnect';
 import SoundBoardModal from './SoundBoardModal';
@@ -331,6 +331,13 @@ const TeacherRemote: React.FC = () => {
               title="Re-run this exercise from the start"
             >
               <RotateCw size={16} /> Redo
+            </button>
+            <button
+              onClick={() => triggerAction('SHOW_LEADERBOARD')}
+              className="bg-indigo-500 text-white px-3 py-2 rounded-lg font-bold text-xs flex items-center gap-1 active:scale-95"
+              title="Show the class leaderboard (unified points)"
+            >
+              <Trophy size={16} /> Rank
             </button>
           </div>
           <div className="grid grid-cols-3 gap-2">
