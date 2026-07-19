@@ -9,8 +9,8 @@
 // The Shell is DISPLAY-ONLY (no teacher controls). The teacher operates from
 // the Commander/Remote. Students see only this visual + the game content.
 
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, TEAM_COLORS } from '../../store/SessionContext';
 
 // ── Phase configuration (label, Chinese, icon, colors) ──────────────────
@@ -31,6 +31,21 @@ const LEADERBOARD_GRADIENTS = [
   'linear-gradient(135deg,#FBBF24,#F97316)',
 ];
 
+// ── Phase background washes (B2 from Claude's design doc) ──────────────
+// Each phase owns a dark background gradient — color-blind-safe (differs in
+// both hue AND lightness). Cross-fades on phase change (600ms CSS transition).
+const PHASE_WASHES: Record<string, string> = {
+  WARMUP: 'linear-gradient(135deg, #2A1B0F, #1A1208)',
+  INPUT: 'linear-gradient(135deg, #0F1B2E, #0A1422)',
+  OUTPUT: 'linear-gradient(135deg, #1E1B0E, #15120A)',
+  PRACTICE: 'linear-gradient(135deg, #0F2419, #0A1A12)',
+  ASSESS: 'linear-gradient(135deg, #2E0F14, #1F0A0E)',
+  WRAPUP: 'linear-gradient(135deg, #2E1B2E, #1F1320)',
+};
+
+// Full-bleed step types (rails auto-retract per B5).
+const FULL_BLEED_TYPES = new Set(['STORY_STAGE', 'MEDIA_PLAYER', 'INTRO_SPLASH', 'LIVE_WARMUP']);
+
 interface BoardShellProps {
   children: React.ReactNode;
 }
@@ -40,6 +55,8 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
   const flow = state.activeUnit?.flow || [];
   const currentStep = flow[state.currentStepIndex];
   const currentPhase = (currentStep as any)?.phase || 'WARMUP';
+  const currentType = (currentStep as any)?.type || '';
+  const fullBleed = FULL_BLEED_TYPES.has(currentType);
 
   // ── Phase Arc: unique phases in order + completed/active/future ────────
   const phases = useMemo(() => {
@@ -57,10 +74,38 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
     }));
   }, [flow, currentPhase]);
 
-  // ── Team scores ────────────────────────────────────────────────────────
+  // ── Team scores (with bounce on change) ────────────────────────────────
   const teamsAssigned = state.students.some(s => s.team);
   const redScore = state.students.filter(s => s.team === 'red').reduce((a, s) => a + (s.points || 0), 0);
   const blueScore = state.students.filter(s => s.team === 'blue').reduce((a, s) => a + (s.points || 0), 0);
+  const prevRed = useRef(redScore);
+  const prevBlue = useRef(blueScore);
+  const [redBounce, setRedBounce] = useState(false);
+  const [blueBounce, setBlueBounce] = useState(false);
+  const [redDelta, setRedDelta] = useState<number | null>(null);
+  const [blueDelta, setBlueDelta] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (redScore !== prevRed.current) {
+      const delta = redScore - prevRed.current;
+      setRedDelta(delta);
+      setRedBounce(true);
+      const t = setTimeout(() => { setRedBounce(false); setRedDelta(null); }, 2000);
+      prevRed.current = redScore;
+      return () => clearTimeout(t);
+    }
+  }, [redScore]);
+
+  useEffect(() => {
+    if (blueScore !== prevBlue.current) {
+      const delta = blueScore - prevBlue.current;
+      setBlueDelta(delta);
+      setBlueBounce(true);
+      const t = setTimeout(() => { setBlueBounce(false); setBlueDelta(null); }, 2000);
+      prevBlue.current = blueScore;
+      return () => clearTimeout(t);
+    }
+  }, [blueScore]);
 
   // ── Leaderboard (top 5) ───────────────────────────────────────────────
   const leaderboard = useMemo(
@@ -76,7 +121,10 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
   const activeCfg = PHASE_CONFIG[currentPhase] || PHASE_CONFIG.WARMUP;
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-slate-900 to-slate-950 font-body text-slate-50 select-none overflow-hidden relative">
+    <div
+      className="h-full w-full font-body text-slate-50 select-none overflow-hidden relative"
+      style={{ background: PHASE_WASHES[currentPhase] || PHASE_WASHES.WARMUP, transition: 'background 600ms ease-in-out' }}
+    >
       {/* ═══ PHASE ARC RAIL (header) ═══ */}
       <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-center px-24 z-10">
         <div className="flex items-center">
@@ -129,9 +177,12 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
       </header>
 
       {/* ═══ MAIN GRID (3 columns) ═══ */}
-      <main className="absolute top-20 left-0 right-0 bottom-0 grid grid-cols-[260px_1fr_240px] gap-4 px-6 pb-[108px] pt-4">
-        {/* ── LEFT: Team Scores ── */}
-        <aside className="flex flex-col gap-4 pt-3">
+      <main
+        className="absolute top-20 left-0 right-0 bottom-0 grid gap-4 px-6 pb-[108px] pt-4 transition-all duration-500"
+        style={{ gridTemplateColumns: fullBleed ? '0px 1fr 0px' : '260px 1fr 240px' }}
+      >
+        {/* ── LEFT: Team Scores (auto-retracts during full-bleed content) ── */}
+        <aside className={`flex flex-col gap-4 pt-3 overflow-hidden transition-all duration-500 ${fullBleed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           {teamsAssigned && (
             <>
               {/* Team Red */}
@@ -141,7 +192,20 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
                   <div className="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,.3)]" />
                   <span className="font-display text-[17px] font-semibold">Team Red</span>
                 </div>
-                <div className="relative font-display text-[56px] font-bold tabular-nums leading-none text-red-300">{redScore}</div>
+                <motion.div
+                  animate={redBounce ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.25 }}
+                  className="relative font-display text-[56px] font-bold tabular-nums leading-none text-red-300"
+                >
+                  {redScore}
+                  <AnimatePresence>
+                    {redDelta !== null && (
+                      <motion.span initial={{ opacity: 0.9, y: 0 }} animate={{ opacity: 0, y: -30 }} exit={{ opacity: 0 }}
+                        transition={{ duration: 2 }} className="absolute top-0 right-0 font-display text-xl font-bold text-amber-400">
+                        {redDelta > 0 ? `+${redDelta}` : redDelta}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               </div>
               {/* Team Blue */}
               <div className="relative overflow-hidden rounded-[20px] border border-blue-500/25 bg-white/[.06] p-5 backdrop-blur-sm">
@@ -150,7 +214,20 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
                   <div className="w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,.3)]" />
                   <span className="font-display text-[17px] font-semibold">Team Blue</span>
                 </div>
-                <div className="relative font-display text-[56px] font-bold tabular-nums leading-none text-blue-300">{blueScore}</div>
+                <motion.div
+                  animate={blueBounce ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.25 }}
+                  className="relative font-display text-[56px] font-bold tabular-nums leading-none text-blue-300"
+                >
+                  {blueScore}
+                  <AnimatePresence>
+                    {blueDelta !== null && (
+                      <motion.span initial={{ opacity: 0.9, y: 0 }} animate={{ opacity: 0, y: -30 }} exit={{ opacity: 0 }}
+                        transition={{ duration: 2 }} className="absolute top-0 right-0 font-display text-xl font-bold text-amber-400">
+                        {blueDelta > 0 ? `+${blueDelta}` : blueDelta}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               </div>
             </>
           )}
@@ -174,8 +251,8 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
           <div className="flex-1 overflow-hidden">{children}</div>
         </section>
 
-        {/* ── RIGHT: Leaderboard ── */}
-        <aside>
+        {/* ── RIGHT: Leaderboard (auto-retracts during full-bleed content) ── */}
+        <aside className={`overflow-hidden transition-all duration-500 ${fullBleed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-5 flex flex-col gap-1.5 backdrop-blur-sm">
             <div className="font-display text-[15px] font-semibold text-slate-300/65 mb-2 uppercase tracking-wider">🏆 Leaderboard</div>
             {leaderboard.map((s, i) => (
