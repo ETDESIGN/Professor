@@ -8,6 +8,11 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                display: ['Fredoka', 'sans-serif'],
+                body: ['Inter', 'sans-serif'],
+                cn: ['Noto Sans SC', 'sans-serif'],
+            },
             colors: {
                 // Classroom Board & Student App (Duo Green)
                 'duo-green': '#58cc02',

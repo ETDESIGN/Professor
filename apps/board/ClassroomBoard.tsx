@@ -32,6 +32,7 @@ import BoardFlashMatch from './templates/BoardFlashMatch';
 import BoardListenTap from './templates/BoardListenTap';
 import ClassWeakBanner from './ClassWeakBanner';
 import ClassLeaderboard from './ClassLeaderboard';
+import BoardShell from './BoardShell';
 
 const ClassroomBoard: React.FC = () => {
   const { state } = useSession();
@@ -94,37 +95,14 @@ const ClassroomBoard: React.FC = () => {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-black flex items-center justify-center relative">
-      {/* 16:9 Container - Ensures consistent layout on all projectors */}
-      <div className="aspect-video w-full max-h-screen relative bg-slate-900 shadow-2xl overflow-hidden">
+      <div className="aspect-video w-full max-h-screen relative shadow-2xl overflow-hidden">
 
-        {/* Global Effects Layer */}
+        {/* Global Overlays (on top of the Shell) */}
         <ConfettiSystem />
-
-        {/* Global Drawing Layer (Display Only) */}
         <DrawingLayer isInteractive={false} className="pointer-events-none z-[60]" />
-
-        {/* Global Quick Wheel Overlay */}
         <BoardOverlayLayer />
-
-        {/* Class-weak suggestions during practice/assess (plan 3.4) */}
         {(phase === 'PRACTICE' || phase === 'ASSESS') && <ClassWeakBanner />}
-
-        {/* Unified class leaderboard overlay (locked decision 0.1.4) */}
         {state.activeOverlay === 'LEADERBOARD' && <ClassLeaderboard />}
-
-        {/* Persistent Overlay (Time & Status) */}
-        <div className="absolute top-6 right-6 z-50 flex gap-4 pointer-events-none">
-          {phaseMeta && (
-            <div className={`bg-black/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-mono text-2xl flex items-center gap-3 shadow-lg border border-white/10`}>
-              <span className={`w-3 h-3 rounded-full ${phaseMeta.color}`} />
-              <span className="font-bold tracking-wider uppercase">{phaseMeta.label}</span>
-            </div>
-          )}
-          <div className="bg-black/40 backdrop-blur-md text-white px-6 py-3 rounded-2xl font-mono text-2xl flex items-center gap-3 shadow-lg border border-white/10">
-            <Clock size={24} className="text-duo-green" />
-            {timeString}
-          </div>
-        </div>
 
         {/* Live Snap Overlay */}
         {state.liveSnapImage && (
@@ -133,58 +111,48 @@ const ClassroomBoard: React.FC = () => {
               <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
               <span className="font-bold tracking-widest uppercase">Live Camera Feed</span>
             </div>
-            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-[2rem] shadow-2xl overflow-hidden border-8 border-white/20 transform rotate-1 transition-transform">
+            <div className="relative w-full max-w-5xl aspect-video bg-black rounded-[2rem] shadow-2xl overflow-hidden border-8 border-white/20">
               <img src={state.liveSnapImage} className="w-full h-full object-contain" alt="Live Snap" />
             </div>
-            <div className="mt-8 text-white/50 text-xl font-mono animate-bounce">
-              Projecting from Teacher's Device...
-            </div>
           </div>
         )}
 
-        {/* Render Active Template with Cinematic Transition */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${currentStep.type}-${state.currentStepIndex}`}
-            className="absolute inset-0 h-full w-full"
-            initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 1.02, filter: 'blur(10px)' }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {currentStep.type === 'INTRO_SPLASH' && <BoardIntroSplash data={currentStep.data} />}
-            {currentStep.type === 'MEDIA_PLAYER' && <BoardMediaPlayer data={currentStep.data} />}
-            {currentStep.type === 'LIVE_WARMUP' && <BoardLiveClassWarmup data={currentStep.data} />}
-            {currentStep.type === 'FOCUS_CARDS' && <BoardFocusCards data={currentStep.data} />}
-            {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
-            {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
-            {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
-            {currentStep.type === 'GRAMMAR_PRACTICE' && <BoardGrammarPractice data={currentStep.data} />}
-            {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}
-            {currentStep.type === 'UNSCRAMBLE' && <BoardUnscramble data={currentStep.data} />}
-            {currentStep.type === 'WHATS_MISSING' && <BoardWhatsMissing data={currentStep.data} />}
-            {currentStep.type === 'SPEED_QUIZ' && <BoardSpeedQuiz data={currentStep.data} />}
-            {currentStep.type === 'STORY_SEQUENCING' && <BoardStorySequencing data={currentStep.data} />}
-            {(currentStep.type === 'I_SAY_YOU_SAY' || currentStep.type === 'SPEAKING') && <BoardISayYouSay data={currentStep.data} />}
-            {currentStep.type === 'MAGIC_EYES' && <BoardMagicEyes data={currentStep.data} />}
-            {currentStep.type === 'POLL' && <BoardPoll data={currentStep.data} />}
-            {currentStep.type === 'WHEEL_OF_DESTINY' && <BoardWheelOfDestiny data={currentStep.data} />}
-            {currentStep.type === 'UNIT_SELECTION' && <BoardUnitSelection />}
-            {(currentStep.type === 'SCRAMBLE') && <BoardUnscramble data={currentStep.data} />}
-            {currentStep.type === 'FLASH_MATCH' && <BoardFlashMatch data={currentStep.data} />}
-            {currentStep.type === 'LISTEN_TAP' && <BoardListenTap data={currentStep.data} />}
-          </motion.div>
-        </AnimatePresence>
+        {/* ═══ BoardShell: persistent frame (phase arc + team rails + leaderboard + whose-turn) ═══ */}
+        <BoardShell>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${currentStep.type}-${state.currentStepIndex}`}
+              className="h-full w-full"
+              initial={{ opacity: 0, scale: 0.98, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, scale: 1.02, filter: 'blur(8px)' }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {currentStep.type === 'INTRO_SPLASH' && <BoardIntroSplash data={currentStep.data} />}
+              {currentStep.type === 'MEDIA_PLAYER' && <BoardMediaPlayer data={currentStep.data} />}
+              {currentStep.type === 'LIVE_WARMUP' && <BoardLiveClassWarmup data={currentStep.data} />}
+              {currentStep.type === 'FOCUS_CARDS' && <BoardFocusCards data={currentStep.data} />}
+              {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
+              {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
+              {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
+              {currentStep.type === 'GRAMMAR_PRACTICE' && <BoardGrammarPractice data={currentStep.data} />}
+              {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}
+              {currentStep.type === 'UNSCRAMBLE' && <BoardUnscramble data={currentStep.data} />}
+              {currentStep.type === 'WHATS_MISSING' && <BoardWhatsMissing data={currentStep.data} />}
+              {currentStep.type === 'SPEED_QUIZ' && <BoardSpeedQuiz data={currentStep.data} />}
+              {currentStep.type === 'STORY_SEQUENCING' && <BoardStorySequencing data={currentStep.data} />}
+              {(currentStep.type === 'I_SAY_YOU_SAY' || currentStep.type === 'SPEAKING') && <BoardISayYouSay data={currentStep.data} />}
+              {currentStep.type === 'MAGIC_EYES' && <BoardMagicEyes data={currentStep.data} />}
+              {currentStep.type === 'POLL' && <BoardPoll data={currentStep.data} />}
+              {currentStep.type === 'WHEEL_OF_DESTINY' && <BoardWheelOfDestiny data={currentStep.data} />}
+              {currentStep.type === 'UNIT_SELECTION' && <BoardUnitSelection />}
+              {(currentStep.type === 'SCRAMBLE') && <BoardUnscramble data={currentStep.data} />}
+              {currentStep.type === 'FLASH_MATCH' && <BoardFlashMatch data={currentStep.data} />}
+              {currentStep.type === 'LISTEN_TAP' && <BoardListenTap data={currentStep.data} />}
+            </motion.div>
+          </AnimatePresence>
+        </BoardShell>
 
-        {/* Cinematic Progress Bar */}
-        {currentStep.type !== 'UNIT_SELECTION' && (
-          <div className="absolute bottom-0 left-0 w-full h-2 bg-white/10 z-50">
-            <div
-              className="h-full bg-gradient-to-r from-duo-green to-duo-blue shadow-[0_0_10px_rgba(88,204,2,0.8)] transition-all duration-700 ease-out"
-              style={{ width: `${progressPercent}%` }}
-            ></div>
-          </div>
-        )}
       </div>
     </div>
   );
