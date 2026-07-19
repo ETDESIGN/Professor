@@ -1,6 +1,11 @@
+// BoardFocusCards — Vocabulary Presentation (INPUT phase).
+// Redesigned from Hermes prototype 02-vocab-grid.html.
+// Shows a 5-card grid overview; tapping a card enters drill mode (enlarged
+// with staged reveal + audio). Teacher controls via remote (NEXT/PREV/FLIP).
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Volume2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2, Check, ChevronRight, RotateCw } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { getVocabulary } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
@@ -9,11 +14,9 @@ const BoardFocusCards = ({ data }: { data: any }) => {
   const { state } = useSession();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [view, setView] = useState<'grid' | 'drill'>('grid');
 
-  // Enrich the flow-block cards with the unit manifest's rich data (audio_url,
-  // l1_translation Chinese, example_audio_url, definition) so the board shows the
-  // SAME multi-modal content as the student Word Lab (image + word + IPA + AUDIO
-  // + Chinese). Falls back to the flow-block card fields when no manifest match.
+  // Enrich from the unit manifest (image + IPA + Chinese L1 + audio).
   const cards = useMemo(() => {
     const flowCards = data.cards || [];
     const vocab = getVocabulary(state.activeUnit?.manifest);
@@ -22,138 +25,190 @@ const BoardFocusCards = ({ data }: { data: any }) => {
     return flowCards.map((c: any) => {
       const rich = byWord.get(String(c.front || c.back || '').toLowerCase()) || {};
       return {
-        front: c.front || rich.word,
-        back: c.back || rich.word,
-        image: c.image || rich.image_url,
-        phonetic: c.phonetic || rich.phonetic,
-        context_sentence: c.context_sentence || rich.example_sentence,
-        definition: c.definition || rich.definition,
+        word: c.front || rich.word || '',
+        image: c.image || rich.image_url || '',
+        phonetic: c.phonetic || rich.phonetic || '',
         l1: rich.l1_translation || c.translation || '',
-        audio_url: rich.audio_url || c.audio_url,
-        sentence_audio: rich.example_audio_url,
+        definition: c.definition || rich.definition || '',
+        example: c.context_sentence || rich.example_sentence || '',
+        audio: rich.audio_url || c.audio_url,
+        sentenceAudio: rich.example_audio_url,
       };
-    });
+    }).filter((c: any) => c.word);
   }, [data.cards, state.activeUnit?.manifest]);
 
-  const activeCard = cards[activeIndex];
-
-  // RULES OF HOOKS: all hooks (useState/useMemo/useEffect) run before any return.
+  // RULES OF HOOKS: all hooks before any return.
   useEffect(() => {
-    if (state.lastAction?.type === 'NEXT_CARD') handleNext();
-    else if (state.lastAction?.type === 'PREV_CARD') handlePrev();
-    else if (state.lastAction?.type === 'FLIP_CARD') setIsFlipped(prev => !prev);
+    if (state.lastAction?.type === 'NEXT_CARD') {
+      setIsFlipped(false);
+      setTimeout(() => setActiveIndex(p => Math.min(p + 1, cards.length - 1)), 200);
+    } else if (state.lastAction?.type === 'PREV_CARD') {
+      setIsFlipped(false);
+      setTimeout(() => setActiveIndex(p => Math.max(p - 1, 0)), 200);
+    } else if (state.lastAction?.type === 'FLIP_CARD') {
+      setIsFlipped(p => !p);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
 
-  if (cards.length === 0 || !activeCard) {
+  if (cards.length === 0) {
     return (
-      <div className="h-full bg-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-4xl font-display font-bold text-slate-400">{data.title || 'Focus Cards'}</h2>
-          <p className="text-slate-300 text-xl mt-2">No cards available for this lesson.</p>
+      <div className="h-full flex flex-col items-center justify-center text-slate-400">
+        <p className="font-display text-4xl font-bold">Vocabulary Grid</p>
+        <p className="text-xl mt-2">No vocabulary for this unit.</p>
+      </div>
+    );
+  }
+
+  const active = cards[activeIndex];
+
+  // ═══ GRID VIEW ═══
+  if (view === 'grid') {
+    return (
+      <div className="h-full flex flex-col p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-5xl font-display font-bold text-slate-50">Vocabulary Grid</h1>
+            <p className="text-xl text-slate-400 font-cn mt-1">生词卡片 · 点读跟练</p>
+          </div>
+          <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+            <span className="text-3xl font-black text-blue-300">{cards.length}</span>
+            <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">Words</span>
+          </div>
+        </div>
+
+        {/* Cards grid */}
+        <div className="relative flex-1 rounded-3xl border-2 border-blue-500/40 bg-gradient-to-br from-blue-950/30 via-slate-900/40 to-slate-950/50 overflow-hidden">
+          <div className="h-full grid grid-cols-3 grid-rows-2 gap-4 p-6">
+            {cards.slice(0, 5).map((card, i) => (
+              <motion.button
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                onClick={() => { setActiveIndex(i); setView('drill'); setIsFlipped(false); }}
+                className={`relative rounded-2xl border-2 p-5 flex flex-col items-center justify-center transition-all hover:scale-105 ${
+                  i === activeIndex
+                    ? 'border-blue-400 bg-gradient-to-b from-blue-500/15 to-blue-900/20 shadow-[0_0_30px_rgba(59,130,246,.3)]'
+                    : 'border-white/10 bg-white/5 hover:border-blue-400/40'
+                }`}
+              >
+                {i === activeIndex && (
+                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-blue-500 text-[10px] font-black text-white uppercase tracking-wider">Now</div>
+                )}
+                {card.image && String(card.image).startsWith('http') ? (
+                  <img src={card.image} alt={card.word} className="w-24 h-24 object-contain drop-shadow-2xl" onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0.2')} />
+                ) : (
+                  <div className="text-7xl leading-none drop-shadow-2xl">{card.word.charAt(0).toUpperCase()}</div>
+                )}
+                <div className="mt-3 text-4xl font-display font-bold text-slate-100">{card.word}</div>
+                {card.phonetic && <div className="mt-1 text-xl text-slate-400 font-mono">{card.phonetic}</div>}
+                {card.l1 && <div className="mt-2 text-3xl font-cn font-bold text-amber-200">{card.l1}</div>}
+                {/* Audio pulse */}
+                <div
+                  onClick={(e) => { e.stopPropagation(); playAudioUrl(card.audio, card.word); }}
+                  className="absolute bottom-3 left-3 w-8 h-8 rounded-full bg-blue-500/30 border border-blue-400/50 flex items-center justify-center active:scale-90"
+                >
+                  <Volume2 size={16} className="text-blue-200" />
+                </div>
+              </motion.button>
+            ))}
+
+            {/* Helper card */}
+            <div className="relative rounded-2xl border border-dashed border-blue-500/30 bg-blue-500/5 p-5 flex flex-col items-center justify-center opacity-60">
+              <div className="text-5xl">📢</div>
+              <div className="mt-3 text-xl font-bold text-blue-200">Listen &amp; Repeat</div>
+              <div className="mt-1 text-base text-slate-400 font-cn">听一听，读一读</div>
+              <div className="mt-2 text-xs text-slate-500">Tap a card to hear it</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          {cards.map((_: any, i: number) => (
+            <div key={i} className={`w-2.5 h-2.5 rounded-full transition-colors ${i === activeIndex ? 'bg-blue-400' : 'bg-slate-600'}`} />
+          ))}
         </div>
       </div>
     );
   }
 
-  const speak = (url?: string, text?: string) => playAudioUrl(url, text);
-
-  const handleNext = () => {
-    setIsFlipped(false);
-    setTimeout(() => setActiveIndex((prev) => (prev + 1) % cards.length), 200);
-  };
-  const handlePrev = () => {
-    setIsFlipped(false);
-    setTimeout(() => setActiveIndex((prev) => (prev - 1 + cards.length) % cards.length), 200);
-  };
-
+  // ═══ DRILL VIEW (enlarged single card) ═══
   return (
-    <div className="h-full bg-slate-100 flex flex-col p-12 overflow-hidden relative">
-      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#3b82f6 2px, transparent 2px)', backgroundSize: '40px 40px' }}></div>
+    <div className="h-full flex flex-col items-center justify-center p-6 relative">
+      <button
+        onClick={() => setView('grid')}
+        className="absolute top-4 left-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition-colors z-10"
+      >
+        <ChevronRight size={20} className="rotate-180" /> Grid
+      </button>
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8 relative z-10">
-        <h2 className="text-5xl font-display font-bold text-slate-800 flex items-center gap-4">
-          <span className="bg-duo-blue text-white w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg">Aa</span>
-          {data.title}
-        </h2>
-        <div className="text-4xl font-mono text-slate-400 font-bold tracking-widest bg-white px-6 py-2 rounded-xl shadow-sm border border-slate-200">
-          {activeIndex + 1} / {cards.length}
-        </div>
-      </div>
-
-      {/* 3D Stage */}
-      <div className="flex-1 flex items-center justify-center perspective-[2500px]">
-        <div className="absolute left-12 top-1/2 -translate-y-1/2 text-slate-300 animate-pulse"><ArrowLeft size={64} /></div>
-        <div className="absolute right-12 top-1/2 -translate-y-1/2 text-slate-300 animate-pulse"><ArrowRight size={64} /></div>
-
-        <div className="absolute w-[600px] h-[750px] bg-white rounded-[3rem] shadow-sm border border-slate-200 transform translate-x-4 translate-y-4 -z-10 rotate-2"></div>
-        <div className="absolute w-[600px] h-[750px] bg-white rounded-[3rem] shadow-sm border border-slate-200 transform -translate-x-4 translate-y-2 -z-20 -rotate-2"></div>
-
-        <div className={`relative w-[600px] h-[750px] transition-transform duration-700 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
-          {/* Front Face */}
-          <div className="absolute inset-0 backface-hidden bg-white rounded-[3rem] shadow-2xl border-b-[24px] border-slate-100 flex flex-col items-center justify-center p-12 overflow-hidden border-2 border-t-white border-x-white">
-            <div className="flex-1 w-full flex items-center justify-center relative">
-              <div className="absolute inset-0 bg-blue-50 rounded-full scale-90 opacity-50 blur-3xl"></div>
-              {activeCard.image && String(activeCard.image).startsWith('http') ? (
-                <img src={activeCard.image} alt={activeCard.back} className="w-full h-full object-contain relative z-10 rounded-2xl" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              ) : (
-                <div className="text-[200px] leading-none drop-shadow-2xl relative z-10 select-none">{activeCard.front || activeCard.back}</div>
-              )}
-            </div>
-            {/* Speak the WORD on the front (real audio, guaranteed sound). */}
-            <button onClick={() => speak(activeCard.audio_url, activeCard.back)} className="flex items-center gap-3 bg-duo-blue text-white px-8 py-4 rounded-2xl shadow-lg active:scale-95 mb-2">
-              <Volume2 size={36} className="text-yellow-300" />
-              <span className="text-2xl font-bold">{activeCard.back}</span>
+      <AnimatePresence mode="wait">
+        {!isFlipped ? (
+          /* FRONT: image + word + Listen */
+          <motion.div
+            key={`front-${activeIndex}`}
+            initial={{ rotateY: 90, opacity: 0 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            exit={{ rotateY: -90, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center"
+          >
+            {active.image && String(active.image).startsWith('http') ? (
+              <img src={active.image} alt={active.word} className="w-64 h-64 object-contain drop-shadow-2xl mb-4" onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0.2')} />
+            ) : (
+              <div className="text-[180px] leading-none drop-shadow-2xl mb-4">{active.word.charAt(0).toUpperCase()}</div>
+            )}
+            <h2 className="text-7xl font-display font-black text-slate-50">{active.word}</h2>
+            <button
+              onClick={() => playAudioUrl(active.audio, active.word)}
+              className="mt-6 flex items-center gap-3 bg-blue-500 text-white px-8 py-4 rounded-2xl font-bold text-2xl active:scale-95 shadow-lg"
+            >
+              <Volume2 size={32} className="text-yellow-300" /> Listen
             </button>
-            <span className="text-slate-300 font-bold uppercase tracking-[0.5em] text-sm animate-pulse">Flip for meaning</span>
-          </div>
+            <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-sm mt-4 animate-pulse">Flip for meaning</p>
+          </motion.div>
+        ) : (
+          /* BACK: IPA + Chinese + example + sentence audio */
+          <motion.div
+            key={`back-${activeIndex}`}
+            initial={{ rotateY: 90, opacity: 0 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            exit={{ rotateY: -90, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center text-center max-w-2xl"
+          >
+            <h2 className="text-7xl font-display font-black text-slate-50 mb-4">{active.word}</h2>
+            {active.phonetic && (
+              <button onClick={() => playAudioUrl(active.audio, active.word)} className="bg-white/10 px-8 py-3 rounded-full flex items-center gap-4 text-3xl font-mono mb-4 active:scale-95">
+                <Volume2 size={28} className="text-yellow-300" /> {active.phonetic}
+              </button>
+            )}
+            {active.l1 && <div className="text-6xl font-cn font-bold text-amber-200 mb-4">{active.l1}</div>}
+            {active.definition && <p className="text-2xl text-slate-300 mb-4">{active.definition}</p>}
+            {active.example && (
+              <div className="bg-black/20 p-5 rounded-2xl border border-white/10 max-w-xl">
+                <p className="text-xl text-slate-300 leading-relaxed">{active.example}</p>
+                <button
+                  onClick={() => playAudioUrl(active.sentenceAudio, active.example)}
+                  className="mt-3 inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full text-base font-bold active:scale-95"
+                >
+                  <Volume2 size={18} className="text-yellow-300" /> Hear sentence
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Back Face */}
-          <div className="absolute inset-0 backface-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-[3rem] shadow-2xl border-b-[24px] border-blue-800 rotate-y-180 flex flex-col items-center justify-center p-12 text-white border-2 border-t-white/20 border-x-white/20">
-            <div className="flex-1 flex flex-col items-center justify-center w-full">
-              <h3 className="text-8xl font-display font-bold mb-6 tracking-tight drop-shadow-md">{activeCard.back}</h3>
-              {activeCard.phonetic && (
-                <button onClick={() => speak(activeCard.audio_url, activeCard.back)} className="bg-white/20 backdrop-blur-md px-10 py-5 rounded-full flex items-center gap-6 text-4xl font-mono shadow-inner border border-white/20 active:scale-95 mb-4">
-                  <Volume2 size={48} className="text-yellow-300" />
-                  {activeCard.phonetic}
-                </button>
-              )}
-              {/* Chinese (L1) translation — the Chinese-market requirement. */}
-              {activeCard.l1 && (
-                <div className="text-5xl font-bold text-yellow-200 mb-4">{activeCard.l1}</div>
-              )}
-            </div>
-            <div className="w-full bg-black/20 p-6 rounded-2xl text-center backdrop-blur-sm border border-white/10">
-              <p className="opacity-90 text-2xl font-medium">
-                {activeCard.context_sentence ? (
-                  <>
-                    {activeCard.context_sentence.split(activeCard.back).map((part: string, i: number, arr: string[]) => (
-                      <React.Fragment key={i}>
-                        {part}
-                        {i < arr.length - 1 && <span className="font-bold text-yellow-300 underline decoration-4 underline-offset-4">{activeCard.back}</span>}
-                      </React.Fragment>
-                    ))}
-                  </>
-                ) : activeCard.definition ? activeCard.definition : <span className="text-white/50 italic">No context available</span>}
-              </p>
-              {/* Speak the EXAMPLE SENTENCE (sentence audio / speechSynthesis). */}
-              {activeCard.context_sentence && (
-                <button onClick={() => speak(activeCard.sentence_audio, activeCard.context_sentence)} className="mt-3 inline-flex items-center gap-2 bg-white/15 px-4 py-2 rounded-full text-lg font-bold active:scale-95">
-                  <Volume2 size={20} className="text-yellow-300" /> Hear sentence
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Progress dots */}
+      <div className="flex items-center justify-center gap-2 mt-6">
+        {cards.map((_: any, i: number) => (
+          <div key={i} className={`w-2.5 h-2.5 rounded-full transition-colors ${i === activeIndex ? 'bg-blue-400' : 'bg-slate-600'}`} />
+        ))}
       </div>
-
-      <style>{`
-        .perspective-[2500px] { perspective: 2500px; }
-        .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-      `}</style>
     </div>
   );
 };
