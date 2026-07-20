@@ -408,7 +408,8 @@ export async function getParentStudents(parentId: string): Promise<StudentWithPr
                 avatar_url
             )
         `)
-        .eq('parent_id', parentId);
+        .eq('parent_id', parentId)
+        .eq('status', 'active'); // only show APPROVED links (pending links must be approved first)
 
     if (error) {
         log.warn('error_fetching_parent_student_links', { error: error?.message || String(error) });

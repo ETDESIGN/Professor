@@ -11,9 +11,12 @@ async function requireAdmin(): Promise<void> {
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single();
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'teacher')) {
-    throw new Error('Insufficient permissions. Admin or teacher role required.');
+    .maybeSingle();
+  // Effective role mirrors the backend current_role_name(): app_metadata
+  // (admin-provisioned) takes precedence over profiles.role.
+  const effectiveRole = (user.app_metadata?.role as string) ?? profile?.role;
+  if (effectiveRole !== 'admin' && effectiveRole !== 'manager') {
+    throw new Error('Insufficient permissions. Admin or manager role required.');
   }
 }
 

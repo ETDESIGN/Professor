@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, MessageCircle, Clock, Check, CheckCheck, Search, User } from 'lucide-react';
+import { Send, ArrowLeft, MessageCircle, Clock, Check, CheckCheck, Search, User, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getUserMessages, sendMessage, getUnreadMessageCount, markMessageAsRead, MessageWithSender } from '../../services/DataService';
+import { useTeacherStudents } from '../../hooks/useQueries';
+import { Modal } from './SharedUI';
 import { useAppStore } from '../../store/useAppStore';
 import { createClientLogger } from '../../services/logger';
 
@@ -21,6 +23,12 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // New-conversation composer
+    const [showNew, setShowNew] = useState(false);
+    const [recipientId, setRecipientId] = useState('');
+    const [newConvText, setNewConvText] = useState('');
+    const { data: recipients = [] } = useTeacherStudents(userProfile?.id);
 
     useEffect(() => {
         loadMessages();
@@ -76,6 +84,24 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
             await loadMessages();
         } catch (error) {
             log.warn('error_sending_message', { error: error instanceof Error ? error.message : String(error) });
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleStartConversation = async () => {
+        if (!recipientId || !newConvText.trim() || !userProfile?.id) return;
+        try {
+            setSending(true);
+            await sendMessage(userProfile.id, recipientId, newConvText.trim());
+            const rid = recipientId;
+            setNewConvText('');
+            setRecipientId('');
+            setShowNew(false);
+            setSelectedConversation(rid);
+            await loadMessages();
+        } catch (error) {
+            log.warn('error_starting_conversation', { error: error instanceof Error ? error.message : String(error) });
         } finally {
             setSending(false);
         }
@@ -151,8 +177,14 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                 </button>
                 <div className="flex-1">
                     <h1 className="font-bold text-slate-800">Messages</h1>
-                    <p className="text-xs text-slate-500">Parent communications</p>
+                    <p className="text-xs text-slate-500">Direct messages</p>
                 </div>
+                <button
+                    onClick={() => setShowNew(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teacher-primary text-white rounded-lg font-bold text-sm hover:bg-emerald-500 shadow-sm"
+                >
+                    <Plus size={16} /> New
+                </button>
                 {unreadCount > 0 && (
                     <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                         {unreadCount}
@@ -171,7 +203,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search parents..."
+                                placeholder="Search conversations..."
                                 className="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             />
                         </div>
@@ -245,7 +277,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                                 </div>
                                 <div>
                                     <h2 className="font-bold text-slate-800">{conversations[selectedConversation]?.name}</h2>
-                                    <p className="text-xs text-slate-500">Parent</p>
+                                    <p className="text-xs text-slate-500">Direct message</p>
                                 </div>
                             </div>
 
@@ -335,11 +367,50 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                                 <User size={40} className="text-slate-400" />
                             </div>
                             <h3 className="font-bold text-slate-800 mb-2">Select a conversation</h3>
-                            <p className="text-slate-500 text-sm">Choose a parent from the list to view messages</p>
+                            <p className="text-slate-500 text-sm">Choose a conversation from the list, or start a new one.</p>
                         </div>
                     )}
                 </div>
             </div>
+
+            {/* New conversation modal */}
+            <Modal open={showNew} onClose={() => setShowNew(false)} title="New message">
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1">Recipient (student)</label>
+                        <select
+                            value={recipientId}
+                            onChange={e => setRecipientId(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teacher-primary text-sm"
+                        >
+                            <option value="">Select a student</option>
+                            {recipients.map(r => (
+                                <option key={r.id} value={r.id}>{r.full_name || r.email}</option>
+                            ))}
+                        </select>
+                        {recipients.length === 0 && (
+                            <p className="text-xs text-slate-400 mt-1">No students yet. Add students to your classes first.</p>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1">Message</label>
+                        <textarea
+                            value={newConvText}
+                            onChange={e => setNewConvText(e.target.value)}
+                            rows={3}
+                            placeholder="Type your message..."
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teacher-primary text-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={handleStartConversation}
+                        disabled={!recipientId || !newConvText.trim() || sending}
+                        className="w-full py-2.5 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        <Send size={16} /> {sending ? 'Sending…' : 'Send'}
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 };

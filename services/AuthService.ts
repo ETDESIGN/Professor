@@ -3,7 +3,7 @@ import { createClientLogger } from './logger';
 
 const log = createClientLogger('AuthService');
 
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
+export type UserRole = 'admin' | 'manager' | 'teacher' | 'student' | 'parent';
 
 export interface AuthUser {
     id: string;
@@ -123,6 +123,10 @@ export async function signUp(
                 emailRedirectTo: redirectUrl,
                 data: {
                     full_name: fullName || email.split('@')[0],
+                    // Sent as user_metadata; the handle_new_user trigger reads it
+                    // and assigns profiles.role (clamping admin/manager -> student
+                    // so privileged roles can't be self-claimed).
+                    role,
                 },
             },
         });
@@ -201,6 +205,9 @@ export function hasAccessToPortal(
 ): boolean {
     const roleAccess: Record<UserRole, string[]> = {
         admin: ['admin', 'teacher', 'student', 'parent'],
+        // Managers reach the admin/manager area (school-scoped views). Provisioned
+        // by an admin; not self-signup-able.
+        manager: ['admin'],
         teacher: ['teacher'],
         student: ['student'],
         parent: ['parent'],

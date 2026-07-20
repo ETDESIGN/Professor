@@ -17,6 +17,26 @@ import {
 import {
   GamificationService,
 } from '../services/GamificationService';
+import {
+  getSchoolDirectory,
+  getMyMemberships,
+  requestAffiliation,
+  withdrawAffiliation,
+  getRosterForClass,
+  createRosterStudent,
+  updateRosterStudent,
+  archiveRosterStudent,
+  claimRosterStudent,
+  connectParentByToken,
+  getPendingParentLinks,
+  decideParentRosterLink,
+  getSchoolMembers,
+  setMembershipStatus,
+  ProvisioningService,
+  getClassAnnouncements,
+  createClassAnnouncement,
+  RosterPatch,
+} from '../services/ManagementService';
 import { supabase } from '../services/supabaseClient';
 
 export function useUnits() {
@@ -222,5 +242,184 @@ export function useClaimQuest() {
   return useMutation({
     mutationFn: (questId: string) => GamificationService.claimQuestReward(questId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dailyQuests'] }),
+  });
+}
+
+// ============================================
+// Schools / affiliation / roster / approvals / announcements
+// ============================================
+
+export function useSchoolDirectory() {
+  return useQuery({
+    queryKey: ['schoolDirectory'],
+    queryFn: () => getSchoolDirectory(),
+    staleTime: 60_000,
+  });
+}
+
+export function useMyMemberships(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['myMemberships', userId],
+    queryFn: () => getMyMemberships(userId!),
+    enabled: !!userId,
+    staleTime: 30_000,
+  });
+}
+
+export function useRequestAffiliation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ schoolId, userId }: { schoolId: string; userId: string }) =>
+      requestAffiliation(schoolId, userId),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['myMemberships', v.userId] }),
+  });
+}
+
+export function useWithdrawAffiliation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (membershipId: string) => withdrawAffiliation(membershipId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['myMemberships'] }),
+  });
+}
+
+export function useRosterForClass(classId: string | undefined) {
+  return useQuery({
+    queryKey: ['roster', classId],
+    queryFn: () => getRosterForClass(classId!),
+    enabled: !!classId,
+    staleTime: 15_000,
+  });
+}
+
+export function useCreateRosterStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      classId,
+      teacherId,
+      displayName,
+      opts,
+    }: {
+      classId: string;
+      teacherId: string;
+      displayName: string;
+      opts?: { avatar?: string; team?: string };
+    }) => createRosterStudent(classId, teacherId, displayName, opts),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.classId] }),
+  });
+}
+
+export function useUpdateRosterStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch, classId }: { id: string; patch: RosterPatch; classId: string }) =>
+      updateRosterStudent(id, patch),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.classId] }),
+  });
+}
+
+export function useArchiveRosterStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, classId }: { id: string; classId: string }) => archiveRosterStudent(id),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.classId] }),
+  });
+}
+
+export function usePendingParentLinks(enabled = true) {
+  return useQuery({
+    queryKey: ['pendingParentLinks'],
+    queryFn: () => getPendingParentLinks(),
+    enabled,
+    staleTime: 15_000,
+  });
+}
+
+export function useDecideParentRosterLink() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ linkId, approve }: { linkId: string; approve: boolean }) =>
+      decideParentRosterLink(linkId, approve),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pendingParentLinks'] }),
+  });
+}
+
+export function useClaimRosterStudent() {
+  return useMutation({
+    mutationFn: (token: string) => claimRosterStudent(token),
+  });
+}
+
+export function useConnectParentByToken() {
+  return useMutation({
+    mutationFn: (token: string) => connectParentByToken(token),
+  });
+}
+
+// ============================================
+// Manager: school members, affiliation approvals, provisioning
+// ============================================
+
+export function useSchoolMembers(schoolId: string | undefined) {
+  return useQuery({
+    queryKey: ['schoolMembers', schoolId],
+    queryFn: () => getSchoolMembers(schoolId!),
+    enabled: !!schoolId,
+    staleTime: 15_000,
+  });
+}
+
+export function useSetMembershipStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ membershipId, status }: { membershipId: string; status: 'active' | 'rejected' }) =>
+      setMembershipStatus(membershipId, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schoolMembers'] }),
+  });
+}
+
+export function useInviteTeacher() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ schoolId, email, fullName, title }: { schoolId: string; email: string; fullName?: string; title?: string }) =>
+      ProvisioningService.inviteTeacher(schoolId, email, fullName, title),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['schoolMembers', v.schoolId] }),
+  });
+}
+
+export function useRevokeMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ membershipId, schoolId }: { membershipId: string; schoolId: string }) =>
+      ProvisioningService.revokeMember(membershipId),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['schoolMembers', v.schoolId] }),
+  });
+}
+
+export function useClassAnnouncements(classId: string | undefined) {
+  return useQuery({
+    queryKey: ['classAnnouncements', classId],
+    queryFn: () => getClassAnnouncements(classId!),
+    enabled: !!classId,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateClassAnnouncement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      classId,
+      authorId,
+      title,
+      body,
+    }: {
+      classId: string;
+      authorId: string;
+      title: string;
+      body: string;
+    }) => createClassAnnouncement(classId, authorId, title, body),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['classAnnouncements', v.classId] }),
   });
 }

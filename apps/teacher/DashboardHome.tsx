@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { getClassAnalytics, getTeacherStudents } from '../../services/DataService';
 import { Engine } from '../../services/SupabaseService';
-import { useUnits } from '../../hooks/useQueries';
+import { useUnits, useTeacherClasses } from '../../hooks/useQueries';
 import { useQuery } from '@tanstack/react-query';
 import { createClientLogger } from '../../services/logger';
 
@@ -28,6 +28,8 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
     queryFn: () => getTeacherStudents(userProfile!.id!),
     enabled: !!userProfile?.id,
   });
+  const { data: classes = [] } = useTeacherClasses(userProfile?.id);
+  const nextClass = classes[0];
   // Real class mastery from the LearnerState (plan 4.5) — total skills the class
   // has acquired (familiar+) and how many have decayed (need review).
   const studentIds = students.map((s: any) => s.id).filter(Boolean);
@@ -92,10 +94,10 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
           </div>
 
           <div className="relative z-10 mt-4">
-            <h2 className="text-4xl font-bold mb-2">Class 3B • English</h2>
+            <h2 className="text-4xl font-bold mb-2">{nextClass ? nextClass.name : 'Set up your first class'}</h2>
             <div className="flex items-center gap-4 text-indigo-100 mb-6">
-              <span className="flex items-center gap-2"><Calendar size={18} /> Room 304</span>
-              <span className="flex items-center gap-2"><Users size={18} /> 24 Students</span>
+              <span className="flex items-center gap-2"><Calendar size={18} /> {classes.length} {classes.length === 1 ? 'Class' : 'Classes'}</span>
+              <span className="flex items-center gap-2"><Users size={18} /> {students.length} Students</span>
             </div>
             <button
               onClick={onLaunchLive}

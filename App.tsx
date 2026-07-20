@@ -9,7 +9,7 @@ import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { MockModeBanner } from './components/shared/MockModeBanner';
 import { AppProviders } from './components/shared/AppProviders';
 import { useAppStore } from './store/useAppStore';
-import { getCurrentUser } from './services/AuthService';
+import { getCurrentUser, hasAccessToPortal } from './services/AuthService';
 import { supabase } from './services/supabaseClient';
 import { initErrorReporting, setupGlobalErrorHandler, setCurrentUser } from './services/errorReporting';
 import { startMetricsCollection, stopMetricsCollection } from './services/perfMonitor';
@@ -24,10 +24,11 @@ const TeacherDashboard = lazy(() => import('./apps/teacher/TeacherDashboard'));
 const LessonStudio = lazy(() => import('./apps/teacher/LessonStudio'));
 const ParentApp = lazy(() => import('./apps/parent/ParentApp'));
 const LiveCommander = lazy(() => import('./apps/teacher/LiveCommander'));
-const DistrictAdminDashboard = lazy(() => import('./apps/admin/DistrictAdminDashboard'));
+const AdminPortal = lazy(() => import('./apps/admin/AdminPortal'));
 const TeacherOnboarding = lazy(() => import('./apps/teacher/TeacherOnboarding'));
 const StudentOnboarding = lazy(() => import('./apps/student/StudentOnboarding'));
 const ParentOnboarding = lazy(() => import('./apps/parent/ParentOnboarding'));
+const ClaimStudent = lazy(() => import('./apps/ClaimStudent'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen bg-slate-50">
@@ -42,6 +43,23 @@ const NotFound = () => (
     <button onClick={() => window.location.assign('/')} className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700">Back to Hub</button>
   </div>
 );
+
+type Portal = 'teacher' | 'student' | 'parent' | 'admin';
+
+function portalFromPath(pathname: string): Portal | null {
+  if (pathname.startsWith('/teacher')) return 'teacher';
+  if (pathname.startsWith('/student')) return 'student';
+  if (pathname.startsWith('/parent')) return 'parent';
+  if (pathname.startsWith('/admin')) return 'admin';
+  return null;
+}
+
+function homePathForRole(role: string | undefined): string {
+  if (role === 'teacher') return '/teacher';
+  if (role === 'parent') return '/parent';
+  if (role === 'admin' || role === 'manager') return '/admin';
+  return '/student';
+}
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -65,11 +83,22 @@ const App: React.FC = () => {
         if (user) {
           // Always fetch fresh profile from database to avoid stale mock data
           setUserProfile(user);
+          // Portal access guard: prevent a user from opening a portal that
+          // doesn't match their DB role (e.g. a student opening /parent).
+          const portal = portalFromPath(location.pathname);
+          if (portal && !hasAccessToPortal(user.role, portal)) {
+            navigate(homePathForRole(user.role));
+          }
         } else {
           // Clear any stale profile data if no session exists or profile failed
           clearUserProfile();
-          // Redirect to login if not on login or hub page
-          if (location.pathname !== '/login' && location.pathname !== '/') {
+          // Redirect to login unless on a public path (login, hub, or a deep
+          // link like /claim?t=... whose own gate will send the user to login
+          // and preserve the return destination).
+          const isPublic = location.pathname === '/login'
+            || location.pathname === '/'
+            || location.pathname.startsWith('/claim');
+          if (!isPublic) {
             navigate('/login');
           }
         }
@@ -77,7 +106,6 @@ const App: React.FC = () => {
         log.warn('error_checking_session', { error: error instanceof Error ? error.message : String(error) });
         // Clear profile on error to prevent stale data
         clearUserProfile();
-        // Redirect to login if not on login or hub page
         if (location.pathname !== '/login' && location.pathname !== '/') {
           navigate('/login');
         }
@@ -86,11 +114,36 @@ const App: React.FC = () => {
     checkSession();
   }, [setUserProfile, clearUserProfile, location.pathname, navigate]);
 
+  // React to auth state changes (sign-out in another tab, token refresh, role
+  // updated by an admin) so the cached profile stays correct.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        clearUserProfile();
+        if (location.pathname !== '/login' && location.pathname !== '/') navigate('/login');
+      } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+        getCurrentUser().then((u) => {
+          if (u) setUserProfile(u);
+          else clearUserProfile();
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     setCurrentUser(userProfile ? { id: userProfile.id, role: userProfile.role as string | undefined } : null);
   }, [userProfile]);
 
   const handleLogin = (role: 'district_admin' | 'teacher' | 'student' | 'parent') => {
+    // Honor a pending redirect (e.g. a /claim?t=... deep link that required login).
+    const pending = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('pendingRedirect') : null;
+    if (pending) {
+      sessionStorage.removeItem('pendingRedirect');
+      navigate(pending);
+      return;
+    }
     // The actual user data is set in Login.tsx after successful auth
     if (role === 'district_admin') navigate('/admin');
     if (role === 'teacher') navigate('/teacher');
@@ -126,7 +179,9 @@ const App: React.FC = () => {
         <Route path="/onboarding/student" element={<Suspense fallback={<PageLoader />}><StudentOnboarding /></Suspense>} />
         <Route path="/onboarding/parent" element={<Suspense fallback={<PageLoader />}><ParentOnboarding /></Suspense>} />
 
-        <Route path="/admin/*" element={<Suspense fallback={<PageLoader />}><DistrictAdminDashboard /></Suspense>} />
+        <Route path="/claim" element={<Suspense fallback={<PageLoader />}><ClaimStudent /></Suspense>} />
+
+        <Route path="/admin/*" element={<Suspense fallback={<PageLoader />}><AdminPortal /></Suspense>} />
 
         <Route path="/teacher/*" element={<Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense>} />
         <Route path="/teacher/studio" element={<Suspense fallback={<PageLoader />}>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart2, TrendingUp, AlertCircle, CheckCircle, Download, Calendar, Users, ArrowUp, ArrowDown, ChevronDown, Loader2 } from 'lucide-react';
+import { BarChart2, TrendingUp, AlertCircle, CheckCircle, Download, Calendar, Users, ChevronDown, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { getTeacherStudents, getClassAnalytics, StudentWithProgress, ClassAnalytics } from '../../services/DataService';
@@ -97,48 +97,40 @@ const Reports: React.FC = () => {
          {/* Overview Cards */}
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-               <StatCard
-                  title="Class Mastery"
-                  value={`${stats.mastery}%`}
-                  trend="+4%"
-                  trendUp={true}
-                  icon={<CheckCircle size={20} />}
-                  color="text-green-600"
-                  bg="bg-green-100"
-               />
+                <StatCard
+                   title="Class Mastery"
+                   value={`${stats.mastery}%`}
+                   icon={<CheckCircle size={20} />}
+                   color="text-green-600"
+                   bg="bg-green-100"
+                />
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-               <StatCard
-                  title="Avg. Engagement"
-                  value={`${stats.engagement}%`}
-                  trend="-2%"
-                  trendUp={false}
-                  icon={<Users size={20} />}
-                  color="text-blue-600"
-                  bg="bg-blue-100"
-               />
+                <StatCard
+                   title="Avg. Engagement"
+                   value={`${stats.engagement}%`}
+                   icon={<Users size={20} />}
+                   color="text-blue-600"
+                   bg="bg-blue-100"
+                />
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-               <StatCard
-                  title="Homework Done"
-                  value={`${stats.completion}%`}
-                  trend="+12%"
-                  trendUp={true}
-                  icon={<BarChart2 size={20} />}
-                  color="text-purple-600"
-                  bg="bg-purple-100"
-               />
+                <StatCard
+                   title="Homework Done"
+                   value={`${stats.completion}%`}
+                   icon={<BarChart2 size={20} />}
+                   color="text-purple-600"
+                   bg="bg-purple-100"
+                />
             </motion.div>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-               <StatCard
-                  title="Total XP Earned"
-                  value={stats.totalXp.toLocaleString()}
-                  trend="+1.2k"
-                  trendUp={true}
-                  icon={<TrendingUp size={20} />}
-                  color="text-orange-600"
-                  bg="bg-orange-100"
-               />
+                <StatCard
+                   title="Total XP Earned"
+                   value={stats.totalXp.toLocaleString()}
+                   icon={<TrendingUp size={20} />}
+                   color="text-orange-600"
+                   bg="bg-orange-100"
+                />
             </motion.div>
          </div>
 
@@ -284,15 +276,11 @@ const Reports: React.FC = () => {
    );
 };
 
-const StatCard = ({ title, value, trend, trendUp, icon, color, bg }: any) => (
+const StatCard = ({ title, value, icon, color, bg }: any) => (
    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between h-32">
       <div className="flex justify-between items-start">
          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg} ${color}`}>
             {icon}
-         </div>
-         <div className={`flex items-center gap-1 text-xs font-bold ${trendUp ? 'text-green-600' : 'text-red-500'} bg-slate-50 px-2 py-1 rounded-full`}>
-            {trendUp ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-            {trend}
          </div>
       </div>
       <div>

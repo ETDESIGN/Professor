@@ -41,17 +41,22 @@ const Assignments: React.FC = () => {
       }
    };
 
-   const filteredAssignments = assignments.filter(a => {
-      const now = new Date();
-      const dueDate = a.due_date ? new Date(a.due_date) : null;
+    const filteredAssignments = assignments.filter(a => {
+       const now = new Date();
+       const dueDate = a.due_date ? new Date(a.due_date) : null;
 
-      if (activeTab === 'active') {
-         return !dueDate || dueDate >= now;
-      } else if (activeTab === 'past') {
-         return dueDate && dueDate < now;
-      }
-      return false;
-   });
+       if (activeTab === 'active') {
+          // Open-ended (no deadline) — currently in effect.
+          return !dueDate;
+       } else if (activeTab === 'scheduled') {
+          // Has an upcoming deadline.
+          return !!dueDate && dueDate >= now;
+       } else if (activeTab === 'past') {
+          // Deadline has passed.
+          return !!dueDate && dueDate < now;
+       }
+       return false;
+    });
 
    return (
       <div className="flex-1 p-8 overflow-auto bg-slate-50 font-sans">

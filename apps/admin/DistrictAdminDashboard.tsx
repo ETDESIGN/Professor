@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, Building2, Users, BookOpen, GraduationCap, Shield, AlertTriangle, ChevronRight, Search, Eye, Lock, Unlock, Trash2, UserCog } from 'lucide-react';
+import { LogOut, Building2, Users, BookOpen, GraduationCap, Shield, AlertTriangle, ChevronRight, Search, Eye, Lock, Unlock, Trash2, UserCog, Plus, Copy, CheckCircle } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useAppStore } from '../../store/useAppStore';
 import { AdminService, DistrictMetrics, TeacherSummary, StudentSummary, SchoolGroup, ContentModerationItem } from '../../services/AdminService';
+import { ProvisioningService } from '../../services/ManagementService';
+import { Modal, Field } from '../teacher/SharedUI';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +19,33 @@ const DistrictAdminDashboard: React.FC = () => {
     const [content, setContent] = useState<ContentModerationItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Create-school-with-manager (admin bootstrap)
+    const [showCreateSchool, setShowCreateSchool] = useState(false);
+    const [schoolName, setSchoolName] = useState('');
+    const [slug, setSlug] = useState('');
+    const [mgrEmail, setMgrEmail] = useState('');
+    const [mgrName, setMgrName] = useState('');
+    const [creatingSchool, setCreatingSchool] = useState(false);
+    const [createdSchool, setCreatedSchool] = useState<{ name: string; invite_url: string | null } | null>(null);
+
+    const handleCreateSchool = async () => {
+        if (!schoolName.trim() || !mgrEmail.trim()) return;
+        setCreatingSchool(true);
+        try {
+            const res: any = await ProvisioningService.createSchoolWithManager(
+                schoolName.trim(),
+                mgrEmail.trim(),
+                mgrName.trim() || undefined,
+                slug.trim() || undefined,
+            );
+            setCreatedSchool({ name: schoolName.trim(), invite_url: res?.invite_url || null });
+            setShowCreateSchool(false);
+            setSchoolName(''); setSlug(''); setMgrEmail(''); setMgrName('');
+            loadAllData();
+        } catch { /* toast handled in service */ }
+        finally { setCreatingSchool(false); }
+    };
 
     useEffect(() => {
         loadAllData();
@@ -57,7 +86,9 @@ const DistrictAdminDashboard: React.FC = () => {
 
     const handleRoleChange = async (userId: string, newRole: string) => {
         try {
-            await AdminService.updateUserRole(userId, newRole as any);
+            // Routed through the edge function so app_metadata.role is set too
+            // (makes the role change actually effective; profiles.role alone is not).
+            await ProvisioningService.setUserRole(userId, newRole as any);
             toast.success('User role updated');
             loadAllData();
         } catch (err: any) {
@@ -154,6 +185,12 @@ const DistrictAdminDashboard: React.FC = () => {
                                 />
                             </div>
                         )}
+                        <button
+                            onClick={() => setShowCreateSchool(true)}
+                            className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 text-sm flex items-center gap-1.5"
+                        >
+                            <Plus size={16} /> Create School
+                        </button>
                         <button
                             onClick={loadAllData}
                             className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 text-sm"
@@ -302,6 +339,7 @@ const DistrictAdminDashboard: React.FC = () => {
                                                                         className="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                                                     >
                                                                         <option value="admin">Admin</option>
+                                                                        <option value="manager">Manager</option>
                                                                         <option value="teacher">Teacher</option>
                                                                         <option value="student">Student</option>
                                                                         <option value="parent">Parent</option>
@@ -369,6 +407,7 @@ const DistrictAdminDashboard: React.FC = () => {
                                                                         className="text-xs border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                                                     >
                                                                         <option value="admin">Admin</option>
+                                                                        <option value="manager">Manager</option>
                                                                         <option value="teacher">Teacher</option>
                                                                         <option value="student">Student</option>
                                                                         <option value="parent">Parent</option>
@@ -456,6 +495,63 @@ const DistrictAdminDashboard: React.FC = () => {
                     )}
                 </main>
             </div>
+
+            {/* Create school + manager modal */}
+            <Modal open={showCreateSchool} onClose={() => setShowCreateSchool(false)} title="Create school & manager">
+                <p className="text-sm text-slate-500 mb-4">
+                    Creates a school and its first manager account (who can then invite teachers).
+                    A one-time setup link is returned for the manager to set a password.
+                </p>
+                <div className="space-y-3">
+                    <Field label="School name">
+                        <input value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="e.g., Lincoln Primary"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    </Field>
+                    <Field label="Slug (optional)">
+                        <input value={slug} onChange={e => setSlug(e.target.value)} placeholder="lincoln-primary"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    </Field>
+                    <Field label="Manager email">
+                        <input value={mgrEmail} onChange={e => setMgrEmail(e.target.value)} type="email" placeholder="manager@school.edu"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    </Field>
+                    <Field label="Manager full name (optional)">
+                        <input value={mgrName} onChange={e => setMgrName(e.target.value)} placeholder="Jordan Lee"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                    </Field>
+                    <button
+                        onClick={handleCreateSchool}
+                        disabled={!schoolName.trim() || !mgrEmail.trim() || creatingSchool}
+                        className="w-full py-2.5 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                        {creatingSchool ? 'Creating…' : <><Plus size={16} /> Create school & manager</>}
+                    </button>
+                </div>
+            </Modal>
+
+            {/* Result modal */}
+            <Modal open={!!createdSchool} onClose={() => setCreatedSchool(null)} title="School created">
+                <div className="text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle size={32} className="text-green-600" />
+                    </div>
+                    <p className="text-slate-600 mb-1"><span className="font-bold text-slate-800">{createdSchool?.name}</span> and its manager were created.</p>
+                    {createdSchool?.invite_url ? (
+                        <>
+                            <p className="text-sm text-slate-500 mb-4">Share this one-time setup link with the manager:</p>
+                            <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-3 mb-4 break-all text-xs font-mono text-slate-700">{createdSchool.invite_url}</div>
+                            <button
+                                onClick={() => { if (createdSchool?.invite_url) navigator.clipboard.writeText(createdSchool.invite_url); toast.success('Setup link copied'); setCreatedSchool(null); }}
+                                className="w-full py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-700 flex items-center justify-center gap-2"
+                            >
+                                <Copy size={18} /> Copy link & close
+                            </button>
+                        </>
+                    ) : (
+                        <p className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg">The manager account was created but no setup link could be generated. Ask them to use “Forgot password”.</p>
+                    )}
+                </div>
+            </Modal>
         </div>
     );
 };
