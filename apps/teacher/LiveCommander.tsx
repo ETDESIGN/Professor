@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../store/SessionContext';
 import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
@@ -25,8 +26,15 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const {
       state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction, deductAllPoints,
       clearDrawings, selectNextStudent, setSelectionMode, closeOverlay,
-      setQuietMode, updateNoiseLevel, endSession
+      setQuietMode, updateNoiseLevel, endSession, setActiveClass
    } = useSession();
+
+   // Bind the live session to the class chosen on the Classes screen (?class=…).
+   const [searchParams] = useSearchParams();
+   useEffect(() => {
+      const classId = searchParams.get('class');
+      if (classId) setActiveClass(classId);
+   }, [searchParams, setActiveClass]);
 
    const currentStep = state.activeSlideData;
    const activeFlow = state.activeUnit?.flow || [];

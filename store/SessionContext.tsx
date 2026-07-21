@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
-import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
-import { GamificationService } from '../services/GamificationService';
+import { getTeacherStudents, getSessionRoster, awardClassPoints, StudentWithProgress } from '../services/DataService';
 import { createClientLogger } from '../services/logger';
 
 const log = createClientLogger('SessionContext');
+
+/** Tiny debounce (avoids a lodash dependency). */
+function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
+  let t: ReturnType<typeof setTimeout> | null = null;
+  return ((...args: any[]) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  }) as T;
+}
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
 type SelectionMode = 'RANDOM' | 'FAIR' | 'ELIMINATION' | 'ROUND_ROBIN';
@@ -34,6 +42,9 @@ interface SessionState {
   currentStepIndex: number;
   activeSlideData: any;
   activeUnit: LessonUnit | null;
+  /** The class currently "live" — drives the roster-first student list. Null = legacy
+   *  fallback (all teacher students). */
+  activeClassId: string | null;
   students: any[];
   pointsLog: any[];
   selectionHistory: string[];
@@ -78,6 +89,9 @@ export interface SessionContextType {
   state: SessionState;
   loadUnits: () => Promise<void>;
   loadStudents: () => Promise<void>;
+  /** Bind the live session to a class (roster-first). Persists class_id on the
+   *  classroom_sessions row and (re)loads that class's roster. */
+  setActiveClass: (classId: string | null) => Promise<void>;
   setActiveUnit: (unitId: string) => Promise<void>;
   saveUnit: (unitId: string, updates: Partial<LessonUnit>) => Promise<void>;
   startSession: () => void;
@@ -117,6 +131,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     currentStepIndex: 0,
     activeSlideData: null,
     activeUnit: null,
+    activeClassId: null,
     students: [],
     pointsLog: [],
     selectionHistory: [],
@@ -138,6 +153,24 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [currentStrokeId, setCurrentStrokeId] = useState<string | null>(null);
   const channelRef = useRef<any>(null);
   const activeUnitRef = useRef<LessonUnit | null>(null);
+
+  // Class-points ledger accumulator (debounced flush). Keyed by roster student id.
+  const pendingPointsRef = useRef<Record<string, number>>({});
+  const activeClassIdRef = useRef<string | null>(null);
+  useEffect(() => { activeClassIdRef.current = state.activeClassId; }, [state.activeClassId]);
+  const flushClassPoints = useRef(
+    debounce(async () => {
+      const snapshot = { ...pendingPointsRef.current };
+      pendingPointsRef.current = {};
+      const classId = activeClassIdRef.current;
+      await Promise.all(
+        Object.entries(snapshot).map(([rosterId, amount]) =>
+          awardClassPoints(rosterId, classId, amount, 'board_points')
+            .catch((err: any) => log.warn('ledger_flush_failed', { error: err instanceof Error ? err.message : String(err) }))
+        )
+      );
+    }, 1500)
+  ).current;
 
   useEffect(() => {
     loadUnits();
@@ -225,7 +258,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // They converge on this teacher's classroom_sessions row via Realtime instead
   // of relying on local-only state that never crossed tabs.
   const applySessionRow = useCallback(async (row: any) => {
-    if (!row || !row.unit_id) return;
+    if (!row) return;
+
+    // Propagate the live-class binding to every tab (board/commander/remote) so
+    // each loads the correct roster-first student list — even before a unit is set.
+    if (row.class_id !== undefined && row.class_id !== null) {
+      setState(prev => (prev.activeClassId === row.class_id ? prev : { ...prev, activeClassId: row.class_id }));
+    }
+
+    if (!row.unit_id) return;
 
     let unit = activeUnitRef.current;
     if (!unit || unit.id !== row.unit_id) {
@@ -339,12 +380,19 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const loadStudents = async () => {
     try {
+      // Roster-first: if a class is live, load roster_students (incl. UNCLAIMED) so
+      // every kid in the room appears + is pickable, with unified points
+      // (ledger sum + home XP). Falls back to legacy auth enrollment otherwise.
+      if (state.activeClassId) {
+        const roster = await getSessionRoster(state.activeClassId);
+        setState(prev => ({ ...prev, students: roster }));
+        return;
+      }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         log.warn('no_authenticated_user', { metadata: { context: 'loadStudents' } });
         return;
       }
-
       const students = await getTeacherStudents(user.id);
       const mappedStudents = students.map(mapStudent);
       setState(prev => ({ ...prev, students: mappedStudents }));
@@ -353,6 +401,40 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Keep empty array on error
     }
   };
+
+  /** Bind the live session to a class: persist class_id on the session row + reload roster. */
+  const setActiveClass = useCallback(async (classId: string | null) => {
+    setState(prev => ({ ...prev, activeClassId: classId }));
+    const userId = await getTeacherId();
+    if (userId) {
+      try {
+        await supabase
+          .from('classroom_sessions')
+          .upsert(
+            { teacher_id: userId, class_id: classId, status: 'LIVE', updated_at: new Date().toISOString() },
+            { onConflict: 'teacher_id' },
+          );
+      } catch { /* best-effort */ }
+    }
+  }, []);
+
+  // Realtime: keep the live roster + points in sync for the active class.
+  // (Membership changes reload the roster; point inserts reconcile the authoritative
+  //  total — full reload avoids double-counting with the optimistic broadcast.)
+  useEffect(() => {
+    if (!state.activeClassId) return;
+    loadStudents();
+    const ch = supabase.channel(`live-class-${state.activeClassId}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'roster_students', filter: `class_id=eq.${state.activeClassId}` },
+        () => loadStudents())
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'point_transactions', filter: `class_id=eq.${state.activeClassId}` },
+        () => loadStudents())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.activeClassId]);
 
   const setActiveUnit = async (unitId: string) => {
     let unit = state.units.find(u => u.id === unitId);
@@ -376,7 +458,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           await supabase
             .from('classroom_sessions')
             .upsert(
-              { teacher_id: userId, unit_id: unitId, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
+              { teacher_id: userId, class_id: activeClassIdRef.current, unit_id: unitId, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
               { onConflict: 'teacher_id' },
             );
         } catch {
@@ -457,27 +539,32 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }));
 
     if (amount !== 0) {
-      // Persist class points to the STUDENT's home XP (unified points total —
-      // locked decision 0.1.4). Previously awarded to the logged-in teacher by
-      // mistake, so class points never reached the student's home leaderboard.
-      GamificationService.awardXPToStudent(studentId, amount, 'classroom_points').catch((err: any) => {
-        log.warn('student_xp_persist_failed', { error: err instanceof Error ? err.message : String(err) });
-      });
+      // Persist class points to the unified point_transactions ledger (source of
+      // truth for CLASS points; home XP stays separate per the owner decision).
+      // Debounced so rapid Baton taps / game captures batch into one write.
+      pendingPointsRef.current[studentId] = (pendingPointsRef.current[studentId] || 0) + amount;
+      flushClassPoints();
     }
-  }, [broadcastAction]);
+  }, [broadcastAction, state.activeClassId]);
 
   // Per-student board capture (Phase 3.3): writes a teacher grade into the shared
   // LearnerState for the active unit. Non-fatal; logged on failure.
   const gradeStudent = useCallback(async (studentId: string, word: string, correct: boolean) => {
     const unitId = state.activeUnit?.id || '';
     if (!unitId || !studentId || !word) return;
+    // studentId is a roster_students.id; FSRS/mastery lives on the PROFILE.
+    // Least-work bridge: skip unclaimed students (they still earn board points via
+    // the ledger, but no cognitive data until they claim a home account).
+    const roster = state.students.find((s: any) => s.id === studentId);
+    const profileId = roster?.claimed_profile_id;
+    if (!profileId) return;
     try {
       const { gradeStudent: grade } = await import('../services/boardLearner');
-      await grade(studentId, unitId, word, correct);
+      await grade(profileId, unitId, word, correct);
     } catch (err) {
       log.warn('grade_student_failed', { error: err instanceof Error ? err.message : String(err) });
     }
-  }, [state.activeUnit?.id]);
+  }, [state.activeUnit?.id, state.students]);
 
   const deductAllPoints = (amount: number) => {
     const action = { type: 'MASS_PENALTY', payload: { amount }, timestamp: Date.now() };
@@ -702,7 +789,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   return (
     <SessionContext.Provider value={{
-      state, loadUnits, loadStudents, setActiveUnit, saveUnit, unlockNextLevel,
+      state, loadUnits, loadStudents, setActiveClass, setActiveUnit, saveUnit, unlockNextLevel,
       startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay,

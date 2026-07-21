@@ -97,6 +97,97 @@ export async function getClassStudents(classId: string): Promise<StudentWithProg
 }
 
 /**
+ * ROSTER-FIRST live session roster (Claude plan, Phase 2). Returns the board
+ * student shape for every roster_students entry in a class — including
+ * UNCLAIMED students (no profile yet) so they can be picked and earn points.
+ * `points` = unified total = SUM(point_transactions) + (claimed ? home XP : 0).
+ * `id` is the roster_students.id (the canonical board identity).
+ */
+export interface SessionRosterStudent {
+    id: string;                 // roster_students.id
+    name: string;               // display_name
+    avatar: string;
+    points: number;             // unified: ledger sum + home XP (if claimed)
+    team: string | undefined;
+    xp: number;                 // home XP (0 if unclaimed)
+    claimed_profile_id: string | null;
+    is_claimed: boolean;
+}
+
+export async function getSessionRoster(classId: string): Promise<SessionRosterStudent[]> {
+    // 1) roster rows for the class (RLS scopes to the teacher/manager/admin).
+    const { data: roster, error: rErr } = await supabase
+        .from('roster_students')
+        .select('id, display_name, team, claimed_profile_id')
+        .eq('class_id', classId)
+        .eq('is_archived', false)
+        .order('display_name', { ascending: true });
+    if (rErr) {
+        log.warn('session_roster_error', { error: rErr.message });
+        throw rErr;
+    }
+    if (!roster || roster.length === 0) return [];
+
+    const ids = roster.map(r => r.id);
+    const claimedIds = roster.map(r => r.claimed_profile_id).filter(Boolean) as string[];
+
+    // 2) class-points ledger sums per roster.
+    const [sumsRes, xpRes] = await Promise.all([
+        supabase.from('point_transactions').select('roster_id, amount').in('roster_id', ids),
+        claimedIds.length
+            ? supabase.from('student_progress').select('student_id, xp').in('student_id', claimedIds)
+            : Promise.resolve({ data: [], error: null } as any),
+    ]);
+    if (sumsRes.error) log.warn('session_roster_sums_error', { error: sumsRes.error.message });
+
+    const sumByRoster = new Map<string, number>();
+    for (const row of (sumsRes.data || [])) {
+        sumByRoster.set(row.roster_id, (sumByRoster.get(row.roster_id) || 0) + (row.amount || 0));
+    }
+    const xpByProfile = new Map<string, number>();
+    for (const row of (xpRes.data || [])) {
+        xpByProfile.set(row.student_id, row.xp || 0);
+    }
+
+    return roster.map(r => {
+        const claimed = !!r.claimed_profile_id;
+        const ledger = sumByRoster.get(r.id) || 0;
+        const homeXp = claimed ? (xpByProfile.get(r.claimed_profile_id as string) || 0) : 0;
+        return {
+            id: r.id,
+            name: r.display_name || 'Student',
+            avatar: '',
+            points: ledger + homeXp,
+            team: r.team || undefined,
+            xp: homeXp,
+            claimed_profile_id: r.claimed_profile_id,
+            is_claimed: claimed,
+        };
+    });
+}
+
+/** Insert a class-points ledger row (debounced by the caller). */
+export async function awardClassPoints(
+    rosterId: string,
+    classId: string | null | undefined,
+    amount: number,
+    source: string,
+    profileId?: string | null,
+): Promise<void> {
+    const { error } = await supabase.from('point_transactions').insert({
+        roster_id: rosterId,
+        class_id: classId ?? null,
+        amount,
+        source,
+        profile_id: profileId ?? null,
+    });
+    if (error) {
+        log.warn('award_class_points_error', { error: error.message });
+    }
+}
+
+
+/**
  * Get all students across all teacher's classes
  */
 export async function getTeacherStudents(teacherId: string): Promise<StudentWithProgress[]> {

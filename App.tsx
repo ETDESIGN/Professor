@@ -2,6 +2,7 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { SessionProvider } from './store/SessionContext';
+import { SoloSessionProvider } from './store/SoloSessionContext';
 import { Toaster } from 'sonner';
 import Hub from './apps/Hub';
 import Login from './apps/Login';
@@ -200,11 +201,11 @@ const App: React.FC = () => {
 
         <Route path="/board" element={<Suspense fallback={<PageLoader />}><ClassroomBoard /></Suspense>} />
         <Route path="/remote" element={<Suspense fallback={<PageLoader />}><TeacherRemote /></Suspense>} />
-        <Route path="/student/*" element={<Suspense fallback={<PageLoader />}><StudentApp onSignOut={async () => {
+        <Route path="/student/*" element={<Suspense fallback={<PageLoader />}><SoloSessionProvider><StudentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
           window.location.assign(window.location.origin);
-        }} /></Suspense>} />
+        }} /></SoloSessionProvider></Suspense>} />
         <Route path="/parent/*" element={<Suspense fallback={<PageLoader />}><ParentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();

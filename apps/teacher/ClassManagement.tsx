@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, Copy, Users, CheckCircle, School, Link2, Bell,
-    Send, Archive, ChevronRight, GraduationCap, Building2, Clock,
+    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play,
 } from 'lucide-react';
 import { createClass, ClassData } from '../../services/DataService';
 import { buildClaimUrl, RosterStudent } from '../../services/ManagementService';
@@ -276,6 +277,7 @@ const ClassList: React.FC<{ classes: ClassData[]; loading: boolean; onSelect: (i
 
 // ---- Class detail (roster) ----
 const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => void; onAnnounce: () => void }> = ({ cls, teacherId, onBack, onAnnounce }) => {
+    const navigate = useNavigate();
     const { data: roster = [], isLoading } = useRosterForClass(cls.id);
     const createStudent = useCreateRosterStudent();
     const archiveStudent = useArchiveRosterStudent();
@@ -326,6 +328,12 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => navigate(`/teacher/live?class=${cls.id}`)}
+                            className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 flex items-center gap-1.5"
+                        >
+                            <Play size={15} /> Teach
+                        </button>
                         <button onClick={onAnnounce} className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
                             <Send size={15} /> Announce
                         </button>
