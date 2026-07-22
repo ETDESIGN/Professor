@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import Hub from './apps/Hub';
 import Login from './apps/Login';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { RouteErrorBoundary } from './components/shared/RouteErrorBoundary';
 import { MockModeBanner } from './components/shared/MockModeBanner';
 import { AppProviders } from './components/shared/AppProviders';
 import { useAppStore } from './store/useAppStore';
@@ -176,16 +177,16 @@ const App: React.FC = () => {
         }} />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
 
-        <Route path="/onboarding/teacher" element={<Suspense fallback={<PageLoader />}><TeacherOnboarding /></Suspense>} />
-        <Route path="/onboarding/student" element={<Suspense fallback={<PageLoader />}><StudentOnboarding /></Suspense>} />
-        <Route path="/onboarding/parent" element={<Suspense fallback={<PageLoader />}><ParentOnboarding /></Suspense>} />
+        <Route path="/onboarding/teacher" element={<RouteErrorBoundary name="onboarding-teacher"><Suspense fallback={<PageLoader />}><TeacherOnboarding /></Suspense></RouteErrorBoundary>} />
+        <Route path="/onboarding/student" element={<RouteErrorBoundary name="onboarding-student"><Suspense fallback={<PageLoader />}><StudentOnboarding /></Suspense></RouteErrorBoundary>} />
+        <Route path="/onboarding/parent" element={<RouteErrorBoundary name="onboarding-parent"><Suspense fallback={<PageLoader />}><ParentOnboarding /></Suspense></RouteErrorBoundary>} />
 
-        <Route path="/claim" element={<Suspense fallback={<PageLoader />}><ClaimStudent /></Suspense>} />
+        <Route path="/claim" element={<RouteErrorBoundary name="claim"><Suspense fallback={<PageLoader />}><ClaimStudent /></Suspense></RouteErrorBoundary>} />
 
-        <Route path="/admin/*" element={<Suspense fallback={<PageLoader />}><AdminPortal /></Suspense>} />
+        <Route path="/admin/*" element={<RouteErrorBoundary name="admin"><Suspense fallback={<PageLoader />}><AdminPortal /></Suspense></RouteErrorBoundary>} />
 
-        <Route path="/teacher/*" element={<Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense>} />
-        <Route path="/teacher/studio" element={<Suspense fallback={<PageLoader />}>
+        <Route path="/teacher/*" element={<RouteErrorBoundary name="teacher"><Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense></RouteErrorBoundary>} />
+        <Route path="/teacher/studio" element={<RouteErrorBoundary name="lesson-studio"><Suspense fallback={<PageLoader />}>
           <div className="relative">
             <button
               onClick={() => navigate('/teacher')}
@@ -196,21 +197,21 @@ const App: React.FC = () => {
             </button>
             <LessonStudio onLaunchLive={() => navigate('/teacher/live')} />
           </div>
-        </Suspense>} />
-        <Route path="/teacher/live" element={<Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate('/teacher/studio')} /></Suspense>} />
+        </Suspense></RouteErrorBoundary>} />
+        <Route path="/teacher/live" element={<RouteErrorBoundary name="live-commander"><Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate('/teacher/studio')} /></Suspense></RouteErrorBoundary>} />
 
-        <Route path="/board" element={<Suspense fallback={<PageLoader />}><ClassroomBoard /></Suspense>} />
-        <Route path="/remote" element={<Suspense fallback={<PageLoader />}><TeacherRemote /></Suspense>} />
-        <Route path="/student/*" element={<Suspense fallback={<PageLoader />}><SoloSessionProvider><StudentApp onSignOut={async () => {
+        <Route path="/board" element={<RouteErrorBoundary name="classroom-board"><Suspense fallback={<PageLoader />}><ClassroomBoard /></Suspense></RouteErrorBoundary>} />
+        <Route path="/remote" element={<RouteErrorBoundary name="teacher-remote"><Suspense fallback={<PageLoader />}><TeacherRemote /></Suspense></RouteErrorBoundary>} />
+        <Route path="/student/*" element={<RouteErrorBoundary name="student"><Suspense fallback={<PageLoader />}><SoloSessionProvider><StudentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
           window.location.assign(window.location.origin);
-        }} /></SoloSessionProvider></Suspense>} />
-        <Route path="/parent/*" element={<Suspense fallback={<PageLoader />}><ParentApp onSignOut={async () => {
+        }} /></SoloSessionProvider></Suspense></RouteErrorBoundary>} />
+        <Route path="/parent/*" element={<RouteErrorBoundary name="parent"><Suspense fallback={<PageLoader />}><ParentApp onSignOut={async () => {
           await supabase.auth.signOut();
           useAppStore.getState().clearUserProfile();
           window.location.assign(window.location.origin);
-        }} /></Suspense>} />
+        }} /></Suspense></RouteErrorBoundary>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
 
