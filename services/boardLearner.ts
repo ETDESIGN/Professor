@@ -36,34 +36,84 @@ async function resolveObjectiveId(unitId: string, word: string): Promise<string 
   }
 }
 
-/**
- * Verify the calling teacher owns the unit AND the student is enrolled in one
- * of the teacher's classes. Prevents cross-tenant mutation (a teacher must not
- * be able to grade students outside their roster / units they don't own).
- */
-async function assertTeacherMayGrade(studentId: string, unitId: string): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+/** Resolve a board identity (roster_students.id) to a profile id for FSRS writes. */
+async function resolveGradingProfileId(studentOrRosterId: string): Promise<string | null> {
+  if (!studentOrRosterId) return null;
+  const { data: roster } = await supabase
+    .from('roster_students')
+    .select('claimed_profile_id')
+    .eq('id', studentOrRosterId)
+    .maybeSingle();
+  if (roster) return roster.claimed_profile_id ?? null;
+  return studentOrRosterId;
+}
 
-  // Unit ownership: teacher owns it OR is an admin.
+/** Map roster ids (or legacy profile ids) to claimed profile ids for SRS aggregation. */
+export async function profileIdsForClassWeak(studentOrRosterIds: string[]): Promise<string[]> {
+  if (studentOrRosterIds.length === 0) return [];
+  const { data: rosterRows } = await supabase
+    .from('roster_students')
+    .select('id, claimed_profile_id')
+    .in('id', studentOrRosterIds);
+  const rosterMap = new Map((rosterRows || []).map((r) => [r.id, r.claimed_profile_id]));
+  const profileIds = new Set<string>();
+  for (const id of studentOrRosterIds) {
+    if (rosterMap.has(id)) {
+      const claimed = rosterMap.get(id);
+      if (claimed) profileIds.add(claimed);
+    } else {
+      profileIds.add(id);
+    }
+  }
+  return [...profileIds];
+}
+
+/**
+ * Verify the calling teacher owns the unit AND the student is on their roster
+ * (roster_students.id) or legacy enrollment (profiles.id). Returns the profile
+ * id to write FSRS data to, or null when the student is unclaimed (points only).
+ */
+async function assertTeacherMayGrade(
+  studentOrRosterId: string,
+  unitId: string,
+): Promise<{ allowed: boolean; profileId: string | null }> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { allowed: false, profileId: null };
+
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
   const isAdmin = profile?.role === 'admin';
   if (!isAdmin) {
     const { data: unit } = await supabase.from('units').select('teacher_id').eq('id', unitId).maybeSingle();
-    if (!unit || !unit.teacher_id || unit.teacher_id !== user.id) return false;
+    if (!unit?.teacher_id || unit.teacher_id !== user.id) return { allowed: false, profileId: null };
   }
 
-  // Student enrollment: the student is in one of the teacher's classes (admins bypass).
-  if (!isAdmin) {
-    const { data: enrolled, error } = await supabase
-      .from('class_enrollments')
-      .select('student_id, classes!inner(teacher_id)')
-      .eq('student_id', studentId)
-      .eq('classes.teacher_id', user.id)
-      .limit(1);
-    if (error || !enrolled || enrolled.length === 0) return false;
+  if (isAdmin) {
+    const profileId = await resolveGradingProfileId(studentOrRosterId);
+    return { allowed: true, profileId };
   }
-  return true;
+
+  const { data: roster } = await supabase
+    .from('roster_students')
+    .select('claimed_profile_id, classes!inner(teacher_id)')
+    .eq('id', studentOrRosterId)
+    .maybeSingle();
+
+  if (roster) {
+    // roster_students.classes is a many-to-one join — at runtime a single row,
+    // but TS infers it as an array, so cast through unknown.
+    const teacherId = (roster.classes as unknown as { teacher_id: string }).teacher_id;
+    if (teacherId !== user.id) return { allowed: false, profileId: null };
+    return { allowed: true, profileId: roster.claimed_profile_id ?? null };
+  }
+
+  const { data: enrolled, error } = await supabase
+    .from('class_enrollments')
+    .select('student_id, classes!inner(teacher_id)')
+    .eq('student_id', studentOrRosterId)
+    .eq('classes.teacher_id', user.id)
+    .limit(1);
+  if (error || !enrolled?.length) return { allowed: false, profileId: null };
+  return { allowed: true, profileId: studentOrRosterId };
 }
 
 /**
@@ -83,11 +133,12 @@ export async function gradeStudentWeakest(
   unitId: string,
   correct: boolean,
 ): Promise<boolean> {
-  const allowed = await assertTeacherMayGrade(studentId, unitId);
+  const { allowed, profileId } = await assertTeacherMayGrade(studentId, unitId);
   if (!allowed) {
     log.warn('grade_weakest_unauthorized', { metadata: { studentId, unitId } });
     return false;
   }
+  if (!profileId) return false;
   let objectiveId: string | null = null;
   try {
     const { data: objs } = await supabase.from('objectives').select('id').eq('unit_id', unitId).eq('type', 'vocabulary');
@@ -96,7 +147,7 @@ export async function gradeStudentWeakest(
     const { data: srs } = await supabase
       .from('srs_items')
       .select('id, objective_id, stability, last_review')
-      .eq('student_id', studentId)
+      .eq('student_id', profileId)
       .in('objective_id', ids);
     if (srs && srs.length > 0) {
       // weakest = lowest retrievability now.
@@ -115,7 +166,7 @@ export async function gradeStudentWeakest(
     return false;
   }
   if (!objectiveId) return false;
-  const res = await recordAttempt(studentId, objectiveId, teacherGradeToFsrs(correct), {
+  const res = await recordAttempt(profileId, objectiveId, teacherGradeToFsrs(correct), {
     modality: 'receptive',
   });
   return res !== null;
@@ -134,13 +185,13 @@ export async function gradeObjective(
   correct: boolean,
   modality: 'receptive' | 'productive' = 'productive',
 ): Promise<boolean> {
-  const allowed = await assertTeacherMayGrade(studentId, unitId);
+  const { allowed, profileId } = await assertTeacherMayGrade(studentId, unitId);
   if (!allowed) {
     log.warn('grade_objective_unauthorized', { metadata: { studentId, unitId } });
     return false;
   }
-  if (!objectiveId) return false;
-  const res = await recordAttempt(studentId, objectiveId, teacherGradeToFsrs(correct), { modality });
+  if (!profileId || !objectiveId) return false;
+  const res = await recordAttempt(profileId, objectiveId, teacherGradeToFsrs(correct), { modality });
   return res !== null;
 }
 
@@ -155,17 +206,18 @@ export async function gradeStudent(
   word: string,
   correct: boolean,
 ): Promise<boolean> {
-  const allowed = await assertTeacherMayGrade(studentId, unitId);
+  const { allowed, profileId } = await assertTeacherMayGrade(studentId, unitId);
   if (!allowed) {
     log.warn('grade_student_unauthorized', { metadata: { studentId, unitId } });
     return false;
   }
+  if (!profileId) return false;
   const objectiveId = await resolveObjectiveId(unitId, word);
   if (!objectiveId) {
     log.warn('grade_student_no_objective', { metadata: { unitId, word } });
     return false;
   }
-  const res = await recordAttempt(studentId, objectiveId, teacherGradeToFsrs(correct), {
+  const res = await recordAttempt(profileId, objectiveId, teacherGradeToFsrs(correct), {
     // Board vocab grading is treated as receptive recognition.
     modality: 'receptive',
   });
@@ -181,7 +233,8 @@ export async function classWeakObjectives(
   studentIds: string[],
   unitId: string,
 ): Promise<{ objective_id: string; retrievability: number; states: ObjectiveState[] }[]> {
-  if (studentIds.length === 0) return [];
+  const profileIds = await profileIdsForClassWeak(studentIds);
+  if (profileIds.length === 0) return [];
   try {
     const now = new Date();
     const { data: objectives, error } = await supabase
@@ -193,12 +246,10 @@ export async function classWeakObjectives(
 
     const objectiveIds = objectives.map((o) => o.id);
 
-    // ONE batched query across the whole roster (idx_srs_items_student_objective),
-    // bucketed by objective in memory — avoids an N+1 of per-student fetches.
     const { data: rows, error: rErr } = await supabase
       .from('srs_items')
       .select('id, objective_id, stability, difficulty, reps, lapses, mastery_state, last_review, next_review')
-      .in('student_id', studentIds)
+      .in('student_id', profileIds)
       .in('objective_id', objectiveIds);
     if (rErr || !rows) return [];
 

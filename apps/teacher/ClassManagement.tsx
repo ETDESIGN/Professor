@@ -39,6 +39,10 @@ const ClassManagement: React.FC = () => {
     // create-class form
     const [newClassName, setNewClassName] = useState('');
     const [newClassSubject, setNewClassSubject] = useState('');
+    // School to scope the new class to. '' = independent (school_id NULL).
+    // Only active memberships are eligible; the teacher picks per class.
+    const activeMemberships = memberships.filter(m => m.status === 'active');
+    const [newClassSchoolId, setNewClassSchoolId] = useState<string>('');
 
     const activeMembership = memberships.find(m => m.status === 'active');
     const pendingMembership = memberships.find(m => m.status === 'pending');
@@ -46,10 +50,16 @@ const ClassManagement: React.FC = () => {
     const handleCreateClass = async () => {
         if (!newClassName.trim() || !teacherId) return;
         try {
-            await createClass(teacherId, { name: newClassName, subject: newClassSubject, is_active: true });
+            await createClass(teacherId, {
+                name: newClassName,
+                subject: newClassSubject,
+                is_active: true,
+                school_id: newClassSchoolId || null,
+            });
             queryClient.invalidateQueries({ queryKey: ['teacherClasses', teacherId] });
             setNewClassName('');
             setNewClassSubject('');
+            setNewClassSchoolId('');
             setShowCreateClass(false);
             toast.success('Class created');
         } catch (error) {
@@ -137,6 +147,25 @@ const ClassManagement: React.FC = () => {
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-duo-blue"
                         />
                     </Field>
+                    {activeMemberships.length > 0 && (
+                        <Field label="School (optional)">
+                            <select
+                                value={newClassSchoolId}
+                                onChange={e => setNewClassSchoolId(e.target.value)}
+                                className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-duo-blue"
+                            >
+                                <option value="">Independent (no school)</option>
+                                {activeMemberships.map(m => (
+                                    <option key={m.school_id} value={m.school_id}>
+                                        {m.school?.name || 'School'}{m.role === 'manager' ? ' (Manager)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-slate-400 mt-1">
+                                School-scoped classes are visible to that school's managers.
+                            </p>
+                        </Field>
+                    )}
                     <button
                         onClick={handleCreateClass}
                         disabled={!newClassName.trim()}

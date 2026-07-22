@@ -402,7 +402,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  /** Bind the live session to a class: persist class_id on the session row + reload roster. */
+  /** Bind the live session to a class: persist class_id on the session row + reload roster.
+   *  Stays IDLE here — only setActiveUnit flips the session to LIVE (a class is not "live"
+   *  until the teacher starts a unit). */
   const setActiveClass = useCallback(async (classId: string | null) => {
     setState(prev => ({ ...prev, activeClassId: classId }));
     const userId = await getTeacherId();
@@ -411,7 +413,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         await supabase
           .from('classroom_sessions')
           .upsert(
-            { teacher_id: userId, class_id: classId, status: 'LIVE', updated_at: new Date().toISOString() },
+            { teacher_id: userId, class_id: classId, status: 'IDLE', updated_at: new Date().toISOString() },
             { onConflict: 'teacher_id' },
           );
       } catch { /* best-effort */ }

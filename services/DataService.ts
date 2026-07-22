@@ -13,6 +13,7 @@ export interface ClassData {
     teacher_id: string;
     code: string | null;
     is_active: boolean;
+    school_id: string | null;
     created_at: string;
     student_count?: number;
 }
