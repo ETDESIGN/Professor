@@ -38,6 +38,12 @@ import {
   RosterPatch,
 } from '../services/ManagementService';
 import { supabase } from '../services/supabaseClient';
+import {
+  getAttendanceForOccurrence,
+  saveAttendance,
+  getSessionOccurrences,
+  getOccurrenceAttendance,
+} from '../services/AttendanceService';
 
 export function useUnits() {
   return useQuery({
@@ -324,6 +330,49 @@ export function useArchiveRosterStudent() {
   return useMutation({
     mutationFn: ({ id, classId }: { id: string; classId: string }) => archiveRosterStudent(id),
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.classId] }),
+  });
+}
+
+/** Attendance for an occurrence, as Map<roster_student_id, status>. */
+export function useAttendanceForOccurrence(occurrenceId: string | undefined) {
+  return useQuery({
+    queryKey: ['attendance', occurrenceId],
+    queryFn: () => getAttendanceForOccurrence(occurrenceId!),
+    enabled: !!occurrenceId,
+    staleTime: 5_000,
+  });
+}
+
+/** Persist a present/absent pass for an occurrence. */
+export function useSaveAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ occurrenceId, classId, teacherId, rosterIds, presentIds }: {
+      occurrenceId: string; classId: string; teacherId: string;
+      rosterIds: string[]; presentIds: Set<string>;
+    }) => saveAttendance(occurrenceId, classId, teacherId, rosterIds, presentIds),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['attendance', v.occurrenceId] });
+      qc.invalidateQueries({ queryKey: ['attendance-history', v.classId] });
+    },
+  });
+}
+
+/** Read-only session history for a class. */
+export function useSessionOccurrences(classId: string | undefined) {
+  return useQuery({
+    queryKey: ['attendance-history', classId],
+    queryFn: () => getSessionOccurrences(classId!),
+    enabled: !!classId,
+  });
+}
+
+/** Roster + marks for one occurrence (history detail). */
+export function useOccurrenceAttendance(occurrenceId: string | undefined) {
+  return useQuery({
+    queryKey: ['attendance-detail', occurrenceId],
+    queryFn: () => getOccurrenceAttendance(occurrenceId!),
+    enabled: !!occurrenceId,
   });
 }
 
