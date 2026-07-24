@@ -113,6 +113,7 @@ export interface SessionRosterStudent {
     xp: number;                 // home XP (0 if unclaimed)
     claimed_profile_id: string | null;
     is_claimed: boolean;
+    isPresent: boolean;         // false only when explicitly marked absent this session
 }
 
 export async function getSessionRoster(classId: string): Promise<SessionRosterStudent[]> {
@@ -163,6 +164,7 @@ export async function getSessionRoster(classId: string): Promise<SessionRosterSt
             xp: homeXp,
             claimed_profile_id: r.claimed_profile_id,
             is_claimed: claimed,
+            isPresent: true,        // default present; loadStudents overlays attendance
         };
     });
 }

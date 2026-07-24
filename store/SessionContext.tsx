@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useRe
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { supabase } from '../services/supabaseClient';
 import { getTeacherStudents, getSessionRoster, awardClassPoints, StudentWithProgress } from '../services/DataService';
+import { mergePresence, filterPresent } from '../services/attendanceLogic';
+import { getOrCreateActiveOccurrence, endOccurrence, getAttendanceForOccurrence } from '../services/AttendanceService';
 import { createClientLogger } from '../services/logger';
 
 const log = createClientLogger('SessionContext');
@@ -45,6 +47,8 @@ interface SessionState {
   /** The class currently "live" — drives the roster-first student list. Null = legacy
    *  fallback (all teacher students). */
   activeClassId: string | null;
+  /** The open attendance occurrence for this live session (null until go-live / ensure). */
+  activeOccurrenceId: string | null;
   students: any[];
   pointsLog: any[];
   selectionHistory: string[];
@@ -93,6 +97,9 @@ export interface SessionContextType {
    *  classroom_sessions row and (re)loads that class's roster. */
   setActiveClass: (classId: string | null) => Promise<void>;
   setActiveUnit: (unitId: string) => Promise<void>;
+  /** Ensure an attendance occurrence exists for the live class (for opening the
+   *  attendance modal before go-live). Returns the occurrence id or null. */
+  ensureAttendanceOccurrence: () => Promise<string | null>;
   saveUnit: (unitId: string, updates: Partial<LessonUnit>) => Promise<void>;
   startSession: () => void;
   endSession: () => void;
@@ -132,6 +139,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     activeSlideData: null,
     activeUnit: null,
     activeClassId: null,
+    activeOccurrenceId: null,
     students: [],
     pointsLog: [],
     selectionHistory: [],
@@ -158,6 +166,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const pendingPointsRef = useRef<Record<string, number>>({});
   const activeClassIdRef = useRef<string | null>(null);
   useEffect(() => { activeClassIdRef.current = state.activeClassId; }, [state.activeClassId]);
+  const activeOccurrenceIdRef = useRef<string | null>(null);
   const flushClassPoints = useRef(
     debounce(async () => {
       const snapshot = { ...pendingPointsRef.current };
@@ -385,7 +394,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // (ledger sum + home XP). Falls back to legacy auth enrollment otherwise.
       if (state.activeClassId) {
         const roster = await getSessionRoster(state.activeClassId);
-        setState(prev => ({ ...prev, students: roster }));
+        const occId = activeOccurrenceIdRef.current;
+        if (occId) {
+          const attendance = await getAttendanceForOccurrence(occId);
+          setState(prev => ({ ...prev, students: mergePresence(roster, attendance) }));
+        } else {
+          setState(prev => ({ ...prev, students: roster }));
+        }
         return;
       }
       const { data: { user } } = await supabase.auth.getUser();
@@ -420,6 +435,20 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
+  /** Ensure an attendance occurrence exists for the live class (used when opening
+   *  the attendance modal before go-live). Reuses the open occurrence if present. */
+  const ensureAttendanceOccurrence = useCallback(async (): Promise<string | null> => {
+    if (activeOccurrenceIdRef.current) return activeOccurrenceIdRef.current;
+    const userId = await getTeacherId();
+    const classId = activeClassIdRef.current;
+    if (!userId || !classId) return null;
+    const occId = await getOrCreateActiveOccurrence(classId, userId, activeUnitRef.current?.id ?? null);
+    activeOccurrenceIdRef.current = occId;
+    setState(prev => ({ ...prev, activeOccurrenceId: occId }));
+    await loadStudents();
+    return occId;
+  }, [getTeacherId, loadStudents]);
+
   // Realtime: keep the live roster + points in sync for the active class.
   // (Membership changes reload the roster; point inserts reconcile the authoritative
   //  total — full reload avoids double-counting with the optimistic broadcast.)
@@ -432,6 +461,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         () => loadStudents())
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'point_transactions', filter: `class_id=eq.${state.activeClassId}` },
+        () => loadStudents())
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance_records', filter: `class_id=eq.${state.activeClassId}` },
         () => loadStudents())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -467,6 +499,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           // Best-effort: local state already updated optimistically.
         }
       }
+
+      // Open (or reuse) the attendance occurrence for this live session, then
+      // reload the roster so presence overlays via mergePresence.
+      if (userId && activeClassIdRef.current) {
+        const occId = await getOrCreateActiveOccurrence(activeClassIdRef.current, userId, unitId);
+        activeOccurrenceIdRef.current = occId;
+        setState(prev => ({ ...prev, activeOccurrenceId: occId }));
+        await loadStudents();
+      }
     }
   };
 
@@ -496,6 +537,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     broadcastAction(action);
     setState(prev => ({ ...prev, status: 'IDLE', currentStepIndex: 0, activeOverlay: 'NONE', drawings: [] }));
     persistSessionStatus('IDLE');
+    const occId = activeOccurrenceIdRef.current;
+    if (occId) { void endOccurrence(occId); activeOccurrenceIdRef.current = null; }
+    setState(prev => ({ ...prev, activeOccurrenceId: null }));
   };
 
   const getFlow = () => {
@@ -616,7 +660,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const assignTeams = (count: number = 2) => {
     const n = Math.max(2, Math.min(count, TEAM_COLORS.length));
     // Sort by points desc, then round-robin deal → balanced teams.
-    const sorted = [...state.students].sort((a, b) => (b.points || 0) - (a.points || 0));
+    const sorted = filterPresent([...state.students]).sort((a, b) => (b.points || 0) - (a.points || 0));
     const assignments: Record<string, string> = {};
     sorted.forEach((s, i) => {
       assignments[s.id] = TEAM_COLORS[i % n];
@@ -661,7 +705,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const selectNextStudent = (filterTeam?: string, useOverlay: boolean = true) => {
-    let pool = state.students;
+    let pool = filterPresent(state.students);
 
     if (filterTeam) {
       pool = pool.filter(s => s.team === filterTeam);
@@ -791,7 +835,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   return (
     <SessionContext.Provider value={{
-      state, loadUnits, loadStudents, setActiveClass, setActiveUnit, saveUnit, unlockNextLevel,
+      state, loadUnits, loadStudents, setActiveClass, setActiveUnit, ensureAttendanceOccurrence, saveUnit, unlockNextLevel,
       startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay,
