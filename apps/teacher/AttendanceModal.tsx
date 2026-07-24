@@ -67,7 +67,7 @@ const AttendanceModal: React.FC<Props> = ({ classId, occurrenceId, onClose }) =>
     <AnimatePresence>
       <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+          className="absolute inset-0 bg-black/50" onClick={onClose} />
         <motion.div initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 60 }}
           className="bg-white w-full max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col max-h-[90vh]">
           <div className="p-4 border-b border-slate-100 flex justify-between items-center">
