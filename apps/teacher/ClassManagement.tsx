@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, Copy, Users, CheckCircle, School, Link2, Bell,
-    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play,
+    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play, CalendarCheck,
 } from 'lucide-react';
+import AttendanceHistoryModal from './AttendanceHistoryModal';
 import { createClass, ClassData } from '../../services/DataService';
 import { buildClaimUrl, RosterStudent } from '../../services/ManagementService';
 import { Modal, Field } from './SharedUI';
@@ -311,6 +312,7 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
     const createStudent = useCreateRosterStudent();
     const archiveStudent = useArchiveRosterStudent();
     const [showAdd, setShowAdd] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     const [name, setName] = useState('');
 
     const claimedCount = roster.filter(r => !!r.claimed_profile_id).length;
@@ -362,6 +364,10 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                             className="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 flex items-center gap-1.5"
                         >
                             <Play size={15} /> Teach
+                        </button>
+                        <button onClick={() => setShowHistory(true)}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
+                          <CalendarCheck size={15} /> Attendance
                         </button>
                         <button onClick={onAnnounce} className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
                             <Send size={15} /> Announce
@@ -439,6 +445,9 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                     </tbody>
                 </table>
             </div>
+
+            {/* Attendance history modal */}
+            {showHistory && <AttendanceHistoryModal classId={cls.id} onClose={() => setShowHistory(false)} />}
 
             {/* Add student modal */}
             <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add student to roster">
