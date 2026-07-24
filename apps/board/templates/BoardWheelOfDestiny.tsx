@@ -16,6 +16,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../../store/SessionContext';
+import { filterPresent } from '../../../services/attendanceLogic';
 
 const COLORS = ['#FBBF24','#F97316','#EF4444','#EC4899','#A855F7','#8B5CF6','#3B82F6','#06B6D4','#14B8A6','#22C55E','#84CC16','#EAB308'];
 const LED_COUNT = 16;
@@ -28,7 +29,7 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
   const [winner, setWinner] = useState<any>(null);
   const idleAngle = useRef(0);
 
-  const students = useMemo(() => state.students || [], [state.students]);
+  const students = useMemo(() => filterPresent(state.students || []), [state.students]);
   const segAngle = 360 / Math.max(1, students.length);
   const wheelSize = Math.min(380, 280 + students.length * 12);
   const radius = wheelSize / 2;

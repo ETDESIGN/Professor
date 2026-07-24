@@ -256,7 +256,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
           <div className="bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-5 flex flex-col gap-1.5 backdrop-blur-sm">
             <div className="font-display text-[15px] font-semibold text-slate-300/65 mb-2 uppercase tracking-wider">🏆 Leaderboard</div>
             {leaderboard.map((s, i) => (
-              <div key={s.id} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${i === 0 ? 'bg-amber-400/10' : ''}`}>
+              <div key={s.id} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${i === 0 ? 'bg-amber-400/10' : ''} ${s.isPresent === false ? 'opacity-40 grayscale' : ''}`}>
                 <span className="font-display text-base font-bold text-amber-400 w-6 text-center">{i + 1}</span>
                 <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style={{ background: LEADERBOARD_GRADIENTS[i % LEADERBOARD_GRADIENTS.length] }}>
                   {s.avatar || '👤'}
