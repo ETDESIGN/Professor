@@ -5,9 +5,11 @@ import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
    Monitor, Clock, LogOut, PenTool, Eraser,
    Star, Activity, LayoutGrid, Zap, Bell,
-   Plus, Minus, X, List, Sparkles
+   Plus, Minus, X, List, Sparkles, UserCheck
 } from 'lucide-react';
 import DrawingLayer from '../../components/shared/DrawingLayer';
+import AttendanceModal from './AttendanceModal';
+import { filterPresent } from '../../services/attendanceLogic';
 import { ErrorBoundary } from '../../components/shared/ErrorBoundary';
 import { BoardRenderer } from './live/panels/BoardRenderer';
 import { renderContextualControls } from './live/panels/ContextualControls';
@@ -26,7 +28,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const {
       state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction, deductAllPoints,
       clearDrawings, selectNextStudent, setSelectionMode, closeOverlay,
-      setQuietMode, updateNoiseLevel, endSession, setActiveClass
+      setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence
    } = useSession();
 
    // Bind the live session to the class chosen on the Classes screen (?class=…).
@@ -55,6 +57,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const [isSpinning, setIsSpinning] = useState(false);
    const [groupCount, setGroupCount] = useState(2);
    const [generatedGroups, setGeneratedGroups] = useState<any[][]>([]);
+   const [showAttendance, setShowAttendance] = useState(false);
 
    const handleSpin = () => {
       setIsSpinning(true);
@@ -92,6 +95,12 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   <Clock size={14} className="text-slate-400" />
                   <span className="font-mono font-bold text-sm text-slate-200">{formatTime(elapsedTime)}</span>
                </div>
+               <button
+                  onClick={async () => { const id = await ensureAttendanceOccurrence(); if (id) setShowAttendance(true); }}
+                  className="flex items-center gap-1.5 bg-slate-800 text-slate-200 px-3 py-1.5 rounded-full border border-slate-700 hover:bg-slate-700 text-sm font-bold"
+                  title="Attendance">
+                  <UserCheck size={14} /> Attendance
+               </button>
                <button onClick={() => { endSession(); if (onExit) onExit(); }} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors" title="End Session"><LogOut size={18} /></button>
             </div>
          </header>
@@ -208,6 +217,14 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
             </div>
          )}
 
+         {showAttendance && state.activeClassId && state.activeOccurrenceId && (
+            <AttendanceModal
+               classId={state.activeClassId}
+               occurrenceId={state.activeOccurrenceId}
+               onClose={() => setShowAttendance(false)}
+            />
+         )}
+
          {/* Bottom Command Deck */}
          <div className="h-auto md:h-24 bg-slate-900 border-t border-slate-800 flex flex-col md:flex-row items-center px-2 md:px-6 py-2 md:py-0 shadow-2xl relative z-40 gap-2 md:gap-4">
             <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto justify-between md:justify-start">
@@ -220,7 +237,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
 
             <div className="flex-1 w-full px-0 md:px-4 overflow-x-auto no-scrollbar py-1 md:py-0">
                <div className="flex items-center gap-2 md:gap-3 min-w-min mx-auto">
-                  {state.students.map((student: any) => (
+                  {filterPresent(state.students).map((student: any) => (
                      <button key={student.id} onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setTooltipLeft(rect.left + rect.width / 2); setActivePointStudentId(activePointStudentId === student.id ? null : student.id); }}
                         className={`group flex flex-col items-center gap-1 min-w-[50px] md:min-w-[60px] p-1 md:p-2 rounded-xl transition-all active:scale-95 ${activePointStudentId === student.id ? 'bg-indigo-900/50 ring-2 ring-indigo-500' : 'hover:bg-slate-800'}`}>
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base md:text-lg shadow-sm group-hover:border-green-500/50 group-hover:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-all relative">
