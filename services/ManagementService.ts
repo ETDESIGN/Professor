@@ -148,17 +148,13 @@ export async function createRosterStudent(
     displayName: string,
     opts?: { avatar?: string; team?: string }
 ): Promise<RosterStudent> {
-    const { data, error } = await supabase
-        .from('roster_students')
-        .insert({
-            class_id: classId,
-            teacher_id: teacherId,
-            display_name: displayName.trim(),
-            avatar: opts?.avatar,
-            team: opts?.team,
-        })
-        .select('*')
-        .single();
+    const { data, error } = await supabase.rpc('create_roster_student', {
+        p_class_id: classId,
+        p_teacher_id: teacherId,
+        p_display_name: displayName.trim(),
+        p_avatar: opts?.avatar ?? null,
+        p_team: opts?.team ?? null,
+    });
     if (error) {
         log.warn('create_roster_student_error', { error: error.message });
         toast.error(error.message || 'Could not create student');
