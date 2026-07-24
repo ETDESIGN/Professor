@@ -98,7 +98,7 @@ const AttendanceModal: React.FC<Props> = ({ classId, occurrenceId, onClose }) =>
             <div className="flex gap-2">
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Add walk-in student…"
                 onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300" />
               <button onClick={handleAdd} disabled={!name.trim()} className="px-3 py-2 bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 disabled:opacity-40"><Plus size={18} /></button>
             </div>
             <button onClick={handleSave} disabled={saveAttendance.isPending}
