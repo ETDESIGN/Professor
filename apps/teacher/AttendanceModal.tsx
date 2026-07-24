@@ -49,6 +49,12 @@ const AttendanceModal: React.FC<Props> = ({ classId, occurrenceId, onClose }) =>
   const handleAdd = async () => {
     if (!name.trim() || !teacherId) return;
     try {
+      // Ensure the Supabase client has a valid session before writing
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshed, error } = await supabase.auth.refreshSession();
+        if (error || !refreshed.session) { toast.error('Session expired. Please re-login.'); return; }
+      }
       await createStudent.mutateAsync({ classId, teacherId, displayName: name });
       setName('');
     } catch { /* toast in service */ }
@@ -57,6 +63,11 @@ const AttendanceModal: React.FC<Props> = ({ classId, occurrenceId, onClose }) =>
   const handleSave = async () => {
     if (!teacherId) { toast.error('Could not identify teacher. Please retry.'); return; }
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshed, error } = await supabase.auth.refreshSession();
+        if (error || !refreshed.session) { toast.error('Session expired. Please re-login.'); return; }
+      }
       await saveAttendance.mutateAsync({ occurrenceId, classId, teacherId, rosterIds, presentIds });
       toast.success('Attendance saved');
       onClose();
