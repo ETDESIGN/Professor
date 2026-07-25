@@ -38,22 +38,18 @@ export async function getOrCreateActiveOccurrence(
     .maybeSingle();
   if (open?.id) return open.id;
 
-  const { data, error } = await supabase
-    .from('class_session_occurrences')
-    .insert({ class_id: classId, teacher_id: teacherId, unit_id: unitId ?? null })
-    .select('id')
-    .single();
+  const { data, error } = await supabase.rpc('create_session_occurrence', {
+    p_class_id: classId, p_teacher_id: teacherId, p_unit_id: unitId ?? null,
+  });
   if (error) { log.warn('occurrence_create_error', { error: error.message }); return null; }
-  return data.id;
+  return data as string;
 }
 
 /** Stamp ended_at on an occurrence (best-effort). */
 export async function endOccurrence(occurrenceId: string): Promise<void> {
-  const { error } = await supabase
-    .from('class_session_occurrences')
-    .update({ ended_at: new Date().toISOString() })
-    .eq('id', occurrenceId)
-    .is('ended_at', null);
+  const { error } = await supabase.rpc('end_session_occurrence', {
+    p_occurrence_id: occurrenceId,
+  });
   if (error) log.warn('occurrence_end_error', { error: error.message });
 }
 
@@ -81,13 +77,13 @@ export async function saveAttendance(
 ): Promise<void> {
   if (rosterIds.length === 0) return;
   const statuses = buildStatuses(rosterIds, presentIds);
-  const rows = [...statuses.entries()].map(([roster_student_id, status]) => ({
-    occurrence_id: occurrenceId, class_id: classId, teacher_id: teacherId,
+  const records = [...statuses.entries()].map(([roster_student_id, status]) => ({
     roster_student_id, status, marked_at: new Date().toISOString(),
   }));
-  const { error } = await supabase
-    .from('attendance_records')
-    .upsert(rows, { onConflict: 'occurrence_id,roster_student_id', ignoreDuplicates: false });
+  const { error } = await supabase.rpc('save_attendance_records', {
+    p_occurrence_id: occurrenceId, p_class_id: classId, p_teacher_id: teacherId,
+    p_records: records,
+  });
   if (error) {
     log.warn('save_attendance_error', { error: error.message });
     toast.error('Could not save attendance. Please try again.');
