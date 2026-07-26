@@ -16,6 +16,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Check, X, Flame, ChevronRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { useBoardPool } from '../useBoardPool';
 import { gradeStudent } from '../../../services/boardLearner';
 import { playAudioUrl } from '../../../services/SpeechService';
@@ -32,7 +33,7 @@ const TILE_COLORS = [
 ];
 
 const BoardListenTap = ({ data }: { data: any }) => {
-  const { state, triggerAction } = useSession();
+  const { state, triggerAction, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
@@ -47,6 +48,10 @@ const BoardListenTap = ({ data }: { data: any }) => {
   const [phase, setPhase] = useState<Phase>('listen');
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [streak, setStreak] = useState(0);
+  // Game-lifecycle: mistakes during the current responder's turn (one item).
+  // Reset on NEW_TURN. Used to compute the success award on the first correct.
+  const mistakesRef = useRef(0);
+  const awardedRef = useRef(false);
   const [maxStreak] = useState(0);
   const [showWhisper, setShowWhisper] = useState(false);
   const whisperTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +96,19 @@ const BoardListenTap = ({ data }: { data: any }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
+
+  // Game-lifecycle: a fresh responder is up (NEW_TURN). Reset to a fresh item
+  // for them and zero the mistake tally for a clean scored attempt.
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return; // no responder = practice mode
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    setSelectedTile(null);
+    setRound(r => r + 1);
+    setPhase('listen');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
 
   // ── Auto-play audio on new round (Listen phase) ────────────────────────
   useEffect(() => {
@@ -141,18 +159,33 @@ const BoardListenTap = ({ data }: { data: any }) => {
       setStreak(0);
     }
 
-    // Per-student capture (if a student is picked).
+    // Per-student cognitive capture (if a student is picked).
     const selected = state.quickWheelWinner;
     if (selected && unitId && currentItem.promptText) {
       gradeStudent(selected, unitId, currentItem.promptText, isCorrect).catch(() => {});
     }
 
+    // Game-lifecycle scoring. Correct (first time) = SUCCESS → award the clean
+    // score minus the mistakes made this turn. Wrong = MISTAKE → deduct now and
+    // bump the counter so the eventual award shrinks.
+    if (selected) {
+      if (isCorrect && !awardedRef.current) {
+        awardedRef.current = true;
+        addPoints(selected, scoreForAttempt(mistakesRef.current));
+      } else if (!isCorrect) {
+        mistakesRef.current += 1;
+        addPoints(selected, -MISTAKE_PENALTY);
+      }
+    }
+
     setPhase('feedback');
     // Auto-advance to preview after 2.5s.
     setTimeout(() => setPhase('preview'), 2500);
-  }, [phase, currentItem, correctIndex, state.quickWheelWinner, unitId]);
+  }, [phase, currentItem, correctIndex, state.quickWheelWinner, unitId, addPoints]);
 
   const advanceRound = useCallback(() => {
+    // Manual "Next Round" — resets the attempt for the SAME responder (not a
+    // new turn), so we DON'T touch mistakesRef/awardedRef here. NEW_TURN does.
     setSelectedTile(null);
     setPhase('listen');
     setRound(r => r + 1);

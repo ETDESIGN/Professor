@@ -4,13 +4,14 @@
 // Key additions vs old impl: remote handlers, Ready beat, shaped tiles,
 // Buzz prompt, explanation after reveal, streak counter, class-whisper.
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Trophy, Check, X, Flame, Star } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
 import { gradeStudent } from '../../../services/boardLearner';
 import { getVocabulary } from '../../../services/manifest';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 
 type Phase = 'ready' | 'answering' | 'reveal' | 'results';
 
@@ -23,7 +24,7 @@ const SHAPES = [
 ];
 
 const BoardSpeedQuiz = ({ data }: { data: any }) => {
-  const { state } = useSession();
+  const { state, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
@@ -56,6 +57,11 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   const [timeLeft, setTimeLeft] = useState(15);
   const [selectedTile, setSelectedTile] = useState<number | null>(null);
   const [showWhisper, setShowWhisper] = useState(false);
+  // Game-lifecycle: mistakes during the current responder's turn (the whole
+  // quiz). Reset on NEW_TURN. Used to compute the completion award.
+  const [mistakes, setMistakes] = useState(0);
+  const mistakesRef = useRef(0);
+  const awardedRef = useRef(false);
 
   const TIME_PER_Q = data?.timer || 15;
   const currentQ = questions[qIdx];
@@ -96,6 +102,18 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
     // eslint-disable-next-line
   }, [state.lastAction]);
 
+  // Game-lifecycle: a fresh responder is up (NEW_TURN). Reset the whole quiz
+  // for them — back to Q1, zero mistakes, ready for a clean scored attempt.
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return; // no responder = practice mode, leave state as-is
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    setMistakes(0);
+    setQIdx(0); setScore(0); setStreak(0); setSelectedTile(null); setPhase('ready');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
+
   // RULES OF HOOKS: all hooks above.
   if (loading || totalQ === 0) {
     return <div className="h-full flex flex-col items-center justify-center text-slate-400"><Zap size={48} className="text-red-500/30 mb-3" /><p className="font-display text-2xl font-bold">{loading ? 'Loading…' : 'No questions.'}</p></div>;
@@ -109,9 +127,18 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
     if (isCorrect) { setScore(s => s + 1); setStreak(s => s + 1); }
     else setStreak(0);
 
-    // Per-student capture.
+    // Per-student cognitive capture.
     const picked = state.quickWheelWinner;
     if (picked && unitId && currentQ.word) gradeStudent(picked, unitId, currentQ.word, isCorrect).catch(() => {});
+
+    // Game-lifecycle scoring: a WRONG answer is a mistake — deduct immediately
+    // and bump the counter (lowers the eventual completion award). Correct
+    // answers no longer score per-question; the whole quiz pays out on finish.
+    if (picked && !isCorrect) {
+      mistakesRef.current += 1;
+      setMistakes(mistakesRef.current);
+      addPoints(picked, -MISTAKE_PENALTY);
+    }
 
     setPhase('reveal');
     // Auto-advance after 2.5s (teacher can narrate the explanation).
@@ -119,7 +146,19 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   }
 
   function nextQuestion() {
-    if (isLastQ) { setPhase('results'); return; }
+    if (isLastQ) {
+      // Game-lifecycle scoring: quiz complete = SUCCESS for this responder.
+      // Award the clean score minus the mistakes they made across the round.
+      // Deductions already happened live; this is the completion bonus.
+      // Guard with awardedRef so a re-render into 'results' can't double-pay.
+      const picked = state.quickWheelWinner;
+      if (picked && !awardedRef.current) {
+        awardedRef.current = true;
+        addPoints(picked, scoreForAttempt(mistakesRef.current));
+      }
+      setPhase('results');
+      return;
+    }
     setQIdx(i => i + 1);
     setSelectedTile(null);
     setStreak(0);
@@ -127,6 +166,9 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   }
 
   function resetQuiz() {
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    setMistakes(0);
     setQIdx(0); setScore(0); setStreak(0); setSelectedTile(null); setPhase('ready');
   }
 

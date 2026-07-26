@@ -5,11 +5,12 @@
 // passive GRAMMAR_SANDBOX presentation. Items come from the same pool as the
 // student app (one content model, two tracks).
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSession } from '../../../store/SessionContext';
 import { supabase } from '../../../services/supabaseClient';
 import { toPoolItem } from '../../../types/exercise';
 import { gradeObjective } from '../../../services/boardLearner';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { Check, ArrowRight, BookOpen, UserCheck } from 'lucide-react';
 
 interface Props {
@@ -17,9 +18,13 @@ interface Props {
 }
 
 const BoardGrammarPractice: React.FC<Props> = () => {
-  const { state } = useSession();
+  const { state, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
   const selectedStudentId = state.quickWheelWinner;
+  // Game-lifecycle: mistakes during the current responder's turn (this item).
+  // Reset on NEW_TURN. Used to compute the success award on a correct credit.
+  const mistakesRef = useRef(0);
+  const awardedRef = useRef(false);
   const selectedStudentName = (state.students || []).find((s: any) => s.id === selectedStudentId)?.name;
   const [items, setItems] = useState<any[]>([]);
   const [index, setIndex] = useState(0);
@@ -47,6 +52,37 @@ const BoardGrammarPractice: React.FC<Props> = () => {
   }, [unitId]);
 
   useEffect(() => { setRevealed(false); setCredited(false); setIndex(0); }, [unitId]);
+
+  // Game-lifecycle: a fresh responder is up (NEW_TURN). Reset to the first item
+  // and zero the mistake tally for a clean scored attempt.
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return; // no responder = practice mode
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    setRevealed(false);
+    setCredited(false);
+    setIndex(0);
+  }, [turnId]);
+
+  // B3.3: remote/commander handlers. Previously this template had NO lastAction
+  // effect at all, so the remote's "Reveal Answer" and "Next" buttons
+  // (TeacherRemote.tsx:264,267) were dead. Now they drive the board.
+  useEffect(() => {
+    const a = state.lastAction;
+    if (!a) return;
+    if (a.type === 'REVEAL_ANSWER') {
+      setRevealed(true);
+    } else if (a.type === 'RESET_GAME') {
+      setRevealed(false);
+      setCredited(false);
+      setIndex(0);
+    } else if (a.type === 'NEXT' || a.type === 'NEXT_ROUND') {
+      // Remote "Next" advances the item, clearing reveal state.
+      if (!revealed) setRevealed(true); else next();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.lastAction]);
 
   if (loading) {
     return (
@@ -81,11 +117,29 @@ const BoardGrammarPractice: React.FC<Props> = () => {
     setCredited(true);
     try {
       await gradeObjective(selectedStudentId, unitId, item.objective_id, correct, 'productive');
+      // Game-lifecycle scoring. A correct credit = SUCCESS for this responder's
+      // turn → award the clean score (mistakes ref stays 0 here because the
+      // board's Credit button only marks correct; wrong grading goes through
+      // the Baton, which has its own scoring). Guard so a re-tap can't double-pay.
+      if (correct && !awardedRef.current) {
+        awardedRef.current = true;
+        addPoints(selectedStudentId, scoreForAttempt(mistakesRef.current));
+      } else if (!correct) {
+        // A wrong credit (if ever wired) counts as a mistake.
+        mistakesRef.current += 1;
+        addPoints(selectedStudentId, -MISTAKE_PENALTY);
+      }
     } catch { /* non-fatal */ }
   };
 
   const next = () => {
-    if (index < items.length - 1) { setIndex(index + 1); setRevealed(false); setCredited(false); }
+    if (index < items.length - 1) {
+      setIndex(index + 1);
+      setRevealed(false);
+      setCredited(false);
+      // Manual Next within the same turn: keep the mistake tally (the responder
+      // is still the same student). NEW_TURN is what resets it.
+    }
   };
 
   return (

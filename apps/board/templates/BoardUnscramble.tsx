@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Check, RefreshCcw, ArrowRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { gradeStudent } from '../../../services/boardLearner';
 
 interface Word {
   id: string;
@@ -19,8 +21,12 @@ const shuffle = <T,>(a: T[]): T[] => {
 };
 
 const BoardUnscramble = ({ data }: { data: any }) => {
-  const { state, triggerAction } = useSession();
+  const { state, triggerAction, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
+  // Game-lifecycle: mistakes during the current responder's turn. Reset on
+  // NEW_TURN. Used to compute the success award on a correct checkAnswer.
+  const mistakesRef = useRef(0);
+  const awardedRef = useRef(false);
 
   // Pool fallback (WORD_BANK_BUILD): target_sentence + word_bank. Stable refs via
   // useMemo so the reset effect (keyed on primitives) can't loop.
@@ -87,6 +93,22 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
 
+  // Game-lifecycle: a fresh responder is up (NEW_TURN). Move to a new sentence
+  // (pool mode) or reshuffle (frozen mode) and zero the mistake tally for a
+  // clean scored attempt.
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return; // no responder = practice mode
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    setIsCorrect(false);
+    setIsWrong(false);
+    setPlacedWords([]);
+    if (usingPool) setRound((r) => r + 1);
+    // The sig-keyed effect above will rebuild scrambledWords from the new item.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
+
   const handleWordClick = (word: Word, from: 'bank' | 'placed') => {
     triggerAction('UNSCRAMBLE_MOVE', { wordId: word.id, from });
   };
@@ -98,12 +120,27 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     }
     const cleanCurrent = placedWords.map((w) => w.text).join(' ').replace(/[.,!]/g, '').trim();
     const cleanTarget = target.replace(/[.,!]/g, '').trim();
+    const picked = state.quickWheelWinner;
     if (cleanCurrent && cleanTarget && cleanCurrent === cleanTarget) {
       setIsCorrect(true);
       setIsWrong(false);
+      // Game-lifecycle: SUCCESS — award the clean score minus mistakes made
+      // during this turn. Guard with awardedRef so re-checks can't double-pay.
+      if (picked && !awardedRef.current) {
+        awardedRef.current = true;
+        addPoints(picked, scoreForAttempt(mistakesRef.current));
+        if (unitId && target) gradeStudent(picked, unitId, target, true).catch(() => {});
+      }
     } else {
       setIsCorrect(false);
       setIsWrong(true);
+      // Game-lifecycle: MISTAKE — deduct now and bump the counter (lowers the
+      // eventual award). Also grade cognition so FSRS sees the miss.
+      if (picked) {
+        mistakesRef.current += 1;
+        addPoints(picked, -MISTAKE_PENALTY);
+        if (unitId && target) gradeStudent(picked, unitId, target, false).catch(() => {});
+      }
       setTimeout(() => setIsWrong(false), 1000);
     }
   };

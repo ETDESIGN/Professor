@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { History, Check, RefreshCcw, ArrowRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { getStory } from '../../../services/manifest';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { gradeStudent } from '../../../services/boardLearner';
 
 interface StoryCard {
   id: string;
@@ -11,10 +13,15 @@ interface StoryCard {
 }
 
 const BoardStorySequencing = ({ data }: { data: any }) => {
-  const { state } = useSession();
+  const { state, addPoints } = useSession();
+  const unitId = state.activeUnit?.id || '';
   const [cards, setCards] = useState<StoryCard[]>([]);
   const [slots, setSlots] = useState<(StoryCard | null)[]>([]);
   const [isCorrect, setIsCorrect] = useState(false);
+  // Game-lifecycle: mistakes during the current responder's turn. Reset on
+  // NEW_TURN. Used to compute the success award on a correct ordering.
+  const mistakesRef = useRef(0);
+  const awardedRef = useRef(false);
 
   // Build the ordered card set: frozen data.cards first, else the active unit's
   // story pages (narrative order). Story-sequencing needs the story's order, so
@@ -43,6 +50,17 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
+
+  // Game-lifecycle: a fresh responder is up (NEW_TURN). Rebuild a fresh board
+  // for them and zero the mistake tally for a clean scored attempt.
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return; // no responder = practice mode
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    initializeGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
 
   const initializeGame = () => {
      const items = buildCards();
@@ -78,9 +96,23 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     if (!isFull) return;
 
     const correct = slots.every((s, i) => s?.order === i);
+    const picked = state.quickWheelWinner;
     if (correct) {
       setIsCorrect(true);
+      // Game-lifecycle: SUCCESS — award clean score minus mistakes. Guard so
+      // re-checks can't double-pay.
+      if (picked && !awardedRef.current) {
+        awardedRef.current = true;
+        addPoints(picked, scoreForAttempt(mistakesRef.current));
+        if (unitId) gradeStudent(picked, unitId, 'story_sequencing', true).catch(() => {});
+      }
     } else {
+      // Game-lifecycle: MISTAKE — deduct now, bump the counter, grade cognition.
+      if (picked) {
+        mistakesRef.current += 1;
+        addPoints(picked, -MISTAKE_PENALTY);
+        if (unitId) gradeStudent(picked, unitId, 'story_sequencing', false).catch(() => {});
+      }
       // Simple error handling: reset incorrect ones
       const newSlots = slots.map((s, i) => (s?.order === i ? s : null));
       const returnedCards = slots.filter((s, i) => s && s.order !== i) as StoryCard[];

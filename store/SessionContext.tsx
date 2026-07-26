@@ -64,6 +64,13 @@ interface SessionState {
   confettiTrigger: number;
   activeOverlay: 'NONE' | 'QUICK_WHEEL' | 'LEADERBOARD';
   quickWheelWinner: string | null;
+  /**
+   * Game-lifecycle signal (workstream: pick → reset → score → next). Each time
+   * a fresh responder comes up via the wheel (NEW_TURN action), this changes.
+   * Game templates key a reset effect on this value so they start a clean
+   * attempt for the new student. Null in choral/practice mode (no responder).
+   * Cleared on CLEAR_RESPONDER / CLOSE_OVERLAY / slide change. */
+  currentTurnId: string | null;
   quietModeActive: boolean;
   noiseLevel: number;
   units: LessonUnit[];
@@ -117,6 +124,8 @@ export interface SessionContextType {
   /** Phase A.3: form N balanced teams from the roster (broadcasts to all devices). */
   assignTeams: (count?: number) => void;
   closeOverlay: () => void;
+  /** Clear the current responder and immediately spin for the next one. */
+  nextStudent: () => void;
   startDrawing: (x: number, y: number, color?: string) => void;
   addDrawingPoint: (x: number, y: number) => void;
   endDrawing: () => void;
@@ -152,6 +161,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     confettiTrigger: 0,
     activeOverlay: 'NONE',
     quickWheelWinner: null,
+    currentTurnId: null,
     quietModeActive: false,
     noiseLevel: 0,
     units: [],
@@ -185,8 +195,16 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     loadUnits();
     loadStudents(); // Load students for the teacher
 
-    // Initialize Supabase Realtime channel
-    const channel = supabase.channel('classroom_live');
+    // Initialize Supabase Realtime channel.
+    // broadcast: { self: false } — every sender below already does an optimistic
+    // setState BEFORE broadcasting, so the local tab doesn't need its own echo.
+    // Without this flag, Supabase echoes each broadcast back to the sender and
+    // every action (POINTS_AWARDED, SPIN_WHEEL, TEAMS_ASSIGNED, drawing, ...)
+    // runs its handler TWICE on the teacher's tab: double points, double
+    // confetti, and duplicate selectionHistory that corrupts FAIR/ELIMINATION.
+    const channel = supabase.channel('classroom_live', {
+      config: { broadcast: { self: false } },
+    });
 
     channel
       .on('broadcast', { event: 'classroom_action' }, ({ payload: action }) => {
@@ -195,20 +213,47 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
           if (action.type === 'WINNER_DECLARED' || action.type === 'GAME_WIN') {
             newState.confettiTrigger = Date.now();
+          } else if (action.type === 'CELEBRATE') {
+            // SidebarPanel "Trigger Celebration" / remote celebrations now reach
+            // the board (previously only the student app consumed CELEBRATE, so
+            // the projector never celebrated). Bump confettiTrigger to fire the
+            // same confetti burst as a GAME_WIN.
+            newState.confettiTrigger = Date.now();
+          } else if (action.type === 'LIVE_SNAP') {
+            // Remote camera snapshot (workstream B3.2): persist the broadcast
+            // dataURL so the board's separate tab can render it. The sender does
+            // an optimistic setState via setLiveSnap, so this only runs on OTHER
+            // tabs (broadcast: self:false).
+            newState.liveSnapImage = action.payload?.image ?? null;
+          } else if (action.type === 'SELECTION_MODE_CHANGED') {
+            // Workstream B5: keep selection mode in sync across commander / remote / board.
+            newState.selectionMode = action.payload?.mode ?? newState.selectionMode;
+          } else if (action.type === 'QUIET_MODE_CHANGED') {
+            // Workstream B5: keep quiet-mode + noise level in sync across tabs.
+            newState.quietModeActive = action.payload?.active ?? newState.quietModeActive;
           } else if (action.type === 'END_SESSION') {
             newState.status = 'IDLE';
             newState.currentStepIndex = 0;
             newState.activeOverlay = 'NONE';
             newState.drawings = [];
+            newState.currentTurnId = null;
           } else if (action.type === 'CLOSE_OVERLAY') {
             newState.activeOverlay = 'NONE';
             newState.quickWheelWinner = null;
+            newState.currentTurnId = null;
           } else if (action.type === 'SHOW_LEADERBOARD') {
             // Flash the unified class leaderboard (locked decision 0.1.4).
             newState.activeOverlay = newState.activeOverlay === 'LEADERBOARD' ? 'NONE' : 'LEADERBOARD';
           } else if (action.type === 'CLEAR_RESPONDER') {
             // Teacher Baton "Class" — clear the selected responder for a choral/group round.
             newState.quickWheelWinner = null;
+            newState.currentTurnId = null;
+          } else if (action.type === 'NEW_TURN') {
+            // Game-lifecycle signal: a fresh responder is up. Games key their
+            // reset effect on `currentTurnId` changing, so they start a clean
+            // attempt for this student. Emitted by selectNextStudent /
+            // magicSelectStudent right after GAME_WIN.
+            newState.currentTurnId = action.payload?.studentId ?? null;
           } else if (action.type === 'TEAMS_ASSIGNED') {
             // Phase A.3: Team Builder assigned teams. Payload = { assignments: { studentId: team } }.
             const assignments = action.payload?.assignments || {};
@@ -552,6 +597,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const goToSlide = (index: number) => {
     const flow = getFlow();
     if (index >= 0 && index < flow.length) {
+      const slideChanged = index !== state.currentStepIndex;
       setState(prev => ({
         ...prev,
         currentStepIndex: index,
@@ -561,6 +607,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         // New exercise → reset the per-exercise round-robin so every kid is
         // eligible again (locked decision 0.1.1: one turn each before any repeat).
         turnsThisExercise: index === prev.currentStepIndex ? prev.turnsThisExercise : [],
+        // Bug fix: clear the picked responder when navigating to a DIFFERENT
+        // slide. Previously quickWheelWinner leaked across slides, so a student
+        // picked on slide N stayed "picked" on slide N+1 — games started with
+        // a pre-selected student instead of in practice/choral mode. Same-index
+        // re-entry preserves the pick (so a refresh mid-slide doesn't drop it).
+        quickWheelWinner: slideChanged ? null : prev.quickWheelWinner,
+        currentTurnId: slideChanged ? null : prev.currentTurnId,
       }));
       // Persist so the projector board / remote follow the teacher.
       persistSessionIndex(index);
@@ -629,6 +682,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const setLiveSnap = (image: string | null) => {
+    // Optimistic local update + broadcast so the board (separate tab) renders
+    // the snapshot. B3.2: previously local-only, so the photo was trapped on
+    // the remote tab and the board always saw null.
+    broadcastAction({ type: 'LIVE_SNAP', payload: { image }, timestamp: Date.now() });
     setState(prev => ({ ...prev, liveSnapImage: image }));
   };
 
@@ -648,6 +705,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const setSelectionMode = (mode: SelectionMode) => {
+    // Broadcast so commander and remote agree on FAIR / RANDOM / etc.
+    // B5: previously local-only, so the mode picked on one tab was invisible
+    // to the others.
+    broadcastAction({ type: 'SELECTION_MODE_CHANGED', payload: { mode }, timestamp: Date.now() });
     setState(prev => ({ ...prev, selectionMode: mode }));
   };
 
@@ -683,6 +744,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const magicSelectStudent = (studentId: string) => {
+    // B4.1: guard against an invalid/empty selection. Previously a magic pick
+    // with a falsy id (e.g. caller bug) would broadcast SPIN_WHEEL with an
+    // undefined target and the board's spinTo() would crash.
+    if (!studentId) return;
     const spinAction = { type: 'SPIN_WHEEL', payload: { targetId: studentId, magic: true, overlay: true }, timestamp: Date.now() };
     broadcastAction(spinAction);
 
@@ -701,6 +766,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setTimeout(() => {
       triggerAction('GAME_WIN', { winnerId: studentId });
+      // NEW_TURN tells the games a fresh responder is up → they reset for this
+      // student and start a clean scored attempt. Emitted right after GAME_WIN
+      // so the wheel animation finishes first, then the game snaps to fresh.
+      triggerAction('NEW_TURN', { studentId });
     }, 4000);
   };
 
@@ -709,6 +778,17 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     if (filterTeam) {
       pool = pool.filter(s => s.team === filterTeam);
+    }
+
+    // B4.1: empty-pool guard. Previously `pool[randomIndex].id` threw
+    // TypeError when no students were loaded or a team filter matched no one.
+    // Common triggers: spinning before any class is bound, or after assigning
+    // a team filter that everyone's absent from.
+    if (pool.length === 0) {
+      log.warn('select_next_student_empty_pool', {
+        metadata: { filterTeam, studentCount: state.students.length }
+      });
+      return;
     }
 
     let selectedId: string;
@@ -762,7 +842,22 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     setTimeout(() => {
       triggerAction('GAME_WIN', { winnerId: selectedId });
+      // NEW_TURN: games reset for this fresh responder + start a clean scored
+      // attempt. Emitted after GAME_WIN so the wheel animation settles first.
+      triggerAction('NEW_TURN', { studentId: selectedId });
     }, 4000);
+  };
+
+  /**
+   * Game-lifecycle helper (workstream: pick → reset → score → next). Clears the
+   * current responder (back to practice/choral mode momentarily) and then
+   * immediately spins for the next one. The Baton "Next Student" button calls
+   * this so the teacher advances the whole loop in one tap. */
+  const nextStudent = () => {
+    triggerAction('CLEAR_RESPONDER');
+    // Tiny delay so the clear renders before the spin overlay opens; otherwise
+    // the overlay's winner card flickers with the old student's data.
+    setTimeout(() => selectNextStudent(), 50);
   };
 
   // --- Drawing Logic ---
@@ -826,10 +921,17 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const setQuietMode = (active: boolean) => {
+    // Broadcast so the board (separate tab) shows the "Silence Required"
+    // overlay. B5: previously local-only — only the MASS_PENALTY side-effect
+    // crossed tabs, so the board never knew quiet mode was on.
+    broadcastAction({ type: 'QUIET_MODE_CHANGED', payload: { active }, timestamp: Date.now() });
     setState(prev => ({ ...prev, quietModeActive: active }));
   };
 
   const updateNoiseLevel = (level: number) => {
+    // Noise level is high-frequency (mic samples) — don't spam the channel.
+    // Quiet-mode TOGGLE is what matters cross-tab (above); the needle itself
+    // is local-only on each tab that has a mic.
     setState(prev => ({ ...prev, noiseLevel: level }));
   };
 
@@ -838,7 +940,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       state, loadUnits, loadStudents, setActiveClass, setActiveUnit, ensureAttendanceOccurrence, saveUnit, unlockNextLevel,
       startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
-      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay,
+      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, nextStudent,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
       triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent
     }}>

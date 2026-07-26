@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Check, RefreshCcw } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { gradeStudent } from '../../../services/boardLearner';
 
 interface MatchPair {
   id: string;
@@ -11,8 +13,9 @@ interface MatchPair {
 }
 
 const BoardFlashMatch = ({ data }: { data: any }) => {
-  const { state, triggerAction } = useSession();
+  const { state, triggerAction, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
+  const stepType = state.activeSlideData?.type || 'FLASH_MATCH';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
   // Memoize the frozen source so its reference is stable across renders — an
@@ -54,6 +57,17 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const [matchedCount, setMatchedCount] = useState(0);
   const [isWrong, setIsWrong] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  // Game-lifecycle: mistakes made during the CURRENT responder's turn. Resets
+  // to 0 when a new student is picked (NEW_TURN). Used to compute the success
+  // award via scoreForAttempt(mistakes).
+  const [mistakes, setMistakes] = useState(0);
+  // Ref mirror so the checkMatch closure (created in render) reads the live
+  // count without going stale across rapid taps.
+  const mistakesRef = useRef(0);
+  const setMistakesBoth = (updater: (n: number) => number) => {
+    mistakesRef.current = updater(mistakesRef.current);
+    setMistakes(mistakesRef.current);
+  };
 
   // (Re)build the board whenever the pair set resolves (frozen sync OR pool
   // async) — and on a remote RESET_GAME.
@@ -65,6 +79,8 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     setMatchedCount(0);
     setIsWrong(false);
     setIsComplete(false);
+    mistakesRef.current = 0;
+    setMistakes(0);
   }, [pairs]);
 
   useEffect(() => { rebuild(); }, [rebuild]);
@@ -72,6 +88,16 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   useEffect(() => {
     if (state.lastAction?.type === 'RESET_GAME') rebuild();
   }, [state.lastAction, rebuild]);
+
+  // Game-lifecycle: when a NEW responder is picked (NEW_TURN / currentTurnId
+  // changes), reshuffle a fresh board for them and reset their mistake tally.
+  // Skips on the initial null (no responder = practice/choral mode).
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return; // no responder yet — stay in current state
+    if (pairs.length > 0) rebuild();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
 
   const handleLeftClick = useCallback((id: string) => {
     if (isComplete) return;
@@ -114,12 +140,29 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         const newCount = prev + 1;
         if (newCount === pairs.length) {
           setIsComplete(true);
+          // Game-lifecycle scoring: the responder's turn is a SUCCESS — award
+          // the clean score minus the mistakes they made during this turn.
+          // Mistakes have already been deducted live (wrong branch below), so
+          // this is the completion bonus. No responder = practice mode = no score.
+          const picked = state.quickWheelWinner;
+          if (picked) {
+            addPoints(picked, scoreForAttempt(mistakesRef.current));
+            if (unitId && leftItem.text) gradeStudent(picked, unitId, leftItem.text, true).catch(() => {});
+          }
         }
         return newCount;
       });
     } else {
       setIsWrong(true);
       setTimeout(() => setIsWrong(false), 800);
+      // Game-lifecycle scoring: a wrong pair attempt is a MISTAKE — deduct
+      // immediately so the running score reflects the cost, and bump the
+      // mistake counter (lowering the eventual success award).
+      const picked = state.quickWheelWinner;
+      if (picked) {
+        setMistakesBoth(n => n + 1);
+        addPoints(picked, -MISTAKE_PENALTY);
+      }
     }
 
     setSelectedLeft(null);
