@@ -11,6 +11,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sword, Shield, Zap, Check, X, Trophy, Star } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { pointsForCorrect } from './scoringDefaults';
 import { useBoardPool } from '../useBoardPool';
 import { gradeStudent } from '../../../services/boardLearner';
 import { toPoolItem } from '../../../types/exercise';
@@ -37,8 +38,9 @@ function checkWin(grid: (string|null)[]): { team: Team; line: number[] } | null 
 }
 
 const BoardTeamBattle = ({ data }: { data: any }) => {
-  const { state, triggerConfetti } = useSession();
+  const { state, triggerConfetti, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
+  const stepType = state.activeSlideData?.type || 'TEAM_BATTLE';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
   // Pool (MEANING_MATCH, class-weak).
@@ -98,6 +100,23 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     else if (a.type === 'REVEAL_ANSWER' && !answerRevealed && (phase === 'question' || phase === 'steal')) {
       handleAnswer(-1); // force reveal
     }
+    // B3.3: previously these two remote emits had no board handler → dead.
+    // SWITCH_TURN: Baton/remote "Switch Turn" → manually hand control to the
+    // other team (skips the steal/round-end state machine). Only valid in the
+    // question/steal phases.
+    else if (a.type === 'SWITCH_TURN' && (phase === 'question' || phase === 'steal')) {
+      stealRef.current = false;
+      setActiveTeam(t => t === 'red' ? 'blue' : 'red');
+      setSelectedTile(null);
+      setAnswerRevealed(false);
+      setTimeLeft(15);
+      setPhase('question');
+    }
+    // RESET_TIMER: Baton/remote "Reset Timer" → restart the 15s countdown for
+    // the current team.
+    else if (a.type === 'RESET_TIMER' && (phase === 'question' || phase === 'steal')) {
+      setTimeLeft(15);
+    }
     // eslint-disable-next-line
   }, [state.lastAction]);
 
@@ -136,6 +155,8 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     // Grade the picked student.
     const picked = state.quickWheelWinner;
     if (picked && unitId && currentQ.word) gradeStudent(picked, unitId, currentQ.word, isCorrect).catch(() => {});
+    // B2: wire scoring — a correct answer moves the leaderboard.
+    if (picked && isCorrect) addPoints(picked, pointsForCorrect(stepType));
 
     // Track turn.
     if (picked) setTeamTurnTracker(prev => ({ ...prev, [activeTeam]: [...new Set([...prev[activeTeam], picked])] }));

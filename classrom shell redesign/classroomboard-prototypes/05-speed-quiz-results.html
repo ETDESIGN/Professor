@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassroomBoard — ASSESS: Speed Quiz Results</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: { fontFamily: {
+  display: ['Fredoka','sans-serif'], body: ['Inter','sans-serif'], cn: ['Noto Sans SC','sans-serif']
+}}}};
+</script>
+<style>
+@keyframes nodePulse { 0%,100%{box-shadow:0 0 20px rgba(239,68,68,.35),0 0 40px rgba(239,68,68,.35);transform:scale(1)} 50%{box-shadow:0 0 28px rgba(239,68,68,.35),0 0 56px rgba(239,68,68,.35);transform:scale(1.06)} }
+@keyframes scorePop { 0%{opacity:.9;transform:translateY(0)} 100%{opacity:0;transform:translateY(-25px)} }
+@keyframes bannerGlow { 0%,100%{box-shadow:0 0 20px rgba(239,68,68,.15),0 0 40px rgba(239,68,68,.06)} 50%{box-shadow:0 0 30px rgba(239,68,68,.25),0 0 60px rgba(239,68,68,.12)} }
+@keyframes spotlightSweep { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+@keyframes avatarPulse { 0%,100%{box-shadow:0 0 16px rgba(239,68,68,.4)} 50%{box-shadow:0 0 24px rgba(239,68,68,.6),0 0 48px rgba(239,68,68,.2)} }
+@keyframes fadeInUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+@keyframes timerRing { from{stroke-dashoffset:0} to{stroke-dashoffset:283} }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+@keyframes confettiFall { 0%{opacity:0;transform:translateY(-100px) rotate(0)} 10%{opacity:1} 100%{opacity:0;transform:translateY(500px) rotate(720deg)} }
+/* screen-specific */
+@keyframes crownBounce { 0%,100%{transform:translateY(0) rotate(-6deg)} 50%{transform:translateY(-10px) rotate(6deg)} }
+@keyframes podiumRise { from{opacity:0;transform:translateY(80px)} to{opacity:1;transform:translateY(0)} }
+@keyframes glowPulse { 0%,100%{box-shadow:0 0 30px rgba(251,191,36,.4),0 0 60px rgba(251,191,36,.2)} 50%{box-shadow:0 0 45px rgba(251,191,36,.6),0 0 90px rgba(251,191,36,.3)} }
+.anim-node-pulse{animation:nodePulse 2s ease-in-out infinite}
+.anim-score-pop{animation:scorePop 2.5s ease-out infinite}
+.anim-banner-glow{animation:bannerGlow 2.5s ease-in-out infinite}
+.anim-spotlight{animation:spotlightSweep 5s linear infinite}
+.anim-avatar-pulse{animation:avatarPulse 3s ease-in-out infinite}
+.anim-podium-1{animation:podiumRise .7s cubic-bezier(.34,1.56,.64,1) .15s both}
+.anim-podium-2{animation:podiumRise .7s cubic-bezier(.34,1.56,.64,1) .3s both}
+.anim-podium-3{animation:podiumRise .7s cubic-bezier(.34,1.56,.64,1) .45s both}
+.anim-crown{animation:crownBounce 2s ease-in-out infinite}
+.anim-glow-pulse{animation:glowPulse 2.4s ease-in-out infinite}
+.confetti{position:absolute;top:0;width:12px;height:18px;border-radius:2px;animation:confettiFall 3.5s linear infinite}
+</style>
+</head>
+<!-- ANIM: scale 1920×1080 canvas to fit any viewport via JS transform -->
+<body class="w-[1920px] h-[1080px] overflow-hidden bg-gradient-to-br from-slate-900 to-slate-950 font-body text-slate-50 select-none">
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SHELL: header — Phase Arc Rail (shared across all screens) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<header class="absolute top-0 left-0 right-0 h-20 flex items-center justify-center px-24 z-10">
+  <div class="flex items-center">
+    <!-- completed node -->
+    <div class="flex flex-col items-center z-10 shrink-0">
+      <div class="w-[22px] h-[22px] rounded-full border-[2.5px] border-amber-400 bg-amber-400 opacity-70 flex items-center justify-center mb-1.5">
+        <span class="text-slate-900 font-bold text-[11px]">✓</span>
+      </div>
+      <span class="font-display text-[13px] font-semibold text-slate-300/65">Warm-up</span>
+      <span class="font-cn text-[10px] text-slate-400/40">热身</span>
+    </div>
+    <div class="w-[70px] h-[3px] bg-amber-400 opacity-55 rounded-full self-start mt-[30px]"></div>
+
+    <!-- completed node: Input -->
+    <div class="flex flex-col items-center z-10 shrink-0">
+      <div class="w-[22px] h-[22px] rounded-full border-[2.5px] border-amber-400 bg-amber-400 opacity-70 flex items-center justify-center mb-1.5">
+        <span class="text-slate-900 font-bold text-[11px]">✓</span>
+      </div>
+      <span class="font-display text-[13px] font-semibold text-slate-300/65">Input</span>
+      <span class="font-cn text-[10px] text-slate-400/40">输入</span>
+    </div>
+    <div class="w-[70px] h-[3px] bg-amber-400 opacity-55 rounded-full self-start mt-[30px]"></div>
+
+    <!-- completed node: Practice -->
+    <div class="flex flex-col items-center z-10 shrink-0">
+      <div class="w-[22px] h-[22px] rounded-full border-[2.5px] border-amber-400 bg-amber-400 opacity-70 flex items-center justify-center mb-1.5">
+        <span class="text-slate-900 font-bold text-[11px]">✓</span>
+      </div>
+      <span class="font-display text-[13px] font-semibold text-slate-300/65">Practice</span>
+      <span class="font-cn text-[10px] text-slate-400/40">练习</span>
+    </div>
+    <div class="w-[70px] h-[3px] bg-gradient-to-r from-amber-400 to-red-500 rounded-full self-start mt-[30px] shadow-[0_0_10px_rgba(239,68,68,.35)]"></div>
+
+    <!-- active node: ASSESS (red) -->
+    <div class="flex flex-col items-center z-10 shrink-0">
+      <!-- DISPLAY: active phase dot — ASSESS (red) -->
+      <div class="w-[34px] h-[34px] rounded-full bg-red-500 border-red-400 border-2 anim-node-pulse flex items-center justify-center mb-1.5 text-sm">⚡</div>
+      <span class="font-display text-[17px] font-semibold text-red-400">Assess</span>
+      <span class="font-cn text-[12px] text-slate-300/65">评估</span>
+    </div>
+    <div class="w-[70px] h-[3px] bg-white/8 rounded-full self-start mt-[30px]"></div>
+
+    <!-- future nodes -->
+    <div class="flex flex-col items-center z-10 shrink-0"><div class="w-[22px] h-[22px] rounded-full border-[2.5px] border-slate-500/40 opacity-40 mb-1.5"></div><span class="font-display text-[13px] font-semibold text-slate-300/65">Produce</span><span class="font-cn text-[10px] text-slate-400/40">产出</span></div>
+    <div class="w-[70px] h-[3px] bg-white/8 rounded-full self-start mt-[30px]"></div>
+    <div class="flex flex-col items-center z-10 shrink-0"><div class="w-[22px] h-[22px] rounded-full border-[2.5px] border-slate-500/40 opacity-40 mb-1.5"></div><span class="font-display text-[13px] font-semibold text-slate-300/65">Wrap</span><span class="font-cn text-[10px] text-slate-400/40">总结</span></div>
+  </div>
+  <!-- DISPLAY: clock -->
+  <div class="absolute top-4 right-8 font-body text-[15px] text-slate-400/40 tabular-nums" id="clock">14:32</div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- MAIN BOARD — 3-column grid -->
+<!-- ═══════════════════════════════════════════════════ -->
+<main class="absolute top-20 left-0 right-0 bottom-0 grid grid-cols-[260px_1fr_240px] gap-4 px-6 pb-[108px] pt-4">
+
+  <!-- ═══════════════════════════ -->
+  <!-- SHELL: team-scores (left rail) -->
+  <!-- ═══════════════════════════ -->
+  <aside class="flex flex-col gap-4 pt-3">
+    <!-- DISPLAY: Team Red card -->
+    <!-- DYNAMIC: score updated at runtime -->
+    <div class="relative overflow-hidden rounded-[20px] border border-red-500/25 bg-white/[.06] p-5 backdrop-blur-sm">
+      <div class="absolute inset-0" style="background:radial-gradient(ellipse at 20% 20%,rgba(239,68,68,.3),transparent 70%)"></div>
+      <div class="relative flex items-center gap-2.5 mb-2">
+        <div class="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,.3)]"></div>
+        <span class="font-display text-[17px] font-semibold">Team Red</span>
+      </div>
+      <div class="relative font-display text-[56px] font-bold tabular-nums leading-none text-red-300">450</div>
+      <div class="absolute top-4 right-5 font-display text-[22px] font-bold text-amber-400 anim-score-pop">+12</div>
+    </div>
+    <!-- DISPLAY: Team Blue card -->
+    <div class="relative overflow-hidden rounded-[20px] border border-blue-500/25 bg-white/[.06] p-5 backdrop-blur-sm">
+      <div class="absolute inset-0" style="background:radial-gradient(ellipse at 20% 20%,rgba(59,130,246,.3),transparent 70%)"></div>
+      <div class="relative flex items-center gap-2.5 mb-2">
+        <div class="w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,.3)]"></div>
+        <span class="font-display text-[17px] font-semibold">Team Blue</span>
+      </div>
+      <div class="relative font-display text-[56px] font-bold tabular-nums leading-none text-blue-300">380</div>
+    </div>
+    <!-- DISPLAY: round info -->
+    <div class="bg-white/[.06] border border-white/8 rounded-2xl px-[18px] py-4 text-center mt-auto">
+      <div class="text-[11px] text-slate-400/40 uppercase tracking-widest mb-1.5">Round</div>
+      <div class="font-display text-[28px] font-bold text-amber-400">3 / 5</div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════ -->
+  <!-- CONTENT: screen-specific — Speed Quiz Results / Podium -->
+  <!-- ═══════════════════════════ -->
+  <section class="relative overflow-hidden rounded-[28px] border-2 border-red-500 bg-white/[.06] flex flex-col items-center justify-center p-10 shadow-[0_0_30px_rgba(239,68,68,.35),inset_0_0_60px_rgba(239,68,68,.05)]">
+    <!-- DISPLAY: phase badge -->
+    <div class="absolute top-5 left-6 flex items-center gap-2 bg-red-500/12 border border-red-500/25 rounded-full px-4 py-1.5 z-20">
+      <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,.35)]"></div>
+      <span class="font-display text-sm font-semibold text-red-400 uppercase tracking-wider">Assess — Speed Quiz Results</span>
+    </div>
+
+    <!-- DISPLAY: title -->
+    <div class="text-center mb-8 anim-fade-up" style="animation:fadeInUp .6s ease-out both">
+      <p class="font-display text-6xl font-black text-amber-400" style="text-shadow:0 0 30px rgba(251,191,36,.4)">🏆 Top 3 Finishers</p>
+      <p class="font-cn text-2xl text-slate-400/60 mt-1">最佳表现奖</p>
+    </div>
+
+    <!-- ANIM: confetti particles above podium (gold/red/blue) -->
+    <div class="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden z-0">
+      <div class="confetti" style="left:8%;background:#FBBF24;animation-delay:0s"></div>
+      <div class="confetti" style="left:18%;background:#EF4444;animation-delay:.4s"></div>
+      <div class="confetti" style="left:28%;background:#3B82F6;animation-delay:.8s"></div>
+      <div class="confetti" style="left:38%;background:#FBBF24;animation-delay:1.2s"></div>
+      <div class="confetti" style="left:48%;background:#EF4444;animation-delay:.2s"></div>
+      <div class="confetti" style="left:58%;background:#3B82F6;animation-delay:.6s"></div>
+      <div class="confetti" style="left:68%;background:#FBBF24;animation-delay:1s"></div>
+      <div class="confetti" style="left:78%;background:#EF4444;animation-delay:1.4s"></div>
+      <div class="confetti" style="left:88%;background:#3B82F6;animation-delay:.3s"></div>
+      <div class="confetti" style="left:13%;background:#FBBF24;animation-delay:1.6s"></div>
+      <div class="confetti" style="left:43%;background:#EF4444;animation-delay:.9s"></div>
+      <div class="confetti" style="left:73%;background:#3B82F6;animation-delay:1.8s"></div>
+    </div>
+
+    <!-- DISPLAY: 3-tier podium -->
+    <div class="relative flex items-end justify-center gap-5 z-10 mb-10">
+      <!-- 2nd place: Jenny 🦋 (Blue), silver -->
+      <div class="anim-podium-2 flex flex-col items-center w-[200px]">
+        <div class="w-[88px] h-[88px] rounded-full flex items-center justify-center text-6xl mb-2 border-4 border-slate-300" style="background:linear-gradient(135deg,#22C55E,#14B8A6);box-shadow:0 0 24px rgba(203,213,225,.35)">🦋</div>
+        <div class="text-center mb-2">
+          <div class="font-display text-2xl font-bold text-slate-200">Jenny</div>
+          <div class="flex items-center justify-center gap-1.5 mt-0.5">
+            <span class="text-xs">🔵</span>
+            <span class="font-display text-base font-semibold text-blue-400">Blue</span>
+          </div>
+        </div>
+        <!-- DISPLAY: silver podium tier -->
+        <div class="w-[200px] h-[220px] rounded-t-2xl bg-gradient-to-b from-slate-300/25 to-slate-400/10 border-2 border-slate-300/40 border-b-0 flex flex-col items-center justify-start pt-4">
+          <div class="font-display text-5xl font-black text-slate-300 mb-1">2</div>
+          <div class="font-display text-3xl font-bold text-slate-200 tabular-nums">85</div>
+          <div class="text-xs uppercase tracking-widest text-slate-400/60">pts</div>
+        </div>
+      </div>
+
+      <!-- 1st place: Leo 🦁 (Red), gold + crown -->
+      <div class="anim-podium-1 flex flex-col items-center w-[200px]">
+        <!-- ANIM: bouncing crown -->
+        <div class="text-5xl mb-1 anim-crown" style="filter:drop-shadow(0 0 12px rgba(251,191,36,.7))">👑</div>
+        <div class="w-[100px] h-[100px] rounded-full flex items-center justify-center text-7xl mb-2 border-4 border-amber-400 anim-glow-pulse" style="background:linear-gradient(135deg,#F97316,#EF4444)">🦁</div>
+        <div class="text-center mb-2">
+          <div class="font-display text-3xl font-black text-amber-400">Leo</div>
+          <div class="flex items-center justify-center gap-1.5 mt-0.5">
+            <span class="text-xs">🔴</span>
+            <span class="font-display text-base font-semibold text-red-400">Red</span>
+          </div>
+        </div>
+        <!-- DISPLAY: gold podium tier (tallest) -->
+        <div class="w-[200px] h-[300px] rounded-t-2xl bg-gradient-to-b from-amber-400/30 to-amber-500/10 border-2 border-amber-400/60 border-b-0 flex flex-col items-center justify-start pt-5 shadow-[0_0_30px_rgba(251,191,36,.3)]">
+          <div class="font-display text-6xl font-black text-amber-400 mb-1">1</div>
+          <div class="font-display text-4xl font-black text-amber-300 tabular-nums">120</div>
+          <div class="text-xs uppercase tracking-widest text-amber-400/70">pts</div>
+        </div>
+      </div>
+
+      <!-- 3rd place: Mia 🦊 (Red), bronze -->
+      <div class="anim-podium-3 flex flex-col items-center w-[200px]">
+        <div class="w-[80px] h-[80px] rounded-full flex items-center justify-center text-5xl mb-2 border-4 border-orange-700/70" style="background:linear-gradient(135deg,#F472B6,#A855F7);box-shadow:0 0 20px rgba(180,83,9,.4)">🦊</div>
+        <div class="text-center mb-2">
+          <div class="font-display text-2xl font-bold text-slate-200">Mia</div>
+          <div class="flex items-center justify-center gap-1.5 mt-0.5">
+            <span class="text-xs">🔴</span>
+            <span class="font-display text-base font-semibold text-red-400">Red</span>
+          </div>
+        </div>
+        <!-- DISPLAY: bronze podium tier (lowest) -->
+        <div class="w-[200px] h-[180px] rounded-t-2xl bg-gradient-to-b from-orange-700/30 to-orange-800/10 border-2 border-orange-700/50 border-b-0 flex flex-col items-center justify-start pt-4">
+          <div class="font-display text-5xl font-black text-orange-500 mb-1">3</div>
+          <div class="font-display text-3xl font-bold text-slate-200 tabular-nums">95</div>
+          <div class="text-xs uppercase tracking-widest text-slate-400/60">pts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISPLAY: round complete message -->
+    <div class="text-center anim-fade-up" style="animation:fadeInUp .5s ease-out .8s both">
+      <p class="font-display text-4xl font-bold text-slate-300">✨ Round 3 complete! ✨</p>
+      <p class="font-cn text-xl text-slate-400/55 mt-1">第 3 轮结束！</p>
+    </div>
+
+    <!-- INTERACTIVE: next round button (red themed) -->
+    <button class="absolute bottom-6 right-6 group flex items-center gap-3 bg-red-500 hover:bg-red-400 border-2 border-red-400 rounded-2xl px-7 py-4 transition-all duration-200 hover:scale-105 shadow-[0_0_24px_rgba(239,68,68,.5)] cursor-pointer z-20">
+      <span class="font-display text-2xl font-bold text-white">Next round</span>
+      <span class="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+    </button>
+  </section>
+
+  <!-- ═══════════════════════════ -->
+  <!-- SHELL: leaderboard (right rail) -->
+  <!-- ═══════════════════════════ -->
+  <aside>
+    <div class="bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-5 flex flex-col gap-1.5 backdrop-blur-sm">
+      <div class="font-display text-[15px] font-semibold text-slate-300/65 mb-2 uppercase tracking-wider">🏆 Leaderboard</div>
+      <!-- DYNAMIC: rankings from runtime data -->
+      <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-amber-400/10">
+        <span class="font-display text-base font-bold text-amber-400 w-6 text-center">1</span>
+        <div class="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style="background:linear-gradient(135deg,#F472B6,#A855F7)">🦊</div>
+        <span class="font-display text-lg font-semibold flex-1">Mia</span>
+        <span class="font-display text-xl font-bold text-blue-400 tabular-nums">120</span>
+      </div>
+      <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
+        <span class="font-display text-base font-bold text-amber-400 w-6 text-center">2</span>
+        <div class="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style="background:linear-gradient(135deg,#F97316,#EF4444)">🦁</div>
+        <span class="font-display text-lg font-semibold flex-1">Leo</span>
+        <span class="font-display text-xl font-bold text-blue-400 tabular-nums">110</span>
+      </div>
+      <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
+        <span class="font-display text-base font-bold text-amber-400 w-6 text-center">3</span>
+        <div class="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">🐯</div>
+        <span class="font-display text-lg font-semibold flex-1">Tom</span>
+        <span class="font-display text-xl font-bold text-blue-400 tabular-nums">95</span>
+      </div>
+      <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
+        <span class="font-display text-base font-bold text-amber-400 w-6 text-center">4</span>
+        <div class="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style="background:linear-gradient(135deg,#22C55E,#14B8A6)">🦋</div>
+        <span class="font-display text-lg font-semibold flex-1">Jenny</span>
+        <span class="font-display text-xl font-bold text-blue-400 tabular-nums">82</span>
+      </div>
+      <div class="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
+        <span class="font-display text-base font-bold text-amber-400 w-6 text-center">5</span>
+        <div class="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style="background:linear-gradient(135deg,#FBBF24,#F97316)">🐻</div>
+        <span class="font-display text-lg font-semibold flex-1">Ben</span>
+        <span class="font-display text-xl font-bold text-blue-400 tabular-nums">74</span>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SHELL: whose-turn (bottom bar) -->
+<!-- ═══════════════════════════════════════════════════ -->
+<footer class="absolute bottom-0 left-0 right-0 h-[100px] flex items-center justify-center px-[270px] pb-[18px] z-10">
+  <!-- DISPLAY: round mode badge -->
+  <div class="absolute left-[274px] flex items-center gap-2 bg-white/[.06] border border-white/8 rounded-full px-5 py-2 backdrop-blur-sm">
+    <span class="text-xl">🙋</span>
+    <span class="font-display text-lg font-bold tracking-wide">INDIVIDUAL</span>
+  </div>
+  <!-- DYNAMIC: student name changes per turn -->
+  <!-- ANIM: banner glow + spotlight sweep -->
+  <div class="relative flex items-center gap-[18px] bg-white/10 border-2 border-white/15 rounded-full p-[10px] pr-11 pl-4 backdrop-blur-md anim-banner-glow">
+    <div class="absolute inset-[-3px] rounded-full anim-spotlight" style="background:conic-gradient(from 0deg,transparent 0%,rgba(239,68,68,.15) 15%,transparent 30%);z-index:-1"></div>
+    <div class="w-[62px] h-[62px] rounded-full flex items-center justify-center text-[34px] shrink-0 anim-avatar-pulse" style="background:linear-gradient(135deg,#F97316,#EF4444)">🦁</div>
+    <div class="flex flex-col">
+      <span class="font-display text-base text-slate-300/65 font-medium">Now up</span>
+      <span class="font-display text-[36px] font-bold leading-tight">Leo</span>
+      <span class="font-cn text-base text-slate-300/65 mt-0.5">现在轮到：Leo</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Clock
+!function(){var e=new Date,n=("0"+e.getHours()).slice(-2),t=("0"+e.getMinutes()).slice(-2);document.getElementById("clock").textContent=n+":"+t}();
+// Auto-scale 1920×1080 canvas
+!function(){function e(){var n=window.innerWidth/1920,t=window.innerHeight/1080,i=Math.min(n,t);document.documentElement.style.transformOrigin="top left",document.documentElement.style.transform="scale("+i+")",document.documentElement.style.width=1920*i+"px",document.documentElement.style.height=1080*i+"px"}e(),window.addEventListener("resize",e)}();
+</script>
+</body>
+</html>

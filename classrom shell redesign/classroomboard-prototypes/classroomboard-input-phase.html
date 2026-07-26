@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassroomBoard — INPUT Phase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+
+:root {
+  --phase-bg-start: #0F1B2E;
+  --phase-bg-end: #0A1220;
+  --phase-accent: #3B82F6;
+  --phase-accent-light: #60A5FA;
+  --phase-accent-glow: rgba(59,130,246,0.35);
+  --team-red: #EF4444;
+  --team-red-glow: rgba(239,68,68,0.3);
+  --team-blue: #3B82F6;
+  --team-blue-glow: rgba(59,130,246,0.3);
+  --text-primary: #F8FAFC;
+  --text-secondary: rgba(248,250,252,0.65);
+  --text-muted: rgba(248,250,252,0.4);
+  --gold: #FBBF24;
+  --surface: rgba(255,255,255,0.06);
+  --surface-hover: rgba(255,255,255,0.1);
+  --border-subtle: rgba(255,255,255,0.08);
+  --font-display: 'Fredoka', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-cn: 'Noto Sans SC', 'Inter', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: linear-gradient(135deg, var(--phase-bg-start) 0%, var(--phase-bg-end) 100%);
+  font-family: var(--font-body); color: var(--text-primary); user-select: none;
+}
+
+/* ═══ PHASE ARC RAIL ═══ */
+.phase-arc {
+  position: absolute; top: 0; left: 0; right: 0; height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 100px; z-index: 10;
+}
+.phase-trail { display: flex; align-items: center; }
+.phase-node {
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; z-index: 2; flex-shrink: 0; cursor: default;
+}
+.phase-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2.5px solid var(--text-muted); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; transition: all 0.4s ease; margin-bottom: 6px;
+}
+.phase-node.completed .phase-dot {
+  background: var(--gold); border-color: var(--gold); opacity: 0.7;
+}
+.phase-node.completed .phase-dot::after {
+  content: '✓'; color: #0F1B2E; font-weight: 700; font-size: 11px;
+}
+.phase-node.active .phase-dot {
+  width: 34px; height: 34px;
+  background: var(--phase-accent); border-color: var(--phase-accent-light);
+  box-shadow: 0 0 20px var(--phase-accent-glow), 0 0 40px var(--phase-accent-glow);
+  animation: nodePulse 2s ease-in-out infinite;
+}
+.phase-node.future .phase-dot { opacity: 0.4; }
+@keyframes nodePulse {
+  0%, 100% { box-shadow: 0 0 20px var(--phase-accent-glow), 0 0 40px var(--phase-accent-glow); transform: scale(1); }
+  50% { box-shadow: 0 0 28px var(--phase-accent-glow), 0 0 56px var(--phase-accent-glow); transform: scale(1.06); }
+}
+.phase-label {
+  font-family: var(--font-display); font-size: 13px; font-weight: 600;
+  color: var(--text-secondary); letter-spacing: 0.02em;
+}
+.phase-node.active .phase-label { font-size: 17px; color: var(--phase-accent-light); }
+.phase-cn {
+  font-family: var(--font-cn); font-size: 10px; color: var(--text-muted); margin-top: 1px;
+}
+.phase-node.active .phase-cn { font-size: 12px; color: var(--text-secondary); }
+.phase-connector {
+  width: 70px; height: 3px; background: var(--border-subtle);
+  position: relative; align-self: flex-start; margin-top: 30px; border-radius: 2px;
+}
+.phase-connector.completed { background: linear-gradient(90deg, var(--gold), var(--gold)); opacity: 0.55; }
+.phase-connector.active { background: linear-gradient(90deg, var(--gold) 60%, var(--phase-accent)); box-shadow: 0 0 10px var(--phase-accent-glow); }
+.clock {
+  position: absolute; top: 16px; right: 32px;
+  font-family: var(--font-body); font-size: 15px;
+  color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+
+/* ═══ MAIN GRID ═══ */
+.board {
+  position: absolute; top: 80px; left: 0; right: 0; bottom: 0;
+  display: grid; grid-template-columns: 260px 1fr 240px;
+  gap: 16px; padding: 16px 24px 108px 24px;
+}
+
+/* ═══ TEAM SCORE RAIL (Left) ═══ */
+.team-rail { display: flex; flex-direction: column; gap: 16px; padding-top: 12px; }
+.team-card {
+  background: var(--surface); border-radius: 20px; padding: 20px 22px;
+  border: 1px solid var(--border-subtle); position: relative; overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+.team-card.red { border-color: rgba(239,68,68,0.25); }
+.team-card.red::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 20% 20%, var(--team-red-glow), transparent 70%);
+  pointer-events: none;
+}
+.team-card.blue { border-color: rgba(59,130,246,0.25); }
+.team-card.blue::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 20% 20%, var(--team-blue-glow), transparent 70%);
+  pointer-events: none;
+}
+.team-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; position: relative; }
+.team-chip { width: 16px; height: 16px; border-radius: 50%; }
+.team-card.red .team-chip { background: var(--team-red); box-shadow: 0 0 8px var(--team-red-glow); }
+.team-card.blue .team-chip { background: var(--team-blue); box-shadow: 0 0 8px var(--team-blue-glow); }
+.team-name { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+.team-score {
+  font-family: var(--font-display); font-size: 56px; font-weight: 700;
+  font-variant-numeric: tabular-nums; line-height: 1; position: relative;
+}
+.team-card.red .team-score { color: #FCA5A5; }
+.team-card.blue .team-score { color: #93C5FD; }
+.score-change {
+  position: absolute; font-family: var(--font-display); font-size: 22px; font-weight: 700;
+  color: var(--gold); top: 16px; right: 20px; pointer-events: none;
+  animation: scorePop 2.5s ease-out infinite;
+}
+@keyframes scorePop {
+  0% { opacity: 0.9; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-25px); }
+}
+
+/* ═══ CENTER STAGE ═══ */
+.stage {
+  background: var(--surface); border-radius: 28px;
+  border: 2px solid var(--phase-accent);
+  box-shadow: 0 0 30px var(--phase-accent-glow), inset 0 0 60px rgba(59,130,246,0.05);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; padding: 40px;
+}
+.stage-phase-badge {
+  position: absolute; top: 20px; left: 24px;
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25);
+  border-radius: 999px; padding: 6px 16px; z-index: 2;
+}
+.stage-phase-badge-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--phase-accent); box-shadow: 0 0 8px var(--phase-accent-glow);
+}
+.stage-phase-badge-text {
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  color: var(--phase-accent-light); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.flashcards { display: flex; align-items: center; gap: 30px; perspective: 1200px; }
+.flashcard {
+  background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 24px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; position: relative; overflow: hidden;
+}
+.flashcard.side { width: 200px; height: 320px; opacity: 0.5; transform: scale(0.85) rotateY(8deg); }
+.flashcard.side:nth-child(3) { transform: scale(0.85) rotateY(-8deg); }
+.flashcard.main {
+  width: 380px; height: 500px;
+  background: rgba(255,255,255,0.1); border-color: rgba(96,165,250,0.3);
+  box-shadow: 0 0 50px var(--phase-accent-glow);
+  animation: cardFloat 4s ease-in-out infinite;
+}
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.card-emoji { margin-bottom: 16px; filter: drop-shadow(0 4px 16px rgba(0,0,0,0.4)); }
+.flashcard.side .card-emoji { font-size: 80px; }
+.flashcard.main .card-emoji { font-size: 150px; }
+.card-word { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+.flashcard.side .card-word { font-size: 30px; }
+.flashcard.main .card-word { font-size: 76px; }
+.card-gloss { font-family: var(--font-cn); color: var(--text-secondary); margin-top: 6px; }
+.flashcard.side .card-gloss { font-size: 20px; }
+.flashcard.main .card-gloss { font-size: 38px; }
+/* Particles */
+.particle {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  animation: particleDrift 10s ease-in-out infinite;
+}
+@keyframes particleDrift {
+  0% { opacity: 0; transform: translateY(0) scale(0.4); }
+  15% { opacity: 0.5; }
+  85% { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-140px) scale(1.1); }
+}
+
+/* ═══ LEADERBOARD RAIL (Right) ═══ */
+.leaderboard {
+  background: var(--surface); border-radius: 20px;
+  border: 1px solid var(--border-subtle); padding: 20px 18px;
+  display: flex; flex-direction: column; gap: 6px; backdrop-filter: blur(8px);
+}
+.lb-title {
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  color: var(--text-secondary); margin-bottom: 8px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 12px; transition: background 0.2s;
+}
+.lb-row:hover { background: var(--surface-hover); }
+.lb-rank {
+  font-family: var(--font-display); font-size: 16px; font-weight: 700;
+  color: var(--gold); width: 24px; text-align: center;
+}
+.lb-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.lb-name { font-family: var(--font-display); font-size: 18px; font-weight: 600; flex: 1; }
+.lb-score {
+  font-family: var(--font-display); font-size: 20px; font-weight: 700;
+  color: var(--phase-accent-light); font-variant-numeric: tabular-nums;
+}
+
+/* ═══ BOTTOM BAR ═══ */
+.bottom-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 100px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 270px 18px 270px; z-index: 10;
+}
+.round-badge {
+  position: absolute; left: 274px;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border-subtle);
+  border-radius: 999px; padding: 8px 20px; backdrop-filter: blur(8px);
+}
+.round-badge-icon { font-size: 20px; }
+.round-badge-text {
+  font-family: var(--font-display); font-size: 18px; font-weight: 700;
+  letter-spacing: 0.06em; color: var(--text-primary);
+}
+.turn-banner {
+  display: flex; align-items: center; gap: 18px;
+  background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 999px; padding: 10px 44px 10px 16px;
+  backdrop-filter: blur(12px); position: relative;
+  animation: bannerGlow 2.5s ease-in-out infinite;
+}
+@keyframes bannerGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(239,68,68,0.15), 0 0 40px rgba(239,68,68,0.06); }
+  50% { box-shadow: 0 0 30px rgba(239,68,68,0.25), 0 0 60px rgba(239,68,68,0.12); }
+}
+.turn-banner::before {
+  content: ''; position: absolute; inset: -3px; border-radius: 999px;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(239,68,68,0.15) 15%, transparent 30%);
+  animation: spotlightSweep 5s linear infinite; z-index: -1;
+}
+@keyframes spotlightSweep {
+  from { transform: rotate(0deg); } to { transform: rotate(360deg); }
+}
+.turn-avatar {
+  width: 62px; height: 62px; border-radius: 50%;
+  background: linear-gradient(135deg, #F97316, #EF4444);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px; box-shadow: 0 0 16px rgba(239,68,68,0.4);
+  flex-shrink: 0; animation: avatarPulse 3s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(239,68,68,0.4); }
+  50% { box-shadow: 0 0 24px rgba(239,68,68,0.6), 0 0 48px rgba(239,68,68,0.2); }
+}
+.turn-info { display: flex; flex-direction: column; }
+.turn-label { font-family: var(--font-display); font-size: 16px; color: var(--text-secondary); font-weight: 500; }
+.turn-name { font-family: var(--font-display); font-size: 36px; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+.turn-cn { font-family: var(--font-cn); font-size: 16px; color: var(--text-secondary); margin-top: 2px; }
+
+/* Round info card */
+.round-info {
+  background: var(--surface); border: 1px solid var(--border-subtle);
+  border-radius: 16px; padding: 16px 18px; text-align: center;
+  margin-top: auto;
+}
+.round-info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+.round-info-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; color: var(--gold); }
+</style>
+</head>
+<body>
+
+<!-- ═══ Phase Arc Rail ═══ -->
+<header class="phase-arc">
+  <div class="phase-trail">
+    <div class="phase-node completed">
+      <div class="phase-dot"></div>
+      <span class="phase-label">Warm-up</span><span class="phase-cn">热身</span>
+    </div>
+    <div class="phase-connector completed"></div>
+    <div class="phase-node active">
+      <div class="phase-dot">📖</div>
+      <span class="phase-label">Input</span><span class="phase-cn">输入</span>
+    </div>
+    <div class="phase-connector active"></div>
+    <div class="phase-node future">
+      <div class="phase-dot"></div>
+      <span class="phase-label">Practice</span><span class="phase-cn">练习</span>
+    </div>
+    <div class="phase-connector"></div>
+    <div class="phase-node future">
+      <div class="phase-dot"></div>
+      <span class="phase-label">Produce</span><span class="phase-cn">产出</span>
+    </div>
+    <div class="phase-connector"></div>
+    <div class="phase-node future">
+      <div class="phase-dot"></div>
+      <span class="phase-label">Assess</span><span class="phase-cn">评估</span>
+    </div>
+    <div class="phase-connector"></div>
+    <div class="phase-node future">
+      <div class="phase-dot"></div>
+      <span class="phase-label">Wrap</span><span class="phase-cn">总结</span>
+    </div>
+  </div>
+  <div class="clock" id="clock">14:32</div>
+</header>
+
+<!-- ═══ Main Board ═══ -->
+<main class="board">
+
+  <!-- LEFT: Team Score Rail -->
+  <aside class="team-rail">
+    <div class="team-card red">
+      <div class="team-header">
+        <div class="team-chip"></div>
+        <div class="team-name">Team Red</div>
+      </div>
+      <div class="team-score">450</div>
+      <div class="score-change">+12</div>
+    </div>
+    <div class="team-card blue">
+      <div class="team-header">
+        <div class="team-chip"></div>
+        <div class="team-name">Team Blue</div>
+      </div>
+      <div class="team-score">380</div>
+    </div>
+    <div class="round-info">
+      <div class="round-info-label">Round</div>
+      <div class="round-info-value">3 / 5</div>
+    </div>
+  </aside>
+
+  <!-- CENTER: Stage -->
+  <section class="stage">
+    <div class="stage-phase-badge">
+      <div class="stage-phase-badge-dot"></div>
+      <div class="stage-phase-badge-text">Input — Vocabulary</div>
+    </div>
+
+    <div class="flashcards">
+      <div class="flashcard side">
+        <div class="card-emoji">🦓</div>
+        <div class="card-word">Zebra</div>
+        <div class="card-gloss">斑马</div>
+      </div>
+      <div class="flashcard main">
+        <div class="card-emoji">🐘</div>
+        <div class="card-word">Elephant</div>
+        <div class="card-gloss">大象</div>
+      </div>
+      <div class="flashcard side">
+        <div class="card-emoji">🐯</div>
+        <div class="card-word">Tiger</div>
+        <div class="card-gloss">老虎</div>
+      </div>
+    </div>
+
+    <!-- Ambient particles -->
+    <div class="particle" style="width:6px;height:6px;background:var(--phase-accent-light);left:12%;bottom:18%;animation-delay:0s;animation-duration:7s;"></div>
+    <div class="particle" style="width:4px;height:4px;background:var(--gold);left:42%;bottom:12%;animation-delay:2s;animation-duration:9s;"></div>
+    <div class="particle" style="width:7px;height:7px;background:var(--phase-accent);left:72%;bottom:22%;animation-delay:4s;animation-duration:6s;"></div>
+    <div class="particle" style="width:5px;height:5px;background:var(--gold);left:88%;bottom:8%;animation-delay:1s;animation-duration:10s;"></div>
+    <div class="particle" style="width:3px;height:3px;background:var(--phase-accent-light);left:22%;bottom:28%;animation-delay:3s;animation-duration:8s;"></div>
+    <div class="particle" style="width:5px;height:5px;background:var(--phase-accent);left:58%;bottom:6%;animation-delay:5.5s;animation-duration:11s;"></div>
+  </section>
+
+  <!-- RIGHT: Leaderboard Rail -->
+  <aside>
+    <div class="leaderboard">
+      <div class="lb-title">🏆 Leaderboard</div>
+      <div class="lb-row" style="background:rgba(251,191,36,0.08);border-radius:12px;">
+        <div class="lb-rank">1</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#F472B6,#A855F7);">🦊</div>
+        <div class="lb-name">Mia</div>
+        <div class="lb-score">120</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">2</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#F97316,#EF4444);">🦁</div>
+        <div class="lb-name">Leo</div>
+        <div class="lb-score">110</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">3</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#3B82F6,#6366F1);">🐱</div>
+        <div class="lb-name">Ken</div>
+        <div class="lb-score">95</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">4</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#22C55E,#14B8A6);">🐰</div>
+        <div class="lb-name">Luna</div>
+        <div class="lb-score">82</div>
+      </div>
+      <div class="lb-row">
+        <div class="lb-rank">5</div>
+        <div class="lb-avatar" style="background:linear-gradient(135deg,#FBBF24,#F97316);">🐻</div>
+        <div class="lb-name">Sam</div>
+        <div class="lb-score">74</div>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ═══ Bottom Bar ═══ -->
+<footer class="bottom-bar">
+  <div class="round-badge">
+    <span class="round-badge-icon">🙋</span>
+    <span class="round-badge-text">INDIVIDUAL</span>
+  </div>
+  <div class="turn-banner">
+    <div class="turn-avatar">🦁</div>
+    <div class="turn-info">
+      <span class="turn-label">Now up</span>
+      <span class="turn-name">Leo</span>
+      <span class="turn-cn">现在轮到：Leo</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('clock').textContent = h + ':' + m;
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+// Auto-scale 1920x1080 canvas to fit any viewport
+function fitToViewport() {
+  const scaleX = window.innerWidth / 1920;
+  const scaleY = window.innerHeight / 1080;
+  const s = Math.min(scaleX, scaleY);
+  document.documentElement.style.transformOrigin = 'top left';
+  document.documentElement.style.transform = 'scale(' + s + ')';
+  document.documentElement.style.width = (1920 * s) + 'px';
+  document.documentElement.style.height = (1080 * s) + 'px';
+}
+fitToViewport();
+window.addEventListener('resize', fitToViewport);
+</script>
+</body>
+</html>
