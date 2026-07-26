@@ -42,8 +42,12 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const activeFlow = state.activeUnit?.flow || [];
    const nextStep = activeFlow[state.currentStepIndex + 1];
 
-   if (!currentStep) return <div className="text-white p-8 bg-slate-900 h-screen flex items-center justify-center">Loading Session...</div>;
-
+   // RULES OF HOOKS: all hooks must run unconditionally on every render. The
+   // `currentStep` guard below used to sit ABOVE these hook calls, so when
+   // `state.activeSlideData` flipped through a null frame during a slide
+   // transition (async unit load / pool re-fetch / realtime sync) the hook
+   // count changed between renders and React threw "Rendered more hooks than
+   // during the previous render." The guard now runs AFTER the hooks.
    const { elapsedTime, formatTime } = useTimer();
    const { quietTimer, toggleQuietMode } = useNoiseDetection(state.quietModeActive, setQuietMode, updateNoiseLevel, deductAllPoints);
    const { showAiSuggestion, aiSuggestionText, isGenerating, handleGenerate, dismissSuggestion } = useAISuggestion();
@@ -66,6 +70,9 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    };
 
    const activePointStudent = state.students.find((s: any) => s.id === activePointStudentId);
+
+   // Now safe to bail — every hook above has already been called this render.
+   if (!currentStep) return <div className="text-white p-8 bg-slate-900 h-screen flex items-center justify-center">Loading Session...</div>;
 
    return (
       <div className="h-screen bg-slate-950 text-white flex flex-col font-sans overflow-hidden">
