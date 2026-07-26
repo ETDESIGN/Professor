@@ -332,17 +332,28 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const flow = unit.flow || [];
     const idx = Math.min(Math.max(0, row.current_index ?? 0), Math.max(0, flow.length - 1));
-    setState(prev => ({
-      ...prev,
-      activeUnit: unit!,
-      sessionId: row.id,
-      currentStepIndex: idx,
-      activeSlideData: flow[idx] ?? null,
-      status: (row.status as SessionStatus) || prev.status,
-      // Step changed via realtime sync → reset per-exercise round-robin so the
-      // remote's picker matches the board (locked decision 0.1.1).
-      turnsThisExercise: idx === prev.currentStepIndex ? prev.turnsThisExercise : [],
-    }));
+    setState(prev => {
+      const slideChanged = idx !== prev.currentStepIndex;
+      return {
+        ...prev,
+        activeUnit: unit!,
+        sessionId: row.id,
+        currentStepIndex: idx,
+        activeSlideData: flow[idx] ?? null,
+        status: (row.status as SessionStatus) || prev.status,
+        // Step changed via realtime sync → reset per-exercise round-robin so the
+        // remote's picker matches the board (locked decision 0.1.1).
+        turnsThisExercise: slideChanged ? [] : prev.turnsThisExercise,
+        // Mirror goToSlide: clear the picked responder + current turn when the
+        // slide actually changes. This is the BOARD tab's path — without it, a
+        // student picked on slide N stayed "picked" on slide N+1 on the board
+        // (the commander cleared its own via goToSlide, but the board receives
+        // slide changes here, not via goToSlide). Same-index sync preserves the
+        // pick so a realtime re-broadcast doesn't drop a mid-slide responder.
+        quickWheelWinner: slideChanged ? null : prev.quickWheelWinner,
+        currentTurnId: slideChanged ? null : prev.currentTurnId,
+      };
+    });
   }, []);
 
   // Best-effort current teacher id. Persistence is optional: if Supabase/auth
