@@ -12,6 +12,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, TEAM_COLORS } from '../../store/SessionContext';
+import BoardSoundLayer from './templates/BoardSoundLayer';
 
 // ── Phase configuration (label, Chinese, icon, colors) ──────────────────
 const PHASE_CONFIG: Record<string, { label: string; cn: string; icon: string; dot: string; text: string; glow: string }> = {
@@ -125,6 +126,8 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
       className="h-full w-full font-body text-slate-50 select-none overflow-hidden relative"
       style={{ background: PHASE_WASHES[currentPhase] || PHASE_WASHES.WARMUP, transition: 'background 600ms ease-in-out' }}
     >
+      {/* B3.1: board-side audio receiver for the teacher Sound Board. */}
+      <BoardSoundLayer />
       {/* ═══ PHASE ARC RAIL (header) ═══ */}
       <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-center px-24 z-10">
         <div className="flex items-center">

@@ -4,21 +4,25 @@ import { X, Volume2, CheckCircle, XCircle, Bell, Music, Star, Zap } from 'lucide
 
 interface SoundBoardModalProps {
    onClose: () => void;
+   /** Broadcast a SOUND_* action so the Classroom Board plays the clip.
+    *  B3.1: previously this modal only vibrated locally; the footer copy
+    *  "Sounds play on Classroom Board" was false. */
+   triggerAction?: (type: string, payload?: any) => void;
 }
 
-const SoundBoardModal: React.FC<SoundBoardModalProps> = ({ onClose }) => {
+const SoundBoardModal: React.FC<SoundBoardModalProps> = ({ onClose, triggerAction }) => {
    const sounds = [
-      { id: 'correct', label: 'Correct', icon: CheckCircle, color: 'bg-green-100 text-green-600', ring: 'ring-green-300' },
-      { id: 'wrong', label: 'Wrong', icon: XCircle, color: 'bg-red-100 text-red-600', ring: 'ring-red-300' },
-      { id: 'ding', label: 'Ding', icon: Bell, color: 'bg-yellow-100 text-yellow-600', ring: 'ring-yellow-300' },
-      { id: 'drum', label: 'Drumroll', icon: Music, color: 'bg-purple-100 text-purple-600', ring: 'ring-purple-300' },
-      { id: 'win', label: 'Win', icon: Star, color: 'bg-blue-100 text-blue-600', ring: 'ring-blue-300' },
-      { id: 'zap', label: 'Zap', icon: Zap, color: 'bg-orange-100 text-orange-600', ring: 'ring-orange-300' },
+      { id: 'correct', label: 'Correct', icon: CheckCircle, color: 'bg-green-100 text-green-600', ring: 'ring-green-300', action: 'SOUND_CORRECT' },
+      { id: 'wrong', label: 'Wrong', icon: XCircle, color: 'bg-red-100 text-red-600', ring: 'ring-red-300', action: 'SOUND_WRONG' },
+      { id: 'ding', label: 'Ding', icon: Bell, color: 'bg-yellow-100 text-yellow-600', ring: 'ring-yellow-300', action: 'SOUND_DING' },
+      { id: 'drum', label: 'Drumroll', icon: Music, color: 'bg-purple-100 text-purple-600', ring: 'ring-purple-300', action: 'SOUND_DRUMROLL' },
+      { id: 'win', label: 'Win', icon: Star, color: 'bg-blue-100 text-blue-600', ring: 'ring-blue-300', action: 'SOUND_WIN' },
+      { id: 'zap', label: 'Zap', icon: Zap, color: 'bg-orange-100 text-orange-600', ring: 'ring-orange-300', action: 'SOUND_ZAP' },
    ];
 
-   const playSound = (id: string) => {
-      // In a real app, this would play an audio file.
-      // For prototype, we'll just vibrate if on mobile.
+   const playSound = (action: string) => {
+      // Broadcast to the board (and any other tab on the classroom_live channel).
+      if (triggerAction) triggerAction(action);
       if (navigator.vibrate) navigator.vibrate(50);
    };
 
@@ -42,7 +46,7 @@ const SoundBoardModal: React.FC<SoundBoardModalProps> = ({ onClose }) => {
                {sounds.map((sound) => (
                   <button
                      key={sound.id}
-                     onClick={() => playSound(sound.id)}
+                     onClick={() => playSound(sound.action)}
                      className={`
                     flex flex-col items-center justify-center gap-2 p-6 rounded-2xl transition-all active:scale-95 active:ring-4 ${sound.ring}
                     bg-white border-2 border-slate-100 hover:border-slate-300 shadow-sm hover:shadow-md

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import AttendanceHistoryModal from './AttendanceHistoryModal';
 import { createClass, ClassData } from '../../services/DataService';
-import { buildClaimUrl, RosterStudent } from '../../services/ManagementService';
+import { buildClaimUrl, RosterStudent, getRosterClaimToken } from '../../services/ManagementService';
 import { Modal, Field } from './SharedUI';
 import {
     useTeacherClasses, useMyMemberships, useSchoolDirectory, useRequestAffiliation,
@@ -338,7 +338,18 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
     };
 
     const copyCode = () => { if (cls.code) { navigator.clipboard.writeText(cls.code); toast.success('Class code copied'); } };
-    const copyClaim = (r: RosterStudent) => { navigator.clipboard.writeText(buildClaimUrl(r.claim_token)); toast.success('Claim link copied'); };
+    // C5: fetch the claim token on-demand for a single row instead of reading
+    // it from the bulk-fetched roster (which no longer ships the token). Keeps
+    // the one-time token off the wire until the teacher actually needs it.
+    const copyClaim = async (r: RosterStudent) => {
+        const token = await getRosterClaimToken(r.id);
+        if (!token) {
+            toast.error('Could not get claim link — the student may already be claimed.');
+            return;
+        }
+        navigator.clipboard.writeText(buildClaimUrl(token));
+        toast.success('Claim link copied');
+    };
 
     return (
         <div>

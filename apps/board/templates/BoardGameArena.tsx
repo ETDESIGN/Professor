@@ -2,14 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Shield, Sword, RotateCw } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { filterPresent } from '../../../services/attendanceLogic';
 
 const BoardGameArena = ({ data }: { data: any }) => {
-  const { state, triggerAction } = useSession(); 
+  const { state, triggerAction } = useSession();
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [winner, setWinner] = useState<any>(null);
 
-  const students = state.students;
+  // B4.2: filter present students so absent kids can't be spun or appear on a
+  // team rail. Matches the in-slide BoardWheelOfDestiny behavior.
+  const students = filterPresent(state.students || []);
 
   const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -106,7 +109,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
              <Sword size={20} /> Team Red
           </div>
           <div className="text-8xl font-black text-white mb-8 tracking-tighter">
-             {state.students.filter(s => s.team === 'red').reduce((acc, s) => acc + s.points, 0)}
+             {state.students.filter(s => s.team === 'red').reduce((acc, s) => acc + (s.points || 0), 0)}
           </div>
           
           <div className="space-y-4">
@@ -201,7 +204,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
              Team Blue <Shield size={20} />
           </div>
           <div className="text-8xl font-black text-white mb-8 tracking-tighter">
-             {state.students.filter(s => s.team === 'blue').reduce((acc, s) => acc + s.points, 0)}
+             {state.students.filter(s => s.team === 'blue').reduce((acc, s) => acc + (s.points || 0), 0)}
           </div>
           
           <div className="space-y-4">

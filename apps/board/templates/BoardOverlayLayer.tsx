@@ -2,19 +2,24 @@
 import React, { useState, useEffect } from 'react';
 import { RotateCw, Star, AlertTriangle, MicOff, VolumeX, ThumbsUp, Zap, Sparkles } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { filterPresent } from '../../../services/attendanceLogic';
 
 const BoardOverlayLayer = () => {
   const { state, triggerConfetti } = useSession();
   const [rotation, setRotation] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [winner, setWinner] = useState<any>(null);
-  
+
   // Point Popup State
   const [pointPopup, setPointPopup] = useState<{ id: string; amount: number; studentId: string; sticker: string } | null>(null);
   // Mass Penalty Popup
   const [penaltyPopup, setPenaltyPopup] = useState<{ id: string; amount: number } | null>(null);
 
-  const students = state.students;
+  // B4.2: filter present students so an absent kid can't be landed on by the
+  // overlay popup wheel. The in-slide BoardWheelOfDestiny already filtered;
+  // this overlay was the gap. Points/penalty popups still address a specific
+  // studentId from the action payload, so they aren't affected.
+  const students = filterPresent(state.students || []);
   const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
   const positiveStickers = ["Awesome!", "Great Job!", "On Fire!", "Super!", "Amazing!", "Wow!"];

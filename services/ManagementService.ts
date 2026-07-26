@@ -35,7 +35,13 @@ export interface RosterStudent {
     display_name: string;
     avatar: string | null;
     team: string | null;
-    claim_token: string;
+    // C5: claim_token is intentionally NOT included here. It used to ship to
+    // the browser via select('*') on every roster fetch — unnecessary surface
+    // area (anyone with manager access to the school could harvest unused
+    // tokens for every student). The token is now fetched on-demand per row
+    // via getRosterClaimToken() when the teacher actually clicks "Copy claim
+    // link". The create response (createRosterStudent) still returns it once,
+    // fresh, for the just-created row.
     claim_token_expires_at: string | null;
     claimed_profile_id: string | null;
     claimed_at: string | null;
@@ -129,9 +135,17 @@ export async function withdrawAffiliation(membershipId: string): Promise<void> {
 // =====================================================================
 
 export async function getRosterForClass(classId: string): Promise<RosterStudent[]> {
+    // C5: explicit column list, EXCLUDING claim_token. Previously this was
+    // select('*'), which shipped the one-time claim token to the browser for
+    // every roster row on every fetch. The token is now fetched on-demand
+    // per row via getRosterClaimToken() when the teacher copies a claim link.
     const { data, error } = await supabase
         .from('roster_students')
-        .select('*')
+        .select(`
+            id, school_id, class_id, teacher_id, display_name, avatar, team,
+            claim_token_expires_at, claimed_profile_id, claimed_at,
+            is_archived, metadata, created_at, updated_at
+        `)
         .eq('class_id', classId)
         .eq('is_archived', false)
         .order('display_name', { ascending: true });
@@ -142,12 +156,43 @@ export async function getRosterForClass(classId: string): Promise<RosterStudent[
     return (data || []) as RosterStudent[];
 }
 
+/**
+ * C5: fetch the one-time claim token for a SINGLE roster row, on demand.
+ * Narrowly-scoped alternative to shipping every token via getRosterForClass.
+ * Returns null if the row is already claimed (no point copying a dead link)
+ * or if the caller lacks read access (RLS scopes roster_students to the
+ * teacher/manager/admin).
+ */
+export async function getRosterClaimToken(rosterId: string): Promise<string | null> {
+    const { data, error } = await supabase
+        .from('roster_students')
+        .select('claim_token, claimed_profile_id')
+        .eq('id', rosterId)
+        .maybeSingle();
+    if (error) {
+        log.warn('roster_claim_token_error', { error: error.message });
+        return null;
+    }
+    if (!data || data.claimed_profile_id) return null;
+    return data.claim_token as string;
+}
+
+/**
+ * A freshly-created roster row, INCLUDING the one-time claim_token. This is
+ * the only legitimate place a claim token is delivered to the client: the
+ * teacher just created the row, so surfacing the link once is the intended
+ * UX. RosterStudent (the list type) intentionally omits the token.
+ */
+export interface CreatedRosterStudent extends RosterStudent {
+    claim_token: string;
+}
+
 export async function createRosterStudent(
     classId: string,
     teacherId: string,
     displayName: string,
     opts?: { avatar?: string; team?: string }
-): Promise<RosterStudent> {
+): Promise<CreatedRosterStudent> {
     const { data, error } = await supabase.rpc('create_roster_student', {
         p_class_id: classId,
         p_teacher_id: teacherId,
@@ -160,7 +205,7 @@ export async function createRosterStudent(
         toast.error(error.message || 'Could not create student');
         throw error;
     }
-    return data as RosterStudent;
+    return data as CreatedRosterStudent;
 }
 
 export async function updateRosterStudent(id: string, patch: RosterPatch): Promise<void> {
@@ -175,10 +220,12 @@ export async function updateRosterStudent(id: string, patch: RosterPatch): Promi
 }
 
 export async function archiveRosterStudent(id: string): Promise<void> {
-    const { error } = await supabase
-        .from('roster_students')
-        .update({ is_archived: true })
-        .eq('id', id);
+    // C1: route through the SECURITY DEFINER cascade RPC so archiving also
+    // unlinks class_enrollments (Reports/Dashboard/Messages), revokes parent
+    // links (parent app), and keeps point_transactions as history. Previously
+    // this was a bare UPDATE that left the student visible on every non-board
+    // screen.
+    const { error } = await supabase.rpc('archive_roster_student', { p_roster_id: id });
     if (error) {
         toast.error(error.message || 'Could not remove student');
         throw error;

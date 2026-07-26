@@ -37,8 +37,25 @@ export const renderContextualControls = (
         </div>
       );
     case 'SPEED_QUIZ':
+      // B3.4: BoardSpeedQuiz.tsx listens for REVEAL_ANSWER (not REVEAL).
+      // Reset → NEXT_ROUND advances a revealed question; RESET_GAME resets at results.
+      return (
+        <div className="flex gap-2">
+          <button onClick={() => triggerAction('REVEAL_ANSWER')} className="h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95"><Eye size={20} /> Reveal</button>
+          <button onClick={() => triggerAction('NEXT_ROUND')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={20} /> Next</button>
+          <button onClick={() => triggerAction('RESET_GAME')} className="h-12 w-12 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-xl active:scale-95" title="Reset quiz"><RotateCw size={20} /></button>
+        </div>
+      );
     case 'WHATS_MISSING':
+      // B3.4: BoardWhatsMissing.tsx listens for REVEAL + START_MEMORIZE (not RESTART).
+      return (
+        <div className="flex gap-2">
+          <button onClick={() => triggerAction('REVEAL')} className="h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95"><Eye size={20} /> Reveal</button>
+          <button onClick={() => triggerAction('START_MEMORIZE')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={20} /> Restart</button>
+        </div>
+      );
     case 'MAGIC_EYES':
+      // BoardMagicEyes.tsx listens for REVEAL + RESTART — already correct.
       return (
         <div className="flex gap-2">
           <button onClick={() => triggerAction('REVEAL')} className="h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95"><Eye size={20} /> Reveal</button>

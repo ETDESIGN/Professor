@@ -488,62 +488,123 @@ export async function getClassAnalytics(teacherId: string): Promise<ClassAnalyti
 }
 
 /**
- * Get all students linked to a parent
+ * Get all students linked to a parent.
+ *
+ * C4: now reads from `parent_roster_links` (the new approval-gated table the
+ * teacher's "Approvals" queue uses) joined to roster_students → profiles, so
+ * an approved-via-token parent actually appears in their own dashboard.
+ * Previously this read the legacy `parent_student_links` table only, which
+ * the new claim/approval flow never writes to — so approved parents were
+ * invisible in ParentDashboard/ParentReports/ParentSettings/ParentMessages.
+ *
+ * The legacy table is still UNIONed as a fallback so any pre-existing legacy
+ * links aren't dropped during the transition. `id` is normalized to the
+ * roster student's claimed profile id when available (the identity the rest
+ * of the parent app keys on), or the roster id otherwise.
  */
 export async function getParentStudents(parentId: string): Promise<StudentWithProgress[]> {
-    const { data: links, error } = await supabase
+    // 1) New model: parent_roster_links (active) → roster_students → profiles.
+    const { data: rosterLinks, error: rlErr } = await supabase
+        .from('parent_roster_links')
+        .select(`
+            roster_student_id,
+            roster:roster_students(
+                id, display_name, avatar, claimed_profile_id,
+                profile:profiles!claimed_profile_id(id, email, full_name, avatar_url)
+            )
+        `)
+        .eq('parent_id', parentId)
+        .eq('status', 'active');
+
+    if (rlErr) {
+        log.warn('error_fetching_parent_roster_links', { error: rlErr?.message || String(rlErr) });
+        // Don't throw — fall through to the legacy query so a partial outage
+        // of the new table doesn't blank the parent dashboard.
+    }
+
+    const rosterStudents: StudentWithProgress[] = [];
+    const claimedProfileIds = new Set<string>();
+    for (const link of (rosterLinks || [])) {
+        const rs: any = link.roster;
+        if (!rs) continue;
+        const profileId = rs.claimed_profile_id as string | null;
+        const profile = rs.profile as any;
+        if (profileId) claimedProfileIds.add(profileId);
+        rosterStudents.push({
+            // Prefer the profile id (the identity the parent app expects) when
+            // claimed; otherwise fall back to the roster id so unclaimed-but-
+            // linked students still render (rare — links are usually claimed).
+            id: profileId || rs.id,
+            email: profile?.email || null,
+            full_name: profile?.full_name || rs.display_name || 'Student',
+            avatar_url: profile?.avatar_url || rs.avatar || null,
+            student_id: profileId || rs.id,
+            xp: 0, streak: 0, current_unit_id: null, completed_unit_ids: [],
+        });
+    }
+
+    // 2) Legacy fallback: parent_student_links (active) — for any links created
+    //    before the roster migration that haven't been ported.
+    const { data: legacyLinks, error: legErr } = await supabase
         .from('parent_student_links')
         .select(`
             student_id,
             profiles:profiles!parent_student_links_student_id_fkey(
-                id,
-                email,
-                full_name,
-                avatar_url
+                id, email, full_name, avatar_url
             )
         `)
         .eq('parent_id', parentId)
-        .eq('status', 'active'); // only show APPROVED links (pending links must be approved first)
+        .eq('status', 'active');
 
-    if (error) {
-        log.warn('error_fetching_parent_student_links', { error: error?.message || String(error) });
-        throw error;
+    if (legErr) {
+        log.warn('error_fetching_parent_student_links', { error: legErr?.message || String(legErr) });
     }
 
-    if (!links || links.length === 0) return [];
+    const legacyStudents: StudentWithProgress[] = [];
+    for (const link of (legacyLinks || [])) {
+        const profile = link.profiles as any;
+        const sid = link.student_id as string;
+        // Skip if this student is already covered by a roster link (dedupe by
+        // profile id so the same child doesn't appear twice).
+        if (profile?.id && claimedProfileIds.has(profile.id)) continue;
+        legacyStudents.push({
+            id: profile?.id || sid,
+            email: profile?.email || null,
+            full_name: profile?.full_name || 'Student',
+            avatar_url: profile?.avatar_url || null,
+            student_id: sid,
+            xp: 0, streak: 0, current_unit_id: null, completed_unit_ids: [],
+        });
+        if (sid) claimedProfileIds.add(sid);
+    }
 
-    const studentIds = links.map((link: any) => link.student_id);
+    const combined = [...rosterStudents, ...legacyStudents];
+    if (combined.length === 0) return [];
 
+    // 3) Batch-fetch student_progress for all the (claimed) profile ids.
+    const progressIds = combined.map(s => s.id).filter(Boolean) as string[];
     const { data: progressData, error: progressError } = await supabase
         .from('student_progress')
         .select('*')
-        .in('student_id', studentIds);
+        .in('student_id', progressIds);
 
     if (progressError) {
         log.warn('error_fetching_progress_batch', { error: progressError?.message || String(progressError) });
     }
 
-    const progressMap = new Map();
-    (progressData || []).forEach((p: any) => {
-        progressMap.set(p.student_id, p);
-    });
+    const progressMap = new Map<string, any>();
+    (progressData || []).forEach((p: any) => progressMap.set(p.student_id, p));
 
-    const studentsWithProgress = links.map((link: any) => {
-        const progress = progressMap.get(link.student_id) || {};
+    return combined.map(s => {
+        const progress = progressMap.get(s.id) || {};
         return {
-            id: link.profiles?.id,
-            email: link.profiles?.email,
-            full_name: link.profiles?.full_name,
-            avatar_url: link.profiles?.avatar_url,
-            student_id: link.student_id,
+            ...s,
             xp: progress.xp || 0,
             streak: progress.streak || 0,
             current_unit_id: progress.current_unit_id || null,
             completed_unit_ids: progress.completed_unit_ids || [],
         };
     });
-
-    return studentsWithProgress;
 }
 
 // ============================================

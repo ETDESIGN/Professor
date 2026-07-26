@@ -14,7 +14,7 @@ import { createClientLogger } from '../../services/logger';
 const log = createClientLogger('TeacherRemote');
 
 const TeacherRemote: React.FC = () => {
-  const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent, assignTeams } = useSession();
+  const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent, assignTeams, nextStudent } = useSession();
 
   // CRITICAL FIX: Use state.activeSlideData instead of MOCK_LESSON_FLOW
   const currentStep = state.activeSlideData;
@@ -403,6 +403,17 @@ const TeacherRemote: React.FC = () => {
               </button>
             </div>
           )}
+          {/* Game-lifecycle: clear the current responder and auto-spin for the
+              next one. Advances the whole pick → reset → score → next loop in
+              a single tap. Only shown when a responder is picked. */}
+          {state.quickWheelWinner && (
+            <button
+              onClick={nextStudent}
+              className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-colors shadow-lg shadow-indigo-900/30"
+            >
+              <Users size={16} /> Next Student <ArrowRight size={16} />
+            </button>
+          )}
         </div>
 
         {/* Main Navigation Pad */}
@@ -577,7 +588,7 @@ const TeacherRemote: React.FC = () => {
 
       {/* Sound Board Modal */}
       {showSoundBoard && (
-        <SoundBoardModal onClose={() => setShowSoundBoard(false)} />
+        <SoundBoardModal onClose={() => setShowSoundBoard(false)} triggerAction={triggerAction} />
       )}
 
       {/* Voice Command Modal */}

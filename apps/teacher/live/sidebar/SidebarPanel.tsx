@@ -4,6 +4,7 @@ import {
   Star, Zap, Bell, Music, Check, CheckCircle, XCircle,
   Shuffle, Sparkles, Trophy, FileText, Monitor
 } from 'lucide-react';
+import { filterPresent } from '../../../../services/attendanceLogic';
 
 type SidebarTab = 'notes' | 'wheel' | 'sounds' | 'groups' | 'analytics';
 
@@ -29,6 +30,10 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
   setGroupCount, setGeneratedGroups,
 }) => {
   const guide = currentStep?.teacherGuide;
+  // B4.2: present students only for "everyone" awards, group making, and the
+  // struggling-students list. Absent kids shouldn't get bonus XP or show up
+  // in a shuffled group. (LiveCommander.tsx already does this for its chip deck.)
+  const presentStudents = filterPresent(state.students || []);
 
   switch (activeTab) {
     case 'wheel': {
@@ -85,7 +90,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
           </div>
           <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
             <button onClick={() => triggerAction('CELEBRATE')} className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-400 hover:via-purple-400 hover:to-indigo-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Sparkles size={20} /> Trigger Celebration</button>
-            <button onClick={() => { state.students.forEach((s: any) => addPoints(s.id, 5)); triggerAction('CELEBRATE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Trophy size={20} /> +5 XP to Everyone</button>
+            <button onClick={() => { presentStudents.forEach((s: any) => addPoints(s.id, 5)); triggerAction('CELEBRATE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Trophy size={20} /> +5 XP to Everyone</button>
           </div>
         </div>
       );
@@ -103,7 +108,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
             </div>
           </div>
           <button onClick={() => {
-            const shuffled = [...(state.students || [])].sort(() => Math.random() - 0.5);
+            const shuffled = [...presentStudents].sort(() => Math.random() - 0.5);
             const newGroups: any[][] = Array.from({ length: groupCount }, () => []);
             shuffled.forEach((student: any, index: number) => { newGroups[index % groupCount].push(student); });
             setGeneratedGroups(newGroups);
@@ -136,13 +141,13 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
             <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
               <div className="text-xs font-bold text-slate-400 uppercase mb-3">Struggling Students</div>
               <div className="space-y-2">
-                {state.students.filter((s: any) => s.points < 50).map((s: any) => (
+                {presentStudents.filter((s: any) => (s.points || 0) < 50).map((s: any) => (
                   <div key={s.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2"><span>{s.avatar}</span><span className="text-slate-300">{s.name}</span></div>
-                    <span className="text-red-400 font-bold">{s.points} pts</span>
+                    <span className="text-red-400 font-bold">{s.points || 0} pts</span>
                   </div>
                 ))}
-                {state.students.filter((s: any) => s.points < 50).length === 0 && <div className="text-slate-500 text-sm">No students currently struggling.</div>}
+                {presentStudents.filter((s: any) => (s.points || 0) < 50).length === 0 && <div className="text-slate-500 text-sm">No students currently struggling.</div>}
               </div>
             </div>
           </div>
