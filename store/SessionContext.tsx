@@ -176,6 +176,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const pendingPointsRef = useRef<Record<string, number>>({});
   const activeClassIdRef = useRef<string | null>(null);
   useEffect(() => { activeClassIdRef.current = state.activeClassId; }, [state.activeClassId]);
+  // Ref mirror of loadStudents so setActiveClass (a useCallback with [] deps,
+  // defined below) can call the latest loadStudents without capturing a stale
+  // closure from the first render.
+  const loadStudentsRef = useRef<() => Promise<void>>(async () => {});
   const activeOccurrenceIdRef = useRef<string | null>(null);
   const flushClassPoints = useRef(
     debounce(async () => {
@@ -472,12 +476,19 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Keep empty array on error
     }
   };
+  // Keep the ref mirror current so setActiveClass can call the latest version.
+  loadStudentsRef.current = loadStudents;
 
   /** Bind the live session to a class: persist class_id on the session row + reload roster.
    *  Stays IDLE here — only setActiveUnit flips the session to LIVE (a class is not "live"
    *  until the teacher starts a unit). */
   const setActiveClass = useCallback(async (classId: string | null) => {
     setState(prev => ({ ...prev, activeClassId: classId }));
+    // Eagerly sync the ref too, so any code that reads activeClassIdRef
+    // synchronously after this call (e.g. ensureAttendanceOccurrence right
+    // after a class-picker tap) sees the new value without waiting for the
+    // ref-sync effect to run.
+    activeClassIdRef.current = classId;
     const userId = await getTeacherId();
     if (userId) {
       try {
@@ -489,6 +500,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           );
       } catch { /* best-effort */ }
     }
+    // Reload the roster for the newly-bound class so the UI switches from the
+    // legacy "all teacher students" fallback to this class's actual roster.
+    // (Without this, picking a class from the LiveCommander banner wouldn't
+    //  refresh the student list until a realtime event happened to fire.)
+    await loadStudentsRef.current?.();
   }, []);
 
   /** Ensure an attendance occurrence exists for the live class (used when opening

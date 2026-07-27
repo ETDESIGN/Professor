@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../store/SessionContext';
+import { useAppStore } from '../../store/useAppStore';
+import { useTeacherClasses } from '../../hooks/useQueries';
 import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
    Monitor, Clock, LogOut, PenTool, Eraser,
    Star, Activity, LayoutGrid, Zap, Bell,
-   Plus, Minus, X, List, Sparkles, UserCheck
+   Plus, Minus, X, List, Sparkles, UserCheck, Users
 } from 'lucide-react';
 import DrawingLayer from '../../components/shared/DrawingLayer';
 import AttendanceModal from './AttendanceModal';
@@ -38,6 +40,14 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
       const classId = searchParams.get('class');
       if (classId) setActiveClass(classId);
    }, [searchParams, setActiveClass]);
+
+   // Class picker: the curriculum "Teach" and dashboard "Launch Live" buttons
+   // navigate to /teacher/live WITHOUT ?class=, so no class gets bound and the
+   // session row sits with class_id=null. That breaks attendance (which needs a
+   // live class) even though students appear via the legacy fallback. Fetch the
+   // teacher's classes so we can show a picker when none is bound.
+   const { userProfile } = useAppStore();
+   const { data: myClasses = [] } = useTeacherClasses(userProfile?.id);
 
    const currentStep = state.activeSlideData;
    const activeFlow = state.activeUnit?.flow || [];
@@ -121,6 +131,39 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                <button onClick={() => { endSession(); if (onExit) onExit(); }} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors" title="End Session"><LogOut size={18} /></button>
             </div>
          </header>
+
+         {/* Class picker banner — shown when no class is bound to the live session.
+             The curriculum "Teach" and dashboard "Launch Live" paths land here
+             without ?class= in the URL, so activeClassId stays null and attendance
+             (plus roster-first features) can't work. This lets the teacher pick a
+             class right here instead of going back to Class Management. */}
+         {!state.activeClassId && (
+            <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-3 flex flex-wrap items-center gap-3 shrink-0 z-20">
+               <div className="flex items-center gap-2 text-amber-300">
+                  <Users size={18} />
+                  <span className="font-bold text-sm">No class selected.</span>
+                  <span className="text-amber-200/70 text-xs">Pick a class to enable attendance & roster features.</span>
+               </div>
+               <div className="flex flex-wrap gap-2 ml-auto">
+                  {myClasses.length === 0 && (
+                     <span className="text-amber-200/60 text-xs italic">No classes yet — create one in Class Management.</span>
+                  )}
+                  {myClasses.map((cls: any) => (
+                     <button
+                        key={cls.id}
+                        onClick={() => {
+                           setActiveClass(cls.id).then(() => {
+                              toast.success(`Class "${cls.name}" is now live.`);
+                           }).catch(() => toast.error('Could not select that class.'));
+                        }}
+                        className="bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 hover:border-indigo-500 transition-colors flex items-center gap-1.5"
+                     >
+                        <Users size={12} /> {cls.name}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         )}
 
          {/* Main Workspace */}
          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
