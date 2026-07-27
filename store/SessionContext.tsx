@@ -106,7 +106,7 @@ export interface SessionContextType {
   setActiveUnit: (unitId: string) => Promise<void>;
   /** Ensure an attendance occurrence exists for the live class (for opening the
    *  attendance modal before go-live). Returns the occurrence id or null. */
-  ensureAttendanceOccurrence: () => Promise<string | null>;
+  ensureAttendanceOccurrence: () => Promise<{ id: string | null; error: string | null }>;
   saveUnit: (unitId: string, updates: Partial<LessonUnit>) => Promise<void>;
   startSession: () => void;
   endSession: () => void;
@@ -493,16 +493,18 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   /** Ensure an attendance occurrence exists for the live class (used when opening
    *  the attendance modal before go-live). Reuses the open occurrence if present. */
-  const ensureAttendanceOccurrence = useCallback(async (): Promise<string | null> => {
-    if (activeOccurrenceIdRef.current) return activeOccurrenceIdRef.current;
+  const ensureAttendanceOccurrence = useCallback(async (): Promise<{ id: string | null; error: string | null }> => {
+    if (activeOccurrenceIdRef.current) return { id: activeOccurrenceIdRef.current, error: null };
     const userId = await getTeacherId();
     const classId = activeClassIdRef.current;
-    if (!userId || !classId) return null;
-    const occId = await getOrCreateActiveOccurrence(classId, userId, activeUnitRef.current?.id ?? null);
+    if (!userId) return { id: null, error: 'Not signed in — please reload and sign in again.' };
+    if (!classId) return { id: null, error: 'No live class selected. Pick a class first.' };
+    const { id: occId, error } = await getOrCreateActiveOccurrence(classId, userId, activeUnitRef.current?.id ?? null);
+    if (error || !occId) return { id: null, error: error || 'Could not start the attendance session.' };
     activeOccurrenceIdRef.current = occId;
     setState(prev => ({ ...prev, activeOccurrenceId: occId }));
     await loadStudents();
-    return occId;
+    return { id: occId, error: null };
   }, [getTeacherId, loadStudents]);
 
   // Realtime: keep the live roster + points in sync for the active class.
@@ -559,10 +561,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Open (or reuse) the attendance occurrence for this live session, then
       // reload the roster so presence overlays via mergePresence.
       if (userId && activeClassIdRef.current) {
-        const occId = await getOrCreateActiveOccurrence(activeClassIdRef.current, userId, unitId);
-        activeOccurrenceIdRef.current = occId;
-        setState(prev => ({ ...prev, activeOccurrenceId: occId }));
-        await loadStudents();
+        const { id: occId, error: occErr } = await getOrCreateActiveOccurrence(activeClassIdRef.current, userId, unitId);
+        if (occErr || !occId) {
+          log.warn('go_live_occurrence_failed', { error: occErr });
+        } else {
+          activeOccurrenceIdRef.current = occId;
+          setState(prev => ({ ...prev, activeOccurrenceId: occId }));
+          await loadStudents();
+        }
       }
     }
   };

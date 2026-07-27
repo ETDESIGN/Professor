@@ -10,6 +10,7 @@ import {
 import DrawingLayer from '../../components/shared/DrawingLayer';
 import AttendanceModal from './AttendanceModal';
 import { filterPresent } from '../../services/attendanceLogic';
+import { toast } from 'sonner';
 import { ErrorBoundary } from '../../components/shared/ErrorBoundary';
 import { BoardRenderer } from './live/panels/BoardRenderer';
 import { renderContextualControls } from './live/panels/ContextualControls';
@@ -103,7 +104,16 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   <span className="font-mono font-bold text-sm text-slate-200">{formatTime(elapsedTime)}</span>
                </div>
                <button
-                  onClick={async () => { const id = await ensureAttendanceOccurrence(); if (id) setShowAttendance(true); }}
+                  onClick={async () => {
+                    const { id, error } = await ensureAttendanceOccurrence();
+                    if (id) {
+                      setShowAttendance(true);
+                    } else {
+                      // Surface the real reason — previously this failed
+                      // silently (returned null) so the button appeared dead.
+                      toast.error(error || 'Could not open attendance. Make sure a class is live.');
+                    }
+                  }}
                   className="flex items-center gap-1.5 bg-slate-800 text-slate-200 px-3 py-1.5 rounded-full border border-slate-700 hover:bg-slate-700 text-sm font-bold"
                   title="Attendance">
                   <UserCheck size={14} /> Attendance

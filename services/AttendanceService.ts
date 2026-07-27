@@ -24,11 +24,16 @@ export interface OccurrenceMark {
 /**
  * Return the id of the class's currently-open occurrence (ended_at IS NULL),
  * creating one if none is open. Called at go-live / when opening attendance.
+ *
+ * Returns `{ id, error }` so callers can surface a real reason to the teacher
+ * instead of silently failing (previously this returned null on any failure,
+ * which made the Attendance button appear dead with no console output).
  */
 export async function getOrCreateActiveOccurrence(
   classId: string, teacherId: string, unitId?: string | null,
-): Promise<string | null> {
-  const { data: open } = await supabase
+): Promise<{ id: string | null; error: string | null }> {
+  // 1) Reuse an existing open occurrence for this class.
+  const { data: open, error: selErr } = await supabase
     .from('class_session_occurrences')
     .select('id')
     .eq('class_id', classId)
@@ -36,13 +41,21 @@ export async function getOrCreateActiveOccurrence(
     .order('started_at', { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (open?.id) return open.id;
+  if (selErr) {
+    log.warn('occurrence_read_error', { error: selErr.message });
+    return { id: null, error: `Could not read session: ${selErr.message}` };
+  }
+  if (open?.id) return { id: open.id, error: null };
 
+  // 2) None open — create one.
   const { data, error } = await supabase.rpc('create_session_occurrence', {
     p_class_id: classId, p_teacher_id: teacherId, p_unit_id: unitId ?? null,
   });
-  if (error) { log.warn('occurrence_create_error', { error: error.message }); return null; }
-  return data as string;
+  if (error) {
+    log.warn('occurrence_create_error', { error: error.message });
+    return { id: null, error: error.message };
+  }
+  return { id: data as string, error: null };
 }
 
 /** Stamp ended_at on an occurrence (best-effort). */
