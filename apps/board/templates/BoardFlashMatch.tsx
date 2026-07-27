@@ -70,7 +70,12 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   };
 
   // (Re)build the board whenever the pair set resolves (frozen sync OR pool
-  // async) — and on a remote RESET_GAME.
+  // async) — and on a remote RESET_GAME. NOTE: do NOT also fire rebuild from a
+  // `[rebuild]`-keyed effect — `rebuild`'s identity churns whenever `pairs`
+  // resolves async, which used to cause a 3-way effect fight (the [rebuild],
+  // [lastAction, rebuild], and [turnId] effects all calling rebuild and
+  // re-shuffling mid-turn). The build is now driven by exactly two triggers:
+  // this effect (initial/async pair resolution) and the [turnId] effect below.
   const rebuild = useCallback(() => {
     setLeftItems(pairs.map((p, i) => ({ id: `l_${i}`, pairId: p.id, text: p.left, matched: false })));
     setRightItems(pairs.map((p, i) => ({ id: `r_${i}`, pairId: p.id, text: p.right, matched: false })).sort(() => Math.random() - 0.5));
@@ -83,10 +88,15 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     setMistakes(0);
   }, [pairs]);
 
-  useEffect(() => { rebuild(); }, [rebuild]);
+  // Initial build + rebuild when the pair set resolves (frozen sync OR pool
+  // async). Skips if pairs isn't ready yet (the [turnId] / [lastAction] effects
+  // also guard on pairs.length, so the first real build happens here once).
+  useEffect(() => {
+    if (pairs.length > 0) rebuild();
+  }, [rebuild]);
 
   useEffect(() => {
-    if (state.lastAction?.type === 'RESET_GAME') rebuild();
+    if (state.lastAction?.type === 'RESET_GAME' && pairs.length > 0) rebuild();
   }, [state.lastAction, rebuild]);
 
   // Game-lifecycle: when a NEW responder is picked (NEW_TURN / currentTurnId
@@ -98,6 +108,12 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     if (pairs.length > 0) rebuild();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
+
+  // Ref mirror of pairs.length so the checkMatch completion check reads the
+  // LIVE length instead of the closure value at the render checkMatch was
+  // created in (avoids premature completion if pairs is stale/empty).
+  const pairsLenRef = useRef(pairs.length);
+  pairsLenRef.current = pairs.length;
 
   const handleLeftClick = useCallback((id: string) => {
     if (isComplete) return;
@@ -138,7 +154,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       setRightItems(prev => prev.map(r => r.id === rightId ? { ...r, matched: true } : r));
       setMatchedCount(prev => {
         const newCount = prev + 1;
-        if (newCount === pairs.length) {
+        if (newCount === pairsLenRef.current && pairsLenRef.current > 0) {
           setIsComplete(true);
           // Game-lifecycle scoring: the responder's turn is a SUCCESS — award
           // the clean score minus the mistakes they made during this turn.

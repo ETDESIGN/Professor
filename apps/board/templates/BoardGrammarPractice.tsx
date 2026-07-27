@@ -51,7 +51,15 @@ const BoardGrammarPractice: React.FC<Props> = () => {
     return () => { cancelled = true; };
   }, [unitId]);
 
-  useEffect(() => { setRevealed(false); setCredited(false); setIndex(0); }, [unitId]);
+  // Reset on unit change. Also reset the per-turn scoring refs so a unit switch
+  // mid-turn doesn't leave awardedRef latched.
+  useEffect(() => {
+    setRevealed(false);
+    setCredited(false);
+    setIndex(0);
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+  }, [unitId]);
 
   // Game-lifecycle: a fresh responder is up (NEW_TURN). Reset to the first item
   // and zero the mistake tally for a clean scored attempt.
@@ -77,6 +85,9 @@ const BoardGrammarPractice: React.FC<Props> = () => {
       setRevealed(false);
       setCredited(false);
       setIndex(0);
+      // Reset scoring refs (same latch-prevention as NEW_TURN).
+      mistakesRef.current = 0;
+      awardedRef.current = false;
     } else if (a.type === 'NEXT' || a.type === 'NEXT_ROUND') {
       // Remote "Next" advances the item, clearing reveal state.
       if (!revealed) setRevealed(true); else next();

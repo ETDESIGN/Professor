@@ -63,6 +63,11 @@ const BoardUnscramble = ({ data }: { data: any }) => {
       setPlacedWords([]);
       setIsCorrect(false);
       setIsWrong(false);
+      // Reset the per-turn scoring refs so a RESET_GAME after a success doesn't
+      // leave awardedRef latched (which would block the next correct answer
+      // from scoring). NEW_TURN also resets these.
+      mistakesRef.current = 0;
+      awardedRef.current = false;
       if (usingPool) setRound((r) => r + 1);
     } else if (state.lastAction?.type === 'CHECK_ANSWER') {
       checkAnswer();
@@ -104,8 +109,17 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     setIsCorrect(false);
     setIsWrong(false);
     setPlacedWords([]);
-    if (usingPool) setRound((r) => r + 1);
-    // The sig-keyed effect above will rebuild scrambledWords from the new item.
+    if (usingPool) {
+      // Pool mode: bump round → sig changes → the [sig] effect above rebuilds
+      // scrambledWords from the next pool item.
+      setRound((r) => r + 1);
+    } else {
+      // Frozen mode: sig ('frozen-${round}') does NOT change when round stays
+      // the same, so the [sig] effect won't fire. Reshuffle directly here so
+      // the new responder gets a fresh bank (otherwise they'd inherit the
+      // previous student's partial scramble).
+      setScrambledWords(shuffle(bankWords).map((w, i) => ({ id: `w-${i}`, text: w })));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
 

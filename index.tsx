@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './src/index.css';
 import App from './App';
+import { UpdatePrompt } from './components/shared/UpdatePrompt';
 import './services/i18n';
 
 const rootElement = document.getElementById('root');
@@ -14,5 +15,6 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <BrowserRouter>
     <App />
+    <UpdatePrompt />
   </BrowserRouter>
 );

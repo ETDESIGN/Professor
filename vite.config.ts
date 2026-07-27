@@ -34,8 +34,19 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      // PWA UPDATE BEHAVIOR — load-bearing config, do not change without
+      // reading AGENTS.md §8.1 ("Deploy update behavior").
+      // `prompt` (not `autoUpdate`): a new SW installs and enters `waiting`,
+      // then fires `onNeedRefresh`. <UpdatePrompt /> shows a "Reload" banner so
+      // the user picks when to reload — critical for a live-classroom tool where
+      // an uncontrolled mid-lesson reload would lose session state.
+      // NOTE: `skipWaiting: true` is deliberately OMITTED. With it, the generated
+      // SW calls self.skipWaiting() on install, bypassing `waiting` and making
+      // `prompt` mode silently act like autoUpdate (the bug we're fixing). The
+      // generated SW still ships a SKIP_WAITING message handler, so the prompt's
+      // "Reload" button (messageSkipWaiting via updateServiceWorker) works.
       VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: [],
         manifest: {
           name: 'Lesson Orchestrator',
@@ -55,8 +66,10 @@ export default defineConfig(({ mode }) => {
           maximumFileSizeToCacheInBytes: 5000000,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           cleanupOutdatedCaches: true,
-          // Force new SW to take control immediately — prevents stale CSP/content issues
-          skipWaiting: true,
+          // `skipWaiting: true` intentionally omitted — see the PWA UPDATE BEHAVIOR
+          // comment above the VitePWA() call. clientsClaim alone is safe: it only
+          // makes the SW control clients AFTER it activates (it does not force
+          // activation on install).
           clientsClaim: true,
           navigateFallbackDenylist: [
             /^\/api\/.*/,

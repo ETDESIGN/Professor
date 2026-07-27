@@ -775,13 +775,26 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       lastAction: spinAction
     }));
 
+    // After the wheel reveal (~2s animation + 0.5s to read the winner), do ALL
+    // the post-spin work in one place so the picking tab and other tabs converge:
+    //   • GAME_WIN → confetti
+    //   • set currentTurnId locally + broadcast NEW_TURN → games reset for this
+    //     student (RC#1 fix: previously currentTurnId only updated via the
+    //     broadcast reducer, which broadcast:{self:false} suppressed on the
+    //     sender — so games never reset on the teacher's own screen).
+    //   • dismiss the QUICK_WHEEL overlay (RC#2 fix: previously the overlay
+    //     never auto-dismissed, hiding the freshly-reset game underneath).
     setTimeout(() => {
       triggerAction('GAME_WIN', { winnerId: studentId });
-      // NEW_TURN tells the games a fresh responder is up → they reset for this
-      // student and start a clean scored attempt. Emitted right after GAME_WIN
-      // so the wheel animation finishes first, then the game snaps to fresh.
-      triggerAction('NEW_TURN', { studentId });
-    }, 4000);
+      const turnAction = { type: 'NEW_TURN', payload: { studentId }, timestamp: Date.now() };
+      broadcastAction(turnAction);
+      setState(prev => ({
+        ...prev,
+        currentTurnId: studentId,
+        activeOverlay: 'NONE',
+        lastAction: turnAction,
+      }));
+    }, 2500);
   };
 
   const selectNextStudent = (filterTeam?: string, useOverlay: boolean = true) => {
@@ -852,11 +865,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }));
 
     setTimeout(() => {
+      // After the wheel reveal (~2s animation + 0.5s to read the winner), do
+      // ALL the post-spin work in one place so the picking tab and other tabs
+      // converge. See magicSelectStudent for the full rationale (RC#1 + RC#2).
       triggerAction('GAME_WIN', { winnerId: selectedId });
-      // NEW_TURN: games reset for this fresh responder + start a clean scored
-      // attempt. Emitted after GAME_WIN so the wheel animation settles first.
-      triggerAction('NEW_TURN', { studentId: selectedId });
-    }, 4000);
+      const turnAction = { type: 'NEW_TURN', payload: { studentId: selectedId }, timestamp: Date.now() };
+      broadcastAction(turnAction);
+      setState(prev => ({
+        ...prev,
+        currentTurnId: selectedId,
+        // Dismiss the overlay so the freshly-reset game is visible/interactive.
+        // Keep quickWheelWinner so scoring still targets this student.
+        activeOverlay: 'NONE',
+        lastAction: turnAction,
+      }));
+    }, 2500);
   };
 
   /**

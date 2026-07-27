@@ -67,6 +67,11 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
      setCards([...items].sort(() => Math.random() - 0.5));
      setSlots(new Array(items.length).fill(null));
      setIsCorrect(false);
+     // Reset the per-turn scoring refs so a manual Refresh / RESET_GAME after
+     // a success doesn't leave awardedRef latched (which would block the next
+     // correct ordering from scoring). NEW_TURN also resets these.
+     mistakesRef.current = 0;
+     awardedRef.current = false;
   };
 
   const handleCardClick = (card: StoryCard) => {

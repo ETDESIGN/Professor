@@ -6,6 +6,7 @@ import { SessionProvider } from './store/SessionContext';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { MockModeBanner } from './components/shared/MockModeBanner';
+import { UpdatePrompt } from './components/shared/UpdatePrompt';
 import { AppProviders } from './components/shared/AppProviders';
 import { initErrorReporting, setupGlobalErrorHandler } from './services/errorReporting';
 import { startMetricsCollection, stopMetricsCollection } from './services/perfMonitor';
@@ -48,6 +49,7 @@ if (rootElement) {
         <ErrorBoundary>
             <AppProviders>
             <MockModeBanner />
+            <UpdatePrompt />
             <SessionProvider>
                 <Toaster position="top-center" richColors />
                 <BrowserRouter basename="/parent">
