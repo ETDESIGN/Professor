@@ -4,6 +4,7 @@ import { Check, RefreshCcw, ArrowRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { usePickedStudent } from './usePickedStudent';
 import { gradeStudent } from '../../../services/boardLearner';
 
 interface Word {
@@ -22,6 +23,7 @@ const shuffle = <T,>(a: T[]): T[] => {
 
 const BoardUnscramble = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints } = useSession();
+  const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   // Game-lifecycle: mistakes during the current responder's turn. Reset on
   // NEW_TURN. Used to compute the success award on a correct checkAnswer.
@@ -255,7 +257,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
                <div className="w-32 h-32 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6">
                   <Check size={64} strokeWidth={4} />
                </div>
-               <h2 className="text-5xl font-black text-slate-800 mb-2">Excellent!</h2>
+               <h2 className="text-5xl font-black text-slate-800 mb-2">{pickedStudent ? `${pickedStudent.name} got it!` : 'Excellent!'}</h2>
                <p className="text-2xl text-slate-500 font-medium">The sentence is correct.</p>
             </div>
          </div>

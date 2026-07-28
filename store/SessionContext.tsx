@@ -124,6 +124,10 @@ export interface SessionContextType {
   /** Phase A.3: form N balanced teams from the roster (broadcasts to all devices). */
   assignTeams: (count?: number) => void;
   closeOverlay: () => void;
+  /** Hide the wheel overlay without ending the turn (responder stays live). */
+  dismissWheel: () => void;
+  /** Fully cancel the current turn (hide overlay + clear responder). */
+  cancelTurn: () => void;
   /** Clear the current responder and immediately spin for the next one. */
   nextStudent: () => void;
   startDrawing: (x: number, y: number, color?: string) => void;
@@ -241,6 +245,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
             newState.activeOverlay = 'NONE';
             newState.drawings = [];
             newState.currentTurnId = null;
+          } else if (action.type === 'DISMISS_WHEEL') {
+            // Non-destructive overlay dismiss: hide the QUICK_WHEEL popup but
+            // KEEP quickWheelWinner + currentTurnId so the picked student stays
+            // "live" (scoring active, whose-turn footer persists). This is the
+            // post-pick auto-dismiss path — broadcasts cross tabs so the board
+            // projector hides its overlay too. (CLOSE_OVERLAY below is the
+            // destructive full-reset path, used only to cancel a turn entirely.)
+            newState.activeOverlay = 'NONE';
           } else if (action.type === 'CLOSE_OVERLAY') {
             newState.activeOverlay = 'NONE';
             newState.quickWheelWinner = null;
@@ -768,12 +780,32 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }));
   };
 
-  const closeOverlay = () => {
-    const action = { type: 'CLOSE_OVERLAY', timestamp: Date.now() };
+  /**
+   * Hide the QUICK_WHEEL overlay WITHOUT ending the turn — the picked student
+   * stays live (scoring active, whose-turn footer persists). This is the
+   * non-destructive dismiss used by the post-pick auto-dismiss AND by the
+   * manual "Hide wheel" button. (To fully cancel a turn, use cancelTurn /
+   * CLEAR_RESPONDER instead.)
+   */
+  const dismissWheel = () => {
+    const action = { type: 'DISMISS_WHEEL', timestamp: Date.now() };
     broadcastAction(action);
+    setState(prev => ({ ...prev, activeOverlay: 'NONE', lastAction: action }));
+  };
 
-    // Optimistic update
-    setState(prev => ({ ...prev, activeOverlay: 'NONE', quickWheelWinner: null }));
+  /**
+   * Backwards-compat alias: closeOverlay now dismisses the wheel non-
+   * destructively (keeping the responder). Previously it wiped the responder,
+   * which killed scoring + the whose-turn indicator — a footgun. Callers that
+   * genuinely need to clear the responder should use cancelTurn().
+   */
+  const closeOverlay = () => dismissWheel();
+
+  /** Fully cancel the current turn: hide the overlay AND clear the responder
+   *  (quickWheelWinner + currentTurnId). Use for "switch to choral mode". */
+  const cancelTurn = () => {
+    triggerAction('CLEAR_RESPONDER');
+    setState(prev => ({ ...prev, activeOverlay: 'NONE', quickWheelWinner: null, currentTurnId: null }));
   };
 
   const magicSelectStudent = (studentId: string) => {
@@ -810,6 +842,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       triggerAction('GAME_WIN', { winnerId: studentId });
       const turnAction = { type: 'NEW_TURN', payload: { studentId }, timestamp: Date.now() };
       broadcastAction(turnAction);
+      // Broadcast DISMISS_WHEEL (not just a local setState) so the board
+      // projector tab also hides its overlay — while KEEPING quickWheelWinner
+      // so the picked student stays live for scoring + the whose-turn footer.
+      broadcastAction({ type: 'DISMISS_WHEEL', timestamp: Date.now() });
       setState(prev => ({
         ...prev,
         currentTurnId: studentId,
@@ -893,6 +929,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       triggerAction('GAME_WIN', { winnerId: selectedId });
       const turnAction = { type: 'NEW_TURN', payload: { studentId: selectedId }, timestamp: Date.now() };
       broadcastAction(turnAction);
+      // Broadcast DISMISS_WHEEL (not just a local setState) so the board
+      // projector tab also hides its overlay — while KEEPING quickWheelWinner
+      // so the picked student stays live for scoring + the whose-turn footer.
+      broadcastAction({ type: 'DISMISS_WHEEL', timestamp: Date.now() });
       setState(prev => ({
         ...prev,
         currentTurnId: selectedId,
@@ -996,7 +1036,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       state, loadUnits, loadStudents, setActiveClass, setActiveUnit, ensureAttendanceOccurrence, saveUnit, unlockNextLevel,
       startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
-      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, nextStudent,
+      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, dismissWheel, cancelTurn, nextStudent,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
       triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent
     }}>

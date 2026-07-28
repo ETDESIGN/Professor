@@ -3,6 +3,7 @@ import { History, Check, RefreshCcw, ArrowRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { getStory } from '../../../services/manifest';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { usePickedStudent } from './usePickedStudent';
 import { gradeStudent } from '../../../services/boardLearner';
 
 interface StoryCard {
@@ -14,6 +15,7 @@ interface StoryCard {
 
 const BoardStorySequencing = ({ data }: { data: any }) => {
   const { state, addPoints } = useSession();
+  const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const [cards, setCards] = useState<StoryCard[]>([]);
   const [slots, setSlots] = useState<(StoryCard | null)[]>([]);
@@ -217,7 +219,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
             )}
             {isCorrect && (
                <div className="flex items-center gap-2 text-green-600 font-bold text-2xl animate-bounce">
-                  <Check size={32} /> Correct Sequence!
+                  <Check size={32} /> {pickedStudent ? `${pickedStudent.name} sequenced it!` : 'Correct Sequence!'}
                </div>
             )}
          </div>

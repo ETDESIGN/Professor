@@ -64,7 +64,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
               </button>
             )}
           </div>
-          {winner && !isSpinning && <button onClick={closeOverlay} className="w-full bg-slate-800 text-slate-400 font-bold py-3 rounded-xl hover:bg-slate-700">Close Overlay</button>}
+          {winner && !isSpinning && <button onClick={closeOverlay} className="w-full bg-slate-800 text-slate-400 font-bold py-3 rounded-xl hover:bg-slate-700">Hide wheel</button>}
         </div>
       );
     }

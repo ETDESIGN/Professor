@@ -12,6 +12,7 @@ import { useBoardPool } from '../useBoardPool';
 import { gradeStudent } from '../../../services/boardLearner';
 import { getVocabulary } from '../../../services/manifest';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { usePickedStudent } from './usePickedStudent';
 
 type Phase = 'ready' | 'answering' | 'reveal' | 'results';
 
@@ -27,6 +28,7 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   const { state, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
+  const pickedStudent = usePickedStudent();
 
   const frozenQs = useMemo(() => (Array.isArray(data?.questions) ? data.questions : []), [data?.questions]);
   const { items: poolItems, loading } = useBoardPool({ unitId, exerciseTypes: ['MEANING_MATCH'], classWeak: true, roster, limit: 10 });
@@ -191,7 +193,9 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
         <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring' }}>
           <Trophy size={72} className="text-yellow-300 drop-shadow-lg mb-3" />
         </motion.div>
-        <h2 className="font-display text-5xl font-black mb-2">Quiz Complete!</h2>
+        <h2 className="font-display text-5xl font-black mb-2">
+          {pickedStudent ? `${pickedStudent.name}: Quiz Complete!` : 'Quiz Complete!'}
+        </h2>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white/20 backdrop-blur-md rounded-3xl px-10 py-5 border border-white/20 text-center mb-3">
           <div className="text-6xl font-black mb-1">{score}/{totalQ}</div>
           <div className="text-lg text-white/80">Correct · 正确率 {pct}%</div>

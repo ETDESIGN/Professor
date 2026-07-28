@@ -5,6 +5,7 @@ import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { gradeStudent } from '../../../services/boardLearner';
+import { usePickedStudent } from './usePickedStudent';
 
 interface MatchPair {
   id: string;
@@ -17,6 +18,10 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const unitId = state.activeUnit?.id || '';
   const stepType = state.activeSlideData?.type || 'FLASH_MATCH';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
+  const pickedStudent = usePickedStudent();
+  // Capture the points awarded on completion so the success overlay can show a
+  // personalized "[Name] nailed it! +N pts" message.
+  const [lastAward, setLastAward] = useState<number | null>(null);
 
   // Memoize the frozen source so its reference is stable across renders — an
   // inline `data?.pairs || []` is a fresh array every render, which (via the
@@ -162,7 +167,9 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
           // this is the completion bonus. No responder = practice mode = no score.
           const picked = state.quickWheelWinner;
           if (picked) {
-            addPoints(picked, scoreForAttempt(mistakesRef.current));
+            const award = scoreForAttempt(mistakesRef.current);
+            setLastAward(award);
+            addPoints(picked, award);
             if (unitId && leftItem.text) gradeStudent(picked, unitId, leftItem.text, true).catch(() => {});
           }
         }
@@ -298,8 +305,12 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
             <div className="w-32 h-32 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center mb-6">
               <Check size={64} strokeWidth={4} />
             </div>
-            <h2 className="text-5xl font-black text-slate-800 mb-2">All Matched!</h2>
-            <p className="text-2xl text-slate-500 font-medium">Great job connecting the pairs!</p>
+            <h2 className="text-5xl font-black text-slate-800 mb-2">
+              {pickedStudent ? `${pickedStudent.name} nailed it!` : 'All Matched!'}
+            </h2>
+            <p className="text-2xl text-slate-500 font-medium">
+              {lastAward !== null ? `+${lastAward} pts` : 'Great job connecting the pairs!'}
+            </p>
           </div>
         </div>
       )}

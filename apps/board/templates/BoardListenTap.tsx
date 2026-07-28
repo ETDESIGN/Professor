@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Check, X, Flame, ChevronRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { usePickedStudent } from './usePickedStudent';
 import { useBoardPool } from '../useBoardPool';
 import { gradeStudent } from '../../../services/boardLearner';
 import { playAudioUrl } from '../../../services/SpeechService';
@@ -34,6 +35,7 @@ const TILE_COLORS = [
 
 const BoardListenTap = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints } = useSession();
+  const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
@@ -319,7 +321,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 text-center">
                 {selectedTile === correctIndex ? (
                   <p className="font-display text-xl text-green-300">
-                    {streakTier === 'mega' ? '🔥 INCREDIBLE STREAK! 太厉害了!' : streakTier === 'big' ? '🔥 Amazing! 太棒了!' : 'Correct!'}
+                    {streakTier === 'mega' ? '🔥 INCREDIBLE STREAK! 太厉害了!' : streakTier === 'big' ? '🔥 Amazing! 太棒了!' : (pickedStudent ? `${pickedStudent.name} got it!` : 'Correct!')}
                   </p>
                 ) : (
                   <p className="font-display text-lg text-slate-400">

@@ -7,7 +7,7 @@ import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
    Monitor, Clock, LogOut, PenTool, Eraser,
    Star, Activity, LayoutGrid, Zap, Bell,
-   Plus, Minus, X, List, Sparkles, UserCheck, Users
+   Plus, Minus, X, List, Sparkles, UserCheck, Users, ArrowRight
 } from 'lucide-react';
 import DrawingLayer from '../../components/shared/DrawingLayer';
 import AttendanceModal from './AttendanceModal';
@@ -30,8 +30,8 @@ type SidebarTab = 'notes' | 'wheel' | 'sounds' | 'groups' | 'analytics';
 const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const {
       state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction, deductAllPoints,
-      clearDrawings, selectNextStudent, setSelectionMode, closeOverlay,
-      setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence
+      clearDrawings, selectNextStudent, setSelectionMode, closeOverlay, cancelTurn,
+      setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence, nextStudent
    } = useSession();
 
    // Bind the live session to the class chosen on the Classes screen (?class=…).
@@ -164,6 +164,41 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                </div>
             </div>
          )}
+
+         {/* "Now answering" bar — persistent indicator of the picked responder,
+             always visible regardless of sidebar tab. Shows the kid's name +
+             a prominent "Next Student" button to advance the loop, and a small
+             "End turn" to drop back to choral mode. Only renders when a
+             responder is live (quickWheelWinner set). */}
+         {state.quickWheelWinner && (() => {
+            const picked = state.students.find((s: any) => s.id === state.quickWheelWinner);
+            return (
+               <div className="bg-indigo-600/15 border-b border-indigo-500/30 px-4 py-2.5 flex items-center gap-3 shrink-0 z-20">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shrink-0">
+                     {picked?.avatar || (picked?.name?.[0]?.toUpperCase() || '?')}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                     <span className="text-[10px] uppercase tracking-widest text-indigo-300 font-bold">Now answering</span>
+                     <span className="text-sm font-bold text-white truncate">{picked?.name || 'Student'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 ml-auto">
+                     <button
+                        onClick={cancelTurn}
+                        className="text-slate-400 hover:text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                        title="End this turn — back to choral mode"
+                     >
+                        End turn
+                     </button>
+                     <button
+                        onClick={nextStudent}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm px-4 py-1.5 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-lg shadow-indigo-900/30"
+                     >
+                        <Users size={14} /> Next Student <ArrowRight size={14} />
+                     </button>
+                  </div>
+               </div>
+            );
+         })()}
 
          {/* Main Workspace */}
          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
