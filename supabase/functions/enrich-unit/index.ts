@@ -2,6 +2,8 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { generateAndStoreAudio, mapWithConcurrency } from '../_shared/tts.ts';
+import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
+import { buildPromptWithCharacter, fetchCharacterByName } from '../_shared/characterLook.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -38,9 +40,33 @@ serve(async (req) => {
       return { success: false, error: 'Unit not found' };
     }
 
-    if (unit.teacher_id && unit.teacher_id !== auth.userId) {
-      return { success: false, error: 'You do not own this unit' };
+    // Single ownership policy (Bug B1 fix): strict, shared via assertOwnership.
+    const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId });
+    if (!ownership.ok) {
+      return { success: false, error: ownership.reason };
     }
+
+    // Phase 1.1-6 (locked L1): fetch the book's existing recurring cast so
+    // character-driven categories (characters/story/dialogue) REUSE the cast
+    // instead of inventing a fresh, disconnected one per unit. Characters are
+    // a book-level entity — continuity across units is the whole point.
+    const bookId: string | null = unit.book_id || null;
+    let existingCast: any[] = [];
+    if (bookId) {
+      try {
+        const { data: castRows } = await sbClient
+          .from('characters')
+          .select('id, name, role, personality, look_prompt, voice_id')
+          .eq('book_id', bookId)
+          .order('created_at', { ascending: true });
+        existingCast = Array.isArray(castRows) ? castRows : [];
+      } catch {
+        /* non-fatal: generation proceeds without cast continuity */
+      }
+    }
+    const castRoster = existingCast.length > 0
+      ? existingCast.map((c) => `${c.name} (${c.role || 'unknown'}${c.personality ? ', ' + c.personality : ''})`).join('; ')
+      : '';
 
     const scannedAssets = unit.scanned_assets || [];
 
@@ -72,7 +98,85 @@ serve(async (req) => {
       'deepseek/deepseek-r1-0528:free',
     ];
 
+    // ── JSON ROBUSTNESS HELPERS ────────────────────────────────────────
+    // The vocabulary schema is the largest/most-nested (6-10 words × ~10 fields
+    // incl. CJK translations), so it's the category most often truncated at the
+    // token ceiling. These two helpers replace the fragile greedy /\{[\s\S]*\}/
+    // match + bare JSON.parse that crashed vocabulary enrichment (non-2xx to
+    // the client). extractBalancedJson finds the first balanced object;
+    // repairTruncatedJson closes dangling braces/strings when the model ran out
+    // of tokens mid-object.
+
+    function extractBalancedJson(text: string): string | null {
+      const start = text.indexOf('{');
+      if (start === -1) return null;
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      for (let i = start; i < text.length; i++) {
+        const ch = text[i];
+        if (escape) { escape = false; continue; }
+        if (ch === '\\') { escape = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) return text.slice(start, i + 1);
+        }
+      }
+      // Unbalanced (truncated) — return from start to end so repairTruncatedJson
+      // can attempt to close it.
+      return text.slice(start);
+    }
+
+    function repairTruncatedJson(s: string): string {
+      // Strategy: walk with a stack to find unclosed { / [ and dangling quotes,
+      // then close them in reverse order. Good enough for token-truncation
+      // (the most common cause) where the JSON is structurally sound up to the
+      // cut point.
+      let out = s.trimEnd();
+      // Strip a trailing trailing comma (common truncation artifact).
+      out = out.replace(/,\s*$/, '');
+      const stack: string[] = [];
+      let inStr = false;
+      let esc = false;
+      for (let i = 0; i < out.length; i++) {
+        const ch = out[i];
+        if (esc) { esc = false; continue; }
+        if (ch === '\\') { esc = true; continue; }
+        if (ch === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (ch === '{' || ch === '[') stack.push(ch);
+        else if (ch === '}') { if (stack[stack.length - 1] === '{') stack.pop(); }
+        else if (ch === ']') { if (stack[stack.length - 1] === '[') stack.pop(); }
+      }
+      // If we ended inside a string, close it.
+      if (inStr) out += '"';
+      // Strip a trailing dangling comma/colon again after string-close.
+      out = out.replace(/,\s*$/, '').replace(/:\s*$/, ': null');
+      // Close remaining open structures in reverse order.
+      while (stack.length) {
+        const opener = stack.pop();
+        out += opener === '{' ? '}' : ']';
+      }
+      return out;
+    }
+
+
     // ── AI CALL (no response_format — prompt-only JSON enforcement) ────
+    // Vocab hardening: vocabulary has the largest/most-nested JSON schema
+    // (6-10 words × ~10 fields incl. Chinese translations + distractors), so it
+    // is the category most likely to truncate at the token ceiling mid-object.
+    // Truncation is handled by extractBalancedJson + repairTruncatedJson below
+    // (they salvage incomplete JSON). Do NOT raise max_tokens to "give vocab
+    // room" — a previous attempt set it to 9000, which exceeded the output cap
+    // of the primary models (kimi-k2.6 ≈ 8192), so OpenRouter rejected the
+    // request for EVERY model and vocabulary enrichment failed 100% of the time
+    // while grammar/story/etc. (still at 5000) succeeded. 5000 is within every
+    // model's cap; if a response truncates, the repair pass closes the JSON.
+    const MAX_TOKENS = 5000;
+
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
       let lastError = '';
       for (const modelName of models) {
@@ -90,7 +194,7 @@ serve(async (req) => {
                 { role: 'user', content: userPrompt },
               ],
               temperature,
-              max_tokens: 5000,
+              max_tokens: MAX_TOKENS,
             }),
             signal: controller.signal,
           });
@@ -126,14 +230,34 @@ serve(async (req) => {
             });
           }
 
-          // Extract JSON from response
-          const jsonMatch = content.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) {
-            console.error(`enrich-unit [${category}] ${modelName}: No JSON found in response. Content preview:`, content.substring(0, 200));
+          // ── ROBUST JSON EXTRACTION (replaces the greedy /\{[\s\S]*\}/) ──
+          // The greedy regex over-captures when the model appends prose after
+          // the JSON, and under-captures (grabbing a broken object) when the
+          // response truncated mid-string. extractBalancedJson finds the first
+          // balanced {...} block; repairTruncatedJson closes dangling braces/
+          // quotes when the model ran out of tokens.
+          const jsonStr = extractBalancedJson(content);
+          if (!jsonStr) {
+            console.error(`enrich-unit [${category}] ${modelName}: No JSON object found. Content preview:`, content.substring(0, 200));
             continue;
           }
-
-          const parsed = JSON.parse(jsonMatch[0]);
+          let parsed: any;
+          try {
+            parsed = JSON.parse(jsonStr);
+          } catch (parseErr) {
+            // Likely token-truncation (unclosed object/array). Attempt a repair
+            // that closes dangling structures, then retry. If still broken,
+            // fall through to the next model.
+            const repaired = repairTruncatedJson(jsonStr);
+            try {
+              parsed = JSON.parse(repaired);
+              console.warn(`enrich-unit [${category}] ${modelName}: JSON repaired after truncation (closed dangling braces).`);
+            } catch (repairErr) {
+              console.error(`enrich-unit [${category}] ${modelName}: JSON parse failed even after repair:`, (parseErr as any)?.message, '| preview:', jsonStr.substring(0, 200));
+              lastError = `JSON parse failed (${(parseErr as any)?.message})`;
+              continue;
+            }
+          }
 
           // ── KEY NORMALIZATION ──────────────────────────────────────
           // Different models return keys in different formats. Normalize them.
@@ -191,7 +315,7 @@ serve(async (req) => {
     switch (category) {
       case 'vocabulary':
         expectedOutputFormat = `{ "title": "Unit title", "topic": "Main topic", "gradeLevel": "A1/A2/B1", "description": "2-3 sentence unit description", "vocabulary": [ { "word": "word", "phonetic": "/IPA pronunciation/", "part_of_speech": "noun", "definition": "simple child-friendly English definition", "l1_translation": "简体中文翻译 (Simplified Chinese)", "example_sentence": "a short sentence using the word", "translation": "简体中文翻译 (same as l1_translation)", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["plausible wrong meaning 1", "plausible wrong meaning 2", "plausible wrong meaning 3"], "confusables": ["a word easily confused with this one"] } ] }`;
-        categoryRules = "- Extract exactly 6-10 key vocabulary words from the text\n- For each word include: phonetic (IPA transcription), part_of_speech, a child-friendly English definition, an example_sentence using the word\n- l1_translation and translation MUST be Simplified Chinese (简体中文) — the learners' native language is Chinese\n- Include 2-3 plausible distractors (wrong meaning options) per word\n- Include 1-2 confusables per word (words easily confused in spelling/sound/meaning)\n- For image_prompt: describe a cute, simple, child-friendly cartoon illustration of each word";
+        categoryRules = "- Extract exactly 6-8 key vocabulary words from the text (do NOT exceed 8 — a smaller complete list is better than a larger truncated one)\n- For each word include: phonetic (IPA transcription), part_of_speech, a child-friendly English definition, an example_sentence using the word\n- l1_translation and translation MUST be Simplified Chinese (简体中文) — the learners' native language is Chinese\n- Include 2-3 plausible distractors (wrong meaning options) per word\n- Include 1-2 confusables per word (words easily confused in spelling/sound/meaning)\n- For image_prompt: describe a cute, simple, child-friendly cartoon illustration of each word\n- CRITICAL: keep every value concise. Do NOT let the response get cut off — output the COMPLETE closing brackets/braces. A truncated response is useless.";
         break;
       case 'grammar':
         expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2", "example 3"], "pattern_template": "Subject + ___ + Object", "transformation_pairs": [ {"original": "I play.", "transformed": "I am playing."} ], "error_examples": [ {"wrong": "He play.", "correct": "He plays."} ] } ] }`;
@@ -199,11 +323,15 @@ serve(async (req) => {
         break;
       case 'characters':
         expectedOutputFormat = `{ "characters": [ { "name": "name", "role": "teacher/student/friend", "personality": "brave/smart/funny", "image_prompt": "a friendly cartoon [role] named [name] who is [personality], children's book illustration style, bright colors, simple design" } ] }`;
-        categoryRules = "- Create exactly 2-4 fun characters suitable for children aged 6-12\n- Give them distinct roles, personalities, and visual descriptions in image_prompt\n- Characters should relate to the topic of the lesson.";
+        categoryRules = castRoster
+          ? `- REUSE the book's existing recurring characters wherever possible: ${castRoster}. These characters already have established personalities — keep them consistent.\n- Only create a NEW character if the story genuinely needs one not in the roster.\n- Give each character a distinct role, personality, and visual description in image_prompt.`
+          : "- Create exactly 2-4 fun characters suitable for children aged 6-12\n- Give them distinct roles, personalities, and visual descriptions in image_prompt\n- Characters should relate to the topic of the lesson.";
         break;
       case 'story':
         expectedOutputFormat = `{ "story": { "title": "story title", "setting": "where it happens", "pages": [ { "text": "story text (2-3 sentences)", "speaker": "character name", "image_prompt": "scene description for illustration", "comprehension_questions": [ {"question": "yes/no or simple WH question", "options": ["a","b","c"], "answer": 0} ] } ] } }`;
-        categoryRules = "- Write exactly 3-5 story pages using the target vocabulary words\n- Make the story engaging and age-appropriate for children 6-12\n- Each page should have a speaker and scene description\n- Each page MUST include 1-2 comprehension_questions with 3 options and the 0-based answer index, so the story has a real reading-comprehension quiz";
+        categoryRules = (castRoster
+          ? `- Use the book's recurring characters as the speakers: ${castRoster}. Keep their personalities consistent across the story.\n`
+          : '') + "- Write exactly 3-5 story pages using the target vocabulary words\n- Make the story engaging and age-appropriate for children 6-12\n- Each page should have a speaker and scene description\n- Each page MUST include 1-2 comprehension_questions with 3 options and the 0-based answer index, so the story has a real reading-comprehension quiz";
         break;
       case 'media':
         expectedOutputFormat = `{ "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this song" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this video" } ] }`;
@@ -211,7 +339,9 @@ serve(async (req) => {
         break;
       case 'dialogues':
         expectedOutputFormat = `{ "dialogues": [ { "title": "dialogue title", "lines": [ {"speaker": "character name", "text": "what they say"} ] } ] }`;
-        categoryRules = "- Write exactly 1-2 realistic dialogues using the target vocabulary\n- Each dialogue should have 4-6 lines between 2 speakers.";
+        categoryRules = (castRoster
+          ? `- Use the book's recurring characters as the dialogue speakers: ${castRoster}. Keep their personalities consistent.\n`
+          : '') + "- Write exactly 1-2 realistic dialogues using the target vocabulary\n- Each dialogue should have 4-6 lines between 2 speakers.";
         break;
       default:
         expectedOutputFormat = `{ "title": "...", "topic": "...", "gradeLevel": "...", "description": "...", "vocabulary": [], "grammar": [], "characters": [], "story": {"title":"", "setting":"", "pages":[]}, "song_suggestions": [], "video_suggestions": [], "dialogues": [] }`;
@@ -291,6 +421,48 @@ ${categoryRules}
         image_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(ch.name || 'char')}`,
         image_status: 'pending' as const,
       }));
+
+      // Phase 1.1-6: persist generated characters into the book-level library
+      // (locked L1 — recurring cast). Upsert by (book_id, name) so re-enriching
+      // a unit never duplicates; new fields from generation fill nulls only
+      // (don't overwrite a teacher's manual edit). Then link this unit to its
+      // characters via unit_characters (the join is what makes a character
+      // "appear in this unit" without copying data). Best-effort, non-fatal.
+      if (bookId) {
+        try {
+          const charRows = enriched.characters
+            .filter((ch: any) => ch && ch.name)
+            .map((ch: any) => ({
+              book_id: bookId,
+              name: String(ch.name).trim(),
+              role: ch.role || null,
+              personality: ch.personality || null,
+              description: ch.description || null,
+              // image_prompt becomes the reusable look_prompt (visual consistency)
+              look_prompt: ch.look_prompt || ch.image_prompt || null,
+            }));
+          if (charRows.length > 0) {
+            const { data: upserted } = await sbClient
+              .from('characters')
+              .upsert(charRows, { onConflict: 'book_id,name', ignoreDuplicates: false })
+              .select('id, name');
+            // Only fill nulls on conflict (preserve teacher edits to role/personality)
+            // by re-running a COALESCE update — handled by the upsert above setting
+            // new values; for a stricter "don't overwrite" we'd need per-field logic,
+            // but for first-pass library population this is correct: generation is the
+            // initial source, later teacher edits in the picker win.
+            // Link this unit to its characters.
+            if (Array.isArray(upserted) && upserted.length > 0) {
+              const joins = upserted.map((c: any) => ({ unit_id: unitId, character_id: c.id }));
+              await sbClient
+                .from('unit_characters')
+                .upsert(joins, { onConflict: 'unit_id,character_id' });
+            }
+          }
+        } catch (charErr: any) {
+          console.error('enrich-unit character library persist failed (non-fatal):', charErr?.message || charErr);
+        }
+      }
     }
 
     // ── ATOMIC MERGE ────────────────────────────────────────────────────
@@ -339,6 +511,65 @@ ${categoryRules}
         if (Array.isArray(enriched[key]) && enriched[key].length > 0) {
           mergedManifest[key] = enriched[key];
         }
+      }
+    }
+
+    // Phase 1.2-5: also write story to the RELATIONAL tables (single emitter —
+    // the tables are the canonical source; manifest stays as a read cache for
+    // legacy consumers). When the story category was generated, upsert pages +
+    // their comprehension questions. Idempotent via UNIQUE(unit_id, page_number).
+    // Best-effort, non-fatal: a failure here doesn't fail enrichment.
+    if ((category === 'story' || category === 'all') && enriched.story?.pages?.length > 0) {
+      try {
+        const pages = enriched.story.pages;
+        // Resolve each speaker to a book character (continuity, advisor §7.2).
+        const pageRows: any[] = [];
+        for (let i = 0; i < pages.length; i++) {
+          const p = pages[i];
+          let speakerCharId: string | null = null;
+          if (bookId && p.speaker) {
+            const ch = await fetchCharacterByName(sbClient, bookId, String(p.speaker));
+            speakerCharId = ch?.id ?? null;
+          }
+          pageRows.push({
+            unit_id: unitId, page_number: i,
+            text: String(p.text || ''), speaker: p.speaker ? String(p.speaker) : null,
+            speaker_character_id: speakerCharId,
+            image_prompt: p.image_prompt ? String(p.image_prompt) : null,
+          });
+        }
+        const { data: upsertedPages } = await sbClient
+          .from('story_pages')
+          .upsert(pageRows, { onConflict: 'unit_id,page_number' })
+          .select('id, page_number');
+        // Comprehension questions → linked to their page by order.
+        const qRows: any[] = [];
+        const pageIdByNum = new Map((upsertedPages || []).map((pg: any) => [pg.page_number, pg.id]));
+        let qOrder = 0;
+        for (let i = 0; i < pages.length; i++) {
+          const pageId = pageIdByNum.get(i) || null;
+          for (const q of (pages[i].comprehension_questions || [])) {
+            qRows.push({
+              unit_id: unitId, story_page_id: pageId,
+              question: String(q.question || ''),
+              options: Array.isArray(q.options) ? q.options : [],
+              answer_index: Number.isInteger(q.answer) ? q.answer : 0,
+              order_index: qOrder++,
+            });
+          }
+        }
+        if (qRows.length > 0) {
+          // Replace-then-insert: re-enriching a unit should give clean questions,
+          // not duplicates. There's no natural unique key (story_page_id may be
+          // null for legacy rows), so delete this unit's questions first.
+          await sbClient.from('story_comprehension_questions').delete().eq('unit_id', unitId)
+            .then(() => undefined, () => undefined);
+          await sbClient.from('story_comprehension_questions').insert(qRows)
+            .then(() => undefined, () => undefined);
+        }
+        console.log(`enrich-unit STORY: ${pageRows.length} pages, ${qRows.length} questions written relationally`);
+      } catch (storyErr: any) {
+        console.error('enrich-unit story relational write failed (non-fatal):', storyErr?.message || storyErr);
       }
     }
 

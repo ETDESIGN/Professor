@@ -16,6 +16,9 @@ export const EXERCISE_TYPES = [
   'MINIMAL_PAIR_SWIPE',
   'TYPE_TRANSLATE',
   'SPEAK_SENTENCE',
+  // Phase 1.2: story comprehension MCQ (from story_comprehension_questions,
+  // which carry options + a correct answer index already). Receptive MCQ.
+  'STORY_COMPREHENSION',
 ] as const;
 
 export type ExerciseType = (typeof EXERCISE_TYPES)[number];
@@ -26,6 +29,7 @@ export const RECEPTIVE_TYPES: ReadonlySet<ExerciseType> = new Set([
   'AUDIO_L1_SELECT',
   'LISTEN_SELECT',
   'SPELL_CLOZE',
+  'STORY_COMPREHENSION',
 ]);
 
 export function modalityOf(type: ExerciseType): 'receptive' | 'productive' {

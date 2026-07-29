@@ -6,6 +6,7 @@ import { useSession } from '../../store/SessionContext';
 import { AIService } from '../../services/AIService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { getOrCreateDefaultBookForCurrentUser } from '../../services/BookService';
 import { createClientLogger } from '../../services/logger';
 import AssetWorkshop from './AssetWorkshop';
 
@@ -328,6 +329,14 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          let activeUnitId = currentDraftId;
          if (!activeUnitId) {
             // Create draft unit if doesn't exist
+            // Stamp teacher_id at creation: NULL-owner units are rejected by
+            // generate-exercises (the strict ownership guard), which silently
+            // starves the exercise pool (Bug B1). Engine.createUnit already
+            // stamps teacher_id; the textbook-scan path must too.
+            const { data: { user } } = await supabase.auth.getUser();
+            // Phase 0B: every unit belongs to a book (characters are book-level
+            // per L1; vault scopes per-book). Non-fatal if it fails.
+            const defaultBook = await getOrCreateDefaultBookForCurrentUser();
             const { data: newUnit, error: createError } = await supabase.from('units').insert({
                title: `Draft Unit ${new Date().toLocaleDateString()}`,
                topic: 'Uploaded Material',
@@ -335,6 +344,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                status: 'Draft',
                lessons: 1,
                flow: [],
+               teacher_id: user?.id ?? null,
+               book_id: defaultBook?.id ?? null,
                scanned_assets: [aiData] // flat response shape — no .extraction wrapper
             }).select().single();
             if (createError) throw createError;

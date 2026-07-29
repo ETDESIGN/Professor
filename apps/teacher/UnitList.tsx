@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText } from 'lucide-react';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
+import { Engine } from '../../services/SupabaseService';
 import { toast } from 'sonner';
 
 interface UnitListProps {
@@ -11,7 +12,7 @@ interface UnitListProps {
   onUploadMaterial?: () => void;
   onEditUnit?: (unitId: string) => void;
   onPlanLesson?: () => void;
-  onLaunchLesson?: () => void; 
+  onLaunchLesson?: () => void;
 }
 
 const containerVariants = {
@@ -35,6 +36,9 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const [isLoading, setIsLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showNewUnitModal, setShowNewUnitModal] = useState(false);
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null); // unit.id of open kebab menu
+  const [unitToDelete, setUnitToDelete] = useState<any | null>(null); // unit pending delete confirmation
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Ensure we have fresh data on mount
   useEffect(() => {
@@ -61,6 +65,25 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const handleEditEnrichment = async (unit: any) => {
      await setActiveUnit(unit.id);
      onEditUnit?.(unit.id);
+  };
+
+  // Gap G9 fix: hard-delete with confirmation. Safe — relational children
+  // (objectives/pool_items/assets/character_ledger/srs_items/generation_jobs)
+  // cascade via FK ON DELETE CASCADE. Storage objects orphan harmlessly.
+  const handleDelete = async () => {
+    if (!unitToDelete) return;
+    setIsDeleting(true);
+    try {
+      await Engine.deleteUnit(unitToDelete.id);
+      toast.success(`Deleted "${unitToDelete.title}"`);
+      await loadUnits(); // refresh the grid
+    } catch (err: any) {
+      toast.error(`Delete failed: ${err?.message || err}`);
+    } finally {
+      setIsDeleting(false);
+      setUnitToDelete(null);
+      setMenuOpenFor(null);
+    }
   };
 
   return (
@@ -173,9 +196,41 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                    </span>
                    <h3 className="text-xl font-display font-bold text-slate-800 leading-tight">{unit.title}</h3>
                  </div>
-                 <button className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100">
-                   <MoreVertical size={20} />
-                 </button>
+                 <div className="relative">
+                   <button
+                     onClick={(e) => { e.stopPropagation(); setMenuOpenFor(menuOpenFor === unit.id ? null : unit.id); }}
+                     className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+                     title="Unit actions"
+                   >
+                     <MoreVertical size={20} />
+                   </button>
+                   {menuOpenFor === unit.id && (
+                     <>
+                       {/* click-away catcher */}
+                       <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
+                       <div className="absolute right-0 top-8 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-44">
+                         <button
+                           onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handlePlan(unit); }}
+                           className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                         >
+                           <Edit2 size={14} /> Plan / Edit
+                         </button>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handleEditEnrichment(unit); }}
+                           className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                         >
+                           <BookOpen size={14} /> Review Content
+                         </button>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setUnitToDelete(unit); }}
+                           className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                         >
+                           <Trash2 size={14} /> Delete
+                         </button>
+                       </div>
+                     </>
+                   )}
+                 </div>
               </div>
               
               {/* Contextual Stats based on Status */}
@@ -311,6 +366,58 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                   className="w-full py-2 text-slate-500 font-medium hover:text-slate-700"
                 >
                   Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal (Gap G9) */}
+      <AnimatePresence>
+        {unitToDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => !isDeleting && setUnitToDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-slate-800">Delete this unit?</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    "<span className="font-semibold text-slate-700">{unitToDelete.title}</span>" and all its
+                    generated content (vocabulary, exercises, media references) will be permanently removed.
+                    This cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setUnitToDelete(null)}
+                  disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {isDeleting ? 'Deleting…' : 'Delete unit'}
                 </button>
               </div>
             </motion.div>

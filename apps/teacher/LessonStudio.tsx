@@ -7,8 +7,8 @@ import {
    BrainCircuit, Users, BookOpen
 } from 'lucide-react';
 const generateSong = async (_prompt: string) => ({ title: "Song Gen Disabled", lyrics: "Feature pending..." });
-const generateImage = async (_prompt: string): Promise<string | null> => null;
 import { useSession } from '../../store/SessionContext';
+import { MediaService } from '../../services/MediaService';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -175,17 +175,32 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
    };
 
    const handleGenerateAssets = async () => {
+      if (!activeUnit) return;
       setIsGenerating(true);
       const newVocab = [...editableVocab];
+      // B4 fix: previously this called a no-op generateImage() stub that
+      // returned null and then overwrote image_prompt with the literal string
+      // 'Failed' — corrupting the prompt text. Now it uses the REAL generator
+      // (MediaService.getVocabImage, the same one UnitContentVault uses) and
+      // writes to the correct fields: image_url + image_status, leaving
+      // image_prompt (the text prompt) untouched.
       for (let i = 0; i < newVocab.length; i++) {
-         if (!newVocab[i].image_prompt || newVocab[i].image_prompt === 'Generating...' || !newVocab[i].image_prompt.startsWith('data:')) {
-            newVocab[i].image_prompt = 'Generating...';
+         const v = newVocab[i];
+         const hasImage = typeof v.image_url === 'string' && /^https?:|^data:/i.test(v.image_url);
+         if (!hasImage) {
+            newVocab[i] = { ...v, image_status: 'pending' };
             setEditableVocab([...newVocab]);
-            const imageUrl = await generateImage(`A clear, educational illustration of: ${newVocab[i].word}. ${newVocab[i].definition}. Child friendly, colorful, flat vector style.`);
-            if (imageUrl) {
-               newVocab[i].image_prompt = imageUrl;
-            } else {
-               newVocab[i].image_prompt = 'Failed';
+            try {
+               const url = await MediaService.getVocabImage(activeUnit.id, v.word, v.example_sentence || v.definition);
+               newVocab[i] = {
+                  ...newVocab[i],
+                  image_url: url || newVocab[i].image_url,
+                  image_status: url ? 'ready' : 'pending',
+               };
+            } catch {
+               // Don't corrupt data on failure — leave image_status as pending so
+               // a retry is possible. The prompt text is never touched.
+               newVocab[i] = { ...newVocab[i], image_status: 'pending' };
             }
             setEditableVocab([...newVocab]);
          }
@@ -351,19 +366,29 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
                                                 <ImageIcon size={10} className="text-emerald-500" /> Flashcard Image
                                              </div>
                                           </div>
-                                          {vocab.image_prompt && vocab.image_prompt.startsWith('data:') ? (
-                                             <img src={vocab.image_prompt} alt={vocab.word} className="w-full h-24 object-cover rounded-md mb-3" />
-                                          ) : (
-                                             <div className="w-full h-24 bg-slate-200 rounded-md mb-3 flex items-center justify-center text-xs text-slate-400 italic">
-                                                {vocab.image_prompt === 'Generating...' ? (
-                                                   <span className="flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Generating...</span>
-                                                ) : vocab.image_prompt === 'Failed' ? (
-                                                   <span className="text-red-400">Generation Failed</span>
-                                                ) : (
-                                                   "No image generated"
-                                                )}
-                                             </div>
-                                          )}
+                                          {/* B3 fix: read image_url (the real image field), not image_prompt
+                                              (the text prompt). Status comes from image_status, not magic
+                                              strings in image_prompt. BoardFocusCards/LessonTransformer
+                                              already read image_url correctly. */}
+                                          {(() => {
+                                             const url = vocab.image_url;
+                                             const status = vocab.image_status;
+                                             if (url && typeof url === 'string' && /^https?:|^data:/i.test(url)) {
+                                                return <img src={url} alt={vocab.word} className="w-full h-24 object-cover rounded-md mb-3" />;
+                                             }
+                                             if (status === 'pending' || vocab.image_prompt === 'Generating...') {
+                                                return (
+                                                   <div className="w-full h-24 bg-slate-200 rounded-md mb-3 flex items-center justify-center text-xs text-slate-400 italic">
+                                                      <span className="flex items-center gap-2"><Loader2 size={12} className="animate-spin" /> Generating...</span>
+                                                   </div>
+                                                );
+                                             }
+                                             return (
+                                                <div className="w-full h-24 bg-slate-200 rounded-md mb-3 flex items-center justify-center text-xs text-slate-400 italic">
+                                                   No image generated
+                                                </div>
+                                             );
+                                          })()}
                                           <div className="text-[10px] font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
                                              <Sparkles size={10} className="text-purple-500" /> Auto-Generated Distractors
                                           </div>

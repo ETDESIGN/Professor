@@ -54,10 +54,16 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
   };
 
   const handlePlanLesson = () => {
+    // B5 fix: Plan now routes to LessonStudio (the real builder, which reads
+    // activeUnit + saves to Supabase) instead of LessonTimelineBuilder (a
+    // hardcoded mock with a dead Save button). LessonStudio is mounted at
+    // /teacher/studio by the outer router (teacherEntry.tsx / App.tsx) at the
+    // same level as this catch-all, so absolute navigation reaches it.
+    // Mobile still gets the editor stub for now (full mobile Studio is Phase 2).
     if (window.innerWidth < 768) {
       handleNav('/teacher/mobile-editor');
     } else {
-      handleNav('/teacher/timeline-builder');
+      handleNav('/teacher/studio');
     }
   };
 
@@ -252,7 +258,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
               <Route path="mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
               <Route path="library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
-              <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/timeline-builder')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit-vault/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit-vault/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
               <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitContentVault /></Suspense></RouteErrorBoundary>} />
             </Routes>
           </motion.div>

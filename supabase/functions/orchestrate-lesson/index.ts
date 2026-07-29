@@ -5,6 +5,7 @@ import { PROMPTS } from '../_shared/prompts/index.ts';
 import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 import { validateAndNormalizeFlow } from '../_shared/flowTypes.ts';
 import { normalizeManifest, CanonicalManifest } from '../_shared/manifest.ts';
+import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 
 interface VocabItem {
   word: string;
@@ -33,7 +34,12 @@ const youtubeSearchUrl = (q: string): string =>
   `https://www.youtube.com/results?search_query=${encodeURIComponent(q || '')}`;
 
 function transformManifestToFlow(assets: any): any[] {
-  const flow: any[] = [];
+  // `let` (not `const`): the function reassigns `flow` at the pedagogical-
+  // ordering step (flow = flow.map(...).sort(...)). A prior `const flow`
+  // declaration threw "Assignment to constant variable" there, which was
+  // caught by the orchestrator's try/catch and silently fell back to a
+  // 1-block minimal flow on EVERY unit — so every unit had flow_len=1.
+  let flow: any[] = [];
   const vocab: VocabItem[] = assets?.vocabulary || [];
   const grammar: GrammarRule[] = assets?.grammar || [];
   const chars = assets?.characters || [];
@@ -309,8 +315,10 @@ serve(async (req) => {
         return { success: false, error: 'Unit not found' };
       }
 
-      if (unit.teacher_id && unit.teacher_id !== auth.userId) {
-        return { success: false, error: 'You do not own this unit' };
+      // Single ownership policy (Bug B1 fix): strict, shared via assertOwnership.
+      const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId });
+      if (!ownership.ok) {
+        return { success: false, error: ownership.reason };
       }
 
       // Fall back to the stored manifest if the client payload was empty.
@@ -445,9 +453,13 @@ serve(async (req) => {
     }
 
     if (supabaseUrl && supabaseKey) {
+      // Declare sbClient in the outer scope so the generation_jobs upsert
+      // (which runs after the units/srs_items try/catch below) can reference it.
+      // Previously it was `const` inside the try, so the upsert threw
+      // "sbClient is not defined" — caught silently, which is why no
+      // generation_jobs row ever appeared.
+      const sbClient = createClient(supabaseUrl, supabaseKey);
       try {
-        const sbClient = createClient(supabaseUrl, supabaseKey);
-
         const { error: updateError } = await sbClient
           .from('units')
           .update({ flow, status: 'Active' })
@@ -490,8 +502,28 @@ serve(async (req) => {
       // srs templates are written so it has the full sibling pool. Fire-and-
       // forget (NOT awaited): generate-exercises does per-word image generation
       // which can run long; awaiting it would consume THIS function's wall-clock
-      // budget and 546-kill the publish (defeating the "non-fatal" intent). The
-      // pool is regenerated on demand if this detached call is cut short.
+      // budget and 546-kill the publish (defeating the "non-fatal" intent).
+      //
+      // B1b fix: the trigger is now RECORDED as a generation_jobs row so a silent
+      // drop (cold start / missing auth header / function error) is visible and
+      // retryable instead of `.catch(console.error)`-into-void. generate-exercises
+      // flips the row to running/succeeded/failed on its end.
+      const STAGE = 'generate-exercises';
+      try {
+        // Upsert the job row (unique(unit_id, stage) — re-publish resets it).
+        // Surface the error in the response (not just console) so the missing-
+        // row mystery is diagnosable without dashboard log access.
+        const { error: jobUpsertError } = await sbClient.from('generation_jobs').upsert(
+          { unit_id: unitId, stage: STAGE, status: 'pending', error: null, attempt: 1, started_at: null, completed_at: null },
+          { onConflict: 'unit_id,stage' },
+        );
+        if (jobUpsertError) {
+          errors.push(`generation_jobs upsert error: ${jobUpsertError.message}`);
+        }
+      } catch (jobErr: any) {
+        // Non-fatal: the job table is observability, not a publish dependency.
+        errors.push(`generation_jobs upsert threw: ${jobErr?.message || jobErr}`);
+      }
       try {
         const authHeader = req.headers.get('authorization');
         const fnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-exercises`;
@@ -500,9 +532,21 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(authHeader ? { Authorization: authHeader } : {}) },
           body: JSON.stringify({ unitId }),
-        }).catch((e) => console.error('generate-exercises detached trigger failed:', e?.message || e));
+        }).catch((e) => {
+          // If the trigger itself never lands, record it on the job row so the
+          // failure is discoverable (and re-runnable) rather than invisible.
+          console.error('generate-exercises detached trigger failed:', e?.message || e);
+          sbClient.from('generation_jobs').update({
+            status: 'failed', error: `trigger failed: ${e?.message || e}`, completed_at: new Date().toISOString(),
+          }).eq('unit_id', unitId).eq('stage', STAGE)
+            .then(() => undefined, () => undefined);
+        });
       } catch (genErr: any) {
         console.error('generate-exercises trigger failed (non-fatal):', genErr?.message || genErr);
+        sbClient.from('generation_jobs').update({
+          status: 'failed', error: `trigger threw: ${genErr?.message || genErr}`, completed_at: new Date().toISOString(),
+        }).eq('unit_id', unitId).eq('stage', STAGE)
+          .then(() => undefined, () => undefined);
       }
     }
 

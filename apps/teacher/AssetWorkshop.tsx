@@ -347,8 +347,16 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
           meta: { unit_title: enriched.title, theme: enriched.topic, difficulty_cefr: enriched.gradeLevel },
           enriched_content: enriched,
           knowledge_graph: {
+            // B7 fix: keep image_url + image_status + audio on the projection.
+            // Previously this dropped image_url, so any editor reading
+            // knowledge_graph.vocabulary (UnitContentVault) showed blank images
+            // even though enriched_content.vocabulary[].image_url had the real
+            // image. Permanent fix is Phase 1 (relational FK to assets.id);
+            // this field-patch unblocks teachers today.
             vocabulary: approvedAssets.vocabulary.map(v => ({
               word: v.word, definition: v.definition, image_prompt: v.image_prompt,
+              image_url: v.image_url, image_status: v.image_status,
+              audio_url: v.audio_url,
               context_sentence: v.example_sentence, distractors: v.distractors || [],
             })),
             grammar_rules: approvedAssets.grammar.map(g => ({

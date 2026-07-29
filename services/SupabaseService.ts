@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
 import { createClientLogger } from './logger';
+import { getOrCreateDefaultBookForCurrentUser } from './BookService';
 import { diffMissingSRSWords, SRS_DEFAULTS } from './srs';
 import {
   getLearnerState,
@@ -90,6 +91,11 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
 
     const { data: { user } } = await supabase.auth.getUser();
 
+    // Phase 0B: every unit belongs to a book (so characters can be book-level
+    // per locked L1, and the vault can scope per-book). Get-or-create the
+    // teacher's default book; non-fatal if it fails (unit still creates).
+    const defaultBook = await getOrCreateDefaultBookForCurrentUser();
+
     const row: any = {
         title: manifest?.meta.unit_title || title,
         level: manifest?.meta.difficulty_cefr || 'Draft',
@@ -106,6 +112,9 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
 
     if (user) {
         row.teacher_id = user.id;
+    }
+    if (defaultBook) {
+        row.book_id = defaultBook.id;
     }
 
     const { data, error } = await supabase.from('units').insert(row).select().single();
@@ -165,6 +174,20 @@ const supabaseUpdateUnit = async (id: string, updates: Partial<LessonUnit>): Pro
     row.last_updated = new Date().toISOString();
 
     const { error } = await supabase.from('units').update(row).eq('id', id);
+    if (error) throw error;
+};
+
+/**
+ * Hard-delete a unit. Safe because the relational children all cascade:
+ * objectives, pool_items, assets, character_ledger, srs_items, generation_jobs
+ * FK→units with ON DELETE CASCADE (verified in the schema migrations). The
+ * storage objects (generated-media bucket files) are NOT cascade-deleted —
+ * they orphan harmlessly and are cleaned up by the vault's future retention
+ * job (advisor §6.7); we accept that trade-off rather than blocking deletion
+ * on a bucket walk. Resolves Gap G9 (no unit-management UI existed).
+ */
+const supabaseDeleteUnit = async (id: string): Promise<void> => {
+    const { error } = await supabase.from('units').delete().eq('id', id);
     if (error) throw error;
 };
 
@@ -398,6 +421,11 @@ export const Engine = {
     updateUnit: async (id: string, updates: Partial<LessonUnit>): Promise<void> => {
         requireSupabase();
         return supabaseUpdateUnit(id, updates);
+    },
+
+    deleteUnit: async (id: string): Promise<void> => {
+        requireSupabase();
+        return supabaseDeleteUnit(id);
     },
 
     unlockNextUnit: async (currentId: string): Promise<void> => {

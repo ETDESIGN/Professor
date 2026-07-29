@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical } from 'lucide-react';
+import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { Engine } from '../../services/SupabaseService';
 import { MediaService } from '../../services/MediaService';
+import { CharacterService, Character } from '../../services/CharacterService';
+import CharacterPickerModal from './CharacterPickerModal';
 import { toast } from 'sonner';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'grammar' | 'media' | 'settings';
@@ -55,6 +57,27 @@ const UnitContentVault: React.FC = () => {
   const [storyPages, setStoryPages] = useState<StoryPage[]>([]);
   const [grammarRules, setGrammarRules] = useState<GrammarRule[]>([]);
   const [mediaStep, setMediaStep] = useState<any>(null);
+
+  // Phase 1.1-3: the unit's linked characters (book-level cast appearing here).
+  const [linkedChars, setLinkedChars] = useState<Character[]>([]);
+  const [charsLoading, setCharsLoading] = useState(false);
+  const [showCharPicker, setShowCharPicker] = useState(false);
+
+  const loadLinkedCharacters = useCallback(async () => {
+    if (!unitId) return;
+    setCharsLoading(true);
+    try {
+      const list = await CharacterService.listForUnit(unitId);
+      setLinkedChars(list);
+    } catch (err: any) {
+      // Non-fatal — the legacy emoji/name editor below still works as fallback.
+      console.warn('character load failed', err?.message);
+    } finally {
+      setCharsLoading(false);
+    }
+  }, [unitId]);
+
+  useEffect(() => { if (unitId) loadLinkedCharacters(); }, [unitId, loadLinkedCharacters]);
 
   const [ytSearch, setYtSearch] = useState('');
   const [ytResults, setYtResults] = useState<any[]>([]);
@@ -627,32 +650,100 @@ const UnitContentVault: React.FC = () => {
                           <textarea value={manifest.theme_context.world_description || ''} onChange={e => setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, world_description: e.target.value } }))} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Characters</label>
-                          {(manifest.theme_context.characters || []).map((c: any, ci: number) => (
-                            <div key={ci} className="flex items-center gap-2 mb-2">
-                              <input value={c.emoji || ''} onChange={e => {
-                                const chars = [...(manifest.theme_context.characters || [])];
-                                chars[ci] = { ...chars[ci], emoji: e.target.value };
-                                setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, characters: chars } }));
-                              }} className="w-12 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                              <input value={c.name || ''} onChange={e => {
-                                const chars = [...(manifest.theme_context.characters || [])];
-                                chars[ci] = { ...chars[ci], name: e.target.value };
-                                setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, characters: chars } }));
-                              }} className="flex-1 border border-slate-200 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                              <input value={c.role || ''} onChange={e => {
-                                const chars = [...(manifest.theme_context.characters || [])];
-                                chars[ci] = { ...chars[ci], role: e.target.value };
-                                setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, characters: chars } }));
-                              }} className="flex-1 border border-slate-200 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Role" />
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Characters <span className="text-slate-300 normal-case font-normal">(book-level cast)</span></label>
+                            <button
+                              onClick={() => setShowCharPicker(true)}
+                              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+                            >
+                              <Plus size={14} /> Add from cast
+                            </button>
+                          </div>
+                          {/* Phase 1.1-3: real book-level character library (locked L1).
+                              Replaces the legacy per-unit emoji/name/role stub. */}
+                          {charsLoading ? (
+                            <div className="flex items-center gap-2 text-slate-400 text-sm py-3"><Loader2 size={14} className="animate-spin" /> Loading cast...</div>
+                          ) : linkedChars.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic py-2">No characters linked yet. Click "Add from cast" to pick from this book\u2019s recurring characters, or generate one via enrichment.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {linkedChars.map(c => (
+                                <div key={c.id} className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 bg-white">
+                                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium text-slate-800 truncate">{c.name}</div>
+                                    <div className="text-[11px] text-slate-500 truncate">
+                                      {c.role ? <span className="capitalize">{c.role}</span> : null}
+                                      {c.role && c.personality ? ' · ' : null}
+                                      {c.personality ? c.personality : null}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        await CharacterService.unlinkUnit(unitId!, c.id);
+                                        await loadLinkedCharacters();
+                                        toast.success(`Removed "${c.name}" from this unit`);
+                                      } catch (err: any) {
+                                        toast.error(`Failed: ${err?.message || err}`);
+                                      }
+                                    }}
+                                    className="text-slate-300 hover:text-red-500 p-1 rounded"
+                                    title="Remove from this unit (keeps the library entry)"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
+                          {/* Legacy fallback: keep the raw theme_context editor collapsed-below for
+                              escape-hatch editing of pre-library data. Hidden when the library has chars. */}
+                          {linkedChars.length === 0 && !charsLoading && (manifest.theme_context.characters || []).length > 0 && (
+                            <details className="mt-2">
+                              <summary className="text-[11px] text-slate-400 cursor-pointer hover:text-slate-600">Edit legacy character data (advanced)</summary>
+                              <div className="mt-2 space-y-2">
+                                {(manifest.theme_context.characters || []).map((c: any, ci: number) => (
+                                  <div key={ci} className="flex items-center gap-2">
+                                    <input value={c.emoji || ''} onChange={e => {
+                                      const chars = [...(manifest.theme_context.characters || [])];
+                                      chars[ci] = { ...chars[ci], emoji: e.target.value };
+                                      setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, characters: chars } }));
+                                    }} className="w-12 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <input value={c.name || ''} onChange={e => {
+                                      const chars = [...(manifest.theme_context.characters || [])];
+                                      chars[ci] = { ...chars[ci], name: e.target.value };
+                                      setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, characters: chars } }));
+                                    }} className="flex-1 border border-slate-200 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <input value={c.role || ''} onChange={e => {
+                                      const chars = [...(manifest.theme_context.characters || [])];
+                                      chars[ci] = { ...chars[ci], role: e.target.value };
+                                      setManifest((prev: any) => ({ ...prev, theme_context: { ...prev.theme_context, characters: chars } }));
+                                    }} className="flex-1 border border-slate-200 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Role" />
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
                         </div>
                       </>
                     )}
                   </div>
                 </div>
               )}
+
+            {/* Phase 1.1-3: character picker modal (locked L1 — book-level cast) */}
+            {showCharPicker && unitId && (
+              <CharacterPickerModal
+                unitId={unitId}
+                onClose={() => setShowCharPicker(false)}
+                onSelect={async (character) => {
+                  // Picker already links the character to the unit; refresh the list.
+                  await loadLinkedCharacters();
+                  toast.success(`Added "${character.name}" to this unit`);
+                }}
+              />
+            )}
 
             </motion.div>
           </AnimatePresence>
