@@ -8,6 +8,7 @@ import { MediaService } from '../../services/MediaService';
 import { CharacterService, Character } from '../../services/CharacterService';
 import CharacterPickerModal from './CharacterPickerModal';
 import CastStoryMap from './CastStoryMap';
+import MediaPickerModal from './MediaPickerModal';
 import { toast } from 'sonner';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
@@ -63,6 +64,8 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const [linkedChars, setLinkedChars] = useState<Character[]>([]);
   const [charsLoading, setCharsLoading] = useState(false);
   const [showCharPicker, setShowCharPicker] = useState(false);
+  // Phase 3.1: which vocab word's image is being picked from the vault (index), or null.
+  const [imgPickerFor, setImgPickerFor] = useState<number | null>(null);
 
   const loadLinkedCharacters = useCallback(async () => {
     if (!unitId) return;
@@ -433,6 +436,9 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                               {genImages[v.word] ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                               {v.image_url ? 'Regenerate' : 'Generate'} Image
                             </button>
+                            <button onClick={() => setImgPickerFor(i)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex items-center gap-1">
+                              <Image size={12} /> Library
+                            </button>
                           </div>
                           <div className="flex-1 flex items-center gap-2">
                             {v.audio_url ? (
@@ -761,6 +767,21 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
               {activeTab === 'cast' && unitId && (
                 <CastStoryMap unitId={unitId} />
               )}
+
+            {/* Phase 3.1: vocab image picker modal (choose an existing vault image) */}
+            {imgPickerFor !== null && (
+              <MediaPickerModal
+                kind="image"
+                title="Choose vocabulary image"
+                onClose={() => setImgPickerFor(null)}
+                onSelect={(asset) => {
+                  const url = asset.public_url || asset.source_url || '';
+                  if (url) updateVocabItem(imgPickerFor, 'image_url', url);
+                  setImgPickerFor(null);
+                  toast.success('Image applied from library');
+                }}
+              />
+            )}
 
             {/* Phase 1.1-3: character picker modal (locked L1 — book-level cast) */}
             {showCharPicker && unitId && (
