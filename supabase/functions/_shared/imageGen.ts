@@ -80,17 +80,21 @@ export async function generateAndStoreImage(prompt: string, unitId: string): Pro
     const proxied = await proxyToStorage(generated.imageUrl, unitId || 'default');
     const url = proxied || generated.imageUrl;
 
-    // Record the asset for future dedup (best-effort).
-    if (supabaseUrl && supabaseKey && proxied) {
+    // Record the asset for future dedup + the vault (best-effort). Record even
+    // when proxying failed (fall back to the direct provider URL) so the asset
+    // is still tracked — previously a proxy failure meant nothing was recorded,
+    // leaving the assets table (and thus the vault) permanently empty.
+    if (supabaseUrl && supabaseKey) {
       await fetch(`${supabaseUrl}/rest/v1/assets`, {
         method: 'POST',
         headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           unit_id: unitId || null,
           type: 'image',
+          kind: 'generated',
           prompt,
           prompt_hash: promptHash,
-          storage_path: 'external',
+          storage_path: proxied ? `images/${unitId || 'default'}` : 'external',
           public_url: url,
         }),
       }).catch(() => {});
