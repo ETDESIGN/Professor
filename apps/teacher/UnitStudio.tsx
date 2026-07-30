@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Clock, Loader2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import UnitContentVault from './UnitContentVault';
+import PlanComposer from './PlanComposer';
 
 // Phase 2 (F2, decided D3) — the Unified Unit Studio. One component, one route
 // (/teacher/unit/:unitId), two tabs:
@@ -15,59 +16,6 @@ import UnitContentVault from './UnitContentVault';
 // standalone UnitContentVault route) once validated.
 
 type StudioTab = 'content' | 'plan';
-
-interface FlowStep {
-  id: string;
-  type: string;
-  title?: string;
-  duration?: number;
-}
-
-const formatDuration = (secs?: number): string => {
-  if (!secs || secs <= 0) return '—';
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  if (m === 0) return `${s}s`;
-  return s === 0 ? `${m}m` : `${m}m ${s}s`;
-};
-
-const PlanTab: React.FC<{ flow: FlowStep[] }> = ({ flow }) => {
-  if (!Array.isArray(flow) || flow.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2 p-8">
-        <CalendarClock size={40} />
-        <p className="text-sm">No lesson plan yet.</p>
-        <p className="text-xs">Generate content in the Content tab, then a flow will be built for this unit.</p>
-      </div>
-    );
-  }
-  return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-3">
-      <p className="text-sm text-slate-500 mb-4">
-        {flow.length} step{flow.length === 1 ? '' : 's'} &bull; this is the sequence that runs during a live class.
-      </p>
-      {flow.map((step, i) => (
-        <div key={step.id || i} className="bg-white border border-slate-200 rounded-xl px-5 py-4 flex items-center gap-4">
-          <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center text-sm font-bold shrink-0">
-            {i + 1}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                {step.type}
-              </span>
-            </div>
-            <p className="text-sm font-medium text-slate-800 truncate mt-1">{step.title || step.type}</p>
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-500 text-sm shrink-0">
-            <Clock size={14} />
-            {formatDuration(step.duration)}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
 
 const UnitStudio: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
@@ -131,7 +79,7 @@ const UnitStudio: React.FC = () => {
     );
   }
 
-  const flow: FlowStep[] = Array.isArray(unit.flow) ? unit.flow : [];
+  const flow: any[] = Array.isArray(unit.flow) ? unit.flow : [];
   const manifest = unit.manifest?.enriched_content || {};
   const theme = unit.manifest?.meta?.theme || manifest.topic || unit.topic || '';
   const cefr = unit.manifest?.meta?.difficulty_cefr || manifest.gradeLevel || unit.level || '';
@@ -187,7 +135,11 @@ const UnitStudio: React.FC = () => {
         {tab === 'content' ? (
           <UnitContentVault embedded />
         ) : (
-          <PlanTab flow={flow} />
+          <PlanComposer
+            unitId={unit.id}
+            unit={unit}
+            onFlowSaved={(f) => setUnit((prev: any) => ({ ...prev, flow: f }))}
+          />
         )}
       </div>
     </div>

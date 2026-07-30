@@ -1,0 +1,356 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import {
+  Plus, Trash2, Save, Play, Loader2, Wand2, Clock, BookOpen, MessageSquare,
+  PenTool, Music, Image as ImageIcon, Gamepad2, Layers
+} from 'lucide-react';
+import { Engine } from '../../services/SupabaseService';
+import { transformManifestToFlow } from '../../services/LessonTransformer';
+import { useSession } from '../../store/SessionContext';
+import { toast } from 'sonner';
+
+// Phase 2 — the Unit Studio Plan composer (option A). A timeline/session
+// composer that is concretely better than the legacy LessonStudio one:
+//   - The block library is DERIVED FROM THE UNIT'S REAL CONTENT (vocab/story/
+//     dialogue/grammar/song), not the 2 hardcoded fake items the old composer
+//     shipped with.
+//   - The inspector edits title AND duration (the old one edited title only).
+//   - "Auto-build" reuses the proven transformManifestToFlow to produce a
+//     board-compatible default flow in one click.
+// It still WRITES units.flow (the shape the live session reads) — retiring that
+// shape would require reworking the live session and is intentionally deferred.
+
+interface PlanBlock {
+  id: string;
+  type: string;
+  title: string;
+  duration: number; // minutes (editor); stored as seconds in units.flow
+  data: any;
+}
+
+interface LibraryItem {
+  key: string;
+  label: string;
+  detail: string;
+  type: string;
+  icon: React.ReactNode;
+  chip: string; // tailwind classes for the icon chip
+}
+
+// Visual metadata per block type (kept small + readable).
+const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
+  INTRO_SPLASH: { icon: <Layers size={16} />, chip: 'bg-slate-100 text-slate-600' },
+  FOCUS_CARDS: { icon: <ImageIcon size={16} />, chip: 'bg-emerald-100 text-emerald-600' },
+  STORY_STAGE: { icon: <BookOpen size={16} />, chip: 'bg-amber-100 text-amber-600' },
+  DIALOGUE_STAGE: { icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' },
+  GAME_ARENA: { icon: <Gamepad2 size={16} />, chip: 'bg-purple-100 text-purple-600' },
+  TEAM_BATTLE: { icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' },
+  SPEED_QUIZ: { icon: <Gamepad2 size={16} />, chip: 'bg-orange-100 text-orange-600' },
+  MEDIA_PLAYER: { icon: <Music size={16} />, chip: 'bg-blue-100 text-blue-600' },
+};
+const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
+
+const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: any[]) => void }> = ({ unitId, unit, onFlowSaved }) => {
+  const navigate = useNavigate();
+  const { setActiveUnit } = useSession();
+
+  const [timeline, setTimeline] = useState<PlanBlock[]>([]);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [building, setBuilding] = useState(false);
+  const [launching, setLaunching] = useState(false);
+
+  // Hydrate the editor from units.flow (seconds -> minutes).
+  useEffect(() => {
+    const flow = Array.isArray(unit?.flow) ? unit.flow : [];
+    const blocks: PlanBlock[] = flow.map((step: any, i: number) => ({
+      id: step.id || `step_${i}`,
+      type: step.type || 'FOCUS_CARDS',
+      title: step.title || step.type || 'Untitled',
+      duration: step.duration ? Math.max(1, Math.round(step.duration / 60)) : 5,
+      data: step.data || {},
+    }));
+    setTimeline(blocks);
+    setActiveBlockId(blocks.length > 0 ? blocks[0].id : null);
+  }, [unit?.id]);
+
+  // Library DERIVED FROM THE UNIT'S REAL CONTENT (the key improvement over the
+  // legacy composer's 2 hardcoded fake items).
+  const library = useMemo<LibraryItem[]>(() => {
+    const ec = unit?.manifest?.enriched_content || {};
+    const items: LibraryItem[] = [];
+    const vocabCount = Array.isArray(ec.vocabulary) ? ec.vocabulary.length : 0;
+    if (vocabCount > 0) items.push({ key: 'vocab', label: 'Vocabulary Cards', detail: `${vocabCount} words`, type: 'FOCUS_CARDS', icon: <ImageIcon size={16} />, chip: 'bg-emerald-100 text-emerald-600' });
+    const storyCount = Array.isArray(ec.story?.pages) ? ec.story.pages.length : 0;
+    if (storyCount > 0) items.push({ key: 'story', label: 'Story Stage', detail: `${storyCount} pages`, type: 'STORY_STAGE', icon: <BookOpen size={16} />, chip: 'bg-amber-100 text-amber-600' });
+    const dialogueCount = Array.isArray(ec.dialogues) ? ec.dialogues.length : 0;
+    if (dialogueCount > 0) items.push({ key: 'dialogue', label: 'Dialogue', detail: `${dialogueCount} dialogue${dialogueCount === 1 ? '' : 's'}`, type: 'DIALOGUE_STAGE', icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' });
+    const grammarCount = Array.isArray(ec.grammar) ? ec.grammar.length : 0;
+    if (grammarCount > 0) items.push({ key: 'grammar', label: 'Grammar Practice', detail: `${grammarCount} rule${grammarCount === 1 ? '' : 's'}`, type: 'GAME_ARENA', icon: <PenTool size={16} />, chip: 'bg-purple-100 text-purple-600' });
+    const songCount = Array.isArray(ec.song_suggestions) ? ec.song_suggestions.length : 0;
+    if (songCount > 0) items.push({ key: 'song', label: 'Song', detail: `${songCount} suggestion${songCount === 1 ? '' : 's'}`, type: 'MEDIA_PLAYER', icon: <Music size={16} />, chip: 'bg-blue-100 text-blue-600' });
+    return items;
+  }, [unit?.manifest]);
+
+  const activeBlock = timeline.find((b) => b.id === activeBlockId) || null;
+  const totalMinutes = timeline.reduce((acc, b) => acc + b.duration, 0);
+
+  const addFromLibrary = (item: LibraryItem) => {
+    const block: PlanBlock = {
+      id: `${item.key}-${Date.now()}`,
+      type: item.type,
+      title: item.label,
+      duration: 5,
+      data: {},
+    };
+    setTimeline((prev) => [...prev, block]);
+    setActiveBlockId(block.id);
+  };
+
+  const updateBlock = (id: string, updates: Partial<PlanBlock>) => {
+    setTimeline((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
+  };
+
+  const removeBlock = (id: string) => {
+    setTimeline((prev) => prev.filter((b) => b.id !== id));
+    setActiveBlockId((cur) => (cur === id ? null : cur));
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+    if (!destination || destination.droppableId !== 'plan-timeline') return;
+    if (source.index === destination.index) return;
+    setTimeline((prev) => {
+      const items = Array.from(prev);
+      const [moved] = items.splice(source.index, 1);
+      items.splice(destination.index, 0, moved);
+      return items;
+    });
+  };
+
+  // One-click board-compatible plan, reusing the proven transformer.
+  const autoBuild = async () => {
+    setBuilding(true);
+    try {
+      const flow = await transformManifestToFlow(unit?.manifest);
+      const blocks: PlanBlock[] = (flow || []).map((step: any, i: number) => ({
+        id: step.id || `step_${i}`,
+        type: step.type || 'FOCUS_CARDS',
+        title: step.title || step.type || 'Untitled',
+        duration: step.duration ? Math.max(1, Math.round(step.duration / 60)) : 5,
+        data: step.data || {},
+      }));
+      setTimeline(blocks);
+      setActiveBlockId(blocks.length > 0 ? blocks[0].id : null);
+      toast.success(`Auto-built a ${blocks.length}-step plan`);
+    } catch (err: any) {
+      toast.error(`Auto-build failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setBuilding(false);
+    }
+  };
+
+  // Save back to units.flow (minutes -> seconds) — the shape the live session reads.
+  const savePlan = async () => {
+    setSaving(true);
+    try {
+      const dbFlow = timeline.map((b) => ({
+        id: b.id,
+        type: b.type,
+        title: b.title,
+        duration: b.duration * 60,
+        data: b.data,
+      }));
+      await Engine.updateUnit(unitId, { flow: dbFlow } as any);
+      onFlowSaved?.(dbFlow);
+      toast.success('Lesson plan saved');
+    } catch (err: any) {
+      toast.error(`Save failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const launchLive = async () => {
+    setLaunching(true);
+    try {
+      await setActiveUnit(unitId);
+      navigate('/teacher/live');
+    } catch (err: any) {
+      toast.error(`Could not launch: ${err?.message || 'Unknown error'}`);
+      setLaunching(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex overflow-hidden">
+      {/* Library — derived from the unit's real content */}
+      <div className="w-64 border-r border-slate-200 bg-slate-50 flex flex-col overflow-y-auto shrink-0">
+        <div className="p-5">
+          <h3 className="font-bold text-slate-500 text-xs uppercase tracking-wider mb-1">Add from content</h3>
+          <p className="text-[11px] text-slate-400 mb-4">Blocks derived from this unit's generated content.</p>
+          <div className="space-y-2">
+            {library.length === 0 && (
+              <p className="text-xs text-slate-400 italic">No content yet — generate some in the Content tab.</p>
+            )}
+            {library.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => addFromLibrary(item)}
+                className="w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow transition-all flex items-center gap-3 text-left group"
+              >
+                <div className={`p-2 rounded-lg ${item.chip}`}>{item.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-slate-700 truncate">{item.label}</div>
+                  <div className="text-[11px] text-slate-400">{item.detail}</div>
+                </div>
+                <Plus size={16} className="text-slate-300 group-hover:text-indigo-500 shrink-0" />
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={autoBuild}
+            disabled={building}
+            className="mt-5 w-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold py-2.5 rounded-xl text-xs hover:bg-indigo-100 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+          >
+            {building ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+            Auto-build full plan
+          </button>
+        </div>
+      </div>
+
+      {/* Timeline */}
+      <div className="flex-1 bg-slate-100 overflow-y-auto relative">
+        <div className="sticky top-0 z-20 bg-slate-100/90 backdrop-blur px-8 pt-4 pb-2 flex items-center justify-between max-w-3xl mx-auto">
+          <p className="text-sm text-slate-500">
+            {timeline.length} step{timeline.length === 1 ? '' : 's'} &bull; ~{totalMinutes} min
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={savePlan}
+              disabled={saving}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              Save plan
+            </button>
+            <button
+              onClick={launchLive}
+              disabled={launching}
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {launching ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+              Launch live
+            </button>
+          </div>
+        </div>
+
+        <div className="px-8 pb-10 relative">
+          <div className="absolute top-0 bottom-0 left-[3.25rem] w-0.5 bg-slate-300 z-0" />
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="plan-timeline">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-5 max-w-2xl mx-auto pt-4">
+                  {timeline.map((block, i) => {
+                    const meta = typeMeta(block.type);
+                    return (
+                      <Draggable key={block.id} draggableId={block.id} index={i}>
+                        {(prov, snapshot) => (
+                          <div
+                            ref={prov.innerRef}
+                            {...prov.draggableProps}
+                            {...prov.dragHandleProps}
+                            onClick={() => setActiveBlockId(block.id)}
+                            className={`relative z-10 cursor-pointer group ${snapshot.isDragging ? 'opacity-80 scale-[1.02]' : ''}`}
+                          >
+                            <div className="absolute -left-9 w-7 h-7 bg-white border-4 border-indigo-500 rounded-full flex items-center justify-center font-bold text-[10px] text-indigo-700 z-20">
+                              {i + 1}
+                            </div>
+                            <div className={`bg-white p-4 rounded-xl border-2 transition-all shadow-sm ${activeBlockId === block.id ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-transparent hover:border-slate-300'}`}>
+                              <div className="flex justify-between items-start gap-3">
+                                <div className="flex items-start gap-3 min-w-0">
+                                  <div className={`p-2 rounded-lg ${meta.chip} shrink-0`}>{meta.icon}</div>
+                                  <div className="min-w-0">
+                                    <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">{block.type.replace(/_/g, ' ')}</div>
+                                    <h3 className="font-bold text-slate-800 truncate">{block.title}</h3>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded flex items-center gap-1">
+                                    <Clock size={11} /> {block.duration}m
+                                  </span>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); removeBlock(block.id); }}
+                                    className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                    title="Remove step"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
+                  {timeline.length === 0 && (
+                    <div className="text-center text-slate-400 py-16">
+                      <Layers size={40} className="mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No steps yet. Add from the library or use Auto-build.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        </div>
+      </div>
+
+      {/* Inspector — edit title AND duration */}
+      <div className="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0 overflow-y-auto">
+        {activeBlock ? (
+          <div className="p-6 space-y-5">
+            <h3 className="font-bold text-slate-800 text-lg">Edit step</h3>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
+              <input
+                value={activeBlock.title}
+                onChange={(e) => updateBlock(activeBlock.id, { title: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Duration (minutes)</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={activeBlock.duration}
+                onChange={(e) => updateBlock(activeBlock.id, { duration: Math.max(1, parseInt(e.target.value || '1', 10)) })}
+                className="w-full p-3 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
+              <div className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                {activeBlock.type.replace(/_/g, ' ')}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">The board renders this step with the matching game/presentation template.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-6">
+            <PenTool size={40} className="mb-3 opacity-20" />
+            <p className="text-sm">Select a step to edit</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PlanComposer;
