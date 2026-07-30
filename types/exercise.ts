@@ -16,7 +16,7 @@
 
 import type { ComponentType } from 'react';
 
-/** The 12 Core-v1 exercise types (Locked Decision #2). */
+/** The Core-v1 exercise types + Phase 1.2/1.3 extensions. */
 export type ExerciseType =
   | 'IMAGE_SELECT'
   | 'MEANING_MATCH'
@@ -29,7 +29,10 @@ export type ExerciseType =
   | 'DICTATION'
   | 'MINIMAL_PAIR_SWIPE'
   | 'TYPE_TRANSLATE'
-  | 'SPEAK_SENTENCE';
+  | 'SPEAK_SENTENCE'
+  | 'STORY_COMPREHENSION'
+  | 'DIALOGUE_ROLEPLAY'
+  | 'WHO_SAID_IT';
 
 export const EXERCISE_TYPES: ReadonlySet<string> = new Set<ExerciseType>([
   'IMAGE_SELECT',
@@ -44,6 +47,9 @@ export const EXERCISE_TYPES: ReadonlySet<string> = new Set<ExerciseType>([
   'MINIMAL_PAIR_SWIPE',
   'TYPE_TRANSLATE',
   'SPEAK_SENTENCE',
+  'STORY_COMPREHENSION',
+  'DIALOGUE_ROLEPLAY',
+  'WHO_SAID_IT',
 ]);
 
 /** True if `v` is a known Core-v1 exercise type. */
@@ -60,6 +66,8 @@ export const RECEPTIVE_TYPES: ReadonlySet<ExerciseType> = new Set([
   'AUDIO_L1_SELECT',
   'LISTEN_SELECT',
   'SPELL_CLOZE',
+  'STORY_COMPREHENSION',
+  'WHO_SAID_IT',
 ]);
 
 export function modalityOf(type: ExerciseType): Modality {
@@ -201,6 +209,38 @@ export interface SpeakSentenceContent extends BaseContent {
   target_audio?: string;
 }
 
+// Phase 1.2: story comprehension MCQ.
+export interface StoryComprehensionContent extends BaseContent {
+  type: 'STORY_COMPREHENSION';
+  /** The comprehension question. */
+  prompt: string;
+  options: string[];
+  correct_index: number;
+  story_page_id?: string | null;
+}
+
+// Phase 1.3: dialogue role-play (productive — students perform lines).
+export interface DialogueRoleplayContent extends BaseContent {
+  type: 'DIALOGUE_ROLEPLAY';
+  /** Ordered lines for the role-play exercise. */
+  lines: { speaker: string; text: string; translation?: string }[];
+  /** Which dialogue in the unit (0-based). */
+  dialogue_index: number;
+}
+
+// Phase 1.3: "who said it?" MCQ (receptive — pick the speaker).
+export interface WhoSaidItContent extends BaseContent {
+  type: 'WHO_SAID_IT';
+  /** The dialogue line text (the prompt). */
+  line_text: string;
+  /** Speaker name options (one correct + distractors). */
+  options: string[];
+  correct_index: number;
+  /** Optional surrounding lines for context. */
+  context_before?: string;
+  context_after?: string;
+}
+
 export type ExerciseContent =
   | ImageSelectContent
   | MeaningMatchContent
@@ -213,7 +253,10 @@ export type ExerciseContent =
   | DictationContent
   | MinimalPairSwipeContent
   | TypeTranslateContent
-  | SpeakSentenceContent;
+  | SpeakSentenceContent
+  | StoryComprehensionContent
+  | DialogueRoleplayContent
+  | WhoSaidItContent;
 
 // ---------------------------------------------------------------------
 // PoolItem — a row of `pool_items` typed for the client.

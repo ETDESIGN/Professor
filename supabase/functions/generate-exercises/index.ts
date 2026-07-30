@@ -235,6 +235,70 @@ function buildStoryItems(unitId: string, objectiveId: string, questions: any[]):
   return items;
 }
 
+// Phase 1.3 — Dialogue exercises (advisor §4, §7.5). Reads dialogue_lines rows
+// (written by enrich-unit Phase 1.3-5) and emits:
+//   - DIALOGUE_ROLEPLAY: one per dialogue (grouped by dialogue_index), productive
+//     (difficulty 3). Lines ordered for classroom role-play.
+//   - WHO_SAID_IT: one per line that has a resolved speaker, receptive MCQ
+//     (difficulty 1). Distractors are other speakers in the same unit.
+function buildDialogueItems(unitId: string, objectiveId: string, lines: any[], allSpeakers: string[]): PoolItemRow[] {
+  const items: PoolItemRow[] = [];
+  if (lines.length === 0) return items;
+
+  // Group lines by dialogue_index for DIALOGUE_ROLEPLAY.
+  const byDialogue = new Map<number, any[]>();
+  for (const l of lines) {
+    const di = Number.isInteger(l.dialogue_index) ? l.dialogue_index : 0;
+    if (!byDialogue.has(di)) byDialogue.set(di, []);
+    byDialogue.get(di)!.push(l);
+  }
+
+  // DIALOGUE_ROLEPLAY — one per dialogue group.
+  for (const [di, group] of byDialogue) {
+    const roleplayLines = group.map((l) => ({
+      speaker: l.speaker_name || 'Unknown',
+      text: String(l.text || ''),
+      ...(l.translation ? { translation: l.translation } : {}),
+    }));
+    if (roleplayLines.length < 2) continue; // a roleplay needs at least 2 lines
+    items.push({
+      unit_id: unitId,
+      objective_id: objectiveId,
+      exercise_type: 'DIALOGUE_ROLEPLAY',
+      difficulty: 3, // productive
+      content: { type: 'DIALOGUE_ROLEPLAY', lines: roleplayLines, dialogue_index: di },
+    });
+  }
+
+  // WHO_SAID_IT — one per line with a known speaker (needs >=2 speakers for distractors).
+  if (allSpeakers.length >= 2) {
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      const speaker = l.speaker_name;
+      if (!speaker) continue; // no resolved speaker — can't make a "who said it?"
+      const distractors = allSpeakers.filter((s) => s !== speaker);
+      if (distractors.length === 0) continue;
+      const c = buildChoices(speaker, distractors, Math.min(4, distractors.length + 1));
+      items.push({
+        unit_id: unitId,
+        objective_id: objectiveId,
+        exercise_type: 'WHO_SAID_IT',
+        difficulty: 1, // receptive MCQ
+        content: {
+          type: 'WHO_SAID_IT',
+          line_text: String(l.text || ''),
+          options: c.options,
+          correct_index: c.correct_index,
+          context_before: i > 0 ? String(lines[i - 1].text || '') : undefined,
+          context_after: i < lines.length - 1 ? String(lines[i + 1].text || '') : undefined,
+        },
+      });
+    }
+  }
+
+  return items;
+}
+
 serve(async (req) => {
   return serveEdgeFunction(req, {
     name: 'generate-exercises',
@@ -353,7 +417,21 @@ serve(async (req) => {
         const oid = await ensureObjective('vocabulary', String(v.word));
         allRows.push(...buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word)));
       }
-      for (const g of grammar) {
+      // Phase 1.4: grammar from the relational table (grammar_rules is the
+      // canonical source once enrich-unit has written it there). Falls back to
+      // the manifest's grammar array for legacy units not yet backfilled.
+      let grammarRules: any[] = [];
+      try {
+        const { data: grRows } = await sb.from('grammar_rules')
+          .select('rule, explanation, examples, pattern_template, transformation_pairs, error_examples')
+          .eq('unit_id', unitId)
+          .order('order_index', { ascending: true });
+        grammarRules = Array.isArray(grRows) ? grRows : [];
+      } catch { /* table read failed — fall back to manifest */ }
+      if (grammarRules.length === 0) {
+        grammarRules = grammar; // legacy manifest fallback
+      }
+      for (const g of grammarRules) {
         const oid = await ensureObjective('grammar', String(g.rule));
         allRows.push(...buildGrammarItems(unitId, oid, g, siblingWords));
       }
@@ -385,6 +463,65 @@ serve(async (req) => {
       if (storyQuestions.length > 0) {
         const oid = await ensureObjective('story', 'Story comprehension');
         allRows.push(...buildStoryItems(unitId, oid, storyQuestions));
+      }
+
+      // Phase 1.3: dialogue exercises from the relational table (NOT the
+      // manifest — dialogue_lines is the canonical source once enrich-unit has
+      // written it there, Phase 1.3-5). Falls back to the manifest's
+      // dialogues[].lines[] if the table is empty (legacy units not yet
+      // backfilled).
+      let dialogueLines: any[] = [];
+      try {
+        const { data: dlRows } = await sb.from('dialogue_lines')
+          .select('order_index, dialogue_index, speaker_character_id, speaker_override_name, text, translation')
+          .eq('unit_id', unitId)
+          .order('order_index', { ascending: true });
+        if (Array.isArray(dlRows) && dlRows.length > 0) {
+          // Resolve speaker names: prefer the character's real name (via FK),
+          // fall back to speaker_override_name.
+          const charIds = [...new Set(dlRows.map((r: any) => r.speaker_character_id).filter(Boolean))];
+          const charNameMap = new Map<string, string>();
+          if (charIds.length > 0) {
+            const { data: charRows } = await sb.from('characters')
+              .select('id, name')
+              .in('id', charIds);
+            if (Array.isArray(charRows)) {
+              for (const c of charRows) charNameMap.set(c.id, c.name);
+            }
+          }
+          dialogueLines = dlRows.map((r: any) => ({
+            ...r,
+            speaker_name: r.speaker_character_id
+              ? (charNameMap.get(r.speaker_character_id) || r.speaker_override_name || null)
+              : (r.speaker_override_name || null),
+          }));
+        }
+      } catch { /* table read failed — fall back to manifest */ }
+      if (dialogueLines.length === 0) {
+        // Fallback: mine the manifest (legacy units not yet backfilled).
+        const dialogues = canonical.dialogues as any[];
+        if (Array.isArray(dialogues)) {
+          let order = 0;
+          for (let d = 0; d < dialogues.length; d++) {
+            const lines = Array.isArray(dialogues[d]?.lines) ? dialogues[d].lines : [];
+            for (const line of lines) {
+              dialogueLines.push({
+                order_index: order++,
+                dialogue_index: d,
+                speaker_character_id: null,
+                speaker_override_name: null,
+                speaker_name: line?.speaker ? String(line.speaker).trim() : null,
+                text: String(line?.text || ''),
+                translation: line?.translation || null,
+              });
+            }
+          }
+        }
+      }
+      if (dialogueLines.length > 0) {
+        const oid = await ensureObjective('dialogue', 'Dialogue practice');
+        const allSpeakers = [...new Set(dialogueLines.map((l: any) => l.speaker_name).filter(Boolean))] as string[];
+        allRows.push(...buildDialogueItems(unitId, oid, dialogueLines, allSpeakers));
       }
     } catch (err: any) {
       errors.push(`objective reconciliation failed: ${err?.message || err}`);

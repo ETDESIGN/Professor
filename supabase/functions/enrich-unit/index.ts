@@ -30,6 +30,19 @@ serve(async (req) => {
     }
 
     const sbClient = createClient(supabaseUrl, supabaseKey);
+    const handlerStart = Date.now();
+    // Best-effort outcome telemetry (diagnoses the vocab/grammar timeout issue):
+    // records category + total duration + ok/err so we can see whether the
+    // large-output categories exceed the upstream timeout.
+    const logOutcome = async (outcome: string) => {
+      try {
+        await sbClient.from('llm_telemetry').insert({
+          function_name: 'enrich-unit',
+          model_used: `outcome:${category}:${outcome}`,
+          duration_ms: Date.now() - handlerStart,
+        });
+      } catch { /* telemetry only */ }
+    };
     const { data: unit, error: unitError } = await sbClient
       .from('units')
       .select('*')
@@ -177,12 +190,21 @@ serve(async (req) => {
     // model's cap; if a response truncates, the repair pass closes the JSON.
     const MAX_TOKENS = 5000;
 
+    // Per-model request timeout. Raised from 25s -> 45s (2026-07-30): the two
+    // largest-output categories (vocabulary, grammar) were timing out on EVERY
+    // fallback model at 25s (their responses legitimately need ~30-45s to
+    // generate), so all 3 attempts aborted and the cumulative retry time was
+    // killed upstream -> "non-2xx" with no telemetry. A 45s window lets a
+    // single model finish a large response instead of aborting it mid-stream.
+    // Configurable via AI_REQUEST_TIMEOUT_MS.
+    const AI_REQUEST_TIMEOUT_MS = parseInt(Deno.env.get('AI_REQUEST_TIMEOUT_MS') || '45000', 10);
+
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
       let lastError = '';
       for (const modelName of models) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 25000);
+          const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
 
           const resp = await fetch(`${aiBaseUrl}/chat/completions`, {
             method: 'POST',
@@ -373,6 +395,7 @@ ${categoryRules}
     const enriched = await callAI(enrichSystemPrompt, enrichUserPrompt, 0.7);
 
     if (enriched._error) {
+      await logOutcome('ai_error');
       return { success: false, error: enriched._error };
     }
 
@@ -390,10 +413,20 @@ ${categoryRules}
     // (the example_sentence) so LISTEN_SELECT/FOCUS_CARDS (word) AND
     // DICTATION/SPEAK_SENTENCE (sentence) have real audio. On failure the field is
     // left empty and the client SpeechService falls back to window.speechSynthesis.
-    if ((category === 'vocabulary' || category === 'all') && Array.isArray(enriched.vocabulary) && enriched.vocabulary.length > 0) {
+    //
+    // TIME BUDGET (2026-07-30): vocab is the only category that runs TTS on top
+    // of the AI call (~24 audio clips). The edge-function wall-clock limit is
+    // ~150s; a slow AI response (~60-75s) + TTS at concurrency 3 (~90s) pushed
+    // the total past the limit and the function was killed ("non-2xx", no
+    // telemetry). Fix: (a) only run TTS if the AI call left enough headroom,
+    // (b) raise TTS concurrency 3 -> 5 to halve its wall time. Vocab CONTENT is
+    // the essential output — it returns even when TTS is skipped.
+    const ttsElapsed = Date.now() - handlerStart;
+    const TTS_BUDGET_OK = ttsElapsed < 80000; // leave ~70s for TTS within the ~150s limit
+    if ((category === 'vocabulary' || category === 'all') && Array.isArray(enriched.vocabulary) && enriched.vocabulary.length > 0 && TTS_BUDGET_OK) {
       // Word audio.
       const wordInputs = enriched.vocabulary.map((v: any) => String(v.word || '')).filter(Boolean);
-      const wordResults = await mapWithConcurrency(wordInputs, 3, (w) =>
+      const wordResults = await mapWithConcurrency(wordInputs, 5, (w) =>
         generateAndStoreAudio(w, unitId).then((r) => ({ word: w, url: r.url })),
       );
       const audioMap = new Map(wordResults.filter((r) => r.url).map((r) => [r.word, r.url]));
@@ -401,7 +434,7 @@ ${categoryRules}
       const sentInputs = enriched.vocabulary
         .map((v: any) => ({ word: String(v.word || ''), sentence: String(v.example_sentence || v.context_sentence || '') }))
         .filter((v) => v.word && v.sentence);
-      const sentResults = await mapWithConcurrency(sentInputs.slice(0, wordInputs.length * 2), 3, (vi) =>
+      const sentResults = await mapWithConcurrency(sentInputs.slice(0, wordInputs.length * 2), 5, (vi) =>
         generateAndStoreAudio(vi.sentence, unitId).then((r) => ({ word: vi.word, url: r.url })),
       );
       const sentMap = new Map(sentResults.filter((r) => r.url).map((r) => [r.word, r.url]));
@@ -573,6 +606,83 @@ ${categoryRules}
       }
     }
 
+    // Phase 1.3-5: also write dialogues to the RELATIONAL tables (single emitter —
+    // the tables are the canonical source; manifest stays as a read cache for
+    // legacy consumers). When the dialogues category was generated, flatten all
+    // dialogue lines into ordered rows and resolve speakers to book characters.
+    // Idempotent via UNIQUE(unit_id, order_index). Best-effort, non-fatal.
+    if ((category === 'dialogues' || category === 'all') && Array.isArray(enriched.dialogues) && enriched.dialogues.length > 0) {
+      try {
+        const lineRows: any[] = [];
+        let globalOrder = 0;
+        for (let d = 0; d < enriched.dialogues.length; d++) {
+          const dialogue = enriched.dialogues[d];
+          const lines = Array.isArray(dialogue?.lines) ? dialogue.lines : [];
+          for (const line of lines) {
+            const speakerName = line?.speaker ? String(line.speaker).trim() : null;
+            let speakerCharId: string | null = null;
+            if (bookId && speakerName) {
+              const ch = await fetchCharacterByName(sbClient, bookId, speakerName);
+              speakerCharId = ch?.id ?? null;
+            }
+            lineRows.push({
+              unit_id: unitId,
+              order_index: globalOrder,
+              dialogue_index: d,
+              speaker_character_id: speakerCharId,
+              speaker_override_name: speakerCharId ? null : speakerName, // override only if NOT resolved
+              text: String(line?.text || ''),
+              translation: line?.translation ? String(line.translation) : null,
+            });
+            globalOrder++;
+          }
+        }
+        if (lineRows.length > 0) {
+          // Delete-then-insert (like story questions): re-enriching gives clean
+          // lines, not duplicates. The UNIQUE(unit_id, order_index) also guards
+          // against partial overlap, but a full replace is cleaner for dialogues
+          // since line counts may change between enrichments.
+          await sbClient.from('dialogue_lines').delete().eq('unit_id', unitId)
+            .then(() => undefined, () => undefined);
+          await sbClient.from('dialogue_lines').insert(lineRows)
+            .then(() => undefined, () => undefined);
+        }
+        console.log(`enrich-unit DIALOGUE: ${lineRows.length} lines across ${enriched.dialogues.length} dialogues written relationally`);
+      } catch (dlgErr: any) {
+        console.error('enrich-unit dialogue relational write failed (non-fatal):', dlgErr?.message || dlgErr);
+      }
+    }
+
+    // Phase 1.4-5: also write grammar to the RELATIONAL table (single emitter —
+    // grammar_rules is the canonical source; manifest stays as a read cache for
+    // legacy consumers). When the grammar category was generated, upsert rules.
+    // Idempotent via UNIQUE(unit_id, rule). Best-effort, non-fatal.
+    if ((category === 'grammar' || category === 'all') && Array.isArray(enriched.grammar) && enriched.grammar.length > 0) {
+      try {
+        const ruleRows = enriched.grammar
+          .filter((g: any) => g && g.rule)
+          .map((g: any, i: number) => ({
+            unit_id: unitId,
+            order_index: i,
+            rule: String(g.rule).trim(),
+            explanation: g.explanation ? String(g.explanation) : null,
+            examples: Array.isArray(g.examples) ? g.examples : [],
+            pattern_template: g.pattern_template ? String(g.pattern_template) : null,
+            transformation_pairs: Array.isArray(g.transformation_pairs) ? g.transformation_pairs : [],
+            error_examples: Array.isArray(g.error_examples) ? g.error_examples : [],
+          }));
+        if (ruleRows.length > 0) {
+          await sbClient
+            .from('grammar_rules')
+            .upsert(ruleRows, { onConflict: 'unit_id,rule' })
+            .then(() => undefined, () => undefined);
+        }
+        console.log(`enrich-unit GRAMMAR: ${ruleRows.length} rules written relationally`);
+      } catch (grammErr: any) {
+        console.error('enrich-unit grammar relational write failed (non-fatal):', grammErr?.message || grammErr);
+      }
+    }
+
     // Log what we're writing
     console.log(`enrich-unit WRITE [${category}]:`, JSON.stringify({
       mergedKeys: Object.entries(mergedManifest).map(([k, v]) => `${k}:${Array.isArray(v) ? v.length : typeof v}`),
@@ -612,6 +722,7 @@ ${categoryRules}
       dialogues: Array.isArray(verifyContent.dialogues) ? verifyContent.dialogues.length : 0,
     }));
 
+    await logOutcome('ok');
     return {
       success: true,
       unitId,

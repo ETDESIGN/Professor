@@ -19,6 +19,12 @@ export const EXERCISE_TYPES = [
   // Phase 1.2: story comprehension MCQ (from story_comprehension_questions,
   // which carry options + a correct answer index already). Receptive MCQ.
   'STORY_COMPREHENSION',
+  // Phase 1.3: dialogue exercises (from dialogue_lines, advisor §4/§7.5).
+  // DIALOGUE_ROLEPLAY: ordered lines for classroom role-play (productive).
+  // WHO_SAID_IT: MCQ — which character said this line? (receptive, unlocked
+  // by speaker_character_id existing on the dialogue_lines row).
+  'DIALOGUE_ROLEPLAY',
+  'WHO_SAID_IT',
 ] as const;
 
 export type ExerciseType = (typeof EXERCISE_TYPES)[number];
@@ -30,6 +36,7 @@ export const RECEPTIVE_TYPES: ReadonlySet<ExerciseType> = new Set([
   'LISTEN_SELECT',
   'SPELL_CLOZE',
   'STORY_COMPREHENSION',
+  'WHO_SAID_IT',
 ]);
 
 export function modalityOf(type: ExerciseType): 'receptive' | 'productive' {
