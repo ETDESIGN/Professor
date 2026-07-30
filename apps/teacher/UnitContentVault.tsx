@@ -114,13 +114,51 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       const quizStep = (u.flow || []).find((s: any) => s.type === 'GAME_ARENA' || s.type === 'SPEED_QUIZ');
       setQuestions(quizStep?.data?.questions || []);
 
-      const storyStep = (u.flow || []).find((s: any) => s.type === 'STORY_STAGE');
-      setStoryPages(storyStep?.data?.pages || []);
+      // C.3: story loads from the relational story_pages table (canonical),
+      // falling back to the flow's STORY_STAGE pages for unmigrated units.
+      let loadedPages: StoryPage[] = [];
+      try {
+        const { data: spRows } = await supabase
+          .from('story_pages')
+          .select('id, text, speaker, speaker_override_name')
+          .eq('unit_id', unitId)
+          .order('page_number', { ascending: true });
+        if (spRows && spRows.length > 0) {
+          loadedPages = spRows.map((p: any) => ({
+            id: p.id, text: p.text || '', speaker: p.speaker || p.speaker_override_name || '',
+            speakerEmoji: '', imageUrl: '',
+          }));
+        }
+      } catch { /* fall back to flow below */ }
+      if (loadedPages.length === 0) {
+        const storyStep = (u.flow || []).find((s: any) => s.type === 'STORY_STAGE');
+        loadedPages = storyStep?.data?.pages || [];
+      }
+      setStoryPages(loadedPages);
 
       const grammarStep = (u.flow || []).find((s: any) => s.type === 'GRAMMAR_SANDBOX');
-      const rules = (u.manifest?.knowledge_graph?.grammar_rules || []).map((r: any) => ({
-        rule: r.rule || '', explanation: r.explanation || '', world_examples: r.world_examples || [],
-      }));
+      // C.3: grammar loads from the relational grammar_rules table (the canonical
+      // source generate-exercises reads), falling back to the legacy manifest for
+      // units not yet migrated. (Fixes the reconciliation bug where edits went to
+      // the manifest while generate-exercises read the stale relational table.)
+      let rules: GrammarRule[] = [];
+      try {
+        const { data: grRows } = await supabase
+          .from('grammar_rules')
+          .select('rule, explanation, examples')
+          .eq('unit_id', unitId)
+          .order('order_index', { ascending: true });
+        if (grRows && grRows.length > 0) {
+          rules = grRows.map((r: any) => ({
+            rule: r.rule || '', explanation: r.explanation || '', world_examples: Array.isArray(r.examples) ? r.examples : [],
+          }));
+        }
+      } catch { /* fall back to manifest below */ }
+      if (rules.length === 0) {
+        rules = (u.manifest?.knowledge_graph?.grammar_rules || []).map((r: any) => ({
+          rule: r.rule || '', explanation: r.explanation || '', world_examples: r.world_examples || [],
+        }));
+      }
       setGrammarRules(rules);
 
       const mediaS = (u.flow || []).find((s: any) => s.type === 'MEDIA_PLAYER');
@@ -172,6 +210,72 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
         manifest: updatedManifest,
         flow: updatedFlow,
       } as any);
+
+      // C.3: write grammar edits to the relational grammar_rules table (the
+      // canonical source generate-exercises reads) so the reconciliation below
+      // picks them up. Preserve the generated fields the Content tab doesn't edit
+      // (pattern_template / transformation_pairs / error_examples) by merging them
+      // back by rule name. Delete-then-insert keeps the table in sync with the
+      // edited set (handles deletes). The legacy manifest write above is kept
+      // until the manifest is retired (advisor: keep parallel writes for now).
+      try {
+        const { data: existingRules } = await supabase
+          .from('grammar_rules')
+          .select('rule, pattern_template, transformation_pairs, error_examples')
+          .eq('unit_id', unitId);
+        const preserveMap = new Map<string, any>((existingRules || []).map((r: any) => [r.rule, r]));
+        await supabase.from('grammar_rules').delete().eq('unit_id', unitId);
+        const grammarRows = grammarRules.filter((g) => g.rule && g.rule.trim()).map((g, i) => {
+          const preserved = preserveMap.get(g.rule) || {};
+          return {
+            unit_id: unitId,
+            order_index: i,
+            rule: g.rule,
+            explanation: g.explanation || null,
+            examples: g.world_examples || [],
+            pattern_template: preserved.pattern_template ?? null,
+            transformation_pairs: preserved.transformation_pairs ?? [],
+            error_examples: preserved.error_examples ?? [],
+          };
+        });
+        if (grammarRows.length > 0) {
+          await supabase.from('grammar_rules').insert(grammarRows);
+        }
+      } catch (err: any) {
+        console.warn('grammar_relational_write_failed', err?.message);
+      }
+
+      // C.3: write story edits to the relational story_pages table (canonical).
+      // Preserve generated fields the editor doesn't touch (speaker_character_id /
+      // image_prompt / image_asset_id / audio_asset_id) by page_number. The flow's
+      // STORY_STAGE write above is kept for the board template until C.4 flips that
+      // read onto story_pages. (imageUrl editing stays flow-only for now — the
+      // relational table references images via image_asset_id, not a bare URL.)
+      try {
+        const { data: existingPages } = await supabase.from('story_pages').select('*').eq('unit_id', unitId);
+        const preserveByNum = new Map<number, any>((existingPages || []).map((p: any) => [p.page_number, p]));
+        await supabase.from('story_pages').delete().eq('unit_id', unitId);
+        const pageRows = storyPages.map((p, i) => {
+          const preserved = preserveByNum.get(i) || {};
+          const speakerName = p.speaker || null;
+          return {
+            unit_id: unitId,
+            page_number: i,
+            text: p.text || '',
+            speaker: speakerName,
+            speaker_character_id: preserved.speaker_character_id ?? null,
+            speaker_override_name: preserved.speaker_character_id ? (preserved.speaker_override_name ?? null) : (speakerName ?? null),
+            image_prompt: preserved.image_prompt ?? null,
+            image_asset_id: preserved.image_asset_id ?? null,
+            audio_asset_id: preserved.audio_asset_id ?? null,
+          };
+        });
+        if (pageRows.length > 0) {
+          await supabase.from('story_pages').insert(pageRows);
+        }
+      } catch (err: any) {
+        console.warn('story_relational_write_failed', err?.message);
+      }
 
       // Phase 1.7 reconciliation: editing the canonical content here must also
       // reconcile the exercise pool — otherwise students keep getting served
