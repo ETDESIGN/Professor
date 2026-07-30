@@ -327,6 +327,17 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // The projector board, teacher remote and commander are separate React roots.
   // They converge on this teacher's classroom_sessions row via Realtime instead
   // of relying on local-only state that never crossed tabs.
+  //
+  // ---- LIVE-UPDATE POLICY (Phase 3.4, advisor §5.6): edit-then-republish ----
+  // An already-running session keeps the unit snapshot it loaded at start; it is
+  // NEVER hot-patched mid-class. The unit is (re)fetched only when the session's
+  // unit_id changes (below) or when a session is (re)started via setActiveUnit.
+  // Teacher edits made during a session save immediately to the canonical store
+  // (units.flow / relational tables), so the NEXT session and the student app
+  // pick them up — but the live class the teacher is currently presenting is not
+  // silently changed under them (avoids surprising the teacher mid-lesson). The
+  // `classroom_action` broadcast channel syncs only transient actions (points,
+  // wheel, drawing, overlays), never unit content, which is what enforces this.
   const applySessionRow = useCallback(async (row: any) => {
     if (!row) return;
 
