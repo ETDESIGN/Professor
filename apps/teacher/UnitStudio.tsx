@@ -75,6 +75,19 @@ const UnitStudio: React.FC = () => {
   const [tab, setTab] = useState<StudioTab>('content');
   const [unit, setUnit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // Phase 2.4: mobile gets a Content-only surface (no Plan tab) for v1.
+  const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // If we shrink to mobile while on the Plan tab, fall back to Content.
+  useEffect(() => {
+    if (isMobile && tab === 'plan') setTab('content');
+  }, [isMobile, tab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,6 +163,7 @@ const UnitStudio: React.FC = () => {
             <BookOpen size={16} />
             Content
           </button>
+          {!isMobile && (
           <button
             onClick={() => setTab('plan')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border-b-2 transition-colors ${
@@ -164,6 +178,7 @@ const UnitStudio: React.FC = () => {
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === 'plan' ? 'bg-indigo-100' : 'bg-slate-100'}`}>{flow.length}</span>
             )}
           </button>
+          )}
         </nav>
       </header>
 
