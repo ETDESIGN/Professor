@@ -9,6 +9,7 @@ import { CharacterService, Character } from '../../services/CharacterService';
 import CharacterPickerModal from './CharacterPickerModal';
 import CastStoryMap from './CastStoryMap';
 import MediaPickerModal from './MediaPickerModal';
+import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
@@ -66,6 +67,12 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const [showCharPicker, setShowCharPicker] = useState(false);
   // Phase 3.1: which vocab word's image is being picked from the vault (index), or null.
   const [imgPickerFor, setImgPickerFor] = useState<number | null>(null);
+
+  // C.2: shared enrichment engine (autoLoad OFF — the Content tab regenerates
+  // only on an explicit "Re-enrich" press, never on open). This is the second
+  // consumer of useEnrichment (AssetWorkshop is the first).
+  const { handleEnrichCategories } = useEnrichment(unitId || '', { autoLoad: false });
+  const [reEnriching, setReEnriching] = useState(false);
 
   const loadLinkedCharacters = useCallback(async () => {
     if (!unitId) return;
@@ -187,6 +194,41 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       toast.error('Failed to load unit: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // C.2: regenerate vocabulary + grammar with AI via the shared enrichment
+  // engine (enrich-unit). enrich-unit writes grammar_rules relationally and the
+  // fresh vocab into the manifest; we then write that vocab to the canonical
+  // vocabulary_items table so the reload (and exercise reconciliation) pick it
+  // up. Story re-generation stays in the Plan tab's "Regenerate with AI"
+  // (orchestrate-lesson owns story_pages).
+  const reEnrich = async () => {
+    if (!unitId) return;
+    if (!window.confirm('Regenerate vocabulary and grammar with AI? The fresh content replaces what is currently shown.')) return;
+    setReEnriching(true);
+    try {
+      await handleEnrichCategories(['vocabulary', 'grammar']);
+      const { data: u } = await supabase.from('units').select('manifest').eq('id', unitId).single();
+      const freshVocab = u?.manifest?.enriched_content?.vocabulary || [];
+      if (freshVocab.length > 0) {
+        await supabase.from('vocabulary_items').delete().eq('unit_id', unitId);
+        await supabase.from('vocabulary_items').insert(freshVocab.map((v: any, i: number) => ({
+          unit_id: unitId, order_index: i, word: v.word, definition: v.definition || null,
+          example_sentence: v.example_sentence || null,
+          l1_translation: v.l1_translation || v.translation || null,
+          phonetic: v.phonetic || null, part_of_speech: v.part_of_speech || null,
+          image_prompt: v.image_prompt || null, image_url: v.image_url || null,
+          audio_url: v.audio_url || null, example_audio_url: v.example_audio_url || null,
+          distractors: v.distractors || [], confusables: v.confusables || [],
+        })));
+      }
+      await loadUnit();
+      toast.success('Vocabulary and grammar re-enriched');
+    } catch (err: any) {
+      toast.error('Re-enrich failed: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setReEnriching(false);
     }
   };
 
@@ -526,6 +568,10 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
         </div>
         )}
         <div className="flex items-center gap-3">
+          <button onClick={reEnrich} disabled={reEnriching || saving} className="flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-lg font-medium hover:bg-amber-100 disabled:opacity-50">
+            {reEnriching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            Re-enrich with AI
+          </button>
           <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Save
