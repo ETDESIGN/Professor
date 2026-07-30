@@ -84,7 +84,7 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
 
       const existing = unit?.manifest?.enriched_content;
       if (existing) {
-        setEnriched(ensureApprovalStates(existing));
+        setEnriched(await applyPersistedReviews(ensureApprovalStates(existing)));
 
         // Check which categories are empty and re-enrich only those
         const emptyCategories: string[] = [];
@@ -213,6 +213,69 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
     };
   };
 
+  // ── C.1: durable review status (content_review_status table) ──────────
+  // _approved used to be transient component state (blank slate on every
+  // re-entry). We now persist approvals per (unit, category, natural key) and
+  // rehydrate them on load, so the persistent Review entry point shows real
+  // state. NOTE (advisor Q2/Q5): this is the interim durable model; a unified
+  // review mode (A) will build on the same table.
+  const contentIdFor = (category: string, item: any, index: number): string => {
+    switch (category) {
+      case 'vocabulary': return String(item?.word || `idx_${index}`);
+      case 'grammar': return String(item?.rule || `idx_${index}`);
+      case 'characters': return String(item?.id || item?.name || `idx_${index}`);
+      case 'songs':
+      case 'videos':
+      case 'dialogues': return String(item?.title || `idx_${index}`);
+      case 'story': return String(index);
+      default: return String(index);
+    }
+  };
+
+  const persistReview = useCallback(async (category: string, contentId: string, approved: boolean) => {
+    try {
+      await supabase.from('content_review_status').upsert({
+        unit_id: unitId,
+        content_type: category,
+        content_id: contentId,
+        status: approved ? 'approved' : 'rejected',
+        reviewed_at: new Date().toISOString(),
+      }, { onConflict: 'unit_id,content_type,content_id' });
+    } catch (err) {
+      log.warn('persist_review_failed', { error: err });
+    }
+  }, [unitId]);
+
+  // Rehydrate persisted approvals onto a freshly-loaded/ensured manifest.
+  const applyPersistedReviews = useCallback(async (data: EnrichedManifest): Promise<EnrichedManifest> => {
+    try {
+      const { data: rows } = await supabase
+        .from('content_review_status')
+        .select('content_type, content_id, status')
+        .eq('unit_id', unitId);
+      if (!rows || rows.length === 0) return data;
+      const statusMap = new Map<string, string>();
+      for (const r of rows as any[]) statusMap.set(`${r.content_type}:${r.content_id}`, r.status);
+      const apply = (category: string, arr: EnrichedItem[]) => arr.map((item, i) => {
+        const st = statusMap.get(`${category}:${contentIdFor(category, item, i)}`);
+        return st ? { ...item, _approved: st !== 'rejected' } : item;
+      });
+      return {
+        ...data,
+        vocabulary: apply('vocabulary', data.vocabulary),
+        grammar: apply('grammar', data.grammar),
+        characters: apply('characters', data.characters),
+        story: { ...data.story, pages: apply('story', data.story.pages) },
+        song_suggestions: apply('songs', data.song_suggestions),
+        video_suggestions: apply('videos', data.video_suggestions),
+        dialogues: apply('dialogues', data.dialogues),
+      };
+    } catch (err) {
+      log.warn('load_review_failed', { error: err });
+      return data;
+    }
+  }, [unitId]);
+
   const handleEnrich = async () => {
     setLoadError(null);
     const categories = ['vocabulary', 'grammar', 'characters', 'story', 'media', 'dialogues'];
@@ -280,16 +343,21 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
   };
 
   const toggleApproval = useCallback((category: string, index: number) => {
+    if (!enriched) return;
+    const arr = getCategoryArray(enriched, category);
+    if (!arr || arr[index] === undefined) return;
+    const item = arr[index];
+    const newApproved = !(item._approved !== false);
+    const contentId = contentIdFor(category, item, index);
     setEnriched(prev => {
       if (!prev) return prev;
       const updated = { ...prev };
-      const arr = getCategoryArray(updated, category);
-      if (arr && arr[index] !== undefined) {
-        arr[index] = { ...arr[index], _approved: !arr[index]._approved };
-      }
+      const a = getCategoryArray(updated, category);
+      if (a && a[index] !== undefined) a[index] = { ...a[index], _approved: newApproved };
       return updated;
     });
-  }, []);
+    persistReview(category, contentId, newApproved);
+  }, [enriched, persistReview]);
 
   const getCategoryArray = (manifest: EnrichedManifest, category: string): EnrichedItem[] | null => {
     switch (category) {
@@ -394,24 +462,30 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
   };
 
   const approveAll = useCallback((category: string) => {
+    if (!enriched) return;
+    const arr = getCategoryArray(enriched, category);
+    if (arr) arr.forEach((item: any, i: number) => persistReview(category, contentIdFor(category, item, i), true));
     setEnriched(prev => {
       if (!prev) return prev;
       const updated = { ...prev };
-      const arr = getCategoryArray(updated, category);
-      if (arr) arr.forEach((item: any, i: number) => { arr[i] = { ...item, _approved: true }; });
+      const a = getCategoryArray(updated, category);
+      if (a) a.forEach((item: any, i: number) => { a[i] = { ...item, _approved: true }; });
       return updated;
     });
-  }, []);
+  }, [enriched, persistReview]);
 
   const rejectAll = useCallback((category: string) => {
+    if (!enriched) return;
+    const arr = getCategoryArray(enriched, category);
+    if (arr) arr.forEach((item: any, i: number) => persistReview(category, contentIdFor(category, item, i), false));
     setEnriched(prev => {
       if (!prev) return prev;
       const updated = { ...prev };
-      const arr = getCategoryArray(updated, category);
-      if (arr) arr.forEach((item: any, i: number) => { arr[i] = { ...item, _approved: false }; });
+      const a = getCategoryArray(updated, category);
+      if (a) a.forEach((item: any, i: number) => { a[i] = { ...item, _approved: false }; });
       return updated;
     });
-  }, []);
+  }, [enriched, persistReview]);
 
   const counts = getCounts();
 
