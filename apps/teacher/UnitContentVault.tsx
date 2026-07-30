@@ -203,16 +203,37 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     }
   };
 
+  // Phase 3.2: record a selected/applied video as a vault asset (kind=external_url)
+  // so it shows up in the Resource Library and is reusable. Best-effort — never
+  // blocks the video selection itself.
+  const recordVideoAsset = async (url: string, title?: string) => {
+    try {
+      await supabase.from('assets').insert({
+        unit_id: unitId || null,
+        type: 'video',
+        kind: 'external_url',
+        prompt: title || url,
+        source_url: url,
+        public_url: url,
+        storage_path: 'external',
+      });
+    } catch {
+      /* best effort */
+    }
+  };
+
   const selectYouTubeVideo = (videoId: string, title: string) => {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
     setMediaStep((prev: any) => ({ ...prev, videoUrl: url, title }));
     setYtCustomUrl(url);
+    recordVideoAsset(url, title);
     toast.success(`Selected: ${title}`);
   };
 
   const applyCustomUrl = () => {
     if (!ytCustomUrl) return;
     setMediaStep((prev: any) => ({ ...prev, videoUrl: ytCustomUrl }));
+    recordVideoAsset(ytCustomUrl);
     toast.success('Video URL updated');
   };
 
