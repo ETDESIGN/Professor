@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User } from 'lucide-react';
+import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { Engine } from '../../services/SupabaseService';
 import { MediaService } from '../../services/MediaService';
 import { CharacterService, Character } from '../../services/CharacterService';
 import CharacterPickerModal from './CharacterPickerModal';
+import CastStoryMap from './CastStoryMap';
 import { toast } from 'sonner';
 
-type VaultTab = 'vocabulary' | 'questions' | 'story' | 'grammar' | 'media' | 'settings';
+type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
 
 interface VocabItem {
   word: string;
@@ -294,6 +295,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     { key: 'vocabulary', label: 'Vocabulary', icon: <BookOpen size={16} />, count: vocabulary.length },
     { key: 'questions', label: 'Questions', icon: <MessageSquare size={16} />, count: questions.length },
     { key: 'story', label: 'Story', icon: <PenTool size={16} />, count: storyPages.length },
+    { key: 'cast', label: 'Cast Map', icon: <Users size={16} />, count: linkedChars.length },
     { key: 'grammar', label: 'Grammar', icon: <BookOpen size={16} />, count: grammarRules.length },
     { key: 'media', label: 'Media', icon: <Video size={16} /> },
     { key: 'settings', label: 'Settings', icon: <Image size={16} /> },
@@ -732,6 +734,11 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                     )}
                   </div>
                 </div>
+              )}
+
+              {/* Phase 3.3: cast/story map — where each book character appears (Knowledge Graph panel) */}
+              {activeTab === 'cast' && unitId && (
+                <CastStoryMap unitId={unitId} />
               )}
 
             {/* Phase 1.1-3: character picker modal (locked L1 — book-level cast) */}
