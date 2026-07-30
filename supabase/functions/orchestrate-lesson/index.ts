@@ -201,6 +201,22 @@ function transformManifestToFlow(assets: any): any[] {
     });
   }
 
+  // Phase 1.3/2: dialogue role-play stage. enrich-unit writes dialogues to the
+  // manifest (and relationally to dialogue_lines); surface them as a presentable
+  // DIALOGUE_STAGE step WITH real lines (previously dialogue never reached the
+  // flow, and composer-added dialogue steps shipped empty data -> blank board).
+  const dialogues = Array.isArray(assets?.dialogues) ? assets.dialogues : [];
+  const dialogueLines = dialogues.flatMap((d: any) => (Array.isArray(d?.lines) ? d.lines : []));
+  if (dialogueLines.length > 0) {
+    flow.push({
+      type: 'DIALOGUE_STAGE',
+      data: {
+        title: dialogues[0]?.title || `${title} — Dialogue`,
+        lines: dialogueLines.map((l: any) => ({ speaker: l.speaker, text: l.text, translation: l.translation })),
+      },
+    });
+  }
+
   // Phase tagging (plan Phase 1.5): every step carries its pedagogical phase so
   // the board timeline + student phase bar know the step's role. PRACTICE/
   // ASSESS blocks are pool-driven (the runtime pulls pool_items by mastery/SRS
@@ -213,6 +229,7 @@ function transformManifestToFlow(assets: any): any[] {
     GRAMMAR_SANDBOX: 'INPUT',
     GRAMMAR_PRACTICE: 'PRACTICE',
     STORY_STAGE: 'OUTPUT',
+    DIALOGUE_STAGE: 'OUTPUT',
     LISTEN_TAP: 'PRACTICE',
     FLASH_MATCH: 'PRACTICE',
     SCRAMBLE: 'PRACTICE',

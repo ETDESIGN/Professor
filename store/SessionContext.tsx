@@ -557,9 +557,17 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [state.activeClassId]);
 
   const setActiveUnit = async (unitId: string) => {
+    // Prefer the freshest copy from the DB — the cached list in state.units can
+    // be stale after the teacher edits the unit in the Unit Studio (e.g. saves a
+    // new lesson plan in the Plan composer). Without this, "Launch live" would
+    // load the OLD flow and the freshly-saved steps wouldn't appear. Fall back
+    // to the cache on fetch failure for offline resilience.
     let unit = state.units.find(u => u.id === unitId);
-    if (!unit) {
-      unit = await Engine.getUnitById(unitId);
+    try {
+      const fresh = await Engine.getUnitById(unitId);
+      if (fresh) unit = fresh;
+    } catch {
+      // keep the cached unit if the fresh fetch fails
     }
     if (unit) {
       activeUnitRef.current = unit;

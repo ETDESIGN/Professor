@@ -13,6 +13,7 @@ import BoardGameArena from './templates/BoardGameArena';
 import BoardMediaPlayer from './templates/BoardMediaPlayer';
 import BoardFocusCards from './templates/BoardFocusCards';
 import BoardStoryStage from './templates/BoardStoryStage';
+import BoardDialogueStage from './templates/BoardDialogueStage';
 import BoardGrammarSandbox from './templates/BoardGrammarSandbox';
 import BoardGrammarPractice from './templates/BoardGrammarPractice';
 import BoardTeamBattle from './templates/BoardTeamBattle';
@@ -134,6 +135,7 @@ const ClassroomBoard: React.FC = () => {
               {currentStep.type === 'FOCUS_CARDS' && <BoardFocusCards data={currentStep.data} />}
               {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
               {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
+              {currentStep.type === 'DIALOGUE_STAGE' && <BoardDialogueStage data={currentStep.data} />}
               {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
               {currentStep.type === 'GRAMMAR_PRACTICE' && <BoardGrammarPractice data={currentStep.data} />}
               {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}

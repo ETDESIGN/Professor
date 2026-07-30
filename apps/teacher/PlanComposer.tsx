@@ -6,7 +6,6 @@ import {
   PenTool, Music, Image as ImageIcon, Gamepad2, Layers
 } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
-import { transformManifestToFlow } from '../../services/LessonTransformer';
 import { useSession } from '../../store/SessionContext';
 import { toast } from 'sonner';
 
@@ -51,6 +50,63 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
+const dicebear = (seed: string) =>
+  `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed || 'vocab')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
+const realImage = (url: any, seed: string) =>
+  (url && typeof url === 'string' && /^https?:/.test(url)) ? url : dicebear(seed);
+
+// Build FUNCTIONAL, board-renderable `data` for a library block from the unit's
+// REAL content — mirroring the shapes transformManifestToFlow produces (which
+// the board templates consume). This is what makes library blocks real steps,
+// not empty mockups: a FOCUS_CARDS block carries actual vocab cards, a
+// DIALOGUE_STAGE block carries the unit's dialogue lines, etc.
+const buildBlockData = (type: string, ec: any): any => {
+  const vocab: any[] = Array.isArray(ec.vocabulary) ? ec.vocabulary : [];
+  switch (type) {
+    case 'FOCUS_CARDS':
+      return {
+        title: 'New Vocabulary',
+        cards: vocab.map((v, i) => ({
+          id: `c_${i}`,
+          front: v.word,
+          back: v.word,
+          pronunciation: v.phonetic || `/${(v.word || '').toLowerCase()}/`,
+          image: realImage(v.image_url, v.word),
+        })),
+      };
+    case 'STORY_STAGE': {
+      const story = ec.story || {};
+      const pages: any[] = Array.isArray(story.pages) ? story.pages : [];
+      return {
+        title: story.title || 'Story',
+        setting: story.setting,
+        pages: pages.map((p, i) => ({ id: `p${i}`, text: p.text, speaker: p.speaker, imageUrl: p.image_url })),
+        characters: Array.isArray(ec.characters) ? ec.characters.map((c: any) => ({ name: c.name, emoji: c.emoji })) : [],
+      };
+    }
+    case 'DIALOGUE_STAGE': {
+      const dialogues: any[] = Array.isArray(ec.dialogues) ? ec.dialogues : [];
+      const lines = dialogues.flatMap((d) => (Array.isArray(d.lines) ? d.lines : []));
+      return {
+        title: dialogues[0]?.title || 'Dialogue',
+        lines: lines.map((l: any) => ({ speaker: l.speaker, text: l.text, translation: l.translation })),
+      };
+    }
+    case 'TEAM_BATTLE': {
+      const questions = vocab.slice(0, 6).map((v, i) => ({
+        id: `q_${i}`,
+        text: `Which one is the “${v.word}”?`,
+        image: realImage(v.image_url, v.word),
+        options: [v.word, ...(Array.isArray(v.distractors) ? v.distractors : [])].slice(0, 4).sort(() => Math.random() - 0.5),
+        correct: v.word,
+      }));
+      return { topic: ec.topic || 'Review', questions };
+    }
+    default:
+      return {};
+  }
+};
+
 const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: any[]) => void }> = ({ unitId, unit, onFlowSaved }) => {
   const navigate = useNavigate();
   const { setActiveUnit } = useSession();
@@ -86,10 +142,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (storyCount > 0) items.push({ key: 'story', label: 'Story Stage', detail: `${storyCount} pages`, type: 'STORY_STAGE', icon: <BookOpen size={16} />, chip: 'bg-amber-100 text-amber-600' });
     const dialogueCount = Array.isArray(ec.dialogues) ? ec.dialogues.length : 0;
     if (dialogueCount > 0) items.push({ key: 'dialogue', label: 'Dialogue', detail: `${dialogueCount} dialogue${dialogueCount === 1 ? '' : 's'}`, type: 'DIALOGUE_STAGE', icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' });
-    const grammarCount = Array.isArray(ec.grammar) ? ec.grammar.length : 0;
-    if (grammarCount > 0) items.push({ key: 'grammar', label: 'Grammar Practice', detail: `${grammarCount} rule${grammarCount === 1 ? '' : 's'}`, type: 'GAME_ARENA', icon: <PenTool size={16} />, chip: 'bg-purple-100 text-purple-600' });
-    const songCount = Array.isArray(ec.song_suggestions) ? ec.song_suggestions.length : 0;
-    if (songCount > 0) items.push({ key: 'song', label: 'Song', detail: `${songCount} suggestion${songCount === 1 ? '' : 's'}`, type: 'MEDIA_PLAYER', icon: <Music size={16} />, chip: 'bg-blue-100 text-blue-600' });
+    if (vocabCount >= 2) items.push({ key: 'quiz', label: 'Team Battle Quiz', detail: `up to ${Math.min(vocabCount, 6)} questions`, type: 'TEAM_BATTLE', icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' });
     return items;
   }, [unit?.manifest]);
 
@@ -97,12 +150,13 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const totalMinutes = timeline.reduce((acc, b) => acc + b.duration, 0);
 
   const addFromLibrary = (item: LibraryItem) => {
+    const ec = unit?.manifest?.enriched_content || {};
     const block: PlanBlock = {
       id: `${item.key}-${Date.now()}`,
       type: item.type,
       title: item.label,
       duration: 5,
-      data: {},
+      data: buildBlockData(item.type, ec), // real content, board-renderable
     };
     setTimeline((prev) => [...prev, block]);
     setActiveBlockId(block.id);
@@ -129,39 +183,48 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     });
   };
 
-  // One-click board-compatible plan, reusing the proven transformer.
+  // One-click plan built FROM THE UNIT'S CONTENT (intro -> vocab -> story ->
+  // dialogue -> review). NOTE: we do NOT reuse transformManifestToFlow here —
+  // that reads manifest.timeline (empty for these units) and would collapse the
+  // plan to a single intro slide, wiping the server-generated flow. Building
+  // from content with buildBlockData produces real, board-renderable steps.
   const autoBuild = async () => {
     setBuilding(true);
     try {
-      const flow = await transformManifestToFlow(unit?.manifest);
-      const blocks: PlanBlock[] = (flow || []).map((step: any, i: number) => ({
-        id: step.id || `step_${i}`,
-        type: step.type || 'FOCUS_CARDS',
-        title: step.title || step.type || 'Untitled',
-        duration: step.duration ? Math.max(1, Math.round(step.duration / 60)) : 5,
-        data: step.data || {},
-      }));
+      const ec = unit?.manifest?.enriched_content || {};
+      const meta = unit?.manifest?.meta || {};
+      const title = meta.unit_title || unit?.title || 'Lesson';
+      const stamp = Date.now();
+      const blocks: PlanBlock[] = [
+        { id: `intro-${stamp}`, type: 'INTRO_SPLASH', title: `Welcome to ${title}`, duration: 1, data: { theme: meta.theme || '' } },
+      ];
+      const vocabCount = Array.isArray(ec.vocabulary) ? ec.vocabulary.length : 0;
+      if (vocabCount > 0) blocks.push({ id: `vocab-${stamp}`, type: 'FOCUS_CARDS', title: 'Vocabulary Cards', duration: 5, data: buildBlockData('FOCUS_CARDS', ec) });
+      if (Array.isArray(ec.story?.pages) && ec.story.pages.length > 0) blocks.push({ id: `story-${stamp}`, type: 'STORY_STAGE', title: ec.story.title || 'Story', duration: 8, data: buildBlockData('STORY_STAGE', ec) });
+      if (Array.isArray(ec.dialogues) && ec.dialogues.length > 0) blocks.push({ id: `dialogue-${stamp}`, type: 'DIALOGUE_STAGE', title: 'Dialogue', duration: 6, data: buildBlockData('DIALOGUE_STAGE', ec) });
+      if (vocabCount >= 2) blocks.push({ id: `quiz-${stamp}`, type: 'TEAM_BATTLE', title: 'Team Battle Quiz', duration: 8, data: buildBlockData('TEAM_BATTLE', ec) });
       setTimeline(blocks);
-      setActiveBlockId(blocks.length > 0 ? blocks[0].id : null);
+      setActiveBlockId(blocks[0]?.id || null);
       toast.success(`Auto-built a ${blocks.length}-step plan`);
-    } catch (err: any) {
-      toast.error(`Auto-build failed: ${err?.message || 'Unknown error'}`);
     } finally {
       setBuilding(false);
     }
   };
 
-  // Save back to units.flow (minutes -> seconds) — the shape the live session reads.
+  // Serialize editor blocks -> units.flow rows (minutes -> seconds).
+  const buildDbFlow = () => timeline.map((b) => ({
+    id: b.id,
+    type: b.type,
+    title: b.title,
+    duration: b.duration * 60,
+    data: b.data,
+  }));
+
+  // Save back to units.flow — the shape the live session reads.
   const savePlan = async () => {
     setSaving(true);
     try {
-      const dbFlow = timeline.map((b) => ({
-        id: b.id,
-        type: b.type,
-        title: b.title,
-        duration: b.duration * 60,
-        data: b.data,
-      }));
+      const dbFlow = buildDbFlow();
       await Engine.updateUnit(unitId, { flow: dbFlow } as any);
       onFlowSaved?.(dbFlow);
       toast.success('Lesson plan saved');
@@ -175,7 +238,12 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const launchLive = async () => {
     setLaunching(true);
     try {
-      await setActiveUnit(unitId);
+      // Auto-save the plan FIRST so the live session loads exactly these steps
+      // (otherwise an unsaved plan would silently not appear in the lesson).
+      const dbFlow = buildDbFlow();
+      await Engine.updateUnit(unitId, { flow: dbFlow } as any);
+      onFlowSaved?.(dbFlow);
+      await setActiveUnit(unitId); // SessionContext now fetches the fresh unit
       navigate('/teacher/live');
     } catch (err: any) {
       toast.error(`Could not launch: ${err?.message || 'Unknown error'}`);

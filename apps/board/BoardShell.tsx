@@ -45,7 +45,7 @@ const PHASE_WASHES: Record<string, string> = {
 };
 
 // Full-bleed step types (rails auto-retract per B5).
-const FULL_BLEED_TYPES = new Set(['STORY_STAGE', 'MEDIA_PLAYER', 'INTRO_SPLASH', 'LIVE_WARMUP']);
+const FULL_BLEED_TYPES = new Set(['STORY_STAGE', 'DIALOGUE_STAGE', 'MEDIA_PLAYER', 'INTRO_SPLASH', 'LIVE_WARMUP']);
 
 interface BoardShellProps {
   children: React.ReactNode;
