@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   Plus, Trash2, Save, Play, Loader2, Wand2, Clock, BookOpen, MessageSquare,
-  PenTool, Music, Image as ImageIcon, Gamepad2, Layers
+  PenTool, Music, Image as ImageIcon, Gamepad2, Layers, RefreshCw
 } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
+import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
 import { toast } from 'sonner';
 
@@ -115,6 +116,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [building, setBuilding] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
   const [launching, setLaunching] = useState(false);
 
   // Hydrate the editor from units.flow (seconds -> minutes).
@@ -211,6 +213,35 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     }
   };
 
+  // Server-side regenerate via orchestrate-lesson (AI-enhanced full flow + it
+  // also re-runs generate-exercises). Passing empty approvedAssets makes it fall
+  // back to the unit's stored manifest, so this is also the REPAIR path for units
+  // whose flow was collapsed by the Phase 1.7 bug. Reloads the fresh flow after.
+  const regenerateLesson = async () => {
+    setRebuilding(true);
+    try {
+      const { error } = await supabase.functions.invoke('orchestrate-lesson', { body: { unitId, approvedAssets: {} } });
+      if (error) throw error;
+      const fresh = await Engine.getUnitById(unitId);
+      const flow: any[] = Array.isArray(fresh?.flow) ? fresh.flow : [];
+      const blocks: PlanBlock[] = flow.map((step: any, i: number) => ({
+        id: step.id || `step_${i}`,
+        type: step.type || 'FOCUS_CARDS',
+        title: step.title || step.type || 'Untitled',
+        duration: step.duration ? Math.max(1, Math.round(step.duration / 60)) : 5,
+        data: step.data || {},
+      }));
+      setTimeline(blocks);
+      setActiveBlockId(blocks[0]?.id || null);
+      onFlowSaved?.(flow);
+      toast.success(`Lesson plan regenerated (${blocks.length} steps)`);
+    } catch (err: any) {
+      toast.error(`Regenerate failed: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setRebuilding(false);
+    }
+  };
+
   // Serialize editor blocks -> units.flow rows (minutes -> seconds).
   const buildDbFlow = () => timeline.map((b) => ({
     id: b.id,
@@ -285,6 +316,15 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
           >
             {building ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
             Auto-build full plan
+          </button>
+          <button
+            onClick={regenerateLesson}
+            disabled={rebuilding}
+            title="Re-run the server-side lesson orchestrator (AI-enhanced flow + refreshes exercises). Also repairs a collapsed plan."
+            className="mt-2 w-full bg-slate-100 text-slate-600 border border-slate-200 font-bold py-2.5 rounded-xl text-xs hover:bg-slate-200 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+          >
+            {rebuilding ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+            Regenerate with AI
           </button>
         </div>
       </div>

@@ -173,7 +173,22 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
         flow: updatedFlow,
       } as any);
 
-      toast.success('Unit saved successfully!');
+      // Phase 1.7 reconciliation: editing the canonical content here must also
+      // reconcile the exercise pool — otherwise students keep getting served
+      // STALE exercises (the silent §5.2/B7 gap: nothing outside AssetWorkshop's
+      // orchestration ever touched pool_items, so a Content-tab edit saved fine
+      // but never propagated downstream). Re-run generate-exercises, which
+      // rebuilds objectives + pool_items from the just-saved manifest content
+      // (vocab/grammar via knowledge_graph) + the relational story/dialogue/
+      // grammar tables. Non-fatal: a failure here does not fail the save.
+      try {
+        const { error: genErr } = await supabase.functions.invoke('generate-exercises', { body: { unitId } });
+        if (genErr) throw genErr;
+        toast.success('Unit saved — exercises refreshed');
+      } catch (genErr: any) {
+        console.warn('reconcile_exercises_failed', genErr?.message);
+        toast.warning('Unit saved, but the exercise refresh failed — exercises may be stale');
+      }
     } catch (err: any) {
       toast.error('Save failed: ' + err.message);
     } finally {

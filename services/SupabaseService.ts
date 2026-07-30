@@ -166,9 +166,18 @@ const supabaseUpdateUnit = async (id: string, updates: Partial<LessonUnit>): Pro
 
     if (updates.manifest) {
         row.manifest = updates.manifest;
-        row.flow = await transformManifestToFlow(updates.manifest);
-    } else if (updates.flow !== undefined) {
+    }
+    // Prefer an explicitly-provided flow over regenerating one from the manifest.
+    // Previously the manifest branch ALWAYS regenerated flow via
+    // transformManifestToFlow — which reads manifest.timeline (empty for these
+    // units) — so every Content-tab / LessonStudio save that passed a manifest
+    // COLLAPSED a rich, orchestrated flow down to a single intro slide (Phase 1.7
+    // bug; 5 units were already affected). Now the caller's explicit flow wins;
+    // regeneration only happens when no flow is supplied.
+    if (updates.flow !== undefined) {
         row.flow = updates.flow;
+    } else if (updates.manifest) {
+        row.flow = await transformManifestToFlow(updates.manifest);
     }
 
     row.last_updated = new Date().toISOString();
