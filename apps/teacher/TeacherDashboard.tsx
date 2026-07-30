@@ -12,7 +12,6 @@ const UnitList = lazy(() => import('./UnitList'));
 const ClassManagement = lazy(() => import('./ClassManagement'));
 const DashboardHome = lazy(() => import('./DashboardHome'));
 const TeacherSettings = lazy(() => import('./TeacherSettings'));
-const LessonTimelineBuilder = lazy(() => import('./LessonTimelineBuilder'));
 const MobileProfileSettings = lazy(() => import('./MobileProfileSettings'));
 const ResourceLibrary = lazy(() => import('./ResourceLibrary'));
 const LessonEditor = lazy(() => import('./LessonEditor'));
@@ -20,7 +19,6 @@ const Assignments = lazy(() => import('./Assignments'));
 const Reports = lazy(() => import('./Reports'));
 const TeacherMessages = lazy(() => import('./TeacherMessages'));
 const UploadTextbook = lazy(() => import('./UploadTextbook'));
-const UnitContentVault = lazy(() => import('./UnitContentVault'));
 const UnitStudio = lazy(() => import('./UnitStudio'));
 
 const PageLoader = () => (
@@ -114,7 +112,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 <button onClick={() => handleNav('/teacher/mobile-editor')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-editor') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <Calendar size={20} /> {t('nav.planLesson')}
                 </button>
-                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') || isActive('/teacher/timeline-builder') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <BookOpen size={20} /> {t('nav.curriculum')}
                 </button>
                 <button onClick={() => handleNav('/teacher/assignments')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
@@ -170,7 +168,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             </button>
             <button
               onClick={() => handleNav('/teacher/units')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') || isActive('/teacher/timeline-builder') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <BookOpen size={20} /> {t('nav.curriculum')}
             </button>
@@ -249,7 +247,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
           >
             <Routes location={location}>
               <Route path="" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
-              <Route path="timeline-builder" element={<RouteErrorBoundary name="timeline-builder"><Suspense fallback={<PageLoader />}><LessonTimelineBuilder onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
+              <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
               <Route path="mobile-editor" element={<RouteErrorBoundary name="lesson-editor"><Suspense fallback={<PageLoader />}><LessonEditor onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
               <Route path="upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
               <Route path="students" element={<RouteErrorBoundary name="students"><Suspense fallback={<PageLoader />}><ClassManagement /></Suspense></RouteErrorBoundary>} />
@@ -260,8 +259,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
               <Route path="library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
               <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
-              <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
-              <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitContentVault /></Suspense></RouteErrorBoundary>} />
             </Routes>
           </motion.div>
         </AnimatePresence>

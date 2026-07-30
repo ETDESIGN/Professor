@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import {
    ChevronLeft, Save, Play, Search, Image as ImageIcon, Music,
    MoreVertical, Plus, Wand2, X, Move, Eye, Loader2, FileText,
-   Sparkles, Layers, Clock, AlertCircle, CheckCircle2, MonitorPlay,
-   BrainCircuit, Users, BookOpen
+   Sparkles, Clock, AlertCircle, CheckCircle2, MonitorPlay,
+   Users, BookOpen
 } from 'lucide-react';
 const generateSong = async (_prompt: string) => ({ title: "Song Gen Disabled", lyrics: "Feature pending..." });
 import { useSession } from '../../store/SessionContext';
@@ -34,7 +34,7 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
 
    const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
    const [inspectorTab, setInspectorTab] = useState<'preview' | 'edit' | 'ai'>('preview');
-   const [viewMode, setViewMode] = useState<'timeline' | 'knowledge'>('timeline'); // New Toggle
+   const [viewMode] = useState<'timeline' | 'knowledge'>('timeline'); // Phase 2: KG toggle retired — the Knowledge Graph view is superseded by the Unit Studio Content tab (viewMode is now always 'timeline')
 
    const [songPrompt, setSongPrompt] = useState('');
    const [isGenerating, setIsGenerating] = useState(false);
@@ -241,22 +241,6 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
                </div>
             </div>
             <div className="flex items-center gap-3">
-               {/* View Toggles */}
-               <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 mr-4">
-                  <button
-                     onClick={() => setViewMode('timeline')}
-                     className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 ${viewMode === 'timeline' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}
-                  >
-                     <Layers size={14} /> Timeline
-                  </button>
-                  <button
-                     onClick={() => setViewMode('knowledge')}
-                     className={`px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-2 ${viewMode === 'knowledge' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}
-                  >
-                     <BrainCircuit size={14} /> Knowledge Graph
-                  </button>
-               </div>
-
                <button
                   onClick={handleSave}
                   className="px-4 py-2 text-slate-600 font-bold text-sm hover:bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-2"
@@ -276,9 +260,11 @@ const LessonStudio: React.FC<LessonStudioProps> = ({ onLaunchLive }) => {
          {/* Main Workspace */}
          <div className="flex-1 flex overflow-hidden">
 
-            {/* KNOWLEDGE GRAPH VIEW */}
+            {/* KNOWLEDGE GRAPH VIEW — DEPRECATED (Phase 2): unreachable now that the
+                KG toggle is retired; superseded by the Unit Studio Content tab.
+                Left in place pending a dedicated dead-code cleanup pass. */}
             <AnimatePresence mode="wait">
-               {viewMode === 'knowledge' && (
+               {false && viewMode === 'knowledge' && (
                   <motion.div
                      key="knowledge"
                      initial={{ opacity: 0, x: -20 }}
