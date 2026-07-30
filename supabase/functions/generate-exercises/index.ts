@@ -412,10 +412,31 @@ serve(async (req) => {
     const allRows: PoolItemRow[] = [];
     const siblingWords = vocabWithImages.map((v) => String(v.word)).filter(Boolean);
 
+    // Phase 1.6: registry-driven emission (advisor §2.5). activity_type_registry
+    // declares which exercise types each learning-object type may produce. The
+    // gate below filters each builder's output to its registered types, so adding
+    // a new activity = insert a registry row + implement a generator (no change
+    // to this orchestration). PERMISSIVE FALLBACK: if the registry is empty or
+    // unreadable for a type, the builder's full output is kept (current behavior)
+    // — so a registry problem can never silently empty the pool.
+    const registry = new Map<string, Set<string>>();
+    try {
+      const { data: regRows } = await sb.from('activity_type_registry').select('learning_object_type, activity_type');
+      for (const r of (regRows || [])) {
+        if (!registry.has(r.learning_object_type)) registry.set(r.learning_object_type, new Set());
+        registry.get(r.learning_object_type)!.add(r.activity_type);
+      }
+    } catch { /* registry unavailable — gate() falls back to emitting everything */ }
+    const gate = (learningObjectType: string, items: PoolItemRow[]): PoolItemRow[] => {
+      const allowed = registry.get(learningObjectType);
+      if (!allowed || allowed.size === 0) return items; // permissive fallback
+      return items.filter((it) => allowed.has(it.exercise_type));
+    };
+
     try {
       for (const v of vocabWithImages) {
         const oid = await ensureObjective('vocabulary', String(v.word));
-        allRows.push(...buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word)));
+        allRows.push(...gate('vocabulary', buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word))));
       }
       // Phase 1.4: grammar from the relational table (grammar_rules is the
       // canonical source once enrich-unit has written it there). Falls back to
@@ -433,7 +454,7 @@ serve(async (req) => {
       }
       for (const g of grammarRules) {
         const oid = await ensureObjective('grammar', String(g.rule));
-        allRows.push(...buildGrammarItems(unitId, oid, g, siblingWords));
+        allRows.push(...gate('grammar', buildGrammarItems(unitId, oid, g, siblingWords)));
       }
 
       // Phase 1.2: story comprehension MCQs from the relational table (NOT the
@@ -462,7 +483,7 @@ serve(async (req) => {
       }
       if (storyQuestions.length > 0) {
         const oid = await ensureObjective('story', 'Story comprehension');
-        allRows.push(...buildStoryItems(unitId, oid, storyQuestions));
+        allRows.push(...gate('story', buildStoryItems(unitId, oid, storyQuestions)));
       }
 
       // Phase 1.3: dialogue exercises from the relational table (NOT the
@@ -521,7 +542,7 @@ serve(async (req) => {
       if (dialogueLines.length > 0) {
         const oid = await ensureObjective('dialogue', 'Dialogue practice');
         const allSpeakers = [...new Set(dialogueLines.map((l: any) => l.speaker_name).filter(Boolean))] as string[];
-        allRows.push(...buildDialogueItems(unitId, oid, dialogueLines, allSpeakers));
+        allRows.push(...gate('dialogue', buildDialogueItems(unitId, oid, dialogueLines, allSpeakers)));
       }
     } catch (err: any) {
       errors.push(`objective reconciliation failed: ${err?.message || err}`);
