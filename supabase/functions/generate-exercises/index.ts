@@ -327,7 +327,28 @@ serve(async (req) => {
     }
 
     const canonical = normalizeManifest(unit.manifest);
-    const vocab = canonical.vocabulary;
+    // C.3 vocab: read vocab from the relational vocabulary_items (the canonical
+    // content row), falling back to the manifest for unmigrated units. This is
+    // what makes Content-tab vocab edits reach the regenerated pool_items (the
+    // Phase 1.7 reconciliation re-runs us, and we now read the edited table).
+    let vocab: any[] = [];
+    try {
+      const { data: viRows } = await sb.from('vocabulary_items')
+        .select('word, definition, example_sentence, l1_translation, phonetic, part_of_speech, image_prompt, image_url, audio_url, example_audio_url, distractors, confusables')
+        .eq('unit_id', unitId)
+        .order('order_index', { ascending: true });
+      if (viRows && viRows.length > 0) {
+        vocab = viRows.map((v: any) => ({
+          word: v.word, definition: v.definition, example_sentence: v.example_sentence,
+          l1_translation: v.l1_translation, translation: v.l1_translation, phonetic: v.phonetic,
+          part_of_speech: v.part_of_speech, image_prompt: v.image_prompt, image_url: v.image_url,
+          audio_url: v.audio_url, example_audio_url: v.example_audio_url,
+          distractors: Array.isArray(v.distractors) ? v.distractors : [],
+          confusables: Array.isArray(v.confusables) ? v.confusables : [],
+        }));
+      }
+    } catch { /* fall back to manifest below */ }
+    if (vocab.length === 0) vocab = canonical.vocabulary;
     const grammar = canonical.grammar;
     if (vocab.length === 0 && grammar.length === 0) {
       return { success: false, error: 'No enriched content found. Enrich the unit first.' };

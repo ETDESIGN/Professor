@@ -133,10 +133,33 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     setActiveBlockId(blocks.length > 0 ? blocks[0].id : null);
   }, [unit?.id]);
 
+  // C.4: read relational vocab content via get_unit_bundle (the read contract),
+  // falling back to the manifest. Closes the debt that forced this component to
+  // read enriched_content directly (the RPC had no vocab field before Phase 1.7).
+  const [relVocab, setRelVocab] = useState<any[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { data } = await supabase.rpc('get_unit_bundle', { p_unit_id: unitId });
+        const vi = (data as any)?.vocabulary_items;
+        if (!cancelled && Array.isArray(vi) && vi.length > 0) setRelVocab(vi);
+      } catch { /* fall back to manifest */ }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [unitId]);
+
+  // enriched_content with relational vocab swapped in (when available).
+  const enrichedForBlocks = () => {
+    const ec = unit?.manifest?.enriched_content || {};
+    return relVocab && relVocab.length > 0 ? { ...ec, vocabulary: relVocab } : ec;
+  };
+
   // Library DERIVED FROM THE UNIT'S REAL CONTENT (the key improvement over the
   // legacy composer's 2 hardcoded fake items).
   const library = useMemo<LibraryItem[]>(() => {
-    const ec = unit?.manifest?.enriched_content || {};
+    const ec = enrichedForBlocks();
     const items: LibraryItem[] = [];
     const vocabCount = Array.isArray(ec.vocabulary) ? ec.vocabulary.length : 0;
     if (vocabCount > 0) items.push({ key: 'vocab', label: 'Vocabulary Cards', detail: `${vocabCount} words`, type: 'FOCUS_CARDS', icon: <ImageIcon size={16} />, chip: 'bg-emerald-100 text-emerald-600' });
@@ -146,13 +169,13 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (dialogueCount > 0) items.push({ key: 'dialogue', label: 'Dialogue', detail: `${dialogueCount} dialogue${dialogueCount === 1 ? '' : 's'}`, type: 'DIALOGUE_STAGE', icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' });
     if (vocabCount >= 2) items.push({ key: 'quiz', label: 'Team Battle Quiz', detail: `up to ${Math.min(vocabCount, 6)} questions`, type: 'TEAM_BATTLE', icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' });
     return items;
-  }, [unit?.manifest]);
+  }, [unit?.manifest, relVocab]);
 
   const activeBlock = timeline.find((b) => b.id === activeBlockId) || null;
   const totalMinutes = timeline.reduce((acc, b) => acc + b.duration, 0);
 
   const addFromLibrary = (item: LibraryItem) => {
-    const ec = unit?.manifest?.enriched_content || {};
+    const ec = enrichedForBlocks();
     const block: PlanBlock = {
       id: `${item.key}-${Date.now()}`,
       type: item.type,
@@ -193,7 +216,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const autoBuild = async () => {
     setBuilding(true);
     try {
-      const ec = unit?.manifest?.enriched_content || {};
+      const ec = enrichedForBlocks();
       const meta = unit?.manifest?.meta || {};
       const title = meta.unit_title || unit?.title || 'Lesson';
       const stamp = Date.now();

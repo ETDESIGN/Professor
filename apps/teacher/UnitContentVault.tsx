@@ -105,10 +105,29 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       setManifest(u.manifest || {});
       setFlow(u.flow || []);
 
-      const vocab = (u.manifest?.knowledge_graph?.vocabulary || []).map((v: any) => ({
-        word: v.word || '', definition: v.definition || '', context_sentence: v.context_sentence || '',
-        distractors: v.distractors || ['Option A', 'Option B', 'Option C'], image_url: v.image_url || '', audio_url: v.audio_url || '',
-      }));
+      // C.3 vocab: load from the relational vocabulary_items (the canonical
+      // content row), falling back to the legacy manifest for unmigrated units.
+      let vocab: VocabItem[] = [];
+      try {
+        const { data: viRows } = await supabase
+          .from('vocabulary_items')
+          .select('word, definition, example_sentence, distractors, image_url, audio_url')
+          .eq('unit_id', unitId)
+          .order('order_index', { ascending: true });
+        if (viRows && viRows.length > 0) {
+          vocab = viRows.map((v: any) => ({
+            word: v.word || '', definition: v.definition || '', context_sentence: v.example_sentence || '',
+            distractors: Array.isArray(v.distractors) && v.distractors.length ? v.distractors : ['Option A', 'Option B', 'Option C'],
+            image_url: v.image_url || '', audio_url: v.audio_url || '',
+          }));
+        }
+      } catch { /* fall back to manifest below */ }
+      if (vocab.length === 0) {
+        vocab = (u.manifest?.knowledge_graph?.vocabulary || []).map((v: any) => ({
+          word: v.word || '', definition: v.definition || '', context_sentence: v.context_sentence || '',
+          distractors: v.distractors || ['Option A', 'Option B', 'Option C'], image_url: v.image_url || '', audio_url: v.audio_url || '',
+        }));
+      }
       setVocabulary(vocab);
 
       const quizStep = (u.flow || []).find((s: any) => s.type === 'GAME_ARENA' || s.type === 'SPEED_QUIZ');
@@ -210,6 +229,43 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
         manifest: updatedManifest,
         flow: updatedFlow,
       } as any);
+
+      // C.3 vocab: write vocab edits to the relational vocabulary_items table
+      // (canonical). Preserve fields the editor doesn't expose (l1_translation /
+      // phonetic / part_of_speech / image_prompt / example_audio_url /
+      // confusables) by word; use the editor's current image_url/audio_url (they
+      // may have been regenerated). The reconciliation below re-runs
+      // generate-exercises, which now reads this table — so edits reach the
+      // already-existing pool_items (same pattern as grammar).
+      try {
+        const { data: existingVocab } = await supabase.from('vocabulary_items').select('*').eq('unit_id', unitId);
+        const preserveByWord = new Map<string, any>((existingVocab || []).map((v: any) => [v.word, v]));
+        await supabase.from('vocabulary_items').delete().eq('unit_id', unitId);
+        const vocabRows = vocabulary.filter((v) => v.word && v.word.trim()).map((v, i) => {
+          const preserved = preserveByWord.get(v.word) || {};
+          return {
+            unit_id: unitId,
+            order_index: i,
+            word: v.word,
+            definition: v.definition || null,
+            example_sentence: v.context_sentence || null,
+            l1_translation: preserved.l1_translation ?? null,
+            phonetic: preserved.phonetic ?? null,
+            part_of_speech: preserved.part_of_speech ?? null,
+            image_prompt: preserved.image_prompt ?? null,
+            image_url: v.image_url || preserved.image_url || null,
+            audio_url: v.audio_url || preserved.audio_url || null,
+            example_audio_url: preserved.example_audio_url ?? null,
+            distractors: v.distractors || [],
+            confusables: preserved.confusables ?? [],
+          };
+        });
+        if (vocabRows.length > 0) {
+          await supabase.from('vocabulary_items').insert(vocabRows);
+        }
+      } catch (err: any) {
+        console.warn('vocab_relational_write_failed', err?.message);
+      }
 
       // C.3: write grammar edits to the relational grammar_rules table (the
       // canonical source generate-exercises reads) so the reconciliation below
