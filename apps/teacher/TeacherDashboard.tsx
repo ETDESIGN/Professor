@@ -21,6 +21,7 @@ const Reports = lazy(() => import('./Reports'));
 const TeacherMessages = lazy(() => import('./TeacherMessages'));
 const UploadTextbook = lazy(() => import('./UploadTextbook'));
 const UnitContentVault = lazy(() => import('./UnitContentVault'));
+const UnitStudio = lazy(() => import('./UnitStudio'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -258,7 +259,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
               <Route path="mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
               <Route path="library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
-              <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit-vault/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
               <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitContentVault /></Suspense></RouteErrorBoundary>} />
             </Routes>
           </motion.div>
