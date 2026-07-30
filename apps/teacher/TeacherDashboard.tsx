@@ -20,6 +20,7 @@ const Reports = lazy(() => import('./Reports'));
 const TeacherMessages = lazy(() => import('./TeacherMessages'));
 const UploadTextbook = lazy(() => import('./UploadTextbook'));
 const UnitStudio = lazy(() => import('./UnitStudio'));
+const ReviewRoute = lazy(() => import('./ReviewRoute'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
@@ -248,6 +249,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             <Routes location={location}>
               <Route path="" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
               <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
+              <Route path="review/:unitId" element={<RouteErrorBoundary name="unit-review"><Suspense fallback={<PageLoader />}><ReviewRoute /></Suspense></RouteErrorBoundary>} />
               <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
               <Route path="mobile-editor" element={<RouteErrorBoundary name="lesson-editor"><Suspense fallback={<PageLoader />}><LessonEditor onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
               <Route path="upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />

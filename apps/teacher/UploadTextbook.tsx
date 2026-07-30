@@ -273,7 +273,10 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       setIsOrchestrating(true);
       try {
          toast.success('Lesson orchestrated and published!');
-         navigate('/teacher/curriculum');
+         // Phase 2.3 (B): land in the Unit Studio (single authoring surface)
+         // instead of the unit list, so the teacher continues straight into
+         // Content/Plan/Review rather than an orphaned screen.
+         navigate(`/teacher/unit/${unitId}`);
          if (onFinish) onFinish();
       } catch (err: any) {
          toast.error(err.message || 'Navigation failed');

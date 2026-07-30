@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import UnitContentVault from './UnitContentVault';
 import PlanComposer from './PlanComposer';
@@ -98,6 +98,15 @@ const UnitStudio: React.FC = () => {
               <p className="text-sm text-slate-500">{theme}{theme && cefr ? ' \u2022 ' : ''}{cefr}</p>
             </div>
           </div>
+          {/* Phase 2.3 / G2: persistent entry point into the approve/reject Review
+              pass (AssetWorkshop, now routable by unit id). */}
+          <button
+            onClick={() => navigate(`/teacher/review/${unit.id}`)}
+            className="flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
+            title="Review, approve or regenerate the generated content"
+          >
+            <Wand2 size={16} /> Review
+          </button>
         </div>
         <nav className="flex gap-1 mt-3">
           <button
