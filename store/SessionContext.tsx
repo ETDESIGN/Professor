@@ -581,6 +581,20 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // keep the cached unit if the fresh fetch fails
     }
     if (unit) {
+      // C.4: attach the relational bundle (get_unit_bundle) to the manifest so the
+      // getVocabulary/getStory/getDialogues normalizers read relational content
+      // (the read contract), called exactly once here at activeUnit load. Defined
+      // NON-ENUMERABLE so it is never persisted (spread / JSON.stringify skip it)
+      // — it lives only on this in-memory snapshot, which is exactly the
+      // edit-then-republish snapshot the live session should hold.
+      try {
+        const { data: bundle } = await supabase.rpc('get_unit_bundle', { p_unit_id: unitId });
+        if (bundle && unit.manifest && typeof unit.manifest === 'object') {
+          Object.defineProperty(unit.manifest, '_relational', { value: bundle, enumerable: false, configurable: true });
+        }
+      } catch {
+        // normalizers fall back to the manifest if the bundle is unavailable
+      }
       activeUnitRef.current = unit;
       const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : [];
       setState(prev => ({

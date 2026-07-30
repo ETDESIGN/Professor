@@ -159,6 +159,20 @@ export function normalizeManifest(raw: any): CanonicalManifest {
 
 /** Convenience accessor: vocabulary (tolerant of any manifest shape). */
 export function getVocabulary(manifest: any): CanonicalVocab[] {
+  // C.4: prefer the relational vocabulary_items (attached to the manifest as
+  // _relational by the activeUnit loader via get_unit_bundle), falling back to
+  // the manifest for units whose vocab hasn't cleared C.3 yet. Per-category gate.
+  const rel = manifest?._relational;
+  if (rel && Array.isArray(rel.vocabulary_items) && rel.vocabulary_items.length > 0) {
+    return rel.vocabulary_items.map((v: any) => ({
+      word: v.word || '', definition: v.definition, example_sentence: v.example_sentence,
+      translation: v.l1_translation, l1_translation: v.l1_translation, phonetic: v.phonetic,
+      part_of_speech: v.part_of_speech, image_prompt: v.image_prompt, image_url: v.image_url,
+      audio_url: v.audio_url, example_audio_url: v.example_audio_url,
+      distractors: Array.isArray(v.distractors) ? v.distractors : [],
+      confusables: Array.isArray(v.confusables) ? v.confusables : [],
+    })).filter((v: CanonicalVocab) => v.word);
+  }
   return normalizeManifest(manifest).vocabulary;
 }
 
@@ -178,5 +192,51 @@ export interface CanonicalStory {
 
 /** The unit's story (title/setting + pages with text/image/comprehension). */
 export function getStory(manifest: any): CanonicalStory {
-  return normalizeManifest(manifest).story;
+  // C.4: prefer relational story_pages (via _relational), keeping title/setting
+  // from the manifest; fall back to the manifest story for unmigrated units.
+  const base = normalizeManifest(manifest).story;
+  const rel = manifest?._relational;
+  if (rel && Array.isArray(rel.story_pages) && rel.story_pages.length > 0) {
+    return {
+      title: base.title,
+      setting: base.setting,
+      pages: rel.story_pages.map((p: any) => ({
+        text: p.text,
+        speaker: p.speaker || p.speaker_override_name,
+        image_prompt: p.image_prompt,
+      })),
+    };
+  }
+  return base;
+}
+
+export interface DialogueLine {
+  speaker?: string;
+  text?: string;
+  translation?: string;
+}
+
+/** The unit's dialogue lines (speaker-attributed), flattened across dialogues. */
+export function getDialogues(manifest: any): DialogueLine[] {
+  // C.4: prefer relational dialogue_lines (via _relational), resolving the
+  // speaker character id to a name via the bundle's characters; fall back to the
+  // manifest's dialogues[].lines[]. BoardDialogueStage routes through this so it
+  // is no longer a direct enriched_content read (the one exception the advisor
+  // flagged).
+  const rel = manifest?._relational;
+  if (rel && Array.isArray(rel.dialogue_lines) && rel.dialogue_lines.length > 0) {
+    const chars: any[] = Array.isArray(rel.characters) ? rel.characters : [];
+    const charName = new Map<string, string>(chars.map((c: any) => [c.id, c.name]));
+    return rel.dialogue_lines.map((l: any) => ({
+      speaker: (l.speaker_character_id && charName.get(l.speaker_character_id)) || l.speaker_override_name || 'Speaker',
+      text: l.text,
+      translation: l.translation,
+    }));
+  }
+  const dialogues = normalizeManifest(manifest).dialogues || [];
+  return dialogues.flatMap((d: any) =>
+    Array.isArray(d?.lines)
+      ? d.lines.map((l: any) => ({ speaker: l.speaker, text: l.text, translation: l.translation }))
+      : []
+  );
 }

@@ -15,7 +15,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, BookOpen, ChevronRight } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
-import { getVocabulary } from '../../../services/manifest';
+import { getVocabulary, getStory } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
 
 const CHARACTER_COLORS: Record<string, string> = {
@@ -25,7 +25,12 @@ const FALLBACK_COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#F59E0B', '#A855F7', 
 
 const BoardStoryStage = ({ data }: { data: any }) => {
   const { state } = useSession();
-  const pages = data.pages || [];
+  // C.4: prefer relational story_pages (via the getStory read contract), falling
+  // back to the flow step's data.pages. This lets the Content tab's story edits
+  // (written to story_pages) render on the board without the temporary flow
+  // bridge write (flow[].data.pages), which is removed once this flip lands.
+  const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
+  const pages = (relPages.length > 0 ? relPages : data.pages) || [];
   const characters = data.characters || [];
   const [activePanel, setActivePanel] = useState(-1); // -1 = story hook; 0..N = pages; N = comprehension
   const totalContentPanels = pages.length;

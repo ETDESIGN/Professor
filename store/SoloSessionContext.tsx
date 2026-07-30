@@ -122,6 +122,17 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       unit = await Engine.getUnitById(unitId);
     }
     if (unit) {
+      // C.4: attach the relational bundle (get_unit_bundle) to the manifest so the
+      // student-side getVocabulary/getStory normalizers read relational content.
+      // Non-enumerable so it is never persisted; mirrors SessionContext.
+      try {
+        const { data: bundle } = await supabase.rpc('get_unit_bundle', { p_unit_id: unitId });
+        if (bundle && unit.manifest && typeof unit.manifest === 'object') {
+          Object.defineProperty(unit.manifest, '_relational', { value: bundle, enumerable: false, configurable: true });
+        }
+      } catch {
+        // normalizers fall back to the manifest if the bundle is unavailable
+      }
       const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : [];
       setState(prev => ({
         ...prev,

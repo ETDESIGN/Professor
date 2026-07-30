@@ -213,9 +213,11 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
         if (step.type === 'GAME_ARENA' || step.type === 'SPEED_QUIZ' || step.type === 'TEAM_BATTLE') {
           return { ...step, data: { ...step.data, questions } };
         }
-        if (step.type === 'STORY_STAGE') {
-          return { ...step, data: { ...step.data, pages: storyPages } };
-        }
+        // C.4: the STORY_STAGE bridge write (data.pages = storyPages) was REMOVED.
+        // Story now lives canonically in story_pages (written below) and the
+        // board's BoardStoryStage reads it via getStory() — so the flow no longer
+        // carries a second copy of the pages (that bridge write was the "fourth
+        // truth" the advisor warned would become permanent if not deleted).
         if (step.type === 'GRAMMAR_SANDBOX') {
           return { ...step, data: { ...step.data, rule: grammarRules[0]?.rule || '', explanation: grammarRules[0]?.explanation || '', examples: grammarRules[0]?.world_examples || [] } };
         }
@@ -303,10 +305,11 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
       // C.3: write story edits to the relational story_pages table (canonical).
       // Preserve generated fields the editor doesn't touch (speaker_character_id /
-      // image_prompt / image_asset_id / audio_asset_id) by page_number. The flow's
-      // STORY_STAGE write above is kept for the board template until C.4 flips that
-      // read onto story_pages. (imageUrl editing stays flow-only for now — the
-      // relational table references images via image_asset_id, not a bare URL.)
+      // image_prompt / image_asset_id / audio_asset_id) by page_number. As of C.4
+      // this is the SOLE story write path — the board reads story_pages via
+      // getStory() and the old flow[].data.pages bridge write has been removed.
+      // (imageUrl editing stays out of scope for now — the relational table
+      // references images via image_asset_id, not a bare URL.)
       try {
         const { data: existingPages } = await supabase.from('story_pages').select('*').eq('unit_id', unitId);
         const preserveByNum = new Map<number, any>((existingPages || []).map((p: any) => [p.page_number, p]));

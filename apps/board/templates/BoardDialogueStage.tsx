@@ -11,22 +11,19 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Volume2 } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { getDialogues } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
 
 const SPEAKER_COLORS = ['#3B82F6', '#EF4444', '#22C55E', '#F59E0B', '#A855F7', '#EC4899', '#14B8A6'];
 
 const BoardDialogueStage = ({ data }: { data: any }) => {
   const { state } = useSession();
-  // Prefer data.lines; fall back to the unit's manifest dialogues so that
-  // server-generated DIALOGUE_STAGE steps (which currently ship empty data)
-  // still render the unit's real dialogue. Flatten dialogues[].lines[].
+  // Prefer data.lines; fall back to the unit's dialogues via the getDialogues()
+  // normalizer (C.4: reads relational dialogue_lines when present, else the
+  // manifest) — no longer a direct enriched_content read.
   const lines: any[] = React.useMemo(() => {
     if (Array.isArray(data?.lines) && data.lines.length > 0) return data.lines;
-    const dialogues = state.activeUnit?.manifest?.enriched_content?.dialogues;
-    if (Array.isArray(dialogues)) {
-      return dialogues.flatMap((d: any) => (Array.isArray(d?.lines) ? d.lines : []));
-    }
-    return [];
+    return getDialogues(state.activeUnit?.manifest);
   }, [data?.lines, state.activeUnit?.manifest]);
   // activeLine: -1 = title card; 0..N-1 = lines; N = "your turn" role-play card.
   const [activeLine, setActiveLine] = useState(-1);
