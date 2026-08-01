@@ -133,27 +133,60 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     setActiveBlockId(blocks.length > 0 ? blocks[0].id : null);
   }, [unit?.id]);
 
-  // C.4: read relational vocab content via get_unit_bundle (the read contract),
-  // falling back to the manifest. Closes the debt that forced this component to
-  // read enriched_content directly (the RPC had no vocab field before Phase 1.7).
-  const [relVocab, setRelVocab] = useState<any[] | null>(null);
+  // C.4 / retirement layer 1: read relational content via get_unit_bundle (the
+  // read contract) for vocab AND story AND dialogue, falling back to the
+  // manifest per category. This removes the last playback-side reads of
+  // enriched_content (story/dialogue block building), so no playback path reads
+  // the manifest once this lands.
+  const [bundle, setBundle] = useState<any | null>(null);
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
         const { data } = await supabase.rpc('get_unit_bundle', { p_unit_id: unitId });
-        const vi = (data as any)?.vocabulary_items;
-        if (!cancelled && Array.isArray(vi) && vi.length > 0) setRelVocab(vi);
+        if (!cancelled && data) setBundle(data);
       } catch { /* fall back to manifest */ }
     };
     load();
     return () => { cancelled = true; };
   }, [unitId]);
 
-  // enriched_content with relational vocab swapped in (when available).
+  // enriched_content with relational content swapped in (per category, when
+  // available). buildBlockData consumes this, so STORY_STAGE/DIALOGUE_STAGE
+  // blocks are built from story_pages/dialogue_lines, not the manifest.
   const enrichedForBlocks = () => {
     const ec = unit?.manifest?.enriched_content || {};
-    return relVocab && relVocab.length > 0 ? { ...ec, vocabulary: relVocab } : ec;
+    const out: any = { ...ec };
+    // vocab <- vocabulary_items
+    const vi = bundle?.vocabulary_items;
+    if (Array.isArray(vi) && vi.length > 0) out.vocabulary = vi;
+    // story <- story_pages (keep title/setting from the manifest story)
+    const sp = bundle?.story_pages;
+    if (Array.isArray(sp) && sp.length > 0) {
+      out.story = {
+        ...(ec.story || {}),
+        pages: sp.map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name, image_url: p.image_url })),
+      };
+    }
+    // dialogues <- dialogue_lines (grouped by dialogue_index, speaker resolved
+    // via the bundle's characters)
+    const dl = bundle?.dialogue_lines;
+    if (Array.isArray(dl) && dl.length > 0) {
+      const chars: any[] = Array.isArray(bundle?.characters) ? bundle.characters : [];
+      const charName = new Map<string, string>(chars.map((c: any) => [c.id, c.name]));
+      const groups = new Map<number, any[]>();
+      for (const l of dl) {
+        const gi = typeof l.dialogue_index === 'number' ? l.dialogue_index : 0;
+        if (!groups.has(gi)) groups.set(gi, []);
+        groups.get(gi)!.push({
+          speaker: (l.speaker_character_id && charName.get(l.speaker_character_id)) || l.speaker_override_name || 'Speaker',
+          text: l.text,
+          translation: l.translation,
+        });
+      }
+      out.dialogues = Array.from(groups.values()).map((lines, i) => ({ title: `Dialogue ${i + 1}`, lines }));
+    }
+    return out;
   };
 
   // Library DERIVED FROM THE UNIT'S REAL CONTENT (the key improvement over the
@@ -169,7 +202,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (dialogueCount > 0) items.push({ key: 'dialogue', label: 'Dialogue', detail: `${dialogueCount} dialogue${dialogueCount === 1 ? '' : 's'}`, type: 'DIALOGUE_STAGE', icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' });
     if (vocabCount >= 2) items.push({ key: 'quiz', label: 'Team Battle Quiz', detail: `up to ${Math.min(vocabCount, 6)} questions`, type: 'TEAM_BATTLE', icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' });
     return items;
-  }, [unit?.manifest, relVocab]);
+  }, [unit?.manifest, bundle]);
 
   const activeBlock = timeline.find((b) => b.id === activeBlockId) || null;
   const totalMinutes = timeline.reduce((acc, b) => acc + b.duration, 0);
