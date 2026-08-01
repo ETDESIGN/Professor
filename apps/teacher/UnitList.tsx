@@ -11,7 +11,7 @@ interface UnitListProps {
   onNewUnit: () => void;
   onUploadMaterial?: () => void;
   onEditUnit?: (unitId: string) => void;
-  onPlanLesson?: () => void;
+  onPlanLesson?: (unitId: string) => void;
   onLaunchLesson?: () => void;
 }
 
@@ -58,7 +58,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
     setTimeout(async () => {
        await setActiveUnit(unit.id);
        setIsLoading(false);
-       onPlanLesson?.(); // Navigate to Studio
+       onPlanLesson?.(unit.id); // Navigate to the Unit Studio (Plan tab)
     }, 500);
   };
 

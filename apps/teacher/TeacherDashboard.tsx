@@ -53,18 +53,13 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
     setIsMobileMenuOpen(false);
   };
 
-  const handlePlanLesson = () => {
-    // B5 fix: Plan now routes to LessonStudio (the real builder, which reads
-    // activeUnit + saves to Supabase) instead of LessonTimelineBuilder (a
-    // hardcoded mock with a dead Save button). LessonStudio is mounted at
-    // /teacher/studio by the outer router (teacherEntry.tsx / App.tsx) at the
-    // same level as this catch-all, so absolute navigation reaches it.
-    // Mobile still gets the editor stub for now (full mobile Studio is Phase 2).
-    if (window.innerWidth < 768) {
-      handleNav('/teacher/mobile-editor');
-    } else {
-      handleNav('/teacher/studio');
-    }
+  const handlePlanLesson = (unitId: string) => {
+    // Plan now opens the unified Unit Studio on its Plan tab (PlanComposer).
+    // Previously this routed to the legacy LessonStudio (/teacher/studio) on
+    // desktop and a dead-end mobile-editor stub on mobile — both dead ends now
+    // that the Unit Studio (Content + Plan) is the canonical surface. The Studio
+    // itself falls back to Content-only on mobile (Phase 2.4).
+    navigate(`/teacher/unit/${unitId}?tab=plan`);
   };
 
   return (

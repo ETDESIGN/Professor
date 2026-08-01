@@ -20,7 +20,13 @@ type StudioTab = 'content' | 'plan';
 const UnitStudio: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<StudioTab>('content');
+  // Initial tab honors ?tab=plan so the unit card's "Plan" action lands on the
+  // Plan tab (the Content/"Review Content" action lands on Content by default).
+  const [tab, setTab] = useState<StudioTab>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'plan'
+      ? 'plan'
+      : 'content'
+  );
   const [unit, setUnit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   // Phase 2.4: mobile gets a Content-only surface (no Plan tab) for v1.
