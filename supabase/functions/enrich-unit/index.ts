@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { generateAndStoreAudio, mapWithConcurrency } from '../_shared/tts.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { buildPromptWithCharacter, fetchCharacterByName } from '../_shared/characterLook.ts';
 
@@ -408,46 +407,15 @@ ${categoryRules}
       }));
     }
 
-    // ── TTS AUDIO per vocab word + example_sentence (Phase 1.2) ────────────
-    // Best-effort, bounded concurrency. Stores audio_url (word) + example_audio_url
-    // (the example_sentence) so LISTEN_SELECT/FOCUS_CARDS (word) AND
-    // DICTATION/SPEAK_SENTENCE (sentence) have real audio. On failure the field is
-    // left empty and the client SpeechService falls back to window.speechSynthesis.
-    //
-    // TIME BUDGET (2026-07-30): vocab is the only category that runs TTS on top
-    // of the AI call (~24 audio clips). The edge-function wall-clock limit is
-    // ~150s; a slow AI response (~60-75s) + TTS at concurrency 3 (~90s) pushed
-    // the total past the limit and the function was killed ("non-2xx", no
-    // telemetry). Fix: (a) only run TTS if the AI call left enough headroom,
-    // (b) raise TTS concurrency 3 -> 5 to halve its wall time. Vocab CONTENT is
-    // the essential output — it returns even when TTS is skipped.
-    const ttsElapsed = Date.now() - handlerStart;
-    const TTS_BUDGET_OK = ttsElapsed < 80000; // leave ~70s for TTS within the ~150s limit
-    if ((category === 'vocabulary' || category === 'all') && Array.isArray(enriched.vocabulary) && enriched.vocabulary.length > 0 && TTS_BUDGET_OK) {
-      // Word audio.
-      const wordInputs = enriched.vocabulary.map((v: any) => String(v.word || '')).filter(Boolean);
-      const wordResults = await mapWithConcurrency(wordInputs, 5, (w) =>
-        generateAndStoreAudio(w, unitId).then((r) => ({ word: w, url: r.url })),
-      );
-      const audioMap = new Map(wordResults.filter((r) => r.url).map((r) => [r.word, r.url]));
-      // Example-sentence audio (bounded: up to 2x words to limit cost/latency).
-      const sentInputs = enriched.vocabulary
-        .map((v: any) => ({ word: String(v.word || ''), sentence: String(v.example_sentence || v.context_sentence || '') }))
-        .filter((v) => v.word && v.sentence);
-      const sentResults = await mapWithConcurrency(sentInputs.slice(0, wordInputs.length * 2), 5, (vi) =>
-        generateAndStoreAudio(vi.sentence, unitId).then((r) => ({ word: vi.word, url: r.url })),
-      );
-      const sentMap = new Map(sentResults.filter((r) => r.url).map((r) => [r.word, r.url]));
-
-      enriched.vocabulary = enriched.vocabulary.map((v: any) => {
-        const w = String(v.word || '');
-        const patch: any = {};
-        if (audioMap.has(w)) patch.audio_url = audioMap.get(w);
-        if (sentMap.has(w)) patch.example_audio_url = sentMap.get(w);
-        return Object.keys(patch).length ? { ...v, ...patch } : v;
-      });
-      console.log(`enrich-unit AUDIO [${category}]: ${audioMap.size}/${wordInputs.length} word audio, ${sentMap.size}/${sentInputs.length} sentence audio`);
-    }
+    // ── TTS AUDIO (DECOUPLED — 2026-07-30) ────────────────────────────────
+    // Vocab TTS used to run synchronously here (~16-24 clips on top of the AI
+    // call). When AI + TTS exceeded the ~150s edge limit the function was killed
+    // BEFORE the manifest save below, so the whole vocab category came back empty
+    // (the "vocab=0" bug). Audio is now generated ON DEMAND: the client
+    // SpeechService.speakVocabWord -> MediaService.getVocabAudio -> generate-media
+    // (shared tts.ts, now eleven_flash_v2_5), cached in the assets table. Vocab
+    // CONTENT is the essential output and is never held hostage by TTS latency,
+    // so enrichment no longer awaits any audio here.
     if (enriched.characters && Array.isArray(enriched.characters)) {
       enriched.characters = enriched.characters.map((ch: any) => ({
         ...ch,

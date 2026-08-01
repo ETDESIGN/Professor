@@ -10,6 +10,13 @@
 
 const DUMMY = '';
 const DEFAULT_VOICE = '21m00Tcm4TlvDq8ikWAM';
+// TTS model (2026-07-30): was eleven_monolingual_v1 — ElevenLabs' oldest,
+// English-only, lowest-quality model (and slow, which contributed to the
+// enrich-unit vocab timeouts). Default to eleven_flash_v2_5: low-latency
+// (~75ms, so on-demand playback + batch gen stay fast), multilingual (voices
+// the Chinese L1 translations correctly), and noticeably better quality.
+// Overridable via TTS_MODEL_ID (e.g. eleven_multilingual_v2 for max quality).
+const TTS_MODEL = Deno.env.get('TTS_MODEL_ID') || 'eleven_flash_v2_5';
 
 export async function generateAndStoreAudio(
   text: string,
@@ -34,7 +41,7 @@ export async function generateAndStoreAudio(
       signal: AbortSignal.timeout(30000),
       body: JSON.stringify({
         text: text || 'Hello',
-        model_id: 'eleven_monolingual_v1',
+        model_id: TTS_MODEL,
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
