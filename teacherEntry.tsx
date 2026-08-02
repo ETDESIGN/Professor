@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import './src/index.css';
-import { SessionProvider } from './store/SessionContext';
+import { SessionProvider, useSession } from './store/SessionContext';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { MockModeBanner } from './components/shared/MockModeBanner';
@@ -13,7 +13,6 @@ import { startMetricsCollection, stopMetricsCollection } from './services/perfMo
 import './services/i18n';
 
 const TeacherDashboard = lazy(() => import('./apps/teacher/TeacherDashboard'));
-const LessonStudio = lazy(() => import('./apps/teacher/LessonStudio'));
 const LiveCommander = lazy(() => import('./apps/teacher/LiveCommander'));
 
 const PageLoader = () => (
@@ -24,6 +23,8 @@ const PageLoader = () => (
 
 const TeacherRouter = () => {
     const navigate = useNavigate();
+    const { state } = useSession();
+    const unitId = state.activeUnit?.id;
 
     useEffect(() => {
         initErrorReporting({
@@ -40,16 +41,8 @@ const TeacherRouter = () => {
             <Route path="/*" element={
                 <Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense>
             } />
-            <Route path="/studio" element={
-                <Suspense fallback={<PageLoader />}>
-                    <div className="relative">
-                        <button onClick={() => navigate('/')} className="fixed top-4 left-4 z-50 bg-white shadow-md p-2 rounded-full hover:bg-slate-100 border border-slate-200" title="Back to Dashboard">←</button>
-                        <LessonStudio onLaunchLive={() => navigate('/live')} />
-                    </div>
-                </Suspense>
-            } />
             <Route path="/live" element={
-                <Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate('/studio')} /></Suspense>
+                <Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate(unitId ? `/unit/${unitId}` : '/units')} /></Suspense>
             } />
         </Routes>
     );

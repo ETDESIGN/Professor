@@ -14,7 +14,6 @@ const DashboardHome = lazy(() => import('./DashboardHome'));
 const TeacherSettings = lazy(() => import('./TeacherSettings'));
 const MobileProfileSettings = lazy(() => import('./MobileProfileSettings'));
 const ResourceLibrary = lazy(() => import('./ResourceLibrary'));
-const LessonEditor = lazy(() => import('./LessonEditor'));
 const Assignments = lazy(() => import('./Assignments'));
 const Reports = lazy(() => import('./Reports'));
 const TeacherMessages = lazy(() => import('./TeacherMessages'));
@@ -55,9 +54,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
 
   const handlePlanLesson = (unitId: string) => {
     // Plan now opens the unified Unit Studio on its Plan tab (PlanComposer).
-    // Previously this routed to the legacy LessonStudio (/teacher/studio) on
-    // desktop and a dead-end mobile-editor stub on mobile — both dead ends now
-    // that the Unit Studio (Content + Plan) is the canonical surface. The Studio
+    // The Unit Studio (Content + Plan) is the canonical surface. The Studio
     // itself falls back to Content-only on mobile (Phase 2.4).
     navigate(`/teacher/unit/${unitId}?tab=plan`);
   };
@@ -105,7 +102,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 <button onClick={() => handleNav('/teacher')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <LayoutDashboard size={20} /> {t('nav.dashboard')}
                 </button>
-                <button onClick={() => handleNav('/teacher/mobile-editor')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-editor') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <Calendar size={20} /> {t('nav.planLesson')}
                 </button>
                 <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
@@ -245,8 +242,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
               <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
               <Route path="review/:unitId" element={<RouteErrorBoundary name="unit-review"><Suspense fallback={<PageLoader />}><ReviewRoute /></Suspense></RouteErrorBoundary>} />
-              <Route path="unit-vault/:unitId" element={<RouteErrorBoundary name="unit-vault"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
-              <Route path="mobile-editor" element={<RouteErrorBoundary name="lesson-editor"><Suspense fallback={<PageLoader />}><LessonEditor onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
               <Route path="upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
               <Route path="students" element={<RouteErrorBoundary name="students"><Suspense fallback={<PageLoader />}><ClassManagement /></Suspense></RouteErrorBoundary>} />
               <Route path="assignments" element={<RouteErrorBoundary name="assignments"><Suspense fallback={<PageLoader />}><Assignments /></Suspense></RouteErrorBoundary>} />

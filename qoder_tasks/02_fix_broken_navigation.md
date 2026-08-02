@@ -52,3 +52,18 @@ Also remove their `lazy(() => import(...))` lines in `TeacherDashboard.tsx` / `A
 ## References
 - `docs/brainstorming/QODER_AUDIT.md` §1 (B-EXIT, B-MOBILE), §3 (orphaned routes)
 - `App.tsx:201`, `apps/teacher/teacherEntry.tsx:52`, `apps/teacher/TeacherDashboard.tsx:108,248,249`
+
+---
+
+## STATUS
+
+- [x] `App.tsx` and `teacherEntry.tsx` post-live-exit navigate to `/teacher/unit/:id` (or `/teacher/units` fallback) — confirmed by grep showing NO `'/teacher/studio'` navigation targets remain
+- [x] Mobile "Plan Lesson" nav → `/teacher/units` (confirmed by grep)
+- [x] `LessonEditor.tsx` and `LessonStudio.tsx` files DELETED
+- [x] No imports of the deleted files remain anywhere (grep clean)
+- [x] No orphaned routes in `TeacherDashboard.tsx` (`mobile-editor`, `unit-vault`, `studio` all removed)
+- [x] `npx tsc --noEmit -p tsconfig.json` clean (only Deno/esm noise)
+- [x] `npx vite build` succeeds
+- **Commit:** (see below)
+- **Notes:** One out-of-scope reference remains: `e2e/teacher.spec.ts:155` still navigates to `/teacher/studio` in a Playwright test. This is a test file not listed in scope — flagging for reviewer. In App.tsx, a small `LiveCommanderRoute` wrapper component was added (inside SessionProvider) to access `useSession()` for the active unit id, since App itself is above the provider. In teacherEntry.tsx (basename `/teacher`), the exit navigates to `/unit/:id` (relative to basename).
+- **Questions for reviewer:** Should the e2e test (`e2e/teacher.spec.ts:155`) be updated in a follow-up?

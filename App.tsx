@@ -1,7 +1,7 @@
 
 import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { SessionProvider } from './store/SessionContext';
+import { SessionProvider, useSession } from './store/SessionContext';
 import { SoloSessionProvider } from './store/SoloSessionContext';
 import { Toaster } from 'sonner';
 import Hub from './apps/Hub';
@@ -23,7 +23,6 @@ const ClassroomBoard = lazy(() => import('./apps/board/ClassroomBoard'));
 const TeacherRemote = lazy(() => import('./apps/remote/TeacherRemote'));
 const StudentApp = lazy(() => import('./apps/student/StudentApp'));
 const TeacherDashboard = lazy(() => import('./apps/teacher/TeacherDashboard'));
-const LessonStudio = lazy(() => import('./apps/teacher/LessonStudio'));
 const ParentApp = lazy(() => import('./apps/parent/ParentApp'));
 const LiveCommander = lazy(() => import('./apps/teacher/LiveCommander'));
 const AdminPortal = lazy(() => import('./apps/admin/AdminPortal'));
@@ -62,6 +61,16 @@ function homePathForRole(role: string | undefined): string {
   if (role === 'admin' || role === 'manager') return '/admin';
   return '/student';
 }
+
+/** Post-live-exit wrapper: reads the active unit from the session so it can
+ * navigate to the Unit Studio (or /teacher/units fallback). Must be rendered
+ * inside <SessionProvider>. */
+const LiveCommanderRoute: React.FC = () => {
+  const navigate = useNavigate();
+  const { state } = useSession();
+  const unitId = state.activeUnit?.id;
+  return <LiveCommander onExit={() => navigate(unitId ? `/teacher/unit/${unitId}` : '/teacher/units')} />;
+};
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -186,19 +195,7 @@ const App: React.FC = () => {
         <Route path="/admin/*" element={<RouteErrorBoundary name="admin"><Suspense fallback={<PageLoader />}><AdminPortal /></Suspense></RouteErrorBoundary>} />
 
         <Route path="/teacher/*" element={<RouteErrorBoundary name="teacher"><Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense></RouteErrorBoundary>} />
-        <Route path="/teacher/studio" element={<RouteErrorBoundary name="lesson-studio"><Suspense fallback={<PageLoader />}>
-          <div className="relative">
-            <button
-              onClick={() => navigate('/teacher')}
-              className="fixed top-4 left-4 z-50 bg-white shadow-md p-2 rounded-full hover:bg-slate-100 border border-slate-200"
-              title="Back to Dashboard"
-            >
-              ←
-            </button>
-            <LessonStudio onLaunchLive={() => navigate('/teacher/live')} />
-          </div>
-        </Suspense></RouteErrorBoundary>} />
-        <Route path="/teacher/live" element={<RouteErrorBoundary name="live-commander"><Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate('/teacher/studio')} /></Suspense></RouteErrorBoundary>} />
+        <Route path="/teacher/live" element={<RouteErrorBoundary name="live-commander"><Suspense fallback={<PageLoader />}><LiveCommanderRoute /></Suspense></RouteErrorBoundary>} />
 
         <Route path="/board" element={<RouteErrorBoundary name="classroom-board"><Suspense fallback={<PageLoader />}><ClassroomBoard /></Suspense></RouteErrorBoundary>} />
         <Route path="/remote" element={<RouteErrorBoundary name="teacher-remote"><Suspense fallback={<PageLoader />}><TeacherRemote /></Suspense></RouteErrorBoundary>} />

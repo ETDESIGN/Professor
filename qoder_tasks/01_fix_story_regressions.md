@@ -65,6 +65,6 @@ print(json.dumps({'query': q}))
 - [x] `get_unit_bundle` now returns story_pages with `image_url` and dialogue_lines with `audio_url` (verified — fields present; currently NULL because no story_pages have image_asset_id set yet, but the JOIN is correct and will resolve once assets are linked)
 - [x] `npx tsc --noEmit -p tsconfig.json` clean (only Deno/esm noise from edge functions)
 - [x] `npx vite build` succeeds
-- **Commit:** `3ce6e7b`
+- **Commit:** `5c4baea`
 - **Notes:** 101 story_comprehension_questions all have story_page_id set, so the primary lookup path (qByPageId) covers all existing data. The order_index fallback is a safety net for future null-page-id questions. 86 story_pages exist, 0 currently have image_asset_id (Phase 3 vault FK not yet populated) — the join returns null gracefully.
 - **Questions for reviewer:** none
