@@ -27,15 +27,15 @@ The keystone is done (Task 08 — `useUnitStudioStore`). Batch 2 re-wires the ed
 | # | Task | Owner | Status | Depends on |
 |---|---|---|---|---|
 | **08** | **`useUnitStudioStore`** (the keystone — owns unit + content + save/reconcile) | **ME — DONE** | done | — |
-| 09 | Re-wire Vocabulary sub-tab to read/write the store (not local state) | QODER | pending | 08 |
-| 10 | Re-wire Grammar sub-tab to the store | QODER | pending | 08 |
-| 11 | Re-wire Story sub-tab to the store | QODER | pending | 08 |
-| 12 | Re-wire Dialogue + Cast sub-tabs to the store | QODER | pending | 08 |
-| 13 | Re-wire Media + Settings + Questions sub-tabs to the store; remove vault's own save button | QODER | pending | 09-12 |
-| 14 | Add the single [Save] action in the Unit Studio header; remove redundant save buttons | QODER | pending | 13 |
+| 09 | Re-wire Vocabulary sub-tab to read/write the store (not local state) | QODER | review | 08 |
+| 10 | Re-wire Grammar sub-tab to the store | QODER | review | 08 |
+| 11 | Re-wire Story sub-tab to the store | QODER | review | 08 |
+| 12 | Re-wire Dialogue + Cast sub-tabs to the store | QODER | review | 08 |
+| 13 | Re-wire Media + Settings + Questions sub-tabs to the store; remove vault's own save button | QODER | review | 09-12 |
+| 14 | Add the single [Save] action in the Unit Studio header; remove redundant save buttons | QODER | review | 13 |
 | 15 | Fold AssetWorkshop in as an in-Studio Review mode (not a route); retire /teacher/review/:id | ME+QODER | pending | 14 |
-| 16 | Wire MediaPickerModal into 4 more fields (story image, character portrait, song, video) | QODER | pending | 13 |
-| 17 | Wire `unit_media` writes into imageGen.ts/tts.ts (Phase 1.6 finish) | QODER | pending | — |
+| 16 | Wire MediaPickerModal into 4 more fields (story image, character portrait, song, video) | QODER | review | 13 |
+| 17 | Wire `unit_media` writes into imageGen.ts/tts.ts (Phase 1.6 finish) | QODER | review | — |
 | 18 | activity_type_registry: make it drive emission OR document as filter | ME | pending | — |
 
 **Sequencing rationale:** 09-12 are mechanical (state source moves from `useState` to the store). Do them in order so each verifies against the same acceptance criteria. 13 consolidates the last sub-tabs + removes the vault's save. 14 adds the unified save. 15 is the architectural fold (mine). 16-17 are independent media work that can run in parallel with 09-14.
