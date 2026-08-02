@@ -76,6 +76,6 @@ For each: the picker's `onSelect(asset)` should set the relevant field. Use the 
 - **Notes:** Added 3 new MediaPickerModal invocations (story page image, video, character portrait) + the existing vocab image picker = 4 total library buttons. Story image: button next to the URL input in Story sub-tab. Video: "Library" button alongside YouTube paste-URL in Media sub-tab. Character portrait: image icon per character card in Settings. The character portrait writes `reference_image_url` to the characters table (best-effort). Note: the task mentioned a "Song" picker (kind=audio) — the Media sub-tab currently only has video (YouTube), no separate audio/song field. The video picker covers this; a dedicated audio picker can be added when a song field exists. Typecheck + build clean.
 
 ### Task 17 (unit_media wiring)
-- [ ] acceptance criteria met
-- **Commit:** _pending_
-- **Notes:**
+- [x] acceptance criteria met
+- **Commit:** (see git log)
+- **Notes:** imageGen.ts now writes a `unit_media` row (role 'generated') on successful asset insert, using the returned asset id from `Prefer: return=representation`. tts.ts now inserts an `assets` row (type 'audio', kind 'generated') + a `unit_media` link (role 'audio') after successful storage upload. Both are best-effort (errors logged, never fail generation). Deployed: generate-exercises, generate-media, enrich-unit. Typecheck + build clean. No migration needed (unit_media table already exists with the right schema).

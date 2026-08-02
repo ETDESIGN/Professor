@@ -117,6 +117,22 @@ export async function generateAndStoreImage(prompt: string, unitId: string): Pro
           } else {
             console.error('[imageGen] assets insert failed:', insertResp.status, (errBody as any)?.message || JSON.stringify(errBody));
           }
+        } else {
+          // Task 17: link the asset to the unit via unit_media (role 'generated').
+          // Best-effort — a failure here must not fail image generation.
+          try {
+            const inserted = await insertResp.json();
+            const assetId = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
+            if (assetId && unitId) {
+              await fetch(`${supabaseUrl}/rest/v1/unit_media`, {
+                method: 'POST',
+                headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+                body: JSON.stringify({ unit_id: unitId, asset_id: assetId, role: 'generated', order_index: 0 }),
+              });
+            }
+          } catch (linkErr: any) {
+            console.error('[imageGen] unit_media link failed:', linkErr?.message || linkErr);
+          }
         }
       } catch (insertErr: any) {
         // Network-level failure on the insert — log but don't fail generation.

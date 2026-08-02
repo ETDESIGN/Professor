@@ -55,7 +55,40 @@ export async function generateAndStoreAudio(
       body: audioBuffer,
     });
     if (uploadResponse.ok) {
-      return { url: `${supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}` };
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
+      // Task 17: record the audio as an asset + link it to the unit via
+      // unit_media (role 'audio'). Best-effort — never fails generation.
+      try {
+        const assetResp = await fetch(`${supabaseUrl}/rest/v1/assets`, {
+          method: 'POST',
+          headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({
+            unit_id: unitId || null,
+            type: 'audio',
+            kind: 'generated',
+            prompt: text?.slice(0, 200) || null,
+            storage_path: uploadPath,
+            public_url: publicUrl,
+          }),
+        });
+        if (assetResp.ok) {
+          const inserted = await assetResp.json();
+          const assetId = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
+          if (assetId && unitId) {
+            await fetch(`${supabaseUrl}/rest/v1/unit_media`, {
+              method: 'POST',
+              headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
+              body: JSON.stringify({ unit_id: unitId, asset_id: assetId, role: 'audio', order_index: 0 }),
+            });
+          }
+        } else {
+          const errBody = await assetResp.json().catch(() => ({}));
+          console.error('[tts] assets insert failed:', assetResp.status, (errBody as any)?.message || '');
+        }
+      } catch (assetErr: any) {
+        console.error('[tts] asset/unit_media link error:', assetErr?.message || assetErr);
+      }
+      return { url: publicUrl };
     }
     return { url: DUMMY, error: 'Storage upload failed' };
   } catch (err: any) {
