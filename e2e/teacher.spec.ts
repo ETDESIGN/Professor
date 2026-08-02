@@ -150,9 +150,13 @@ test.describe('Teacher Dashboard - Authenticated', () => {
   });
 });
 
-test.describe('Lesson Studio', () => {
+test.describe('Unit Studio', () => {
   test('studio page loads without crash', async ({ page }) => {
-    await page.goto('/teacher/studio');
+    // Phase 2: the LessonStudio route (/teacher/studio) was retired + the file
+    // deleted; the Unified Unit Studio at /teacher/unit/:id replaces it. Smoke
+    // test the new route. Without a known unit id + auth this redirects to
+    // login or the teacher app, which still validates "no crash".
+    await page.goto('/teacher/unit/00000000-0000-0000-0000-000000000000');
     await page.waitForTimeout(3000);
     const url = page.url();
     expect(url).toMatch(/\/(login|teacher)/);
