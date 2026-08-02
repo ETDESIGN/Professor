@@ -433,13 +433,31 @@ serve(async (req) => {
     const allRows: PoolItemRow[] = [];
     const siblingWords = vocabWithImages.map((v) => String(v.word)).filter(Boolean);
 
-    // Phase 1.6: registry-driven emission (advisor §2.5). activity_type_registry
+    // Phase 1.6: registry-GATED emission (advisor §2.5). activity_type_registry
     // declares which exercise types each learning-object type may produce. The
-    // gate below filters each builder's output to its registered types, so adding
-    // a new activity = insert a registry row + implement a generator (no change
-    // to this orchestration). PERMISSIVE FALLBACK: if the registry is empty or
-    // unreadable for a type, the builder's full output is kept (current behavior)
-    // — so a registry problem can never silently empty the pool.
+    // gate below filters each builder's output to its registered types.
+    //
+    // DESIGN DECISION (Task 18, ZCode 2026-08-03): the registry is an operational
+    // FILTER, NOT a driver. The builders (buildVocabItems/buildGrammarItems/...)
+    // are still hardcoded + called unconditionally; the registry can only NARROW
+    // their output. This is deliberate:
+    //  - The value today is operational gating: disable a type WITHOUT a code
+    //    deploy (e.g. delete the MINIMAL_PAIR_SWIPE row → it stops being emitted
+    //    for vocabulary, pool rebuilds on next reconciliation). Useful.
+    //  - Making it a true DRIVER (dispatch on generator_key) would require a
+    //    normalized builder signature (today they differ: vocab takes siblings,
+    //    dialogue takes allSpeakers, story takes questions). That's a real
+    //    refactor with regression risk and ~no near-term benefit — we're not
+    //    adding new activity types yet. Premature.
+    //  - `generator_key` is therefore DOCUMENTATION-ONLY (descriptive, not read).
+    //    It records which builder produces the type, for humans reading the table.
+    // When new activity types become a real workflow, revisit: extract a
+    // `Builder<LearningObject>` interface and dispatch from the registry. Until
+    // then, treat this as a permissive filter.
+    //
+    // PERMISSIVE FALLBACK: if the registry is empty/unreadable for a type, the
+    // builder's full output is kept — so a registry problem can never silently
+    // empty the pool.
     const registry = new Map<string, Set<string>>();
     try {
       const { data: regRows } = await sb.from('activity_type_registry').select('learning_object_type, activity_type');

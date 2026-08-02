@@ -19,8 +19,6 @@ const Reports = lazy(() => import('./Reports'));
 const TeacherMessages = lazy(() => import('./TeacherMessages'));
 const UploadTextbook = lazy(() => import('./UploadTextbook'));
 const UnitStudio = lazy(() => import('./UnitStudio'));
-const ReviewRoute = lazy(() => import('./ReviewRoute'));
-
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600" />
@@ -241,7 +239,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             <Routes location={location}>
               <Route path="" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
               <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
-              <Route path="review/:unitId" element={<RouteErrorBoundary name="unit-review"><Suspense fallback={<PageLoader />}><ReviewRoute /></Suspense></RouteErrorBoundary>} />
+              {/* Task 15: /teacher/review/:unitId route REMOVED — Review is now an
+                  in-Studio mode (UnitStudio overlay), not a separate route. */}
               <Route path="upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
               <Route path="students" element={<RouteErrorBoundary name="students"><Suspense fallback={<PageLoader />}><ClassManagement /></Suspense></RouteErrorBoundary>} />
               <Route path="assignments" element={<RouteErrorBoundary name="assignments"><Suspense fallback={<PageLoader />}><Assignments /></Suspense></RouteErrorBoundary>} />

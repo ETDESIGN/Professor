@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import UnitContentVault from './UnitContentVault';
 import PlanComposer from './PlanComposer';
 import { useUnitStudioStore } from '../../store/useUnitStudioStore';
+
+// Task 15: AssetWorkshop is now an IN-STUDIO Review mode (not a separate route).
+// Lazy-loaded so the (heavy) review surface doesn't bloat the Studio's main bundle
+// when the teacher isn't reviewing. It's rendered as an overlay panel over the
+// Content/Plan tabs, with onBack closing the mode and onOrchestrate returning to
+// the Content tab (the unit is already loaded — no re-navigation needed).
+const AssetWorkshop = lazy(() => import('./AssetWorkshop'));
 
 // Phase 2 (F2, decided D3) — the Unified Unit Studio. One component, one route
 // (/teacher/unit/:unitId), two tabs:
@@ -34,6 +41,8 @@ const UnitStudio: React.FC = () => {
   );
   const [unit, setUnit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // Task 15: in-Studio Review mode (replaces the /teacher/review/:id route).
+  const [showReview, setShowReview] = useState(false);
   // Phase 2.4: mobile gets a Content-only surface (no Plan tab) for v1.
   const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
@@ -112,11 +121,12 @@ const UnitStudio: React.FC = () => {
               <p className="text-sm text-slate-500">{theme}{theme && cefr ? ' \u2022 ' : ''}{cefr}</p>
             </div>
           </div>
-          {/* Phase 2.3 / G2: persistent entry point into the approve/reject Review
-              pass (AssetWorkshop, now routable by unit id). */}
+          {/* Task 15: Review is now an IN-STUDIO mode (not a route). The button
+              toggles an overlay panel rendering AssetWorkshop, so the teacher
+              never leaves the Studio to approve/regenerate. */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(`/teacher/review/${unit.id}`)}
+              onClick={() => setShowReview(true)}
               className="flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
               title="Review, approve or regenerate the generated content"
             >
@@ -184,6 +194,42 @@ const UnitStudio: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Task 15: Review mode overlay. AssetWorkshop renders as a full-screen
+          panel over the Studio (preserving Studio state underneath). onBack
+          closes the mode; onOrchestrate also closes it (the unit is already
+          loaded in the Studio — no re-navigation). The close X is a secondary
+          affordance for discoverability. */}
+      {showReview && unitId && (
+        <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shrink-0">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+              <Wand2 size={16} className="text-indigo-600" /> Review generated content
+            </div>
+            <button
+              onClick={() => setShowReview(false)}
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+              title="Close review (back to Studio)"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-indigo-600" /></div>}>
+              <AssetWorkshop
+                unitId={unitId}
+                onBack={() => setShowReview(false)}
+                onOrchestrate={() => {
+                  setShowReview(false);
+                  setTab('content');
+                  // The store may have new content after orchestration; reload.
+                  useUnitStudioStore.getState().load(unitId);
+                }}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

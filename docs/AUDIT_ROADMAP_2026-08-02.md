@@ -209,6 +209,19 @@ Status: ✅ Complete · ◐ Partial · ◇ Stub · ❌ Missing
 - **P0-3 (RLS regression) and P2-1 (NULL-owner backfill)** are the two items most likely to overlap with pipeline work — coordinate explicitly if touching either.
 - **P0-1 (billing), P0-2 (per-portal auth), P3-1/P3-2/P3-3/P3-4 (dev quality)** are cleanly isolated and safe to take without coordination.
 
+### Execution tracks (2026-08-03) — detailed implementation plans
+
+Four parallel-ready track plans have been written under `docs/track-plans/`. Each is self-contained (current-state facts, file boundaries, steps, verification, coordination notes, open questions) so a Qoder session can pick one up without re-deriving context. **File boundaries are exclusive** — no two tracks edit the same file by default.
+
+| Track | Plan doc | Scope (roadmap IDs) | Files owned (exclusive) | Overlap risk |
+|---|---|---|---|---|
+| **1 — Security** | [`TRACK_1_SECURITY_2026-08-03.md`](track-plans/TRACK_1_SECURITY_2026-08-03.md) | P0-3, P1-9, P1-10, P1-11 | 4 new migration files only | Only if pipeline session writes RLS (coordinate timestamps) |
+| **2 — Billing** | [`TRACK_2_BILLING_2026-08-03.md`](track-plans/TRACK_2_BILLING_2026-08-03.md) | P0-1, P0-4 | `stripe-webhook/`, `_shared/edgeHandler.ts`, `_shared/credits.ts` (new), `services/billingGate.ts` (new), `DataService.ts`, `AuthService.ts`, `ClassManagement.tsx` | `_shared/edgeHandler.ts` shared with pipeline — has Plan B fallback |
+| **3 — Auth** | [`TRACK_3_AUTH_2026-08-03.md`](track-plans/TRACK_3_AUTH_2026-08-03.md) | P0-2 | `components/shared/AuthGate.tsx` (new), 4× `*Entry.tsx` | None — fully isolated |
+| **4 — Fabrication** | [`TRACK_4_FABRICATION_2026-08-03.md`](track-plans/TRACK_4_FABRICATION_2026-08-03.md) | P1-1, P1-2, P1-3, P1-4, P1-5, P1-6 | `AIAnalysis.tsx`, `ParentDashboard.tsx`, `BoardPoll.tsx`, `evaluate-pronunciation/index.ts`, `VoiceCommandModal.tsx`, `DubbingGallery/Studio.tsx` | `evaluate-pronunciation` light touch — confirm pipeline session isn't editing it |
+
+**Recommended sequence:** Track 1 Step 1 (P0-3, the live answer-key leak) **solo first** — it's actively bleeding and is one migration. Then fan out Tracks 1/2/3/4 in parallel Qoder sessions. **P2 (pipeline) waits for the other session; P3 (dev quality) runs after feature freeze** (ESLint/strict-TS touch every file and conflict with everything).
+
 ---
 
 ## 6. How to use this doc
