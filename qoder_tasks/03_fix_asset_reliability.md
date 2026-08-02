@@ -43,3 +43,16 @@ Apply via the Management API (`--data-binary @<(python3 ...)`), register version
 - `docs/brainstorming/QODER_AUDIT.md` §1 (B-DEDUP, B-ASSET-SWALLOW)
 - `supabase/functions/_shared/imageGen.ts:58-101`
 - `supabase/migrations/20260502000001_asset_dedup.sql` (the existing non-unique index, to understand current state)
+
+---
+
+## STATUS
+
+- [x] Migration `20260802000002` exists, idempotent, applied on cloud (verified: `assets_prompt_hash_type_uniq` UNIQUE index confirmed via pg_indexes query)
+- [x] `_shared/imageGen.ts` logs insert errors instead of swallowing them (grep confirms no `.catch(() => {})` remains)
+- [x] On a unique-violation (409/23505) the function re-reads and returns the existing asset URL (no error surfaced to caller)
+- [x] `npx tsc --noEmit -p tsconfig.json` clean (only Deno/esm noise)
+- [x] Re-deployed `generate-exercises` AND `generate-media` (both import imageGen) via `supabase functions deploy <name> --no-verify-jwt`
+- **Commit:** (see below)
+- **Notes:** The dedupe DELETE in the migration ran cleanly (no error), meaning either no duplicates existed or they were removed. Both indexes now coexist: the old non-unique `idx_assets_prompt_hash` (for fast lookups) and the new unique `assets_prompt_hash_type_uniq` (for constraint). The insert now uses `Prefer: return=representation` header for richer error context.
+- **Questions for reviewer:** none

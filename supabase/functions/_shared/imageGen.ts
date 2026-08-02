@@ -85,19 +85,43 @@ export async function generateAndStoreImage(prompt: string, unitId: string): Pro
     // is still tracked — previously a proxy failure meant nothing was recorded,
     // leaving the assets table (and thus the vault) permanently empty.
     if (supabaseUrl && supabaseKey) {
-      await fetch(`${supabaseUrl}/rest/v1/assets`, {
-        method: 'POST',
-        headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          unit_id: unitId || null,
-          type: 'image',
-          kind: 'generated',
-          prompt,
-          prompt_hash: promptHash,
-          storage_path: proxied ? `images/${unitId || 'default'}` : 'external',
-          public_url: url,
-        }),
-      }).catch(() => {});
+      try {
+        const insertResp = await fetch(`${supabaseUrl}/rest/v1/assets`, {
+          method: 'POST',
+          headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({
+            unit_id: unitId || null,
+            type: 'image',
+            kind: 'generated',
+            prompt,
+            prompt_hash: promptHash,
+            storage_path: proxied ? `images/${unitId || 'default'}` : 'external',
+            public_url: url,
+          }),
+        });
+        if (!insertResp.ok) {
+          const errBody = await insertResp.json().catch(() => ({}));
+          // 409 / 23505 = unique_violation: a concurrent run already inserted
+          // this asset. Re-read its public_url and return it (dedup-safe).
+          if (insertResp.status === 409 || (errBody as any)?.code === '23505') {
+            const reRead = await fetch(
+              `${supabaseUrl}/rest/v1/assets?select=public_url&type=eq.image&prompt_hash=eq.${promptHash}&limit=1`,
+              { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } },
+            );
+            if (reRead.ok) {
+              const rows = await reRead.json();
+              if (Array.isArray(rows) && rows.length > 0 && rows[0].public_url) {
+                return { url: rows[0].public_url, provider: 'dedup' };
+              }
+            }
+          } else {
+            console.error('[imageGen] assets insert failed:', insertResp.status, (errBody as any)?.message || JSON.stringify(errBody));
+          }
+        }
+      } catch (insertErr: any) {
+        // Network-level failure on the insert — log but don't fail generation.
+        console.error('[imageGen] assets insert error:', insertErr?.message || insertErr);
+      }
     }
     return { url, provider: generated.provider };
   } catch (err: any) {
