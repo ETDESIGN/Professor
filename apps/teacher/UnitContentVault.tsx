@@ -11,7 +11,7 @@ import CastStoryMap from './CastStoryMap';
 import MediaPickerModal from './MediaPickerModal';
 import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
-import { useUnitStudioStore, VocabItem, GrammarRule } from '../../store/useUnitStudioStore';
+import { useUnitStudioStore, VocabItem, GrammarRule, StoryPage } from '../../store/useUnitStudioStore';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
 
@@ -21,14 +21,6 @@ interface QuizQuestion {
   options: string[];
   correct: string;
   image?: string;
-}
-
-interface StoryPage {
-  id: string;
-  text: string;
-  speaker?: string;
-  speakerEmoji?: string;
-  imageUrl?: string;
 }
 
 const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
@@ -48,7 +40,9 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const storeUnitId = useUnitStudioStore(s => s.unitId);
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [storyPages, setStoryPages] = useState<StoryPage[]>([]);
+  // Task 11: story state now lives in the shared Unit Studio store.
+  const storyPages = useUnitStudioStore(s => s.storyPages);
+  const setStoryPages = useUnitStudioStore(s => s.setStoryPages);
   // Task 10: grammar state now lives in the shared Unit Studio store.
   const grammarRules = useUnitStudioStore(s => s.grammarRules);
   const setGrammarRules = useUnitStudioStore(s => s.setGrammarRules);
@@ -118,27 +112,8 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       const quizStep = (u.flow || []).find((s: any) => s.type === 'GAME_ARENA' || s.type === 'SPEED_QUIZ');
       setQuestions(quizStep?.data?.questions || []);
 
-      // C.3: story loads from the relational story_pages table (canonical),
-      // falling back to the flow's STORY_STAGE pages for unmigrated units.
-      let loadedPages: StoryPage[] = [];
-      try {
-        const { data: spRows } = await supabase
-          .from('story_pages')
-          .select('id, text, speaker, speaker_override_name')
-          .eq('unit_id', unitId)
-          .order('page_number', { ascending: true });
-        if (spRows && spRows.length > 0) {
-          loadedPages = spRows.map((p: any) => ({
-            id: p.id, text: p.text || '', speaker: p.speaker || p.speaker_override_name || '',
-            speakerEmoji: '', imageUrl: '',
-          }));
-        }
-      } catch { /* fall back to flow below */ }
-      if (loadedPages.length === 0) {
-        const storyStep = (u.flow || []).find((s: any) => s.type === 'STORY_STAGE');
-        loadedPages = storyStep?.data?.pages || [];
-      }
-      setStoryPages(loadedPages);
+      // Task 11: story is now loaded by the store (store.load). No story
+      // fetch here.
 
       // Task 10: grammar is now loaded by the store (store.load). No grammar
       // fetch here.

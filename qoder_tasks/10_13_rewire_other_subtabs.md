@@ -58,9 +58,9 @@ Replace local `useState` with the store; remove the sub-tab's DB fetch from the 
 - **Notes:** Grammar sub-tab reads `grammarRules`/`setGrammarRules` from the store. Local `interface GrammarRule` removed (imported from store). Grammar fetch removed from loadUnit(). All grammar call sites (inline onChange handlers in the grammar sub-tab JSX) use `setGrammarRules(newRules)` pattern which works with the store's setter. Typecheck + build clean.
 
 ### Task 11 (Story)
-- [ ] acceptance criteria met
-- **Commit:** _pending_
-- **Notes:**
+- [x] acceptance criteria met
+- **Commit:** (see git log)
+- **Notes:** Story sub-tab reads `storyPages`/`setStoryPages` from the store. Local `interface StoryPage` removed (imported from store). Story fetch removed from loadUnit(). Call sites (`addStoryPage`, `removeStoryPage`, `updateStoryPage`) use `prev =>` updaters — work unchanged. Typecheck + build clean.
 
 ### Task 12 (Dialogue + Cast)
 - [ ] acceptance criteria met
