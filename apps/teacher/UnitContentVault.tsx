@@ -11,7 +11,7 @@ import CastStoryMap from './CastStoryMap';
 import MediaPickerModal from './MediaPickerModal';
 import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
-import { useUnitStudioStore, VocabItem } from '../../store/useUnitStudioStore';
+import { useUnitStudioStore, VocabItem, GrammarRule } from '../../store/useUnitStudioStore';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
 
@@ -29,12 +29,6 @@ interface StoryPage {
   speaker?: string;
   speakerEmoji?: string;
   imageUrl?: string;
-}
-
-interface GrammarRule {
-  rule: string;
-  explanation: string;
-  world_examples: string[];
 }
 
 const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
@@ -55,7 +49,9 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [storyPages, setStoryPages] = useState<StoryPage[]>([]);
-  const [grammarRules, setGrammarRules] = useState<GrammarRule[]>([]);
+  // Task 10: grammar state now lives in the shared Unit Studio store.
+  const grammarRules = useUnitStudioStore(s => s.grammarRules);
+  const setGrammarRules = useUnitStudioStore(s => s.setGrammarRules);
   const [mediaStep, setMediaStep] = useState<any>(null);
 
   // Phase 1.1-3: the unit's linked characters (book-level cast appearing here).
@@ -144,30 +140,8 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       }
       setStoryPages(loadedPages);
 
-      const grammarStep = (u.flow || []).find((s: any) => s.type === 'GRAMMAR_SANDBOX');
-      // C.3: grammar loads from the relational grammar_rules table (the canonical
-      // source generate-exercises reads), falling back to the legacy manifest for
-      // units not yet migrated. (Fixes the reconciliation bug where edits went to
-      // the manifest while generate-exercises read the stale relational table.)
-      let rules: GrammarRule[] = [];
-      try {
-        const { data: grRows } = await supabase
-          .from('grammar_rules')
-          .select('rule, explanation, examples')
-          .eq('unit_id', unitId)
-          .order('order_index', { ascending: true });
-        if (grRows && grRows.length > 0) {
-          rules = grRows.map((r: any) => ({
-            rule: r.rule || '', explanation: r.explanation || '', world_examples: Array.isArray(r.examples) ? r.examples : [],
-          }));
-        }
-      } catch { /* fall back to manifest below */ }
-      if (rules.length === 0) {
-        rules = (u.manifest?.knowledge_graph?.grammar_rules || []).map((r: any) => ({
-          rule: r.rule || '', explanation: r.explanation || '', world_examples: r.world_examples || [],
-        }));
-      }
-      setGrammarRules(rules);
+      // Task 10: grammar is now loaded by the store (store.load). No grammar
+      // fetch here.
 
       const mediaS = (u.flow || []).find((s: any) => s.type === 'MEDIA_PLAYER');
       setMediaStep(mediaS?.data || null);
