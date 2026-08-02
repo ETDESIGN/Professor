@@ -66,9 +66,9 @@ For each: the picker's `onSelect(asset)` should set the relevant field. Use the 
 ## STATUS
 
 ### Task 14 (Unified save)
-- [ ] acceptance criteria met
-- **Commit:** _pending_
-- **Notes:**
+- [x] acceptance criteria met
+- **Commit:** (see git log)
+- **Notes:** Studio header now has [Save] + [Publish & Teach] buttons calling `store.save()`. Save is disabled when `dirty.size === 0` (tooltip: "Nothing to save") and shows spinner while saving. Amber dot indicator next to title when dirty. "Publish & Teach" calls `store.save()` then navigates to `/teacher/live` on success. Vault's Save + Publish buttons hidden when `embedded` (kept for standalone use). Re-enrich button stays in the vault header. Typecheck + build clean.
 
 ### Task 16 (MediaPicker 4 fields)
 - [ ] acceptance criteria met

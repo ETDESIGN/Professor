@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import UnitContentVault from './UnitContentVault';
 import PlanComposer from './PlanComposer';
+import { useUnitStudioStore } from '../../store/useUnitStudioStore';
 
 // Phase 2 (F2, decided D3) — the Unified Unit Studio. One component, one route
 // (/teacher/unit/:unitId), two tabs:
@@ -20,6 +21,10 @@ type StudioTab = 'content' | 'plan';
 const UnitStudio: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
   const navigate = useNavigate();
+  // Task 14: the single save action lives here (the Studio header).
+  const storeSave = useUnitStudioStore(s => s.save);
+  const saving = useUnitStudioStore(s => s.saving);
+  const dirty = useUnitStudioStore(s => s.dirty);
   // Initial tab honors ?tab=plan so the unit card's "Plan" action lands on the
   // Plan tab (the Content/"Review Content" action lands on Content by default).
   const [tab, setTab] = useState<StudioTab>(() =>
@@ -100,19 +105,41 @@ const UnitStudio: React.FC = () => {
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">{unit.manifest?.meta?.unit_title || unit.title || 'Unit Studio'}</h1>
+              <h1 className="text-xl font-bold text-slate-800">
+                {unit.manifest?.meta?.unit_title || unit.title || 'Unit Studio'}
+                {dirty.size > 0 && <span className="ml-2 inline-block w-2 h-2 rounded-full bg-amber-400" title="Unsaved edits" />}
+              </h1>
               <p className="text-sm text-slate-500">{theme}{theme && cefr ? ' \u2022 ' : ''}{cefr}</p>
             </div>
           </div>
           {/* Phase 2.3 / G2: persistent entry point into the approve/reject Review
               pass (AssetWorkshop, now routable by unit id). */}
-          <button
-            onClick={() => navigate(`/teacher/review/${unit.id}`)}
-            className="flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
-            title="Review, approve or regenerate the generated content"
-          >
-            <Wand2 size={16} /> Review
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(`/teacher/review/${unit.id}`)}
+              className="flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
+              title="Review, approve or regenerate the generated content"
+            >
+              <Wand2 size={16} /> Review
+            </button>
+            {/* Task 14: single [Save] + [Publish & Teach] in the Studio header. */}
+            <button
+              onClick={() => storeSave()}
+              disabled={saving || dirty.size === 0}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              title={dirty.size === 0 ? 'Nothing to save' : 'Save all edits'}
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              Save
+            </button>
+            <button
+              onClick={async () => { const ok = await storeSave(); if (ok) navigate('/teacher/live'); }}
+              disabled={saving}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              <Play size={16} /> Publish & Teach
+            </button>
+          </div>
         </div>
         <nav className="flex gap-1 mt-3">
           <button

@@ -501,6 +501,9 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
             {reEnriching ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
             Re-enrich with AI
           </button>
+          {/* Task 14: Save + Publish moved to the UnitStudio header when embedded. */}
+          {!embedded && (
+          <>
           <button onClick={save} disabled={saving} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Save
@@ -509,6 +512,8 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
             <Play size={16} />
             Publish & Teach
           </button>
+          </>
+          )}
         </div>
       </header>
 
