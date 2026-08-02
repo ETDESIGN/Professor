@@ -51,3 +51,15 @@ Each `qual` should now contain `auth.role() = 'authenticated'`.
 - `docs/brainstorming/QODER_AUDIT.md` §4 (item 5)
 - `supabase/migrations/20260730000009_vocabulary_items.sql`, `20260729000004_story_tables.sql`, `20260730000001_dialogue_lines.sql`, `20260730000003_grammar_rules.sql` (current policies to copy+extend)
 - `supabase/migrations/20260628000000_objectives_table.sql` (the reference pattern with the `authenticated` clause)
+
+---
+
+## STATUS
+
+- [x] Migration `20260802000003` exists, idempotent (DROP IF EXISTS + CREATE), applied on cloud
+- [x] All 4 content tables' SELECT policies include `OR auth.role() = 'authenticated'` (verified via pg_policies query — all 4 rows confirmed)
+- [x] `anon` grant is SELECT-only on these 4 tables (verified via information_schema.table_privileges — only SELECT privilege remains)
+- [x] No app code changes (DB-only migration)
+- **Commit:** (see below)
+- **Notes:** Pure SQL migration, no build/typecheck needed. Existing clauses preserved exactly (teacher owns unit, teacher_id IS NULL, is_teacher_or_admin()) with the authenticated clause appended. REVOKE ALL + GRANT SELECT tightens anon from ALL to SELECT.
+- **Questions for reviewer:** none
