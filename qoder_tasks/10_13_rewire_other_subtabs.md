@@ -63,9 +63,9 @@ Replace local `useState` with the store; remove the sub-tab's DB fetch from the 
 - **Notes:** Story sub-tab reads `storyPages`/`setStoryPages` from the store. Local `interface StoryPage` removed (imported from store). Story fetch removed from loadUnit(). Call sites (`addStoryPage`, `removeStoryPage`, `updateStoryPage`) use `prev =>` updaters — work unchanged. Typecheck + build clean.
 
 ### Task 12 (Dialogue + Cast)
-- [ ] acceptance criteria met
-- **Commit:** _pending_
-- **Notes:**
+- [x] acceptance criteria met
+- **Commit:** (see git log)
+- **Notes:** No-op (verified, no code changes). There is no Dialogue sub-tab in UnitContentVault — dialogue editing isn't implemented as a tab yet (the store doesn't own a `dialogue` array). The Cast tab uses `linkedChars`/`CharacterService` which the task explicitly says to leave as-is. Typecheck + build clean; no regression in Cast picker (unchanged).
 
 ### Task 13 (Media + Settings + Questions + save button)
 - [ ] acceptance criteria met
