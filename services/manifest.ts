@@ -180,6 +180,8 @@ export interface StoryPage {
   text?: string;
   speaker?: string;
   image?: string;
+  imageUrl?: string;
+  image_url?: string;
   image_prompt?: string;
   comprehension_questions?: { question?: string; options?: string[]; answer?: number }[];
 }
@@ -197,14 +199,48 @@ export function getStory(manifest: any): CanonicalStory {
   const base = normalizeManifest(manifest).story;
   const rel = manifest?._relational;
   if (rel && Array.isArray(rel.story_pages) && rel.story_pages.length > 0) {
+    // Build a lookup of comprehension questions by story_page_id.
+    const questions: any[] = Array.isArray(rel.story_questions) ? rel.story_questions : [];
+    const qByPageId = new Map<string, any[]>();
+    const qNoPageId: any[] = [];
+    for (const q of questions) {
+      if (q.story_page_id) {
+        const arr = qByPageId.get(q.story_page_id) || [];
+        arr.push(q);
+        qByPageId.set(q.story_page_id, arr);
+      } else {
+        qNoPageId.push(q);
+      }
+    }
+    // Sort each group by order_index for stable ordering.
+    for (const arr of qByPageId.values()) arr.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    qNoPageId.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
     return {
       title: base.title,
       setting: base.setting,
-      pages: rel.story_pages.map((p: any) => ({
-        text: p.text,
-        speaker: p.speaker || p.speaker_override_name,
-        image_prompt: p.image_prompt,
-      })),
+      pages: rel.story_pages.map((p: any, i: number) => {
+        // Attach comprehension questions: match by story_page_id, fallback to
+        // order_index-based assignment for questions with null story_page_id.
+        const matched = qByPageId.get(p.id) || [];
+        const fallback = qNoPageId.filter((q) => q.order_index === i);
+        const cqs = [...matched, ...fallback].map((q) => ({
+          question: q.question,
+          options: Array.isArray(q.options) ? q.options : [],
+          answer: typeof q.answer_index === 'number' ? q.answer_index : 0,
+        }));
+        // Resolve image URL from the bundle's asset join (Part B migration).
+        const imgUrl = p.image_url || undefined;
+        return {
+          text: p.text,
+          speaker: p.speaker || p.speaker_override_name,
+          image_prompt: p.image_prompt,
+          image: imgUrl,
+          imageUrl: imgUrl,
+          image_url: imgUrl,
+          comprehension_questions: cqs.length > 0 ? cqs : [],
+        };
+      }),
     };
   }
   return base;

@@ -54,3 +54,17 @@ print(json.dumps({'query': q}))
 - `docs/brainstorming/QODER_AUDIT.md` §1 (R1, R2 — verified)
 - `services/manifest.ts:194-211`
 - `supabase/migrations/20260730000012_get_unit_bundle_student_auth.sql` (the function to copy + extend)
+
+---
+
+## STATUS
+
+- [x] `services/manifest.ts` `getStory()` returns pages that include `comprehension_questions` (array) when the bundle has `story_questions`
+- [x] `services/manifest.ts` `getStory()` returns pages that include `imageUrl` when the bundle resolves it
+- [x] New migration `20260802000001` exists, is idempotent (`CREATE OR REPLACE FUNCTION`), and is applied on cloud
+- [x] `get_unit_bundle` now returns story_pages with `image_url` and dialogue_lines with `audio_url` (verified — fields present; currently NULL because no story_pages have image_asset_id set yet, but the JOIN is correct and will resolve once assets are linked)
+- [x] `npx tsc --noEmit -p tsconfig.json` clean (only Deno/esm noise from edge functions)
+- [x] `npx vite build` succeeds
+- **Commit:** `3ce6e7b`
+- **Notes:** 101 story_comprehension_questions all have story_page_id set, so the primary lookup path (qByPageId) covers all existing data. The order_index fallback is a safety net for future null-page-id questions. 86 story_pages exist, 0 currently have image_asset_id (Phase 3 vault FK not yet populated) — the join returns null gracefully.
+- **Questions for reviewer:** none
