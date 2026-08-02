@@ -68,6 +68,6 @@ Replace local `useState` with the store; remove the sub-tab's DB fetch from the 
 - **Notes:** No-op (verified, no code changes). There is no Dialogue sub-tab in UnitContentVault — dialogue editing isn't implemented as a tab yet (the store doesn't own a `dialogue` array). The Cast tab uses `linkedChars`/`CharacterService` which the task explicitly says to leave as-is. Typecheck + build clean; no regression in Cast picker (unchanged).
 
 ### Task 13 (Media + Settings + Questions + save button)
-- [ ] acceptance criteria met
-- **Commit:** _pending_
-- **Notes:**
+- [x] acceptance criteria met
+- **Commit:** (see git log)
+- **Notes:** Media (`mediaStep`), Settings (`manifest`), and Questions (`questions`) all re-wired to the store. Local `interface QuizQuestion` removed (imported from store). The `setMediaStep` call sites adapted from updater pattern to direct value (store's setMediaStep doesn't accept updaters — it's `(m: any | null) => void`). The questions + mediaStep fetches remain in loadUnit (they derive from `flow`, which the store doesn't load) but now write to the store. The vault's Save button is KEPT for now — removal deferred to Task 14 (the Studio header save must exist first). Typecheck + build clean.

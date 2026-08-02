@@ -11,24 +11,18 @@ import CastStoryMap from './CastStoryMap';
 import MediaPickerModal from './MediaPickerModal';
 import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
-import { useUnitStudioStore, VocabItem, GrammarRule, StoryPage } from '../../store/useUnitStudioStore';
+import { useUnitStudioStore, VocabItem, GrammarRule, StoryPage, QuizQuestion } from '../../store/useUnitStudioStore';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
-
-interface QuizQuestion {
-  id: string;
-  text: string;
-  options: string[];
-  correct: string;
-  image?: string;
-}
 
 const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { unitId } = useParams<{ unitId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<VaultTab>('vocabulary');
   const [unit, setUnit] = useState<any>(null);
-  const [manifest, setManifest] = useState<any>(null);
+  // Task 13: manifest now lives in the shared Unit Studio store.
+  const manifest = useUnitStudioStore(s => s.manifest);
+  const setManifest = useUnitStudioStore(s => s.setManifest);
   const [flow, setFlow] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -39,14 +33,18 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const storeLoad = useUnitStudioStore(s => s.load);
   const storeUnitId = useUnitStudioStore(s => s.unitId);
 
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  // Task 13: questions now live in the shared Unit Studio store.
+  const questions = useUnitStudioStore(s => s.questions);
+  const setQuestions = useUnitStudioStore(s => s.setQuestions);
   // Task 11: story state now lives in the shared Unit Studio store.
   const storyPages = useUnitStudioStore(s => s.storyPages);
   const setStoryPages = useUnitStudioStore(s => s.setStoryPages);
   // Task 10: grammar state now lives in the shared Unit Studio store.
   const grammarRules = useUnitStudioStore(s => s.grammarRules);
   const setGrammarRules = useUnitStudioStore(s => s.setGrammarRules);
-  const [mediaStep, setMediaStep] = useState<any>(null);
+  // Task 13: mediaStep now lives in the shared Unit Studio store.
+  const mediaStep = useUnitStudioStore(s => s.mediaStep);
+  const setMediaStep = useUnitStudioStore(s => s.setMediaStep);
 
   // Phase 1.1-3: the unit's linked characters (book-level cast appearing here).
   const [linkedChars, setLinkedChars] = useState<Character[]>([]);
@@ -103,7 +101,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       const u = await Engine.getUnitById(unitId);
       if (!u) { toast.error('Unit not found'); navigate('/teacher/units'); return; }
       setUnit(u);
-      setManifest(u.manifest || {});
+      // Task 13: manifest is loaded by the store (store.load). No local set.
       setFlow(u.flow || []);
 
       // Task 09: vocabulary is now loaded by the store (store.load). The
@@ -378,7 +376,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
   const selectYouTubeVideo = (videoId: string, title: string) => {
     const url = `https://www.youtube.com/watch?v=${videoId}`;
-    setMediaStep((prev: any) => ({ ...prev, videoUrl: url, title }));
+    setMediaStep({ ...(mediaStep || {}), videoUrl: url, title });
     setYtCustomUrl(url);
     recordVideoAsset(url, title);
     toast.success(`Selected: ${title}`);
@@ -386,7 +384,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
   const applyCustomUrl = () => {
     if (!ytCustomUrl) return;
-    setMediaStep((prev: any) => ({ ...prev, videoUrl: ytCustomUrl }));
+    setMediaStep({ ...(mediaStep || {}), videoUrl: ytCustomUrl });
     recordVideoAsset(ytCustomUrl);
     toast.success('Video URL updated');
   };
