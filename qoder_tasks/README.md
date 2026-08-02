@@ -8,10 +8,10 @@
 
 | # | Task | Owner | Status | Finding |
 |---|---|---|---|---|
-| 01 | Fix the two story-content regressions (R1 reading quiz, R2 story art) | QODER | pending | R1, R2 |
-| 02 | Fix the 3 broken navigation flows (post-live exit, mobile Plan, orphaned routes) | QODER | pending | B-EXIT, B-MOBILE |
-| 03 | Fix asset recording reliability (dedup unique constraint, stop swallowing errors) | QODER | pending | B-DEDUP, B-ASSET-SWALLOW |
-| 04 | Close the RLS gap on content tables (defense-in-depth) | QODER | pending | audit §4.5 |
+| 01 | Fix the two story-content regressions (R1 reading quiz, R2 story art) | QODER | review | R1, R2 |
+| 02 | Fix the 3 broken navigation flows (post-live exit, mobile Plan, orphaned routes) | QODER | review | B-EXIT, B-MOBILE |
+| 03 | Fix asset recording reliability (dedup unique constraint, stop swallowing errors) | QODER | review | B-DEDUP, B-ASSET-SWALLOW |
+| 04 | Close the RLS gap on content tables (defense-in-depth) | QODER | review | audit §4.5 |
 | 05 | Add `vocabulary_items` upsert to enrich-unit (single-emitter core) | **ME** | pending | B-VOCAB-EMIT |
 | 06 | Make orchestrate-lesson read relational (story/dialogue/grammar) not manifest | **ME** | pending | B-ORCH-DRIFT |
 | 07 | Decide `migrated_categories` fate + design Phase 2 real unification | **ME** | pending | audit §2, §3 |

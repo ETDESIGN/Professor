@@ -60,6 +60,6 @@ Each `qual` should now contain `auth.role() = 'authenticated'`.
 - [x] All 4 content tables' SELECT policies include `OR auth.role() = 'authenticated'` (verified via pg_policies query — all 4 rows confirmed)
 - [x] `anon` grant is SELECT-only on these 4 tables (verified via information_schema.table_privileges — only SELECT privilege remains)
 - [x] No app code changes (DB-only migration)
-- **Commit:** (see below)
+- **Commit:** `8dbbfb7`
 - **Notes:** Pure SQL migration, no build/typecheck needed. Existing clauses preserved exactly (teacher owns unit, teacher_id IS NULL, is_teacher_or_admin()) with the authenticated clause appended. REVOKE ALL + GRANT SELECT tightens anon from ALL to SELECT.
 - **Questions for reviewer:** none

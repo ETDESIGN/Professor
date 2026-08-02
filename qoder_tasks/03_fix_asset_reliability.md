@@ -53,6 +53,6 @@ Apply via the Management API (`--data-binary @<(python3 ...)`), register version
 - [x] On a unique-violation (409/23505) the function re-reads and returns the existing asset URL (no error surfaced to caller)
 - [x] `npx tsc --noEmit -p tsconfig.json` clean (only Deno/esm noise)
 - [x] Re-deployed `generate-exercises` AND `generate-media` (both import imageGen) via `supabase functions deploy <name> --no-verify-jwt`
-- **Commit:** (see below)
+- **Commit:** `114dd33`
 - **Notes:** The dedupe DELETE in the migration ran cleanly (no error), meaning either no duplicates existed or they were removed. Both indexes now coexist: the old non-unique `idx_assets_prompt_hash` (for fast lookups) and the new unique `assets_prompt_hash_type_uniq` (for constraint). The insert now uses `Prefer: return=representation` header for richer error context.
 - **Questions for reviewer:** none
