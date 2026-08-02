@@ -11,17 +11,9 @@ import CastStoryMap from './CastStoryMap';
 import MediaPickerModal from './MediaPickerModal';
 import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
+import { useUnitStudioStore, VocabItem } from '../../store/useUnitStudioStore';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
-
-interface VocabItem {
-  word: string;
-  definition: string;
-  context_sentence: string;
-  distractors: string[];
-  image_url?: string;
-  audio_url?: string;
-}
 
 interface QuizQuestion {
   id: string;
@@ -55,7 +47,12 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [vocabulary, setVocabulary] = useState<VocabItem[]>([]);
+  // Task 09: vocabulary state now lives in the shared Unit Studio store.
+  const vocabulary = useUnitStudioStore(s => s.vocabulary);
+  const setVocabulary = useUnitStudioStore(s => s.setVocabulary);
+  const storeLoad = useUnitStudioStore(s => s.load);
+  const storeUnitId = useUnitStudioStore(s => s.unitId);
+
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [storyPages, setStoryPages] = useState<StoryPage[]>([]);
   const [grammarRules, setGrammarRules] = useState<GrammarRule[]>([]);
@@ -102,6 +99,13 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     loadUnit();
   }, [unitId]);
 
+  // Task 09: single store load at the vault-component level. The store loads
+  // ALL relational categories (vocab, grammar, story) in one call. Guarded so
+  // it only fires when the store hasn't loaded THIS unit yet.
+  useEffect(() => {
+    if (unitId && storeUnitId !== unitId) storeLoad(unitId);
+  }, [unitId, storeUnitId, storeLoad]);
+
   const loadUnit = async () => {
     if (!unitId) return;
     setLoading(true);
@@ -112,30 +116,8 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       setManifest(u.manifest || {});
       setFlow(u.flow || []);
 
-      // C.3 vocab: load from the relational vocabulary_items (the canonical
-      // content row), falling back to the legacy manifest for unmigrated units.
-      let vocab: VocabItem[] = [];
-      try {
-        const { data: viRows } = await supabase
-          .from('vocabulary_items')
-          .select('word, definition, example_sentence, distractors, image_url, audio_url')
-          .eq('unit_id', unitId)
-          .order('order_index', { ascending: true });
-        if (viRows && viRows.length > 0) {
-          vocab = viRows.map((v: any) => ({
-            word: v.word || '', definition: v.definition || '', context_sentence: v.example_sentence || '',
-            distractors: Array.isArray(v.distractors) && v.distractors.length ? v.distractors : ['Option A', 'Option B', 'Option C'],
-            image_url: v.image_url || '', audio_url: v.audio_url || '',
-          }));
-        }
-      } catch { /* fall back to manifest below */ }
-      if (vocab.length === 0) {
-        vocab = (u.manifest?.knowledge_graph?.vocabulary || []).map((v: any) => ({
-          word: v.word || '', definition: v.definition || '', context_sentence: v.context_sentence || '',
-          distractors: v.distractors || ['Option A', 'Option B', 'Option C'], image_url: v.image_url || '', audio_url: v.audio_url || '',
-        }));
-      }
-      setVocabulary(vocab);
+      // Task 09: vocabulary is now loaded by the store (store.load). The
+      // store's load runs in a parallel mount effect. No vocab fetch here.
 
       const quizStep = (u.flow || []).find((s: any) => s.type === 'GAME_ARENA' || s.type === 'SPEED_QUIZ');
       setQuestions(quizStep?.data?.questions || []);

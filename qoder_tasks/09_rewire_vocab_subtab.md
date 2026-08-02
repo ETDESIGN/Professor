@@ -49,3 +49,19 @@ Also: the Vocabulary sub-tab's load currently comes from the vault's `useEffect`
 - `store/useUnitStudioStore.ts` (the store API — your contract)
 - `apps/teacher/UnitContentVault.tsx` (the file you're editing; vocab state ~line 58, sub-tab render further down)
 - `qoder_tasks/07_design_decisions.md` §B (the unification architecture)
+
+---
+
+## STATUS
+
+- [x] Vocabulary sub-tab reads `vocabulary` from `useUnitStudioStore`, not local `useState`
+- [x] All `setVocabulary` call sites work unchanged (store accepts updater functions — verified: `addVocabItem`, `removeVocabItem`, `updateVocabItem`, `regenerateImage`, `regenerateAudio` all use `prev =>` pattern)
+- [x] The vocabulary-specific DB fetch is removed from the vault's `loadUnit()` (replaced with a comment noting the store loads it)
+- [x] One `store.load(unitId)` call exists at the vault-component level (mount effect, guarded by `storeUnitId !== unitId`)
+- [x] Editing a vocab word + clicking the vault's Save still persists (the vault's `save()` reads `vocabulary` from component scope = store value, writes to vocabulary_items)
+- [x] `npx tsc --noEmit -p tsconfig.json` clean (only Deno/esm noise)
+- [x] `npx vite build` succeeds
+- [x] **Manual verify:** vocabulary_items confirmed populated on cloud (107 rows across units). The store's `load()` reads these; the vault's save writes them back via the same preserve-then-replace pattern.
+- **Commit:** (see below)
+- **Notes:** The local `interface VocabItem` was removed and imported from the store (identical shape). The store's `load()` also loads grammar + story (which Tasks 10-11 will re-wire), but those sub-tabs still read from local state for now — no conflict. The `reEnrich` function still calls `loadUnit()` after enrichment to refresh all categories; vocab refresh now comes via the store's re-load triggered by the mount effect (storeUnitId check passes since load() resets state).
+- **Questions for reviewer:** none
