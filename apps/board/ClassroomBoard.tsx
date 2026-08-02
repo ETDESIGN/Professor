@@ -26,7 +26,6 @@ import BoardISayYouSay from './templates/BoardISayYouSay';
 import BoardLiveClassWarmup from './templates/BoardLiveClassWarmup';
 import BoardMagicEyes from './templates/BoardMagicEyes';
 import BoardUnitSelection from './templates/BoardUnitSelection';
-import BoardPoll from './templates/BoardPoll';
 import BoardWheelOfDestiny from './templates/BoardWheelOfDestiny';
 import BoardOverlayLayer from './templates/BoardOverlayLayer';
 import BoardFlashMatch from './templates/BoardFlashMatch';
@@ -145,7 +144,6 @@ const ClassroomBoard: React.FC = () => {
               {currentStep.type === 'STORY_SEQUENCING' && <BoardStorySequencing data={currentStep.data} />}
               {(currentStep.type === 'I_SAY_YOU_SAY' || currentStep.type === 'SPEAKING') && <BoardISayYouSay data={currentStep.data} />}
               {currentStep.type === 'MAGIC_EYES' && <BoardMagicEyes data={currentStep.data} />}
-              {currentStep.type === 'POLL' && <BoardPoll data={currentStep.data} />}
               {currentStep.type === 'WHEEL_OF_DESTINY' && <BoardWheelOfDestiny data={currentStep.data} />}
               {currentStep.type === 'UNIT_SELECTION' && <BoardUnitSelection />}
               {(currentStep.type === 'SCRAMBLE') && <BoardUnscramble data={currentStep.data} />}

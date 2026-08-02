@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { MockModeBanner } from './components/shared/MockModeBanner';
 import { UpdatePrompt } from './components/shared/UpdatePrompt';
 import { AppProviders } from './components/shared/AppProviders';
+import { AuthGate } from './components/shared/AuthGate';
 import { initErrorReporting, setupGlobalErrorHandler } from './services/errorReporting';
 import { startMetricsCollection, stopMetricsCollection } from './services/perfMonitor';
 import './services/i18n';
@@ -53,7 +54,9 @@ if (rootElement) {
             <SessionProvider>
                 <Toaster position="top-center" richColors />
                 <BrowserRouter basename="/parent">
-                    <ParentEntry />
+                    <AuthGate portal="parent">
+                        <ParentEntry />
+                    </AuthGate>
                 </BrowserRouter>
             </SessionProvider>
             </AppProviders>

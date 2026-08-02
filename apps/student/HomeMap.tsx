@@ -6,6 +6,9 @@ import { supabase } from '../../services/supabaseClient';
 import { Engine } from '../../services/SupabaseService';
 import { motion } from 'framer-motion';
 
+// Feature flag: dubbing is a mock (audit P1-5). Default OFF.
+const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
+
 interface HomeMapProps {
   onNavigate: (view: string, unitId?: string) => void;
 }
@@ -275,6 +278,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
         >
           <LayoutGrid size={28} />
         </button>
+        {dubbingEnabled && (
         <button
           onClick={() => onNavigate('dubbing')}
           className="w-16 h-16 bg-purple-500 rounded-2xl shadow-xl border-b-4 border-purple-700 flex items-center justify-center animate-bounce-subtle hover:scale-110 transition-transform active:scale-95 active:border-b-0 active:translate-y-1"
@@ -282,6 +286,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
           <Mic className="text-white w-8 h-8" />
           <span className="absolute -top-3 -right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-white shadow-sm">NEW</span>
         </button>
+        )}
       </div>
     </div>
   );

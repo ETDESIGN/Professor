@@ -1,4 +1,6 @@
-
+// MOCK — do not ship enabled. Dubbing is unimplemented (audit P1-5).
+// Download/Share buttons have no handlers; player is a static emoji placeholder.
+// Enable only for demo/testing via VITE_ENABLE_DUBBING=true.
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Share2, Download, MoreHorizontal, Play, Star, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

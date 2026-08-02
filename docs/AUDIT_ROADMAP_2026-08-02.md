@@ -54,25 +54,25 @@ Per-isolate in-memory rate limiting (`_shared/rateLimit.ts`) is trivially defeat
 | ID | Issue | Evidence | Fix direction |
 |---|---|---|---|
 | **P0-1** | **Billing is not enforced at all.** Advertised "3 classes / 10K AI credits" (Free) and "Unlimited / 50K" (Pro) are fictional. No `subscription_tier` gate anywhere in `apps/` or `services/`. `ai_credits_balance` is read by `subscription-status` for display but decremented nowhere. Free users can create unlimited classes + run unlimited AI. | `services/BillingService.ts`, `apps/teacher/BillingSettings.tsx:23-44`, `subscription-status/index.ts:39` | Add a tier-check helper; gate class creation + AI-invoking functions (`enrich-unit`, `generate-exercises`, `generate-media`, `evaluate-pronunciation`) against `ai_credits_balance` and class count; decrement credits on each AI call; surface upgrade prompts. |
-| **P0-2** | **Per-portal entries have no auth gate or profile hydration.** `vercel.json` rewrites `/admin/:path*` → `admin.html` etc., and each `*Entry.tsx` mounts its app directly without calling `getCurrentUser()` or populating `useAppStore`. The auth guard, role check, and `onAuthStateChange` all live only in `App.tsx`, which these routes bypass. `/admin` loads `AdminPortal` unauthenticated; `AdminPortal.tsx:22` then always renders District view (never Manager). RLS still protects data, but shells render logged-out. | `adminEntry.tsx`, `teacherEntry.tsx`, `studentEntry.tsx`, `parentEntry.tsx` (whole files); `vercel.json:27-43`; `apps/admin/AdminPortal.tsx:22` | Either hydrate auth + guard in each `*Entry.tsx`, or remove the 4 standalone entries and serve everything from `index.html`/`App.tsx`. |
-| **P0-3** | **RLS regression re-leaked answer keys** (introduced 2026-08-02). `20260802000003_content_tables_rls_authenticated.sql:18-58` re-added `OR auth.role()='authenticated'` to `vocabulary_items`/`story_pages`/`dialogue_lines`/`grammar_rules`, undoning the `20260628000005` fix. Any authenticated student can SELECT every unit's answer-bearing content across all teachers. The migration's header claims "defense-in-depth" — it is the opposite. | `20260802000003_content_tables_rls_authenticated.sql:18-58` | Mirror the enrollment-scoped pattern from `20260628000005_rls_hardening.sql:36-44` (owner OR admin OR enrolled-in-a-class-with-an-assignment). |
+| ~~**P0-2**~~ | ~~**Per-portal entries have no auth gate or profile hydration.**~~ FIXED 2026-08-03: `AuthGate.tsx` created + mounted in all 4 entries; `adminEntry` now routes to `AdminPortal` (manager/admin split works). | ~~`adminEntry.tsx`, `teacherEntry.tsx`, `studentEntry.tsx`, `parentEntry.tsx`~~ | ~~Track 3 (auth)~~ |
+| ~~**P0-3**~~ | ~~**RLS regression re-leaked answer keys**~~ FIXED 2026-08-03: migration `20260803000001` drops `auth.role()='authenticated'`, restores enrollment-scoped policy + revokes anon SELECT. | ~~`20260802000003_content_tables_rls_authenticated.sql:18-58`~~ | ~~Track 1 (security)~~ |
 | **P0-4** | **Stripe webhook has 3 correctness bugs.** (a) No event-id idempotency → redeliveries double-insert `billing_history` (UNIQUE throws → 400 → Stripe retries → amplification loop). (b) `handleSubscriptionUpdate` has a dead `customers.list` call and silently no-ops if `stripe_customer_id` wasn't stamped. (c) Client polls `subscription-status` for a tier the webhook writes *asynchronously* → users see "upgrade failed" right after paying. | `supabase/functions/stripe-webhook/index.ts:49-63, 106-143`; `create-checkout/index.ts:57-67`; `subscription-status/index.ts:20-24` | (a) `processed_events` table with `ON CONFLICT DO NOTHING`. (b) Resolve userId from customer `metadata.supabuse_user_id`, upsert by `id`. (c) In `subscription-status`, reconcile from Stripe API if `stripe_subscription_id` exists; return `pending` rather than stale `free`. |
 
 ### P1 — Trust & correctness (functional but wrong/misleading) (11)
 
 | ID | Issue | Evidence |
 |---|---|---|
-| **P1-1** | AIAnalysis progress screen is fake — cycles 4 hardcoded strings, ignores `generation_jobs`. Teachers get a generic spinner; if generation fails silently they have no signal. | `apps/teacher/AIAnalysis.tsx:11-24` |
-| **P1-2** | ParentDashboard weekly-activity + "struggle areas" charts computed from `xp / N`, not real data. Misleading for a reporting product. | `apps/parent/ParentDashboard.tsx:61-76` |
-| **P1-3** | Pronunciation `emotionScore`/`emotionMatch`/`timing` fabricated from string similarity (no prosody analysis). String-similarity scoring itself is honest; these extra fields are not. | `evaluate-pronunciation/index.ts:96, 120, 135-136` |
-| **P1-4** | VoiceCommandModal is mock theater — no SpeechRecognition, types canned phrases, hardcoded `cmd.includes('leo')` branch. | `apps/remote/VoiceCommandModal.tsx:33-86` |
-| **P1-5** | DubbingGallery + DubbingStudio are static mock UI — Download/More/Share buttons have no `onClick`; "player" is a 🎬 emoji with hardcoded `0:12 / 0:45`. Treat dubbing as unimplemented. | `apps/parent/DubbingGallery.tsx:159-219` |
-| **P1-6** | BoardPoll has no voting handler — `votes` initialized to all-zero and never incremented; bars animate to 10%, percentages always 0%. | `apps/board/templates/BoardPoll.tsx:8-13, 104-160` |
+| ~~**P1-1**~~ | ~~AIAnalysis progress screen is fake~~ FIXED 2026-08-03: rewritten to poll `generation_jobs` with real failure UI + stall detection. | ~~`apps/teacher/AIAnalysis.tsx:11-24`~~ |
+| ~~**P1-2**~~ | ~~ParentDashboard charts fabricated~~ FIXED 2026-08-03: real `point_transactions` + FSRS mastery via `services/parentAnalytics.ts`. | ~~`apps/parent/ParentDashboard.tsx:61-76`~~ |
+| ~~**P1-3**~~ | ~~Pronunciation emotion/timing fabricated~~ FIXED 2026-08-03: fields removed from edge function + client; honest Levenshtein score kept. | ~~`evaluate-pronunciation/index.ts:96, 120, 135-136`~~ |
+| ~~**P1-4**~~ | ~~VoiceCommandModal is mock theater~~ FIXED 2026-08-03: flag-gated off (`VITE_ENABLE_VOICE_COMMANDS=false`), MOCK header added. | ~~`apps/remote/VoiceCommandModal.tsx:33-86`~~ |
+| ~~**P1-5**~~ | ~~DubbingGallery + DubbingStudio are static mock UI~~ FIXED 2026-08-03: flag-gated off (`VITE_ENABLE_DUBBING=false`), MOCK headers added. | ~~`apps/parent/DubbingGallery.tsx:159-219`~~ |
+| ~~**P1-6**~~ | ~~BoardPoll has no voting handler~~ FIXED 2026-08-03: removed outright (no student device surface). | ~~`apps/board/templates/BoardPoll.tsx:8-13, 104-160`~~ |
 | **P1-7** | `assets` table near-empty despite heavy generation — insert errors silently swallowed (`.catch(()=>{})` at `imageGen.ts:100`); vault empty → media picker can't reuse → duplicate image spend. | `supabase/functions/_shared/imageGen.ts:100` (verify task-03 claim actually surfaced errors) |
 | **P1-8** | AI spend unbounded: rate limiting per-isolate (defeated by multi-isolate scaling) + `generate-media` has **no ownership check** + no credit metering. One compromised account drains the budget. | `_shared/rateLimit.ts:1-32`; `generate-media/index.ts:24-71` |
-| **P1-9** | Permissive RLS still live beyond P0-3: `assets` `USING(true)` to anon; `srs_items` templates readable by any student for any unit (curriculum enumeration); legacy `parent_student_links` lets a parent self-claim any child at the DB level (approval only enforced in app code). | `20260417000002:20`; `20260517000001:8-15`; `20260320000003:146` |
-| **P1-10** | Blocking FKs block user deletion: `audit_logs.actor_id` and `assets.owner_id` have no `ON DELETE` → `manage-school-members delete_user` throws on users with audit rows or assets. Inconsistent with all other profiles FKs (CASCADE/SET NULL). | `20260420000003:5`; `20260730000006:82`; `manage-school-members/index.ts:229-236` |
-| **P1-11** | `audit_logs` has RLS policies but no `GRANT SELECT TO authenticated` → admin audit-log viewing silently broken client-side. Also the "Admins read all" policy body actually grants `role IN ('admin','teacher')`. | `20260420000003:5, 21-29` |
+| ~~**P1-9**~~ | ~~Permissive RLS still live~~ FIXED 2026-08-03: migration `20260803000004` tightens assets/srs_items/parent_student_links. | ~~`20260417000002:20`; `20260517000001:8-15`; `20260320000003:146`~~ |
+| ~~**P1-10**~~ | ~~Blocking FKs block user deletion~~ FIXED 2026-08-03: migrations `20260803000002` + `20260803000003` add ON DELETE SET NULL. | ~~`20260420000003:5`; `20260730000006:82`; `manage-school-members/index.ts:229-236`~~ |
+| ~~**P1-11**~~ | ~~`audit_logs` missing GRANT + mis-named policy~~ FIXED 2026-08-03: migration `20260803000002` adds GRANT + tightens to admin-only. | ~~`20260420000003:5, 21-29`~~ |
 
 **Smaller correctness items folded into this tier:**
 - Reports silently renders all-zeros on fetch failure (`apps/teacher/Reports.tsx:42-75`) — no error UI; teacher believes "0% mastery."
@@ -140,10 +140,10 @@ Status: ✅ Complete · ◐ Partial · ◇ Stub · ❌ Missing
 | Feature | Role | Status | Evidence |
 |---|---|---|---|
 | Multi-entry SPA | All | ✅ | `vite.config.ts:15-22`, `vercel.json:27-48` |
-| Auth + role guard | All | ✅ | `App.tsx:80-148` (but see P0-2 for per-portal entries) |
+| Auth + role guard | All | ✅ | `App.tsx:80-148` + `AuthGate.tsx` (P0-2 FIXED) |
 | Onboarding | All | ✅ | `apps/{teacher,student,parent}/%Onboarding.tsx` |
 | Textbook upload + OCR | Teacher | ✅ | `UploadTextbook.tsx`, `extract-page` |
-| **AIAnalysis progress UI** | Teacher | ◇ | fake string cycle — P1-1 |
+| **AIAnalysis progress UI** | Teacher | ✅ | real `generation_jobs` polling — P1-1 FIXED |
 | AI enrichment | Teacher | ✅ | `enrich-unit` (but see P2-2) |
 | Lesson/flow orchestration | Teacher | ✅ | `orchestrate-lesson` |
 | Exercise generation | Teacher | ✅ | `generate-exercises` |
@@ -153,7 +153,7 @@ Status: ✅ Complete · ◐ Partial · ◇ Stub · ❌ Missing
 | Content review status | Teacher | ◐ | write-only — P2-5 |
 | Lesson timeline / Plan composer | Teacher | ✅ | `PlanComposer.tsx` |
 | Live session command bus | Teacher | ✅ | `SessionContext`, `LIVE_GAME_LIFECYCLE.md` |
-| Board projector (18 templates) | Teacher | ✅ | `apps/board/templates/Board*.tsx` |
+| Board projector (18 templates) | Teacher | ✅ | `apps/board/templates/Board*.tsx` (BoardPoll removed — P1-6 FIXED) |
 | Teacher remote (2nd device) | Teacher | ✅ | `TeacherRemote.tsx` (but see P3-10 dead buttons) |
 | Live commander (desktop) | Teacher | ✅ | `LiveCommander.tsx` |
 | Cross-tab realtime sync | Teacher | ✅ | 2 channels |
@@ -164,15 +164,15 @@ Status: ✅ Complete · ◐ Partial · ◇ Stub · ❌ Missing
 | Hearts/energy | Student | ✅ | `student_hearts`, `GamificationService` |
 | Student exercise battery (12 types) | Student | ✅ | `apps/student/exercises/*` |
 | Student home map / gamification | Student | ✅ | `HomeMap`, `GamificationService`, Shop/Quests/Leaderboard |
-| **Pronunciation evaluation** | Student | ◐ | honest Levenshtein scoring + fabricated emotion/timing — P1-3 |
+| **Pronunciation evaluation** | Student | ✅ | honest Levenshtein scoring (P1-3 FIXED — fabricated fields removed) |
 | Student reading reader | Student | ✅ | `ReadingReader.tsx` |
-| **Student dubbing studio** | Student | ◇ | mock UI — P1-5, P2-8 |
-| **Parent dashboard** | Parent | ◐ | fabricated charts — P1-2 |
+| **Student dubbing studio** | Student | ◇ | mock UI — P1-5 flag-gated off (P2-8 still open) |
+| **Parent dashboard** | Parent | ✅ | real charts via `parentAnalytics.ts` (P1-2 FIXED) |
 | Parent reports | Parent | ✅ | `ParentReports.tsx` |
 | Parent messaging | Parent | ✅ | `ParentMessages.tsx`, `TeacherMessages.tsx` |
 | Parent↔student linking + approval | Parent | ✅ | `parent_links`, `decide_parent_roster_link` |
 | District admin dashboard | Admin | ✅ | `DistrictAdminDashboard.tsx` (real aggregates) |
-| Manager dashboard | Admin | ✅ | `ManagerDashboard.tsx` (but see P0-2) |
+| Manager dashboard | Admin | ✅ | `ManagerDashboard.tsx` (P0-2 FIXED — AuthGate + AdminPortal routing) |
 | School/member management | Admin | ✅ | `manage-school-members` (but see P1-9 invite-bypass) |
 | Multi-tenancy isolation | System | ✅ | scoping migrations |
 | Stripe checkout + portal | Teacher | ✅ | mechanics (but see P0-4) |
@@ -216,11 +216,11 @@ Four parallel-ready track plans have been written under `docs/track-plans/`. Eac
 | Track | Plan doc | Scope (roadmap IDs) | Files owned (exclusive) | Overlap risk |
 |---|---|---|---|---|
 | **1 — Security** | [`TRACK_1_SECURITY_2026-08-03.md`](track-plans/TRACK_1_SECURITY_2026-08-03.md) | P0-3, P1-9, P1-10, P1-11 | 4 new migration files only | Only if pipeline session writes RLS (coordinate timestamps) |
-| **2 — Billing** | [`TRACK_2_BILLING_2026-08-03.md`](track-plans/TRACK_2_BILLING_2026-08-03.md) | P0-1, P0-4 | `stripe-webhook/`, `_shared/edgeHandler.ts`, `_shared/credits.ts` (new), `services/billingGate.ts` (new), `DataService.ts`, `AuthService.ts`, `ClassManagement.tsx` | `_shared/edgeHandler.ts` shared with pipeline — has Plan B fallback |
+| ~~**2 — Billing**~~ | [`TRACK_2_BILLING_2026-08-03.md`](track-plans/TRACK_2_BILLING_2026-08-03.md) | ~~P0-1, P0-4~~ | — | **PARKED 2026-08-03** — billing policy undecided; may not use Stripe. Revisit when policy is set. |
 | **3 — Auth** | [`TRACK_3_AUTH_2026-08-03.md`](track-plans/TRACK_3_AUTH_2026-08-03.md) | P0-2 | `components/shared/AuthGate.tsx` (new), 4× `*Entry.tsx` | None — fully isolated |
-| **4 — Fabrication** | [`TRACK_4_FABRICATION_2026-08-03.md`](track-plans/TRACK_4_FABRICATION_2026-08-03.md) | P1-1, P1-2, P1-3, P1-4, P1-5, P1-6 | `AIAnalysis.tsx`, `ParentDashboard.tsx`, `BoardPoll.tsx`, `evaluate-pronunciation/index.ts`, `VoiceCommandModal.tsx`, `DubbingGallery/Studio.tsx` | `evaluate-pronunciation` light touch — confirm pipeline session isn't editing it |
+| **4 — Fabrication** | [`TRACK_4_FABRICATION_2026-08-03.md`](track-plans/TRACK_4_FABRICATION_2026-08-03.md) | P1-1, P1-2, P1-3, P1-4, P1-5, P1-6 | `AIAnalysis.tsx`, `ParentDashboard.tsx`, `BoardPoll.tsx`, `evaluate-pronunciation/index.ts`, `VoiceCommandModal.tsx`, `DubbingGallery/Studio.tsx` | `evaluate-pronunciation` — no longer contested now that Track 2 is parked |
 
-**Recommended sequence:** Track 1 Step 1 (P0-3, the live answer-key leak) **solo first** — it's actively bleeding and is one migration. Then fan out Tracks 1/2/3/4 in parallel Qoder sessions. **P2 (pipeline) waits for the other session; P3 (dev quality) runs after feature freeze** (ESLint/strict-TS touch every file and conflict with everything).
+**Recommended sequence:** Track 1 Step 1 (P0-3, the live answer-key leak) **solo first** — it's actively bleeding and is one migration. Then fan out Tracks 1/3/4 in parallel Qoder sessions (Track 2 Billing is **parked** — billing policy undecided, may not use Stripe). **P2 (pipeline) waits for the other session; P3 (dev quality) runs after feature freeze** (ESLint/strict-TS touch every file and conflict with everything).
 
 ---
 

@@ -19,6 +19,9 @@ import { GamificationService } from '../../services/GamificationService';
 import { GEM_REWARDS, XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import { createClientLogger } from '../../services/logger';
 
+// Feature flag: dubbing is a mock (audit P1-5). Default OFF.
+const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
+
 const DubbingStudio = lazy(() => import('./DubbingStudio'));
 const Profile = lazy(() => import('./Profile'));
 const Settings = lazy(() => import('./Settings'));
@@ -270,7 +273,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   }
 
   // Full screen standalone apps
-  if (location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 50, accuracy: 95, time: '2:30' })} /></Suspense>;
+  if (dubbingEnabled && location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 50, accuracy: 95, time: '2:30' })} /></Suspense>;
   if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => handleLessonComplete({ xp: 45, accuracy: 85, time: '3:00' })} /></Suspense>;
   if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => handleLessonComplete({ xp: 60, accuracy: 100, time: '4:20' })} /></Suspense>;
   if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => handleLessonComplete({ xp: 40, accuracy: 92, time: '1:45' })} /></Suspense>;

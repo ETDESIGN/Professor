@@ -8,11 +8,12 @@ import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { MockModeBanner } from './components/shared/MockModeBanner';
 import { UpdatePrompt } from './components/shared/UpdatePrompt';
 import { AppProviders } from './components/shared/AppProviders';
+import { AuthGate } from './components/shared/AuthGate';
 import { initErrorReporting, setupGlobalErrorHandler } from './services/errorReporting';
 import { startMetricsCollection, stopMetricsCollection } from './services/perfMonitor';
 import './services/i18n';
 
-const DistrictAdminDashboard = lazy(() => import('./apps/admin/DistrictAdminDashboard'));
+const AdminPortal = lazy(() => import('./apps/admin/AdminPortal'));
 
 const PageLoader = () => (
     <div className="flex items-center justify-center h-screen bg-slate-50">
@@ -35,7 +36,7 @@ const AdminEntry = () => {
         <Routes>
             <Route path="/*" element={
                 <Suspense fallback={<PageLoader />}>
-                    <DistrictAdminDashboard />
+                    <AdminPortal />
                 </Suspense>
             } />
         </Routes>
@@ -53,7 +54,9 @@ if (rootElement) {
             <SessionProvider>
                 <Toaster position="top-center" richColors />
                 <BrowserRouter basename="/admin">
-                    <AdminEntry />
+                    <AuthGate portal="admin">
+                        <AdminEntry />
+                    </AuthGate>
                 </BrowserRouter>
             </SessionProvider>
             </AppProviders>

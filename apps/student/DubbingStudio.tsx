@@ -1,3 +1,5 @@
+// MOCK — do not ship enabled. Dubbing is unimplemented (audit P1-5).
+// Enable only for demo/testing via VITE_ENABLE_DUBBING=true.
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, MoreHorizontal, Headphones, Mic, Play, StopCircle, Loader2, Star, Volume2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,8 +13,6 @@ const log = createClientLogger('DubbingStudio');
 interface DubbingResult {
   score: number;
   feedback: string;
-  emotionMatch: 'high' | 'medium' | 'low';
-  timing: 'perfect' | 'early' | 'late' | 'slight_offset' | 'off';
   transcript: string;
   similarity: number;
 }
@@ -136,8 +136,6 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
         const result: DubbingResult = {
           score: eval_.score || 0,
           feedback: eval_.feedback || 'Evaluation complete.',
-          emotionMatch: eval_.emotionMatch || 'low',
-          timing: eval_.timing || 'off',
           transcript: eval_.transcript || '',
           similarity: eval_.similarity || 0
         };
@@ -424,11 +422,8 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
                   <span className={`font-bold text-lg ${scoreColor}`}>{result.score}/100</span>
                 </div>
                 <div className="flex gap-2 text-xs font-medium">
-                  <span className={`px-2 py-1 rounded-full ${result.emotionMatch === 'high' ? 'bg-green-500/20 text-green-400' : result.emotionMatch === 'medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
-                    Emotion: {result.emotionMatch}
-                  </span>
-                  <span className={`px-2 py-1 rounded-full ${result.timing === 'perfect' ? 'bg-green-500/20 text-green-400' : result.timing === 'slight_offset' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
-                    Timing: {result.timing}
+                  <span className={`px-2 py-1 rounded-full ${result.score >= 80 ? 'bg-green-500/20 text-green-400' : result.score >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                    Accuracy: {result.score}%
                   </span>
                 </div>
               </div>

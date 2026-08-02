@@ -62,13 +62,6 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('RESTART')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={20} /> Reset</button>
         </div>
       );
-    case 'POLL':
-      return (
-        <div className="flex gap-2">
-          <button onClick={() => triggerAction('SHOW_RESULTS')} className="h-12 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95"><BarChart2 size={20} /> Show Results</button>
-          <button onClick={() => triggerAction('RESET_TIMER')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Clock size={20} /> Reset</button>
-        </div>
-      );
     case 'UNSCRAMBLE':
     case 'STORY_SEQUENCING':
       return (

@@ -1,3 +1,6 @@
+// MOCK — do not ship enabled. Real STT is unimplemented (audit P1-4).
+// This component simulates speech recognition by typing canned phrases.
+// Enable only for demo/testing via VITE_ENABLE_VOICE_COMMANDS=true.
 import React, { useState, useEffect } from 'react';
 import { Mic, X, Activity, Command, ArrowRight } from 'lucide-react';
 import { useSession } from '../../store/SessionContext';

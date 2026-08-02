@@ -247,6 +247,15 @@ If you build another team-based game, follow TeamBattle's pattern instead of §5
 No per-student scoring. They only subscribe to navigation controls
 (`NEXT_CARD`, `PLAY_PAUSE`, …). Skip §5 entirely — just handle `lastAction`.
 
+### Removed: BoardPoll (2026-08-03)
+`BoardPoll.tsx` was removed outright. It had no voting handler — `votes` was
+initialized to all-zero and never incremented (no student device surface exists
+to submit votes). The classroom model is projector + teacher-remote only;
+students have no `classroom_live` subscription or vote UI. Wiring a functional
+poll would require building a new 1:1 student-live surface (channel subscription,
+route, auth, vote UI, aggregation) — a different product shape. Recreate only
+if/when a 1:1 student-device model is introduced.
+
 ---
 
 ## 10. File map (where everything lives)

@@ -7,6 +7,9 @@ import ConfettiSystem from '../../components/effects/ConfettiSystem';
 import { useAppStore } from '../../store/useAppStore';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
 
+// Feature flag: dubbing is a mock (audit P1-5). Default OFF.
+const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
+
 const DubbingGallery = lazy(() => import('./DubbingGallery'));
 const ParentReports = lazy(() => import('./ParentReports'));
 const ParentDashboard = lazy(() => import('./ParentDashboard'));
@@ -62,7 +65,9 @@ const ParentApp: React.FC<ParentAppProps> = ({ onSignOut }) => {
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<RouteErrorBoundary name="parent-dashboard"><Suspense fallback={<PageLoader />}><ParentDashboard onNavigate={(path) => navigate(`/parent/${path}`)} /></Suspense></RouteErrorBoundary>} />
             <Route path="/messages" element={<RouteErrorBoundary name="parent-messages"><Suspense fallback={<PageLoader />}><ParentMessages onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            {dubbingEnabled && (
             <Route path="/gallery" element={<RouteErrorBoundary name="parent-gallery"><Suspense fallback={<PageLoader />}><DubbingGallery onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            )}
             <Route path="/reports" element={<RouteErrorBoundary name="parent-reports"><Suspense fallback={<PageLoader />}><ParentReports onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
             <Route path="/settings" element={<RouteErrorBoundary name="parent-settings"><Suspense fallback={<PageLoader />}><ParentSettings onBack={() => navigate('/parent')} onSignOut={onSignOut} /></Suspense></RouteErrorBoundary>} />
             <Route path="*" element={<Navigate to="/parent" replace />} />
@@ -95,7 +100,7 @@ const BottomNav = () => {
         { id: 'home', path: '/parent', icon: Home, label: 'Home' },
         { id: 'messages', path: '/parent/messages', icon: MessageCircle, label: 'Messages' },
         { id: 'reports', path: '/parent/reports', icon: BarChart2, label: 'Reports' },
-        { id: 'gallery', path: '/parent/gallery', icon: Video, label: 'Gallery' },
+        ...(dubbingEnabled ? [{ id: 'gallery', path: '/parent/gallery', icon: Video, label: 'Gallery' }] : []),
         { id: 'settings', path: '/parent/settings', icon: Settings, label: 'Settings' }
       ].map(tab => (
         <button

@@ -16,7 +16,6 @@ import BoardISayYouSay from '../../../board/templates/BoardISayYouSay';
 import BoardLiveClassWarmup from '../../../board/templates/BoardLiveClassWarmup';
 import BoardMagicEyes from '../../../board/templates/BoardMagicEyes';
 import BoardUnitSelection from '../../../board/templates/BoardUnitSelection';
-import BoardPoll from '../../../board/templates/BoardPoll';
 import BoardWheelOfDestiny from '../../../board/templates/BoardWheelOfDestiny';
 import BoardFlashMatch from '../../../board/templates/BoardFlashMatch';
 import BoardListenTap from '../../../board/templates/BoardListenTap';
@@ -47,7 +46,6 @@ const BOARD_MAP: Record<string, React.FC<any>> = {
   I_SAY_YOU_SAY: BoardISayYouSay,
   SPEAKING: BoardISayYouSay,
   MAGIC_EYES: BoardMagicEyes,
-  POLL: BoardPoll,
   WHEEL_OF_DESTINY: BoardWheelOfDestiny,
   FLASH_MATCH: BoardFlashMatch,
   LISTEN_TAP: BoardListenTap,

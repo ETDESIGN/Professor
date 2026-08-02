@@ -7,6 +7,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress } from '../../services/DataService';
+import { getWeeklyActivity, getStudentSkillMastery, DailyActivity, SkillMastery } from '../../services/parentAnalytics';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('ParentDashboard');
@@ -23,6 +24,9 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
   const [linkedStudents, setLinkedStudents] = useState<StudentWithProgress[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const [weeklyData, setWeeklyData] = useState<DailyActivity[] | null>(null);
+  const [skillMastery, setSkillMastery] = useState<SkillMastery[] | null>(null);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -45,6 +49,33 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
     loadData();
   }, [userProfile?.id]);
 
+  // Load real analytics when a student is selected.
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (!selectedStudent?.id) {
+        setWeeklyData(null);
+        setSkillMastery(null);
+        return;
+      }
+      setAnalyticsError(null);
+      try {
+        const [activity, mastery] = await Promise.allSettled([
+          getWeeklyActivity(selectedStudent.id),
+          getStudentSkillMastery(selectedStudent.id),
+        ]);
+        setWeeklyData(activity.status === 'fulfilled' ? activity.value : null);
+        setSkillMastery(mastery.status === 'fulfilled' ? mastery.value : null);
+        if (activity.status === 'rejected' && mastery.status === 'rejected') {
+          setAnalyticsError('Could not load progress data.');
+        }
+      } catch (error) {
+        log.warn('error_loading_analytics', { error: error instanceof Error ? error.message : String(error) });
+        setAnalyticsError('Could not load progress data.');
+      }
+    };
+    loadAnalytics();
+  }, [selectedStudent?.id]);
+
   const handleStudentChange = (student: StudentWithProgress) => {
     setSelectedStudent(student);
     setStudentStats({ xp: student.xp, streak: student.streak });
@@ -58,22 +89,19 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
     setTimeout(() => setKudosSent(false), 5000);
   };
 
-  const weeklyActivityData = [
-    { name: 'Mon', xp: Math.max(0, studentStats.xp - 600) },
-    { name: 'Tue', xp: Math.max(0, studentStats.xp - 500) },
-    { name: 'Wed', xp: Math.max(0, studentStats.xp - 400) },
-    { name: 'Thu', xp: Math.max(0, studentStats.xp - 300) },
-    { name: 'Fri', xp: Math.max(0, studentStats.xp - 200) },
-    { name: 'Sat', xp: Math.max(0, studentStats.xp - 100) },
-    { name: 'Sun', xp: studentStats.xp },
-  ];
+  // Map real weekly data to chart format.
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weeklyActivityData = weeklyData?.map(d => ({
+    name: DAY_NAMES[new Date(d.date + 'T12:00:00').getDay()],
+    xp: d.points,
+  })) || null;
 
-  const struggleAreas = [
-    { subject: 'Pronunciation', score: Math.min(100, Math.round(studentStats.xp / 20)), color: '#ef4444' },
-    { subject: 'Past Tense', score: Math.min(100, Math.round(studentStats.xp / 25)), color: '#f59e0b' },
-    { subject: 'Vocabulary', score: Math.min(100, Math.round(studentStats.xp / 15)), color: '#10b981' },
-    { subject: 'Listening', score: Math.min(100, Math.round(studentStats.xp / 18)), color: '#3b82f6' },
-  ];
+  const SKILL_COLORS: Record<string, string> = {
+    Vocabulary: '#10b981',
+    Grammar: '#f59e0b',
+    Phonics: '#3b82f6',
+    Other: '#8b5cf6',
+  };
 
   if (loading) {
     return (
@@ -190,7 +218,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
         </motion.div>
       </div>
 
-      {/* Weekly Activity Graph (Recharts) */}
+      {/* Weekly Activity Graph (Recharts) — real point_transactions data */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -200,32 +228,44 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">
             <Activity size={18} className="text-cyan-500" />
-            Weekly Activity (XP)
+            Weekly Activity (Points)
           </h3>
         </div>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={weeklyActivityData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorXp" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-              <Tooltip
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-              />
-              <Area type="monotone" dataKey="xp" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorXp)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {weeklyActivityData ? (
+          weeklyActivityData.every(d => d.xp === 0) ? (
+            <div className="h-48 flex items-center justify-center">
+              <p className="text-slate-400 text-sm">No activity this week yet.</p>
+            </div>
+          ) : (
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={weeklyActivityData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorXp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  />
+                  <Area type="monotone" dataKey="xp" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorXp)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )
+        ) : (
+          <div className="h-48 flex items-center justify-center">
+            <p className="text-slate-400 text-sm">{analyticsError || 'Loading activity…'}</p>
+          </div>
+        )}
       </motion.div>
 
-      {/* Areas of Struggle */}
+      {/* Skill Mastery — real FSRS data */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -238,25 +278,35 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
             Skill Mastery
           </h3>
         </div>
-        <div className="space-y-4">
-          {struggleAreas.map((area, idx) => (
-            <div key={idx}>
-              <div className="flex justify-between text-sm mb-1 font-medium">
-                <span className="text-slate-700">{area.subject}</span>
-                <span style={{ color: area.color }}>{area.score}%</span>
+        {skillMastery && skillMastery.length > 0 ? (
+          <div className="space-y-4">
+            {skillMastery.map((area, idx) => (
+              <div key={idx}>
+                <div className="flex justify-between text-sm mb-1 font-medium">
+                  <span className="text-slate-700">{area.skill}</span>
+                  <span style={{ color: SKILL_COLORS[area.skill] || '#6b7280' }}>{area.masteryPercent}%</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${area.masteryPercent}%` }}
+                    transition={{ duration: 1, delay: 0.5 + (idx * 0.1) }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: SKILL_COLORS[area.skill] || '#6b7280' }}
+                  ></motion.div>
+                </div>
               </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${area.score}%` }}
-                  transition={{ duration: 1, delay: 0.5 + (idx * 0.1) }}
-                  className="h-full rounded-full"
-                  style={{ backgroundColor: area.color }}
-                ></motion.div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-6 text-center">
+            <p className="text-slate-400 text-sm">
+              {analyticsError
+                ? analyticsError
+                : 'No mastery data yet — your child\'s progress will appear here after their first lesson.'}
+            </p>
+          </div>
+        )}
       </motion.div>
 
       {/* Today I Learned */}

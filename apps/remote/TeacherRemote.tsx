@@ -28,6 +28,8 @@ const TeacherRemote: React.FC = () => {
   const [showPointSelector, setShowPointSelector] = useState(false);
   const [showSoundBoard, setShowSoundBoard] = useState(false);
   const [showVoiceCommand, setShowVoiceCommand] = useState(false);
+  // Feature flag: voice commands are a mock (audit P1-4). Default OFF.
+  const voiceCommandsEnabled = import.meta.env.VITE_ENABLE_VOICE_COMMANDS === 'true';
   const [showQuickSpin, setShowQuickSpin] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false); // Drawing State
@@ -243,17 +245,6 @@ const TeacherRemote: React.FC = () => {
             </button>
             <button onClick={() => triggerAction('NEXT_ITEM')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
               Next <ChevronRight size={24} />
-            </button>
-          </div>
-        );
-      case 'POLL':
-        return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('RESET_TIMER')} className="bg-indigo-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <Clock size={24} /> Reset 30s
-            </button>
-            <button onClick={() => triggerAction('SHOW_RESULTS')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <BarChart2 size={24} /> Reveal
             </button>
           </div>
         );
@@ -477,6 +468,7 @@ const TeacherRemote: React.FC = () => {
             <PenTool size={24} className="text-rose-400" />
             <span className="text-[10px]">Pen</span>
           </button>
+          {voiceCommandsEnabled && (
           <button
             onClick={() => setShowVoiceCommand(true)}
             className="aspect-square bg-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border border-slate-700"
@@ -484,6 +476,7 @@ const TeacherRemote: React.FC = () => {
             <Mic size={24} className="text-white" />
             <span className="text-[10px]">Voice</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -591,8 +584,8 @@ const TeacherRemote: React.FC = () => {
         <SoundBoardModal onClose={() => setShowSoundBoard(false)} triggerAction={triggerAction} />
       )}
 
-      {/* Voice Command Modal */}
-      {showVoiceCommand && (
+      {/* Voice Command Modal (mock — gated by VITE_ENABLE_VOICE_COMMANDS) */}
+      {voiceCommandsEnabled && showVoiceCommand && (
         <VoiceCommandModal onClose={() => setShowVoiceCommand(false)} />
       )}
     </div>

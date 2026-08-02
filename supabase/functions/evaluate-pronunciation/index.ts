@@ -33,7 +33,7 @@ function calculateSimilarity(spoken: string, target: string): number {
   return Math.max(0, 1 - distance / maxLen);
 }
 
-function generateDetailedFeedback(similarity: number, target: string, transcript: string, emotionScore: number): string {
+function generateDetailedFeedback(similarity: number, target: string, transcript: string): string {
   const parts: string[] = [];
   if (similarity >= 0.95) {
     parts.push('Perfect pronunciation!');
@@ -47,12 +47,6 @@ function generateDetailedFeedback(similarity: number, target: string, transcript
 
   if (transcript.toLowerCase().includes(target.toLowerCase().split(' ')[0])) {
     parts.push('Good start with the first word.');
-  }
-
-  if (emotionScore >= 0.7) {
-    parts.push('Great emotional expression!');
-  } else if (emotionScore >= 0.4) {
-    parts.push('Try to put more feeling into your delivery.');
   }
 
   return parts.join(' ');
@@ -107,8 +101,6 @@ serve(async (req) => {
           isCorrect: false,
           score: 0,
           feedback: 'Could not capture your speech. Check microphone permissions and try again.',
-          emotionMatch: 'low',
-          timing: 'unknown',
           confidence: 0,
           provider: 'none',
         },
@@ -117,12 +109,15 @@ serve(async (req) => {
 
     const similarity = calculateSimilarity(transcript, targetText);
     const normalizedConfidence = Math.max(0, Math.min(1, providerConfidence));
-    const emotionScore = targetEmotion ? Math.min(1, similarity * 0.7 + normalizedConfidence * 0.3) : similarity;
 
+    // Honest scoring: Levenshtein similarity (60%) + STT confidence (40%).
+    // NOTE (audit 2026-08-03, P1-3): emotionScore/emotionMatch/timing fields
+    // were REMOVED — they were fabricated from string similarity with no
+    // actual prosody/pitch/timing analysis. Do not re-add without a real
+    // measurement backend.
     const pronunciationScore = Math.round(
       similarity * 60 +
-      normalizedConfidence * 25 +
-      emotionScore * 15,
+      normalizedConfidence * 40,
     );
 
     const evaluation = {
@@ -131,9 +126,7 @@ serve(async (req) => {
       similarity: Math.round(similarity * 100) / 100,
       isCorrect: similarity >= 0.8,
       score: Math.min(100, pronunciationScore),
-      feedback: generateDetailedFeedback(similarity, targetText, transcript, emotionScore),
-      emotionMatch: emotionScore >= 0.7 ? 'high' : emotionScore >= 0.4 ? 'medium' : 'low' as const,
-      timing: similarity >= 0.8 ? 'perfect' : similarity >= 0.6 ? 'slight_offset' : 'off' as const,
+      feedback: generateDetailedFeedback(similarity, targetText, transcript),
       confidence: Math.round(normalizedConfidence * 100) / 100,
       provider: sttResult ? Deno.env.get('STT_PROVIDER') || 'stt' : 'web-speech',
     };
