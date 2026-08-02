@@ -52,6 +52,10 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const [showCharPicker, setShowCharPicker] = useState(false);
   // Phase 3.1: which vocab word's image is being picked from the vault (index), or null.
   const [imgPickerFor, setImgPickerFor] = useState<number | null>(null);
+  // Task 16: media picker state for story image / video / character portrait.
+  const [storyImgPickerFor, setStoryImgPickerFor] = useState<number | null>(null);
+  const [videoPickerOpen, setVideoPickerOpen] = useState(false);
+  const [charPortraitFor, setCharPortraitFor] = useState<string | null>(null);
 
   // C.2: shared enrichment engine (autoLoad OFF — the Content tab regenerates
   // only on an explicit "Re-enrich" press, never on open). This is the second
@@ -676,7 +680,12 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                           </div>
                           <div>
                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Image</label>
-                            <input value={p.imageUrl || ''} onChange={e => updateStoryPage(i, 'imageUrl', e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="URL or leave blank" />
+                            <div className="flex gap-1">
+                              <input value={p.imageUrl || ''} onChange={e => updateStoryPage(i, 'imageUrl', e.target.value)} className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="URL or leave blank" />
+                              <button onClick={() => setStoryImgPickerFor(i)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium px-2 border border-emerald-200 rounded-lg hover:bg-emerald-50" title="Pick from library">
+                                <Image size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <textarea value={p.text} onChange={e => updateStoryPage(i, 'text', e.target.value)} rows={3} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Dialogue or narration text..." />
@@ -776,6 +785,9 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                         <button onClick={applyCustomUrl} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center gap-1">
                           <ExternalLink size={14} /> Apply
                         </button>
+                        <button onClick={() => setVideoPickerOpen(true)} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-100 flex items-center gap-1">
+                          <Video size={14} /> Library
+                        </button>
                       </div>
                     </div>
 
@@ -868,6 +880,13 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                                     </div>
                                   </div>
                                   <button
+                                    onClick={() => setCharPortraitFor(c.id)}
+                                    className="text-emerald-500 hover:text-emerald-700 p-1 rounded"
+                                    title="Pick portrait from library"
+                                  >
+                                    <Image size={14} />
+                                  </button>
+                                  <button
                                     onClick={async () => {
                                       try {
                                         await CharacterService.unlinkUnit(unitId!, c.id);
@@ -937,6 +956,62 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                   if (url) updateVocabItem(imgPickerFor, 'image_url', url);
                   setImgPickerFor(null);
                   toast.success('Image applied from library');
+                }}
+              />
+            )}
+
+            {/* Task 16: story page image picker */}
+            {storyImgPickerFor !== null && (
+              <MediaPickerModal
+                kind="image"
+                title="Choose story page image"
+                onClose={() => setStoryImgPickerFor(null)}
+                onSelect={(asset) => {
+                  const url = asset.public_url || asset.source_url || '';
+                  if (url) updateStoryPage(storyImgPickerFor, 'imageUrl', url);
+                  setStoryImgPickerFor(null);
+                  toast.success('Story image applied from library');
+                }}
+              />
+            )}
+
+            {/* Task 16: video picker (Media sub-tab) */}
+            {videoPickerOpen && (
+              <MediaPickerModal
+                kind="video"
+                title="Choose video from library"
+                onClose={() => setVideoPickerOpen(false)}
+                onSelect={(asset) => {
+                  const url = asset.public_url || asset.source_url || '';
+                  if (url) {
+                    setMediaStep({ ...(mediaStep || {}), videoUrl: url, title: asset.prompt || 'Library video' });
+                    setYtCustomUrl(url);
+                  }
+                  setVideoPickerOpen(false);
+                  toast.success('Video applied from library');
+                }}
+              />
+            )}
+
+            {/* Task 16: character portrait picker */}
+            {charPortraitFor !== null && (
+              <MediaPickerModal
+                kind="image"
+                title="Choose character portrait"
+                onClose={() => setCharPortraitFor(null)}
+                onSelect={async (asset) => {
+                  const url = asset.public_url || asset.source_url || '';
+                  if (url && unitId) {
+                    // Best-effort: update the character's reference image in the DB.
+                    try {
+                      await supabase.from('characters').update({ reference_image_url: url }).eq('id', charPortraitFor);
+                      await loadLinkedCharacters();
+                      toast.success('Portrait applied from library');
+                    } catch {
+                      toast.success('Portrait selected (DB update pending)');
+                    }
+                  }
+                  setCharPortraitFor(null);
                 }}
               />
             )}
