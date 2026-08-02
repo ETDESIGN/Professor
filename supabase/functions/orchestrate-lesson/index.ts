@@ -344,6 +344,34 @@ serve(async (req) => {
         assetsForFlow = toFlowAssets(canonical, unit.title);
       }
 
+      // B-ORCH-DRIFT fix: the relational tables are the canonical source for
+      // story/grammar/dialogue (advisor §2.4 — one read contract, manifest is
+      // legacy). Previously orchestrate-lesson built flow blocks from the
+      // manifest, so a teacher's edit to story_pages/dialogue_lines/grammar_rules
+      // didn't reach the live board (while pool_items DID update) — the board and
+      // the pool could show different content. Override the manifest-derived
+      // arrays with the relational tables when populated (per-category fallback:
+      // empty table → keep manifest). Best-effort, non-fatal.
+      try {
+        const [storyRes, grammarRes, dialogueRes] = await Promise.all([
+          sbClient.from('story_pages').select('page_number,text,speaker,speaker_override_name,image_prompt').eq('unit_id', unitId).order('page_number', { ascending: true }),
+          sbClient.from('grammar_rules').select('rule,explanation,examples').eq('unit_id', unitId).order('order_index', { ascending: true }),
+          sbClient.from('dialogue_lines').select('order_index,speaker,speaker_override_name,text,translation').eq('unit_id', unitId).order('order_index', { ascending: true }),
+        ]);
+        if (storyRes.data && storyRes.data.length > 0) {
+          assetsForFlow.story = { ...assetsForFlow.story, pages: storyRes.data.map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name, image_prompt: p.image_prompt })) };
+        }
+        if (grammarRes.data && grammarRes.data.length > 0) {
+          assetsForFlow.grammar = grammarRes.data.map((g: any) => ({ rule: g.rule, explanation: g.explanation, examples: g.examples || [] }));
+        }
+        if (dialogueRes.data && dialogueRes.data.length > 0) {
+          // dialogue_lines is flat; wrap as a single dialogue for the flow block.
+          assetsForFlow.dialogues = [{ title: assetsForFlow?.dialogues?.[0]?.title || `${unit.title} — Dialogue`, lines: dialogueRes.data.map((l: any) => ({ speaker: l.speaker || l.speaker_override_name, text: l.text, translation: l.translation })) }];
+        }
+      } catch (relErr: any) {
+        console.error('orchestrate-lesson relational override failed (non-fatal, manifest used):', relErr?.message || relErr);
+      }
+
       if (aiApiKey) {
         const prompt = PROMPTS.orchestration;
         const userPrompt = prompt.userPromptTemplate

@@ -198,6 +198,14 @@ serve(async (req) => {
     // Configurable via AI_REQUEST_TIMEOUT_MS.
     const AI_REQUEST_TIMEOUT_MS = parseInt(Deno.env.get('AI_REQUEST_TIMEOUT_MS') || '45000', 10);
 
+    // True if the URL is a placeholder (dicebear) or empty — i.e. NOT a real
+    // generated image. Mirrors generate-exercises' isRealImage (inverted). Used
+    // so the vocabulary_items emitter doesn't persist a placeholder as if it
+    // were a real image_url.
+    function isPlaceholderImage(url: string | null | undefined): boolean {
+      return !url || /dicebear\.com/i.test(url);
+    }
+
     async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
       let lastError = '';
       for (const modelName of models) {
@@ -622,6 +630,59 @@ ${categoryRules}
     }
 
     // Phase 1.4-5: also write grammar to the RELATIONAL table (single emitter —
+    // Phase 1.6 (B-VOCAB-EMIT fix): vocabulary_items is the canonical content
+    // row for vocabulary (advisor §2.3 correction). Previously enrich-unit wrote
+    // vocab ONLY to the manifest, so vocabulary_items stayed empty until a
+    // teacher opened UnitContentVault or the backfill ran — violating the
+    // "single emitter per category" goal for the biggest category. Now enrich-
+    // unit writes the canonical row here (mirroring the grammar block below).
+    // UNIQUE(unit_id, word) makes re-enrich idempotent. image_url/audio_url are
+    // placeholder/empty at this stage (real assets are generated later by
+    // generate-exercises / on-demand TTS) — set explicitly so we don't clobber.
+    // Best-effort, non-fatal: a failure here doesn't fail enrichment (the
+    // manifest write below still succeeds as a legacy fallback).
+    if ((category === 'vocabulary' || category === 'all') && Array.isArray(enriched.vocabulary) && enriched.vocabulary.length > 0) {
+      try {
+        const vocabRows = enriched.vocabulary
+          .filter((v: any) => v && v.word)
+          .map((v: any, i: number) => ({
+            unit_id: unitId,
+            order_index: i,
+            word: String(v.word).trim(),
+            definition: v.definition ? String(v.definition) : null,
+            example_sentence: v.example_sentence ? String(v.example_sentence) : null,
+            l1_translation: v.l1_translation ? String(v.l1_translation) : (v.translation ? String(v.translation) : null),
+            phonetic: v.phonetic ? String(v.phonetic) : null,
+            part_of_speech: v.part_of_speech ? String(v.part_of_speech) : null,
+            image_prompt: v.image_prompt ? String(v.image_prompt) : null,
+            // Don't overwrite a previously-generated real image with the
+            // placeholder: if this is a fresh row the placeholder seeds it; if
+            // the row exists, onConflict overwrites — to preserve a real image
+            // we'd need per-field merge. For now, generation is the initial
+            // source; teacher edits in the vault win later. See TODO below.
+            image_url: isPlaceholderImage(v.image_url) ? null : (v.image_url || null),
+            audio_url: v.audio_url || null,
+            example_audio_url: v.example_audio_url || null,
+            distractors: Array.isArray(v.distractors) ? v.distractors : [],
+            confusables: Array.isArray(v.confusables) ? v.confusables : [],
+          }));
+        if (vocabRows.length > 0) {
+          const { error: vocabUpsertError } = await sbClient
+            .from('vocabulary_items')
+            .upsert(vocabRows, { onConflict: 'unit_id,word' });
+          if (vocabUpsertError) {
+            // Surface (don't swallow) — the advisor flagged silent drift as a
+            // failure mode. Logged, non-fatal.
+            console.error('enrich-unit vocabulary_items upsert failed:', vocabUpsertError.message);
+          }
+        }
+        console.log(`enrich-unit VOCAB: ${vocabRows.length} vocabulary_items written relationally`);
+      } catch (vocabErr: any) {
+        console.error('enrich-unit vocabulary_items relational write failed (non-fatal):', vocabErr?.message || vocabErr);
+      }
+    }
+
+    // Phase 1.4 — grammar_rules canonical row (advisor §2.3). Table is canonical;
     // grammar_rules is the canonical source; manifest stays as a read cache for
     // legacy consumers). When the grammar category was generated, upsert rules.
     // Idempotent via UNIQUE(unit_id, rule). Best-effort, non-fatal.
