@@ -18,7 +18,7 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { normalizeManifest } from '../_shared/manifest.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
-import { generateAndStoreAudio, mapWithConcurrency } from '../_shared/tts.ts';
+import { mapWithConcurrency } from '../_shared/tts.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import {
   ExerciseType,
@@ -63,7 +63,8 @@ function difficultyFor(type: ExerciseType): number {
       return 1; // receptive, easiest
     case 'SPELL_CLOZE':
     case 'WORD_BANK_BUILD':
-      return 2; // constrained production
+    case 'GRAMMAR_FILL':
+      return 2; // constrained production / rule-recognition MCQ
     default:
       return 3; // free production (TYPE_TRANSLATE/SPEAK_SENTENCE/DICTATION/etc.)
   }
@@ -95,19 +96,23 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
     push('MEANING_MATCH', { prompt: word, prompt_audio: audio, prompt_translation: meaning, ...c });
   }
 
-  // AUDIO_L1_SELECT — listen, pick the Chinese meaning (needs audio).
-  if (audio && meaning) {
+  // AUDIO_L1_SELECT — listen, pick the Chinese meaning. Reference-based
+  // (2026-08-08): no stored audio required — the play-time resolver speaks
+  // prompt_text via the cached TTS chain. A stored audio_url (legacy units)
+  // still wins when present.
+  if (meaning) {
     const c = buildChoices(meaning, siblingMeanings, 4);
-    push('AUDIO_L1_SELECT', { audio_url: audio, ...c });
+    push('AUDIO_L1_SELECT', { prompt_text: word, ...(audio ? { audio_url: audio } : {}), ...c });
   }
 
-  // LISTEN_SELECT — listen, tap the matching word/image (needs audio).
-  if (audio) {
+  // LISTEN_SELECT — listen, tap the matching word/image. Reference-based:
+  // emitted whenever distractors exist (no audio precondition anymore).
+  {
     const correct = { text: word, image_url: image };
     const distractorObjs = siblingImages.slice(0, 3).map((s) => ({ text: String(s.word), image_url: s.image_url }));
     if (distractorObjs.length >= 1) {
       const c = buildChoices(correct, distractorObjs, Math.min(4, distractorObjs.length + 1));
-      push('LISTEN_SELECT', { audio_url: audio, options: c.options, correct_index: c.correct_index });
+      push('LISTEN_SELECT', { prompt_text: word, ...(audio ? { audio_url: audio } : {}), options: c.options, correct_index: c.correct_index });
     }
   }
 
@@ -132,18 +137,20 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
     push('WORD_BANK_BUILD', { target_sentence: example, word_bank: shuffle([...tokens, ...distractorTokens]), translation: meaning, audio_url: audio });
   }
 
-  // DICTATION — type what you hear. Prefer the example-sentence audio when
-  // available (a sentence is a richer dictation target), else the word.
-  if (sentenceAudio && example) {
-    push('DICTATION', { audio_url: sentenceAudio, correct_text: example, hint: word });
-  } else if (audio) {
-    push('DICTATION', { audio_url: audio, correct_text: word, hint: meaning });
+  // DICTATION — type what you hear. Reference-based: prompt_text carries the
+  // full target sentence (richer dictation target); a stored sentence/word
+  // audio_url still wins when present (legacy units).
+  if (example) {
+    push('DICTATION', { prompt_text: example, ...(sentenceAudio ? { audio_url: sentenceAudio } : audio ? { audio_url: audio } : {}), correct_text: example, hint: word });
+  } else {
+    push('DICTATION', { prompt_text: word, ...(audio ? { audio_url: audio } : {}), correct_text: word, hint: meaning });
   }
 
-  // MINIMAL_PAIR_SWIPE — distinguish a confusable (needs confusable + audio).
-  if (confusables.length >= 1 && audio) {
+  // MINIMAL_PAIR_SWIPE — distinguish a confusable. Reference-based:
+  // prompt_text = the pair member that gets PLAYED (correct_index 0).
+  if (confusables.length >= 1) {
     const conf = String(confusables[0]);
-    push('MINIMAL_PAIR_SWIPE', { pair: [word, conf], audio_url: audio, options: [{ text: word }, { text: conf }], correct_index: 0 });
+    push('MINIMAL_PAIR_SWIPE', { pair: [word, conf], prompt_text: word, ...(audio ? { audio_url: audio } : {}), options: [{ text: word }, { text: conf }], correct_index: 0 });
   }
 
   // TYPE_TRANSLATE — type the English for a Chinese prompt (needs meaning).
@@ -185,12 +192,28 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
     push('ERROR_SPOT', { sentence: wrong, ...c, explanation: g?.explanation });
   }
 
-  // TRANSFORM — one per transformation pair.
-  for (const p of pairs) {
+  // TRANSFORM — one per buildable pair.
+  //
+  // Option A (grammar-strand Phase 4, 2026-08-06): reserve the last-indexed
+  // transformation pair for rung 4 (free production, BoardGrammarForge). The
+  // reserved pair is deliberately NEVER built into a pool item — neither as a
+  // TRANSFORM item nor as a distractor for other items — so the rung-4 prompt
+  // stays unseen until the student produces it. The client-side rung-4 loader
+  // (BoardGrammarForge) applies the SAME "last index reserved" convention
+  // independently (no new stored flag needed). If there are too few pairs to
+  // both reserve one AND leave ≥2 for rung 3 (the minimum for valid MCQ
+  // distractors), don't reserve — that objective skips rung 4 this session.
+  const MIN_PAIRS_TO_RESERVE = 3; // reserve only if ≥3 pairs (1 held-out + ≥2 for rung 3)
+  const canReserve = pairs.length >= MIN_PAIRS_TO_RESERVE;
+  const buildablePairs = canReserve ? pairs.slice(0, pairs.length - 1) : pairs;
+
+  for (const p of buildablePairs) {
     const original = String(p?.original || '');
     const transformed = String(p?.transformed || '');
     if (!original || !transformed) continue;
-    const distractors = pairs.filter((x) => String(x?.transformed) && String(x.transformed) !== transformed).map((x) => String(x.transformed));
+    // Distractors drawn ONLY from buildablePairs — the reserved pair's
+    // `transformed` text never appears, so rung 4's answer can't leak early.
+    const distractors = buildablePairs.filter((x) => String(x?.transformed) && String(x.transformed) !== transformed).map((x) => String(x.transformed));
     const c = buildChoices(transformed, distractors, Math.min(4, distractors.length + 1));
     push('TRANSFORM', { prompt_sentence: original, instruction: rule, ...c });
   }
@@ -201,6 +224,24 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
     const tokens = splitWords(ex);
     const distractorTokens = pickFrom(siblingWords, 2);
     push('WORD_BANK_BUILD', { target_sentence: ex, word_bank: shuffle([...tokens, ...distractorTokens]) });
+  }
+
+  // GRAMMAR_FILL (new-gen GRAMMAR_LAB rung, 2026-08-07) — MCQ: "which sentence
+  // uses the rule correctly?". Correct option = a valid transformed/example
+  // sentence; distractors = the WRONG sentences from error_examples. Fully
+  // deterministic from existing grammar_rules fields.
+  const correctSentence = pairs.length > 0 ? String(pairs[0]?.transformed || '') : (examples.length > 0 ? String(examples[0]) : '');
+  const wrongSentences = errors
+    .map((e) => String(e?.wrong || ''))
+    .filter((w) => w && w !== correctSentence);
+  if (correctSentence && wrongSentences.length >= 1) {
+    const c = buildChoices(correctSentence, Array.from(new Set(wrongSentences)), 3);
+    push('GRAMMAR_FILL', {
+      rule_name: rule,
+      sentence_with_blank: g?.pattern_template || '',
+      ...c,
+      explanation: g?.explanation,
+    });
   }
 
   return items;
@@ -350,7 +391,28 @@ serve(async (req) => {
     } catch { /* fall back to manifest below */ }
     if (vocab.length === 0) vocab = canonical.vocabulary;
     const grammar = canonical.grammar;
-    if (vocab.length === 0 && grammar.length === 0) {
+
+    // WS-D: don't hard-reject story/dialogue-only units. Even with no vocab or
+    // grammar, a unit can still drive STORY_COMPREHENSION / WHO_SAID_IT /
+    // DIALOGUE_ROLEPLAY. Check relational story-questions + dialogue-lines (with
+    // a manifest fallback) before giving up.
+    let hasStoryOrDialogue = false;
+    try {
+      const [sqRes, dlRes] = await Promise.all([
+        sb.from('story_comprehension_questions').select('id', { count: 'exact', head: true }).eq('unit_id', unitId),
+        sb.from('dialogue_lines').select('id', { count: 'exact', head: true }).eq('unit_id', unitId),
+      ]);
+      hasStoryOrDialogue = (sqRes.count || 0) > 0 || (dlRes.count || 0) > 0;
+    } catch { /* fall through to the manifest check below */ }
+    if (!hasStoryOrDialogue) {
+      const manifestStoryQs = ((canonical.story as any)?.pages || [])
+        .some((p: any) => Array.isArray(p?.comprehension_questions) && p.comprehension_questions.length > 0);
+      const manifestDlg = Array.isArray((canonical as any).dialogues)
+        && ((canonical as any).dialogues as any[]).some((d: any) => Array.isArray(d?.lines) && d.lines.length > 0);
+      hasStoryOrDialogue = manifestStoryQs || manifestDlg;
+    }
+
+    if (vocab.length === 0 && grammar.length === 0 && !hasStoryOrDialogue) {
       return { success: false, error: 'No enriched content found. Enrich the unit first.' };
     }
 

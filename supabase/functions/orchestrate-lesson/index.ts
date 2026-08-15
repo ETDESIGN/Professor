@@ -245,11 +245,26 @@ function transformManifestToFlow(assets: any): any[] {
     POLL: 'WRAPUP',
     GAME_ARENA: 'WRAPUP',
     UNIT_SELECTION: 'WRAPUP',
+    // ── New-gen games (MASTER_ROADMAP.md, 2026-08-07) ──────────────────────
+    GRAMMAR_LAB: 'PRACTICE',
+    WORD_DETECTIVE: 'PRACTICE',
+    SOUND_LAB: 'PRACTICE',
+    STORY_QUEST: 'PRACTICE',
+    SENTENCE_LAB: 'PRACTICE',
+    PHONICS_ARENA: 'PRACTICE',
+    VOCAB_BLITZ: 'ASSESS',
+    MEMORY_LAB: 'PRACTICE',
+    CLASS_RALLY: 'PRACTICE',
   };
   const POOL_DRIVEN_TYPES = new Set([
     'LISTEN_TAP', 'FLASH_MATCH', 'SCRAMBLE', 'SPEAKING', 'TEAM_BATTLE',
     'SPEED_QUIZ', 'MAGIC_EYES', 'WHATS_MISSING', 'STORY_SEQUENCING',
     'I_SAY_YOU_SAY', 'UNSCRAMBLE', 'WHEEL_OF_DESTINY',
+    // New-gen shells all pull pool_items at runtime (STORY_QUEST pulls its
+    // comprehension MCQs from the pool even though the panels come from the
+    // manifest).
+    'GRAMMAR_LAB', 'WORD_DETECTIVE', 'SOUND_LAB', 'STORY_QUEST',
+    'SENTENCE_LAB', 'PHONICS_ARENA', 'VOCAB_BLITZ', 'MEMORY_LAB', 'CLASS_RALLY',
   ]);
   for (const block of flow) {
     if (PHASE_FOR_TYPE[block.type]) block.phase = PHASE_FOR_TYPE[block.type];

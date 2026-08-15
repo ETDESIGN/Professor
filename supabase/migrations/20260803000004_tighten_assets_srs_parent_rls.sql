@@ -20,7 +20,13 @@
 -- =====================================================================
 
 -- ── (a) assets: scope SELECT, revoke anon ────────────────────────────
+-- Drop both the legacy policy name AND the already-applied new name: an
+-- earlier migration in this workstream already renamed "Authenticated users
+-- can read assets" → "assets_select_policy" on some environments, so a bare
+-- DROP of the legacy name leaves the new policy in place and the CREATE
+-- below collides (SQLSTATE 42710). Dropping both makes this idempotent.
 DROP POLICY IF EXISTS "Authenticated users can read assets" ON public.assets;
+DROP POLICY IF EXISTS "assets_select_policy" ON public.assets;
 CREATE POLICY "assets_select_policy"
     ON public.assets FOR SELECT TO authenticated
     USING (
@@ -54,9 +60,17 @@ CREATE POLICY "srs_items_select_policy"
     );
 
 -- ── (c) parent_student_links: enforce approval-state ─────────────────
--- Drop the overly-permissive legacy policies.
+-- Drop the overly-permissive legacy policies. Also drop the new-name
+-- policies this migration creates — an earlier migration in this workstream
+-- already applied them on some environments, so a bare DROP of the legacy
+-- names leaves them in place and the CREATEs below collide (SQLSTATE 42710).
+-- Dropping both sets makes this idempotent.
 DROP POLICY IF EXISTS "Parents can view linked students" ON public.parent_student_links;
 DROP POLICY IF EXISTS "Parents can manage links" ON public.parent_student_links;
+DROP POLICY IF EXISTS "parent_links_select_policy" ON public.parent_student_links;
+DROP POLICY IF EXISTS "parent_links_delete_policy" ON public.parent_student_links;
+DROP POLICY IF EXISTS "parent_links_select_active" ON public.parent_student_links;
+DROP POLICY IF EXISTS "parent_links_delete_pending" ON public.parent_student_links;
 
 -- SELECT: parent sees only ACTIVE links (approved).
 CREATE POLICY "parent_links_select_active"

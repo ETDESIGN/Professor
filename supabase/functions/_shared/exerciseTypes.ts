@@ -12,6 +12,9 @@ export const EXERCISE_TYPES = [
   'WORD_BANK_BUILD',
   'ERROR_SPOT',
   'TRANSFORM',
+  // New-gen (MASTER_ROADMAP.md): MCQ — which sentence uses the grammar rule
+  // correctly? Built from grammar_rules transformation_pairs. Receptive MCQ.
+  'GRAMMAR_FILL',
   'DICTATION',
   'MINIMAL_PAIR_SWIPE',
   'TYPE_TRANSLATE',
@@ -35,6 +38,7 @@ export const RECEPTIVE_TYPES: ReadonlySet<ExerciseType> = new Set([
   'AUDIO_L1_SELECT',
   'LISTEN_SELECT',
   'SPELL_CLOZE',
+  'GRAMMAR_FILL',
   'STORY_COMPREHENSION',
   'WHO_SAID_IT',
 ]);

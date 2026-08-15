@@ -14,6 +14,7 @@ serve(async (req) => {
       { field: 'imageBase64', required: false, type: 'string', minLength: 100 },
       { field: 'fileUrl', required: false, type: 'string', minLength: 10 },
       { field: 'imageUrl', required: false, type: 'string', minLength: 10 },
+      { field: 'unitId', required: false, type: 'string' },
       {
         custom: (_value: any, body: any) => {
           if (!body.imageBase64 && !body.fileUrl && !body.imageUrl) {
@@ -24,7 +25,7 @@ serve(async (req) => {
       },
     ],
   }, async (body, _auth) => {
-    const { imageBase64, imageUrl, fileUrl } = body;
+    const { imageBase64, imageUrl, fileUrl, unitId } = body;
     const inputUrl = fileUrl || imageUrl || '';
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
     const aiApiKey = Deno.env.get('AI_API_KEY');
@@ -112,6 +113,7 @@ serve(async (req) => {
         if (result.usage && supabaseUrl && supabaseKey) {
           const sbClient = createClient(supabaseUrl, supabaseKey);
           await sbClient.from('llm_telemetry').insert({
+            unit_id: unitId || null,
             function_name: 'extract-page',
             model_used: usedModel,
             prompt_tokens: result.usage.prompt_tokens || 0,

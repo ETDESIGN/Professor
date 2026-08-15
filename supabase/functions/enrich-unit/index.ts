@@ -36,6 +36,7 @@ serve(async (req) => {
     const logOutcome = async (outcome: string) => {
       try {
         await sbClient.from('llm_telemetry').insert({
+          unit_id: unitId,
           function_name: 'enrich-unit',
           model_used: `outcome:${category}:${outcome}`,
           duration_ms: Date.now() - handlerStart,
@@ -108,6 +109,19 @@ serve(async (req) => {
       Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
       Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
       'deepseek/deepseek-r1-0528:free',
+    ];
+
+    // WS-A/B (2026-08-07): schema-heavy categories (vocab batches, grammar)
+    // prefer the fast fallback model FIRST. Verified in llm_telemetry: kimi-k2.6
+    // rambles to the MAX_TOKENS=5000 ceiling on structured-JSON requests
+    // (completion_tokens pinned at 5000 = truncated), burning ~50s per call
+    // before the fallback even runs — that churn pushed batched enrichment past
+    // the edge wall-clock limit and nothing persisted. qwen returned the same
+    // batch clean at ~1900 tokens. Region-safe ordering: qwen → deepseek → kimi.
+    const FAST_MODELS = [
+      Deno.env.get('FALLBACK_MODEL_NAME') || 'qwen/qwen3-235b-a22b',
+      'deepseek/deepseek-r1-0528:free',
+      Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
     ];
 
     // ── JSON ROBUSTNESS HELPERS ────────────────────────────────────────
@@ -206,9 +220,10 @@ serve(async (req) => {
       return !url || /dicebear\.com/i.test(url);
     }
 
-    async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7): Promise<any> {
+    async function callAI(systemPrompt: string, userPrompt: string, temperature = 0.7, modelOverride?: string[]): Promise<any> {
       let lastError = '';
-      for (const modelName of models) {
+      const modelList = modelOverride && modelOverride.length > 0 ? modelOverride : models;
+      for (const modelName of modelList) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
@@ -251,6 +266,7 @@ serve(async (req) => {
           if (supabaseUrl && supabaseKey && data.usage) {
             const sb = createClient(supabaseUrl, supabaseKey);
             await sb.from('llm_telemetry').insert({
+              unit_id: unitId,
               function_name: 'enrich-unit',
               model_used: data.model || modelName,
               prompt_tokens: data.usage.prompt_tokens || 0,
@@ -337,6 +353,141 @@ serve(async (req) => {
       return { _error: lastError || 'All models failed to produce valid JSON due to token truncation or invalid format.' };
     }
 
+    // ── WS-A: BATCHED, UNCAPPED VOCABULARY ENRICHMENT (2026-08-07) ────
+    // The old single-call path asked the model to "extract exactly 6-8 words",
+    // which (a) capped a book's real vocabulary and (b) — because the vocab
+    // schema is the largest/most-nested — truncated to EMPTY under the token
+    // ceiling. We now enrich the FULL extraction inventory (allVocab) in small
+    // batches so each AI call stays well under MAX_TOKENS, idempotently skip
+    // words already enriched, and run under a wall-clock budget so we never
+    // blow the edge limit. Deferred words are picked up on the next enrich.
+    const VOCAB_BATCH_SIZE = 5;
+    const VOCAB_DEADLINE_MS = handlerStart + 95_000; // leave ~55s so in-flight batches + writes fit the edge limit
+
+    async function enrichVocabularyBatched(): Promise<{ words: any[]; presence: any }> {
+      // Faithful inventory from extraction, deduped by word (case-insensitive).
+      const seen = new Set<string>();
+      const inventory: any[] = [];
+      for (const v of allVocab) {
+        const w = String(v?.word || '').trim();
+        if (!w) continue;
+        const key = w.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        inventory.push(v);
+      }
+
+      // Idempotent: skip words already enriched for this unit (safe re-enrich).
+      let existingWords = new Set<string>();
+      let existingCount = 0;
+      try {
+        const { data: rows } = await sbClient.from('vocabulary_items').select('word').eq('unit_id', unitId);
+        if (rows && rows.length > 0) {
+          existingWords = new Set(rows.map((r: any) => String(r.word).toLowerCase()));
+          existingCount = rows.length;
+        }
+      } catch { /* treat as none enriched yet */ }
+
+      if (inventory.length === 0) {
+        return { words: [], presence: { category: 'vocabulary', source_count: 0, enriched_count: existingCount, status: 'no_source' } };
+      }
+      const toEnrich = inventory.filter((v) => !existingWords.has(String(v.word).toLowerCase()));
+      if (toEnrich.length === 0) {
+        return { words: [], presence: { category: 'vocabulary', source_count: inventory.length, enriched_count: existingCount, status: 'already_complete' } };
+      }
+
+      const batchSystem = `You are Professor AI, an expert ESL/EFL curriculum designer for children aged 6-12.
+You enrich a GIVEN list of vocabulary words. Do NOT add, drop, or rename words - enrich EXACTLY the words provided.
+Return ONLY a valid JSON object. No markdown, no explanations, no text before or after the JSON.`;
+
+      // Map one enriched word to a vocabulary_items row (mirrors the end-of-run
+      // emitter so incremental + final writes produce identical rows).
+      const toVocabRow = (v: any) => ({
+        unit_id: unitId,
+        order_index: typeof v.order_index === 'number' ? v.order_index : 0,
+        word: String(v.word).trim(),
+        definition: v.definition ? String(v.definition) : null,
+        example_sentence: v.example_sentence ? String(v.example_sentence) : null,
+        l1_translation: v.l1_translation ? String(v.l1_translation) : (v.translation ? String(v.translation) : null),
+        phonetic: v.phonetic ? String(v.phonetic) : null,
+        part_of_speech: v.part_of_speech ? String(v.part_of_speech) : null,
+        image_prompt: v.image_prompt ? String(v.image_prompt) : null,
+        image_url: isPlaceholderImage(v.image_url) ? null : (v.image_url || null),
+        audio_url: v.audio_url || null,
+        example_audio_url: v.example_audio_url || null,
+        distractors: Array.isArray(v.distractors) ? v.distractors : [],
+        confusables: Array.isArray(v.confusables) ? v.confusables : [],
+      });
+
+      const words: any[] = [];
+      let budgetHit = false;
+      for (let i = 0; i < toEnrich.length; i += VOCAB_BATCH_SIZE) {
+        if (Date.now() > VOCAB_DEADLINE_MS) {
+          budgetHit = true;
+          console.warn(`enrich-unit VOCAB: time-budget hit; ${toEnrich.length - i} words deferred to the next enrichment`);
+          break;
+        }
+        const batch = toEnrich.slice(i, i + VOCAB_BATCH_SIZE);
+        const wordList = batch.map((v: any) => ({ word: v.word, definition: v.definition || '', category: v.category || '' }));
+        const batchPrompt = `Topic: ${topic}
+Grade Level: ${gradeLevel}
+Learners' native language: Simplified Chinese (简体中文).
+
+Enrich EXACTLY these ${batch.length} vocabulary words (no more, no fewer):
+${JSON.stringify(wordList)}
+
+Return ONLY this JSON format:
+{ "vocabulary": [ { "word": "...", "phonetic": "/IPA/", "part_of_speech": "noun", "definition": "simple child-friendly English definition", "l1_translation": "简体中文翻译", "example_sentence": "a short sentence using the word", "translation": "简体中文翻译", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["wrong meaning 1","wrong meaning 2","wrong meaning 3"], "confusables": ["an easily confused word"] } ] }
+
+Rules:
+- Output one entry per provided word, in the same order. Keep every value concise.
+- l1_translation and translation MUST be Simplified Chinese.
+- Output the COMPLETE closing brackets/braces. A truncated response is useless.`;
+
+        const res = await callAI(batchSystem, batchPrompt, 0.5, FAST_MODELS);
+        const batchWords: any[] = [];
+        if (Array.isArray(res?.vocabulary)) {
+          // Guard against model drift: only keep words that belong to this batch.
+          const allowed = new Set(batch.map((b: any) => String(b.word).toLowerCase()));
+          for (const w of res.vocabulary) {
+            if (w && w.word && allowed.has(String(w.word).toLowerCase())) batchWords.push(w);
+          }
+        } else {
+          console.warn(`enrich-unit VOCAB: batch ${Math.floor(i / VOCAB_BATCH_SIZE) + 1} returned no vocabulary (empty/truncated)`);
+        }
+        // Incremental persistence: write this batch to vocabulary_items immediately
+        // so the edge wall-clock limit can never discard completed work (the old
+        // end-of-run-only write was lost when the invocation was killed mid-batch).
+        if (batchWords.length > 0) {
+          batchWords.forEach((w, idx) => { w.order_index = existingCount + words.length + idx; });
+          try {
+            const { error: incErr } = await sbClient
+              .from('vocabulary_items')
+              .upsert(batchWords.map(toVocabRow), { onConflict: 'unit_id,word' });
+            if (incErr) console.error('enrich-unit VOCAB: incremental upsert failed:', incErr.message);
+          } catch (e: any) {
+            console.error('enrich-unit VOCAB: incremental write threw (non-fatal):', e?.message || e);
+          }
+          words.push(...batchWords);
+        }
+      }
+
+      // order_index appends after the existing rows so re-enrich never collides.
+      words.forEach((w, idx) => { w.order_index = existingCount + idx; });
+
+      const status = words.length === 0 ? 'failed' : ((budgetHit || words.length < toEnrich.length) ? 'partial' : 'ok');
+      return {
+        words,
+        presence: {
+          category: 'vocabulary',
+          source_count: inventory.length,
+          enriched_count: existingCount + words.length,
+          status,
+          deferred: budgetHit ? Math.max(0, toEnrich.length - words.length) : 0,
+        },
+      };
+    }
+
     // ── CATEGORY PROMPTS ────────────────────────────────────────────────
     let expectedOutputFormat = '';
     let categoryRules = '';
@@ -347,8 +498,14 @@ serve(async (req) => {
         categoryRules = "- Extract exactly 6-8 key vocabulary words from the text (do NOT exceed 8 — a smaller complete list is better than a larger truncated one)\n- For each word include: phonetic (IPA transcription), part_of_speech, a child-friendly English definition, an example_sentence using the word\n- l1_translation and translation MUST be Simplified Chinese (简体中文) — the learners' native language is Chinese\n- Include 2-3 plausible distractors (wrong meaning options) per word\n- Include 1-2 confusables per word (words easily confused in spelling/sound/meaning)\n- For image_prompt: describe a cute, simple, child-friendly cartoon illustration of each word\n- CRITICAL: keep every value concise. Do NOT let the response get cut off — output the COMPLETE closing brackets/braces. A truncated response is useless.";
         break;
       case 'grammar':
-        expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2", "example 3"], "pattern_template": "Subject + ___ + Object", "transformation_pairs": [ {"original": "I play.", "transformed": "I am playing."} ], "error_examples": [ {"wrong": "He play.", "correct": "He plays."} ] } ] }`;
-        categoryRules = "- Extract exactly 1-2 core grammar rules from the text\n- Include simple explanations suitable for children and 3 examples each\n- pattern_template: a fill-in-the-blank structure showing how the rule forms a sentence\n- transformation_pairs: 2-4 pairs showing a transformation (e.g. affirmative->negative, singular->plural, statement->question)\n- error_examples: 2-3 common learner errors with the corrected form";
+        // Phase 4 grammar-strand prep (2026-08-06): the example object now shows
+        // MULTIPLE transformation_pairs and error_examples (was 1 each). Models
+        // anchor on the few-shot example far more than prose count instructions
+        // — a single-pair example produced ~3 pairs regardless of the "5-6" ask.
+        // Showing 3 in the example sets a higher floor. The prose asks for 4-6
+        // (realistic — some rules genuinely have fewer natural transformations).
+        expectedOutputFormat = `{ "grammar": [ { "rule": "rule name", "explanation": "simple explanation", "examples": ["example 1", "example 2", "example 3"], "pattern_template": "Subject + ___ + Object", "transformation_pairs": [ {"original": "I play football.", "transformed": "I do not play football."}, {"original": "She sings.", "transformed": "Does she sing?"}, {"original": "They are happy.", "transformed": "Are they happy?"} ], "error_examples": [ {"wrong": "He play.", "correct": "He plays."}, {"wrong": "She don't like it.", "correct": "She doesn't like it."}, {"wrong": "Do he swim?", "correct": "Does he swim?"} ] } ] }`;
+        categoryRules = "- Extract 1-3 core grammar rules from the text, prioritizing the structure the page's EXERCISES explicitly practice (e.g. a 'Gracie's Grammar' box, a 'Correct your friend' game, or a story that repeats one pattern).\n- IMPORTANT: scan the WHOLE extracted text - dialogues, songs, chants, exercises and story lines - for the sentence structure the unit drills (e.g. \"There is / There are\", \"There isn't / There aren't\", \"Are there any...?\", present simple, can/can't, plurals). That repeated structure IS the grammar rule, even if there is no box labelled 'grammar'. If both an existential pattern (There is/are) and another pattern (e.g. present simple) are drilled, return BOTH as separate rules.\n- Include simple explanations suitable for children and 3 examples each\n- pattern_template: a fill-in-the-blank structure showing how the rule forms a sentence\n- transformation_pairs: 4-6 pairs showing DIFFERENT transformations of the SAME rule (e.g. affirmative->negative, statement->question, singular->plural). Each pair must illustrate a distinct way the rule applies. Keep each sentence short (under 8 words).\n- error_examples: 4-5 common learner errors with the corrected form, each a distinct mistake pattern (subject-verb agreement, wrong auxiliary, missing 'any', word order). Keep each short.\n- Keep every value concise so the response does NOT get cut off.";
         break;
       case 'characters':
         expectedOutputFormat = `{ "characters": [ { "name": "name", "role": "teacher/student/friend", "personality": "brave/smart/funny", "image_prompt": "a friendly cartoon [role] named [name] who is [personality], children's book illustration style, bright colors, simple design" } ] }`;
@@ -378,13 +535,23 @@ serve(async (req) => {
         break;
     }
 
-    const enrichSystemPrompt = `You are Professor AI, an expert ESL/EFL curriculum designer for children aged 6-12.
+    // ── WS-A: vocabulary uses the batched, uncapped enrichment; all other
+ //    categories keep the single-call path (their schemas fit the budget). ──
+    let enriched: any;
+    let vocabPresence: any = null;
+    if (category === 'vocabulary') {
+      const r = await enrichVocabularyBatched();
+      enriched = { vocabulary: r.words };
+      vocabPresence = r.presence;
+      console.log(`enrich-unit VOCAB batched result:`, JSON.stringify(r.presence));
+    } else {
+      const enrichSystemPrompt = `You are Professor AI, an expert ESL/EFL curriculum designer for children aged 6-12.
 Given raw extracted text and vocabulary from a textbook page, generate ONLY the requested category of content.
 
 CRITICAL: You MUST return ONLY a valid JSON object. No markdown, no explanations, no text before or after the JSON.
 The JSON must match the exact format specified by the user.`;
 
-    const enrichUserPrompt = `Topic: ${topic}
+      const enrichUserPrompt = `Topic: ${topic}
 Grade Level: ${gradeLevel}
 Extracted Text: ${extractedText.slice(0, 8000)}
 Raw Vocabulary Found: ${JSON.stringify(allVocab.slice(0, 20))}
@@ -399,7 +566,8 @@ ${categoryRules}
 - All content must be age-appropriate and culturally sensitive.
 - Return ONLY the JSON object, nothing else.`;
 
-    const enriched = await callAI(enrichSystemPrompt, enrichUserPrompt, 0.7);
+      enriched = await callAI(enrichSystemPrompt, enrichUserPrompt, 0.7, category === 'grammar' ? FAST_MODELS : undefined);
+    }
 
     if (enriched._error) {
       await logOutcome('ai_error');
@@ -514,6 +682,20 @@ ${categoryRules}
       if (key === 'story') {
         if (enriched.story && (enriched.story.pages?.length > 0 || enriched.story.title)) {
           mergedManifest.story = { ...currentManifest.story, ...enriched.story };
+        }
+      } else if (key === 'vocabulary') {
+        // WS-A: batched enrichment returns only NEW words (existing ones were
+        // skipped). Append + dedupe so previously enriched words are never lost
+        // (the old replace semantics would have wiped them on a partial run).
+        if (Array.isArray(enriched.vocabulary) && enriched.vocabulary.length > 0) {
+          const existingArr = Array.isArray(currentManifest.vocabulary) ? currentManifest.vocabulary : [];
+          const have = new Set(existingArr.map((x: any) => String(x?.word || '').toLowerCase()));
+          const mergedArr = [...existingArr];
+          for (const w of enriched.vocabulary) {
+            const wk = String(w?.word || '').toLowerCase();
+            if (wk && !have.has(wk)) { mergedArr.push(w); have.add(wk); }
+          }
+          mergedManifest.vocabulary = mergedArr;
         }
       } else if (enriched[key] !== undefined) {
         // Accept any non-empty array
@@ -647,7 +829,7 @@ ${categoryRules}
           .filter((v: any) => v && v.word)
           .map((v: any, i: number) => ({
             unit_id: unitId,
-            order_index: i,
+            order_index: typeof v.order_index === 'number' ? v.order_index : i,
             word: String(v.word).trim(),
             definition: v.definition ? String(v.definition) : null,
             example_sentence: v.example_sentence ? String(v.example_sentence) : null,
@@ -752,11 +934,35 @@ ${categoryRules}
     }));
 
     await logOutcome('ok');
+
+    // ── WS-C: content-presence signal. Lets the UI distinguish "no source
+    //    content" from "generation failed" from "ok" — so a missing category is
+    //    surfaced honestly instead of silently rendering an empty card. ──
+    const presence: Record<string, any> = {};
+    if (vocabPresence) presence.vocabulary = vocabPresence;
+    if (category === 'grammar' || category === 'all') {
+      const n = Array.isArray(mergedManifest.grammar) ? mergedManifest.grammar.length : 0;
+      presence.grammar = { category: 'grammar', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
+    }
+    if (category === 'story' || category === 'all') {
+      const n = mergedManifest.story?.pages?.length || 0;
+      presence.story = { category: 'story', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
+    }
+    if (category === 'dialogues' || category === 'all') {
+      const n = Array.isArray(mergedManifest.dialogues) ? mergedManifest.dialogues.length : 0;
+      presence.dialogues = { category: 'dialogues', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
+    }
+    if (category === 'characters' || category === 'all') {
+      const n = Array.isArray(mergedManifest.characters) ? mergedManifest.characters.length : 0;
+      presence.characters = { category: 'characters', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
+    }
+
     return {
       success: true,
       unitId,
       category,
       enriched: mergedManifest,
+      presence,
     };
   });
 });
