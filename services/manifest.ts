@@ -252,6 +252,31 @@ export interface DialogueLine {
   translation?: string;
 }
 
+/**
+ * The unit's grammar rules. Phase 4 (grammar strand, 2026-08-06): prefers the
+ * canonical `grammar_rules` relational rows (via _relational, attached by the
+ * activeUnit loader through get_unit_bundle), falling back to the manifest
+ * cache for units whose grammar hasn't been relationalized yet. Carries
+ * pattern_template / transformation_pairs / error_examples — the fields
+ * BoardGrammarSandbox v2 and BoardGrammarForge rung 4 read directly (not via
+ * pool items), per the grammar-strand spec's content-source map.
+ */
+export function getGrammar(manifest: any): CanonicalGrammar[] {
+  const rel = manifest?._relational;
+  if (rel && Array.isArray(rel.grammar_rules) && rel.grammar_rules.length > 0) {
+    return rel.grammar_rules.map((g: any): CanonicalGrammar => ({
+      rule: String(g?.rule ?? '').trim(),
+      explanation: g?.explanation ?? undefined,
+      examples: asArray(g?.examples),
+      pattern_template: g?.pattern_template ?? undefined,
+      transformation_pairs: asArray(g?.transformation_pairs),
+      error_examples: asArray(g?.error_examples),
+    })).filter((g: CanonicalGrammar) => g.rule);
+  }
+  // Fallback: manifest cache (normalized).
+  return normalizeManifest(manifest).grammar;
+}
+
 /** The unit's dialogue lines (speaker-attributed), flattened across dialogues. */
 export function getDialogues(manifest: any): DialogueLine[] {
   // C.4: prefer relational dialogue_lines (via _relational), resolving the

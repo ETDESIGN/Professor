@@ -26,6 +26,7 @@ export type ExerciseType =
   | 'WORD_BANK_BUILD'
   | 'ERROR_SPOT'
   | 'TRANSFORM'
+  | 'GRAMMAR_FILL'
   | 'DICTATION'
   | 'MINIMAL_PAIR_SWIPE'
   | 'TYPE_TRANSLATE'
@@ -43,6 +44,7 @@ export const EXERCISE_TYPES: ReadonlySet<string> = new Set<ExerciseType>([
   'WORD_BANK_BUILD',
   'ERROR_SPOT',
   'TRANSFORM',
+  'GRAMMAR_FILL',
   'DICTATION',
   'MINIMAL_PAIR_SWIPE',
   'TYPE_TRANSLATE',
@@ -119,8 +121,13 @@ export interface MeaningMatchContent extends BaseContent {
 
 export interface AudioL1SelectContent extends BaseContent {
   type: 'AUDIO_L1_SELECT';
-  /** Audio (TTS) of an L2 utterance; learner selects its L1 meaning. */
-  audio_url: string;
+  /**
+   * Audio (TTS) of an L2 utterance; learner selects its L1 meaning.
+   * Reference-based (2026-08-08): when absent, the audio is resolved at play
+   * time from `prompt_text` via the cached on-demand resolver.
+   */
+  audio_url?: string;
+  /** The L2 utterance to speak (TTS source) when audio_url is absent. */
   prompt_text?: string;
   options: string[];
   correct_index: number;
@@ -128,8 +135,13 @@ export interface AudioL1SelectContent extends BaseContent {
 
 export interface ListenSelectContent extends BaseContent {
   type: 'LISTEN_SELECT';
-  /** Audio of an L2 word; learner taps the matching word/image. */
-  audio_url: string;
+  /**
+   * Audio of an L2 word; learner taps the matching word/image.
+   * Reference-based (2026-08-08): optional — resolved at play time from
+   * `prompt_text` when absent.
+   */
+  audio_url?: string;
+  /** The L2 word/phrase to speak (TTS source) when audio_url is absent. */
   prompt_text?: string;
   options: (SelectableImageOption & Partial<TextOption>)[];
   correct_index: number;
@@ -173,10 +185,29 @@ export interface TransformContent extends BaseContent {
   correct_index: number;
 }
 
+export interface GrammarFillContent extends BaseContent {
+  type: 'GRAMMAR_FILL';
+  /** The grammar rule being tested (e.g. "Present Simple → Negative"). */
+  rule_name: string;
+  /** Sentence with blank: "She ___ to school every day." */
+  sentence_with_blank: string;
+  /** 3 sentence options (one correct). */
+  options: string[];
+  correct_index: number;
+  /** Brief explanation of why the correct answer is right. */
+  explanation?: string;
+}
+
 export interface DictationContent extends BaseContent {
   type: 'DICTATION';
-  /** Audio of an L2 sentence the learner must type back. */
-  audio_url: string;
+  /**
+   * Audio of an L2 sentence the learner must type back.
+   * Reference-based (2026-08-08): optional — resolved at play time from
+   * `prompt_text` when absent.
+   */
+  audio_url?: string;
+  /** The sentence/word to speak (TTS source) when audio_url is absent. */
+  prompt_text?: string;
   correct_text: string;
   hint?: string;
 }
@@ -185,8 +216,14 @@ export interface MinimalPairSwipeContent extends BaseContent {
   type: 'MINIMAL_PAIR_SWIPE';
   /** The contrasting phoneme pair (e.g. ["ship","sheep"]). */
   pair: [string, string];
-  /** Audio of one member of the pair; learner picks which. */
-  audio_url: string;
+  /**
+   * Audio of one member of the pair; learner picks which.
+   * Reference-based (2026-08-08): optional — resolved at play time from
+   * `prompt_text` (the played member) when absent.
+   */
+  audio_url?: string;
+  /** The pair member to speak (TTS source) when audio_url is absent. */
+  prompt_text?: string;
   options: TextOption[];
   correct_index: number;
   prompt?: string;
@@ -250,6 +287,7 @@ export type ExerciseContent =
   | WordBankBuildContent
   | ErrorSpotContent
   | TransformContent
+  | GrammarFillContent
   | DictationContent
   | MinimalPairSwipeContent
   | TypeTranslateContent

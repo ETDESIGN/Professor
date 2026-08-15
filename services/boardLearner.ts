@@ -226,8 +226,11 @@ export async function gradeStudent(
 
 /**
  * Class-weak aggregation (Locked Decision #7 / plan 3.4): average retrievability
- * of a unit's vocabulary objectives across a roster. Returns objective ids sorted
- * weakest-first so board games can prioritise the words the class struggles with.
+ * of a unit's objectives across a roster. Returns objective ids sorted
+ * weakest-first so board games can prioritise the content the class struggles
+ * with. All objective types are included (vocabulary, grammar, story, dialogue,
+ * phonics) — the new-gen shells (GRAMMAR_LAB, STORY_QUEST, ...) need their
+ * objectives ranked too; the old vocabulary-only filter starved them.
  */
 export async function classWeakObjectives(
   studentIds: string[],
@@ -240,8 +243,7 @@ export async function classWeakObjectives(
     const { data: objectives, error } = await supabase
       .from('objectives')
       .select('id')
-      .eq('unit_id', unitId)
-      .eq('type', 'vocabulary');
+      .eq('unit_id', unitId);
     if (error || !objectives || objectives.length === 0) return [];
 
     const objectiveIds = objectives.map((o) => o.id);
@@ -282,5 +284,118 @@ export async function classWeakObjectives(
   } catch (err) {
     log.warn('class_weak_error', { error: err instanceof Error ? err.message : String(err) });
     return [];
+  }
+}
+
+// =====================================================================
+// Tier 2/3 FSRS writes (Prompt 9 / architecture §4.4) — lighter-weight
+// than gradeObjective (Tier 1). These are roster-wide, not per-picked-student:
+//
+//   • recordExposure (Tier 2): "the whole class was just shown this." Creates
+//     srs_items rows at mastery_state='learning' (skipping 'new') for students
+//     without an existing row, with a short initial review interval. No grade,
+//     no reps, no ease-factor change — answers "has this been introduced" for
+//     scheduling, not "does the student know it." Used by FocusCards stage 4.
+//
+//   • recordChoralReview (Tier 3): "the class collectively seemed to know/not
+//     know this." A light nudge to every student's srs_items row — lower
+//     confidence than an individual graded attempt, more informative than pure
+//     exposure. Used by LiveClassWarmup and FocusCards' optional choral check.
+//
+// Both write to srs_items directly (upserts on student_id+objective_id). They
+// never DOWNGRADE existing mastery — presentation/choral signals can only
+// promote or leave unchanged, never regress.
+// =====================================================================
+
+/**
+ * Tier 2 — record that an objective was presented to the whole roster.
+ * For each student without an srs_items row: create one at mastery_state='learning'
+ * (exposure already happened, so skip 'new'). Students who already have a row
+ * at 'learning' or beyond: no-op (presentation never downgrades). Non-fatal.
+ *
+ * @param objectiveId the objective that was presented
+ * @param rosterIds roster_students.id[] (the board identities)
+ */
+export async function recordExposure(objectiveId: string, rosterIds: string[]): Promise<void> {
+  if (!objectiveId || rosterIds.length === 0) return;
+  try {
+    const profileIds = await profileIdsForClassWeak(rosterIds);
+    if (profileIds.length === 0) return;
+
+    // Find which profiles already have a row for this objective.
+    const { data: existing } = await supabase
+      .from('srs_items')
+      .select('student_id')
+      .eq('objective_id', objectiveId)
+      .in('student_id', profileIds);
+    const haveRow = new Set((existing || []).map((r) => r.student_id));
+
+    // Insert rows only for profiles that don't have one yet, at 'learning'.
+    const toInsert = profileIds.filter((pid) => !haveRow.has(pid)).map((pid) => ({
+      student_id: pid,
+      objective_id: objectiveId,
+      mastery_state: 'learning' as const,
+      reps: 0,
+      // Short initial interval (1 day) — presentation, not mastery.
+      next_review: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    }));
+
+    if (toInsert.length > 0) {
+      const { error } = await supabase.from('srs_items').upsert(toInsert, {
+        onConflict: 'student_id,objective_id',
+        ignoreDuplicates: true, // race-safe: if a row appeared between select + insert, skip it
+      });
+      if (error) {
+        log.warn('record_exposure_insert_error', { error: error.message });
+      }
+    }
+  } catch (err) {
+    log.warn('record_exposure_failed', { error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+/**
+ * Tier 3 — record a holistic choral signal for the whole roster.
+ * 'strong' → nudge toward familiarity (mastery_state 'learning'→'familiar' is
+ *   not automatic — only a bump to next_review + a reps increment, no promotion
+ *   without an individual graded attempt backing it).
+ * 'weak' → no degradation (choral weakness doesn't downgrade individuals; it
+ *   surfaces in remediationQueue + analytics instead).
+ *
+ * Concretely: increment reps and refresh next_review for existing rows only;
+ * for students without a row, create one at 'learning' (same as exposure). This
+ * is deliberately conservative — a choral "strong" is not enough evidence to
+ * promote mastery on its own, but it does refresh the scheduling clock.
+ */
+export async function recordChoralReview(
+  objectiveId: string,
+  rosterIds: string[],
+  outcome: 'strong' | 'weak',
+): Promise<void> {
+  if (!objectiveId || rosterIds.length === 0) return;
+  try {
+    const profileIds = await profileIdsForClassWeak(rosterIds);
+    if (profileIds.length === 0) return;
+
+    // First ensure every student has a row (exposure-equivalent).
+    await recordExposure(objectiveId, rosterIds);
+
+    // Then bump reps + next_review for all rows on this objective.
+    // 'strong' → slightly longer interval (confidence nudge).
+    // 'weak' → shorter interval (will resurface sooner).
+    const intervalDays = outcome === 'strong' ? 3 : 1;
+    const nextReview = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error } = await supabase
+      .from('srs_items')
+      .update({ next_review: nextReview })
+      .eq('objective_id', objectiveId)
+      .in('student_id', profileIds);
+
+    if (error) {
+      log.warn('record_choral_review_error', { error: error.message });
+    }
+  } catch (err) {
+    log.warn('record_choral_review_failed', { error: err instanceof Error ? err.message : String(err) });
   }
 }

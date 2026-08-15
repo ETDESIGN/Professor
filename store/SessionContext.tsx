@@ -18,7 +18,10 @@ function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
 }
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
-type SelectionMode = 'RANDOM' | 'FAIR' | 'ELIMINATION' | 'ROUND_ROBIN';
+// Phase 8 (Prompt 10 §2): ELIMINATION retired — zero current use (audit §I).
+// The sidebar now exposes all three meaningful modes honestly with
+// teacher-facing labels, ROUND_ROBIN flagged as the default.
+type SelectionMode = 'ROUND_ROBIN' | 'RANDOM' | 'FAIR';
 
 interface SessionAction {
   type: string;
@@ -78,6 +81,20 @@ interface SessionState {
   totalCorrect?: number;
   totalAttempts?: number;
   sessionId?: string | null;
+  /** Same-session remediation queue (architecture §3.3): objectives missed
+   *  by ≥1 student this session, prioritized by the next WRAPUP/REVIEW slide's
+   *  round-builder. Deliberately separate from FSRS cross-lesson scheduling. */
+  remediationQueue: RemediationEntry[];
+  /** Timestamp (ms) the current session started — scopes analytics queries. */
+  sessionStartedAt?: number | null;
+}
+
+/** A missed objective on the same-session remediation queue. */
+export interface RemediationEntry {
+  objectiveId: string;
+  /** Roster student ids who missed it (for the struggling-students view). */
+  missedBy: string[];
+  lastMissedAt: number; // Date.now()
 }
 
 // Map StudentWithProgress to the format expected by components
@@ -141,6 +158,16 @@ export interface SessionContextType {
   /** Per-student board capture (Phase 3.3): record a teacher Correct/Wrong grade
    * for the selected student on a vocab item into the shared LearnerState. */
   gradeStudent: (studentId: string, word: string, correct: boolean) => Promise<void>;
+  /** Same-session remediation (architecture §3.3): push an objective a student
+   *  just missed onto the queue the next WRAPUP/REVIEW slide will prioritize.
+   *  Idempotent per (objectiveId, studentId) within a turn. */
+  pushToRemediation: (objectiveId: string, studentId: string) => void;
+  /** Read the current remediation queue (weakest-first, most-recent-miss tiebreak).
+   *  Does NOT clear — use drainRemediation when a WRAPUP/REVIEW slide consumes it. */
+  getRemediationQueue: () => RemediationEntry[];
+  /** Pop + return the queued objective ids (clears the queue). Called by a
+   *  WRAPUP/REVIEW slide's round-builder when it consumes the queue. */
+  drainRemediation: () => string[];
 }
 
 export const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -170,6 +197,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     noiseLevel: 0,
     units: [],
     sessionId: null,
+    remediationQueue: [],
+    sessionStartedAt: null,
   });
 
   const [currentStrokeId, setCurrentStrokeId] = useState<string | null>(null);
@@ -209,7 +238,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Without this flag, Supabase echoes each broadcast back to the sender and
     // every action (POINTS_AWARDED, SPIN_WHEEL, TEAMS_ASSIGNED, drawing, ...)
     // runs its handler TWICE on the teacher's tab: double points, double
-    // confetti, and duplicate selectionHistory that corrupts FAIR/ELIMINATION.
+    // confetti, and duplicate selectionHistory that corrupts FAIR mode.
     const channel = supabase.channel('classroom_live', {
       config: { broadcast: { self: false } },
     });
@@ -651,18 +680,46 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const startSession = () => {
-    setState(prev => ({ ...prev, status: 'LIVE', currentStepIndex: 0, selectionHistory: [], turnsThisExercise: [] }));
+    setState(prev => ({ ...prev, status: 'LIVE', currentStepIndex: 0, selectionHistory: [], turnsThisExercise: [], sessionStartedAt: Date.now() }));
     persistSessionStatus('LIVE');
   };
 
   const endSession = () => {
     const action = { type: 'END_SESSION', timestamp: Date.now() };
     broadcastAction(action);
-    setState(prev => ({ ...prev, status: 'IDLE', currentStepIndex: 0, activeOverlay: 'NONE', drawings: [] }));
+    // Phase 8 (Prompt 10 §3): clear ALL session-scoped state, not just status.
+    // The audit (§H3) named activeClassId as the bug, but incremental feature
+    // work across Prompts 0/1/7/10 added more state that would have the same
+    // "stale across sessions" problem if not cleared here. Living checklist —
+    // re-audit when new SessionContext state is added.
+    setState(prev => ({
+      ...prev,
+      status: 'IDLE',
+      currentStepIndex: 0,
+      activeOverlay: 'NONE',
+      drawings: [],
+      activeClassId: null,          // the originally-named bug
+      activeOccurrenceId: null,
+      currentTurnId: null,          // turn lifecycle
+      quickWheelWinner: null,
+      remediationQueue: [],         // Prompt 0 — session-scoped remediation
+      turnsThisExercise: [],
+      sessionStartedAt: null,       // analytics scope
+    }));
+    // Clear the remediationQueue ref too (mirrors the state clear above).
+    remediationQueueRef.current = [];
     persistSessionStatus('IDLE');
     const occId = activeOccurrenceIdRef.current;
     if (occId) { void endOccurrence(occId); activeOccurrenceIdRef.current = null; }
-    setState(prev => ({ ...prev, activeOccurrenceId: null }));
+    // Clear the module-level askedComprehensionItems singleton (Prompt 7 —
+    // StoryStage/StorySequencing coordination). It lives in BoardStoryStage.tsx
+    // (not SessionContext), so clear it via its exported reset. Non-fatal if
+    // the import fails (e.g. the module isn't loaded).
+    import('../apps/board/templates/BoardStoryStage').then((m) => {
+      if (typeof (m as any).resetAskedComprehensionItems === 'function') {
+        (m as any).resetAskedComprehensionItems();
+      }
+    }).catch(() => {});
   };
 
   const getFlow = () => {
@@ -742,6 +799,42 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       log.warn('grade_student_failed', { error: err instanceof Error ? err.message : String(err) });
     }
   }, [state.activeUnit?.id, state.students]);
+
+  // ── Same-session remediation queue (architecture §3.3). ────────────────
+  // In-memory, SessionContext-level — NOT a new table, NOT broadcast (the
+  // commander owns the queue; the board renders whatever slide the commander
+  // is on via the existing session-sync channel). Deliberately separate from
+  // FSRS cross-lesson scheduling.
+  const remediationQueueRef = useRef<RemediationEntry[]>([]);
+  // Keep state.remediationQueue in sync with the ref for component reads.
+  const syncRemediation = () => setState(prev => ({ ...prev, remediationQueue: remediationQueueRef.current.slice() }));
+
+  const pushToRemediation = useCallback((objectiveId: string, studentId: string) => {
+    if (!objectiveId || !studentId) return;
+    const now = Date.now();
+    const queue = remediationQueueRef.current;
+    const existing = queue.find((e) => e.objectiveId === objectiveId);
+    if (existing) {
+      // Idempotent per (objective, student) — don't double-count one student missing one item.
+      if (!existing.missedBy.includes(studentId)) existing.missedBy.push(studentId);
+      existing.lastMissedAt = now;
+    } else {
+      queue.push({ objectiveId, missedBy: [studentId], lastMissedAt: now });
+    }
+    // Sort: most misses first, then most-recent (so the round-builder surfaces
+    // the worst objective at the top of weakOrder).
+    queue.sort((a, b) => b.missedBy.length - a.missedBy.length || b.lastMissedAt - a.lastMissedAt);
+    syncRemediation();
+  }, []);
+
+  const getRemediationQueue = useCallback(() => remediationQueueRef.current.slice(), []);
+
+  const drainRemediation = useCallback(() => {
+    const ids = remediationQueueRef.current.map((e) => e.objectiveId);
+    remediationQueueRef.current = [];
+    syncRemediation();
+    return ids;
+  }, []);
 
   const deductAllPoints = (amount: number) => {
     const action = { type: 'MASS_PENALTY', payload: { amount }, timestamp: Date.now() };
@@ -1071,7 +1164,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, dismissWheel, cancelTurn, nextStudent,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
-      triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent
+      triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent,
+      pushToRemediation, getRemediationQueue, drainRemediation
     }}>
       {children}
     </SessionContext.Provider>
