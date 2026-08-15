@@ -149,7 +149,7 @@ const VOCAB_LADDER: Record<number, ExerciseType[]> = {
 const GRAMMAR_LADDER: Record<number, ExerciseType[]> = {
   // rung 1 is presentation-only (not pool-driven). 2=recognize, 3=apply, 4=produce.
   2: ['ERROR_SPOT'],
-  3: ['TRANSFORM'],
+  3: ['TRANSFORM', 'GRAMMAR_FILL'],
   4: ['TRANSFORM'], // held-out pair (Option A) — same type, different selection
 };
 const STORY_LADDER: Record<number, ExerciseType[]> = {
@@ -310,8 +310,38 @@ export function buildRound(input: BuildRoundInput): BuildRoundOutput {
     const types = exerciseTypesForRung(objType, targetRung);
     // Intersect with the shell's consumes list — only types the shell can render.
     const shellCap = SHELL_CAPABILITIES[shellType];
-    const allowed = shellCap ? types.filter((t) => shellCap.consumes.includes(t)) : types;
-    if (allowed.length === 0) continue; // nothing the shell can render at this rung for this objective
+    const consumableAt = (r: number) => {
+      const t = exerciseTypesForRung(objType, r);
+      return shellCap ? t.filter((x) => shellCap.consumes.includes(x)) : t;
+    };
+    let allowed = shellCap ? types.filter((t) => shellCap.consumes.includes(t)) : types;
+    let rung = targetRung;
+
+    // Rung-walking (NEWGEN_AUDIT §3.3): if the shell can't render the target
+    // rung's types, ADAPT instead of dropping the objective — a shell that
+    // doesn't consume rung-1 types (SoundLab, SentenceLab) used to select zero
+    // objectives on a fresh class despite a full pool. Prefer an EASIER rung
+    // (never above mastery); only if nothing at/below mastery is consumable,
+    // take the lowest rung the shell CAN render (playability grace — a game
+    // the teacher selected must be playable).
+    if (allowed.length === 0) {
+      for (let r = targetRung - 1; r >= 1; r--) {
+        const t = consumableAt(r);
+        if (t.length > 0) { allowed = t; rung = r; break; }
+      }
+      if (allowed.length === 0) {
+        const ladderCeil = LADDER_CEILING[objType] ?? 1;
+        for (let r = targetRung + 1; r <= ladderCeil; r++) {
+          const t = consumableAt(r);
+          if (t.length > 0) { allowed = t; rung = r; break; }
+        }
+      }
+      if (allowed.length === 0) continue; // shell can't render this objective's ladder at all
+    }
+
+    selectedObjectiveIds.push(oid);
+    rungByObjective[oid] = rung;
+    allowed.forEach((t) => exerciseTypeSet.add(t));
 
     selectedObjectiveIds.push(oid);
     rungByObjective[oid] = targetRung;

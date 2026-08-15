@@ -44,6 +44,21 @@ export const DIFFICULTY_MULTIPLIER: Record<number, number> = {
 
 export type Difficulty = 1 | 2 | 3;
 
+/** Streak multiplier — ≥3 consecutive correct answers earns a bonus (NEWGEN_AUDIT
+ *  Tier 1 #10: streak badges existed but had zero mechanical effect). Applied
+ *  AFTER the mistake deduction, so a streak never rescues a fumbled turn. */
+export const STREAK_MULTIPLIER: Record<number, number> = {
+  3: 1.25, // 3-streak: +25%
+  5: 1.5,  // 5-streak: +50%
+};
+
+/** Resolve the multiplier for a streak length (largest threshold reached). */
+export function streakMultiplier(streak: number): number {
+  if (streak >= 5) return STREAK_MULTIPLIER[5];
+  if (streak >= 3) return STREAK_MULTIPLIER[3];
+  return 1.0;
+}
+
 /**
  * The success award for a turn (unified model, architecture §3.1).
  *
@@ -52,15 +67,18 @@ export type Difficulty = 1 | 2 | 3;
  * @param partialCreditRatio 0..1 — 1.0 for clean correct, <1.0 for "almost
  *   right" (LCS / Levenshtein / fraction-correct). Defaults to 1.0. Pure MCQ
  *   types always pass 1.0 (no meaningful partial answer to a 4-option MCQ).
+ * @param streak consecutive correct answers INCLUDING this one (optional,
+ *   default 0 = no streak bonus). Games that don't track streaks are unaffected.
  * @returns non-negative integer points.
  */
 export function scoreForAttempt(
   mistakes: number,
   difficulty: Difficulty | number = 1,
   partialCreditRatio: number = 1.0,
+  streak: number = 0,
 ): number {
   const mult = DIFFICULTY_MULTIPLIER[difficulty] ?? 1.0;
   const base = CLEAN_SCORE_BASE * mult;
   const raw = Math.max(0, base - mistakes * MISTAKE_PENALTY);
-  return Math.round(raw * partialCreditRatio);
+  return Math.round(raw * partialCreditRatio * streakMultiplier(streak));
 }

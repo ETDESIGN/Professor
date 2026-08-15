@@ -73,6 +73,17 @@ export function playSoundCue(ctx: AudioContext | null, id: string): void {
       // pitch bend handled by a second tone an octave lower right after.
       tone(440, 0.10, 0.20, 'sawtooth', 0.14);
       break;
+    case 'SOUND_STREAK':
+      // Fast bright fanfare (C6→E6→G6 triple) — 3+ correct in a row.
+      tone(1046.5, 0.00, 0.08, 'triangle', 0.18);
+      tone(1318.5, 0.07, 0.08, 'triangle', 0.18);
+      tone(1568.0, 0.14, 0.20, 'triangle', 0.20);
+      break;
+    case 'SOUND_REVEAL':
+      // Soft two-note "here's the answer" (G4→C5, gentle).
+      tone(392.00, 0.00, 0.15, 'sine', 0.14);
+      tone(523.25, 0.12, 0.25, 'sine', 0.14);
+      break;
     default:
       break;
   }

@@ -54,8 +54,15 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit }
 
       let pool = data.map(toPoolItem).filter((p): p is PoolItem => p !== null);
 
-      // Order by class-weak objective order when available (objectives not in the
-      // order sink to the end, preserving their natural order).
+      // Session variety (NEWGEN_AUDIT §3.7): the DB returns insertion order and
+      // the weak-rank sort below is stable — without a shuffle, every session
+      // served the same first-N items in the same order ("same items repeating").
+      // Shuffle first, THEN stable-sort by weak rank, so weak-first ordering is
+      // preserved but order within equal ranks is random per session.
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
       if (order.length > 0) {
         const rank = (oid: string) => {
           const i = order.indexOf(oid);
