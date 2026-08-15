@@ -93,48 +93,69 @@ function transformManifestToFlow(assets: any): any[] {
       },
     });
 
+    // New-gen listening strand (NEWGEN_AUDIT §3.10): SOUND_LAB replaces the
+    // frozen-data LISTEN_TAP slot — pool-driven (recognize → discriminate →
+    // produce phases) instead of a single vocab[0]-anchored frozen block.
     flow.push({
-      type: 'LISTEN_TAP',
-      data: {
-        instruction: `Listen and tap the correct word`,
-        targetWord: vocab[0].word,
-        options: vocab.slice(0, 4).map((v, i) => ({
-          id: i,
-          img: getImg(v),
-          label: v.word,
-          correct: i === 0,
-        })).sort(() => Math.random() - 0.5),
-      },
+      type: 'SOUND_LAB',
+      data: { title: `${title} — Sound Lab` },
     });
 
     flow.push({
-      type: 'TEAM_BATTLE',
-      data: {
-        topic,
-        questions: vocab.slice(0, 8).map((v, i) => ({
-          id: `q${i}`,
-          text: `What does "${v.word}" mean?`,
-          image: getImg(v),
-          options: [
-            v.definition || '',
-            ...(v.distractors || []).slice(0, 3),
-          ].slice(0, 4).sort(() => Math.random() - 0.5),
-          correct: v.definition || '',
-        })),
-      },
+      type: 'MEMORY_LAB',
+      data: { title: `${title} — Memory Lab` },
     });
 
-    if (vocab.length >= 2) {
+    // Assessment rotates Team Battle (teams, frozen fallback data) with the
+    // new-gen Vocab Blitz (timed MCQ, reveal-on-miss) by unit — opposite parity
+    // to the recognition rotation so a unit mixes legacy + new-gen, and
+    // consecutive units differ (NEWGEN_AUDIT §3.10).
+    if (title.length % 2 === 0) {
       flow.push({
-        type: 'FLASH_MATCH',
+        type: 'VOCAB_BLITZ',
+        data: { title: `${title} — Vocab Blitz` },
+      });
+    } else {
+      flow.push({
+        type: 'TEAM_BATTLE',
         data: {
-          pairs: vocab.slice(0, 5).map((v, i) => ({
-            id: `p_${i}`,
-            left: v.word,
-            right: v.definition || `${v.word} def`,
+          topic,
+          questions: vocab.slice(0, 8).map((v, i) => ({
+            id: `q${i}`,
+            text: `What does "${v.word}" mean?`,
+            image: getImg(v),
+            options: [
+              v.definition || '',
+              ...(v.distractors || []).slice(0, 3),
+            ].slice(0, 4).sort(() => Math.random() - 0.5),
+            correct: v.definition || '',
           })),
         },
       });
+    }
+
+    // Vocabulary-recognition practice rotates between the v2 FlashMatch and the
+    // new-gen Word Detective by unit (title parity) so consecutive units don't
+    // replay the same game (NEWGEN_AUDIT §3.10 — variety across lessons).
+    if (vocab.length >= 2) {
+      const recognitionIsNewGen = title.length % 2 === 0;
+      if (recognitionIsNewGen) {
+        flow.push({
+          type: 'WORD_DETECTIVE',
+          data: { title: `${title} — Word Detective` },
+        });
+      } else {
+        flow.push({
+          type: 'FLASH_MATCH',
+          data: {
+            pairs: vocab.slice(0, 5).map((v, i) => ({
+              id: `p_${i}`,
+              left: v.word,
+              right: v.definition || `${v.word} def`,
+            })),
+          },
+        });
+      }
     }
 
     flow.push({
@@ -145,20 +166,12 @@ function transformManifestToFlow(assets: any): any[] {
       },
     });
 
-    const target = vocab[0];
-    const sentence = exampleSentenceOf(target) || `The ${target.word} is here`;
-    const words = sentence.split(/\s+/).filter((w: string) => w.length > 0);
-    const wordBank = words
-      .map((w, i) => ({ id: `w_${i}`, text: w }))
-      .concat(vocab.slice(1, 3).map((v, i) => ({ id: `d_${i}`, text: v.word.toLowerCase() })))
-      .sort(() => Math.random() - 0.5);
-
+    // New-gen sentence construction (NEWGEN_AUDIT §3.10): SENTENCE_LAB replaces
+    // the frozen-data SCRAMBLE slot — pool-driven tile building with distractors
+    // and LCS feedback instead of a single vocab[0]-anchored frozen sentence.
     flow.push({
-      type: 'SCRAMBLE',
-      data: {
-        targetSentence: { en: sentence, translation: target.definition || '' },
-        wordBank,
-      },
+      type: 'SENTENCE_LAB',
+      data: { title: `${title} — Sentence Lab` },
     });
   }
 
@@ -173,12 +186,12 @@ function transformManifestToFlow(assets: any): any[] {
       },
     });
 
-    // Grammar PRACTICE strand (audit G2): a pool-driven step consuming the
-    // ERROR_SPOT / TRANSFORM items generated for this unit. Presentation (above)
-    // + controlled practice, not presentation-only.
+    // Grammar PRACTICE strand: GRAMMAR_LAB (new-gen, NEWGEN_AUDIT §3.10)
+    // replaces the legacy GRAMMAR_PRACTICE slot — pool-driven 3-rung ladder
+    // (error spot → transform → fill-blank) instead of teacher-led error-spot.
     flow.push({
-      type: 'GRAMMAR_PRACTICE',
-      data: { title: `${g.rule} — Practice`, poolDriven: true },
+      type: 'GRAMMAR_LAB',
+      data: { title: `${g.rule} — Grammar Lab` },
     });
   }
 
@@ -199,6 +212,13 @@ function transformManifestToFlow(assets: any): any[] {
         }),
       },
     });
+
+    // New-gen story comprehension (NEWGEN_AUDIT §3.10): STORY_QUEST follows the
+    // read-through — prediction gates + pool-driven comprehension MCQs.
+    flow.push({
+      type: 'STORY_QUEST',
+      data: { title: `${title} — Story Quest` },
+    });
   }
 
   // Phase 1.3/2: dialogue role-play stage. enrich-unit writes dialogues to the
@@ -214,6 +234,16 @@ function transformManifestToFlow(assets: any): any[] {
         title: dialogues[0]?.title || `${title} — Dialogue`,
         lines: dialogueLines.map((l: any) => ({ speaker: l.speaker, text: l.text, translation: l.translation })),
       },
+    });
+  }
+
+  // New-gen cooperative closer (NEWGEN_AUDIT §3.10): CLASS_RALLY ends the
+  // lesson with the shared progress bar — every picked answer fills it and the
+  // milestone confetti is addressed to the whole class.
+  if (vocab.length > 0) {
+    flow.push({
+      type: 'CLASS_RALLY',
+      data: { title: `${title} — Class Rally` },
     });
   }
 

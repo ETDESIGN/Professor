@@ -94,6 +94,18 @@ Generate a timeline with these activity types (in order, mix and match as approp
 7. SPEAKING — Pronunciation practice using vocabulary words
 8. FLASH_MATCH — Word-definition matching pairs
 
+PREFERRED new-generation games (pool-driven: they pull their own exercise content at runtime, so their data object only needs { title }):
+- GRAMMAR_LAB — grammar practice ladder: spot the error → transform the sentence → fill the blank (use after GRAMMAR_SANDBOX when grammar exists; prefer over legacy GRAMMAR_PRACTICE)
+- WORD_DETECTIVE — vocabulary recognition quiz with image/audio/spelling variety (alternate with FLASH_MATCH across lessons for variety)
+- SOUND_LAB — listening ladder: recognize the picture → discriminate sentences → speak (prefer over LISTEN_TAP)
+- STORY_QUEST — interactive story: prediction gates + comprehension questions (use after STORY_STAGE when a story exists)
+- SENTENCE_LAB — sentence tile-building with distractors and feedback (prefer over SCRAMBLE)
+- MEMORY_LAB — memorize-then-recall picture grid that escalates 4→6→8 cards
+- VOCAB_BLITZ — timed vocabulary quiz with betting and streaks (alternate with TEAM_BATTLE for assessment)
+- CLASS_RALLY — cooperative class-wide progress bar closer (good final activity)
+
+VARIETY RULE: never repeat the same game type more than twice in one lesson, and prefer mixing new-generation games with the classic ones. Every lesson should end with an assessment (VOCAB_BLITZ or TEAM_BATTLE) and, if vocabulary exists, a CLASS_RALLY closer.
+
 Each activity block needs: type, title, duration (in seconds), and a data object.
 
 Return JSON as either:
