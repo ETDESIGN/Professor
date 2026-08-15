@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   Plus, Trash2, Save, Play, Loader2, Wand2, Clock, BookOpen, MessageSquare,
-  PenTool, Music, Image as ImageIcon, Gamepad2, Layers, RefreshCw
+  PenTool, Music, Image as ImageIcon, Gamepad2, Layers, RefreshCw,
+  Search, Volume2, Mic, Zap, Brain, Users, Puzzle
 } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
@@ -48,6 +49,16 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
   TEAM_BATTLE: { icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' },
   SPEED_QUIZ: { icon: <Gamepad2 size={16} />, chip: 'bg-orange-100 text-orange-600' },
   MEDIA_PLAYER: { icon: <Music size={16} />, chip: 'bg-blue-100 text-blue-600' },
+  // ── New-gen games (MASTER_ROADMAP.md, 2026-08-07) ──────────────────────
+  GRAMMAR_LAB: { icon: <Puzzle size={16} />, chip: 'bg-indigo-100 text-indigo-600' },
+  WORD_DETECTIVE: { icon: <Search size={16} />, chip: 'bg-cyan-100 text-cyan-600' },
+  SOUND_LAB: { icon: <Volume2 size={16} />, chip: 'bg-pink-100 text-pink-600' },
+  STORY_QUEST: { icon: <BookOpen size={16} />, chip: 'bg-orange-100 text-orange-600' },
+  SENTENCE_LAB: { icon: <PenTool size={16} />, chip: 'bg-teal-100 text-teal-600' },
+  PHONICS_ARENA: { icon: <Mic size={16} />, chip: 'bg-red-100 text-red-600' },
+  VOCAB_BLITZ: { icon: <Zap size={16} />, chip: 'bg-yellow-100 text-yellow-600' },
+  MEMORY_LAB: { icon: <Brain size={16} />, chip: 'bg-blue-100 text-blue-600' },
+  CLASS_RALLY: { icon: <Users size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' },
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
@@ -85,6 +96,17 @@ const buildBlockData = (type: string, ec: any): any => {
         characters: Array.isArray(ec.characters) ? ec.characters.map((c: any) => ({ name: c.name, emoji: c.emoji })) : [],
       };
     }
+    case 'STORY_QUEST': {
+      // Story Quest reads the story from the manifest first (getStory), with
+      // data.pages as a fallback — mirror the STORY_STAGE page shape so the
+      // fallback path is board-renderable too.
+      const story = ec.story || {};
+      const pages: any[] = Array.isArray(story.pages) ? story.pages : [];
+      return {
+        title: story.title || 'Story Quest',
+        pages: pages.map((p, i) => ({ id: `p${i}`, text: p.text, speaker: p.speaker, imageUrl: p.image_url })),
+      };
+    }
     case 'DIALOGUE_STAGE': {
       const dialogues: any[] = Array.isArray(ec.dialogues) ? ec.dialogues : [];
       const lines = dialogues.flatMap((d) => (Array.isArray(d.lines) ? d.lines : []));
@@ -118,6 +140,11 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const [building, setBuilding] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [launching, setLaunching] = useState(false);
+
+  // Monotonic id suffix: Date.now() alone collides on fast/double clicks, and a
+  // duplicate block.id corrupts the dnd list (duplicate draggableId) and makes
+  // removeBlock delete BOTH twins. A counter guarantees uniqueness.
+  const idSeq = useRef(0);
 
   // Hydrate the editor from units.flow (seconds -> minutes).
   useEffect(() => {
@@ -195,22 +222,40 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     const ec = enrichedForBlocks();
     const items: LibraryItem[] = [];
     const vocabCount = Array.isArray(ec.vocabulary) ? ec.vocabulary.length : 0;
-    if (vocabCount > 0) items.push({ key: 'vocab', label: 'Vocabulary Cards', detail: `${vocabCount} words`, type: 'FOCUS_CARDS', icon: <ImageIcon size={16} />, chip: 'bg-emerald-100 text-emerald-600' });
+    const grammarCount = Array.isArray(ec.grammar) ? ec.grammar.length : 0;
     const storyCount = Array.isArray(ec.story?.pages) ? ec.story.pages.length : 0;
-    if (storyCount > 0) items.push({ key: 'story', label: 'Story Stage', detail: `${storyCount} pages`, type: 'STORY_STAGE', icon: <BookOpen size={16} />, chip: 'bg-amber-100 text-amber-600' });
     const dialogueCount = Array.isArray(ec.dialogues) ? ec.dialogues.length : 0;
+
+    if (vocabCount > 0) items.push({ key: 'vocab', label: 'Vocabulary Cards', detail: `${vocabCount} words`, type: 'FOCUS_CARDS', icon: <ImageIcon size={16} />, chip: 'bg-emerald-100 text-emerald-600' });
+    if (storyCount > 0) items.push({ key: 'story', label: 'Story Stage', detail: `${storyCount} pages`, type: 'STORY_STAGE', icon: <BookOpen size={16} />, chip: 'bg-amber-100 text-amber-600' });
     if (dialogueCount > 0) items.push({ key: 'dialogue', label: 'Dialogue', detail: `${dialogueCount} dialogue${dialogueCount === 1 ? '' : 's'}`, type: 'DIALOGUE_STAGE', icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' });
     if (vocabCount >= 2) items.push({ key: 'quiz', label: 'Team Battle Quiz', detail: `up to ${Math.min(vocabCount, 6)} questions`, type: 'TEAM_BATTLE', icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' });
+
+    // ── New-gen games (pool-driven; appear when the unit has the matching content).
+    if (grammarCount > 0) items.push({ key: 'grammar_lab', label: 'Grammar Lab', detail: `${grammarCount} rule${grammarCount === 1 ? '' : 's'} · 3-rung practice`, type: 'GRAMMAR_LAB', icon: <Puzzle size={16} />, chip: 'bg-indigo-100 text-indigo-600' });
+    if (vocabCount > 0) items.push({ key: 'word_detective', label: 'Word Detective', detail: 'vocab in context', type: 'WORD_DETECTIVE', icon: <Search size={16} />, chip: 'bg-cyan-100 text-cyan-600' });
+    if (vocabCount > 0) items.push({ key: 'sound_lab', label: 'Sound Lab', detail: 'listen → match → speak', type: 'SOUND_LAB', icon: <Volume2 size={16} />, chip: 'bg-pink-100 text-pink-600' });
+    if (storyCount > 0) items.push({ key: 'story_quest', label: 'Story Quest', detail: 'predict + comprehend', type: 'STORY_QUEST', icon: <BookOpen size={16} />, chip: 'bg-orange-100 text-orange-600' });
+    if (vocabCount > 0) items.push({ key: 'sentence_lab', label: 'Sentence Lab', detail: 'scaffolded sentence build', type: 'SENTENCE_LAB', icon: <PenTool size={16} />, chip: 'bg-teal-100 text-teal-600' });
+    if (vocabCount > 0) items.push({ key: 'phonics_arena', label: 'Phonics Arena', detail: 'hear → say', type: 'PHONICS_ARENA', icon: <Mic size={16} />, chip: 'bg-red-100 text-red-600' });
+    if (vocabCount > 0) items.push({ key: 'vocab_blitz', label: 'Vocab Blitz', detail: 'timed quiz + bet', type: 'VOCAB_BLITZ', icon: <Zap size={16} />, chip: 'bg-yellow-100 text-yellow-600' });
+    if (vocabCount > 0) items.push({ key: 'memory_lab', label: 'Memory Lab', detail: 'what\u2019s missing?', type: 'MEMORY_LAB', icon: <Brain size={16} />, chip: 'bg-blue-100 text-blue-600' });
+    if (vocabCount > 0) items.push({ key: 'class_rally', label: 'Class Rally', detail: 'cooperative goal', type: 'CLASS_RALLY', icon: <Users size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' });
+
     return items;
   }, [unit?.manifest, bundle]);
 
   const activeBlock = timeline.find((b) => b.id === activeBlockId) || null;
   const totalMinutes = timeline.reduce((acc, b) => acc + b.duration, 0);
+  // Which library items already have a block of their type in the plan — drives
+  // the "In plan" badge so the teacher can SEE at a glance what is missing
+  // (the "I added everything but the live lesson shows fewer steps" trap).
+  const typesInPlan = useMemo(() => new Set(timeline.map((b) => b.type)), [timeline]);
 
   const addFromLibrary = (item: LibraryItem) => {
     const ec = enrichedForBlocks();
     const block: PlanBlock = {
-      id: `${item.key}-${Date.now()}`,
+      id: `${item.key}-${Date.now()}-${idSeq.current++}`,
       type: item.type,
       title: item.label,
       duration: 5,
@@ -218,6 +263,29 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     };
     setTimeline((prev) => [...prev, block]);
     setActiveBlockId(block.id);
+  };
+
+  // One click adds every library block not yet present in the plan. Prevents
+  // the missed-click outcome where a few library items silently never make it
+  // into the live lesson.
+  const addAllToPlan = () => {
+    const ec = enrichedForBlocks();
+    const stamp = Date.now();
+    const missing = library.filter((item) => !typesInPlan.has(item.type));
+    if (missing.length === 0) {
+      toast.info('Everything from the library is already in the plan');
+      return;
+    }
+    const blocks: PlanBlock[] = missing.map((item) => ({
+      id: `${item.key}-${stamp}-${idSeq.current++}`,
+      type: item.type,
+      title: item.label,
+      duration: 5,
+      data: buildBlockData(item.type, ec),
+    }));
+    setTimeline((prev) => [...prev, ...blocks]);
+    setActiveBlockId(blocks[0].id);
+    toast.success(`Added ${blocks.length} step${blocks.length === 1 ? '' : 's'} to the plan`);
   };
 
   const updateBlock = (id: string, updates: Partial<PlanBlock>) => {
@@ -298,13 +366,25 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     }
   };
 
-  // Serialize editor blocks -> units.flow rows (minutes -> seconds).
+  // Serialize editor blocks -> units.flow rows (minutes -> seconds). Attach the
+  // pedagogical phase so the board timeline + ClassWeakBanner treat manually
+  // composed blocks the same way orchestrate-lesson tags AI-generated ones.
+  const PHASE_FOR_BLOCK: Record<string, string> = {
+    INTRO_SPLASH: 'WARMUP', MEDIA_PLAYER: 'WARMUP',
+    FOCUS_CARDS: 'INPUT', GRAMMAR_SANDBOX: 'INPUT',
+    STORY_STAGE: 'OUTPUT', DIALOGUE_STAGE: 'OUTPUT',
+    TEAM_BATTLE: 'ASSESS', SPEED_QUIZ: 'ASSESS', VOCAB_BLITZ: 'ASSESS',
+    GRAMMAR_LAB: 'PRACTICE', WORD_DETECTIVE: 'PRACTICE', SOUND_LAB: 'PRACTICE',
+    STORY_QUEST: 'PRACTICE', SENTENCE_LAB: 'PRACTICE', PHONICS_ARENA: 'PRACTICE',
+    MEMORY_LAB: 'PRACTICE', CLASS_RALLY: 'PRACTICE',
+  };
   const buildDbFlow = () => timeline.map((b) => ({
     id: b.id,
     type: b.type,
     title: b.title,
     duration: b.duration * 60,
     data: b.data,
+    ...(PHASE_FOR_BLOCK[b.type] ? { phase: PHASE_FOR_BLOCK[b.type] } : {}),
   }));
 
   // Save back to units.flow — the shape the live session reads.
@@ -349,21 +429,36 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
             {library.length === 0 && (
               <p className="text-xs text-slate-400 italic">No content yet — generate some in the Content tab.</p>
             )}
-            {library.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => addFromLibrary(item)}
-                className="w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow transition-all flex items-center gap-3 text-left group"
-              >
-                <div className={`p-2 rounded-lg ${item.chip}`}>{item.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-slate-700 truncate">{item.label}</div>
-                  <div className="text-[11px] text-slate-400">{item.detail}</div>
-                </div>
-                <Plus size={16} className="text-slate-300 group-hover:text-indigo-500 shrink-0" />
-              </button>
-            ))}
+            {library.map((item) => {
+              const inPlan = typesInPlan.has(item.type);
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => addFromLibrary(item)}
+                  className="w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow transition-all flex items-center gap-3 text-left group"
+                >
+                  <div className={`p-2 rounded-lg ${item.chip}`}>{item.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-slate-700 truncate">{item.label}</div>
+                    <div className="text-[11px] text-slate-400">{item.detail}</div>
+                  </div>
+                  {inPlan ? (
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">In plan</span>
+                  ) : (
+                    <Plus size={16} className="text-slate-300 group-hover:text-indigo-500 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
           </div>
+
+          <button
+            onClick={addAllToPlan}
+            className="mt-5 w-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 flex items-center justify-center gap-2 transition-colors"
+          >
+            <Plus size={14} />
+            Add all to plan
+          </button>
 
           <button
             onClick={autoBuild}

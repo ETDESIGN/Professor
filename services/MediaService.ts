@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { speechHashFor } from './speechResolver';
 import { createClientLogger } from './logger';
 
 const log = createClientLogger('MediaService');
@@ -97,7 +98,9 @@ export const MediaService = {
     if (cache.audios.has(cacheKey)) return cache.audios.get(cacheKey)!;
 
     const text = contextSentence || word;
-    const promptHash = await hashPrompt(`audio:${text}`);
+    // Canonical deterministic hash (text + lang + voice + model) — identical
+    // speech always hits the same cached asset, across units and sessions.
+    const { hash: promptHash, lang } = await speechHashFor(text);
 
     const { data: globalExisting } = await supabase
       .from('assets')
@@ -115,19 +118,15 @@ export const MediaService = {
       action: 'generate-audio',
       unitId,
       text,
+      lang,
+      promptHash,
     });
 
     const url = result?.url || '';
     if (url) {
       cache.audios.set(cacheKey, url);
-      supabase.from('assets').insert({
-        unit_id: unitId,
-        type: 'audio',
-        prompt: word,
-        prompt_hash: promptHash,
-        storage_path: 'external',
-        public_url: url
-      }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
+      // Asset record is stored server-side by generate-media (with the same
+      // prompt_hash, merge-duplicates) — no client-side insert needed.
     }
     return url;
   },

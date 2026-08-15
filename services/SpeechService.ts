@@ -1,4 +1,5 @@
 import { MediaService } from './MediaService';
+import { resolveSpeech } from './speechResolver';
 import { createClientLogger } from './logger';
 
 const log = createClientLogger('SpeechService');
@@ -188,7 +189,22 @@ export function captureTranscript(onUpdate?: (fullTranscript: string) => void): 
 
 const audioCache = new Map<string, HTMLAudioElement>();
 
-export async function speakText(text: string, rate: number = 0.9): Promise<void> {
+/**
+ * Browser speechSynthesis fallback with correct language tagging (zh-CN for
+ * Simplified Chinese L1, en-US otherwise). Instant — this is what keeps game
+ * turns unblocked when generated audio isn't cached yet (~1–2s engagement).
+ */
+export function browserSpeak(text: string, lang?: string, rate: number = 0.9): void {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = lang === 'zh' ? 'zh-CN' : 'en-US';
+  utterance.rate = rate;
+  utterance.pitch = 1;
+  window.speechSynthesis.speak(utterance);
+}
+
+export async function speakText(text: string, rate: number = 0.9, lang?: string): Promise<void> {
   const cachedAudio = audioCache.get(text);
   if (cachedAudio) {
     cachedAudio.currentTime = 0;
@@ -197,28 +213,26 @@ export async function speakText(text: string, rate: number = 0.9): Promise<void>
   }
 
   try {
-    const unitId = 'tts-global';
-    const audioUrl = await MediaService.getVocabAudio(unitId, text, text);
+    // On-demand cached TTS (Qwen via OpenRouter → ElevenLabs chain). Bounded
+    // budget: if no URL within ~1.5s the browser voice takes over — playback
+    // is never held hostage by generation latency.
+    const res = await resolveSpeech({ text, lang, unitId: 'tts-global' }, { budgetMs: 1500 });
 
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
+    if (res.url) {
+      const audio = new Audio(res.url);
       audioCache.set(text, audio);
       await audio.play();
-      log.info('tts_generated_audio_played', { metadata: { textLength: text.length } });
+      log.info('tts_generated_audio_played', { metadata: { textLength: text.length, provider: res.provider } });
       return;
+    }
+    if (res.status === 'generating') {
+      log.info('tts_still_generating_browser_fallback', { metadata: { textLength: text.length } });
     }
   } catch (err: any) {
     log.warn('tts_generated_fallback', { error: err.message });
   }
 
-  if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  utterance.rate = rate;
-  utterance.pitch = 1;
-  window.speechSynthesis.speak(utterance);
+  browserSpeak(text, lang, rate);
 }
 
 export async function speakVocabWord(unitId: string, word: string, contextSentence?: string): Promise<void> {
@@ -262,11 +276,11 @@ const urlAudioCache = new Map<string, HTMLAudioElement>();
 
 /**
  * Play a generated audio_url (from a pool item) directly. If the URL is missing
- * or playback fails, fall back to speakText() (ElevenLabs via MediaService, then
- * window.speechSynthesis). Returns true if audio actually played. This is the
- * single audio seam every exercise component uses (fixes the mock playAudio bug).
+ * or playback fails, fall back to speakText() (cached Qwen/ElevenLabs TTS via
+ * the resolver, then window.speechSynthesis). Returns true if audio actually
+ * played. This is the single audio seam every exercise component uses.
  */
-export async function playAudioUrl(url?: string, fallbackText?: string): Promise<boolean> {
+export async function playAudioUrl(url?: string, fallbackText?: string, lang?: string): Promise<boolean> {
   if (url) {
     try {
       let audio = urlAudioCache.get(url);
@@ -283,7 +297,7 @@ export async function playAudioUrl(url?: string, fallbackText?: string): Promise
   }
   if (fallbackText) {
     try {
-      await speakText(fallbackText);
+      await speakText(fallbackText, 0.9, lang);
       return true;
     } catch {
       return false;

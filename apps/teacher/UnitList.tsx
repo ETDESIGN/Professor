@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
 import { Engine } from '../../services/SupabaseService';
+import type { Book, UnitPipelineMeta } from '../../services/BookService';
 import { toast } from 'sonner';
 
 interface UnitListProps {
@@ -17,17 +18,36 @@ interface UnitListProps {
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
 
 const itemVariants: any = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
+
+// ── Pipeline-aware status badge (Draft · Enriching · Ready · Active) ─────
+const PipelineBadge: React.FC<{ unit: any; meta?: UnitPipelineMeta }> = ({ unit, meta }) => {
+  if (meta?.jobStatus === 'pending' || meta?.jobStatus === 'running' || unit.status === 'Processing') {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm flex items-center gap-2 bg-purple-100 text-purple-700 animate-pulse">
+        <Sparkles size={12} /> Enriching
+      </span>
+    );
+  }
+  if ((meta?.poolCount ?? 0) > 0) {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm flex items-center gap-2 bg-emerald-100 text-emerald-700">
+        Ready · {meta!.poolCount} exercises
+      </span>
+    );
+  }
+  const s = unit.status;
+  const cls = s === 'Active' ? 'bg-green-100 text-green-700'
+    : s === 'Completed' ? 'bg-blue-100 text-blue-700'
+    : s === 'Locked' ? 'bg-slate-200 text-slate-600'
+    : 'bg-yellow-100 text-yellow-700';
+  return <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${cls}`}>{s === 'Draft' ? 'Draft' : s}</span>;
 };
 
 const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEditUnit, onPlanLesson, onLaunchLesson }) => {
@@ -36,246 +56,538 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const [isLoading, setIsLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showNewUnitModal, setShowNewUnitModal] = useState(false);
-  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null); // unit.id of open kebab menu
-  const [unitToDelete, setUnitToDelete] = useState<any | null>(null); // unit pending delete confirmation
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null); // unit.id or book:ID of open kebab
+  const [unitToTrash, setUnitToTrash] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // ── Book manager state ───────────────────────────────────────────────────
+  const [tab, setTab] = useState<'library' | 'trash'>('library');
+  const [activeBookId, setActiveBookId] = useState<string | null>(null); // null = bookshelf
+  const [books, setBooks] = useState<Book[]>([]);
+  const [pipelineMeta, setPipelineMeta] = useState<Record<string, UnitPipelineMeta>>({});
+  const [trashUnits, setTrashUnits] = useState<any[]>([]);
+  const [trashBooks, setTrashBooks] = useState<Book[]>([]);
+  const [showNewBookModal, setShowNewBookModal] = useState(false);
+  const [newBookTitle, setNewBookTitle] = useState('');
+  const [renamingBook, setRenamingBook] = useState<Book | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [movingUnit, setMovingUnit] = useState<any | null>(null);
+  const [foreverTarget, setForeverTarget] = useState<{ kind: 'unit' | 'book'; id: string; title: string } | null>(null);
+
+  const userId = (state as any).userId ?? null;
+
+  const refreshBooks = useCallback(async () => {
+    try { setBooks(await Engine.listBooks()); } catch (e: any) { toast.error(`Could not load books: ${e?.message || e}`); }
+  }, []);
+
+  const refreshTrash = useCallback(async () => {
+    try {
+      const [tu, tb] = await Promise.all([Engine.listTrashedUnits(), Engine.listTrashedBooks()]);
+      setTrashUnits(tu); setTrashBooks(tb);
+    } catch { /* trash RPCs degrade to empty */ }
+  }, []);
 
   // Ensure we have fresh data on mount
   useEffect(() => {
     loadUnits();
+    refreshBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (tab === 'trash') refreshTrash();
+  }, [tab, refreshTrash]);
+
+  // Pipeline meta for badges
+  useEffect(() => {
+    const ids = (state.units || []).map((u: any) => u.id);
+    if (ids.length === 0) return;
+    Engine.getUnitPipelineMeta(ids).then(setPipelineMeta).catch(() => {});
+  }, [state.units]);
+
+  // ── Grouping: units by book ──────────────────────────────────────────────
+  const { unitsByBook, unassigned } = useMemo(() => {
+    const byBook: Record<string, any[]> = {};
+    const unasgn: any[] = [];
+    const bookIds = new Set(books.map(b => b.id));
+    for (const u of (state.units || []) as any[]) {
+      if (u.book_id && bookIds.has(u.book_id)) {
+        (byBook[u.book_id] = byBook[u.book_id] || []).push(u);
+      } else {
+        unasgn.push(u);
+      }
+    }
+    for (const k of Object.keys(byBook)) byBook[k].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    return { unitsByBook: byBook, unassigned: unasgn };
+  }, [state.units, books]);
+
+  const activeBook = books.find(b => b.id === activeBookId) || null;
+  const isOwner = (b: Book) => !!b.owner_id && (!userId || b.owner_id === userId);
+
+  // ── Existing actions (unchanged) ────────────────────────────────────────
   const handleLaunch = async (unit: any) => {
     await setActiveUnit(unit.id);
     startSession();
-    goToSlide(0); // Jump to intro
+    goToSlide(0);
     onLaunchLesson?.();
   };
 
   const handlePlan = (unit: any) => {
     setIsLoading(true);
-    // Simulate loading/preparing the studio
     setTimeout(async () => {
-       await setActiveUnit(unit.id);
-       setIsLoading(false);
-       onPlanLesson?.(unit.id); // Navigate to the Unit Studio (Plan tab)
+      await setActiveUnit(unit.id);
+      setIsLoading(false);
+      onPlanLesson?.(unit.id);
     }, 500);
   };
 
   const handleEditEnrichment = async (unit: any) => {
-     await setActiveUnit(unit.id);
-     onEditUnit?.(unit.id);
+    await setActiveUnit(unit.id);
+    onEditUnit?.(unit.id);
   };
 
-  // Gap G9 fix: hard-delete with confirmation. Safe — relational children
-  // (objectives/pool_items/assets/character_ledger/srs_items/generation_jobs)
-  // cascade via FK ON DELETE CASCADE. Storage objects orphan harmlessly.
-  const handleDelete = async () => {
-    if (!unitToDelete) return;
+  // ── Unit & Book Manager actions ─────────────────────────────────────────
+  const handleTrashUnit = async () => {
+    if (!unitToTrash) return;
     setIsDeleting(true);
     try {
-      await Engine.deleteUnit(unitToDelete.id);
-      toast.success(`Deleted "${unitToDelete.title}"`);
-      await loadUnits(); // refresh the grid
+      await Engine.deleteUnit(unitToTrash.id); // now a soft delete
+      toast.success(`Moved "${unitToTrash.title}" to Trash`);
+      await loadUnits();
     } catch (err: any) {
       toast.error(`Delete failed: ${err?.message || err}`);
     } finally {
       setIsDeleting(false);
-      setUnitToDelete(null);
+      setUnitToTrash(null);
       setMenuOpenFor(null);
     }
   };
 
-  return (
-    <div className="flex-1 p-8 overflow-auto">
-      <header className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Curriculum Units</h1>
-          <p className="text-slate-500">Manage your lessons and source material</p>
-        </div>
-        <div className="flex gap-3">
-           <button 
-             onClick={() => setShowGenerateModal(true)}
-             className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95"
-           >
-             <Wand2 size={20} /> Generate Lesson
-           </button>
-           <button 
-             onClick={() => setShowNewUnitModal(true)}
-             className="bg-teacher-primary hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95"
-           >
-             <span className="text-xl">+</span> New Unit
-           </button>
-        </div>
-      </header>
+  const handleCreateBook = async () => {
+    if (!newBookTitle.trim()) return;
+    try {
+      await Engine.createBook(newBookTitle);
+      toast.success(`Book "${newBookTitle.trim()}" created`);
+      setNewBookTitle(''); setShowNewBookModal(false);
+      await refreshBooks();
+    } catch (err: any) { toast.error(`Could not create book: ${err?.message || err}`); }
+  };
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Search units..." 
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-          />
+  const handleRenameBook = async () => {
+    if (!renamingBook || !renameValue.trim()) return;
+    try {
+      await Engine.renameBook(renamingBook.id, renameValue);
+      toast.success('Book renamed');
+      setRenamingBook(null); setRenameValue('');
+      await refreshBooks();
+    } catch (err: any) { toast.error(`Rename failed: ${err?.message || err}`); }
+  };
+
+  const handleTrashBook = async (book: Book) => {
+    try {
+      await Engine.softDeleteBook(book.id);
+      toast.success(`Moved "${book.title}" to Trash`);
+      if (activeBookId === book.id) setActiveBookId(null);
+      await Promise.all([refreshBooks(), loadUnits()]);
+    } catch (err: any) { toast.error(`Could not trash book: ${err?.message || err}`); }
+    setMenuOpenFor(null);
+  };
+
+  const handleMoveUnit = async (bookId: string | null) => {
+    if (!movingUnit) return;
+    try {
+      await Engine.moveUnitToBook(movingUnit.id, bookId);
+      toast.success(bookId ? 'Unit moved' : 'Unit moved to Unassigned');
+      setMovingUnit(null);
+      await loadUnits();
+    } catch (err: any) { toast.error(`Move failed: ${err?.message || err}`); }
+  };
+
+  const handleReorder = async (unit: any, dir: -1 | 1) => {
+    const siblings = (unit.book_id ? unitsByBook[unit.book_id] : unassigned) || [];
+    const idx = siblings.findIndex((s: any) => s.id === unit.id);
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= siblings.length) return;
+    try {
+      await Engine.reorderUnit(unit.id, newIdx);
+      await loadUnits();
+    } catch (err: any) { toast.error(`Reorder failed: ${err?.message || err}`); }
+  };
+
+  const handleRestoreUnit = async (u: any) => {
+    try { await Engine.restoreUnit(u.id); toast.success(`Restored "${u.title}"`); await Promise.all([loadUnits(), refreshTrash(), refreshBooks()]); }
+    catch (err: any) { toast.error(`Restore failed: ${err?.message || err}`); }
+  };
+
+  const handleRestoreBook = async (b: Book) => {
+    try { await Engine.restoreBook(b.id); toast.success(`Restored "${b.title}"`); await Promise.all([refreshBooks(), refreshTrash(), loadUnits()]); }
+    catch (err: any) { toast.error(`Restore failed: ${err?.message || err}`); }
+  };
+
+  const handleDeleteForever = async () => {
+    if (!foreverTarget) return;
+    setIsDeleting(true);
+    try {
+      if (foreverTarget.kind === 'unit') await Engine.deleteUnitForever(foreverTarget.id);
+      else await Engine.deleteBookFull(foreverTarget.id);
+      toast.success(`Permanently deleted "${foreverTarget.title}"`);
+      setForeverTarget(null);
+      await Promise.all([refreshTrash(), loadUnits(), refreshBooks()]);
+    } catch (err: any) {
+      toast.error(`Delete failed: ${err?.message || err}`);
+    } finally { setIsDeleting(false); }
+  };
+
+  // ── Unit card (book detail + unassigned) ────────────────────────────────
+  const renderUnitCard = (unit: any, opts?: { inBook?: boolean; index?: number; total?: number }) => (
+    <motion.div
+      key={unit.id}
+      variants={itemVariants}
+      className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all group duration-300 hover:-translate-y-1"
+    >
+      {/* Thumbnail Area */}
+      <div className="h-48 bg-slate-100 relative overflow-hidden">
+        <div className="absolute top-4 left-4 z-10">
+          <PipelineBadge unit={unit} meta={pipelineMeta[unit.id]} />
         </div>
-        
-        <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
-          <Filter size={20} className="text-slate-400" />
-          <select className="border-none bg-transparent font-medium text-slate-600 focus:ring-0 cursor-pointer">
-            <option>All Levels</option>
-            <option>Beginner (A1)</option>
-            <option>Intermediate (B1)</option>
-          </select>
+
+        <img
+          src={unit.coverImage}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          alt="Cover"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+
+        {/* Hover Actions */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-sm gap-3">
+          <button
+            onClick={() => handlePlan(unit)}
+            className="bg-white text-slate-800 p-3 rounded-xl font-bold hover:bg-slate-50 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
+            title="Edit Lesson Plan"
+          >
+            {isLoading ? <Loader2 size={20} className="animate-spin" /> : <CalendarPlus size={20} />}
+            <span className="text-xs">Plan</span>
+          </button>
+          <button
+            onClick={() => handleLaunch(unit)}
+            className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-emerald-500 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
+            title="Launch Class"
+          >
+            <Play size={20} />
+            <span className="text-xs">Teach</span>
+          </button>
         </div>
       </div>
 
-      {/* Unit Grid */}
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-      >
-        {state.units.map((unit, index) => (
-          <motion.div 
-            key={unit.id} 
-            variants={itemVariants}
-            className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all group duration-300 hover:-translate-y-1"
-          >
-            {/* Thumbnail Area */}
-            <div className="h-48 bg-slate-100 relative overflow-hidden">
-              <div className="absolute top-4 left-4 z-10">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm flex items-center gap-2
-                  ${unit.status === 'Active' ? 'bg-green-100 text-green-700' : 
-                    unit.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                    unit.status === 'Processing' ? 'bg-purple-100 text-purple-700 animate-pulse' :
-                    unit.status === 'Locked' ? 'bg-slate-200 text-slate-600' : 'bg-yellow-100 text-yellow-700'
-                  }
-                `}>
-                  {unit.status === 'Processing' && <Sparkles size={12} />}
-                  {unit.status}
-                </span>
+      {/* Content */}
+      <div className="p-5">
+        <div className="flex justify-between items-start mb-2">
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block bg-slate-100 text-slate-600">
+              {unit.level}
+            </span>
+            <h3 className="text-xl font-display font-bold text-slate-800 leading-tight truncate">{unit.title}</h3>
+          </div>
+          <div className="flex items-center gap-1">
+            {opts?.inBook && (
+              <div className="flex flex-col">
+                <button onClick={() => handleReorder(unit, -1)} disabled={(opts.index ?? 0) === 0}
+                  className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5" title="Move up"><ArrowUp size={14} /></button>
+                <button onClick={() => handleReorder(unit, 1)} disabled={(opts.index ?? 0) === (opts.total ?? 1) - 1}
+                  className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5" title="Move down"><ArrowDown size={14} /></button>
               </div>
-              
-              <img 
-                src={unit.coverImage} 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                alt="Cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-
-              {/* Hover Actions */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-sm gap-3">
-                 <button 
-                   onClick={() => handlePlan(unit)}
-                   className="bg-white text-slate-800 p-3 rounded-xl font-bold hover:bg-slate-50 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
-                   title="Edit Lesson Plan"
-                 >
-                   {isLoading ? <Loader2 size={20} className="animate-spin" /> : <CalendarPlus size={20} />}
-                   <span className="text-xs">Plan</span>
-                 </button>
-                 <button 
-                   onClick={() => handleLaunch(unit)}
-                   className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-emerald-500 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
-                   title="Launch Class"
-                 >
-                   <Play size={20} />
-                   <span className="text-xs">Teach</span>
-                 </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-5">
-              <div className="flex justify-between items-start mb-2">
-                 <div>
-                   <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase mb-2 inline-block bg-slate-100 text-slate-600">
-                     {unit.level}
-                   </span>
-                   <h3 className="text-xl font-display font-bold text-slate-800 leading-tight">{unit.title}</h3>
-                 </div>
-                 <div className="relative">
-                   <button
-                     onClick={(e) => { e.stopPropagation(); setMenuOpenFor(menuOpenFor === unit.id ? null : unit.id); }}
-                     className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
-                     title="Unit actions"
-                   >
-                     <MoreVertical size={20} />
-                   </button>
-                   {menuOpenFor === unit.id && (
-                     <>
-                       {/* click-away catcher */}
-                       <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
-                       <div className="absolute right-0 top-8 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-44">
-                         <button
-                           onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handlePlan(unit); }}
-                           className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                         >
-                           <Edit2 size={14} /> Plan / Edit
-                         </button>
-                         <button
-                           onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handleEditEnrichment(unit); }}
-                           className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                         >
-                           <BookOpen size={14} /> Review Content
-                         </button>
-                         <button
-                           onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setUnitToDelete(unit); }}
-                           className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                         >
-                           <Trash2 size={14} /> Delete
-                         </button>
-                       </div>
-                     </>
-                   )}
-                 </div>
-              </div>
-              
-              {/* Contextual Stats based on Status */}
-              {unit.status === 'Processing' ? (
-                 <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 mt-4">
-                    <div className="text-xs font-bold text-purple-700 flex items-center gap-2 mb-1">
-                       <Loader2 size={12} className="animate-spin" /> AI Analyzing...
-                    </div>
-                    <div className="w-full h-1.5 bg-purple-200 rounded-full overflow-hidden">
-                       <div className="h-full bg-purple-500 w-2/3 animate-pulse"></div>
-                    </div>
-                 </div>
-              ) : (
-                 <div className="flex items-center gap-4 text-xs font-bold text-slate-500 border-t border-slate-100 pt-4 mt-4">
-                   <div className="flex items-center gap-1.5">
-                     <BookOpen size={16} className="text-slate-400" />
-                     {unit.flow ? unit.flow.length : 0} Slides
-                   </div>
-                   <div className="flex items-center gap-1.5">
-                     <Users size={16} className="text-slate-400" />
-                     Class 3B
-                   </div>
-                   <div className="ml-auto text-slate-400 font-normal">
-                     {unit.lastUpdated}
-                   </div>
-                 </div>
+            )}
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpenFor(menuOpenFor === unit.id ? null : unit.id); }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
+                title="Unit actions"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {menuOpenFor === unit.id && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
+                  <div className="absolute right-0 top-8 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-48">
+                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handlePlan(unit); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <Edit2 size={14} /> Plan / Edit
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handleEditEnrichment(unit); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <BookOpen size={14} /> Review Content
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setMovingUnit(unit); setMenuOpenFor(null); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <FolderInput size={14} /> Move to book…
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setUnitToTrash(unit); }}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                      <Trash2 size={14} /> Move to Trash
+                    </button>
+                  </div>
+                </>
               )}
             </div>
-          </motion.div>
-        ))}
+          </div>
+        </div>
+
+        {/* Contextual Stats based on Status */}
+        {unit.status === 'Processing' ? (
+          <div className="bg-purple-50 p-3 rounded-lg border border-purple-100 mt-4">
+            <div className="text-xs font-bold text-purple-700 flex items-center gap-2 mb-1">
+              <Loader2 size={12} className="animate-spin" /> AI Analyzing...
+            </div>
+            <div className="w-full h-1.5 bg-purple-200 rounded-full overflow-hidden">
+              <div className="h-full bg-purple-500 w-2/3 animate-pulse"></div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 text-xs font-bold text-slate-500 border-t border-slate-100 pt-4 mt-4">
+            <div className="flex items-center gap-1.5">
+              <BookOpen size={16} className="text-slate-400" />
+              {unit.flow ? unit.flow.length : 0} Slides
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Users size={16} className="text-slate-400" />
+              Class 3B
+            </div>
+            <div className="ml-auto text-slate-400 font-normal">
+              {unit.lastUpdated}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+
+  // ── Bookshelf card ────────────────────────────────────────────────────────
+  const renderBookCard = (book: Book) => {
+    const bookUnits = unitsByBook[book.id] || [];
+    const cover = bookUnits[0]?.coverImage;
+    const managed = isOwner(book);
+    return (
+      <motion.div
+        key={book.id}
+        variants={itemVariants}
+        className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all group duration-300 hover:-translate-y-1 cursor-pointer relative"
+        onClick={() => setActiveBookId(book.id)}
+      >
+        <div className="h-40 bg-gradient-to-br from-indigo-100 to-emerald-50 relative overflow-hidden">
+          {cover ? (
+            <img src={cover} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Book cover" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-indigo-300">
+              <LibraryBig size={56} />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute bottom-3 left-4 text-white font-bold text-lg drop-shadow">
+            {book.title}
+          </div>
+          {managed && (
+            <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setMenuOpenFor(menuOpenFor === `book:${book.id}` ? null : `book:${book.id}`)}
+                className="bg-white/90 text-slate-600 p-1.5 rounded-full hover:bg-white shadow"
+                title="Book actions"
+              >
+                <MoreVertical size={16} />
+              </button>
+              {menuOpenFor === `book:${book.id}` && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
+                  <div className="absolute right-0 top-9 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-44">
+                    <button onClick={() => { setRenamingBook(book); setRenameValue(book.title); setMenuOpenFor(null); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <Edit2 size={14} /> Rename
+                    </button>
+                    <button onClick={() => handleTrashBook(book)}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                      <Trash2 size={14} /> Move to Trash
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="p-4 flex items-center justify-between text-sm text-slate-500 font-medium">
+          <span>{bookUnits.length} unit{bookUnits.length === 1 ? '' : 's'}</span>
+          {!managed && <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Shared</span>}
+        </div>
       </motion.div>
-      
+    );
+  };
+
+  return (
+    <div className="flex-1 p-8 overflow-auto">
+      <header className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Curriculum Library</h1>
+          <p className="text-slate-500">Books group your units — manage lessons and source material</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowGenerateModal(true)}
+            className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95"
+          >
+            <Wand2 size={20} /> Generate Lesson
+          </button>
+          <button
+            onClick={() => setShowNewBookModal(true)}
+            className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95"
+          >
+            <Plus size={20} /> New Book
+          </button>
+          <button
+            onClick={() => setShowNewUnitModal(true)}
+            className="bg-teacher-primary hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+          >
+            <span className="text-xl">+</span> New Unit
+          </button>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => { setTab('library'); }}
+          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${tab === 'library' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+        >
+          Library
+        </button>
+        <button
+          onClick={() => setTab('trash')}
+          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${tab === 'trash' ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+        >
+          <Trash2 size={14} /> Trash {(trashUnits.length + trashBooks.length) > 0 && <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5">{trashUnits.length + trashBooks.length}</span>}
+        </button>
+      </div>
+
+      {tab === 'trash' ? (
+        /* ── TRASH VIEW ─────────────────────────────────────────────── */
+        <div>
+          {trashUnits.length === 0 && trashBooks.length === 0 && (
+            <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+              Trash is empty
+            </div>
+          )}
+          {trashUnits.length > 0 && (
+            <>
+              <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Units</h3>
+              <div className="space-y-2 mb-8">
+                {trashUnits.map((u) => (
+                  <div key={u.id} className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-4">
+                    <BookOpen size={20} className="text-slate-400" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-slate-700 truncate">{u.title}</div>
+                      <div className="text-xs text-slate-400">Trashed {new Date(u.deleted_at).toLocaleDateString()}</div>
+                    </div>
+                    <button onClick={() => handleRestoreUnit(u)} className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center gap-1.5 hover:bg-emerald-200">
+                      <RotateCcw size={14} /> Restore
+                    </button>
+                    <button onClick={() => setForeverTarget({ kind: 'unit', id: u.id, title: u.title })} className="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 font-bold text-sm flex items-center gap-1.5 hover:bg-red-200">
+                      <Trash2 size={14} /> Delete forever
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {trashBooks.length > 0 && (
+            <>
+              <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Books</h3>
+              <div className="space-y-2">
+                {trashBooks.map((b) => (
+                  <div key={b.id} className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-4">
+                    <LibraryBig size={20} className="text-slate-400" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-slate-700 truncate">{b.title}</div>
+                      <div className="text-xs text-slate-400">Trashed {b.deleted_at ? new Date(b.deleted_at).toLocaleDateString() : ''}</div>
+                    </div>
+                    <button onClick={() => handleRestoreBook(b)} className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center gap-1.5 hover:bg-emerald-200">
+                      <RotateCcw size={14} /> Restore
+                    </button>
+                    <button onClick={() => setForeverTarget({ kind: 'book', id: b.id, title: b.title })} className="px-3 py-1.5 rounded-lg bg-red-100 text-red-700 font-bold text-sm flex items-center gap-1.5 hover:bg-red-200">
+                      <Trash2 size={14} /> Delete forever
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : activeBook ? (
+        /* ── BOOK DETAIL VIEW ───────────────────────────────────────── */
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <button onClick={() => setActiveBookId(null)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600">
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">{activeBook.title}</h2>
+              <p className="text-sm text-slate-400">{(unitsByBook[activeBook.id] || []).length} units · ordered</p>
+            </div>
+          </div>
+          {(unitsByBook[activeBook.id] || []).length === 0 ? (
+            <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+              No units in this book yet. Use a unit's kebab menu → “Move to book…” to add some.
+            </div>
+          ) : (
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {(unitsByBook[activeBook.id] || []).map((unit, i) => renderUnitCard(unit, { inBook: true, index: i, total: (unitsByBook[activeBook.id] || []).length }))}
+            </motion.div>
+          )}
+        </div>
+      ) : (
+        /* ── BOOKSHELF VIEW ─────────────────────────────────────────── */
+        <div>
+          {/* Filters */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-wrap gap-4 items-center">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search units..."
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
+              <Filter size={20} className="text-slate-400" />
+              <select className="border-none bg-transparent font-medium text-slate-600 focus:ring-0 cursor-pointer">
+                <option>All Levels</option>
+                <option>Beginner (A1)</option>
+                <option>Intermediate (B1)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Books grid */}
+          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            {books.map(renderBookCard)}
+          </motion.div>
+
+          {/* Unassigned units */}
+          {unassigned.length > 0 && (
+            <>
+              <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Unassigned units</h3>
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {unassigned.map((unit) => renderUnitCard(unit))}
+              </motion.div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Preview Modal */}
       {selectedUnit && (
-        <UnitPreviewModal 
-          unit={selectedUnit} 
+        <UnitPreviewModal
+          unit={selectedUnit}
           onClose={() => setSelectedUnit(null)}
-          onLaunch={() => {
-             setSelectedUnit(null);
-             handleLaunch(selectedUnit);
-          }}
-          onEdit={() => {
-             setSelectedUnit(null);
-             handlePlan(selectedUnit);
-          }}
+          onLaunch={() => { setSelectedUnit(null); handleLaunch(selectedUnit); }}
+          onEdit={() => { setSelectedUnit(null); handlePlan(selectedUnit); }}
         />
       )}
 
@@ -286,38 +598,114 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
             <h2 className="text-xl font-bold text-slate-800 mb-4">Lesson Generation</h2>
             <p className="text-slate-600 mb-6">Upload textbook pages to generate AI-powered lessons.</p>
             <button
-              onClick={() => {
-                setShowGenerateModal(false);
-                if (onUploadMaterial) onUploadMaterial();
-              }}
+              onClick={() => { setShowGenerateModal(false); if (onUploadMaterial) onUploadMaterial(); }}
               className="px-6 py-3 bg-teacher-primary text-white font-bold rounded-lg"
             >
               Go to Upload Workspace
             </button>
-            <button
-              onClick={() => setShowGenerateModal(false)}
-              className="ml-3 px-6 py-3 bg-slate-200 text-slate-700 font-bold rounded-lg"
-            >
+            <button onClick={() => setShowGenerateModal(false)} className="ml-3 px-6 py-3 bg-slate-200 text-slate-700 font-bold rounded-lg">
               Cancel
             </button>
           </div>
         </div>
       )}
 
+      {/* New Book Modal */}
+      <AnimatePresence>
+        {showNewBookModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => setShowNewBookModal(false)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-slate-800 mb-1">Create a book</h2>
+              <p className="text-sm text-slate-500 mb-4">Books group your units, like a textbook or course.</p>
+              <input
+                autoFocus
+                value={newBookTitle}
+                onChange={(e) => setNewBookTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBook(); }}
+                placeholder="e.g. Let's Go 3 — Semester 1"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+              />
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowNewBookModal(false)} className="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100">Cancel</button>
+                <button onClick={handleCreateBook} disabled={!newBookTitle.trim()} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold disabled:opacity-40 hover:bg-indigo-700">Create</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rename Book Modal */}
+      <AnimatePresence>
+        {renamingBook && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => setRenamingBook(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Rename book</h2>
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameBook(); }}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+              />
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setRenamingBook(null)} className="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100">Cancel</button>
+                <button onClick={handleRenameBook} disabled={!renameValue.trim()} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold disabled:opacity-40 hover:bg-indigo-700">Save</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Move Unit To Book Modal */}
+      <AnimatePresence>
+        {movingUnit && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => setMovingUnit(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-slate-800 mb-1">Move "{movingUnit.title}"</h2>
+              <p className="text-sm text-slate-500 mb-4">Choose the destination book.</p>
+              <div className="space-y-2 max-h-72 overflow-auto">
+                {books.filter(isOwner).map((b) => (
+                  <button key={b.id} onClick={() => handleMoveUnit(b.id)}
+                    disabled={b.id === movingUnit.book_id}
+                    className="w-full text-left px-4 py-3 rounded-lg border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <LibraryBig size={18} className="text-indigo-500" />
+                    <span className="font-medium text-slate-700">{b.title}</span>
+                    {b.id === movingUnit.book_id && <span className="ml-auto text-xs text-slate-400">current</span>}
+                  </button>
+                ))}
+                <button onClick={() => handleMoveUnit(null)}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-dashed border-slate-300 hover:border-slate-400 hover:bg-slate-50 flex items-center gap-3 text-slate-500">
+                  <FolderInput size={18} />
+                  <span className="font-medium">Unassigned (no book)</span>
+                </button>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button onClick={() => setMovingUnit(null)} className="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100">Cancel</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* New Unit Options Modal */}
       <AnimatePresence>
         {showNewUnitModal && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
             onClick={() => setShowNewUnitModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
               className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
@@ -325,13 +713,10 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                 <h2 className="text-xl font-bold text-slate-800">Create New Unit</h2>
                 <p className="text-slate-500 text-sm mt-1">Choose how you want to create your lesson</p>
               </div>
-              
+
               <div className="p-6 space-y-4">
                 <button
-                  onClick={() => {
-                    setShowNewUnitModal(false);
-                    onNewUnit?.();
-                  }}
+                  onClick={() => { setShowNewUnitModal(false); onNewUnit?.(); }}
                   className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center gap-4 text-left group"
                 >
                   <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all">
@@ -344,10 +729,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                 </button>
 
                 <button
-                  onClick={() => {
-                    setShowNewUnitModal(false);
-                    onUploadMaterial?.();
-                  }}
+                  onClick={() => { setShowNewUnitModal(false); onUploadMaterial?.(); }}
                   className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all flex items-center gap-4 text-left group"
                 >
                   <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
@@ -361,10 +743,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
               </div>
 
               <div className="px-6 pb-6">
-                <button
-                  onClick={() => setShowNewUnitModal(false)}
-                  className="w-full py-2 text-slate-500 font-medium hover:text-slate-700"
-                >
+                <button onClick={() => setShowNewUnitModal(false)} className="w-full py-2 text-slate-500 font-medium hover:text-slate-700">
                   Cancel
                 </button>
               </div>
@@ -373,20 +752,16 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal (Gap G9) */}
+      {/* Move-to-Trash Confirmation Modal */}
       <AnimatePresence>
-        {unitToDelete && (
+        {unitToTrash && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
-            onClick={() => !isDeleting && setUnitToDelete(null)}
+            onClick={() => !isDeleting && setUnitToTrash(null)}
           >
             <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
               className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
               onClick={(e) => e.stopPropagation()}
             >
@@ -395,29 +770,66 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                   <AlertTriangle size={24} />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-bold text-slate-800">Delete this unit?</h2>
+                  <h2 className="text-lg font-bold text-slate-800">Move this unit to Trash?</h2>
                   <p className="text-sm text-slate-500 mt-1">
-                    "<span className="font-semibold text-slate-700">{unitToDelete.title}</span>" and all its
-                    generated content (vocabulary, exercises, media references) will be permanently removed.
-                    This cannot be undone.
+                    "<span className="font-semibold text-slate-700">{unitToTrash.title}</span>" will be moved to the Trash.
+                    You can restore it from the Trash tab, or delete it forever there.
                   </p>
                 </div>
               </div>
               <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setUnitToDelete(null)}
-                  disabled={isDeleting}
-                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-                >
+                <button onClick={() => setUnitToTrash(null)} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
                   Cancel
                 </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
-                >
+                <button onClick={handleTrashUnit} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
                   {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                  {isDeleting ? 'Deleting…' : 'Delete unit'}
+                  {isDeleting ? 'Moving…' : 'Move to Trash'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Forever Confirmation Modal */}
+      <AnimatePresence>
+        {foreverTarget && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => !isDeleting && setForeverTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-slate-800">Delete forever?</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    "<span className="font-semibold text-slate-700">{foreverTarget.title}</span>"
+                    {foreverTarget.kind === 'unit'
+                      ? ' and ALL its generated content (vocabulary, exercises, pool items, media references) will be permanently removed.'
+                      : ' will be permanently removed.'}
+                    {' '}This cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setForeverTarget(null)} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={handleDeleteForever} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {isDeleting ? 'Deleting…' : 'Delete forever'}
                 </button>
               </div>
             </motion.div>

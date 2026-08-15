@@ -6,7 +6,7 @@ import { useSession } from '../../store/SessionContext';
 import { AIService } from '../../services/AIService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getOrCreateDefaultBookForCurrentUser } from '../../services/BookService';
+import { getOrCreateDefaultBookForCurrentUser, listBooks, createBook, Book } from '../../services/BookService';
 import { createClientLogger } from '../../services/logger';
 import AssetWorkshop from './AssetWorkshop';
 
@@ -225,6 +225,36 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
+   // ── Book selector (Unit & Book Manager): uploaded units land in the chosen
+   //    book; empty selection = default book ("My Units" — preserves the
+   //    pre-manager behavior). ────────────────────────────────────────────────
+   const [books, setBooks] = useState<Book[]>([]);
+   const [selectedBookId, setSelectedBookId] = useState<string>('');
+   const [newBookTitle, setNewBookTitle] = useState<string>('');
+   const [creatingBook, setCreatingBook] = useState<boolean>(false);
+
+   useEffect(() => {
+      listBooks()
+         .then((bs) => setBooks(bs.filter((b) => b.owner_id)))
+         .catch(() => { /* non-fatal — default book path still works */ });
+   }, []);
+
+   const handleCreateBookInline = async () => {
+      if (!newBookTitle.trim()) return;
+      setCreatingBook(true);
+      try {
+         const created = await createBook(newBookTitle);
+         setBooks((prev) => [...prev, created]);
+         setSelectedBookId(created.id);
+         setNewBookTitle('');
+         toast.success(`Book "${created.title}" created`);
+      } catch (err: any) {
+         toast.error(`Could not create book: ${err?.message || err}`);
+      } finally {
+         setCreatingBook(false);
+      }
+   };
+
    const handleApprove = async () => {
       if (!draftUnitId) {
          toast.error('No draft unit found. Upload a page first.');
@@ -247,7 +277,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'scanning' } }));
       try {
          const { data, error } = await supabase.functions.invoke('extract-page', {
-            body: { fileUrl: file.fileUrl, pageNumber: activeFileIndex + 1 }
+            body: { fileUrl: file.fileUrl, pageNumber: activeFileIndex + 1, ...(draftUnitId ? { unitId: draftUnitId } : {}) }
          });
          if (error) throw error;
          if (!data?.success) throw new Error(data?.error || 'Re-extraction failed');
@@ -304,7 +334,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          let aiData: any;
          try {
             const { data, error: aiError } = await supabase.functions.invoke('extract-page', {
-               body: { fileUrl, pageNumber: fileIndex + 1 }
+               body: { fileUrl, pageNumber: fileIndex + 1, ...(currentDraftId ? { unitId: currentDraftId } : {}) }
             });
             if (aiError) throw aiError;
             aiData = data;
@@ -339,7 +369,20 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             const { data: { user } } = await supabase.auth.getUser();
             // Phase 0B: every unit belongs to a book (characters are book-level
             // per L1; vault scopes per-book). Non-fatal if it fails.
-            const defaultBook = await getOrCreateDefaultBookForCurrentUser();
+            // Unit & Book Manager: honor the upload's book selector; fall back
+            // to the teacher's default book (previous behavior).
+            const targetBook = selectedBookId
+               ? { id: selectedBookId }
+               : await getOrCreateDefaultBookForCurrentUser();
+            // Append at the end of the target book's ordering.
+            let nextOrderIndex = 0;
+            if (targetBook?.id) {
+               const { count } = await supabase
+                  .from('units')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('book_id', targetBook.id);
+               nextOrderIndex = count ?? 0;
+            }
             const { data: newUnit, error: createError } = await supabase.from('units').insert({
                title: `Draft Unit ${new Date().toLocaleDateString()}`,
                topic: 'Uploaded Material',
@@ -348,7 +391,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                lessons: 1,
                flow: [],
                teacher_id: user?.id ?? null,
-               book_id: defaultBook?.id ?? null,
+               book_id: targetBook?.id ?? null,
+               order_index: nextOrderIndex,
                scanned_assets: [aiData] // flat response shape — no .extraction wrapper
             }).select().single();
             if (createError) throw createError;
@@ -401,7 +445,41 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
     }
 
     return (
-       <div className="flex-1 flex h-[calc(100vh-64px)] overflow-hidden bg-white">
+       <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-white">
+         {/* Book selector bar (Unit & Book Manager) */}
+         <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0">
+            <span className="text-sm font-bold text-slate-600 flex items-center gap-1.5">
+               <FileText size={14} /> Save unit to book:
+            </span>
+            <select
+               value={selectedBookId}
+               onChange={(e) => setSelectedBookId(e.target.value)}
+               className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 max-w-[240px]"
+               title="Uploaded pages become a unit inside this book"
+            >
+               <option value="">My Units (default)</option>
+               {books.map((b) => (
+                  <option key={b.id} value={b.id}>{b.title}</option>
+               ))}
+            </select>
+            <input
+               value={newBookTitle}
+               onChange={(e) => setNewBookTitle(e.target.value)}
+               onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBookInline(); }}
+               placeholder="＋ New book…"
+               className="text-sm border border-dashed border-slate-300 rounded-lg px-3 py-1.5 w-44 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            {newBookTitle.trim() && (
+               <button
+                  onClick={handleCreateBookInline}
+                  disabled={creatingBook}
+                  className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold disabled:opacity-50 flex items-center gap-1.5"
+               >
+                  {creatingBook ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create
+               </button>
+            )}
+         </div>
+         <div className="flex-1 flex overflow-hidden">
          <input
             type="file"
             ref={fileInputRef}
@@ -427,6 +505,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             onApprove={handleApprove}
             onReextract={handleReextract}
          />
+         </div>
       </div>
    );
 };

@@ -4,7 +4,23 @@ import { supabase } from './supabaseClient';
 import { LessonManifest } from '../types/pipeline';
 import { transformManifestToFlow } from './LessonTransformer';
 import { createClientLogger } from './logger';
-import { getOrCreateDefaultBookForCurrentUser } from './BookService';
+import {
+    getOrCreateDefaultBookForCurrentUser,
+    softDeleteUnit,
+    listBooks,
+    createBook,
+    renameBook,
+    softDeleteBook,
+    restoreBook,
+    deleteBookFull,
+    listTrashedBooks,
+    moveUnitToBook,
+    reorderUnit,
+    restoreUnit,
+    deleteUnitFull,
+    listTrashedUnits,
+    getUnitPipelineMeta,
+} from './BookService';
 import { diffMissingSRSWords, SRS_DEFAULTS } from './srs';
 import {
   getLearnerState,
@@ -39,6 +55,8 @@ export interface LessonUnit {
     scannedAssets: ScannedAsset[];
     manifest?: LessonManifest;
     topic?: string;
+    book_id?: string | null;
+    order_index?: number;
 }
 
 const requireSupabase = (): void => {
@@ -76,6 +94,8 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
             scannedAssets: row.scanned_assets ?? [],
             manifest: row.manifest ?? undefined,
             topic: row.topic ?? undefined,
+            book_id: row.book_id ?? null,
+            order_index: row.order_index ?? 0,
         }));
     } catch (err) {
         log.warn('unexpected_error_fetching_units', { error: err instanceof Error ? err.message : String(err) });
@@ -187,17 +207,15 @@ const supabaseUpdateUnit = async (id: string, updates: Partial<LessonUnit>): Pro
 };
 
 /**
- * Hard-delete a unit. Safe because the relational children all cascade:
- * objectives, pool_items, assets, character_ledger, srs_items, generation_jobs
- * FK→units with ON DELETE CASCADE (verified in the schema migrations). The
- * storage objects (generated-media bucket files) are NOT cascade-deleted —
- * they orphan harmlessly and are cleaned up by the vault's future retention
- * job (advisor §6.7); we accept that trade-off rather than blocking deletion
- * on a bucket walk. Resolves Gap G9 (no unit-management UI existed).
+ * Soft-delete a unit (Unit & Book Manager, 2026-08-07). Sets deleted_at; the
+ * row disappears from every RLS-scoped read (units SELECT policy filters
+ * deleted_at IS NULL) and is recoverable from the Trash tab. Permanent
+ * deletion with content cascade is Engine.deleteUnitForever → delete_unit_full
+ * RPC. Storage objects (generated-media bucket files) are never cascade-
+ * deleted — they orphan harmlessly (advisor §6.7 trade-off, unchanged).
  */
 const supabaseDeleteUnit = async (id: string): Promise<void> => {
-    const { error } = await supabase.from('units').delete().eq('id', id);
-    if (error) throw error;
+    await softDeleteUnit(id);
 };
 
 const supabaseUnlockNextUnit = async (currentId: string): Promise<void> => {
@@ -436,6 +454,21 @@ export const Engine = {
         requireSupabase();
         return supabaseDeleteUnit(id);
     },
+
+    // ── Unit & Book Manager wrappers (delegate to BookService) ────────────
+    listBooks: async () => { requireSupabase(); return listBooks(); },
+    createBook: async (title: string) => { requireSupabase(); return createBook(title); },
+    renameBook: async (bookId: string, title: string) => { requireSupabase(); return renameBook(bookId, title); },
+    softDeleteBook: async (bookId: string) => { requireSupabase(); return softDeleteBook(bookId); },
+    restoreBook: async (bookId: string) => { requireSupabase(); return restoreBook(bookId); },
+    deleteBookFull: async (bookId: string) => { requireSupabase(); return deleteBookFull(bookId); },
+    listTrashedBooks: async () => { requireSupabase(); return listTrashedBooks(); },
+    moveUnitToBook: async (unitId: string, bookId: string | null) => { requireSupabase(); return moveUnitToBook(unitId, bookId); },
+    reorderUnit: async (unitId: string, newIndex: number) => { requireSupabase(); return reorderUnit(unitId, newIndex); },
+    restoreUnit: async (unitId: string) => { requireSupabase(); return restoreUnit(unitId); },
+    deleteUnitForever: async (unitId: string) => { requireSupabase(); return deleteUnitFull(unitId); },
+    listTrashedUnits: async () => { requireSupabase(); return listTrashedUnits(); },
+    getUnitPipelineMeta: async (unitIds: string[]) => { requireSupabase(); return getUnitPipelineMeta(unitIds); },
 
     unlockNextUnit: async (currentId: string): Promise<void> => {
         requireSupabase();

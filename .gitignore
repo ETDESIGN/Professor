@@ -31,3 +31,6 @@ dist-ssr
 test-results/
 playwright-report/
 COMPREHENSIVE_TECHNICAL_AUDIT_REPORT.md
+
+# Supabase CLI local state (regenerated per machine — never commit)
+supabase/.temp/

@@ -150,6 +150,28 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
             return merged;
           });
         }
+
+        // WS-C: surface content-presence honestly — a missing category becomes an
+        // explicit notice instead of a silently empty card (never invent, never hide).
+        if (data?.presence && typeof data.presence === 'object') {
+          const label: Record<string, string> = {
+            vocabulary: 'vocabulary', grammar: 'grammar', story: 'story',
+            dialogues: 'dialogue', characters: 'characters',
+          };
+          for (const [cat, raw] of Object.entries(data.presence as Record<string, any>)) {
+            const p = raw || {};
+            const name = label[cat] || cat;
+            if (p.status === 'no_source') {
+              toast.info(`No ${name} detected in the uploaded pages — nothing to enrich.`);
+            } else if (p.status === 'failed') {
+              toast.warning(`${name[0].toUpperCase()}${name.slice(1)} enrichment returned nothing. Try re-enriching.`);
+            } else if (p.status === 'partial' && (p.deferred ?? 0) > 0) {
+              toast.info(`${name[0].toUpperCase()}${name.slice(1)}: enriched ${p.enriched_count}/${p.source_count}. Run again to pick up the rest.`);
+            } else if (p.status === 'empty') {
+              toast.info(`No ${name} detected or generated for this unit.`);
+            }
+          }
+        }
       } catch (err: any) {
         log.warn(`enrich_error_${category}`, { error: err?.message });
         toast.error(`Failed to load ${category}: ${err?.message || 'Unknown error'}`);

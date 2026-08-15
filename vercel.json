@@ -27,23 +27,23 @@
     "rewrites": [
         {
             "source": "/teacher/:path*",
-            "destination": "/teacher.html"
+            "destination": "/teacher"
         },
         {
             "source": "/student/:path*",
-            "destination": "/student.html"
+            "destination": "/student"
         },
         {
             "source": "/parent/:path*",
-            "destination": "/parent.html"
+            "destination": "/parent"
         },
         {
             "source": "/admin/:path*",
-            "destination": "/admin.html"
+            "destination": "/admin"
         },
         {
             "source": "/:path*",
-            "destination": "/index.html"
+            "destination": "/index"
         }
     ]
 }
