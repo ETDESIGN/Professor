@@ -1,204 +1,409 @@
+// BoardFlashMatch v2 — multi-payload matching game (PRACTICE phase).
+//
+// Rewritten per flashmatch-v2-spec.md. Consumes IMAGE_SELECT, MEANING_MATCH,
+// and AUDIO_L1_SELECT via useEscalatingPool (mastery-gated escalation).
+//
+// Lifecycle: per-pair mistake tracking + award latching (adaptation of the
+// standard 4-must-dos for a K-pair board). Both reset on currentTurnId change.
+//
+// Scoring: dual-write — addPoints(id, delta) for the leaderboard AND
+// recordAttempt(...) for analytics on every scored event.
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Check, RefreshCcw } from 'lucide-react';
+import { Check, RefreshCcw, Volume2, Lightbulb } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
-import { useBoardPool } from '../useBoardPool';
-import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
-import { gradeStudent } from '../../../services/boardLearner';
+import { scoreForAttempt, MISTAKE_PENALTY, type Difficulty } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
+import { useEscalatingPool } from '../useEscalatingPool';
+import { recordAttempt } from '../../../services/attemptsLog';
+import { playAudioUrl } from '../../../services/SpeechService';
+import type { PoolItem } from '../../../types/exercise';
+
+// ── Types ────────────────────────────────────────────────────────────────
+type TileKind = 'text' | 'image' | 'audio';
+
+interface MatchTile {
+  id: string;
+  kind: TileKind;
+  display: string;
+}
 
 interface MatchPair {
   id: string;
-  left: string;
-  right: string;
+  objectiveId: string;
+  exerciseType: 'MEANING_MATCH' | 'IMAGE_SELECT' | 'AUDIO_L1_SELECT';
+  difficulty: 1 | 2 | 3;
+  left: MatchTile;
+  right: MatchTile;
 }
 
+// ── Normalizer (spec §1 — field names verified against types/exercise.ts) ─
+function normalizeToMatchPair(item: PoolItem): MatchPair | null {
+  const base = {
+    id: item.id,
+    objectiveId: item.objective_id,
+    exerciseType: item.exercise_type as MatchPair['exerciseType'],
+    difficulty: item.difficulty,
+  };
+  const c = item.content as any;
+  switch (item.exercise_type) {
+    case 'MEANING_MATCH': {
+      const meaning = c.options?.[c.correct_index];
+      if (!c?.prompt || meaning == null) return null;
+      return {
+        ...base,
+        left:  { id: `${item.id}-L`, kind: 'text', display: c.prompt },
+        right: { id: `${item.id}-R`, kind: 'text', display: String(meaning) },
+      };
+    }
+    case 'IMAGE_SELECT': {
+      const correctImg = c.options?.[c.correct_index]?.image_url;
+      if (!c?.prompt || !correctImg) return null;
+      return {
+        ...base,
+        left:  { id: `${item.id}-L`, kind: 'text', display: c.prompt },
+        right: { id: `${item.id}-R`, kind: 'image', display: String(correctImg) },
+      };
+    }
+    case 'AUDIO_L1_SELECT': {
+      const meaning = c.options?.[c.correct_index];
+      if (!c?.audio_url || meaning == null) return null;
+      return {
+        ...base,
+        left:  { id: `${item.id}-L`, kind: 'audio', display: c.audio_url },
+        right: { id: `${item.id}-R`, kind: 'text', display: String(meaning) },
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────
+const TOTAL_ROUNDS = 4;
+const MAX_PAIRS = 6;
+const MIN_PAIRS = 3;
+
+// ── Component ─────────────────────────────────────────────────────────────
 const BoardFlashMatch = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints } = useSession();
   const unitId = state.activeUnit?.id || '';
-  const stepType = state.activeSlideData?.type || 'FLASH_MATCH';
+  const phase = (state.activeSlideData?.phase || 'PRACTICE') as any;
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
   const pickedStudent = usePickedStudent();
-  // Capture the points awarded on completion so the success overlay can show a
-  // personalized "[Name] nailed it! +N pts" message.
-  const [lastAward, setLastAward] = useState<number | null>(null);
 
-  // Memoize the frozen source so its reference is stable across renders — an
-  // inline `data?.pairs || []` is a fresh array every render, which (via the
-  // pairs/rebuild/effect chain) caused an infinite setState loop in pool mode.
-  const frozenPairs: MatchPair[] = useMemo(
-    () => (Array.isArray(data?.pairs) ? data.pairs.slice(0, 8) : []),
-    [data?.pairs],
-  );
-  // Pool fallback (class-weak-first): MEANING_MATCH items -> word/meaning pairs.
-  const { items: poolItems, loading } = useBoardPool({
+  // ── Round tracking ────────────────────────────────────────────────────
+  const [roundIndex, setRoundIndex] = useState(1);
+  const [roundComplete, setRoundComplete] = useState(false);
+  const [allComplete, setAllComplete] = useState(false);
+
+  // ── Escalating pool ───────────────────────────────────────────────────
+  const { items, loading } = useEscalatingPool({
     unitId,
-    exerciseTypes: ['MEANING_MATCH'],
-    classWeak: true,
+    shellType: 'FLASH_MATCH',
+    phase,
     roster,
-    limit: 8,
+    roundIndex,
+    totalRounds: TOTAL_ROUNDS,
+    roundSize: MAX_PAIRS,
   });
 
-  const pairs: MatchPair[] = useMemo(() => {
-    if (frozenPairs.length > 0) return frozenPairs.slice(0, 8);
+  // ── Normalize pool items → match pairs ────────────────────────────────
+  // Frozen fallback (legacy data.pairs) for units without pool content.
+  const frozenPairs: MatchPair[] = useMemo(() => {
+    if (!Array.isArray(data?.pairs) || data.pairs.length === 0) return [];
+    return data.pairs.slice(0, MAX_PAIRS).map((p: any, i: number) => ({
+      id: `frozen-${i}`,
+      objectiveId: `frozen-${i}`,
+      exerciseType: 'MEANING_MATCH' as const,
+      difficulty: 1 as const,
+      left: { id: `frozen-${i}-L`, kind: 'text' as const, display: p.left || '' },
+      right: { id: `frozen-${i}-R`, kind: 'text' as const, display: p.right || '' },
+    }));
+  }, [data?.pairs]);
+
+  const matchPairs: MatchPair[] = useMemo(() => {
+    if (frozenPairs.length > 0) return frozenPairs;
     const seen = new Set<string>();
     const out: MatchPair[] = [];
-    for (const it of poolItems) {
+    for (const it of items) {
       if (seen.has(it.objective_id)) continue;
-      seen.add(it.objective_id);
-      const c: any = it.content;
-      const right = c?.options?.[c.correct_index];
-      if (c?.prompt && right) out.push({ id: it.objective_id, left: c.prompt, right });
-      if (out.length >= 6) break;
+      const pair = normalizeToMatchPair(it);
+      if (pair) { seen.add(it.objective_id); out.push(pair); }
+      if (out.length >= MAX_PAIRS) break;
     }
     return out;
-  }, [frozenPairs, poolItems]);
+  }, [items, frozenPairs]);
 
-  const [leftItems, setLeftItems] = useState<{ id: string; pairId: string; text: string; matched: boolean }[]>([]);
-  const [rightItems, setRightItems] = useState<{ id: string; pairId: string; text: string; matched: boolean }[]>([]);
-
+  // ── Tile state ────────────────────────────────────────────────────────
+  const [leftItems, setLeftItems] = useState<(MatchTile & { pairId: string; objectiveId: string; difficulty: number; matched: boolean })[]>([]);
+  const [rightItems, setRightItems] = useState<(MatchTile & { pairId: string; matched: boolean })[]>([]);
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
   const [selectedRight, setSelectedRight] = useState<string | null>(null);
   const [matchedCount, setMatchedCount] = useState(0);
   const [isWrong, setIsWrong] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  // Game-lifecycle: mistakes made during the CURRENT responder's turn. Resets
-  // to 0 when a new student is picked (NEW_TURN). Used to compute the success
-  // award via scoreForAttempt(mistakes).
-  const [mistakes, setMistakes] = useState(0);
-  // Ref mirror so the checkMatch closure (created in render) reads the live
-  // count without going stale across rapid taps.
-  const mistakesRef = useRef(0);
-  const setMistakesBoth = (updater: (n: number) => number) => {
-    mistakesRef.current = updater(mistakesRef.current);
-    setMistakes(mistakesRef.current);
-  };
+  const [hintTileId, setHintTileId] = useState<string | null>(null);
+  const [showMicroExplanation, setShowMicroExplanation] = useState<MatchPair | null>(null);
 
-  // (Re)build the board whenever the pair set resolves (frozen sync OR pool
-  // async) — and on a remote RESET_GAME. NOTE: do NOT also fire rebuild from a
-  // `[rebuild]`-keyed effect — `rebuild`'s identity churns whenever `pairs`
-  // resolves async, which used to cause a 3-way effect fight (the [rebuild],
-  // [lastAction, rebuild], and [turnId] effects all calling rebuild and
-  // re-shuffling mid-turn). The build is now driven by exactly two triggers:
-  // this effect (initial/async pair resolution) and the [turnId] effect below.
+  // ── Per-pair lifecycle refs (spec §3) ─────────────────────────────────
+  const mistakesByPairRef = useRef<Record<string, number>>({});
+  const awardedPairsRef = useRef<Set<string>>(new Set());
+  const missedObjectivesRef = useRef<Map<string, { studentId: string }>>(new Map());
+
+  // ── Build / rebuild the board ─────────────────────────────────────────
   const rebuild = useCallback(() => {
-    setLeftItems(pairs.map((p, i) => ({ id: `l_${i}`, pairId: p.id, text: p.left, matched: false })));
-    setRightItems(pairs.map((p, i) => ({ id: `r_${i}`, pairId: p.id, text: p.right, matched: false })).sort(() => Math.random() - 0.5));
+    setLeftItems(matchPairs.map((p) => ({
+      ...p.left, pairId: p.id, objectiveId: p.objectiveId, difficulty: p.difficulty, matched: false,
+    })));
+    setRightItems(matchPairs.map((p) => ({ ...p.right, pairId: p.id, matched: false }))
+      .sort(() => Math.random() - 0.5));
     setSelectedLeft(null);
     setSelectedRight(null);
     setMatchedCount(0);
     setIsWrong(false);
-    setIsComplete(false);
-    mistakesRef.current = 0;
-    setMistakes(0);
-  }, [pairs]);
+    setRoundComplete(false);
+    setAllComplete(false);
+    setHintTileId(null);
+    setShowMicroExplanation(null);
+    mistakesByPairRef.current = {};
+    awardedPairsRef.current = new Set();
+  }, [matchPairs]);
 
-  // Initial build + rebuild when the pair set resolves (frozen sync OR pool
-  // async). Skips if pairs isn't ready yet (the [turnId] / [lastAction] effects
-  // also guard on pairs.length, so the first real build happens here once).
-  useEffect(() => {
-    if (pairs.length > 0) rebuild();
-  }, [rebuild]);
+  // Build on pair resolution + frozen sync
+  useEffect(() => { if (matchPairs.length > 0) rebuild(); }, [rebuild]);
 
+  // Reset on RESET_GAME action
   useEffect(() => {
-    if (state.lastAction?.type === 'RESET_GAME' && pairs.length > 0) rebuild();
+    if (state.lastAction?.type === 'RESET_GAME' && matchPairs.length > 0) rebuild();
   }, [state.lastAction, rebuild]);
 
-  // Game-lifecycle: when a NEW responder is picked (NEW_TURN / currentTurnId
-  // changes), reshuffle a fresh board for them and reset their mistake tally.
-  // Skips on the initial null (no responder = practice/choral mode).
+  // ── Game-lifecycle: new turn (currentTurnId change) ───────────────────
   const turnId = state.currentTurnId;
   useEffect(() => {
-    if (turnId === null) return; // no responder yet — stay in current state
-    if (pairs.length > 0) rebuild();
+    if (turnId === null) return;
+    if (matchPairs.length > 0) rebuild();
+    missedObjectivesRef.current = new Map();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
 
-  // Ref mirror of pairs.length so the checkMatch completion check reads the
-  // LIVE length instead of the closure value at the render checkMatch was
-  // created in (avoids premature completion if pairs is stale/empty).
-  const pairsLenRef = useRef(pairs.length);
-  pairsLenRef.current = pairs.length;
-
-  const handleLeftClick = useCallback((id: string) => {
-    if (isComplete) return;
-    const item = leftItems.find(l => l.id === id);
-    if (item?.matched) return;
-    setSelectedLeft(id);
-    setIsWrong(false);
-
-    if (selectedRight) {
-      checkMatch(id, selectedRight);
-    }
-  }, [leftItems, selectedRight, isComplete]);
-
-  const handleRightClick = useCallback((id: string) => {
-    if (isComplete) return;
-    const item = rightItems.find(r => r.id === id);
-    if (item?.matched) return;
-    setSelectedRight(id);
-    setIsWrong(false);
-
-    if (selectedLeft) {
-      checkMatch(selectedLeft, id);
-    }
-  }, [rightItems, selectedLeft, isComplete]);
-
-  const checkMatch = (leftId: string, rightId: string) => {
-    const leftItem = leftItems.find(l => l.id === leftId);
-    const rightItem = rightItems.find(r => r.id === rightId);
-
-    if (!leftItem || !rightItem) {
-      setSelectedLeft(null);
-      setSelectedRight(null);
-      return;
-    }
-
-    if (leftItem.pairId === rightItem.pairId) {
-      setLeftItems(prev => prev.map(l => l.id === leftId ? { ...l, matched: true } : l));
-      setRightItems(prev => prev.map(r => r.id === rightId ? { ...r, matched: true } : r));
-      setMatchedCount(prev => {
-        const newCount = prev + 1;
-        if (newCount === pairsLenRef.current && pairsLenRef.current > 0) {
-          setIsComplete(true);
-          // Game-lifecycle scoring: the responder's turn is a SUCCESS — award
-          // the clean score minus the mistakes they made during this turn.
-          // Mistakes have already been deducted live (wrong branch below), so
-          // this is the completion bonus. No responder = practice mode = no score.
-          const picked = state.quickWheelWinner;
-          if (picked) {
-            const award = scoreForAttempt(mistakesRef.current);
-            setLastAward(award);
-            addPoints(picked, award);
-            if (unitId && leftItem.text) gradeStudent(picked, unitId, leftItem.text, true).catch(() => {});
+  // ── Listen for remote/commander actions ───────────────────────────────
+  useEffect(() => {
+    const action = state.lastAction;
+    if (!action) return;
+    switch (action.type) {
+      case 'SKIP_PAIR': {
+        // Skip current selected pair (no penalty, no remediation push)
+        if (selectedLeft) {
+          const li = leftItems.find(l => l.id === selectedLeft);
+          if (li) {
+            setLeftItems(prev => prev.map(l => l.id === li.id ? { ...l, matched: true } : l));
+            const ri = rightItems.find(r => r.pairId === li.pairId);
+            if (ri) setRightItems(prev => prev.map(r => r.id === ri.id ? { ...r, matched: true } : r));
+            setMatchedCount(c => c + 1);
           }
         }
-        return newCount;
-      });
+        setSelectedLeft(null);
+        setSelectedRight(null);
+        break;
+      }
+      case 'REVEAL_HINT': {
+        // Glow the correct right tile for the selected left tile
+        if (selectedLeft) {
+          const li = leftItems.find(l => l.id === selectedLeft);
+          if (li) {
+            const correctRight = rightItems.find(r => r.pairId === li.pairId && !r.matched);
+            if (correctRight) {
+              setHintTileId(correctRight.id);
+              setTimeout(() => setHintTileId(null), 1500);
+            }
+          }
+        }
+        break;
+      }
+      case 'MARK_CORRECT': {
+        // Force-correct: auto-match the first unmatched pair
+        const unmatchedLeft = leftItems.find(l => !l.matched);
+        if (unmatchedLeft) {
+          const correctRight = rightItems.find(r => r.pairId === unmatchedLeft.pairId && !r.matched);
+          if (correctRight && unmatchedLeft.pairId) {
+            handleMatch(unmatchedLeft.pairId, unmatchedLeft.id, correctRight.id);
+          }
+        }
+        break;
+      }
+      case 'NEXT_ROUND': {
+        advanceRound();
+        break;
+      }
+      case 'SLIDE_COMPLETE': {
+        // Teacher forced end — mark all complete
+        setAllComplete(true);
+        break;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.lastAction]);
+
+  // ── Round advancement ─────────────────────────────────────────────────
+  const pairsLenRef = useRef(matchPairs.length);
+  pairsLenRef.current = matchPairs.length;
+
+  const advanceRound = useCallback(() => {
+    if (roundIndex >= TOTAL_ROUNDS) {
+      setAllComplete(true);
+      triggerAction('SLIDE_COMPLETE', { forced: false });
     } else {
+      setRoundIndex(r => r + 1);
+      setRoundComplete(false);
+    }
+  }, [roundIndex, TOTAL_ROUNDS, triggerAction]);
+
+  // Auto-advance when round is complete
+  useEffect(() => {
+    if (roundComplete && matchPairs.length > 0) {
+      const t = setTimeout(advanceRound, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [roundComplete, advanceRound, matchPairs.length]);
+
+  // Auto-dismiss the terminal celebration after 6s so a forgotten tab never
+  // leaves the board stuck behind the "All Matched!" overlay. The SLIDE_COMPLETE
+  // broadcast already happened (see advanceRound), so this is purely cosmetic.
+  useEffect(() => {
+    if (!allComplete) return;
+    const t = setTimeout(() => setAllComplete(false), 6000);
+    return () => clearTimeout(t);
+  }, [allComplete]);
+
+  // ── Dual-write helper ─────────────────────────────────────────────────
+  const doDualWrite = useCallback((pair: MatchPair, correctness: 'correct' | 'incorrect') => {
+    const picked = state.quickWheelWinner;
+    if (!picked) return;
+    const student = (state.students || []).find((s: any) => s.id === picked);
+    if (correctness === 'correct') {
+      const mistakes = mistakesByPairRef.current[pair.id] ?? 0;
+      const points = scoreForAttempt(mistakes, pair.difficulty, 1.0);
+      addPoints(picked, points);
+    } else {
+      addPoints(picked, -MISTAKE_PENALTY);
+    }
+    recordAttempt({
+      rosterId: picked,
+      classId: state.activeClassId,
+      profileId: student?.claimed_profile_id ?? null,
+      correctness,
+      objectiveId: pair.objectiveId,
+      exerciseType: pair.exerciseType,
+      difficulty: pair.difficulty,
+    }).catch(() => {});
+  }, [state.quickWheelWinner, state.activeClassId, state.students, addPoints]);
+
+  // ── Match attempt handler ─────────────────────────────────────────────
+  const handleMatch = useCallback((pairId: string, leftId: string, rightId: string) => {
+    const pair = matchPairs.find(p => p.id === pairId);
+    const leftItem = leftItems.find(l => l.id === leftId);
+    const rightItem = rightItems.find(r => r.id === rightId);
+    if (!pair || !leftItem || !rightItem) return;
+
+    const correct = pairId === pair.id && rightItem.pairId === pair.id;
+
+    if (correct) {
+      if (awardedPairsRef.current.has(pair.id)) return; // duplicate guard
+      awardedPairsRef.current.add(pair.id);
+
+      // Mark tiles matched
+      setLeftItems(prev => prev.map(l => l.id === leftId ? { ...l, matched: true } : l));
+      setRightItems(prev => prev.map(r => r.id === rightId ? { ...r, matched: true } : r));
+
+      doDualWrite(pair, 'correct');
+
+      const newCount = matchedCount + 1;
+      setMatchedCount(newCount);
+
+      // Check round completion
+      if (newCount >= pairsLenRef.current && pairsLenRef.current > 0) {
+        setRoundComplete(true);
+        if (roundIndex >= TOTAL_ROUNDS) {
+          setAllComplete(true);
+          triggerAction('SLIDE_COMPLETE', { forced: false });
+        }
+      }
+    } else {
+      // Wrong match
       setIsWrong(true);
       setTimeout(() => setIsWrong(false), 800);
-      // Game-lifecycle scoring: a wrong pair attempt is a MISTAKE — deduct
-      // immediately so the running score reflects the cost, and bump the
-      // mistake counter (lowering the eventual success award).
+
       const picked = state.quickWheelWinner;
       if (picked) {
-        setMistakesBoth(n => n + 1);
-        addPoints(picked, -MISTAKE_PENALTY);
+        mistakesByPairRef.current[pair.id] = (mistakesByPairRef.current[pair.id] ?? 0) + 1;
+        doDualWrite(pair, 'incorrect');
+
+        // Track missed objectives for remediation queue
+        if (!missedObjectivesRef.current.has(pair.objectiveId)) {
+          missedObjectivesRef.current.set(pair.objectiveId, { studentId: picked });
+        }
+
+        const missCount = mistakesByPairRef.current[pair.id];
+        // 1st miss: glow correct right tile (narrowed hint)
+        if (missCount === 1) {
+          const correctRight = rightItems.find(r => r.pairId === pair.id && !r.matched);
+          if (correctRight) {
+            setHintTileId(correctRight.id);
+            setTimeout(() => setHintTileId(null), 1500);
+          }
+        }
+        // 2nd miss: show micro-explanation card
+        if (missCount === 2) {
+          setShowMicroExplanation(pair);
+          setTimeout(() => setShowMicroExplanation(null), 3000);
+        }
       }
     }
 
     setSelectedLeft(null);
     setSelectedRight(null);
-  };
+  }, [matchPairs, leftItems, rightItems, matchedCount, roundIndex, doDualWrite,
+      state.quickWheelWinner, triggerAction]);
 
-  if (loading || pairs.length === 0) {
+  // ── Tile click handlers ───────────────────────────────────────────────
+  const handleLeftClick = useCallback((id: string) => {
+    if (roundComplete || allComplete) return;
+    const item = leftItems.find(l => l.id === id);
+    if (item?.matched) return;
+    setSelectedLeft(id);
+    setIsWrong(false);
+    // Audio tile: play + select on tap
+    if (item?.kind === 'audio') playAudioUrl(item.display).catch(() => {});
+    if (selectedRight) handleMatch(item!.pairId, id, selectedRight);
+  }, [leftItems, selectedRight, roundComplete, allComplete, handleMatch]);
+
+  const handleRightClick = useCallback((id: string) => {
+    if (roundComplete || allComplete) return;
+    const item = rightItems.find(r => r.id === id);
+    if (item?.matched) return;
+    setSelectedRight(id);
+    setIsWrong(false);
+    if (selectedLeft) handleMatch(item!.pairId, selectedLeft, id);
+  }, [rightItems, selectedLeft, roundComplete, allComplete, handleMatch]);
+
+  // ── Empty pool state (spec §7) ────────────────────────────────────────
+  if (loading || (matchPairs.length === 0 && !frozenPairs.length)) {
+    if (matchPairs.length === 0 && !loading) {
+      return (
+        <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
+          <h2 className="text-4xl font-bold text-slate-500 mb-2">Flash Match</h2>
+          <p className="text-slate-600 text-xl">Content isn't ready for this round yet.</p>
+          <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
+            className="mt-6 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white">
+            Skip Round
+          </button>
+        </div>
+      );
+    }
     return (
-      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
+      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white">
         <h2 className="text-4xl font-bold text-slate-500 mb-2">Flash Match</h2>
-        <p className="text-slate-600 text-xl">
-          {loading ? 'Loading…' : 'No matching pairs available. Generate the exercise pool for this unit.'}
-        </p>
+        <p className="text-slate-600 text-xl">Loading…</p>
       </div>
     );
   }
@@ -206,101 +411,111 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   return (
     <div className="h-full bg-slate-900 flex flex-col p-8 font-display">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div className="bg-white/10 px-6 py-3 rounded-2xl flex items-center gap-4 border border-white/10">
-          <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold">
-            ⚡
-          </div>
+          <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold">⚡</div>
           <div>
             <h1 className="text-2xl font-bold text-white">Flash Match</h1>
-            <p className="text-slate-400 text-sm">Match each word with its definition</p>
+            <p className="text-slate-400 text-sm">Round {roundIndex}/{TOTAL_ROUNDS} — Match word pairs</p>
           </div>
         </div>
-
         <div className="flex gap-4 items-center">
           <div className="bg-slate-800 px-6 py-3 rounded-xl border border-slate-700 text-white font-bold text-lg">
-            {matchedCount} / {pairs.length}
+            {matchedCount} / {matchPairs.length}
           </div>
-          <button
-            onClick={() => triggerAction('RESET_GAME')}
-            className="p-3 bg-slate-800 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-white"
-          >
+          <button onClick={() => triggerAction('RESET_GAME')}
+            className="p-3 bg-slate-800 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-white">
             <RefreshCcw />
           </button>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full h-3 bg-slate-800 rounded-full mb-8 overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-purple-500 to-emerald-500 rounded-full transition-all duration-500"
-          style={{ width: `${(matchedCount / pairs.length) * 100}%` }}
-        />
+      <div className="w-full h-3 bg-slate-800 rounded-full mb-6 overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-purple-500 to-emerald-500 rounded-full transition-all duration-500"
+          style={{ width: `${(matchedCount / Math.max(1, matchPairs.length)) * 100}%` }} />
       </div>
 
       {/* Game Area */}
-      <div className="flex-1 flex items-center justify-center gap-16 max-w-6xl mx-auto w-full">
-        {/* Left Column - Words */}
+      <div className="flex-1 flex items-center justify-center gap-12 max-w-6xl mx-auto w-full">
+        {/* Left Column — Prompts */}
         <div className="flex flex-col gap-4 w-[45%]">
           {leftItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleLeftClick(item.id)}
-              disabled={item.matched}
-              className={`
-                text-left px-8 py-5 rounded-2xl text-2xl font-bold transition-all duration-300 border-2
-                ${item.matched
-                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 line-through opacity-50'
-                  : selectedLeft === item.id
-                    ? 'bg-blue-600 border-blue-400 text-white scale-105 shadow-lg shadow-blue-500/30'
-                    : isWrong
-                      ? 'bg-slate-800 border-slate-600 text-white hover:border-blue-400'
-                      : 'bg-slate-800 border-slate-600 text-white hover:border-blue-400'
-                }
-              `}
-            >
-              {item.text}
+            <button key={item.id} onClick={() => handleLeftClick(item.id)} disabled={item.matched}
+              className={`text-left px-6 py-4 rounded-2xl text-xl font-bold transition-all duration-300 border-2 flex items-center gap-3
+                ${item.matched ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 opacity-50'
+                  : selectedLeft === item.id ? 'bg-blue-600 border-blue-400 text-white scale-105 shadow-lg shadow-blue-500/30'
+                  : isWrong ? 'bg-slate-800 border-slate-600 text-white' : 'bg-slate-800 border-slate-600 text-white hover:border-blue-400'}`}>
+              {item.kind === 'audio' ? (
+                <><Volume2 size={24} className="text-blue-300 shrink-0" /><span className="text-sm text-blue-300">Tap to hear</span></>
+              ) : (
+                <span>{item.display}</span>
+              )}
             </button>
           ))}
         </div>
 
         {/* Center Connector */}
         <div className="flex flex-col items-center gap-4 text-slate-600">
-          {pairs.map((_, i) => (
-            <div key={i} className="w-8 h-[52px] flex items-center justify-center">
+          {matchPairs.map((_, i) => (
+            <div key={i} className="w-8 h-14 flex items-center justify-center">
               {i < matchedCount ? '✓' : '→'}
             </div>
           ))}
         </div>
 
-        {/* Right Column - Definitions */}
+        {/* Right Column — Answers (text + image tiles) */}
         <div className="flex flex-col gap-4 w-[45%]">
-          {rightItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleRightClick(item.id)}
-              disabled={item.matched}
-              className={`
-                text-left px-8 py-5 rounded-2xl text-lg font-medium transition-all duration-300 border-2
-                ${item.matched
-                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 line-through opacity-50'
-                  : selectedRight === item.id
-                    ? 'bg-purple-600 border-purple-400 text-white scale-105 shadow-lg shadow-purple-500/30'
-                    : isWrong
-                      ? 'bg-slate-800 border-red-500 text-white animate-shake'
-                      : 'bg-slate-800 border-slate-600 text-slate-200 hover:border-purple-400'
-                }
-              `}
-            >
-              {item.text}
-            </button>
-          ))}
+          {rightItems.map((item) => {
+            const isHint = hintTileId === item.id;
+            return (
+              <button key={item.id} onClick={() => handleRightClick(item.id)} disabled={item.matched}
+                className={`text-left px-6 py-4 rounded-2xl text-lg font-medium transition-all duration-300 border-2 flex items-center gap-3
+                  ${item.matched ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 opacity-50'
+                    : selectedRight === item.id ? 'bg-purple-600 border-purple-400 text-white scale-105 shadow-lg shadow-purple-500/30'
+                    : isHint ? 'bg-yellow-500/20 border-yellow-400 text-yellow-200 animate-pulse shadow-lg shadow-yellow-500/30'
+                    : isWrong ? 'bg-slate-800 border-red-500 text-white animate-shake'
+                    : 'bg-slate-800 border-slate-600 text-slate-200 hover:border-purple-400'}`}>
+                {item.kind === 'image' ? (
+                  <img src={item.display} alt="" className="w-16 h-16 object-contain drop-shadow-lg" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.2'; }} />
+                ) : (
+                  <span>{item.display}</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Complete Overlay */}
-      {isComplete && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      {/* Micro-explanation overlay (2nd miss feedback) */}
+      {showMicroExplanation && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 pointer-events-none">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-fade-in max-w-md">
+            <Lightbulb size={40} className="text-amber-500 mb-3" />
+            <p className="text-2xl font-bold text-slate-800">{showMicroExplanation.left.display}</p>
+            <p className="text-xl text-slate-500 mt-1">= {showMicroExplanation.right.display}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Round Complete Overlay — click to advance immediately */}
+      {roundComplete && !allComplete && (
+        <div
+          onClick={advanceRound}
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 cursor-pointer">
+          <div className="bg-white p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
+            <Check size={56} className="text-emerald-500 mb-3" strokeWidth={4} />
+            <h2 className="text-3xl font-black text-slate-800">Round {roundIndex} Complete!</h2>
+            <p className="text-lg text-slate-500 mt-1">Next round loading…</p>
+          </div>
+        </div>
+      )}
+
+      {/* All Complete Overlay — click to dismiss (scoring already fired before this showed) */}
+      {allComplete && (
+        <div
+          onClick={() => setAllComplete(false)}
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
           <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
             <div className="w-32 h-32 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center mb-6">
               <Check size={64} strokeWidth={4} />
@@ -308,9 +523,8 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
             <h2 className="text-5xl font-black text-slate-800 mb-2">
               {pickedStudent ? `${pickedStudent.name} nailed it!` : 'All Matched!'}
             </h2>
-            <p className="text-2xl text-slate-500 font-medium">
-              {lastAward !== null ? `+${lastAward} pts` : 'Great job connecting the pairs!'}
-            </p>
+            <p className="text-2xl text-slate-500 font-medium">Great job connecting the pairs!</p>
+            <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
       )}

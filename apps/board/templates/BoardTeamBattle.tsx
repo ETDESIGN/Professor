@@ -1,22 +1,27 @@
-// BoardTeamBattle — Team tic-tac-toe + quiz game (ASSESS phase).
-// REBUILT FROM CLAUDE'S DESIGN DOC (team-battle-screen.md).
+// BoardTeamBattle v2 — Team tic-tac-toe + multi-type quiz (ASSESS phase).
 //
-// Full game: pre-game countdown → question+timer → correct=claim cell /
-// wrong=steal → 3-in-a-row=victory. Split-screen rosters + grid + VS.
-//
-// State machine: PREGAME → QUESTION → CHOOSE_CELL → (next round or VICTORY)
-//                           ↘ STEAL → CHOOSE_CELL ↗
+// Rewritten per speedquiz-teambattle-v2-spec.md Part C:
+//   • Dual-ledger: team aggregate (drives tic-tac-toe win) + individual
+//     addPoints/recordAttempt/gradeObjective (spec C1).
+//   • WORD_BANK_BUILD cells become Race Cells (both teams' reps assemble
+//     simultaneously, higher LCS ratio wins) — spec C2.
+//   • Stealing doesn't claw back the previous owner's points (spec C1).
+//   • SLIDE_COMPLETE on tic-tac-toe win / draw / forced end.
+//   • Consumes 6 exercise types via useQuizComposition.
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sword, Shield, Zap, Check, X, Trophy, Star } from 'lucide-react';
+import { Sword, Shield, Zap, Check, X, Trophy, Star, Volume2 } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
-import { pointsForCorrect } from './scoringDefaults';
-import { useBoardPool } from '../useBoardPool';
-import { gradeStudent } from '../../../services/boardLearner';
-import { toPoolItem } from '../../../types/exercise';
+import { useQuizComposition, type QuizQuestion } from '../quizEngine';
+import { computeLCSPartialCredit } from './BoardUnscramble';
+import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { recordAttempt } from '../../../services/attemptsLog';
+import { gradeObjective } from '../../../services/boardLearner';
+import { playAudioUrl } from '../../../services/SpeechService';
+import type { PoolItem } from '../../../types/exercise';
 
-type Phase = 'pregame' | 'question' | 'choose_cell' | 'steal' | 'victory';
+type Phase = 'pregame' | 'question' | 'choose_cell' | 'steal' | 'race' | 'victory';
 type Team = 'red' | 'blue';
 
 const WIN_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
@@ -38,24 +43,15 @@ function checkWin(grid: (string|null)[]): { team: Team; line: number[] } | null 
 }
 
 const BoardTeamBattle = ({ data }: { data: any }) => {
-  const { state, triggerConfetti, addPoints } = useSession();
+  const { state, triggerConfetti, addPoints, pushToRemediation, triggerAction } = useSession();
   const unitId = state.activeUnit?.id || '';
-  const stepType = state.activeSlideData?.type || 'TEAM_BATTLE';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
-  // Pool (MEANING_MATCH, class-weak).
-  const { items: poolItems, loading } = useBoardPool({ unitId, exerciseTypes: ['MEANING_MATCH'], classWeak: true, roster, limit: 12 });
-  const frozenQs = useMemo(() => (Array.isArray(data?.questions) ? data.questions : []), [data?.questions]);
+  // ── Quiz composition (multi-type, mastery-weighted) ──────────────────
+  const TOTAL_Q = 12;
+  const { questions, loading } = useQuizComposition(unitId, TOTAL_Q, roster);
 
-  const questions = useMemo(() => {
-    if (frozenQs.length > 0) return frozenQs;
-    return poolItems.map(it => {
-      const c: any = it.content;
-      return { word: c?.prompt, text: `What does "${c?.prompt}" mean?`, options: c?.options || [], correct: c?.options?.[c.correct_index], correctIdx: c.correct_index };
-    }).filter(q => q.options.length > 1);
-  }, [frozenQs, poolItems]);
-
-  // ── Game state ─────────────────────────────────────────────────────────
+  // ── Game state ───────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>('pregame');
   const [countdown, setCountdown] = useState(3);
   const [grid, setGrid] = useState<(string|null)[]>(Array(9).fill(null));
@@ -68,13 +64,19 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
   const [teamTurnTracker, setTeamTurnTracker] = useState<Record<Team, string[]>>({ red: [], blue: [] });
   const stealRef = useRef(false);
 
+  // Race cell state (WORD_BANK_BUILD)
+  const [redPlacedTiles, setRedPlacedTiles] = useState<string[]>([]);
+  const [bluePlacedTiles, setBluePlacedTiles] = useState<string[]>([]);
+  const [raceComplete, setRaceComplete] = useState(false);
+
   const redMembers = state.students.filter(s => s.team === 'red');
   const blueMembers = state.students.filter(s => s.team === 'blue');
   const teamsReady = redMembers.length > 0 && blueMembers.length > 0;
 
   const currentQ = questions[qIndex % Math.max(1, questions.length)];
+  const isRaceCell = currentQ?.exerciseType === 'WORD_BANK_BUILD';
 
-  // ── Pregame countdown ──────────────────────────────────────────────────
+  // ── Pregame countdown ────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'pregame') return;
     if (countdown <= 0) { setPhase('question'); return; }
@@ -82,28 +84,38 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     return () => clearTimeout(t);
   }, [phase, countdown]);
 
-  // ── Timer ──────────────────────────────────────────────────────────────
+  // ── Timer ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (phase !== 'question' && phase !== 'steal') return;
-    if (answerRevealed) return;
-    if (timeLeft <= 0) { handleAnswer(-1); return; }
+    if (phase !== 'question' && phase !== 'steal' && phase !== 'race') return;
+    if (answerRevealed || raceComplete) return;
+    if (timeLeft <= 0) {
+      if (isRaceCell && phase === 'race') {
+        handleRaceTimeout();
+      } else {
+        handleAnswer(-1);
+      }
+      return;
+    }
     const t = setTimeout(() => setTimeLeft(p => p - 1), 1000);
     return () => clearTimeout(t);
-    // eslint-disable-next-line
-  }, [timeLeft, phase, answerRevealed]);
+  }, [timeLeft, phase, answerRevealed, raceComplete]);
 
-  // ── Remote ─────────────────────────────────────────────────────────────
+  // ── Auto-play audio for LISTEN_SELECT ────────────────────────────────
+  useEffect(() => {
+    if ((phase === 'question' || phase === 'steal') && currentQ?.exerciseType === 'LISTEN_SELECT') {
+      const audioUrl = (currentQ.item.content as any)?.audio_url;
+      if (audioUrl) playAudioUrl(audioUrl).catch(() => {});
+    }
+  }, [phase, qIndex, currentQ]);
+
+  // ── Remote ───────────────────────────────────────────────────────────
   useEffect(() => {
     const a = state.lastAction;
     if (!a) return;
     if (a.type === 'RESET_GAME') { resetGame(); }
     else if (a.type === 'REVEAL_ANSWER' && !answerRevealed && (phase === 'question' || phase === 'steal')) {
-      handleAnswer(-1); // force reveal
+      handleAnswer(-1);
     }
-    // B3.3: previously these two remote emits had no board handler → dead.
-    // SWITCH_TURN: Baton/remote "Switch Turn" → manually hand control to the
-    // other team (skips the steal/round-end state machine). Only valid in the
-    // question/steal phases.
     else if (a.type === 'SWITCH_TURN' && (phase === 'question' || phase === 'steal')) {
       stealRef.current = false;
       setActiveTeam(t => t === 'red' ? 'blue' : 'red');
@@ -112,12 +124,9 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
       setTimeLeft(15);
       setPhase('question');
     }
-    // RESET_TIMER: Baton/remote "Reset Timer" → restart the 15s countdown for
-    // the current team.
     else if (a.type === 'RESET_TIMER' && (phase === 'question' || phase === 'steal')) {
       setTimeLeft(15);
     }
-    // eslint-disable-next-line
   }, [state.lastAction]);
 
   // RULES OF HOOKS: all hooks above.
@@ -136,7 +145,33 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     return <div className="h-full flex items-center justify-center text-slate-400"><p className="font-display text-2xl">{loading ? 'Loading…' : 'No questions.'}</p></div>;
   }
 
-  // ── Pick student from active team (round-robin within team) ────────────
+  // ── Dual-write helper ────────────────────────────────────────────────
+  const doDualWrite = useCallback((q: QuizQuestion, respondingStudent: any, correctness: 'correct' | 'partial' | 'incorrect', points: number) => {
+    if (!respondingStudent) return;
+    const student = (state.students || []).find((s: any) => s.id === respondingStudent);
+    // Ledger 1: team aggregate (addPoints to the team's score)
+    if (points !== 0) addPoints(respondingStudent, points);
+    // Ledger 2: individual analytics + FSRS
+    recordAttempt({
+      rosterId: respondingStudent,
+      classId: state.activeClassId,
+      profileId: student?.claimed_profile_id ?? null,
+      correctness,
+      objectiveId: q.objectiveId,
+      exerciseType: q.exerciseType,
+      difficulty: q.difficulty,
+    }).catch(() => {});
+    if (unitId && !q.objectiveId.startsWith('frozen')) {
+      const passed = correctness === 'correct' || correctness === 'partial';
+      gradeObjective(respondingStudent, unitId, q.objectiveId, passed, 'receptive').catch(() => {});
+    }
+    // Remediation queue
+    if (correctness === 'incorrect' || correctness === 'partial') {
+      pushToRemediation(q.objectiveId, respondingStudent);
+    }
+  }, [state.students, state.activeClassId, addPoints, unitId, pushToRemediation]);
+
+  // ── Pick student from active team (round-robin within team) ──────────
   const pickStudent = (team: Team) => {
     const members = team === 'red' ? redMembers : blueMembers;
     const gone = teamTurnTracker[team];
@@ -145,21 +180,23 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     return pool[Math.floor(Math.random() * pool.length)];
   };
 
-  // ── Handle answer ──────────────────────────────────────────────────────
+  // ── Handle MCQ answer ────────────────────────────────────────────────
   function handleAnswer(tileIdx: number) {
-    if (answerRevealed) return;
-    const isCorrect = tileIdx === currentQ.correctIdx;
+    if (answerRevealed || !currentQ || isRaceCell) return;
+    const isCorrect = tileIdx === (currentQ.item.content as any).correct_index;
     setSelectedTile(tileIdx);
     setAnswerRevealed(true);
 
-    // Grade the picked student.
-    const picked = state.quickWheelWinner;
-    if (picked && unitId && currentQ.word) gradeStudent(picked, unitId, currentQ.word, isCorrect).catch(() => {});
-    // B2: wire scoring — a correct answer moves the leaderboard.
-    if (picked && isCorrect) addPoints(picked, pointsForCorrect(stepType));
-
-    // Track turn.
-    if (picked) setTeamTurnTracker(prev => ({ ...prev, [activeTeam]: [...new Set([...prev[activeTeam], picked])] }));
+    const picked = pickStudent(activeTeam);
+    if (picked) {
+      setTeamTurnTracker(prev => ({ ...prev, [activeTeam]: [...new Set([...prev[activeTeam], picked.id])] }));
+      if (isCorrect) {
+        const points = scoreForAttempt(0, currentQ.difficulty, 1.0);
+        doDualWrite(currentQ, picked.id, 'correct', points);
+      } else {
+        doDualWrite(currentQ, picked.id, 'incorrect', -MISTAKE_PENALTY);
+      }
+    }
 
     setTimeout(() => {
       if (isCorrect) {
@@ -181,7 +218,63 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     }, 2000);
   }
 
-  // ── Handle cell claim ──────────────────────────────────────────────────
+  // ── Handle Race Cell (WORD_BANK_BUILD) ───────────────────────────────
+  function startRaceCell() {
+    setRedPlacedTiles([]);
+    setBluePlacedTiles([]);
+    setRaceComplete(false);
+    setPhase('race');
+    setTimeLeft(15);
+  }
+
+  function handleRaceTilePlace(team: Team, word: string) {
+    if (phase !== 'race' || raceComplete) return;
+    if (team === 'red') {
+      setRedPlacedTiles(prev => [...prev, word]);
+    } else {
+      setBluePlacedTiles(prev => [...prev, word]);
+    }
+  }
+
+  function handleRaceTileRemove(team: Team, idx: number) {
+    if (phase !== 'race' || raceComplete) return;
+    if (team === 'red') {
+      setRedPlacedTiles(prev => prev.filter((_, i) => i !== idx));
+    } else {
+      setBluePlacedTiles(prev => prev.filter((_, i) => i !== idx));
+    }
+  }
+
+  function handleRaceTimeout() {
+    if (raceComplete || !currentQ) return;
+    setRaceComplete(true);
+
+    const targetSentence = (currentQ.item.content as any)?.target_sentence || '';
+    const targetTiles = targetSentence.split(/\s+/).filter(Boolean);
+    const strip = (s: string) => s.replace(/[.,!?;:]/g, '');
+
+    const redRatio = computeLCSPartialCredit(redPlacedTiles.map(strip), targetTiles.map(strip));
+    const blueRatio = computeLCSPartialCredit(bluePlacedTiles.map(strip), targetTiles.map(strip));
+
+    // Determine winner (ties favor red who placed first)
+    const winnerTeam: Team = redRatio >= blueRatio ? 'red' : 'blue';
+    const winnerRatio = winnerTeam === 'red' ? redRatio : blueRatio;
+
+    // Score the winner
+    const picked = pickStudent(winnerTeam);
+    if (picked) {
+      setTeamTurnTracker(prev => ({ ...prev, [winnerTeam]: [...new Set([...prev[winnerTeam], picked.id])] }));
+      const correctness = winnerRatio >= 1 ? 'correct' : winnerRatio >= 0.5 ? 'partial' : 'incorrect';
+      const points = scoreForAttempt(0, currentQ.difficulty, winnerRatio);
+      doDualWrite(currentQ, picked.id, correctness as any, points);
+    }
+
+    setTimeout(() => {
+      setPhase('choose_cell');
+    }, 2000);
+  }
+
+  // ── Handle cell claim ────────────────────────────────────────────────
   function handleCellClaim(idx: number) {
     if (grid[idx] !== null) return;
     const newGrid = [...grid];
@@ -193,6 +286,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
       setWinResult(win);
       setPhase('victory');
       triggerConfetti();
+      triggerAction('SLIDE_COMPLETE', { forced: false });
     } else if (newGrid.every(c => c !== null)) {
       // Grid full — draw, whoever has more cells wins.
       const redCount = newGrid.filter(c => c === 'red').length;
@@ -201,6 +295,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
       setWinResult({ team: winnerTeam as Team, line: [] });
       setPhase('victory');
       triggerConfetti();
+      triggerAction('SLIDE_COMPLETE', { forced: false });
     } else {
       stealRef.current = false;
       setActiveTeam(t => t === 'red' ? 'blue' : 'red');
@@ -225,6 +320,9 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     setAnswerRevealed(false);
     setWinResult(null);
     setTeamTurnTracker({ red: [], blue: [] });
+    setRedPlacedTiles([]);
+    setBluePlacedTiles([]);
+    setRaceComplete(false);
     stealRef.current = false;
     setCountdown(3);
     setPhase('pregame');
@@ -234,6 +332,23 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
   const blueScore = grid.filter(c => c === 'blue').length * 100;
   const activeMembers = activeTeam === 'red' ? redMembers : blueMembers;
   const waitingTeam = activeTeam === 'red' ? 'blue' : 'red';
+
+  // ── Render helpers ───────────────────────────────────────────────────
+  const getPromptText = (q: QuizQuestion) => {
+    const c = q.item.content as any;
+    switch (q.exerciseType) {
+      case 'MEANING_MATCH': return `What does "${c.prompt}" mean?`;
+      case 'SPELL_CLOZE': return c.sentence_with_blank || 'Fill in the blank:';
+      case 'LISTEN_SELECT': return 'Listen and select the correct image:';
+      case 'ERROR_SPOT': return `Find the error: "${c.sentence}"`;
+      case 'STORY_COMPREHENSION': return c.prompt || 'Story question:';
+      case 'WORD_BANK_BUILD': return `Build: "${c.target_sentence}"`;
+      default: return 'Question:';
+    }
+  };
+
+  const content = currentQ?.item.content as any;
+  const isListenSelect = currentQ?.exerciseType === 'LISTEN_SELECT';
 
   // ═══ RENDER ═══
   return (
@@ -255,8 +370,8 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
             </motion.div>
           )}
 
-          {/* Question + tiles */}
-          {(phase === 'question' || phase === 'steal') && currentQ && (
+          {/* Question + tiles (MCQ) */}
+          {(phase === 'question' || phase === 'steal') && currentQ && !isRaceCell && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center w-full">
               {/* Steal banner */}
               {phase === 'steal' && (
@@ -278,28 +393,93 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
               </div>
 
               {/* Question */}
-              <p className="font-display text-2xl font-bold text-slate-200 mb-3 text-center">{currentQ.text}</p>
+              <p className="font-display text-2xl font-bold text-slate-200 mb-3 text-center">{getPromptText(currentQ)}</p>
+
+              {/* Audio play button for LISTEN_SELECT */}
+              {isListenSelect && content?.audio_url && (
+                <button onClick={() => playAudioUrl(content.audio_url).catch(() => {})} className="mb-2 flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/40 rounded-full px-4 py-2">
+                  <Volume2 size={20} className="text-blue-300" />
+                  <span className="font-display text-sm font-bold text-blue-200">Tap to replay</span>
+                </button>
+              )}
 
               {/* Answer tiles */}
-              <div className="grid grid-cols-2 gap-3">
-                {currentQ.options.map((opt: string, i: number) => {
-                  const isCorrect = i === currentQ.correctIdx;
-                  const isSelected = selectedTile === i;
-                  const shape = TILE_SHAPES[i % 4];
-                  return (
-                    <motion.button key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                      onClick={() => handleAnswer(i)} disabled={answerRevealed}
-                      className={`w-[150px] h-[80px] rounded-xl border-2 flex items-center justify-center gap-2 px-3 transition-all ${
-                        answerRevealed && isCorrect ? 'border-green-400 bg-green-500/20 scale-105' :
-                        answerRevealed && isSelected ? 'border-red-400 bg-red-500/10' :
-                        `${shape.bg} border-transparent text-white hover:scale-105`
-                      }`}>
-                      <span className="text-2xl">{shape.shape}</span>
-                      <span className="font-display text-base font-bold">{opt}</span>
-                      {answerRevealed && isCorrect && <Check size={18} className="text-green-400" strokeWidth={4} />}
-                    </motion.button>
-                  );
-                })}
+              {content?.options && (
+                <div className="grid grid-cols-2 gap-3">
+                  {content.options.map((opt: any, i: number) => {
+                    const isCorrect = i === content.correct_index;
+                    const isSelected = selectedTile === i;
+                    const shape = TILE_SHAPES[i % 4];
+                    const optText = isListenSelect ? opt?.label || opt?.image_url : opt;
+                    return (
+                      <motion.button key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+                        onClick={() => handleAnswer(i)} disabled={answerRevealed}
+                        className={`w-[150px] h-[80px] rounded-xl border-2 flex items-center justify-center gap-2 px-3 transition-all ${
+                          answerRevealed && isCorrect ? 'border-green-400 bg-green-500/20 scale-105' :
+                          answerRevealed && isSelected ? 'border-red-400 bg-red-500/10' :
+                          `${shape.bg} border-transparent text-white hover:scale-105`
+                        }`}>
+                        <span className="text-2xl">{shape.shape}</span>
+                        {isListenSelect && opt?.image_url ? (
+                          <img src={opt.image_url} alt="" className="w-12 h-12 object-contain" />
+                        ) : (
+                          <span className="font-display text-base font-bold">{optText}</span>
+                        )}
+                        {answerRevealed && isCorrect && <Check size={18} className="text-green-400" strokeWidth={4} />}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Race Cell (WORD_BANK_BUILD) */}
+          {phase === 'race' && currentQ && isRaceCell && (
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center w-full">
+              <p className="font-display text-xl font-bold text-amber-300 mb-2">🏁 RACE CELL! Both teams build simultaneously!</p>
+              <p className="font-display text-lg text-slate-300 mb-3">Build: "{content.target_sentence}"</p>
+
+              {/* Timer */}
+              <div className="relative mb-2" style={{ width: 60, height: 60 }}>
+                <svg width="60" height="60" viewBox="0 0 100 100" className="-rotate-90">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="8" />
+                  <circle cx="50" cy="50" r="45" fill="none" stroke={timeLeft <= 5 ? '#EF4444' : '#22C55E'} strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={2*Math.PI*45} strokeDashoffset={2*Math.PI*45*(1-timeLeft/15)} style={{ transition: 'stroke-dashoffset 1s linear' }} />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-display text-2xl font-black tabular-nums" style={{ color: timeLeft <= 5 ? '#EF4444' : '#fff' }}>{timeLeft}</span>
+                </div>
+              </div>
+
+              {/* Red team's build */}
+              <div className="flex gap-4 mb-3">
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-red-400 mb-1">Red Team</p>
+                  <div className="min-h-[60px] bg-red-500/10 border-2 border-red-500/30 rounded-xl p-2 flex flex-wrap gap-2">
+                    {redPlacedTiles.map((w, i) => (
+                      <button key={i} onClick={() => handleRaceTileRemove('red', i)} className="bg-white text-slate-900 text-lg font-bold px-3 py-1 rounded-lg">{w}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-blue-400 mb-1">Blue Team</p>
+                  <div className="min-h-[60px] bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-2 flex flex-wrap gap-2">
+                    {bluePlacedTiles.map((w, i) => (
+                      <button key={i} onClick={() => handleRaceTileRemove('blue', i)} className="bg-white text-slate-900 text-lg font-bold px-3 py-1 rounded-lg">{w}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Word bank */}
+              <div className="flex flex-wrap justify-center gap-2">
+                {(content.word_bank || []).map((word: string, i: number) => (
+                  <button key={i} onClick={() => { handleRaceTilePlace(activeTeam, word); }}
+                    className="bg-blue-500 hover:bg-blue-400 text-white text-lg font-bold px-4 py-2 rounded-xl shadow-[0_4px_0_0_#0b5cb5] transition-all">
+                    {word}
+                  </button>
+                ))}
               </div>
             </motion.div>
           )}
@@ -368,7 +548,7 @@ const TeamRosterColumn: React.FC<{ team: Team; members: any[]; score: number; ac
     } ${winResult ? 'ring-2 ring-amber-400' : ''}`}>
       <div className="flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full bg-${color}-500`} />
-        <span className={`font-display text-sm font-bold text-${color}-400`}>Team ${color === 'red' ? 'Red' : 'Blue'}</span>
+        <span className={`font-display text-sm font-bold text-${color}-400`}>Team {color === 'red' ? 'Red' : 'Blue'}</span>
       </div>
       <div className={`font-display text-3xl font-black tabular-nums text-${color}-300 leading-none`}>{score}</div>
       <div className="flex flex-col gap-1 overflow-y-auto">

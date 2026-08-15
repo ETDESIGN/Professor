@@ -40,6 +40,14 @@ const BoardGameArena = ({ data }: { data: any }) => {
     }
   }, [state.lastAction]);
 
+  // Auto-dismiss the winner celebration after 8s so the board isn't stuck
+  // behind the overlay if the teacher walks away.
+  useEffect(() => {
+    if (!winner) return;
+    const t = setTimeout(() => setWinner(null), 8000);
+    return () => clearTimeout(t);
+  }, [winner]);
+
   if (students.length === 0) {
     return (
       <div className="h-full bg-slate-900 flex items-center justify-center text-white font-display">
@@ -218,9 +226,11 @@ const BoardGameArena = ({ data }: { data: any }) => {
           </div>
        </div>
 
-       {/* Winner Overlay */}
+       {/* Winner Overlay — click to dismiss */}
        {winner && (
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center animate-fade-in">
+          <div
+            onClick={() => setWinner(null)}
+            className="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center animate-fade-in cursor-pointer">
              <div className="bg-gradient-to-b from-yellow-400 to-orange-500 p-1 rounded-[3rem] shadow-2xl animate-bounce-subtle">
                <div className="bg-slate-900 rounded-[2.8rem] p-16 flex flex-col items-center text-center border-4 border-white/20">
                   <div className="text-yellow-400 text-3xl font-bold uppercase tracking-[0.5em] mb-8">Winner!</div>
@@ -229,6 +239,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
                   </div>
                   <h2 className="text-9xl font-fun text-white mb-4">{winner.name}</h2>
                   <div className="text-4xl text-white/60 font-mono">+50 XP Bonus</div>
+                  <div className="text-sm text-white/50 mt-6 animate-pulse">tap to dismiss</div>
                </div>
              </div>
           </div>

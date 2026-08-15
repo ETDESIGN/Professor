@@ -16,7 +16,7 @@
 //   5. "Start Practice →" prompt when all words studied.
 //   6. Stage indicator dots (4 dots showing current reveal stage).
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Check, ChevronRight, RotateCw, BookOpen } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
@@ -75,11 +75,39 @@ const BoardFocusCards = ({ data }: { data: any }) => {
     // eslint-disable-next-line
   }, [state.lastAction]);
 
-  // ── Mark studied when stage 4 reached ──
+  // ── Mark studied when stage 4 reached + fire recordExposure (Tier 2 FSRS) ──
+  // Phase 4 (Prompt 9): the "studied" binary flag now also writes a real
+  // (lightweight) learning signal — recordExposure creates srs_items rows at
+  // mastery_state='learning' for students without one, so scheduling knows the
+  // word was introduced. Presentation never downgrades existing mastery.
+  const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
+  const exposedRef = useRef<Set<number>>(new Set());
   useEffect(() => {
-    if (revealStage === 4 && view === 'drill') {
+    if (revealStage === 4 && view === 'drill' && !exposedRef.current.has(activeIndex)) {
       setStudiedWords(prev => new Set(prev).add(activeIndex));
+      exposedRef.current.add(activeIndex);
+      // Fire the exposure write (non-fatal, roster-wide). Resolve the vocab
+      // objective for this word, then record exposure for the whole roster.
+      const word = cards[activeIndex]?.word;
+      const unitId = state.activeUnit?.id;
+      if (word && unitId && roster.length > 0) {
+        Promise.all([
+          import('../../../services/boardLearner'),
+          import('../../../services/supabaseClient'),
+        ]).then(([{ recordExposure }, { supabase }]) => {
+          // Resolve the objective id for this word (vocab objectives are
+          // created per-word at generation time).
+          return supabase.from('objectives')
+            .select('id').eq('unit_id', unitId).eq('type', 'vocabulary')
+            .ilike('target_value', word.trim()).limit(1)
+            .then(({ data }: any) => {
+              const objectiveId = data?.[0]?.id;
+              if (objectiveId) recordExposure(objectiveId, roster).catch(() => {});
+            });
+        }).catch(() => {});
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealStage, view, activeIndex]);
 
   // RULES OF HOOKS: all hooks above.

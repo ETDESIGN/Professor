@@ -29,6 +29,10 @@ vi.mock('../apps/board/useBoardPool', () => ({
   useBoardPool: () => ({ items: poolItems, loading: false, weakOrder: ['o1', 'o2', 'o3'] }),
 }));
 
+vi.mock('../apps/board/useEscalatingPool', () => ({
+  useEscalatingPool: () => ({ items: poolItems, loading: false, rungByObjective: {}, selectedObjectiveIds: ['o1', 'o2', 'o3'] }),
+}));
+
 import BoardFlashMatch from '../apps/board/templates/BoardFlashMatch';
 
 describe('BoardFlashMatch (pool mode, no infinite loop)', () => {

@@ -5,7 +5,7 @@ import { useSession } from '../../../store/SessionContext';
 import ReactPlayer from 'react-player/lazy';
 
 const BoardMediaPlayer = ({ data }: { data: any }) => {
-  const { state } = useSession();
+  const { state, triggerAction } = useSession();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0 to 1
   const [currentTime, setCurrentTime] = useState(0);
@@ -86,7 +86,13 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
             style={{ position: 'absolute', top: '-25%', left: '-25%', opacity: 0.8 }}
             onProgress={handleProgress as any}
             onDuration={setDuration}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={() => {
+              setIsPlaying(false);
+              // Phase 4 (Prompt 9 §2.2): media has a real browser-native "finished"
+              // event — broadcast SLIDE_COMPLETE so the loop knows this slide is done
+              // (the teacher's manual End control still exists as an override).
+              triggerAction('SLIDE_COMPLETE', { forced: false });
+            }}
             config={{
               youtube: {
                 playerVars: { controls: 0, disablekb: 1, modestbranding: 1 }
@@ -105,7 +111,13 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
             height="0"
             onProgress={handleProgress as any}
             onDuration={setDuration}
-            onEnded={() => setIsPlaying(false)}
+            onEnded={() => {
+              setIsPlaying(false);
+              // Phase 4 (Prompt 9 §2.2): media has a real browser-native "finished"
+              // event — broadcast SLIDE_COMPLETE so the loop knows this slide is done
+              // (the teacher's manual End control still exists as an override).
+              triggerAction('SLIDE_COMPLETE', { forced: false });
+            }}
           />
           <div className="absolute inset-0 flex items-center justify-center opacity-10">
             <Volume2 size={200} className="text-white" />

@@ -225,8 +225,13 @@ const BoardOverlayLayer = () => {
                       </div>
                       <div className="h-32 w-px bg-slate-200 mx-4"></div>
                       <div className="flex flex-col items-center gap-2">
-                         <div className="text-6xl font-black text-yellow-500 animate-pulse">+?</div>
-                         <div className="text-slate-400 font-bold uppercase tracking-wider text-sm">XP Waiting...</div>
+                         {/* Phase 1g: the real +N award happens inside the game after this
+                             turn resolves (via scoreForAttempt), so a fake "+? XP" teaser
+                             here is misleading — it never resolves. Replace with a neutral
+                             encouragement; the actual +N appears via the existing
+                             POINTS_AWARDED overlay once the student plays. */}
+                         <div className="text-4xl font-black text-sky-500 animate-pulse">⭐</div>
+                         <div className="text-slate-400 font-bold uppercase tracking-wider text-sm">Let's see how you do!</div>
                       </div>
                    </div>
                 ) : (
