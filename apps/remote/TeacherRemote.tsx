@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useSession } from '../../store/SessionContext';
-import { ChevronLeft, ChevronRight, Wifi, Mic, VolumeX, Star, Zap, MonitorPlay, Camera, X, FileText, Play, Eye, RotateCw, RefreshCw, Clock, ArrowRight, ArrowLeft, Check, Volume2, BarChart2, PenTool, Eraser, LogOut, Trophy, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Wifi, Mic, VolumeX, Star, Zap, MonitorPlay, Camera, X, FileText, Play, Eye, RotateCw, RefreshCw, Clock, ArrowRight, ArrowLeft, Check, Volume2, BarChart2, PenTool, Eraser, LogOut, Trophy, Users, SkipForward, Lightbulb, Keyboard } from 'lucide-react';
 import StudentSelectorModal from '../teacher/StudentSelectorModal';
 import RemoteConnect from './RemoteConnect';
 import SoundBoardModal from './SoundBoardModal';
@@ -12,6 +12,38 @@ import { gradeStudentWeakest } from '../../services/boardLearner';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('TeacherRemote');
+
+// ── Dictation input sub-component (for LISTEN_TAP DICTATION rounds) ────
+// The teacher types the class's spelling attempt on the Remote and submits.
+// The board shows the result. Sends SUBMIT_DICTATION action with the text.
+const DictationInput: React.FC<{ triggerAction: (type: string, payload?: any) => void }> = ({ triggerAction }) => {
+  const [text, setText] = React.useState('');
+  const handleSubmit = () => {
+    if (!text.trim()) return;
+    triggerAction('SUBMIT_DICTATION', { text: text.trim() });
+    setText('');
+  };
+  return (
+    <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700">
+      <div className="flex items-center gap-2 mb-2">
+        <Keyboard size={16} className="text-amber-400" />
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Dictation Input</span>
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text" value={text} onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+          placeholder="Type the answer…"
+          className="flex-1 bg-slate-900 text-white px-3 py-2 rounded-lg border border-slate-600 text-sm font-medium focus:border-amber-500 focus:outline-none"
+        />
+        <button onClick={handleSubmit}
+          className="bg-amber-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-1 active:scale-95">
+          <Check size={16} /> Submit
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const TeacherRemote: React.FC = () => {
   const { state, nextSlide, prevSlide, addPoints, toggleConnection, setLiveSnap, triggerAction, clearDrawings, selectNextStudent, magicSelectStudent, assignTeams, nextStudent } = useSession();
@@ -33,6 +65,9 @@ const TeacherRemote: React.FC = () => {
   const [showQuickSpin, setShowQuickSpin] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isDrawingMode, setIsDrawingMode] = useState(false); // Drawing State
+  // BoardWhatsMissing v2 produce mode (whatsmissing-v2-spec §2): the teacher
+  // types what the picked student said; the board scores it (WM_SUBMIT_ANSWER).
+  const [wmAnswer, setWmAnswer] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   if (!hasConnected) {
@@ -145,27 +180,60 @@ const TeacherRemote: React.FC = () => {
           </div>
         );
       case 'WHATS_MISSING':
+      case 'MAGIC_EYES': {
+        // BoardWhatsMissing v2 — MAGIC_EYES is consolidated into it
+        // (mode='magic_eyes', recognition-only). WHATS_MISSING_CONTROL spec:
+        // Show Again / Hint / Mark Correct / Skip / Next / End + produce input.
+        const allowProduce = currentStep.type === 'WHATS_MISSING';
         return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('REVEAL')} className="bg-purple-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <Eye size={24} /> Reveal Missing
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('SHOW_AGAIN')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <RefreshCw size={18} /> Again
             </button>
-            <button onClick={() => triggerAction('START_MEMORIZE')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <RefreshCw size={24} /> Restart
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <Eye size={18} /> Hint
             </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('SKIP_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <ArrowRight size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('NEXT_ROUND')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <ArrowRight size={18} /> Next
+            </button>
+            <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <X size={18} /> End
+            </button>
+            {allowProduce && (
+              <div className="col-span-3 flex gap-2">
+                <input
+                  value={wmAnswer}
+                  onChange={(e) => setWmAnswer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && wmAnswer.trim()) {
+                      triggerAction('WM_SUBMIT_ANSWER', { text: wmAnswer.trim() });
+                      setWmAnswer('');
+                    }
+                  }}
+                  placeholder="Spell-it mode: type the word they said"
+                  className="flex-1 bg-slate-800 border border-slate-600 text-white px-3 py-3 rounded-xl text-sm font-bold placeholder:text-slate-500 focus:outline-none focus:border-fuchsia-400"
+                />
+                <button
+                  onClick={() => {
+                    if (!wmAnswer.trim()) return;
+                    triggerAction('WM_SUBMIT_ANSWER', { text: wmAnswer.trim() });
+                    setWmAnswer('');
+                  }}
+                  className="bg-fuchsia-600 text-white px-4 rounded-xl font-bold text-sm shadow-lg active:scale-95"
+                >
+                  Submit
+                </button>
+              </div>
+            )}
           </div>
         );
-      case 'MAGIC_EYES':
-        return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('REVEAL')} className="bg-green-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <Eye size={24} /> Reveal
-            </button>
-            <button onClick={() => triggerAction('RESTART')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <RefreshCw size={24} /> Flash Image
-            </button>
-          </div>
-        );
+      }
       case 'MEDIA_PLAYER':
       case 'LIVE_WARMUP':
         return (
@@ -190,14 +258,79 @@ const TeacherRemote: React.FC = () => {
           </div>
         );
       case 'STORY_STAGE':
+        // BoardStoryStage v2: read-through + scored comprehension MCQs.
+        // Controls: Next Page / Hint / Mark Correct / Skip / End.
         return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('PREV_PANEL')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <ChevronLeft size={24} /> Prev Panel
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('NEXT_PANEL')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <ChevronRight size={18} /> Next Page
             </button>
-            <button onClick={() => triggerAction('NEXT_PANEL')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              Next Panel <ChevronRight size={24} />
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <Lightbulb size={18} /> Hint
             </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('SKIP_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs col-span-2">
+              <X size={18} /> End
+            </button>
+          </div>
+        );
+      case 'DIALOGUE_STAGE':
+        // BoardDialogueStage v2: read-along → role-read → WHO_SAID_IT.
+        // Controls: Next / Choral-Picked toggle / Reassign Roles / Hint / Mark Correct / Skip / End.
+        // Plus Rate Role buttons (✓ / ~ / ✗) during role-read stage.
+        const isRoleReadStage = currentStep.type === 'DIALOGUE_STAGE';
+        return (
+          <div className="space-y-3 mb-4">
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => triggerAction('NEXT_PANEL')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <ChevronRight size={18} /> Next
+              </button>
+              <button onClick={() => triggerAction('TOGGLE_SCORING_MODE')} className="bg-purple-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <RefreshCw size={18} /> Choral/Picked
+              </button>
+              <button onClick={() => triggerAction('REASSIGN_ROLES')} className="bg-indigo-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <Users size={18} /> Reassign
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <Lightbulb size={18} /> Hint
+              </button>
+              <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <Check size={18} /> Correct
+              </button>
+              <button onClick={() => triggerAction('SKIP_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <SkipForward size={18} /> Skip
+              </button>
+            </div>
+            <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="w-full bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <X size={18} /> End Slide
+            </button>
+            {/* Rate Role controls — shown during role-read stage */}
+            {isRoleReadStage && (
+              <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users size={16} className="text-sky-400" />
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rate Role</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={() => triggerAction('RATE_ROLE', { character: 'current', rating: 'correct' })} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-sm">
+                    <Check size={18} /> Correct
+                  </button>
+                  <button onClick={() => triggerAction('RATE_ROLE', { character: 'current', rating: 'partial' })} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-sm">
+                    ~ Partial
+                  </button>
+                  <button onClick={() => triggerAction('RATE_ROLE', { character: 'current', rating: 'incorrect' })} className="bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-sm">
+                    <X size={18} /> Incorrect
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'FOCUS_CARDS':
@@ -215,14 +348,32 @@ const TeacherRemote: React.FC = () => {
           </div>
         );
       case 'UNSCRAMBLE':
+      case 'SCRAMBLE':
       case 'STORY_SEQUENCING':
+        // BoardUnscramble v2 / BoardStorySequencing v2 control spec (A4/B4):
+        // Check + Hint / Mark Correct / Skip / Next / End.
         return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('CHECK_ANSWER')} className="bg-green-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <Check size={24} /> Check
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('CHECK_ANSWER')} className="col-span-3 bg-green-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+              <Check size={24} /> Check Answer
             </button>
-            <button onClick={() => triggerAction('RESET_GAME')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <RefreshCw size={24} /> Reset
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <Eye size={18} /> Hint
+            </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('SKIP_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <ArrowRight size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('NEXT_ROUND')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <ArrowRight size={18} /> Next
+            </button>
+            <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <X size={18} /> End
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+              <RefreshCw size={18} /> Reset
             </button>
           </div>
         );
@@ -235,27 +386,200 @@ const TeacherRemote: React.FC = () => {
           </div>
         );
       case 'I_SAY_YOU_SAY':
+      case 'SPEAKING':
+        // BoardISayYouSay v2: discrimination (scored) → choral drill (unscored).
+        // Controls cover both phases: Mark Correct (discrimination), Skip/Next
+        // (both), Replay (choral). No Rate/Force-Correct during choral (deliberate
+        // absence — nothing is scored there).
         return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('TOGGLE_PHASE')} className="bg-purple-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform col-span-2">
-              <Mic size={24} /> Toggle Phase (Listen/Speak)
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={20} /> Correct
             </button>
-            <button onClick={() => triggerAction('PREV_ITEM')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <ChevronLeft size={24} /> Previous
+            <button onClick={() => triggerAction('FLIP_CARD')} className="bg-purple-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Volume2 size={20} /> Replay
             </button>
-            <button onClick={() => triggerAction('NEXT_ITEM')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              Next <ChevronRight size={24} />
+            <button onClick={() => triggerAction('SKIP_PAIR')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={20} /> Skip
+            </button>
+            <button onClick={() => triggerAction('NEXT_ITEM')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform col-span-3">
+              Next <ChevronRight size={20} />
             </button>
           </div>
         );
       case 'GRAMMAR_PRACTICE':
+        // BoardGrammarForge v2: ERROR_SPOT → TRANSFORM → PRODUCE.
+        // Reveal/Check (per rung), Mark Correct, Rate buttons (rung 4),
+        // Choral/Picked toggle (rung 4), Skip/Next/End.
         return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('REVEAL_ANSWER')} className="bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <Eye size={24} /> Reveal
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('REVEAL_ANSWER')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Eye size={20} /> Reveal
             </button>
-            <button onClick={() => triggerAction('RESET_GAME')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <RefreshCw size={24} /> Next
+            <button onClick={() => triggerAction('CHECK_ANSWER')} className="bg-indigo-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={20} /> Check
+            </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={20} /> Correct
+            </button>
+            <button onClick={() => triggerAction('RATE_INCORRECT')} className="bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              ✗ Wrong
+            </button>
+            <button onClick={() => triggerAction('RATE_PARTIAL')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              ~ Close
+            </button>
+            <button onClick={() => triggerAction('RATE_CORRECT')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              ✓ Right
+            </button>
+            <button onClick={() => triggerAction('TOGGLE_SCORING_MODE')} className="bg-purple-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={20} /> Mode
+            </button>
+            <button onClick={() => triggerAction('SKIP_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={20} /> Skip
+            </button>
+            <button onClick={() => triggerAction('NEXT_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <ChevronRight size={20} /> Next
+            </button>
+          </div>
+        );
+      case 'FLASH_MATCH':
+        return (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('SKIP_PAIR')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Lightbulb size={18} /> Hint
+            </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('NEXT_ROUND')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform col-span-2">
+              <RefreshCw size={18} /> Next Round
+            </button>
+            <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-red-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <X size={18} /> End
+            </button>
+          </div>
+        );
+      case 'LISTEN_TAP':
+        return (
+          <div className="mb-4">
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <button onClick={() => triggerAction('SKIP')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+                <SkipForward size={18} /> Skip
+              </button>
+              <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+                <Lightbulb size={18} /> Hint
+              </button>
+              <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+                <Check size={18} /> Correct
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button onClick={() => triggerAction('NEXT_ROUND')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+                <RefreshCw size={18} /> Next
+              </button>
+              <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-red-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+                <X size={18} /> End
+              </button>
+            </div>
+            {/* DICTATION input — teacher types the class's answer on the Remote */}
+            <DictationInput triggerAction={triggerAction} />
+          </div>
+        );
+      // ── New-gen shells (MASTER_ROADMAP.md, 2026-08-07) ─────────────────
+      case 'GRAMMAR_LAB':
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Lightbulb size={18} /> Hint
+            </button>
+            <button onClick={() => triggerAction('SKIP_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
+      case 'WORD_DETECTIVE':
+        return (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Lightbulb size={18} /> Hint
+            </button>
+            <button onClick={() => triggerAction('SKIP_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
+      case 'SOUND_LAB':
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('SKIP_PHASE')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip Phase
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
+      case 'STORY_QUEST':
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('NEXT_PANEL')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <ChevronRight size={18} /> Next Page
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
+      case 'SENTENCE_LAB':
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('CHECK_ANSWER')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={18} /> Check
+            </button>
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Lightbulb size={18} /> Hint
+            </button>
+            <button onClick={() => triggerAction('SKIP_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
+      case 'PHONICS_ARENA':
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('NEXT_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Next
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
+      case 'VOCAB_BLITZ':
+      case 'MEMORY_LAB':
+      case 'CLASS_RALLY':
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('SKIP_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> {currentStep.type === 'CLASS_RALLY' ? 'Next' : currentStep.type === 'MEMORY_LAB' ? 'Skip Round' : 'Skip'}
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> {currentStep.type === 'CLASS_RALLY' ? 'Reset Rally' : 'Redo'}
             </button>
           </div>
         );

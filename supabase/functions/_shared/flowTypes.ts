@@ -39,6 +39,7 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   'FOCUS_CARDS',
   'GAME_ARENA',
   'STORY_STAGE',
+  'DIALOGUE_STAGE',
   'GRAMMAR_SANDBOX',
   'GRAMMAR_PRACTICE',
   'TEAM_BATTLE',
@@ -49,12 +50,21 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   'I_SAY_YOU_SAY',
   'SPEAKING',
   'MAGIC_EYES',
-  'POLL',
   'WHEEL_OF_DESTINY',
   'UNIT_SELECTION',
   'SCRAMBLE',
   'FLASH_MATCH',
   'LISTEN_TAP',
+  // New-gen shells (MASTER_ROADMAP.md, 2026-08-07).
+  'GRAMMAR_LAB',
+  'WORD_DETECTIVE',
+  'SOUND_LAB',
+  'STORY_QUEST',
+  'SENTENCE_LAB',
+  'PHONICS_ARENA',
+  'VOCAB_BLITZ',
+  'MEMORY_LAB',
+  'CLASS_RALLY',
 ]);
 
 export interface FlowBlock {
