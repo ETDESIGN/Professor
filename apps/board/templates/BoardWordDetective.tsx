@@ -18,6 +18,7 @@ import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { logAttempt } from './scoreAttempt';
+import { playCue } from './playCue';
 import { useSpeech } from './useSpeech';
 import { preloadRoundSpeech } from './speechPreload';
 import type { PoolItem, SpellClozeContent, MeaningMatchContent, ImageSelectContent, AudioL1SelectContent } from '../../../types/exercise';
@@ -32,10 +33,12 @@ interface VocabItem {
   /** TTS source text when audioUrl is absent (reference-based audio). */
   speechText?: string;
   translation?: string;
+  /** Teaching text shown on the reveal beat (ERROR_SPOT/GRAMMAR_FILL carry one). */
+  explanation?: string;
 }
 
 const BoardWordDetective = ({ data }: { data: any }) => {
-  const { state, addPoints, pushToRemediation } = useSession();
+  const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -43,7 +46,16 @@ const BoardWordDetective = ({ data }: { data: any }) => {
   const [currentItemIdx, setCurrentItemIdx] = useState(0);
   const [selectedWord, setSelectedWord] = useState<number | null>(null);
   const [phase, setPhase] = useState<'prompt' | 'revealing' | 'feedback' | 'complete'>('prompt');
-  const [showHint, setShowHint] = useState(false);
+  // REVEAL_HINT eliminates one wrong option (50/50-style) instead of
+  // spotlighting the answer.
+  const [eliminatedIdx, setEliminatedIdx] = useState<number | null>(null);
+  // Reveal-on-wrong: latched on the 2nd consecutive miss — the correct option
+  // gets the amber ring, the explanation shows, and the item advances after
+  // the teaching hold. No further attempts.
+  const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [lastAward, setLastAward] = useState(0);
+  const streakRef = useRef(0);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
@@ -66,6 +78,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
     const items: VocabItem[] = [];
     for (const pi of poolItems) {
       const content = pi.content as any;
+      const explanation: string | undefined = content.explanation;
 
       if (pi.exercise_type === 'SPELL_CLOZE') {
         const cloze = content as SpellClozeContent;
@@ -75,6 +88,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
           options: cloze.options,
           correctIndex: cloze.correct_index,
           audioUrl: cloze.audio_url,
+          explanation,
         });
       } else if (pi.exercise_type === 'MEANING_MATCH') {
         const match = content as MeaningMatchContent;
@@ -85,6 +99,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
           correctIndex: match.correct_index,
           audioUrl: match.prompt_audio,
           speechText: match.prompt,
+          explanation,
         });
       } else if (pi.exercise_type === 'IMAGE_SELECT') {
         const img = content as ImageSelectContent;
@@ -98,6 +113,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
           audioUrl: img.prompt_audio,
           speechText: img.prompt,
           imageUrl: img.options[img.correct_index]?.image_url,
+          explanation,
         });
       } else if (pi.exercise_type === 'AUDIO_L1_SELECT') {
         const a = content as AudioL1SelectContent;
@@ -108,6 +124,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
           correctIndex: a.correct_index,
           audioUrl: a.audio_url,
           speechText: a.prompt_text,
+          explanation,
         });
       }
     }
@@ -134,10 +151,13 @@ const BoardWordDetective = ({ data }: { data: any }) => {
     if (turnId === null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    streakRef.current = 0;
+    setStreak(0);
     setCurrentItemIdx(0);
     setSelectedWord(null);
     setPhase('prompt');
-    setShowHint(false);
+    setEliminatedIdx(null);
+    setRevealedIdx(null);
   }, [turnId]);
 
   // Listen for remote controls
@@ -148,28 +168,53 @@ const BoardWordDetective = ({ data }: { data: any }) => {
     if (type === 'RESET_GAME') {
       mistakesRef.current = 0;
       awardedRef.current = false;
+      streakRef.current = 0;
+      setStreak(0);
       setCurrentItemIdx(0);
       setSelectedWord(null);
       setPhase('prompt');
-      setShowHint(false);
+      setEliminatedIdx(null);
+      setRevealedIdx(null);
     } else if (type === 'REVEAL_HINT') {
-      setShowHint(true);
+      // 50/50-style hint: eliminate one wrong option (dim/strike). Never
+      // eliminates down to only the correct answer remaining.
+      if (currentItem && revealedIdx === null) {
+        const wrongs = currentItem.options
+          .map((_, i) => i)
+          .filter((i) => i !== currentItem.correctIndex && i !== eliminatedIdx);
+        if (wrongs.length > 1) setEliminatedIdx(wrongs[Math.floor(Math.random() * wrongs.length)]);
+      }
     } else if (type === 'SKIP_ITEM') {
       advanceToNext();
+    } else if (type === 'MARK_CORRECT') {
+      handleForceCorrect();
+    } else if (type === 'SLIDE_COMPLETE') {
+      // Forced end from the teacher — settle into the complete state.
+      setPhase('complete');
     }
   }, [state.lastAction]);
 
   const handleWordSelect = (idx: number) => {
-    if (!currentItem || phase !== 'prompt') return;
+    if (!currentItem || phase !== 'prompt' || revealedIdx !== null || idx === eliminatedIdx) return;
     const correct = currentItem.correctIndex;
 
     setSelectedWord(idx);
 
     if (idx === correct) {
-      // Correct - award points
+      // Correct - award points (streak multiplier kicks in at 3/5 consecutive).
+      const newStreak = streakRef.current + 1;
+      streakRef.current = newStreak;
+      setStreak(newStreak);
+      if (newStreak === 3 || newStreak === 5) {
+        playCue('streak');
+        triggerConfetti();
+      } else {
+        playCue('correct');
+      }
       const picked = state.quickWheelWinner;
       const difficulty = currentItem.poolItem.difficulty || 1;
-      const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0);
+      const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0, newStreak);
+      setLastAward(points);
       if (picked && !awardedRef.current) {
         awardedRef.current = true;
         addPoints(picked, points);
@@ -185,16 +230,24 @@ const BoardWordDetective = ({ data }: { data: any }) => {
           pushToRemediation,
         });
       }
+      // Dead-time compression: 700ms reveal beat + 700ms feedback (was
+      // 1500+2000). The full sentence stays on screen as the teaching visual.
       setPhase('revealing');
+      // Speak the resolved content during the reveal beat (browser voice
+      // covers the not-yet-resolved case; play() never blocks).
+      playCurrentSpeech();
       setTimeout(() => {
         setPhase('feedback');
-        setTimeout(() => advanceToNext(), 2000);
-      }, 1500);
+        setTimeout(() => advanceToNext(), 700);
+      }, 700);
     } else {
       // Wrong - penalty + analytics + remediation push
+      mistakesRef.current += 1;
+      streakRef.current = 0;
+      setStreak(0);
+      playCue('wrong');
       const picked = state.quickWheelWinner;
       if (picked) {
-        mistakesRef.current += 1;
         addPoints(picked, -MISTAKE_PENALTY);
       }
       logAttempt({
@@ -209,8 +262,55 @@ const BoardWordDetective = ({ data }: { data: any }) => {
         modality: 'receptive',
         pushToRemediation,
       });
-      setTimeout(() => setSelectedWord(null), 800);
+
+      if (mistakesRef.current >= 2) {
+        // Second consecutive miss — reveal the correct option (amber ring +
+        // explanation), teach for a beat, then advance. No further attempts.
+        playCue('reveal');
+        setRevealedIdx(correct);
+        setTimeout(() => advanceToNext(), 2200);
+      } else {
+        setTimeout(() => setSelectedWord(null), 800);
+      }
     }
+  };
+
+  // MARK_CORRECT (teacher override): score the current item as a clean correct
+  // (mistakesRef preserved), then advance.
+  const handleForceCorrect = () => {
+    if (!currentItem || phase !== 'prompt' || awardedRef.current || revealedIdx !== null) return;
+    const newStreak = streakRef.current + 1;
+    streakRef.current = newStreak;
+    setStreak(newStreak);
+    if (newStreak === 3 || newStreak === 5) {
+      playCue('streak');
+      triggerConfetti();
+    } else {
+      playCue('correct');
+    }
+    const picked = state.quickWheelWinner;
+    const difficulty = currentItem.poolItem.difficulty || 1;
+    const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0, newStreak);
+    setLastAward(points);
+    awardedRef.current = true;
+    if (picked) {
+      addPoints(picked, points);
+      logAttempt({
+        state,
+        picked,
+        unitId,
+        objectiveId: currentItem.poolItem.objective_id,
+        exerciseType: currentItem.poolItem.exercise_type,
+        difficulty,
+        correctness: 'correct',
+        modality: 'receptive',
+        pushToRemediation,
+      });
+    }
+    setSelectedWord(currentItem.correctIndex);
+    setPhase('revealing');
+    playCurrentSpeech();
+    setTimeout(() => advanceToNext(), 900);
   };
 
   const advanceToNext = () => {
@@ -221,9 +321,12 @@ const BoardWordDetective = ({ data }: { data: any }) => {
       setCurrentItemIdx((prev) => prev + 1);
       setSelectedWord(null);
       setPhase('prompt');
-      setShowHint(false);
+      setEliminatedIdx(null);
+      setRevealedIdx(null);
     } else {
       setPhase('complete');
+      playCue('win');
+      triggerAction('SLIDE_COMPLETE', { forced: false });
     }
   };
 
@@ -265,8 +368,15 @@ const BoardWordDetective = ({ data }: { data: any }) => {
         >
           Word Detective
         </motion.h1>
-        <div className="text-sm text-gray-500 mt-1">
-          Sentence {currentItemIdx + 1} of {vocabItems.length}
+        <div className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-3">
+          <span>
+            Sentence {currentItemIdx + 1} of {vocabItems.length}
+          </span>
+          {streak > 1 && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-500 text-white rounded-full font-bold">
+              🔥 {streak}
+            </span>
+          )}
         </div>
       </div>
 
@@ -331,8 +441,10 @@ const BoardWordDetective = ({ data }: { data: any }) => {
                         ? idx === currentItem.correctIndex
                           ? 'bg-green-500 text-white border-green-600'
                           : 'bg-red-500 text-white border-red-600'
-                        : showHint && idx === currentItem.correctIndex
-                        ? 'bg-yellow-100 border-yellow-400 text-gray-800'
+                        : revealedIdx === idx
+                        ? 'bg-amber-100 border-amber-400 text-gray-800 ring-4 ring-amber-400'
+                        : eliminatedIdx === idx
+                        ? 'bg-gray-50 border-gray-200 text-gray-300 opacity-40 line-through pointer-events-none grayscale'
                         : currentItem.imageUrl
                         ? 'bg-gray-50 border-gray-200 hover:border-blue-400'
                         : 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-200'
@@ -346,6 +458,13 @@ const BoardWordDetective = ({ data }: { data: any }) => {
                   </motion.button>
                 ))}
               </div>
+
+              {/* Reveal-on-wrong teaching beat: the why behind the answer. */}
+              {revealedIdx !== null && currentItem.explanation && (
+                <div className="mt-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-xl text-center text-lg text-amber-900">
+                  {currentItem.explanation}
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -398,7 +517,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
               <h2 className="text-4xl font-bold text-green-600 mb-4">
                 {pickedStudent ? `${pickedStudent.name} nailed it!` : 'Excellent!'}
               </h2>
-              <div className="text-2xl text-gray-600">+{scoreForAttempt(mistakesRef.current, currentItem.poolItem.difficulty || 1)} points</div>
+              <div className="text-2xl text-gray-600">+{lastAward} points</div>
             </div>
           </motion.div>
         )}

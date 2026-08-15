@@ -20,6 +20,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { useSpeechRecognition } from './useSpeechRecognition';
 import { logAttempt } from './scoreAttempt';
 import { shuffle } from './scoringUtils';
+import { playCue } from './playCue';
 import { useSpeech } from './useSpeech';
 import { preloadRoundSpeech } from './speechPreload';
 import type { PoolItem, ListenSelectContent, DictationContent, SpeakSentenceContent } from '../../../types/exercise';
@@ -33,16 +34,26 @@ interface SoundItem {
   /** TTS source text when audioUrl is absent. */
   speechText?: string;
   options: string[];
+  /** Phase 1 image options: the image plus its caption label (audit fix —
+   *  `options` used to collapse label||image_url into the img src). */
+  imageOptions?: { imageUrl: string; label?: string }[];
   correctIndex: number;
   imageUrl?: string;
   targetText?: string;
+  /** Optional teaching note shown during the reveal-on-wrong hold. */
+  explanation?: string;
 }
 
 const BoardSoundLab = ({ data }: { data: any }) => {
-  const { state, addPoints, pushToRemediation } = useSession();
+  const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  /** Per-item resolve latch (success / MARK_CORRECT / reveal) — prevents stale
+   *  speech results or double remote taps from resolving an item twice. */
+  const resolvedRef = useRef(false);
+  /** Completion latch — makes the SLIDE_COMPLETE broadcast idempotent. */
+  const completeRef = useRef(false);
 
   const [currentPhase, setCurrentPhase] = useState<Phase>(1);
   const [phase1Idx, setPhase1Idx] = useState(0);
@@ -52,6 +63,8 @@ const BoardSoundLab = ({ data }: { data: any }) => {
   const [replayCount, setReplayCount] = useState(0);
   const [phaseComplete, setPhaseComplete] = useState(false);
   const [allDone, setAllDone] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [revealed, setRevealed] = useState(false);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
@@ -80,8 +93,12 @@ const BoardSoundLab = ({ data }: { data: any }) => {
           audioUrl: content.audio_url,
           speechText: content.prompt_text,
           options: content.options.map((o) => o.label || o.image_url),
+          // Audit fix: the grid renders image_url in the <img> and label as a
+          // caption below — never label||image_url mashed into the src.
+          imageOptions: content.options.map((o) => ({ imageUrl: o.image_url, label: o.label })),
           correctIndex: content.correct_index,
           imageUrl: content.options[content.correct_index]?.image_url,
+          explanation: (content as any).explanation,
         };
       });
   }, [poolItems]);
@@ -103,6 +120,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
         options,
         correctIndex: options.indexOf(content.correct_text),
         targetText: content.correct_text,
+        explanation: (content as any).explanation,
       };
     });
   }, [poolItems]);
@@ -120,11 +138,14 @@ const BoardSoundLab = ({ data }: { data: any }) => {
           options: [],
           correctIndex: 0,
           targetText: content.target_sentence,
+          explanation: (content as any).explanation,
         };
       });
   }, [poolItems]);
 
   const currentItem = currentPhase === 1 ? phase1Items[phase1Idx] : currentPhase === 2 ? phase2Items[phase2Idx] : phase3Items[phase3Idx];
+
+  const hasAnyItems = phase1Items.length > 0 || phase2Items.length > 0 || phase3Items.length > 0;
 
   // Reference-based audio: resolve the current item's speech in the background;
   // play() below never blocks — browser voice covers the not-ready case.
@@ -138,6 +159,18 @@ const BoardSoundLab = ({ data }: { data: any }) => {
   useEffect(() => {
     if (poolItems.length > 0) preloadRoundSpeech(unitId, poolItems);
   }, [poolItems, unitId]);
+
+  // Skip empty phases in an effect — the previous render-time setCurrentPhase
+  // was a setState-during-render anti-pattern (audit fix). When every phase
+  // is empty the branded empty-state card below wins (hasAnyItems gate), so
+  // an empty pool can never cascade into a fake completion.
+  useEffect(() => {
+    if (allDone || !hasAnyItems || currentItem) return;
+    if (currentPhase === 1 && phase1Items.length === 0) setCurrentPhase(2);
+    else if (currentPhase === 2 && phase2Items.length === 0) setCurrentPhase(3);
+    else if (currentPhase === 3 && phase3Items.length === 0) completeGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allDone, hasAnyItems, currentItem, currentPhase, phase1Items.length, phase2Items.length, phase3Items.length]);
 
   // Speech recognition for Phase 3
   const {
@@ -166,6 +199,8 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     if (turnId === null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
+    completeRef.current = false;
     setCurrentPhase(1);
     setPhase1Idx(0);
     setPhase2Idx(0);
@@ -174,6 +209,8 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     setReplayCount(0);
     setPhaseComplete(false);
     setAllDone(false);
+    setStreak(0);
+    setRevealed(false);
   }, [turnId]);
 
   // Listen for remote controls
@@ -184,6 +221,8 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     if (type === 'RESET_GAME') {
       mistakesRef.current = 0;
       awardedRef.current = false;
+      resolvedRef.current = false;
+      completeRef.current = false;
       setCurrentPhase(1);
       setPhase1Idx(0);
       setPhase2Idx(0);
@@ -192,8 +231,21 @@ const BoardSoundLab = ({ data }: { data: any }) => {
       setReplayCount(0);
       setPhaseComplete(false);
       setAllDone(false);
+      setStreak(0);
+      setRevealed(false);
     } else if (type === 'SKIP_PHASE') {
       advancePhase();
+    } else if (type === 'MARK_CORRECT') {
+      // Teacher override ("Correct" on the remote): score the current item
+      // as a clean correct (mistakesRef preserved) and advance. In phase 3
+      // this doubles as "accept that pronunciation" when recognition is
+      // being unfair.
+      markCorrect();
+    } else if (type === 'SLIDE_COMPLETE') {
+      // Forced End from the remote/commander → jump to the complete state.
+      // completeRef stops us echoing the broadcast back (our own optimistic
+      // lastAction update re-enters this listener).
+      completeGame(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
@@ -211,10 +263,18 @@ const BoardSoundLab = ({ data }: { data: any }) => {
 
   // ── Unified per-item success/failure (triple-write) ────────────────────
   const itemSuccess = (modality: 'receptive' | 'productive', partialRatio = 1.0) => {
-    if (!currentItem) return;
+    if (!currentItem || resolvedRef.current) return;
+    resolvedRef.current = true;
+    playCue('correct');
+    const nextStreak = streak + 1;
+    setStreak(nextStreak);
+    if (nextStreak === 3 || nextStreak === 5) {
+      playCue('streak');
+      triggerConfetti();
+    }
     const picked = state.quickWheelWinner;
     const difficulty = currentItem.poolItem.difficulty || (modality === 'productive' ? 3 : 1);
-    const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio);
+    const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio, nextStreak);
     if (picked && !awardedRef.current) {
       awardedRef.current = true;
       if (points > 0) addPoints(picked, points);
@@ -232,19 +292,21 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     }
   };
   const itemFailure = (modality: 'receptive' | 'productive') => {
-    if (!currentItem) return;
+    if (!currentItem || resolvedRef.current) return;
+    playCue('wrong');
+    setStreak(0);
+    mistakesRef.current += 1;
     const picked = state.quickWheelWinner;
-    if (picked) {
-      mistakesRef.current += 1;
-      addPoints(picked, -MISTAKE_PENALTY);
-    }
+    if (picked) addPoints(picked, -MISTAKE_PENALTY);
     logAttempt({
       state,
       picked: picked || '',
       unitId,
       objectiveId: currentItem.poolItem.objective_id,
       exerciseType: currentItem.poolItem.exercise_type,
-      difficulty: currentItem.poolItem.difficulty || 1,
+      // Same fallback as itemSuccess — the failure path used to hardcode 1,
+      // so productive misses were logged as receptive difficulty (audit fix).
+      difficulty: currentItem.poolItem.difficulty || (modality === 'productive' ? 3 : 1),
       correctness: 'incorrect',
       correct: false,
       modality,
@@ -252,8 +314,42 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     });
   };
 
+  // Shared reveal-on-wrong: 2nd consecutive miss on an item → highlight the
+  // correct option (amber ring), show the explanation when the content has
+  // one, hold ~2.2s (teaching beat), then advance. Reset per item.
+  const revealAnswer = (advance: () => void) => {
+    playCue('reveal');
+    resolvedRef.current = true;
+    setRevealed(true);
+    setTimeout(() => {
+      setRevealed(false);
+      advance();
+    }, 2200);
+  };
+
+  // Natural completion → terminal card + SLIDE_COMPLETE broadcast. The ref
+  // makes it idempotent across the optimistic lastAction echo and the
+  // remote's forced End both landing here.
+  const completeGame = (broadcast = true) => {
+    if (completeRef.current) return;
+    completeRef.current = true;
+    playCue('win');
+    setAllDone(true);
+    if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
+  };
+
+  // MARK_CORRECT body (invoked from the lastAction listener): clean correct
+  // award with mistakesRef preserved, then advance on the short hold.
+  const markCorrect = () => {
+    if (!currentItem || resolvedRef.current || completeRef.current) return;
+    if (currentPhase !== 3) setSelectedOption(currentItem.correctIndex);
+    itemSuccess(currentPhase === 3 ? 'productive' : 'receptive', 1.0);
+    setPhaseComplete(true);
+    setTimeout(() => advancePhase(), 900);
+  };
+
   const handlePhase1Select = (idx: number) => {
-    if (!currentItem || currentPhase !== 1) return;
+    if (!currentItem || currentPhase !== 1 || resolvedRef.current) return;
     const correct = currentItem.correctIndex;
 
     setSelectedOption(idx);
@@ -261,15 +357,16 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     if (idx === correct) {
       itemSuccess('receptive');
       setPhaseComplete(true);
-      setTimeout(() => advancePhase1(), 1500);
+      setTimeout(() => advancePhase1(), 900);
     } else {
       itemFailure('receptive');
-      setTimeout(() => setSelectedOption(null), 800);
+      if (mistakesRef.current >= 2) revealAnswer(() => advancePhase1());
+      else setTimeout(() => setSelectedOption(null), 800);
     }
   };
 
   const handlePhase2Select = (idx: number) => {
-    if (!currentItem || currentPhase !== 2) return;
+    if (!currentItem || currentPhase !== 2 || resolvedRef.current) return;
     const correct = currentItem.correctIndex;
 
     setSelectedOption(idx);
@@ -277,10 +374,11 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     if (idx === correct) {
       itemSuccess('receptive');
       setPhaseComplete(true);
-      setTimeout(() => advancePhase2(), 1500);
+      setTimeout(() => advancePhase2(), 900);
     } else {
       itemFailure('receptive');
-      setTimeout(() => setSelectedOption(null), 800);
+      if (mistakesRef.current >= 2) revealAnswer(() => advancePhase2());
+      else setTimeout(() => setSelectedOption(null), 800);
     }
   };
 
@@ -288,6 +386,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     // Per-item attempt reset — each phase item is its own scored attempt.
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
     if (phase1Idx < phase1Items.length - 1) {
       setPhase1Idx((prev) => prev + 1);
       setSelectedOption(null);
@@ -305,6 +404,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
   const advancePhase2 = () => {
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
     if (phase2Idx < phase2Items.length - 1) {
       setPhase2Idx((prev) => prev + 1);
       setSelectedOption(null);
@@ -313,6 +413,8 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     } else {
       setCurrentPhase(3);
       setPhase3Idx(0);
+      setSelectedOption(null);
+      setReplayCount(0);
       setPhaseComplete(false);
     }
   };
@@ -320,11 +422,12 @@ const BoardSoundLab = ({ data }: { data: any }) => {
   const advancePhase3 = () => {
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
     if (phase3Idx < phase3Items.length - 1) {
       setPhase3Idx((prev) => prev + 1);
       setPhaseComplete(false);
     } else {
-      setAllDone(true);
+      completeGame();
     }
   };
 
@@ -342,7 +445,6 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     );
   }
 
-  const hasAnyItems = phase1Items.length > 0 || phase2Items.length > 0 || phase3Items.length > 0;
   if (!hasAnyItems) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-purple-50 to-pink-50 p-8 text-center">
@@ -356,21 +458,15 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     );
   }
 
-  // Skip empty phases gracefully (e.g. no SPEAK_SENTENCE items yet).
-  if (!currentItem && !allDone) {
-    if (currentPhase === 1 && phase1Items.length === 0) {
-      setCurrentPhase(2);
-      return null;
-    }
-    if (currentPhase === 2 && phase2Items.length === 0) {
-      setCurrentPhase(3);
-      return null;
-    }
-    if (currentPhase === 3 && phase3Items.length === 0) {
-      setAllDone(true);
-      return null;
-    }
-  }
+  // Transient frame while the skip-empty-phases effect above catches up —
+  // never dereference a missing currentItem in the grids below.
+  if (!currentItem && !allDone) return null;
+
+  // Replay-cost copy is surfaced in ALL phases (audit fix — used to be
+  // phase 1 only): after the first free listen each replay costs −5.
+  const replayHint = replayCount > 0 && replayCount < 2 ? (
+    <div className="text-sm text-gray-500 mt-2">Replay: {2 - replayCount} left (−5 pts each)</div>
+  ) : null;
 
   const allComplete = allDone || (currentPhase === 3 && phase3Idx >= phase3Items.length && phase3Items.length > 0 && phaseComplete);
 
@@ -399,6 +495,11 @@ const BoardSoundLab = ({ data }: { data: any }) => {
         <div className="text-sm text-gray-500">
           Phase {currentPhase}: {currentPhase === 1 ? 'Listen & Tap' : currentPhase === 2 ? 'Listen & Match' : 'Hear & Say'}
         </div>
+        {streak > 1 && (
+          <div className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-purple-500 text-white rounded-full font-bold text-sm">
+            🔥 Streak x{streak}
+          </div>
+        )}
       </div>
 
       {/* Phase content */}
@@ -431,31 +532,50 @@ const BoardSoundLab = ({ data }: { data: any }) => {
                       <Volume2 size={32} />
                       Listen
                     </motion.button>
-                    {replayCount > 0 && replayCount < 2 && (
-                      <div className="text-sm text-gray-500 mt-2">Replay: {2 - replayCount} left (−5 pts each)</div>
-                    )}
+                    {replayHint}
                   </div>
 
-                  {/* Image grid */}
+                  {/* Image grid — audit fix: the img src is the option's
+                      image_url; the label renders as a caption below it. */}
                   <div className="grid grid-cols-2 gap-4">
-                    {currentItem.options.map((option, idx) => (
+                    {(currentItem.imageOptions || []).map((opt, idx) => (
                       <motion.button
                         key={idx}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => handlePhase1Select(idx)}
-                        className={`aspect-square rounded-xl overflow-hidden border-4 transition-all ${
+                        className={`flex flex-col rounded-xl overflow-hidden border-4 bg-white transition-all ${
                           selectedOption === idx
                             ? idx === currentItem.correctIndex
                               ? 'border-green-500'
                               : 'border-red-500'
                             : 'border-gray-200 hover:border-purple-400'
-                        }`}
+                        } ${revealed && idx === currentItem.correctIndex ? 'ring-4 ring-amber-400' : ''}`}
                       >
-                        <img src={option} alt={`Option ${idx + 1}`} className="w-full h-full object-cover" />
+                        <div className="aspect-square bg-gray-100">
+                          <img
+                            src={opt.imageUrl}
+                            alt={opt.label || `Option ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="py-2 px-2 text-center text-lg font-bold text-gray-700 bg-white border-t border-gray-100 truncate">
+                          {opt.label || '\u00A0'}
+                        </div>
                       </motion.button>
                     ))}
                   </div>
+
+                  {/* Reveal-on-wrong teaching note (only when the content carries one) */}
+                  {revealed && currentItem.explanation && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl text-lg text-amber-900 text-center"
+                    >
+                      {currentItem.explanation}
+                    </motion.div>
+                  )}
                 </>
               )}
 
@@ -478,6 +598,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
                       <Volume2 size={32} />
                       Listen
                     </motion.button>
+                    {replayHint}
                   </div>
 
                   {/* Sentence options */}
@@ -494,12 +615,23 @@ const BoardSoundLab = ({ data }: { data: any }) => {
                               ? 'bg-green-500 text-white'
                               : 'bg-red-500 text-white'
                             : 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-2 border-gray-200'
-                        }`}
+                        } ${revealed && idx === currentItem.correctIndex ? 'ring-4 ring-amber-400' : ''}`}
                       >
                         {option}
                       </motion.button>
                     ))}
                   </div>
+
+                  {/* Reveal-on-wrong teaching note (only when the content carries one) */}
+                  {revealed && currentItem.explanation && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl text-lg text-amber-900 text-center"
+                    >
+                      {currentItem.explanation}
+                    </motion.div>
+                  )}
                 </>
               )}
 
@@ -525,6 +657,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
                         Listen first
                       </motion.button>
                     )}
+                    {replayHint}
                   </div>
 
                   {/* Mic button */}

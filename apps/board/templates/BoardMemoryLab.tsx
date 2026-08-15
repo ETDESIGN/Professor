@@ -23,6 +23,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { useSpeechRecognition } from './useSpeechRecognition';
 import { logAttempt } from './scoreAttempt';
 import { shuffle } from './scoringUtils';
+import { playCue } from './playCue';
 import { useSpeech } from './useSpeech';
 import { preloadRoundSpeech } from './speechPreload';
 import type { PoolItem, ImageSelectContent } from '../../../types/exercise';
@@ -49,10 +50,17 @@ const ROUNDS: RoundConfig[] = [
 ];
 
 const BoardMemoryLab = ({ data }: { data: any }) => {
-  const { state, addPoints, pushToRemediation } = useSession();
+  const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  /** Per-round resolve latch (success / MARK_CORRECT / miss auto-resolve). */
+  const roundResolvedRef = useRef(false);
+  /** Completion latch — makes the SLIDE_COMPLETE broadcast idempotent. */
+  const completeRef = useRef(false);
+  /** Round generation counter — stale auto-advance timers (e.g. after a
+   *  remote SKIP_ITEM raced the pending timeout) must not skip a 2nd round. */
+  const roundGenRef = useRef(0);
 
   const [round, setRound] = useState(0);
   const [phase, setPhase] = useState<'memorize' | 'recall' | 'feedback' | 'complete'>('memorize');
@@ -62,6 +70,9 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   const [candidates, setCandidates] = useState<MemoryCard[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [lastAward, setLastAward] = useState(0);
+  const [streak, setStreak] = useState(0);
+  /** 2nd-miss auto-resolve notice ("Missed it — moving on…") during the hold. */
+  const [missedOut, setMissedOut] = useState(false);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
@@ -117,8 +128,11 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     setRemovedIdx(removed);
     setCountdown(cfg.memorizeTime);
     setSelectedCandidate(null);
+    setMissedOut(false);
     mistakesRef.current = 0;
     awardedRef.current = false;
+    roundResolvedRef.current = false;
+    roundGenRef.current += 1;
     setPhase('memorize');
   };
 
@@ -147,6 +161,12 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     return () => clearInterval(timer);
   }, [phase, round]);
 
+  // Reveal cue exactly when the missing card bounces in (feedback phase
+  // mounts) — the card stays hidden until this moment.
+  useEffect(() => {
+    if (phase === 'feedback') playCue('reveal');
+  }, [phase]);
+
   // ── Speech recognition (round 3 produce mode) ───────────────────────────
   const removedCard = removedIdx >= 0 ? grid[removedIdx] : undefined;
 
@@ -171,6 +191,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
         roundSuccess(Math.max(0.6, Math.min(1, score)));
       } else {
         roundMiss('productive');
+        if (mistakesRef.current >= 2) resolveRoundAsMiss();
       }
     },
   });
@@ -179,8 +200,11 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   useEffect(() => {
     if (turnId === null) return;
     setupDone.current = false;
+    completeRef.current = false;
     setRound(0);
     setLastAward(0);
+    setStreak(0);
+    setMissedOut(false);
     if (cardPool.length >= 4) {
       setupDone.current = true;
       setupRound(0);
@@ -193,22 +217,63 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     if (!state.lastAction) return;
     const { type } = state.lastAction;
     if (type === 'RESET_GAME') {
+      completeRef.current = false;
       setRound(0);
       setLastAward(0);
+      setStreak(0);
+      setMissedOut(false);
       if (cardPool.length >= 4) setupRound(0);
     } else if (type === 'SKIP_ITEM') {
       advanceRound();
+    } else if (type === 'MARK_CORRECT') {
+      // Teacher override ("Correct" on the remote): accept the answer
+      // WITHOUT recognition — especially the round-3 spoken word. Scores the
+      // round as a clean correct (mistakesRef preserved) and advances.
+      markCorrect();
+    } else if (type === 'SLIDE_COMPLETE') {
+      // Forced End from the remote/commander → jump to the complete state.
+      // completeRef stops us echoing the broadcast back (our own optimistic
+      // lastAction update re-enters this listener).
+      completeGame(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
 
   // ── Scoring (per-round attempt lifecycle) ───────────────────────────────
+  // Generation-guarded auto-advance: a remote SKIP_ITEM racing the pending
+  // timer bumps the generation in setupRound and the stale timer bails.
+  const scheduleAdvance = (delay: number) => {
+    const gen = roundGenRef.current;
+    setTimeout(() => {
+      if (roundGenRef.current === gen) advanceRound();
+    }, delay);
+  };
+
+  // Natural completion → terminal card + SLIDE_COMPLETE broadcast. The ref
+  // makes it idempotent across the optimistic lastAction echo and the
+  // remote's forced End both landing here.
+  const completeGame = (broadcast = true) => {
+    if (completeRef.current) return;
+    completeRef.current = true;
+    playCue('win');
+    setPhase('complete');
+    if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
+  };
+
   const roundSuccess = (partialRatio = 1.0) => {
     const card = removedCard;
-    if (!card) return;
+    if (!card || roundResolvedRef.current) return;
+    roundResolvedRef.current = true;
+    playCue('correct');
+    const nextStreak = streak + 1;
+    setStreak(nextStreak);
+    if (nextStreak === 3 || nextStreak === 5) {
+      playCue('streak');
+      triggerConfetti();
+    }
     const picked = state.quickWheelWinner;
     const difficulty = card.poolItem.difficulty || 1;
-    const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio);
+    const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio, nextStreak);
     if (picked && !awardedRef.current) {
       awardedRef.current = true;
       if (points > 0) addPoints(picked, points);
@@ -226,16 +291,19 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     }
     setLastAward(points);
     setPhase('feedback');
-    setTimeout(() => advanceRound(), 2200);
+    // Hold ~2.2s: the feedback card (image + word + Hear it) is teaching
+    // content, not empty celebration.
+    scheduleAdvance(2200);
   };
 
   const roundMiss = (modality: 'receptive' | 'productive') => {
     const card = removedCard;
+    if (roundResolvedRef.current) return;
+    playCue('wrong');
+    setStreak(0);
+    mistakesRef.current += 1;
     const picked = state.quickWheelWinner;
-    if (picked) {
-      mistakesRef.current += 1;
-      addPoints(picked, -MISTAKE_PENALTY);
-    }
+    if (picked) addPoints(picked, -MISTAKE_PENALTY);
     if (card) {
       logAttempt({
         state,
@@ -252,17 +320,37 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     }
   };
 
+  // Reveal-on-wrong, MemoryLab EXCEPTION: never reveal the missing card (that
+  // would defeat the memory mechanic). After the 2nd miss, cue and auto-
+  // resolve the round as a miss via the standard miss path, then move on.
+  const resolveRoundAsMiss = () => {
+    if (roundResolvedRef.current) return;
+    roundResolvedRef.current = true;
+    playCue('reveal');
+    setMissedOut(true);
+    scheduleAdvance(1600);
+  };
+
+  // MARK_CORRECT body (invoked from the lastAction listener): accept the
+  // answer without recognition — scores as a clean correct with mistakesRef
+  // preserved, shows the card, and advances.
+  const markCorrect = () => {
+    if (phase !== 'recall' || roundResolvedRef.current || completeRef.current) return;
+    roundSuccess(1.0);
+  };
+
   const handleCandidateSelect = (idx: number) => {
     // Recall-phase taps work in recognize rounds AND as the speech-unsupported
     // fallback in the produce round (candidates only render in those cases).
-    if (phase !== 'recall') return;
+    if (phase !== 'recall' || roundResolvedRef.current) return;
     const card = candidates[idx];
     setSelectedCandidate(idx);
     if (card && removedCard && card.poolItem.id === removedCard.poolItem.id) {
       roundSuccess(1.0);
     } else {
       roundMiss(cfg?.mode === 'produce' ? 'productive' : 'receptive');
-      setTimeout(() => setSelectedCandidate(null), 800);
+      if (mistakesRef.current >= 2) resolveRoundAsMiss();
+      else setTimeout(() => setSelectedCandidate(null), 800);
     }
   };
 
@@ -272,7 +360,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
       setRound(next);
       setupRound(next);
     } else {
-      setPhase('complete');
+      completeGame();
     }
   };
 
@@ -328,6 +416,11 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
         <div className="text-sm text-gray-500 mt-1">
           Round {round + 1} of {ROUNDS.length} — {cfg?.mode === 'produce' ? 'Say what is missing' : 'Tap what is missing'}
         </div>
+        {streak > 1 && (
+          <div className="inline-flex items-center gap-1 mt-1 px-3 py-1 bg-cyan-500 text-white rounded-full font-bold text-sm">
+            🔥 Streak x{streak}
+          </div>
+        )}
       </div>
 
       <AnimatePresence mode="wait">
@@ -358,14 +451,14 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
                 <span className="absolute text-3xl font-bold text-cyan-800">{countdown}</span>
               </div>
             </div>
-            <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-3xl`}>
+            <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-5xl`}>
               {grid.map((card, idx) => (
                 <motion.div
                   key={`${card.poolItem.id}-${idx}`}
                   initial={{ rotateY: 90, opacity: 0 }}
                   animate={{ rotateY: 0, opacity: 1 }}
                   transition={{ delay: idx * 0.08 }}
-                  className="aspect-square w-28 md:w-32 rounded-xl overflow-hidden border-4 border-white shadow-lg"
+                  className="aspect-square w-40 md:w-44 rounded-xl overflow-hidden border-4 border-white shadow-lg"
                 >
                   <img src={card.imageUrl} alt={card.word} className="w-full h-full object-cover" />
                 </motion.div>
@@ -387,18 +480,21 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
               <div className="text-2xl text-gray-700 font-semibold">
                 {cfg.mode === 'produce' ? 'What is missing? Say it!' : 'Which card is missing?'}
               </div>
+              {missedOut && (
+                <div className="text-xl text-gray-500 mt-2 animate-pulse">Missed it — moving on…</div>
+              )}
             </div>
 
             {/* Grid with the gap */}
-            <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-3xl mb-8`}>
+            <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-5xl mb-8`}>
               {grid.map((card, idx) => (
                 <div
                   key={`${card.poolItem.id}-${idx}`}
-                  className={`aspect-square w-28 md:w-32 rounded-xl overflow-hidden border-4 shadow-lg ${
+                  className={`aspect-square w-40 md:w-44 rounded-xl overflow-hidden border-4 shadow-lg ${
                     idx === removedIdx
                       ? 'border-dashed border-cyan-400 bg-cyan-100 flex items-center justify-center'
                       : 'border-white'
-                  }`}
+                  } ${missedOut ? 'opacity-60' : ''}`}
                 >
                   {idx === removedIdx ? (
                     <span className="text-5xl">❓</span>
@@ -418,7 +514,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleCandidateSelect(idx)}
-                    className={`aspect-square w-28 rounded-xl overflow-hidden border-4 transition-all ${
+                    className={`aspect-square w-40 rounded-xl overflow-hidden border-4 transition-all ${
                       selectedCandidate === idx
                         ? removedCard && card.poolItem.id === removedCard.poolItem.id
                           ? 'border-green-500'
@@ -506,7 +602,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1, y: [0, -12, 0] }}
                 transition={{ type: 'spring', stiffness: 200 }}
-                className="w-40 h-40 mx-auto mb-6 rounded-2xl overflow-hidden border-4 border-green-400 shadow-2xl"
+                className="w-48 h-48 mx-auto mb-6 rounded-2xl overflow-hidden border-4 border-green-400 shadow-2xl"
               >
                 <img src={removedCard.imageUrl} alt={removedCard.word} className="w-full h-full object-cover" />
               </motion.div>

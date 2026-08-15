@@ -21,22 +21,31 @@ import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { logAttempt } from './scoreAttempt';
+import { playCue } from './playCue';
 import { playAudioUrl } from '../../../services/SpeechService';
 import type { PoolItem } from '../../../types/exercise';
+
+/** MCQ option — IMAGE_SELECT rows carry {image_url, label?} objects. */
+interface RallyOption {
+  label: string;
+  imageUrl?: string;
+}
 
 interface RallyQuestion {
   poolItem: PoolItem;
   prompt: string;
-  options: string[];
+  options: RallyOption[];
   correctIndex: number;
   audioUrl?: string;
+  /** Teaching text for the reveal beat (ERROR_SPOT etc. carry one). */
+  explanation?: string;
 }
 
 const TARGET_CORRECT = 12; // class goal: 12 correct answers fill the bar
 const MILESTONES = [0.25, 0.5, 0.75, 1];
 
 const BoardClassRally = ({ data }: { data: any }) => {
-  const { state, addPoints, pushToRemediation, triggerConfetti } = useSession();
+  const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -47,6 +56,14 @@ const BoardClassRally = ({ data }: { data: any }) => {
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [lastMilestone, setLastMilestone] = useState(0);
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
+  // Reveal-on-wrong: latched on the 2nd consecutive miss — the correct option
+  // gets the amber ring, the explanation shows, and the question advances
+  // after the teaching hold. No further attempts.
+  const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
+  // Personal (per picked student) consecutive-correct streaks. Like the rally
+  // bar these persist across picks within the slide; no scoring multiplier —
+  // the bar is collective — just the 3/5 cue + confetti moments.
+  const studentStreaksRef = useRef<Record<string, number>>({});
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
@@ -65,8 +82,14 @@ const BoardClassRally = ({ data }: { data: any }) => {
     const qs: RallyQuestion[] = [];
     for (const pi of poolItems) {
       const content = pi.content as any;
-      const options: string[] = Array.isArray(content.options)
-        ? content.options.map((o: any) => (typeof o === 'string' ? o : o?.label || o?.text || '')).filter(Boolean)
+      // Keep image_url — IMAGE_SELECT renders image cards, never a
+      // stringified "[object Object]".
+      const options: RallyOption[] = Array.isArray(content.options)
+        ? content.options
+            .map((o: any) =>
+              typeof o === 'string' ? { label: o } : { label: o?.label || o?.text || '', imageUrl: o?.image_url },
+            )
+            .filter((o: RallyOption) => o.label || o.imageUrl)
         : [];
       if (options.length < 2 || typeof content.correct_index !== 'number') continue;
       qs.push({
@@ -75,6 +98,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
         options,
         correctIndex: content.correct_index,
         audioUrl: content.audio_url || content.prompt_audio,
+        explanation: content.explanation,
       });
     }
     return qs;
@@ -89,6 +113,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
     mistakesRef.current = 0;
     awardedRef.current = false;
     setSelectedOption(null);
+    setRevealedIdx(null);
     setPhase('question');
   }, [turnId]);
 
@@ -99,14 +124,21 @@ const BoardClassRally = ({ data }: { data: any }) => {
     if (type === 'RESET_GAME') {
       mistakesRef.current = 0;
       awardedRef.current = false;
+      studentStreaksRef.current = {};
       setQuestionIdx(0);
       setSelectedOption(null);
+      setRevealedIdx(null);
       setPhase('question');
       setTotalCorrect(0);
       setLastMilestone(0);
       setShowMilestone(null);
     } else if (type === 'SKIP_ITEM') {
       advanceQuestion();
+    } else if (type === 'MARK_CORRECT') {
+      handleForceCorrect();
+    } else if (type === 'SLIDE_COMPLETE') {
+      // Forced end from the teacher — settle into the complete state.
+      setPhase('victory');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
@@ -121,53 +153,87 @@ const BoardClassRally = ({ data }: { data: any }) => {
       setLastMilestone(top);
       setShowMilestone(top);
       if (typeof triggerConfetti === 'function') triggerConfetti();
-      setTimeout(() => setShowMilestone(null), 2500);
+      // Dead-time compression: celebration overlay ≤900ms (was 2500ms).
+      setTimeout(() => setShowMilestone(null), 900);
     }
   };
 
+  // Shared correct-resolution — used by a real correct pick AND MARK_CORRECT
+  // (teacher override, mistakesRef preserved).
+  const resolveCorrect = () => {
+    if (!currentQuestion) return;
+    const picked = state.quickWheelWinner;
+    const difficulty = currentQuestion.poolItem.difficulty || 1;
+    const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0);
+    if (picked && !awardedRef.current) {
+      awardedRef.current = true;
+      if (points > 0) addPoints(picked, points);
+      // The picked student's personal streak (no scoring multiplier — the bar
+      // is collective): cue + confetti at 3 and 5.
+      const s = (studentStreaksRef.current[picked] || 0) + 1;
+      studentStreaksRef.current[picked] = s;
+      if (s === 3 || s === 5) {
+        playCue('streak');
+        triggerConfetti();
+      } else {
+        playCue('correct');
+      }
+      logAttempt({
+        state,
+        picked,
+        unitId,
+        objectiveId: currentQuestion.poolItem.objective_id,
+        exerciseType: currentQuestion.poolItem.exercise_type,
+        difficulty,
+        correctness: 'correct',
+        modality: 'receptive',
+        pushToRemediation,
+      });
+    } else if (!picked) {
+      playCue('correct');
+    }
+    // Class progress: every correct fills the bar (choral mode also fills).
+    const newTotal = totalCorrect + 1;
+    setTotalCorrect(newTotal);
+    checkMilestone(newTotal);
+    setPhase('feedback');
+    // Dead-time compression: celebration beat ≤900ms (was 1800ms).
+    setTimeout(() => {
+      if (newTotal >= TARGET_CORRECT) {
+        setPhase('victory');
+        playCue('win');
+        if (typeof triggerConfetti === 'function') triggerConfetti();
+        triggerAction('SLIDE_COMPLETE', { forced: false });
+      } else {
+        advanceQuestion();
+      }
+    }, 900);
+  };
+
+  // MARK_CORRECT (teacher override): score the current item as a clean correct
+  // (mistakesRef preserved) and advance through the normal correct flow.
+  const handleForceCorrect = () => {
+    if (!currentQuestion || phase !== 'question' || awardedRef.current || revealedIdx !== null) return;
+    setSelectedOption(currentQuestion.correctIndex);
+    resolveCorrect();
+  };
+
   const handleOptionSelect = (idx: number) => {
-    if (!currentQuestion || phase !== 'question') return;
+    if (!currentQuestion || phase !== 'question' || revealedIdx !== null) return;
     const correct = currentQuestion.correctIndex;
     const difficulty = currentQuestion.poolItem.difficulty || 1;
 
     setSelectedOption(idx);
 
     if (idx === correct) {
-      const picked = state.quickWheelWinner;
-      const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0);
-      if (picked && !awardedRef.current) {
-        awardedRef.current = true;
-        if (points > 0) addPoints(picked, points);
-        logAttempt({
-          state,
-          picked,
-          unitId,
-          objectiveId: currentQuestion.poolItem.objective_id,
-          exerciseType: currentQuestion.poolItem.exercise_type,
-          difficulty,
-          correctness: 'correct',
-          modality: 'receptive',
-          pushToRemediation,
-        });
-      }
-      // Class progress: every correct fills the bar (choral mode also fills).
-      const newTotal = totalCorrect + 1;
-      setTotalCorrect(newTotal);
-      checkMilestone(newTotal);
-      setPhase('feedback');
-      setTimeout(() => {
-        if (newTotal >= TARGET_CORRECT) {
-          setPhase('victory');
-          if (typeof triggerConfetti === 'function') triggerConfetti();
-        } else {
-          advanceQuestion();
-        }
-      }, 1800);
+      resolveCorrect();
     } else {
       // Wrong: individual penalty + analytics, but the CLASS bar never drops.
+      mistakesRef.current += 1;
+      playCue('wrong');
       const picked = state.quickWheelWinner;
       if (picked) {
-        mistakesRef.current += 1;
+        studentStreaksRef.current[picked] = 0;
         addPoints(picked, -MISTAKE_PENALTY);
       }
       logAttempt({
@@ -182,7 +248,16 @@ const BoardClassRally = ({ data }: { data: any }) => {
         modality: 'receptive',
         pushToRemediation,
       });
-      setTimeout(() => setSelectedOption(null), 800);
+
+      if (mistakesRef.current >= 2) {
+        // Second consecutive miss — reveal the correct option (amber ring +
+        // explanation), teach for a beat, then move on. No further attempts.
+        playCue('reveal');
+        setRevealedIdx(correct);
+        setTimeout(() => advanceQuestion(), 2200);
+      } else {
+        setTimeout(() => setSelectedOption(null), 800);
+      }
     }
   };
 
@@ -190,6 +265,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
     mistakesRef.current = 0;
     awardedRef.current = false;
     setSelectedOption(null);
+    setRevealedIdx(null);
     setPhase('question');
     setQuestionIdx((prev) => prev + 1);
   };
@@ -300,6 +376,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
                   </motion.button>
                 )}
               </div>
+              {/* Options — image cards for IMAGE_SELECT, text otherwise */}
               <div className="grid grid-cols-2 gap-4">
                 {currentQuestion.options.map((option, idx) => (
                   <motion.button
@@ -307,18 +384,42 @@ const BoardClassRally = ({ data }: { data: any }) => {
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => handleOptionSelect(idx)}
-                    className={`p-5 rounded-xl text-xl font-semibold transition-all ${
+                    className={`rounded-xl text-xl font-semibold transition-all ${
+                      option.imageUrl ? 'aspect-square p-2 border-4 overflow-hidden' : 'p-5 border-2'
+                    } ${
                       selectedOption === idx
                         ? idx === currentQuestion.correctIndex
-                          ? 'bg-green-500 text-white'
-                          : 'bg-red-500 text-white'
-                        : 'bg-gray-50 hover:bg-fuchsia-50 text-gray-800 border-2 border-gray-200'
+                          ? 'bg-green-500 text-white border-green-600'
+                          : 'bg-red-500 text-white border-red-600'
+                        : revealedIdx === idx
+                        ? 'bg-amber-100 text-gray-800 border-amber-400 ring-4 ring-amber-400'
+                        : option.imageUrl
+                        ? 'bg-gray-50 border-gray-200 hover:border-fuchsia-400'
+                        : 'bg-gray-50 hover:bg-fuchsia-50 text-gray-800 border-gray-200'
                     }`}
                   >
-                    {option}
+                    {option.imageUrl ? (
+                      <span className="w-full h-full flex flex-col items-center justify-center gap-2">
+                        <img
+                          src={option.imageUrl}
+                          alt={option.label || `Option ${idx + 1}`}
+                          className="flex-1 min-h-0 w-full object-cover rounded-lg"
+                        />
+                        {option.label && <span className="text-sm text-gray-700">{option.label}</span>}
+                      </span>
+                    ) : (
+                      option.label
+                    )}
                   </motion.button>
                 ))}
               </div>
+
+              {/* Reveal-on-wrong teaching beat: the why behind the answer. */}
+              {revealedIdx !== null && currentQuestion.explanation && (
+                <div className="mt-4 p-3 bg-amber-50 border-2 border-amber-200 rounded-xl text-center text-base text-amber-900">
+                  {currentQuestion.explanation}
+                </div>
+              )}
               <div className="text-center text-sm text-gray-400 mt-4">
                 Wrong answers never shrink the bar — keep trying, team!
               </div>

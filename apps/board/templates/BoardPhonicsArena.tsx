@@ -20,6 +20,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { useSpeechRecognition } from './useSpeechRecognition';
 import { logAttempt } from './scoreAttempt';
 import { shuffle } from './scoringUtils';
+import { playCue } from './playCue';
 import { useSpeech } from './useSpeech';
 import { preloadRoundSpeech } from './speechPreload';
 import type { PoolItem, MinimalPairSwipeContent, SpeakSentenceContent } from '../../../types/exercise';
@@ -34,13 +35,43 @@ interface PhonicsItem {
   speechText?: string;
   correctWord: string;
   targetText?: string;
+  /** Optional teaching note shown during the reveal-on-wrong hold. */
+  explanation?: string;
 }
 
+// ONE source of truth for the answer (audit fix ~:81-99): the MCQ option when
+// the generator filled it in, else the pair member at correct_index, else
+// pair[0]. BOTH the spoken text and the answer validation use correctWord —
+// previously the audio could speak pair[0] while the answer was
+// options[correct_index].text (audio/answer mismatch).
+const toPhonicsItem = (pi: PoolItem): PhonicsItem => {
+  const content = pi.content as MinimalPairSwipeContent;
+  const correctWord =
+    content.options?.[content.correct_index]?.text ??
+    content.pair?.[content.correct_index] ??
+    content.pair?.[0] ??
+    '';
+  return {
+    poolItem: pi,
+    word1: content.pair?.[0] || '',
+    word2: content.pair?.[1] || '',
+    audioUrl: content.audio_url,
+    speechText: content.prompt_text || correctWord,
+    correctWord,
+    explanation: (content as any).explanation,
+  };
+};
+
 const BoardPhonicsArena = ({ data }: { data: any }) => {
-  const { state, addPoints, pushToRemediation } = useSession();
+  const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  /** Per-item resolve latch (success / MARK_CORRECT / reveal) — prevents stale
+   *  speech results or double remote taps from resolving an item twice. */
+  const resolvedRef = useRef(false);
+  /** Completion latch — makes the SLIDE_COMPLETE broadcast idempotent. */
+  const completeRef = useRef(false);
 
   const [currentRound, setCurrentRound] = useState<1 | 2 | 3>(1);
   const [round1Idx, setRound1Idx] = useState(0);
@@ -50,6 +81,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   const [streak, setStreak] = useState(0);
   const [phaseComplete, setPhaseComplete] = useState(false);
   const [allDone, setAllDone] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
@@ -67,39 +99,24 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   });
 
   // Categorize items by round
-  const round1Items: PhonicsItem[] = React.useMemo(() => {
-    return poolItems
-      .filter((pi) => pi.exercise_type === 'MINIMAL_PAIR_SWIPE')
-      .slice(0, 5)
-      .map((pi) => {
-        const content = pi.content as MinimalPairSwipeContent;
-        return {
-          poolItem: pi,
-          word1: content.pair[0],
-          word2: content.pair[1],
-          audioUrl: content.audio_url,
-          speechText: content.prompt_text || content.pair[0],
-          correctWord: content.options[content.correct_index]?.text || content.pair[0],
-        };
-      });
-  }, [poolItems]);
+  const minimalPairs = useMemo(
+    () => poolItems.filter((pi) => pi.exercise_type === 'MINIMAL_PAIR_SWIPE'),
+    [poolItems]
+  );
 
-  const round2Items: PhonicsItem[] = React.useMemo(() => {
-    return poolItems
-      .filter((pi) => pi.exercise_type === 'MINIMAL_PAIR_SWIPE')
-      .slice(5, 9)
-      .map((pi) => {
-        const content = pi.content as MinimalPairSwipeContent;
-        return {
-          poolItem: pi,
-          word1: content.pair[0],
-          word2: content.pair[1],
-          audioUrl: content.audio_url,
-          speechText: content.prompt_text || content.pair[0],
-          correctWord: content.options[content.correct_index]?.text || content.pair[0],
-        };
-      });
-  }, [poolItems]);
+  // Round 1: the first 5 pairs. Round 2: the NEXT 4 pairs — but when the pool
+  // is too small for a disjoint draw, round 2 replays round 1's pairs (at 4
+  // options instead of 2 via currentWords below) so the round actually
+  // happens instead of being skipped (audit fix).
+  const round1Items: PhonicsItem[] = useMemo(
+    () => minimalPairs.slice(0, 5).map(toPhonicsItem),
+    [minimalPairs]
+  );
+
+  const round2Items: PhonicsItem[] = useMemo(() => {
+    const tail = minimalPairs.slice(5, 9).map(toPhonicsItem);
+    return tail.length > 0 ? tail : round1Items.map((it) => toPhonicsItem(it.poolItem));
+  }, [minimalPairs, round1Items]);
 
   const round3Items: PhonicsItem[] = React.useMemo(() => {
     return poolItems
@@ -121,6 +138,8 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
 
   const currentItem = currentRound === 1 ? round1Items[round1Idx] : currentRound === 2 ? round2Items[round2Idx] : round3Items[round3Idx];
 
+  const hasAnyItems = round1Items.length > 0 || round2Items.length > 0 || round3Items.length > 0;
+
   // Reference-based audio: background-resolve the current item's speech;
   // play() never blocks — browser voice covers the not-ready case.
   const { play: playCurrentSpeech } = useSpeech({
@@ -133,6 +152,18 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   useEffect(() => {
     if (poolItems.length > 0) preloadRoundSpeech(unitId, poolItems);
   }, [poolItems, unitId]);
+
+  // Skip empty rounds in an effect — the previous render-time setCurrentRound
+  // was a setState-during-render anti-pattern (audit fix). When EVERY round is
+  // empty the branded empty-state card below wins (hasAnyItems gate), so zero
+  // items can never cascade into a fake victory celebration.
+  useEffect(() => {
+    if (allDone || !hasAnyItems || currentItem) return;
+    if (currentRound === 1 && round1Items.length === 0) setCurrentRound(2);
+    else if (currentRound === 2 && round2Items.length === 0) setCurrentRound(3);
+    else if (currentRound === 3 && round3Items.length === 0) completeGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allDone, hasAnyItems, currentItem, currentRound, round1Items.length, round2Items.length, round3Items.length]);
 
   // ── Real option sets (no fake placeholder words). Round 1 = the 2 pair
   //    words; Round 2 = the pair + 2 real distractors drawn from the OTHER
@@ -149,6 +180,95 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     return shuffle([currentItem.word1, currentItem.word2, ...distractors]);
   }, [currentItem, currentRound, round1Items, round2Items]);
 
+  // ── Unified per-item success/failure (triple-write) ────────────────────
+  const itemSuccess = (modality: 'receptive' | 'productive', partialRatio = 1.0) => {
+    if (!currentItem || resolvedRef.current) return;
+    resolvedRef.current = true;
+    playCue('correct');
+    const nextStreak = streak + 1;
+    setStreak(nextStreak);
+    if (nextStreak === 3 || nextStreak === 5) {
+      playCue('streak');
+      triggerConfetti();
+    }
+    const picked = state.quickWheelWinner;
+    const difficulty = currentItem.poolItem.difficulty || (modality === 'productive' ? 2 : 1);
+    const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio, nextStreak);
+    if (picked && !awardedRef.current) {
+      awardedRef.current = true;
+      if (points > 0) addPoints(picked, points);
+      logAttempt({
+        state,
+        picked,
+        unitId,
+        objectiveId: currentItem.poolItem.objective_id,
+        exerciseType: currentItem.poolItem.exercise_type,
+        difficulty,
+        correctness: partialRatio >= 1 ? 'correct' : 'partial',
+        modality,
+        pushToRemediation,
+      });
+    }
+  };
+  const itemFailure = (modality: 'receptive' | 'productive') => {
+    if (!currentItem || resolvedRef.current) return;
+    playCue('wrong');
+    setStreak(0);
+    mistakesRef.current += 1;
+    const picked = state.quickWheelWinner;
+    if (picked) addPoints(picked, -MISTAKE_PENALTY);
+    logAttempt({
+      state,
+      picked: picked || '',
+      unitId,
+      objectiveId: currentItem.poolItem.objective_id,
+      exerciseType: currentItem.poolItem.exercise_type,
+      difficulty: currentItem.poolItem.difficulty || (modality === 'productive' ? 2 : 1),
+      correctness: 'incorrect',
+      correct: false,
+      modality,
+      pushToRemediation,
+    });
+  };
+
+  // Shared reveal-on-wrong: 2nd consecutive miss on an item → highlight the
+  // correct word (amber ring), show the explanation when the content has one,
+  // hold ~2.2s (teaching beat), then advance. Reset per item.
+  const revealAnswer = (advance: () => void) => {
+    playCue('reveal');
+    resolvedRef.current = true;
+    setRevealed(true);
+    setTimeout(() => {
+      setRevealed(false);
+      advance();
+    }, 2200);
+  };
+
+  // Natural completion → terminal card + SLIDE_COMPLETE broadcast. The ref
+  // makes it idempotent across the optimistic lastAction echo and the
+  // remote's forced End both landing here.
+  const completeGame = (broadcast = true) => {
+    if (completeRef.current) return;
+    completeRef.current = true;
+    playCue('win');
+    setAllDone(true);
+    if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
+  };
+
+  // MARK_CORRECT body (invoked from the lastAction listener): clean correct
+  // award with mistakesRef preserved, then advance on the short hold. In
+  // round 3 this is the "accept that pronunciation" teacher override.
+  const markCorrect = () => {
+    if (!currentItem || resolvedRef.current || completeRef.current) return;
+    if (currentRound !== 3) {
+      const idx = currentWords.indexOf(currentItem.correctWord);
+      if (idx >= 0) setSelectedWord(idx);
+    }
+    itemSuccess(currentRound === 3 ? 'productive' : 'receptive', 1.0);
+    setPhaseComplete(true);
+    setTimeout(() => advanceCurrentRound(), 900);
+  };
+
   // Speech recognition for Round 3
   const {
     isListening,
@@ -161,46 +281,13 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     targetText: currentItem?.targetText || '',
     onResult: (score, transcript, passed) => {
       if (passed) {
-        const picked = state.quickWheelWinner;
-        const difficulty = currentItem?.poolItem.difficulty || 2;
-        const points = scoreForAttempt(mistakesRef.current, difficulty, Math.max(0.6, Math.min(1, score)));
-        if (picked && !awardedRef.current) {
-          awardedRef.current = true;
-          if (points > 0) addPoints(picked, points);
-          logAttempt({
-            state,
-            picked,
-            unitId,
-            objectiveId: currentItem?.poolItem.objective_id,
-            exerciseType: currentItem?.poolItem.exercise_type,
-            difficulty,
-            correctness: score >= 1 ? 'correct' : 'partial',
-            modality: 'productive',
-            pushToRemediation,
-          });
-        }
-        setStreak((prev) => prev + 1);
+        // Productive success — partial credit = pronunciation similarity.
+        // Hold ~2s: the transcript + score card is teaching content.
+        itemSuccess('productive', Math.max(0.6, Math.min(1, score)));
         setPhaseComplete(true);
         setTimeout(() => advanceRound3(), 2000);
       } else {
-        const picked = state.quickWheelWinner;
-        if (picked) {
-          mistakesRef.current += 1;
-          addPoints(picked, -MISTAKE_PENALTY);
-        }
-        logAttempt({
-          state,
-          picked: picked || '',
-          unitId,
-          objectiveId: currentItem?.poolItem.objective_id,
-          exerciseType: currentItem?.poolItem.exercise_type,
-          difficulty: currentItem?.poolItem.difficulty || 2,
-          correctness: 'incorrect',
-          correct: false,
-          modality: 'productive',
-          pushToRemediation,
-        });
-        setStreak(0);
+        itemFailure('productive');
       }
     },
   });
@@ -210,6 +297,8 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     if (turnId === null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
+    completeRef.current = false;
     setCurrentRound(1);
     setRound1Idx(0);
     setRound2Idx(0);
@@ -218,6 +307,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     setStreak(0);
     setPhaseComplete(false);
     setAllDone(false);
+    setRevealed(false);
   }, [turnId]);
 
   // Listen for remote controls
@@ -227,6 +317,8 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     if (type === 'RESET_GAME') {
       mistakesRef.current = 0;
       awardedRef.current = false;
+      resolvedRef.current = false;
+      completeRef.current = false;
       setCurrentRound(1);
       setRound1Idx(0);
       setRound2Idx(0);
@@ -235,8 +327,20 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
       setStreak(0);
       setPhaseComplete(false);
       setAllDone(false);
+      setRevealed(false);
     } else if (type === 'NEXT_ITEM') {
       advanceCurrentRound();
+    } else if (type === 'MARK_CORRECT') {
+      // Teacher override ("Correct" on the remote): score the current item
+      // as a clean correct (mistakesRef preserved) and advance. In round 3
+      // this doubles as "accept that pronunciation" when recognition is
+      // being unfair.
+      markCorrect();
+    } else if (type === 'SLIDE_COMPLETE') {
+      // Forced End from the remote/commander → jump to the complete state.
+      // completeRef stops us echoing the broadcast back (our own optimistic
+      // lastAction update re-enters this listener).
+      completeGame(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
@@ -248,54 +352,20 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   };
 
   const handleWordSelect = (idx: number) => {
-    if (!currentItem || currentRound === 3) return;
+    if (!currentItem || currentRound === 3 || resolvedRef.current) return;
     const selected = currentWords[idx];
     const isCorrect = selected === currentItem.correctWord;
 
     setSelectedWord(idx);
 
     if (isCorrect) {
-      const picked = state.quickWheelWinner;
-      const difficulty = currentItem.poolItem.difficulty || 1;
-      const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0);
-      if (picked && !awardedRef.current) {
-        awardedRef.current = true;
-        if (points > 0) addPoints(picked, points);
-        logAttempt({
-          state,
-          picked,
-          unitId,
-          objectiveId: currentItem.poolItem.objective_id,
-          exerciseType: currentItem.poolItem.exercise_type,
-          difficulty,
-          correctness: 'correct',
-          modality: 'receptive',
-          pushToRemediation,
-        });
-      }
-      setStreak((prev) => prev + 1);
+      itemSuccess('receptive');
       setPhaseComplete(true);
-      setTimeout(() => advanceCurrentRound(), 1500);
+      setTimeout(() => advanceCurrentRound(), 900);
     } else {
-      const picked = state.quickWheelWinner;
-      if (picked) {
-        mistakesRef.current += 1;
-        addPoints(picked, -MISTAKE_PENALTY);
-      }
-      logAttempt({
-        state,
-        picked: picked || '',
-        unitId,
-        objectiveId: currentItem.poolItem.objective_id,
-        exerciseType: currentItem.poolItem.exercise_type,
-        difficulty: currentItem.poolItem.difficulty || 1,
-        correctness: 'incorrect',
-        correct: false,
-        modality: 'receptive',
-        pushToRemediation,
-      });
-      setStreak(0);
-      setTimeout(() => setSelectedWord(null), 800);
+      itemFailure('receptive');
+      if (mistakesRef.current >= 2) revealAnswer(() => advanceCurrentRound());
+      else setTimeout(() => setSelectedWord(null), 800);
     }
   };
 
@@ -303,6 +373,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     // Per-item attempt reset — each pair/word is its own scored attempt.
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
     if (currentRound === 1) {
       if (round1Idx < round1Items.length - 1) {
         setRound1Idx((prev) => prev + 1);
@@ -327,11 +398,12 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   const advanceRound3 = () => {
     mistakesRef.current = 0;
     awardedRef.current = false;
+    resolvedRef.current = false;
     if (round3Idx < round3Items.length - 1) {
       setRound3Idx((prev) => prev + 1);
       setPhaseComplete(false);
     } else {
-      setAllDone(true);
+      completeGame();
     }
   };
 
@@ -343,26 +415,24 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     );
   }
 
-  const hasAnyItems = round1Items.length > 0 || round2Items.length > 0 || round3Items.length > 0;
+  // Zero items (all rounds empty) → the branded empty-state card, never the
+  // completion celebration (audit fix).
   if (!hasAnyItems) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-red-50 to-orange-50 p-8 text-center">
         <div className="text-7xl mb-6">🎯</div>
         <h2 className="text-4xl font-bold text-red-900 mb-3">Phonics Arena</h2>
         <div className="text-xl text-gray-500 max-w-xl">
-          No phonics items ready for this unit yet. Run the exercise generator for this unit, or
-          skip to the next slide.
+          No phonics items ready yet — run the exercise generator for this unit, or skip to the next
+          slide.
         </div>
       </div>
     );
   }
 
-  // Skip empty rounds gracefully (e.g. no SPEAK_SENTENCE items for round 3).
-  if (!currentItem && !allDone) {
-    if (currentRound === 1 && round1Items.length === 0) { setCurrentRound(2); return null; }
-    if (currentRound === 2 && round2Items.length === 0) { setCurrentRound(3); return null; }
-    if (currentRound === 3 && round3Items.length === 0) { setAllDone(true); return null; }
-  }
+  // Transient frame while the skip-empty-rounds effect above catches up —
+  // never dereference a missing currentItem in the option grids below.
+  if (!currentItem && !allDone) return null;
 
   const allComplete = allDone || (currentRound === 3 && round3Idx >= round3Items.length && phaseComplete);
 
@@ -450,12 +520,23 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
                               ? 'bg-green-500 text-white'
                               : 'bg-red-500 text-white'
                             : 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-2 border-gray-200'
-                        }`}
+                        } ${revealed && word === currentItem.correctWord ? 'ring-4 ring-amber-400' : ''}`}
                       >
                         {word}
                       </motion.button>
                     ))}
                   </div>
+
+                  {/* Reveal-on-wrong teaching note (only when the content carries one) */}
+                  {revealed && currentItem.explanation && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 p-4 bg-amber-50 border-2 border-amber-300 rounded-xl text-lg text-amber-900 text-center"
+                    >
+                      {currentItem.explanation}
+                    </motion.div>
+                  )}
                 </>
               )}
 
