@@ -26,7 +26,11 @@
     "confirmPassword": "Confirm Password",
     "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?"
+    "hasAccount": "Already have an account?",
+    "wrongPortalTitle": "This is the wrong app for your account",
+    "wrongPortalBody": "You are signed in as a {{role}}, but you opened the {{portal}} app.",
+    "goToYourApp": "Open your {{role}} app",
+    "wrongPortalSignOut": "Sign out"
   },
   "hub": {
     "title": "Professor",

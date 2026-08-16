@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getCurrentUser, hasAccessToPortal } from '../../services/AuthService';
 import { supabase } from '../../services/supabaseClient';
 import { useAppStore } from '../../store/useAppStore';
@@ -30,18 +32,17 @@ function homePathForRole(role: string | undefined): string {
  *
  * Performs the same 3 jobs as App.tsx's session logic:
  *  1. Session check: getCurrentUser → populate useAppStore
- *  2. Portal guard: hasAccessToPortal → redirect if role mismatch
+ *  2. Portal guard: hasAccessToPortal → explainer screen on role mismatch
+ *     (instead of a silent redirect — a teacher opening /student on a phone
+ *     used to be bounced to /teacher with no explanation)
  *  3. Auth-state subscription: react to SIGNED_OUT / TOKEN_REFRESHED
- *
- * Standalone entries (adminEntry, teacherEntry, etc.) use BrowserRouter
- * with a basename (e.g. "/admin"), so login redirects use
- * window.location.href to reach the root /login served by index.html.
  */
 export const AuthGate: React.FC<AuthGateProps> = ({ portal, children }) => {
+  const { t } = useTranslation();
   const { setUserProfile, clearUserProfile } = useAppStore();
-  const navigate = useNavigate();
   const location = useLocation();
   const [ready, setReady] = useState(false);
+  const [wrongRole, setWrongRole] = useState<{ role: string; home: string } | null>(null);
 
   // Session bootstrap
   useEffect(() => {
@@ -53,11 +54,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({ portal, children }) => {
         if (user) {
           setUserProfile(user);
           if (!hasAccessToPortal(user.role, portal)) {
-            // Role can't access this portal — send them to their home portal.
-            const home = homePathForRole(user.role);
-            window.location.href = home;
+            // Role can't access this portal — explain instead of silently
+            // redirecting, and let the user pick where to go.
+            setWrongRole({ role: user.role || 'user', home: homePathForRole(user.role) });
+            setReady(true);
             return;
           }
+          setWrongRole(null);
         } else {
           clearUserProfile();
           if (!isPublicPath(location.pathname)) {
@@ -78,7 +81,12 @@ export const AuthGate: React.FC<AuthGateProps> = ({ portal, children }) => {
       }
     })();
     return () => { mounted = false; };
-  }, [portal, setUserProfile, clearUserProfile, navigate, location.pathname]);
+  }, [portal, setUserProfile, clearUserProfile, location.pathname]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   // Auth-state subscription (mirror App.tsx:130-144)
   useEffect(() => {
@@ -97,6 +105,36 @@ export const AuthGate: React.FC<AuthGateProps> = ({ portal, children }) => {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-700" />
+      </div>
+    );
+  }
+
+  if (wrongRole) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50 p-6">
+        <div className="max-w-sm w-full bg-white rounded-2xl shadow-lg border border-slate-100 p-8 text-center">
+          <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle size={32} />
+          </div>
+          <h1 className="text-xl font-bold text-slate-800 mb-2">{t('auth.wrongPortalTitle', 'This is the wrong app for your account')}</h1>
+          <p className="text-slate-500 mb-6">
+            {t('auth.wrongPortalBody', 'You are signed in as a {{role}}, but you opened the {{portal}} app.', { role: wrongRole.role, portal })}
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => { window.location.href = wrongRole.home; }}
+              className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition-colors"
+            >
+              {t('auth.goToYourApp', 'Open your {{role}} app', { role: wrongRole.role })}
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full border border-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-50 transition-colors"
+            >
+              {t('auth.wrongPortalSignOut', 'Sign out')}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

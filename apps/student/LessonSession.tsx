@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { X, Heart, Check, ArrowRight, Eye } from 'lucide-react';
+import { X, Heart, Check, ArrowRight, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import ListenTap from './ListenTap';
 import SentenceScramble from './SentenceScramble';
 import PronunciationCoach from './PronunciationCoach';
 import FlashMatch from './FlashMatch';
-import ExerciseRunner, { RunnerResult } from './exercises/ExerciseRunner';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { supabase } from '../../services/supabaseClient';
-import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
 
 export type ActivityType = 'LISTEN_TAP' | 'SCRAMBLE' | 'SPEAKING' | 'FLASH_MATCH';
 
@@ -25,12 +23,15 @@ interface LessonSessionProps {
   onExit: () => void;
 }
 
+// Playlist-only lesson runner. Live-class "follow the teacher" mode was removed
+// (2026-08-17): the classroom model is projector + teacher-remote only
+// (LIVE_GAME_LIFECYCLE.md §9) and students have no realtime subscription, so
+// that branch was unreachable dead code.
 const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onExit }) => {
-  const { state, addPoints } = useSoloSession();
-  const isLive = state.status === 'LIVE';
+  const { addPoints } = useSoloSession();
 
   const [localIndex, setLocalIndex] = useState(0);
-  const currentIndex = isLive ? state.currentStepIndex : localIndex;
+  const currentIndex = localIndex;
 
   const [lives, setLives] = useState(5);
   const [lessonStatus, setLessonStatus] = useState<'idle' | 'checking' | 'correct' | 'wrong'>('idle');
@@ -43,40 +44,8 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
     supabase.auth.getUser().then(({ data: { user } }) => { if (user) setCurrentStudentId(user.id); }).catch(() => {});
   }, []);
 
-  const liveStep = isLive ? state.activeSlideData : null;
-  const isLivePoolStep = Boolean(
-    liveStep && (liveStep.data?.poolDriven || liveStep.phase === 'PRACTICE' || liveStep.phase === 'ASSESS'),
-  );
-
-  // Pool-driven battery for the live step (loaded when entering a practice/assess
-  // step so the student practises the SAME skills the board is presenting, with
-  // real audio + the shared LearnerState — instead of the old mock LISTEN_TAP).
-  const [liveItems, setLiveItems] = useState<any[]>([]);
-  const [liveLoading, setLiveLoading] = useState(false);
-  const [liveBatteryDone, setLiveBatteryDone] = useState(false);
-  const liveUnitId = state.activeUnit?.id || '';
-
-  useEffect(() => {
-    setLiveBatteryDone(false);
-    if (!isLive || !isLivePoolStep || !liveUnitId || !currentStudentId) { setLiveItems([]); return; }
-    let cancelled = false;
-    setLiveLoading(true);
-    (async () => {
-      await prepareUnitForStudent(liveUnitId, currentStudentId);
-      const items = await selectLessonItems(liveUnitId, currentStudentId, 12);
-      if (!cancelled) { setLiveItems(items); setLiveLoading(false); }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLive, isLivePoolStep, liveUnitId, currentStudentId, currentIndex]);
-
-  // In live mode the student follows the teacher's flow; in playlist mode they
-  // step a local playlist. No more forcing every activity to LISTEN_TAP/SCRAMBLE.
-  const currentActivity: LessonActivity = isLive && liveStep
-    ? { type: (liveStep.type as ActivityType) || 'LISTEN_TAP', id: String(liveStep.id ?? currentIndex), data: liveStep.data }
-    : playlist[currentIndex] || playlist[0];
-
-  const totalSlides = isLive && state.activeUnit ? state.activeUnit.flow.length : playlist.length;
+  const currentActivity: LessonActivity | undefined = playlist[currentIndex];
+  const totalSlides = playlist.length;
   const progress = (currentIndex / Math.max(1, totalSlides)) * 100;
 
   useEffect(() => {
@@ -101,35 +70,44 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
     }
   };
 
-  const handleLiveBatteryDone = (result: RunnerResult) => {
-    setLiveBatteryDone(true);
-    toast(`Practised ${result.correct}/${result.total} — waiting for teacher…`, { icon: '⏳' });
-  };
-
   const handleContinue = () => {
-    if (lives === 0 && !isLive) {
+    if (lives === 0) {
       toast.error('Out of hearts! Try again later.', { icon: '💔' });
       onExit();
       return;
     }
 
-    if (isLive) {
+    if (currentIndex < playlist.length - 1) {
+      setLocalIndex(prev => prev + 1);
       setLessonStatus('idle');
       setIsAnswerReady(false);
-      toast('Waiting for teacher to continue...', { icon: '⏳' });
     } else {
-      if (currentIndex < playlist.length - 1) {
-        setLocalIndex(prev => prev + 1);
-        setLessonStatus('idle');
-        setIsAnswerReady(false);
-      } else {
-        onComplete({ xp: 5, accuracy: (lives / 5) * 100, time: '2:30' });
-      }
+      onComplete({ xp: 5, accuracy: (lives / 5) * 100, time: '2:30' });
     }
   };
 
-  // Playlist (async) mode: render the activity components. They now have empty-
-  // state guards, so missing data shows a clean message instead of Spanish mocks.
+  // Empty or out-of-range playlist: clean exit instead of a crash on
+  // currentActivity.type (audit P0-5).
+  if (!currentActivity) {
+    return (
+      <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-8 text-center font-sans">
+        <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-5">
+          <AlertCircle size={40} className="text-slate-400" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-700 mb-2">No activities available</h2>
+        <p className="text-slate-400 max-w-sm mb-6">This lesson doesn't have any activities yet. Try again later or pick another lesson.</p>
+        <button
+          onClick={onExit}
+          className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
+        >
+          Go back
+        </button>
+      </div>
+    );
+  }
+
+  // Playlist (async) mode: render the activity components. They have empty-
+  // state guards, so missing data shows a clean message instead of mocks.
   const renderPlaylistActivity = () => {
     const commonProps = {
       mode: 'embedded' as const,
@@ -146,58 +124,6 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
     }
   };
 
-  // --- Live mode rendering ---
-  if (isLive) {
-    return (
-      <div className="h-full bg-slate-50 flex flex-col font-sans relative overflow-hidden">
-        <header className="px-4 py-4 flex items-center justify-between z-10 shrink-0 bg-white border-b border-slate-100">
-          <button onClick={onExit} className="text-slate-400 hover:text-slate-600 p-2 -ml-2"><X size={24} /></button>
-          <div className="flex-1 mx-4 h-4 bg-slate-200 rounded-full overflow-hidden relative">
-            <div className="h-full bg-duo-green rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="flex items-center gap-1 text-red-500 font-bold"><Heart fill="currentColor" size={24} /><span>{lives}</span></div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto relative">
-          {isLivePoolStep ? (
-            currentStudentId ? (
-              liveBatteryDone ? (
-                <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                  <Check size={48} className="text-duo-green mb-3" />
-                  <p className="text-slate-600 font-bold mb-1">Nice work!</p>
-                  <p className="text-slate-400">Waiting for your teacher to continue…</p>
-                </div>
-              ) : liveLoading ? (
-                <div className="h-full flex items-center justify-center text-slate-400 font-bold">Preparing exercises…</div>
-              ) : (
-                <ExerciseRunner
-                  items={liveItems}
-                  studentId={currentStudentId}
-                  unitId={liveUnitId}
-                  onExit={onExit}
-                  onDone={handleLiveBatteryDone}
-                />
-              )
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400">Signing you in…</div>
-            )
-          ) : (
-            // Passive step: the board presents (vocab cards / story / grammar /
-            // media); the student follows along. No more broken mock games here.
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center">
-              <div className="w-20 h-20 bg-duo-blue/10 rounded-3xl flex items-center justify-center mb-5">
-                <Eye size={40} className="text-duo-blue" />
-              </div>
-              <h2 className="text-2xl font-bold text-slate-700 mb-2">Follow along on the big screen</h2>
-              <p className="text-slate-400 max-w-sm">Your teacher is presenting this part of the lesson. Get ready — practice is coming up!</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // --- Playlist (async) mode ---
   return (
     <div className="h-full bg-slate-50 flex flex-col font-sans relative overflow-hidden">
       <header className="px-4 py-4 flex items-center justify-between z-10 shrink-0 bg-white border-b border-slate-100">

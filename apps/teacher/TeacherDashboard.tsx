@@ -237,19 +237,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             className="w-full h-full flex flex-col"
           >
             <Routes location={location}>
-              <Route path="" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
-              <Route path="unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher" element={<RouteErrorBoundary name="dashboard"><Suspense fallback={<PageLoader />}><DashboardHome onLaunchLive={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/unit/:unitId" element={<RouteErrorBoundary name="unit-studio"><Suspense fallback={<PageLoader />}><UnitStudio /></Suspense></RouteErrorBoundary>} />
               {/* Task 15: /teacher/review/:unitId route REMOVED — Review is now an
                   in-Studio mode (UnitStudio overlay), not a separate route. */}
-              <Route path="upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
-              <Route path="students" element={<RouteErrorBoundary name="students"><Suspense fallback={<PageLoader />}><ClassManagement /></Suspense></RouteErrorBoundary>} />
-              <Route path="assignments" element={<RouteErrorBoundary name="assignments"><Suspense fallback={<PageLoader />}><Assignments /></Suspense></RouteErrorBoundary>} />
-              <Route path="messages" element={<RouteErrorBoundary name="messages"><Suspense fallback={<PageLoader />}><TeacherMessages onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
-              <Route path="reports" element={<RouteErrorBoundary name="reports"><Suspense fallback={<PageLoader />}><Reports /></Suspense></RouteErrorBoundary>} />
-              <Route path="settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
-              <Route path="mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
-              <Route path="library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
-              <Route path="units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/upload" element={<RouteErrorBoundary name="upload"><Suspense fallback={<PageLoader />}><UploadTextbook onFinish={() => navigate('/teacher/units')} onBack={() => navigate('/teacher/units')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/students" element={<RouteErrorBoundary name="students"><Suspense fallback={<PageLoader />}><ClassManagement /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/assignments" element={<RouteErrorBoundary name="assignments"><Suspense fallback={<PageLoader />}><Assignments /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/messages" element={<RouteErrorBoundary name="messages"><Suspense fallback={<PageLoader />}><TeacherMessages onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/reports" element={<RouteErrorBoundary name="reports"><Suspense fallback={<PageLoader />}><Reports /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
             </Routes>
           </motion.div>
         </AnimatePresence>

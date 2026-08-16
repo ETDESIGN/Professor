@@ -26,7 +26,11 @@
     "confirmPassword": "确认密码",
     "forgotPassword": "忘记密码？",
     "noAccount": "没有账号？",
-    "hasAccount": "已有账号？"
+    "hasAccount": "已有账号？",
+    "wrongPortalTitle": "这不是你账户对应的应用",
+    "wrongPortalBody": "你当前以 {{role}} 身份登录，但打开的是 {{portal}} 应用。",
+    "goToYourApp": "打开 {{role}} 应用",
+    "wrongPortalSignOut": "退出登录"
   },
   "hub": {
     "title": "Professor",

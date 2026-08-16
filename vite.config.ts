@@ -9,6 +9,19 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: '0.0.0.0',
+      // Mirror the vercel.json rewrites in dev so /student, /teacher, /parent,
+      // /admin serve their standalone entries (not the hub).
+      configureServer(server) {
+        const portals = ['/student', '/teacher', '/parent', '/admin'];
+        server.middlewares.use((req, _res, next) => {
+          const url = req.url?.split('?')[0];
+          const match = portals.find(p => url === p || url?.startsWith(p + '/'));
+          if (match && !path.extname(url)) {
+            req.url = match + '.html';
+          }
+          next();
+        });
+      },
     },
     build: {
       chunkSizeWarningLimit: 600,
@@ -77,6 +90,13 @@ export default defineConfig(({ mode }) => {
             /^\/rest\/.*/,
             /^\/realtime\/.*/,
             /^\/functions\/.*/,
+            // Portals are separate entries served by vercel.json rewrites —
+            // the hub SW must never answer their navigations (stale-shell bug).
+            // `(?:\/|$)` also matches the bare prefix (e.g. exactly /student).
+            /^\/student(?:\/|$)/,
+            /^\/teacher(?:\/|$)/,
+            /^\/parent(?:\/|$)/,
+            /^\/admin(?:\/|$)/,
           ],
           navigateFallback: '/index.html',
           runtimeCaching: [

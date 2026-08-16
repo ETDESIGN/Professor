@@ -1,7 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Home, Trophy, BookOpen, User, ShoppingBag, Users, X, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +11,7 @@ import LessonSession, { ActivityType } from './LessonSession';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSoloSession } from '../../store/SoloSessionContext';
-import { findClassByCode, enrollStudent } from '../../services/DataService';
+import { joinClassByCode } from '../../services/DataService';
 import { useStudentClasses, useStudentAssignments, useSubmitAssignment } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { GamificationService } from '../../services/GamificationService';
@@ -114,43 +113,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     });
   }, []);
 
-  // Listen for global celebration action
-  useEffect(() => {
-    if (state.lastAction?.type === 'CELEBRATE') {
-      const duration = 3000;
-      const end = Date.now() + duration;
-
-      const frame = () => {
-        confetti({
-          particleCount: 5,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-          colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff']
-        });
-        confetti({
-          particleCount: 5,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-          colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff']
-        });
-
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      };
-      frame();
-    }
-  }, [state.lastAction]);
-
-  // Handle teacher ending the live session
-  useEffect(() => {
-    if (location.pathname === '/student/lesson' && state.status === 'IDLE') {
-      navigate('/student');
-      toast.info(t('student.liveEnded'), { icon: '👋' });
-    }
-  }, [state.status, location.pathname, navigate]);
+  // Live-class "CELEBRATE" confetti listener removed (2026-08-17): student
+  // devices have no classroom_live subscription (LIVE_GAME_LIFECYCLE.md §9),
+  // so teacher broadcasts could never reach this lastAction — dead code.
 
   const handleMarkAsDone = async (assignmentId: string) => {
     try {
@@ -252,11 +217,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student/solo-lesson');
   };
 
-  // Handle live class banner click (uses live lesson mode)
-  const handleLiveClassClick = () => {
-    navigate('/student/lesson');
-  };
-
   // Check if current path is a full screen app
   const isFullScreenApp = ['/student/login', '/student/lesson', '/student/solo-lesson', '/student/dubbing', '/student/pronounce', '/student/reading', '/student/phonics', '/student/srs', '/student/lesson-complete', '/student/avatar', '/student/settings', '/student/help', '/student/practice'].includes(location.pathname);
 
@@ -336,19 +296,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
             className="h-full w-full absolute inset-0"
           >
             <Routes location={location} key={location.pathname}>
-              <Route path="/" element={
+              <Route path="/student" element={
                 <>
-                  {state.status === 'LIVE' && (
-                    <div className="bg-duo-green text-white p-4 m-4 rounded-2xl shadow-lg flex items-center justify-between animate-bounce cursor-pointer" onClick={handleLiveClassClick}>
-                      <div>
-                        <h3 className="font-bold text-lg">{t('student.liveClass')}</h3>
-                        <p className="text-sm opacity-90">{t('student.teacherWaiting')}</p>
-                      </div>
-                      <button className="bg-white text-duo-green px-4 py-2 rounded-xl font-bold hover:bg-green-50 transition-colors">
-                        {t('student.joinNow')}
-                      </button>
-                    </div>
-                  )}
                   {/* Pending Assignments Section */}
                   <div className="mx-4 mt-4 mb-2">
                     <div className="flex items-center gap-2 mb-3">
@@ -408,8 +357,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                     </div>
                   </div>
 
-                  <HomeMap onNavigate={(view, unitId) => {
-                    if (view === 'listen' || view === 'scramble') {
+                  <HomeMap onJoinClass={() => setShowJoinClassModal(true)} onNavigate={(view, unitId) => {
+                    if (view === 'lesson' || view === 'listen' || view === 'scramble') {
                       startLesson(unitId);
                     } else {
                       navigate(`/student/${view}`);
@@ -417,10 +366,10 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   }} />
                 </>
               } />
-              <Route path="/leaderboard" element={<RouteErrorBoundary name="leaderboard"><Leaderboard onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
-              <Route path="/quests" element={<RouteErrorBoundary name="quests"><Quests onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
-              <Route path="/shop" element={<RouteErrorBoundary name="shop"><Shop onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
-              <Route path="/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} avatarConfig={avatarConfig} stats={userStats} /></RouteErrorBoundary>} />
+              <Route path="/student/leaderboard" element={<RouteErrorBoundary name="leaderboard"><Leaderboard onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
+              <Route path="/student/quests" element={<RouteErrorBoundary name="quests"><Quests onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
+              <Route path="/student/shop" element={<RouteErrorBoundary name="shop"><Shop onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
+              <Route path="/student/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} avatarConfig={avatarConfig} stats={userStats} /></RouteErrorBoundary>} />
               <Route path="*" element={<Navigate to="/student" replace />} />
             </Routes>
           </motion.div>
@@ -533,29 +482,23 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   setIsJoining(true);
                   setJoinError('');
                   try {
-                    const classData = await findClassByCode(classCodeInput);
-                    if (!classData) {
+                    const joined = await joinClassByCode(classCodeInput);
+                    if (!joined) {
                       setJoinError(t('student.classNotFound'));
                       setIsJoining(false);
                       return;
                     }
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) {
-                      setJoinError(t('auth.login'));
+                    if (joined.already_enrolled) {
+                      setJoinError(t('student.alreadyEnrolled'));
                       setIsJoining(false);
                       return;
                     }
-                    await enrollStudent(classData.id, user.id);
-                    toast.success(`Welcome to ${classData.name}!`, { icon: '🎉' });
+                    toast.success(`Welcome to ${joined.name}!`, { icon: '🎉' });
                     setShowJoinClassModal(false);
                     setClassCodeInput('');
-                    await queryClient.invalidateQueries({ queryKey: ['studentClasses', user.id] });
+                    await queryClient.invalidateQueries({ queryKey: ['studentClasses'] });
                   } catch (error: any) {
-                    if (error.code === '23505') {
-                      setJoinError(t('student.alreadyEnrolled'));
-                    } else {
-                      setJoinError(t('student.joinFailed'));
-                    }
+                    setJoinError(t('student.joinFailed'));
                   } finally {
                     setIsJoining(false);
                   }

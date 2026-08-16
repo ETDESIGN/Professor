@@ -42,8 +42,8 @@ const TeacherRouter = () => {
             <Route path="/*" element={
                 <Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense>
             } />
-            <Route path="/live" element={
-                <Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate(unitId ? `/unit/${unitId}` : '/units')} /></Suspense>
+            <Route path="/teacher/live" element={
+                <Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate(unitId ? `/teacher/unit/${unitId}` : '/teacher/units')} /></Suspense>
             } />
         </Routes>
     );
@@ -59,7 +59,7 @@ if (rootElement) {
             <UpdatePrompt />
             <SessionProvider>
                 <Toaster position="top-center" richColors />
-                <BrowserRouter basename="/teacher">
+                <BrowserRouter>
                     <AuthGate portal="teacher">
                         <TeacherRouter />
                     </AuthGate>

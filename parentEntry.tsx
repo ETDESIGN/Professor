@@ -53,7 +53,7 @@ if (rootElement) {
             <UpdatePrompt />
             <SessionProvider>
                 <Toaster position="top-center" richColors />
-                <BrowserRouter basename="/parent">
+                <BrowserRouter>
                     <AuthGate portal="parent">
                         <ParentEntry />
                     </AuthGate>

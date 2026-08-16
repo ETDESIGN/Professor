@@ -355,6 +355,34 @@ export async function createClass(
 }
 
 /**
+ * Join a class by its enrollment code (single RPC, security definer).
+ *
+ * Replaces the old findClassByCode + enrollStudent two-step, which was
+ * RLS-deadlocked: students can't SELECT `classes` before they're enrolled
+ * (audit P0-3, 2026-08-17). Returns null when the code matches no active
+ * class; throws on transport/auth errors.
+ */
+export async function joinClassByCode(
+    code: string
+): Promise<{ id: string; name: string; already_enrolled: boolean } | null> {
+    const { data, error } = await supabase.rpc('join_class_by_code', {
+        p_code: code,
+    });
+
+    if (error) {
+        log.warn('error_joining_class', { error: error?.message || String(error) });
+        toast.error('Failed to join class. Please check the code and try again.');
+        throw error;
+    }
+
+    // The RPC returns a set: one row on success, zero rows when not found.
+    if (Array.isArray(data)) {
+        return data.length > 0 ? data[0] : null;
+    }
+    return data ?? null;
+}
+
+/**
  * Enroll a student in a class
  */
 export async function enrollStudent(

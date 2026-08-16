@@ -50,15 +50,15 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                transition={{ staggerChildren: 0.1 }}
                className="grid grid-cols-2 gap-4"
             >
+               {/* Listening has no route yet (audit P0-6) — shown disabled until built. */}
                <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => onNavigate('listen')}
-                  className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-blue-400 hover:shadow-md transition-all group flex flex-col items-center gap-4"
+                  disabled
+                  className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm opacity-60 cursor-not-allowed group flex flex-col items-center gap-4 relative"
                >
-                  <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="absolute top-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Soon</span>
+                  <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
                      <Volume2 size={24} />
                   </div>
                   <span className="font-bold text-slate-700">Listening</span>
@@ -78,15 +78,15 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   <span className="font-bold text-slate-700">Speaking</span>
                </motion.button>
 
+               {/* Grammar has no route yet (audit P0-6) — shown disabled until built. */}
                <motion.button
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => onNavigate('scramble')}
-                  className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-green-400 hover:shadow-md transition-all group flex flex-col items-center gap-4"
+                  disabled
+                  className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm opacity-60 cursor-not-allowed group flex flex-col items-center gap-4 relative"
                >
-                  <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <span className="absolute top-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Soon</span>
+                  <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
                      <Puzzle size={24} />
                   </div>
                   <span className="font-bold text-slate-700">Grammar</span>

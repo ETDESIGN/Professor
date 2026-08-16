@@ -33,10 +33,6 @@ vi.mock('../services/supabaseClient', () => {
   };
 });
 
-vi.mock('../services/DataService', () => ({
-  getTeacherStudents: vi.fn().mockResolvedValue([]),
-}));
-
 vi.mock('../services/SupabaseService', () => ({
   Engine: {
     fetchUnits: vi.fn().mockResolvedValue([
@@ -65,7 +61,7 @@ vi.mock('../services/SupabaseService', () => ({
 import { SoloSessionProvider, useSoloSession } from '../store/SoloSessionContext';
 
 const TestConsumer = () => {
-  const { state, startSession, endSession, nextSlide, prevSlide, goToSlide, addPoints, setActiveUnit } = useSoloSession();
+  const { state, nextSlide, prevSlide, goToSlide, addPoints, setActiveUnit } = useSoloSession();
 
   return (
     <div>
@@ -76,8 +72,6 @@ const TestConsumer = () => {
       <div data-testid="score">{state.score ?? 0}</div>
       <div data-testid="active-unit">{state.activeUnit?.title || 'none'}</div>
       <div data-testid="slide-type">{state.activeSlideData?.type || 'none'}</div>
-      <button data-testid="btn-start" onClick={startSession}>Start</button>
-      <button data-testid="btn-end" onClick={endSession}>End</button>
       <button data-testid="btn-next" onClick={nextSlide}>Next</button>
       <button data-testid="btn-prev" onClick={prevSlide}>Prev</button>
       <button data-testid="btn-goto-1" onClick={() => goToSlide(1)}>GoTo 1</button>
@@ -113,23 +107,6 @@ describe('SoloSessionContext', () => {
   it('starts with isConnected true (no realtime needed)', async () => {
     renderWithProvider();
     expect(await screen.findByTestId('connected')).toHaveTextContent('true');
-  });
-
-  it('transitions to LIVE on startSession', async () => {
-    renderWithProvider();
-    await screen.findByTestId('status');
-
-    act(() => { screen.getByTestId('btn-start').click(); });
-    expect(screen.getByTestId('status')).toHaveTextContent('LIVE');
-  });
-
-  it('transitions back to IDLE on endSession', async () => {
-    renderWithProvider();
-    await screen.findByTestId('status');
-
-    act(() => { screen.getByTestId('btn-start').click(); });
-    act(() => { screen.getByTestId('btn-end').click(); });
-    expect(screen.getByTestId('status')).toHaveTextContent('IDLE');
   });
 
   it('sets active unit and loads first slide', async () => {

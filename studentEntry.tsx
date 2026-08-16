@@ -53,7 +53,7 @@ if (rootElement) {
             <UpdatePrompt />
             <SoloSessionProvider>
                 <Toaster position="top-center" richColors />
-                <BrowserRouter basename="/student">
+                <BrowserRouter>
                     <AuthGate portal="student">
                         <StudentEntry />
                     </AuthGate>

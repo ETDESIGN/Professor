@@ -26,7 +26,11 @@
     "confirmPassword": "Confirmar contraseña",
     "forgotPassword": "¿Olvidaste tu contraseña?",
     "noAccount": "¿No tienes una cuenta?",
-    "hasAccount": "¿Ya tienes una cuenta?"
+    "hasAccount": "¿Ya tienes una cuenta?",
+    "wrongPortalTitle": "Esta no es la app de tu cuenta",
+    "wrongPortalBody": "Has iniciado sesión como {{role}}, pero abriste la app de {{portal}}.",
+    "goToYourApp": "Abrir tu app de {{role}}",
+    "wrongPortalSignOut": "Cerrar sesión"
   },
   "hub": {
     "title": "Professor",

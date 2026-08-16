@@ -1,7 +1,6 @@
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { Engine, LessonUnit } from '../services/SupabaseService';
 import { SessionContextType } from './SessionContext';
-import { getTeacherStudents, StudentWithProgress } from '../services/DataService';
 import { supabase } from '../services/supabaseClient';
 import { createClientLogger } from '../services/logger';
 
@@ -35,6 +34,8 @@ interface SoloSessionState {
   quietModeActive: boolean;
   noiseLevel: number;
   units: LessonUnit[];
+  unitsLoading: boolean;
+  unitsError: string | null;
   score: number;
   totalCorrect: number;
   totalAttempts: number;
@@ -60,6 +61,8 @@ const initialState: SoloSessionState = {
   quietModeActive: false,
   noiseLevel: 0,
   units: [],
+  unitsLoading: true,
+  unitsError: null,
   score: 0,
   totalCorrect: 0,
   totalAttempts: 0,
@@ -86,33 +89,14 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const loadUnits = async () => {
+    setState(prev => ({ ...prev, unitsLoading: true, unitsError: null }));
     try {
       const units = await Engine.fetchUnits();
-      setState(prev => ({ ...prev, units }));
+      setState(prev => ({ ...prev, units, unitsLoading: false }));
     } catch (error) {
-      log.warn('error_loading_units', { error: error instanceof Error ? error.message : String(error) });
-    }
-  };
-
-  const loadStudents = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const students = await getTeacherStudents(user.id);
-      const mappedStudents = students.map((s: StudentWithProgress) => ({
-        id: s.id,
-        name: s.full_name || s.email || 'Unknown',
-        avatar: s.avatar_url || '',
-        email: s.email,
-        student_id: s.student_id,
-        xp: s.xp,
-        streak: s.streak,
-        points: s.xp,
-      }));
-      setState(prev => ({ ...prev, students: mappedStudents }));
-    } catch (error) {
-      log.warn('error_loading_students', { error: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      log.warn('error_loading_units', { error: message });
+      setState(prev => ({ ...prev, unitsLoading: false, unitsError: message }));
     }
   };
 
@@ -166,13 +150,9 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  const startSession = () => {
-    setState(prev => ({ ...prev, status: 'LIVE', currentStepIndex: 0, selectionHistory: [] }));
-  };
-
-  const endSession = () => {
-    setState(prev => ({ ...prev, status: 'IDLE', currentStepIndex: 0, activeOverlay: 'NONE', drawings: [] }));
-  };
+  // startSession/endSession/loadStudents removed (2026-08-17): live-class
+  // session control is teacher-side only and loadStudents queried
+  // getTeacherStudents with the student's own id — dead/incorrect code.
 
   const getFlow = () => {
     if (state.activeUnit?.flow?.length) return state.activeUnit.flow;
@@ -267,11 +247,8 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const contextValue: SessionContextType = {
     state,
     loadUnits,
-    loadStudents,
     setActiveUnit,
     saveUnit,
-    startSession,
-    endSession,
     nextSlide,
     prevSlide,
     goToSlide,

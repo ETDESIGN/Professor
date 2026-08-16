@@ -63,13 +63,13 @@ const ParentApp: React.FC<ParentAppProps> = ({ onSignOut }) => {
           className="flex-1 overflow-hidden flex flex-col"
         >
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<RouteErrorBoundary name="parent-dashboard"><Suspense fallback={<PageLoader />}><ParentDashboard onNavigate={(path) => navigate(`/parent/${path}`)} /></Suspense></RouteErrorBoundary>} />
-            <Route path="/messages" element={<RouteErrorBoundary name="parent-messages"><Suspense fallback={<PageLoader />}><ParentMessages onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/parent" element={<RouteErrorBoundary name="parent-dashboard"><Suspense fallback={<PageLoader />}><ParentDashboard onNavigate={(path) => navigate(`/parent/${path}`)} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/parent/messages" element={<RouteErrorBoundary name="parent-messages"><Suspense fallback={<PageLoader />}><ParentMessages onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
             {dubbingEnabled && (
-            <Route path="/gallery" element={<RouteErrorBoundary name="parent-gallery"><Suspense fallback={<PageLoader />}><DubbingGallery onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/parent/gallery" element={<RouteErrorBoundary name="parent-gallery"><Suspense fallback={<PageLoader />}><DubbingGallery onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
             )}
-            <Route path="/reports" element={<RouteErrorBoundary name="parent-reports"><Suspense fallback={<PageLoader />}><ParentReports onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
-            <Route path="/settings" element={<RouteErrorBoundary name="parent-settings"><Suspense fallback={<PageLoader />}><ParentSettings onBack={() => navigate('/parent')} onSignOut={onSignOut} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/parent/reports" element={<RouteErrorBoundary name="parent-reports"><Suspense fallback={<PageLoader />}><ParentReports onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/parent/settings" element={<RouteErrorBoundary name="parent-settings"><Suspense fallback={<PageLoader />}><ParentSettings onBack={() => navigate('/parent')} onSignOut={onSignOut} /></Suspense></RouteErrorBoundary>} />
             <Route path="*" element={<Navigate to="/parent" replace />} />
           </Routes>
         </motion.div>

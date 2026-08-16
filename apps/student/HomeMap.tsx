@@ -11,13 +11,16 @@ const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
 
 interface HomeMapProps {
   onNavigate: (view: string, unitId?: string) => void;
+  onJoinClass?: () => void;
 }
 
-const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
-  const { state } = useSoloSession();
+const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
+  const { state, loadUnits } = useSoloSession();
   const soloState = state as any;
 
-  const units = state.units.length > 0 ? state.units : [];
+  const units = state.units;
+  const unitsLoading = Boolean(soloState.unitsLoading);
+  const unitsError: string | null = soloState.unitsError ?? null;
   const completedUnitIds: string[] = soloState.studentProgress?.completedUnitIds || [];
   const currentUnitId: string = soloState.studentProgress?.currentUnitId || '';
   const studentXp: number = soloState.studentProgress?.xp || 0;
@@ -129,7 +132,52 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {units.map((unit, unitIndex) => {
+      {unitsLoading ? (
+        <div className="mx-4 space-y-4" aria-live="polite">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 animate-pulse space-y-3">
+            <div className="h-6 w-2/3 bg-slate-200 rounded" />
+            <div className="h-3 w-full bg-slate-100 rounded" />
+            <div className="h-3 w-3/4 bg-slate-100 rounded" />
+          </div>
+          {[0, 1, 2].map(i => (
+            <div key={i} className="flex justify-center">
+              <div className="w-20 h-20 rounded-full bg-slate-200 animate-pulse" style={{ opacity: 1 - i * 0.25 }} />
+            </div>
+          ))}
+          <p className="text-center text-sm text-slate-400">Loading your lessons…</p>
+        </div>
+      ) : unitsError ? (
+        <div className="mx-4 bg-white rounded-2xl p-8 shadow-sm border border-red-100 text-center">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle size={32} className="text-red-500" />
+          </div>
+          <h3 className="font-bold text-slate-800 mb-1">Couldn't load your lessons</h3>
+          <p className="text-sm text-slate-500 mb-5">{unitsError}</p>
+          <button
+            onClick={() => loadUnits()}
+            className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+          >
+            Try again
+          </button>
+        </div>
+      ) : units.length === 0 ? (
+        <div className="mx-4 bg-white rounded-2xl p-8 shadow-sm border border-slate-200 text-center">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={32} className="text-blue-500" />
+          </div>
+          <h3 className="font-bold text-slate-800 mb-1">No lessons yet</h3>
+          <p className="text-sm text-slate-500 mb-5">Join a class with the code from your teacher to see your lessons here.</p>
+          {onJoinClass && (
+            <button
+              onClick={onJoinClass}
+              className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+            >
+              Join a class
+            </button>
+          )}
+        </div>
+      ) : (
+      units.map((unit, unitIndex) => {
         const summary = masteryByUnit[unit.id];
         return (
           <div key={unit.id} className="relative z-10 pb-8">
@@ -268,13 +316,13 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate }) => {
             </div>
           </div>
         )
-      })}
+      }))}
 
       {/* Floating Practice CTA */}
       <div className="fixed bottom-24 right-4 z-40 space-y-3">
         <button
           onClick={() => onNavigate('practice')}
-          className="w-14 h-14 bg-white rounded-2xl shadow-xl border-2 border-slate-100 flex items-center justify-center text-slate-600 hover:text-duo-green hover:scale-110 transition-transform active:scale-95"
+          className={`w-14 h-14 bg-white rounded-2xl shadow-xl border-2 border-slate-100 flex items-center justify-center text-slate-600 hover:text-duo-green hover:scale-110 transition-transform active:scale-95 ${units.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}
         >
           <LayoutGrid size={28} />
         </button>
