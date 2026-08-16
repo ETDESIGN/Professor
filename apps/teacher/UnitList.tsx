@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig } from 'lucide-react';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
 import { Engine } from '../../services/SupabaseService';
 import type { Book, UnitPipelineMeta } from '../../services/BookService';
+import { backfillPools } from '../../services/ExercisePoolService';
 import { toast } from 'sonner';
 
 interface UnitListProps {
@@ -74,6 +75,9 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const [movingUnit, setMovingUnit] = useState<any | null>(null);
   const [foreverTarget, setForeverTarget] = useState<{ kind: 'unit' | 'book'; id: string; title: string } | null>(null);
 
+  // ── Phase 3: bulk pool backfill ──────────────────────────────────────────
+  const [backfillState, setBackfillState] = useState<{ running: boolean; done: number; total: number }>({ running: false, done: 0, total: 0 });
+
   const userId = (state as any).userId ?? null;
 
   const refreshBooks = useCallback(async () => {
@@ -104,6 +108,36 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
     if (ids.length === 0) return;
     Engine.getUnitPipelineMeta(ids).then(setPipelineMeta).catch(() => {});
   }, [state.units]);
+
+  // Phase 3: units that have a lesson flow but no exercise pool — the
+  // candidates for the bulk "Generate missing pools" backfill.
+  const missingPoolUnitIds = useMemo(() => {
+    return ((state.units || []) as any[])
+      .filter(u => Array.isArray(u.flow) && u.flow.length > 0 && (pipelineMeta[u.id]?.poolCount ?? 0) === 0)
+      .map(u => u.id);
+  }, [state.units, pipelineMeta]);
+
+  const handleBackfillPools = async () => {
+    if (backfillState.running || missingPoolUnitIds.length === 0) return;
+    setBackfillState({ running: true, done: 0, total: missingPoolUnitIds.length });
+    try {
+      const result = await backfillPools(missingPoolUnitIds, (done, total) => {
+        setBackfillState({ running: true, done, total });
+      });
+      if (result.failed === 0) {
+        toast.success(`Backfill complete — ${result.ok} unit${result.ok === 1 ? '' : 's'} now have exercise pools`);
+      } else {
+        toast.warning(`Backfill finished: ${result.ok} succeeded, ${result.failed} failed — click again to retry the failures`);
+      }
+    } catch (err: any) {
+      toast.error(`Backfill error: ${err?.message || err}`);
+    } finally {
+      setBackfillState({ running: false, done: 0, total: 0 });
+      // Refresh badges with the new pool counts.
+      const ids = (state.units || []).map((u: any) => u.id);
+      if (ids.length > 0) Engine.getUnitPipelineMeta(ids).then(setPipelineMeta).catch(() => {});
+    }
+  };
 
   // ── Grouping: units by book ──────────────────────────────────────────────
   const { unitsByBook, unassigned } = useMemo(() => {
@@ -429,6 +463,22 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
           <p className="text-slate-500">Books group your units — manage lessons and source material</p>
         </div>
         <div className="flex gap-3">
+          {/* Phase 3: one-click backfill for Active units that never got a
+              pool (their fire-and-forget trigger was dropped before the
+              Aug-17 reliability fix). Admins can backfill all units. */}
+          {missingPoolUnitIds.length > 0 && (
+            <button
+              onClick={handleBackfillPools}
+              disabled={backfillState.running}
+              className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-60"
+              title={`Generate exercise pools for ${missingPoolUnitIds.length} unit(s) with a lesson flow but no exercises`}
+            >
+              {backfillState.running ? <Loader2 size={18} className="animate-spin" /> : <Dices size={18} />}
+              {backfillState.running
+                ? `Generating ${backfillState.done}/${backfillState.total}…`
+                : `Generate missing pools (${missingPoolUnitIds.length})`}
+            </button>
+          )}
           <button
             onClick={() => setShowGenerateModal(true)}
             className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95"

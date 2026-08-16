@@ -54,7 +54,7 @@ serve(async (req) => {
     }
 
     // Single ownership policy (Bug B1 fix): strict, shared via assertOwnership.
-    const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId });
+    const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId, callerRole: auth.role });
     if (!ownership.ok) {
       return { success: false, error: ownership.reason };
     }

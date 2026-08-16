@@ -22,12 +22,19 @@
  *    policy. The policy is STRICT (owner must match; NULL owner is rejected),
  *    matching generate-exercises — this is the guard that prevents an
  *    authenticated caller from triggering paid generation on a unit they don't
- *    own. Do NOT loosen it; fix NULL owners at the source instead.
+ *    own. Do NOT loosen it for teachers; fix NULL owners at the source instead.
+ *  - ONE exception (2026-08-17): role 'admin' bypasses the owner match.
+ *    Admins already have full read access to every unit via the RLS
+ *    is_teacher_or_admin() branches, and production units are owned by
+ *    multiple accounts — the admin bypass lets a single admin account run the
+ *    bulk pool backfill across all of them (Phase 3 remediation).
  */
 
 export interface OwnershipContext {
   /** The authenticated caller's user id (from authenticateRequest). */
   callerId: string | undefined;
+  /** The authenticated caller's profile role (from authenticateRequest). */
+  callerRole?: string;
 }
 
 export interface OwnershipResult {
@@ -41,7 +48,8 @@ export interface OwnershipResult {
  * Assert that `callerId` may act on a unit owned by `ownerId`.
  *
  * Policy (strict — matches the original generate-exercises guard):
- *   - ownerId must be non-null AND equal callerId.
+ *   - admins (callerRole 'admin') may act on any unit (bulk backfill).
+ *   - otherwise ownerId must be non-null AND equal callerId.
  *   - A NULL ownerId is REJECTED (legacy/unknown-owner units must be backfilled
  *     to a real teacher_id before they can drive paid generation).
  *
@@ -54,6 +62,9 @@ export function assertUnitOwnership(
 ): OwnershipResult {
   if (!ctx.callerId) {
     return { ok: false, reason: 'Authentication required' };
+  }
+  if (ctx.callerRole === 'admin') {
+    return { ok: true };
   }
   if (!ownerId) {
     return { ok: false, reason: 'Unit has no owner (teacher_id is null)' };

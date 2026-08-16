@@ -1,9 +1,10 @@
-// ChoiceExercise — renders the 7 multiple-choice Core-v1 types from one
+// ChoiceExercise — renders the multiple-choice Core-v1 types from one
 // flexible component (they share the "pick one option, reveal, complete"
 // interaction). The discriminated content supplies the prompt shape + options.
 //
 // Handles: IMAGE_SELECT, MEANING_MATCH, AUDIO_L1_SELECT, LISTEN_SELECT,
-// SPELL_CLOZE, ERROR_SPOT, TRANSFORM.
+// SPELL_CLOZE, ERROR_SPOT, TRANSFORM, GRAMMAR_FILL, STORY_COMPREHENSION,
+// WHO_SAID_IT (Phase 3 additions — all MCQ-shaped).
 
 import React, { useState } from 'react';
 import { BaseExerciseProps, ExerciseContent } from '../../../types/exercise';
@@ -23,6 +24,9 @@ const CHOICE_TYPES = new Set([
   'SPELL_CLOZE',
   'ERROR_SPOT',
   'TRANSFORM',
+  'GRAMMAR_FILL',
+  'STORY_COMPREHENSION',
+  'WHO_SAID_IT',
 ]);
 
 export function isChoiceType(type: string): boolean {
@@ -94,6 +98,28 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       instruction = c.instruction;
       optionsRaw = c.options;
       correctIndex = c.correct_index;
+      break;
+    case 'GRAMMAR_FILL':
+      sentencePrompt = c.sentence_with_blank;
+      instruction = c.rule_name;
+      optionsRaw = c.options;
+      correctIndex = c.correct_index;
+      explanation = c.explanation;
+      break;
+    case 'STORY_COMPREHENSION':
+      promptText = c.prompt;
+      instruction = 'Think about the story';
+      optionsRaw = c.options;
+      correctIndex = c.correct_index;
+      break;
+    case 'WHO_SAID_IT':
+      sentencePrompt = c.line_text;
+      instruction = 'Who said this?';
+      optionsRaw = c.options;
+      correctIndex = c.correct_index;
+      if (c.context_before || c.context_after) {
+        explanation = [c.context_before, c.context_after].filter(Boolean).join(' … ');
+      }
       break;
     default:
       return <div className="p-6 text-slate-400">Unsupported exercise.</div>;

@@ -9,6 +9,7 @@ import Dictation from './Dictation';
 import TypeTranslate from './TypeTranslate';
 import MinimalPairSwipe from './MinimalPairSwipe';
 import SpeakSentence from './SpeakSentence';
+import DialogueRoleplay from './DialogueRoleplay';
 
 let registry: ExerciseRegistry | null = null;
 
@@ -17,7 +18,8 @@ export function getExerciseRegistry(): ExerciseRegistry {
   if (registry) return registry;
   registry = createExerciseRegistry();
 
-  // The 7 multiple-choice types share one flexible component.
+  // The multiple-choice types share one flexible component (Phase 3 added
+  // GRAMMAR_FILL / STORY_COMPREHENSION / WHO_SAID_IT — all MCQ-shaped).
   const choiceTypes: ExerciseType[] = [
     'IMAGE_SELECT',
     'MEANING_MATCH',
@@ -26,6 +28,9 @@ export function getExerciseRegistry(): ExerciseRegistry {
     'SPELL_CLOZE',
     'ERROR_SPOT',
     'TRANSFORM',
+    'GRAMMAR_FILL',
+    'STORY_COMPREHENSION',
+    'WHO_SAID_IT',
   ];
   for (const t of choiceTypes) registry.register(t, ChoiceExercise as any);
 
@@ -34,6 +39,7 @@ export function getExerciseRegistry(): ExerciseRegistry {
   registry.register('TYPE_TRANSLATE', TypeTranslate as any);
   registry.register('MINIMAL_PAIR_SWIPE', MinimalPairSwipe as any);
   registry.register('SPEAK_SENTENCE', SpeakSentence as any);
+  registry.register('DIALOGUE_ROLEPLAY', DialogueRoleplay as any);
 
   return registry;
 }

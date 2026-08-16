@@ -378,7 +378,7 @@ serve(async (req) => {
       }
 
       // Single ownership policy (Bug B1 fix): strict, shared via assertOwnership.
-      const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId });
+      const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId, callerRole: auth.role });
       if (!ownership.ok) {
         return { success: false, error: ownership.reason };
       }
@@ -617,8 +617,13 @@ serve(async (req) => {
       try {
         const authHeader = req.headers.get('authorization');
         const fnUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-exercises`;
-        // Detach: resolve the promise but don't block the response on it.
-        fetch(fnUrl, {
+        // Detach: don't block the response on the fetch (generate-exercises
+        // can run long on per-word image generation), but register it with
+        // EdgeRuntime.waitUntil so the isolate stays alive until it settles —
+        // an unprotected detached fetch is silently dropped on teardown,
+        // which is exactly how the pool went missing for months (audit
+        // 2026-08-17, root cause 2).
+        const trigger = fetch(fnUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...(authHeader ? { Authorization: authHeader } : {}) },
           body: JSON.stringify({ unitId }),
@@ -631,6 +636,11 @@ serve(async (req) => {
           }).eq('unit_id', unitId).eq('stage', STAGE)
             .then(() => undefined, () => undefined);
         });
+        // EdgeRuntime is a Supabase edge global; fall back to a no-op hold if
+        // unavailable so the code also runs under plain Deno tests.
+        if (typeof (globalThis as any).EdgeRuntime !== 'undefined') {
+          (globalThis as any).EdgeRuntime.waitUntil(trigger);
+        }
       } catch (genErr: any) {
         console.error('generate-exercises trigger failed (non-fatal):', genErr?.message || genErr);
         sbClient.from('generation_jobs').update({

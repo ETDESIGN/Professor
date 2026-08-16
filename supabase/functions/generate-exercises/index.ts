@@ -362,7 +362,7 @@ serve(async (req) => {
     // strictness exposed Bug B1 (its tolerant siblings let textbook units enrich
     // + orchestrate but this one rejected them, silently starving the pool).
     // All three content functions now share this one check.
-    const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId });
+    const ownership = assertUnitOwnership(unit.teacher_id, { callerId: auth.userId, callerRole: auth.role });
     if (!ownership.ok) {
       return { success: false, error: ownership.reason };
     }
@@ -424,12 +424,18 @@ serve(async (req) => {
     const STAGE = 'generate-exercises';
     const markJob = async (status: 'running' | 'succeeded' | 'failed', extra?: { error?: string }) => {
       try {
-        await sb.from('generation_jobs').update({
+        // UPSERT (not UPDATE): direct UI invocations don't have a 'pending'
+        // row pre-created by orchestrate-lesson — a plain update would match
+        // 0 rows and record nothing (audit 2026-08-17, landmine 3).
+        await sb.from('generation_jobs').upsert({
+          unit_id: unitId,
+          stage: STAGE,
           status,
+          attempt: 1,
           ...(status === 'running' ? { started_at: new Date().toISOString() } : {}),
           ...((status === 'succeeded' || status === 'failed') ? { completed_at: new Date().toISOString() } : {}),
-          ...(extra?.error ? { error: extra.error } : {}),
-        }).eq('unit_id', unitId).eq('stage', STAGE);
+          ...(extra?.error ? { error: extra.error } : { ...(status === 'running' ? { error: null } : {}) }),
+        }, { onConflict: 'unit_id,stage' });
       } catch { /* observability only */ }
     };
     await markJob('running');
@@ -702,7 +708,10 @@ serve(async (req) => {
       unitId, objectives: objectiveIdFor.size, poolItems: allRows.length, typeCounts, errors: errors.length,
     }));
 
-    const ok = errors.length === 0 && persistedCount > 0;
+    // Zero errors with zero persisted items is a legitimate outcome (e.g. a
+    // unit whose only content got registry-gated) — treat it as a successful
+    // run that produced nothing, not a failure (audit 2026-08-17, landmine 5).
+    const ok = errors.length === 0;
     await markJob(ok ? 'succeeded' : 'failed', ok ? undefined : { error: errors.join('; ') || 'no pool items persisted' });
 
     return {

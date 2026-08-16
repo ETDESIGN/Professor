@@ -367,6 +367,11 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             // starves the exercise pool (Bug B1). Engine.createUnit already
             // stamps teacher_id; the textbook-scan path must too.
             const { data: { user } } = await supabase.auth.getUser();
+            // Hard-block instead of `?? null`: a lost session silently created
+            // NULL-owner units that the generation pipeline rejects (Bug B1).
+            if (!user) {
+               throw new Error('Your session expired — please sign in again before uploading.');
+            }
             // Phase 0B: every unit belongs to a book (characters are book-level
             // per L1; vault scopes per-book). Non-fatal if it fails.
             // Unit & Book Manager: honor the upload's book selector; fall back
@@ -390,7 +395,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                status: 'Draft',
                lessons: 1,
                flow: [],
-               teacher_id: user?.id ?? null,
+               teacher_id: user.id,
                book_id: targetBook?.id ?? null,
                order_index: nextOrderIndex,
                scanned_assets: [aiData] // flat response shape — no .extraction wrapper

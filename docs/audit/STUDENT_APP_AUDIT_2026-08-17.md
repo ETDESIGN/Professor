@@ -90,7 +90,24 @@ Auth gate + role guard; solo lesson player (`SoloLessonPlayer.tsx`, all step typ
 - Hardcoded XP/accuracy results for pronounce/reading/phonics exits (`StudentApp.tsx` onBack handlers) — computing real results requires child components to report outcomes.
 - `reach_familiar` quest type still missing from `quest_templates` seed (progress updates on a quest that never exists).
 
-### Phase 3 — content pipeline
+### Phase 3 — content pipeline (COMPLETED 2026-08-17, pending owner backfill run)
+Re-verified live before planning: NULL-owner units already 0/79 (fixed by commit 9735b83 + backfill), and the pipeline had produced data 4× since orchestrate-lesson's Aug-15 redeploy (47 objectives / 449 pool_items). The real remaining causes were deploy drift, an unprotected fire-and-forget trigger, no re-run surface, and the assignment-gated student RLS.
+
+1. ✅ **Reliability**: orchestrate-lesson's detached generate-exercises fetch is now protected with `EdgeRuntime.waitUntil` (isolate teardown could silently drop it — the months-long root cause); generate-exercises' job marking is an UPSERT on (unit_id, stage) so direct invocations record status; zero-errors-zero-persisted runs count as `succeeded` instead of `failed`.
+2. ✅ **Deploy drift closed**: all 6 content functions redeployed from the repo (generate-exercises v17, enrich-unit v43, extract-page v42, generate-media v28, evaluate-pronunciation v20, orchestrate-lesson v41). Note: **nothing auto-deploys functions** — `supabase functions deploy` is manual after every change under `supabase/functions/`.
+3. ✅ **Admin bypass** in `assertUnitOwnership` (admins already had full RLS read) so one admin account can backfill units owned by multiple teachers.
+4. ✅ **Re-run surface**: "Exercises" button in Unit Studio (invokes + polls `generation_jobs` + shows pool count), bulk **"Generate missing pools"** in the Curriculum Library (sequential, 7s pacing for the 10/min rate limit, per-unit progress), and "Publish & Teach" kicks background generation when the pool is empty. Upload now hard-blocks without a session (never recreate NULL-owner units).
+5. ✅ **Student access (migration `20260817000005`)**: student SELECT branches on objectives / pool_items / assets / srs templates swapped from the assignment-join to the enrollment rule (`unit.teacher_id = ANY(student_class_teacher_ids())`) — the identical boundary students already pass to see the unit. Unblocks lesson batteries, Daily Practice (ensureStudentLearnerState domino), crowns, phonics, and the media fast path.
+6. ✅ **Playability**: GRAMMAR_FILL / STORY_COMPREHENSION / WHO_SAID_IT mapped onto ChoiceExercise; new `DialogueRoleplay` component (lenient tiered speech scoring, per-line hear-it-first, engagement-only fallback without mic, never-stuck line progression) — all 16 generated exercise types now render.
+
+**Remaining owner action**: run "Generate missing pools" once as admin (≈13 Active units; image gen defaults to free Pollinations) — then verify on a student login: lesson PRACTICE steps, Daily Practice, Phonics, crowns.
+
+### Phase 3 — leftover backlog
+- 62 Draft units have no flow/enrichment — they need the normal upload→enrich→orchestrate path, not the pool backfill.
+- `AIAnalysis.tsx` progress UI is orphaned and expects a never-written `enrich-unit` job stage — resurrect or delete (Phase 4).
+- Rate limiter is per-IP + in-memory: NAT'd schools share the 10/min budget (systemic, revisit if bulk runs 429).
+
+### Phase 3 — content pipeline (original note)
 Depends on the existing `generate-exercises` fix plan (`docs/brainstorming/02_FOUNDATION_DEEPDIVE.md` §1: stamp `teacher_id` at unit creation, backfill NULL-owner units, make the orchestrator trigger reliable/re-runnable). Without it, Phases 1-2 still leave practice empty. Also: student RLS on `pool_items`/`objectives` requires per-unit assignment rows — either seed them on enrollment or relax via RPC.
 
 ### Phase 4 — polish

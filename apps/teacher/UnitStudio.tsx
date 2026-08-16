@@ -1,7 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '../../services/supabaseClient';
+import { invokeGenerateExercises, waitForGenerationJob, getPoolCount } from '../../services/ExercisePoolService';
 import UnitContentVault from './UnitContentVault';
 import PlanComposer from './PlanComposer';
 import { useUnitStudioStore } from '../../store/useUnitStudioStore';
@@ -43,6 +45,9 @@ const UnitStudio: React.FC = () => {
   const [loading, setLoading] = useState(true);
   // Task 15: in-Studio Review mode (replaces the /teacher/review/:id route).
   const [showReview, setShowReview] = useState(false);
+  // Phase 3: manual exercise-pool generation state (button in the header).
+  const [generating, setGenerating] = useState(false);
+  const [poolCount, setPoolCount] = useState<number | null>(null);
   // Phase 2.4: mobile gets a Content-only surface (no Plan tab) for v1.
   const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
 
@@ -70,6 +75,8 @@ const UnitStudio: React.FC = () => {
         } else {
           setUnit(data);
         }
+        // Best-effort pool count for the generate button's badge.
+        getPoolCount(unitId).then(n => { if (!cancelled) setPoolCount(n); }).catch(() => {});
       } catch {
         if (!cancelled) setUnit(null);
       } finally {
@@ -79,6 +86,34 @@ const UnitStudio: React.FC = () => {
     load();
     return () => { cancelled = true; };
   }, [unitId]);
+
+  // Phase 3: run generate-exercises for this unit and surface the result.
+  // Owner or admin only (enforced server-side by assertUnitOwnership).
+  const handleGenerateExercises = async () => {
+    if (!unitId || generating) return;
+    setGenerating(true);
+    try {
+      const started = await invokeGenerateExercises(unitId);
+      if (!started.success) {
+        toast.error(`Generation rejected: ${started.error || 'unknown error'}`);
+        return;
+      }
+      // The function itself flips the job row; poll for the terminal state so
+      // the toast reflects the real outcome (exercises written or not).
+      const job = await waitForGenerationJob(unitId);
+      const n = await getPoolCount(unitId);
+      setPoolCount(n);
+      if (job.status === 'succeeded') {
+        toast.success(n > 0 ? `Exercises ready — ${n} items in the pool` : 'Generation finished, but no exercises were produced (enrich the unit first)');
+      } else if (job.status === 'failed') {
+        toast.error(`Generation failed: ${job.error || 'unknown error'}`);
+      } else {
+        toast('Generation still running — check the unit list badge in a moment', { icon: '⏳' });
+      }
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -125,6 +160,19 @@ const UnitStudio: React.FC = () => {
               toggles an overlay panel rendering AssetWorkshop, so the teacher
               never leaves the Studio to approve/regenerate. */}
           <div className="flex items-center gap-3">
+            {/* Phase 3: manual pool generation — the retry path for units whose
+                fire-and-forget trigger was dropped before the Aug-17 fix. */}
+            <button
+              onClick={handleGenerateExercises}
+              disabled={generating || saving}
+              className="flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-100 disabled:opacity-50 transition-colors"
+              title="Generate the exercise pool (objectives + pool items) for this unit"
+            >
+              {generating ? <Loader2 size={16} className="animate-spin" /> : <Dices size={16} />}
+              Exercises{poolCount !== null && poolCount > 0 && (
+                <span className="bg-amber-200 text-amber-800 text-xs px-1.5 py-0.5 rounded-full">{poolCount}</span>
+              )}
+            </button>
             <button
               onClick={() => setShowReview(true)}
               className="flex items-center gap-2 bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
@@ -143,7 +191,19 @@ const UnitStudio: React.FC = () => {
               Save
             </button>
             <button
-              onClick={async () => { const ok = await storeSave(); if (ok) navigate('/teacher/live'); }}
+              onClick={async () => {
+                const ok = await storeSave();
+                if (!ok) return;
+                // Phase 3: never teach an empty pool — kick generation in the
+                // background (non-blocking) when the unit has no exercises yet.
+                if (unitId && (poolCount ?? 0) === 0) {
+                  invokeGenerateExercises(unitId).then(r => {
+                    if (!r.success) toast.warning(`Exercise generation could not start: ${r.error || 'unknown error'}`);
+                    else toast('Exercise generation started in the background', { icon: '⏳' });
+                  });
+                }
+                navigate('/teacher/live');
+              }}
               disabled={saving}
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
