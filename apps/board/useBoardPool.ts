@@ -15,8 +15,8 @@ interface Options {
   /** When true with a roster, order objectives class-weak-first (lowest avg R). */
   classWeak?: boolean;
   roster?: string[];
-  /** Cap the number of items fetched (the full content JSONB is only needed for
-   * the items actually played; capped consumers pass this to avoid over-fetch). */
+  /** Cap the number of items returned (applied client-side, AFTER the
+   * shuffle — see below). */
   limit?: number;
 }
 
@@ -45,9 +45,16 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit }
         if (!cancelled) setWeakOrder(order);
       }
 
-      let query = supabase.from('pool_items').select('*').eq('unit_id', unitId);
+      // Fetch the whole unit pool for the requested types (bounded: ~15 words
+      // × ~10 types per unit), with only a generous safety cap. The caller's
+      // `limit` must NOT be applied at the DB: generate-exercises inserts rows
+      // grouped word-by-word in vocab order and PostgREST applies .limit()
+      // before any client ordering — a DB-side limit always returned the FIRST
+      // words' items, so later words were structurally unreachable ("zoo every
+      // round, the rest of the pool never used"). The caller's cap is applied
+      // client-side AFTER the shuffle below.
+      let query = supabase.from('pool_items').select('*').eq('unit_id', unitId).limit(500);
       if (exerciseTypes && exerciseTypes.length > 0) query = query.in('exercise_type', exerciseTypes);
-      if (limit && limit > 0) query = query.limit(limit);
       const { data, error } = await query;
       if (cancelled) return;
       if (error || !data) { setItems([]); setLoading(false); return; }
@@ -70,6 +77,11 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit }
         };
         pool = pool.slice().sort((a, b) => rank(a.objective_id) - rank(b.objective_id));
       }
+
+      // Caller's cap applies AFTER the shuffle/weak-rank ordering, so it keeps
+      // a random (or weak-first) cross-section of the WHOLE pool instead of
+      // the DB's first-inserted words.
+      if (limit && limit > 0) pool = pool.slice(0, limit);
 
       if (!cancelled) { setItems(pool); setLoading(false); }
     })();

@@ -124,7 +124,6 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   }, [data?.pairs]);
 
   const matchPairs: MatchPair[] = useMemo(() => {
-    if (frozenPairs.length > 0) return frozenPairs;
     const seen = new Set<string>();
     const out: MatchPair[] = [];
     for (const it of items) {
@@ -133,7 +132,11 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       if (pair) { seen.add(it.objective_id); out.push(pair); }
       if (out.length >= MAX_PAIRS) break;
     }
-    return out;
+    // Pool first (pool-coverage fix): the frozen legacy pairs used to override
+    // the pool even when generate-exercises had produced full per-word items,
+    // pinning the game to vocab.slice(0, 5). Frozen data is only a fallback
+    // for units with no pool content at all.
+    return out.length > 0 ? out : frozenPairs;
   }, [items, frozenPairs]);
 
   // ── Tile state ────────────────────────────────────────────────────────

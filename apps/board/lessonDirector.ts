@@ -246,6 +246,12 @@ export interface BuildRoundInput {
   phase: Phase;
   /** Max items to select this round. */
   roundSize: number;
+  /** Objective ids already dealt to the board this session (from
+   *  apps/board/coverageStore). Sequential-deal rotation serves these LAST so
+   *  the whole pool is covered in weak-priority order before any word
+   *  repeats. Optional for tests/legacy callers — omitting it restores the
+   *  pre-rotation weakest-first slice. */
+  servedObjectives?: string[];
 }
 
 export interface BuildRoundOutput {
@@ -270,7 +276,7 @@ export function roundBaselineRung(shellType: string, roundIndex: number, totalRo
 }
 
 export function buildRound(input: BuildRoundInput): BuildRoundOutput {
-  const { roundIndex, totalRounds, objectiveIds, objectiveTypeById, srsByObjective, weakOrder, shellType, phase, roundSize } = input;
+  const { roundIndex, totalRounds, objectiveIds, objectiveTypeById, srsByObjective, weakOrder, shellType, phase, roundSize, servedObjectives } = input;
   const baseline = roundBaselineRung(shellType, roundIndex, totalRounds);
   const env = PHASE_ENVELOPE[phase];
   // Clamp the baseline into the phase envelope (a PRACTICE slide can't exceed its envelope even at round N).
@@ -278,17 +284,36 @@ export function buildRound(input: BuildRoundInput): BuildRoundOutput {
   const effectiveBaseline = Math.min(baseline, envCeiling);
 
   // Rank objectives weakest-first (those not in weakOrder sink to the end).
+  // Shuffle BEFORE the stable weak-rank sort: on a fresh class every objective
+  // ties at R = 0, so without a random tie-break the sort falls back to DB
+  // insertion order and the first-inserted word wins every round, forever.
   const weakRank = (oid: string) => {
     const i = weakOrder.indexOf(oid);
     return i === -1 ? weakOrder.length : i;
   };
-  const ranked = objectiveIds.slice().sort((a, b) => weakRank(a) - weakRank(b));
+  const shuffled = objectiveIds.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const ranked = shuffled.sort((a, b) => weakRank(a) - weakRank(b));
+
+  // Sequential deal, weakest-first (pool-coverage fix): objectives not yet
+  // served this session are dealt before already-served ones (each group in
+  // weak-priority order). Rounds therefore walk the WHOLE pool in weak-priority
+  // order instead of re-slicing the same weakest-N every round; already-served
+  // words only wrap back in once the pool is exhausted.
+  const served = new Set(servedObjectives ?? []);
+  const dealOrder = [
+    ...ranked.filter((oid) => !served.has(oid)),
+    ...ranked.filter((oid) => served.has(oid)),
+  ];
 
   const selectedObjectiveIds: string[] = [];
   const rungByObjective: Record<string, number> = {};
   const exerciseTypeSet = new Set<ExerciseType>();
 
-  for (const oid of ranked) {
+  for (const oid of dealOrder) {
     if (selectedObjectiveIds.length >= roundSize) break;
     const objType = objectiveTypeById[oid] ?? 'vocabulary';
     const masteryRung = nextRungForObjective(objType, srsByObjective[oid] ?? null);
@@ -341,10 +366,6 @@ export function buildRound(input: BuildRoundInput): BuildRoundOutput {
 
     selectedObjectiveIds.push(oid);
     rungByObjective[oid] = rung;
-    allowed.forEach((t) => exerciseTypeSet.add(t));
-
-    selectedObjectiveIds.push(oid);
-    rungByObjective[oid] = targetRung;
     allowed.forEach((t) => exerciseTypeSet.add(t));
   }
 

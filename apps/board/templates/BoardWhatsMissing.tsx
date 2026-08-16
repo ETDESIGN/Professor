@@ -235,7 +235,10 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     const roundGrid = mode === 'magic_eyes'
       ? [source[(roundIndex - 1) % source.length]]
       : source.slice(0, gridSize);
-    const idx = Math.floor(Math.random() * roundGrid.length);
+    // Cycle the tested item by round like magic_eyes does (pool-coverage fix):
+    // a Math.random pick inside an unchanged grid could repeat the same word
+    // round after round while other grid words were never tested.
+    const idx = (roundIndex - 1) % roundGrid.length;
     const entry = roundGrid[idx];
 
     // Candidate tray: the tested item's own options[] set (correct image +

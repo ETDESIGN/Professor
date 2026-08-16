@@ -118,7 +118,12 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
     mistakesRef.current = 0;
     awardedRef.current = false;
     setMistakes(0);
-    setQIdx(0); setScore(0); setStreak(0); setSelectedTile(null); setPlacedTiles([]); setPhase('ready');
+    // qIdx is deliberately NOT reset here (pool-coverage fix): every resolved
+    // question already auto-advances via the reveal hold → nextQuestion(), so
+    // keeping the index gives the new student a fresh question. Resetting to 0
+    // replayed the earliest questions for every student, so the quiz tail was
+    // never seen. A full RESET_GAME still restarts from q0 via resetQuiz().
+    setScore(0); setStreak(0); setSelectedTile(null); setPlacedTiles([]); setPhase('ready');
   }, [turnId]);
 
   // RULES OF HOOKS: all hooks above.

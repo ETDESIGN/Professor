@@ -133,16 +133,22 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     setStealBanner({ kind: 'offer' });
   };
 
-  // Pull quiz items
+  // Pull quiz items — no limit: the fetch must see the whole pool (a DB-side
+  // limit returned only the first-inserted words; see useBoardPool).
   const { items: poolItems, loading } = useBoardPool({
     unitId,
     exerciseTypes: ['MEANING_MATCH', 'IMAGE_SELECT', 'SPELL_CLOZE', 'ERROR_SPOT'],
-    limit: 10,
   });
 
-  // Normalize pool items into quiz questions
+  // Normalize pool items into quiz questions — ONE per word (objective), so a
+  // 10-15-word pool yields 10-15 distinct questions instead of 4 variations
+  // each of the first few words. The pool shuffle decides which exercise type
+  // represents each word.
   const questions: QuizQuestion[] = React.useMemo(() => {
-    return poolItems.map((pi) => {
+    const seenObjectives = new Set<string>();
+    const out: QuizQuestion[] = [];
+    for (const pi of poolItems) {
+      if (seenObjectives.has(pi.objective_id)) continue;
       const content = pi.content as any;
       // IMAGE_SELECT options are {image_url, label?} objects — keep the image
       // so they render as image cards, never a stringified "[object Object]".
@@ -152,14 +158,16 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
           : { label: o?.label || o?.text || o?.image_url || '', imageUrl: o?.image_url },
       );
 
-      return {
+      seenObjectives.add(pi.objective_id);
+      out.push({
         poolItem: pi,
         prompt: content.sentence || content.prompt || content.sentence_with_blank || '',
         options,
         correctIndex: content.correct_index || 0,
         explanation: content.explanation,
-      };
-    });
+      });
+    }
+    return out;
   }, [poolItems]);
 
   const currentQuestion = questions[currentQIdx];
@@ -178,7 +186,11 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     awardedRef.current = false;
     streakRef.current = 0;
     timeoutHandledRef.current = false;
-    setCurrentQIdx(0);
+    // currentQIdx is deliberately NOT reset here (pool-coverage fix): every
+    // resolved question already advances via the advanceToNext funnel, so
+    // keeping the index gives the new student a fresh question. Resetting to 0
+    // replayed the earliest questions for every student, so the quiz tail was
+    // never seen. A full RESET_GAME still restarts from q0.
     setSelectedOption(null);
     setPhase('bet');
     setBet(1);

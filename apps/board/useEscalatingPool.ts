@@ -11,6 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useBoardPool } from './useBoardPool';
+import { servedFor, markServed } from './coverageStore';
 import { classWeakObjectives } from '../../services/boardLearner';
 import { supabase } from '../../services/supabaseClient';
 import {
@@ -56,10 +57,13 @@ export interface UseEscalatingPoolOutput {
  *   1. Load the unit's objectives (id + type) — cached per unitId.
  *   2. Load class-weak ordering + per-objective SRS state — cached per
  *      (unitId, roster). This is the expensive call (classWeakObjectives).
- *   3. buildRound(...) → {selectedObjectiveIds, rungByObjective, exerciseTypes}.
- *   4. useBoardPool({unitId, exerciseTypes, classWeak: true, roster}) → items.
- *   5. Filter items to selectedObjectiveIds (buildRound chose the objectives;
- *      useBoardPool returns items for those types — intersect).
+ *   3. Capture the unit's served-objective set (coverageStore) once per round.
+ *   4. buildRound(...) → {selectedObjectiveIds, rungByObjective, exerciseTypes}
+ *      — sequential deal: unserved objectives (weakest-first) before served.
+ *   5. useBoardPool({unitId, exerciseTypes, classWeak: true, roster}) → items.
+ *   6. Filter items to selectedObjectiveIds (buildRound chose the objectives;
+ *      useBoardPool returns items for those types — intersect) and mark the
+ *      selection served so the next round deals fresh words.
  */
 export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingPoolOutput {
   const { unitId, shellType, phase, roster, roundIndex, totalRounds, roundSize = 6 } = input;
@@ -122,7 +126,18 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
     return () => { cancelled = true; };
   }, [unitId, rosterKey]);
 
-  // ── 3. buildRound — the pure selection. Recomputed when any input changes. ──
+  // ── 3. Sequential-deal rotation (pool-coverage fix). ─────────────────────
+  // Capture the unit's served-objective set ONCE per round (on mount or when
+  // roundIndex advances) and mark this round's selection as served after it is
+  // computed. Capturing once — instead of re-reading the store inside the
+  // memo — guarantees marking a round's objectives can never feed back into
+  // and re-select for the SAME round (which would churn the board).
+  const [servedAtRoundStart, setServedAtRoundStart] = useState<string[]>([]);
+  useEffect(() => {
+    setServedAtRoundStart(servedFor(unitId));
+  }, [unitId, roundIndex]);
+
+  // ── 4. buildRound — the pure selection. Recomputed when any input changes. ──
   const round = useMemo(() => {
     if (objectives.length === 0) {
       return { selectedObjectiveIds: [], rungByObjective: {}, exerciseTypes: [] as string[] };
@@ -139,20 +154,31 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       shellType,
       phase,
       roundSize,
+      servedObjectives: servedAtRoundStart,
     });
-  }, [objectives, srsByObjective, weakOrder, roundIndex, totalRounds, shellType, phase, roundSize]);
+  }, [objectives, srsByObjective, weakOrder, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart]);
 
-  // ── 4. useBoardPool — fetch items for the round's exercise types. ──────
+  // Record the round's objectives as dealt (advances the sequential deal for
+  // the NEXT round / next slide's shell; idempotent within the same round).
+  const selectedKey = round.selectedObjectiveIds.join(',');
+  useEffect(() => {
+    if (!unitId || selectedKey === '') return;
+    markServed(unitId, round.selectedObjectiveIds);
+  }, [unitId, selectedKey]);
+
+  // ── 5. useBoardPool — fetch items for the round's exercise types. ──────
   // Passing a new exerciseTypes array per round re-fetches (deps include join).
+  // No limit: the fetch must see the WHOLE pool for these types (a DB-side
+  // limit returned the first-inserted words — see useBoardPool); the round's
+  // objectives are already fixed by buildRound and filtered below.
   const { items, loading } = useBoardPool({
     unitId,
     exerciseTypes: round.exerciseTypes,
     classWeak: true,
     roster,
-    limit: roundSize * 3, // over-pull so filtering to selectedObjectiveIds still yields enough
   });
 
-  // ── 5. Filter items to the round's selected objectives + memoize per round. ──
+  // ── 6. Filter items to the round's selected objectives + memoize per round. ──
   const selectedSet = useMemo(() => new Set(round.selectedObjectiveIds), [round.selectedObjectiveIds.join(',')]);
   const filteredItems = useMemo(
     () => items.filter((it) => selectedSet.has(it.objective_id)),

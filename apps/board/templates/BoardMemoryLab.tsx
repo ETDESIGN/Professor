@@ -96,7 +96,6 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     exerciseTypes: ['IMAGE_SELECT'],
     classWeak: true,
     roster,
-    limit: 24,
   });
 
   const cardPool: MemoryCard[] = useMemo(() => {
@@ -133,13 +132,30 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   }, [poolItems, unitId]);
 
   // ── Round setup: build grid, pick the removed card, build candidates ────
+  /** Cards already probed (removed) in earlier rounds of this game — see
+   *  setupRound. Keyed by pool item id (falls back to image URL). */
+  const testedCardsRef = useRef<Set<string>>(new Set());
   const setupRound = (roundIdx: number) => {
     const cfg = rounds[roundIdx];
     if (!cfg) return;
+    const cardKey = (c: MemoryCard) => c.poolItem?.id ?? c.imageUrl;
     const shuffledCards = shuffle(cardPool);
-    const gridCards = shuffledCards.slice(0, cfg.gridSize);
-    const removed = Math.floor(Math.random() * gridCards.length);
-    const removedCard = gridCards[removed];
+    // Coverage fix: pick the removed (tested) card from the not-yet-probed
+    // ones first — the old pure-random pick inside a reshuffled grid could
+    // re-test the same word round after round while the rest of the pool was
+    // never probed. Once every card has been probed, start a fresh cycle.
+    let unprobed = shuffledCards.filter((c) => !testedCardsRef.current.has(cardKey(c)));
+    if (unprobed.length === 0) {
+      testedCardsRef.current = new Set();
+      unprobed = shuffledCards;
+    }
+    const removedCard = unprobed[0];
+    testedCardsRef.current.add(cardKey(removedCard));
+    const gridCards = shuffle([
+      removedCard,
+      ...shuffledCards.filter((c) => c !== removedCard).slice(0, cfg.gridSize - 1),
+    ]);
+    const removed = gridCards.indexOf(removedCard);
     // Candidates = the missing card + 3 distractors NOT in the grid.
     const distractors = shuffledCards
       .filter((c) => !gridCards.includes(c))
@@ -270,6 +286,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     const { type } = state.lastAction;
     if (type === 'RESET_GAME') {
       completeRef.current = false;
+      testedCardsRef.current = new Set(); // fresh coverage cycle
       setRound(0);
       setLastAward(0);
       setStreak(0);
