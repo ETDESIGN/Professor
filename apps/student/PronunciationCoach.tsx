@@ -9,6 +9,9 @@ const log = createClientLogger('PronunciationCoach');
 
 interface PronunciationCoachProps {
   onBack: () => void;
+  /** Session summary on exit (real attempts — Phase 4: replaced the caller's
+   *  hardcoded xp/accuracy). Called with zeros when no attempt was made. */
+  onSessionEnd?: (stats: { correct: number; total: number }) => void;
   mode?: 'standalone' | 'embedded';
   onReady?: (isReady: boolean) => void;
   validateTrigger?: number;
@@ -28,6 +31,7 @@ interface PronunciationAttempt {
 
 const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
   onBack,
+  onSessionEnd,
   mode = 'standalone',
   onReady,
   validateTrigger,
@@ -149,6 +153,14 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
     setTimeout(() => setIsSpeaking(false), targetSentence.length * 100 + 500);
   };
 
+  const handleExit = () => {
+    if (onSessionEnd) {
+      onSessionEnd({ correct: attempts.filter(a => a.isCorrect).length, total: attempts.length });
+    } else {
+      onBack();
+    }
+  };
+
   const handleRetry = () => {
     setShowResult(false);
     setCurrentAttempt(null);
@@ -163,7 +175,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
         </div>
         <h2 className="text-xl font-bold text-slate-700 mb-2">Not Supported</h2>
         <p className="text-slate-500 mb-6">Speech recognition is not available in your browser. Try Chrome or Edge.</p>
-        <button onClick={onBack} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold">Go Back</button>
+        <button onClick={handleExit} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold">Go Back</button>
       </div>
     );
   }
@@ -172,7 +184,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
     <div className="h-full bg-slate-900 text-white flex flex-col font-sans">
       {mode === 'standalone' && (
         <header className="px-4 py-4 flex items-center justify-between border-b border-white/10">
-          <button onClick={onBack} className="p-2 bg-white/10 rounded-full hover:bg-white/20">
+          <button onClick={handleExit} className="p-2 bg-white/10 rounded-full hover:bg-white/20">
             <ChevronLeft size={24} />
           </button>
           <div className="flex flex-col items-center">

@@ -82,3 +82,20 @@
 .preserve-3d {
   transform-style: preserve-3d;
 }
+
+/* ── Mobile foundation (Phase 4, audit 2026-08-17) ─────────────────────
+   pb-safe / no-scrollbar were used across the student + parent shells but
+   never defined — the fixed bottom navs sat under the iPhone home indicator
+   and scrollbars flashed on horizontal tracks. viewport-fit=cover in the
+   HTML entries makes env(safe-area-inset-*) resolve. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

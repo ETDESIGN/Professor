@@ -42,7 +42,7 @@ export const UpdatePrompt: React.FC = () => {
   if (!needRefresh) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] w-[min(92vw,440px)]">
+    <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-[200] w-[min(92vw,440px)]">
       <div className="flex items-center gap-3 bg-slate-900 border border-indigo-500/50 shadow-2xl rounded-2xl px-4 py-3">
         <div className="w-9 h-9 shrink-0 rounded-full bg-indigo-500/20 flex items-center justify-center">
           <span className="text-lg" aria-hidden>🔄</span>

@@ -36,6 +36,8 @@ vi.mock('../services/supabaseClient', () => ({
     },
     from: fromMock,
     functions: { invoke: invokeMock },
+    // Power-up consumption (Phase 4): default false = "none owned".
+    rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
   },
 }));
 
@@ -322,11 +324,11 @@ describe('GamificationService', () => {
       const updateChain = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ error: null }),
       });
-      const insertChain = vi.fn().mockResolvedValue({ error: null });
+      const upsertChain = vi.fn().mockResolvedValue({ error: null });
 
       fromMock.mockImplementation((table: string) => {
         if (table === 'student_progress') return { select: selectChain, update: updateChain };
-        if (table === 'student_inventory') return { insert: insertChain };
+        if (table === 'student_inventory') return { upsert: upsertChain };
         return makeChain(undefined).proxy;
       });
 

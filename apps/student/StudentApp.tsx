@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
 import HomeMap from './HomeMap';
-import Login from './Login';
 import LessonSession, { ActivityType } from './LessonSession';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
@@ -208,10 +207,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student/solo-lesson');
   };
 
-  // Check if current path is a full screen app
-  const isFullScreenApp = ['/student/login', '/student/lesson', '/student/solo-lesson', '/student/dubbing', '/student/pronounce', '/student/reading', '/student/phonics', '/student/srs', '/student/lesson-complete', '/student/avatar', '/student/settings', '/student/help', '/student/practice'].includes(location.pathname);
 
-  if (location.pathname === '/student/login') return <Login onLogin={() => navigate('/student')} />;
 
   // The Main Lesson Runner (live class mode)
   if (location.pathname === '/student/lesson') {
@@ -225,10 +221,14 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
   // Full screen standalone apps
   if (dubbingEnabled && location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })} /></Suspense>;
-  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => handleLessonComplete({ xp: 5, accuracy: 85, time: '3:00' })} /></Suspense>;
-  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => handleLessonComplete({ xp: 6, accuracy: 100, time: '4:20' })} /></Suspense>;
-  if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => handleLessonComplete({ xp: 4, accuracy: 92, time: '1:45' })} /></Suspense>;
-  if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={handleLessonComplete} /></Suspense>;
+  // Real stats (Phase 4): the practice apps report their own attempts/quiz
+  // results via onSessionEnd — the old hardcoded xp/accuracy values are gone.
+  // Phonics + SRS run through ExerciseRunner, which already awards XP per
+  // correct answer — their exits no longer re-award a second time.
+  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => navigate('/student')} onSessionEnd={(s) => handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0, time: '—' })} /></Suspense>;
+  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => navigate('/student')} onSessionEnd={(s) => handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 100, time: '—' })} /></Suspense>;
+  if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => navigate('/student')} /></Suspense>;
+  if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={() => navigate('/student')} /></Suspense>;
 
   // The Reward Interstitial
   if (location.pathname === '/student/lesson-complete') return <Suspense fallback={<PageLoader />}><LessonComplete onContinue={finalizeLesson} stats={sessionResults} /></Suspense>;

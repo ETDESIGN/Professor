@@ -6,13 +6,16 @@ import { getStory, getVocabulary, CanonicalVocab } from '../../services/manifest
 
 interface ReadingReaderProps {
   onBack: () => void;
+  /** Session summary on exit (quiz results — Phase 4: replaced the caller's
+   *  hardcoded xp/accuracy). */
+  onSessionEnd?: (stats: { correct: number; total: number }) => void;
 }
 
 // Story reader — now MANIFEST-DRIVEN: reads the active unit's story + its
 // generated comprehension questions, with tappable vocab definitions (Simplified
 // Chinese L1). Replaces the hardcoded "Lost Hat" / Spanish demo (audit Bug #3).
 // Clean empty state when the unit has no story.
-const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack }) => {
+const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack, onSessionEnd }) => {
   const { state } = useSoloSession();
   const unit = state.activeUnit;
 
@@ -44,6 +47,7 @@ const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack }) => {
   const [quizPicked, setQuizPicked] = useState<number | null>(null);
   const [selectedWord, setSelectedWord] = useState<CanonicalVocab | null>(null);
   const [phase, setPhase] = useState<'read' | 'quiz'>('read');
+  const [quizCorrect, setQuizCorrect] = useState(0);
 
   if (!unit || totalPages === 0) {
     return (
@@ -82,6 +86,20 @@ const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack }) => {
     });
   };
 
+  const finish = () => {
+    if (onSessionEnd && questions.length > 0) {
+      onSessionEnd({ correct: quizCorrect, total: questions.length });
+    } else {
+      onBack();
+    }
+  };
+
+  const pickOption = (i: number) => {
+    if (quizPicked !== null) return;
+    setQuizPicked(i);
+    if (i === currentQ.answer) setQuizCorrect(c => c + 1);
+  };
+
   const next = () => {
     if (phase === 'read') {
       if (pageIndex < totalPages - 1) setPageIndex(pageIndex + 1);
@@ -89,7 +107,7 @@ const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack }) => {
     } else {
       setQuizPicked(null);
       if (quizIndex < questions.length - 1) setQuizIndex(quizIndex + 1);
-      else onBack();
+      else finish();
     }
   };
 
@@ -142,7 +160,7 @@ const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack }) => {
                   return (
                     <button
                       key={i}
-                      onClick={() => { if (quizPicked === null) setQuizPicked(i); }}
+                      onClick={() => pickOption(i)}
                       className={`w-full p-4 rounded-xl font-bold text-left border-2 transition-all ${
                         !reveal ? 'bg-white border-slate-200 text-slate-700 hover:border-purple-300'
                           : isCorrect ? 'bg-green-50 border-green-500 text-green-700'

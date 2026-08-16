@@ -305,7 +305,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
     : '';
 
   return (
-    <div className="h-screen bg-slate-900 text-white font-sans max-w-md mx-auto flex flex-col">
+    <div className="h-dvh bg-slate-900 text-white font-sans max-w-md mx-auto flex flex-col">
       <header className="p-4 flex justify-between items-center z-10">
         <button onClick={onBack} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
           <ChevronLeft size={24} />

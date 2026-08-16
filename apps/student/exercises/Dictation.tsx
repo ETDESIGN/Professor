@@ -5,6 +5,11 @@ import React, { useState } from 'react';
 import { BaseExerciseProps } from '../../../types/exercise';
 import { AudioButton, FeedbackBanner, useElapsedMs, textMatches, Feedback } from './shared';
 
+// Don't pop the on-screen keyboard over the exercise on touch devices.
+const FINE_POINTER = typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(pointer: fine)').matches;
+
 const Dictation: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) => {
   const c = data.content as Extract<import('../../../types/exercise').ExerciseContent, { type: 'DICTATION' }>;
   const elapsed = useElapsedMs();
@@ -27,7 +32,7 @@ const Dictation: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) =
       </div>
 
       <input
-        autoFocus
+        autoFocus={FINE_POINTER}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}

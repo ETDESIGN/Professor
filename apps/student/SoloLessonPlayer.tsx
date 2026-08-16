@@ -493,7 +493,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setIsMuted(!isMuted)} className="text-white/60 hover:text-white transition-colors">
+            <button onClick={() => setIsMuted(!isMuted)} className="p-3 text-white/60 hover:text-white transition-colors">
               {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
             </button>
             <button
@@ -502,7 +502,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
             >
               {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-0.5" />}
             </button>
-            <button onClick={() => playerRef.current?.seekTo(0)} className="text-white/60 hover:text-white transition-colors">
+            <button onClick={() => playerRef.current?.seekTo(0)} className="p-3 text-white/60 hover:text-white transition-colors">
               <Volume2 size={20} className="rotate-180" />
             </button>
           </div>

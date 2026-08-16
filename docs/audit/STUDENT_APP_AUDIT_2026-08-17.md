@@ -110,5 +110,16 @@ Re-verified live before planning: NULL-owner units already 0/79 (fixed by commit
 ### Phase 3 — content pipeline (original note)
 Depends on the existing `generate-exercises` fix plan (`docs/brainstorming/02_FOUNDATION_DEEPDIVE.md` §1: stamp `teacher_id` at unit creation, backfill NULL-owner units, make the orchestrator trigger reliable/re-runnable). Without it, Phases 1-2 still leave practice empty. Also: student RLS on `pool_items`/`objectives` requires per-unit assignment rows — either seed them on enrollment or relax via RPC.
 
-### Phase 4 — polish
-Mobile CSS (define `pb-safe`/`no-scrollbar`, `viewport-fit=cover`, `h-dvh`), 44px tap targets, drop `autoFocus` on touch, lift UpdatePrompt above bottom nav, i18n consistency for child screens, student onboarding reachability, decide fate of the mock student `Login.tsx`.
+### Phase 4 — polish + backlog (COMPLETED 2026-08-17)
+1. ✅ **Power-ups work** (migration `20260817000006`): `student_inventory.quantity` column (the old UNIQUE constraint blocked stacking), atomic `consume_inventory_item` RPC, buys now upsert quantity+1. **Heart Refill** has a Use button in the Shop (refills to 5 via `learnerState.refillHearts`); **Streak Freeze** auto-consumes Duolingo-style when `checkAndUpdateStreak` detects a gap day. Shop shows owned quantities.
+2. ✅ **`reach_familiar` quest template seeded** — ExerciseRunner's mastery-lift updates now target a quest that exists (was: progress written to nothing).
+3. ✅ **Real XP/accuracy**: PronunciationCoach reports actual attempts (correct/total) on exit; ReadingReader reports quiz results; both feed the reward screen with computed XP. Phonics + SRS exits no longer re-award a second batch of hardcoded XP on top of ExerciseRunner's per-answer awards (double-award removed).
+4. ✅ **Mobile CSS foundation**: `pb-safe` (safe-area inset) and `no-scrollbar` utilities finally defined in `index.css` (they were used but never existed); `viewport-fit=cover` on the student/parent/teacher entries; DubbingStudio + onboarding use `h-dvh`/`min-h-dvh` (no more toolbar clipping).
+5. ✅ **Touch ergonomics**: 44px tap targets on media controls; keyboard no longer auto-pops over TypeTranslate/Dictation on touch devices (`pointer: fine` gate); UpdatePrompt banner sits above the mobile bottom nav.
+6. ✅ **Dead code removed**: orphaned `AIAnalysis.tsx` (expected a never-written job stage) and the mock student `Login.tsx` demo wizard + its route; the never-used `isFullScreenApp` computation.
+
+### Phase 4 — leftover backlog
+- i18n consistency for student child screens (still hardcoded English while the shell uses `t()`).
+- Student onboarding is reachable only via the hub `/onboarding/student` — not linked from the student app.
+- Teacher cross-tenant read breadth (`is_teacher_or_admin()` on objectives/pool_items allows any teacher to read any school's pools) — flag for a future tenancy pass.
+- Rate limiter per-IP + in-memory (NAT'd schools share 10/min).

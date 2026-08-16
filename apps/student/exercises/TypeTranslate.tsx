@@ -6,6 +6,11 @@ import React, { useState } from 'react';
 import { BaseExerciseProps } from '../../../types/exercise';
 import { FeedbackBanner, useElapsedMs, textMatches, Feedback } from './shared';
 
+// Don't pop the on-screen keyboard over the exercise on touch devices.
+const FINE_POINTER = typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(pointer: fine)').matches;
+
 const TypeTranslate: React.FC<BaseExerciseProps> = ({ data, onComplete }) => {
   const c = data.content as Extract<import('../../../types/exercise').ExerciseContent, { type: 'TYPE_TRANSLATE' }>;
   const elapsed = useElapsedMs();
@@ -25,7 +30,7 @@ const TypeTranslate: React.FC<BaseExerciseProps> = ({ data, onComplete }) => {
       <h2 className="text-3xl font-black text-slate-800 mb-4">{c.prompt_l1}</h2>
 
       <input
-        autoFocus
+        autoFocus={FINE_POINTER}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}

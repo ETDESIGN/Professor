@@ -32,7 +32,7 @@ const StudentOnboarding: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-indigo-50 flex flex-col font-sans">
+        <div className="min-h-dvh bg-indigo-50 flex flex-col font-sans">
             <header className="bg-white/80 backdrop-blur border-b border-indigo-100 p-4 shrink-0 flex items-center justify-center shadow-sm">
                 <h1 className="font-display font-bold text-2xl text-indigo-900">Professor Student Portal</h1>
             </header>

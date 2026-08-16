@@ -320,6 +320,13 @@ export async function restoreHeart(studentId: string): Promise<HeartsState> {
   return writeHearts(studentId, h.current + 1);
 }
 
+/** Refill all hearts (consumed Heart Refill power-up). */
+export async function refillHearts(studentId: string): Promise<HeartsState> {
+  const h = await getHearts(studentId);
+  if (h.current >= HEARTS_MAX) return h;
+  return writeHearts(studentId, HEARTS_MAX);
+}
+
 // ---------------------------------------------------------------------
 // Selection helpers — drive Lesson (weakest-first) + Practice (due+weak).
 // ---------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
 import { XP_REWARDS, GEM_REWARDS } from '../constants/gamification';
+import { getHearts, refillHearts } from './learnerState';
 
 const log = createClientLogger('GamificationService');
 
@@ -161,8 +162,16 @@ export const GamificationService = {
       if (diffDays === 1) {
         newStreak += 1;
       } else if (diffDays > 1) {
-        newStreak = 1;
-        streakBroken = true;
+        // Streak Freeze (Duolingo-style): auto-consume one if owned — the
+        // streak continues instead of resetting. Phase 4: previously the
+        // power-up existed in the shop but nothing ever consumed it.
+        const freezeUsed = await GamificationService.consumeInventoryItem('freeze');
+        if (freezeUsed) {
+          newStreak += 1;
+        } else {
+          newStreak = 1;
+          streakBroken = true;
+        }
       }
     } else {
       newStreak = 1;
@@ -303,17 +312,48 @@ export const GamificationService = {
     const spent = await GamificationService.spendGems(cost);
     if (!spent.success) return { success: false };
 
-    const { error: invError } = await supabase.from('student_inventory').insert({
-      student_id: user.id,
-      item_id: itemId,
-    });
+    // Consumables stack: bump quantity on re-purchase (the old plain INSERT
+    // hit the UNIQUE(student_id, item_id) constraint on the second buy).
+    const { error: invError } = await supabase
+      .from('student_inventory')
+      .upsert(
+        { student_id: user.id, item_id: itemId, quantity: 1 },
+        { onConflict: 'student_id,item_id', ignoreDuplicates: false },
+      );
 
     if (invError) {
-      log.warn('inventory_insert_failed', { error: invError.message });
+      log.warn('inventory_upsert_failed', { error: invError.message });
       return { success: false };
     }
 
     return { success: true };
+  },
+
+  /** Atomically consume one unit of a power-up. Returns false when the
+   *  student owns none (the RPC only decrements quantity > 0 rows). */
+  async consumeInventoryItem(itemId: string): Promise<boolean> {
+    const { data, error } = await supabase.rpc('consume_inventory_item', { p_item_id: itemId });
+    if (error) {
+      log.warn('consume_inventory_failed', { error: error.message });
+      return false;
+    }
+    return data === true;
+  },
+
+  /** Use a Heart Refill now: consume one and restore hearts to max. */
+  async useHeartRefill(): Promise<{ success: boolean; hearts: number }> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, hearts: 0 };
+
+    const current = await getHearts(user.id);
+    if (current.current >= current.max) {
+      return { success: false, hearts: current.current };
+    }
+    const consumed = await GamificationService.consumeInventoryItem('hearts');
+    if (!consumed) return { success: false, hearts: current.current };
+
+    const h = await refillHearts(user.id);
+    return { success: true, hearts: h.current };
   },
 
   async getInventory(): Promise<any[]> {

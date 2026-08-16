@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { ChevronLeft, Gem, Heart, Zap, Shirt, Crown, Glasses, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useInventory, useStudentGems, useBuyShopItem } from '../../hooks/useQueries';
+import { GamificationService } from '../../services/GamificationService';
 import { toast } from 'sonner';
 
 interface ShopProps {
@@ -29,7 +30,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
    ];
 
     const handleBuy = async (id: string, cost: number) => {
-       if (purchasedIds.includes(id)) return;
+       if (purchasedIds.includes(id) && id !== 'hearts' && id !== 'freeze') return;
        if (gemCount < cost) {
           toast.error('Not enough gems yet — keep learning to earn more!', { icon: '💎' });
           return;
@@ -40,6 +41,17 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
           toast.success('Item purchased!');
        } else {
           toast.error("Purchase failed — your gems weren't spent. Try again.");
+       }
+    };
+
+    const handleUseHeartRefill = async () => {
+       const result = await GamificationService.useHeartRefill();
+       if (result.success) {
+          toast.success(`Hearts restored — ${result.hearts}/${5}!`, { icon: '❤️' });
+       } else if (result.hearts >= 5) {
+          toast('Your hearts are already full!', { icon: '❤️' });
+       } else {
+          toast.error("Couldn't use the refill — try again.");
        }
     };
 
@@ -74,7 +86,10 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
             <section>
                <h3 className="font-bold text-slate-800 text-lg mb-4">Power-ups</h3>
                <div className="space-y-4">
-                  {powerups.map((item, index) => (
+                  {powerups.map((item, index) => {
+                     const owned = inventory.find((i: any) => i.item_id === item.id);
+                     const ownedQty = owned?.quantity ?? (owned ? 1 : 0);
+                     return (
                      <motion.div
                         key={item.id}
                         initial={{ opacity: 0, x: -20 }}
@@ -86,18 +101,39 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                            <item.icon size={32} />
                         </div>
                         <div className="flex-1">
-                           <h4 className="font-bold text-slate-800">{item.name}</h4>
-                           <p className="text-xs text-slate-500 leading-tight mt-1">{item.desc}</p>
-                           <button
-                              onClick={() => handleBuy(item.id, item.cost)}
-                              className="mt-3 flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm px-4 py-1.5 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50 active:translate-y-0.5 transition-all w-fit"
-                           >
-                              <Gem size={14} className="text-blue-500 fill-blue-500" />
-                              {item.cost}
-                           </button>
+                           <div className="flex items-center gap-2">
+                              <h4 className="font-bold text-slate-800">{item.name}</h4>
+                              {ownedQty > 0 && (
+                                 <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                                    ×{ownedQty} {item.id === 'freeze' ? 'ready' : 'owned'}
+                                 </span>
+                              )}
+                           </div>
+                           <p className="text-xs text-slate-500 leading-tight mt-1">
+                              {item.desc}
+                              {item.id === 'freeze' && ' Used automatically if you miss a day.'}
+                           </p>
+                           <div className="mt-3 flex items-center gap-2">
+                              <button
+                                 onClick={() => handleBuy(item.id, item.cost)}
+                                 className="flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm px-4 py-1.5 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50 active:translate-y-0.5 transition-all"
+                              >
+                                 <Gem size={14} className="text-blue-500 fill-blue-500" />
+                                 {item.cost}
+                              </button>
+                              {item.id === 'hearts' && ownedQty > 0 && (
+                                 <button
+                                    onClick={handleUseHeartRefill}
+                                    className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 px-4 py-1.5 rounded-lg font-bold text-sm hover:bg-red-100 active:translate-y-0.5 transition-all"
+                                 >
+                                    <Heart size={14} className="fill-red-500 text-red-500" /> Use
+                                 </button>
+                              )}
+                           </div>
                         </div>
                      </motion.div>
-                  ))}
+                     );
+                  })}
                </div>
             </section>
 
