@@ -118,6 +118,10 @@ Depends on the existing `generate-exercises` fix plan (`docs/brainstorming/02_FO
 5. ✅ **Touch ergonomics**: 44px tap targets on media controls; keyboard no longer auto-pops over TypeTranslate/Dictation on touch devices (`pointer: fine` gate); UpdatePrompt banner sits above the mobile bottom nav.
 6. ✅ **Dead code removed**: orphaned `AIAnalysis.tsx` (expected a never-written job stage) and the mock student `Login.tsx` demo wizard + its route; the never-used `isFullScreenApp` computation.
 
+### Post-audit fixes (2026-08-17, owner reports)
+1. ✅ **Voice recognition broken in Chrome (region-blocked Web Speech)**: Chrome's Web Speech API routes audio via Google, which is unreachable from the owner's region — every mic attempt died with a `network` error. `startPronunciationCheck` now falls back to a MediaRecorder + server-STT path on `network`/`service-not-allowed` (and when Web Speech is absent): records with silence detection, sends audio to `evaluate-pronunciation`, which transcribes via the region-safe OpenRouter audio model (`STT_PROVIDER=openrouter-audio`, `STT_AUDIO_MODEL=nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` — the only region-safe audio model on OpenRouter today; swap the env when a better one appears). Edge accepts an `audioFormat` for Safari mp4 recordings. Free-tier model — accuracy is best-effort; verify on device.
+2. ✅ **Students saw Draft units** (migration `20260817000007`): the student branch of `units_select_policy` (and `get_unit_bundle`, plus the enrollment branches on objectives/pool_items/assets/srs templates) now requires `units.status = 'Active'` — students see only published units; teachers still see their Drafts.
+
 ### Phase 4 — leftover backlog
 - i18n consistency for student child screens (still hardcoded English while the shell uses `t()`).
 - Student onboarding is reachable only via the hub `/onboarding/student` — not linked from the student app.

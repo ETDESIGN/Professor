@@ -72,14 +72,14 @@ serve(async (req) => {
       },
     ],
   }, async (body, _auth) => {
-    const { audioBase64, targetText, targetEmotion, language, transcript: clientTranscript } = body;
+    const { audioBase64, audioFormat, targetText, targetEmotion, language, transcript: clientTranscript } = body;
 
     // Resolve a transcript without ever calling a region-blocked provider.
     // Priority: configured region-safe STT provider > client Web Speech transcript.
     let transcript = '';
     let providerConfidence = 0;
 
-    const sttResult = await transcribe(audioBase64, language || 'en');
+    const sttResult = await transcribe(audioBase64, language || 'en', audioFormat || 'webm');
     if (sttResult) {
       transcript = sttResult.transcript;
       providerConfidence = sttResult.confidence;

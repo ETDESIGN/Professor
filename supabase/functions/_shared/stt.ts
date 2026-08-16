@@ -29,6 +29,7 @@ export interface SttResult {
 export async function transcribe(
   audioBase64: string | undefined | null,
   language: string,
+  audioFormat: string = 'webm',
 ): Promise<SttResult | null> {
   if (!audioBase64) return null;
 
@@ -36,7 +37,7 @@ export async function transcribe(
 
   try {
     if (provider === 'openrouter-audio') {
-      return await openRouterAudioProvider(audioBase64, language);
+      return await openRouterAudioProvider(audioBase64, language, audioFormat);
     }
     // Future providers (e.g. STT_PROVIDER=self-hosted-whisper) plug in here.
   } catch (err) {
@@ -59,6 +60,7 @@ export async function transcribe(
 async function openRouterAudioProvider(
   audioBase64: string,
   language: string,
+  audioFormat: string = 'webm',
 ): Promise<SttResult | null> {
   const apiKey = Deno.env.get('AI_API_KEY');
   const baseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
@@ -82,7 +84,7 @@ async function openRouterAudioProvider(
           role: 'user',
           content: [
             { type: 'text', text: 'Transcribe this audio recording.' },
-            { type: 'input_audio', input_audio: { data: audioBase64, format: 'webm' } },
+            { type: 'input_audio', input_audio: { data: audioBase64, format: audioFormat } },
           ],
         },
       ],
