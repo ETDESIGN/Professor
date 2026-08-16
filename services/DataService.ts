@@ -465,13 +465,13 @@ export async function getClassAnalytics(teacherId: string): Promise<ClassAnalyti
     const engagement = Math.round(data.reduce((sum, row) => sum + row.engagement_percent, 0) / classCount);
     const completion = Math.round(data.reduce((sum, row) => sum + row.completion_percent, 0) / classCount);
 
-    const timeSpent = Math.round(totalXp / 15);
+    const timeSpent = Math.round(totalXp / 1.5);
 
     let skills: { name: string; score: number; color: string }[] = [];
     if (avgXpPerStudent > 0) {
         skills = [
-            { name: 'General English', score: Math.min(100, Math.round(avgXpPerStudent / 10)), color: 'bg-emerald-500' },
-            { name: 'Listening', score: Math.min(100, Math.round(avgXpPerStudent / 12)), color: 'bg-blue-500' },
+            { name: 'General English', score: Math.min(100, Math.round(avgXpPerStudent / 1)), color: 'bg-emerald-500' },
+            { name: 'Listening', score: Math.min(100, Math.round(avgXpPerStudent / 1.2)), color: 'bg-blue-500' },
         ];
     }
 

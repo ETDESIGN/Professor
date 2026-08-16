@@ -119,7 +119,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       const accuracy = state.totalAttempts > 0
         ? Math.round((state.totalCorrect / state.totalAttempts) * 100)
         : 100;
-      const xp = Math.max(10, state.score + 30);
+      const xp = Math.max(1, state.score + 3);
       onComplete({ xp, accuracy, time: `${minutes}:${seconds.toString().padStart(2, '0')}` });
     }
   }, [currentIndex, totalSteps, nextSlide, onComplete, state.score, state.totalCorrect, state.totalAttempts]);
@@ -198,8 +198,8 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
                     setIsRevealed(true);
                     if (correct) {
                       setQuizScore(s => s + 1);
-                      addPoints('solo', 10);
-                      toast.success('+10 XP!', { icon: '⭐' });
+                      addPoints('solo', 1);
+                      toast.success('+1 XP!', { icon: '⭐' });
                     } else {
                       setLives(l => Math.max(0, l - 1));
                     }

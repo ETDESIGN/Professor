@@ -5,7 +5,7 @@ import { useSession } from '../../../store/SessionContext';
  * { id, name, avatar } object, or null in choral/practice mode.
  *
  * Shared by the game templates so success messages can be personalized
- * ("Leo nailed it! +30 pts") instead of generic ("All Matched!").
+ * ("Leo nailed it! +3 pts") instead of generic ("All Matched!").
  * Returns null when no responder is picked so callers can fall back gracefully.
  */
 export interface PickedStudent {

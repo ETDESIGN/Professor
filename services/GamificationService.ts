@@ -22,7 +22,7 @@ export const GamificationService = {
 
     const newXP = (progress.xp || 0) + amount;
     const newTotal = (progress.total_xp_earned || 0) + amount;
-    const newLevel = Math.floor(newXP / 1000) + 1;
+    const newLevel = Math.floor(newXP / 100) + 1;
 
     const { error: updateError } = await supabase
       .from('student_progress')
@@ -31,7 +31,7 @@ export const GamificationService = {
 
     if (updateError) {
       log.warn('award_xp_write_failed', { error: updateError.message });
-      return { newXP: progress.xp || 0, newLevel: Math.floor((progress.xp || 0) / 1000) + 1 };
+      return { newXP: progress.xp || 0, newLevel: Math.floor((progress.xp || 0) / 100) + 1 };
     }
 
     log.info('xp_awarded', { metadata: { amount, reason, newXP, newLevel } });
@@ -216,13 +216,13 @@ export const GamificationService = {
           title: t.title,
           target: t.target || 1,
           reward_gems: t.reward_gems || 10,
-          reward_xp: t.reward_xp || 15,
+          reward_xp: t.reward_xp || 2,
         }))
       : [
-          { type: 'earn_xp', title: 'Earn 50 XP', target: 50, reward_gems: 10, reward_xp: 15 },
-          { type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, reward_gems: 10, reward_xp: 15 },
-          { type: 'perfect_speaking', title: 'Score Perfect in Speaking', target: 1, reward_gems: 10, reward_xp: 15 },
-          { type: 'reach_familiar', title: 'Master 3 Words', target: 3, reward_gems: 10, reward_xp: 15 },
+          { type: 'earn_xp', title: 'Earn 5 XP', target: 5, reward_gems: 10, reward_xp: 2 },
+          { type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, reward_gems: 10, reward_xp: 2 },
+          { type: 'perfect_speaking', title: 'Score Perfect in Speaking', target: 1, reward_gems: 10, reward_xp: 2 },
+          { type: 'reach_familiar', title: 'Master 3 Words', target: 3, reward_gems: 10, reward_xp: 2 },
         ];
 
     const quests = templates.map(t => ({

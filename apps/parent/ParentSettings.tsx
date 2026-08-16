@@ -92,7 +92,7 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
                             </div>
                             <div>
                                <div className="font-bold text-slate-700">{student.full_name || student.email || 'Student'}</div>
-                               <div className="text-xs text-slate-400">Lvl {Math.floor(student.xp / 1000) + 1} • {student.xp} XP</div>
+                               <div className="text-xs text-slate-400">Lvl {Math.floor(student.xp / 100) + 1} • {student.xp} XP</div>
                             </div>
                          </div>
                          <ChevronRight size={20} className="text-slate-300" />

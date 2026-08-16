@@ -171,7 +171,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold">{selectedStudent?.full_name || selectedStudent?.email || 'Student'}</h2>
-              <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">Lvl {Math.floor(studentStats.xp / 1000) + 1}</span>
+              <span className="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">Lvl {Math.floor(studentStats.xp / 100) + 1}</span>
             </div>
             <div className="flex items-center gap-1 text-cyan-100 text-sm">
               <span>🔥 {studentStats.streak} Day Streak</span>
@@ -182,10 +182,10 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
         <div className="relative z-10">
           <div className="flex justify-between text-xs font-bold mb-1 opacity-90">
             <span>XP Progress</span>
-            <span>{studentStats.xp % 1000} / 1000</span>
+            <span>{studentStats.xp % 100} / 100</span>
           </div>
           <div className="h-3 bg-black/20 rounded-full overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${(studentStats.xp % 1000) / 10}%` }}></div>
+            <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${studentStats.xp % 100}%` }}></div>
           </div>
         </div>
       </motion.div>
@@ -213,7 +213,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
           <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
             <Clock size={20} />
           </div>
-          <span className="text-2xl font-bold text-slate-800">{Math.round(studentStats.xp / 100)}h</span>
+          <span className="text-2xl font-bold text-slate-800">{Math.round(studentStats.xp / 10)}h</span>
           <span className="text-xs text-slate-500 uppercase font-bold tracking-wide">Time Learned</span>
         </motion.div>
       </div>

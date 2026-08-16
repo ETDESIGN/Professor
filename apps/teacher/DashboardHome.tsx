@@ -186,7 +186,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-700">{student.full_name || student.email}</span>
                   <span className="text-slate-500 text-sm">is progressing</span>
-                  <span className="font-bold text-indigo-600 text-sm">Level {Math.floor((student.xp || 0) / 1000) + 1}</span>
+                  <span className="font-bold text-indigo-600 text-sm">Level {Math.floor((student.xp || 0) / 100) + 1}</span>
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">{student.streak || 0} day streak</div>
               </div>

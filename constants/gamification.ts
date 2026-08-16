@@ -1,16 +1,17 @@
+// Rescaled 2026-08-17 to the 1–5 point scale (all values ÷10, rounded half-up).
 export const XP_REWARDS = {
-  CORRECT_ANSWER: 10,
-  PERFECT_LESSON: 50,
-  DAILY_STREAK: 25,
-  DUBBING_COMPLETE: 20,
-  DUBBING_PERFECT: 35,
-  LESSON_COMPLETE: 30,
-  SRS_REVIEW: 5,
-  QUEST_COMPLETE: 15,
+  CORRECT_ANSWER: 1,
+  PERFECT_LESSON: 5,
+  DAILY_STREAK: 3,
+  DUBBING_COMPLETE: 2,
+  DUBBING_PERFECT: 4,
+  LESSON_COMPLETE: 3,
+  SRS_REVIEW: 1,
+  QUEST_COMPLETE: 2,
 } as const;
 
 export const XP_LEVELS = {
-  XP_PER_LEVEL: 1000,
+  XP_PER_LEVEL: 100,
   getTitleForLevel: (level: number): string => {
     if (level <= 3) return 'Beginner';
     if (level <= 6) return 'Explorer';
@@ -40,7 +41,7 @@ export const QUEST_TYPES = {
 } as const;
 
 export const DAILY_QUEST_TEMPLATES = [
-  { type: QUEST_TYPES.EARN_XP, title: 'Earn {target} XP', target: 50, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
+  { type: QUEST_TYPES.EARN_XP, title: 'Earn {target} XP', target: 5, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
   { type: QUEST_TYPES.COMPLETE_LESSONS, title: 'Complete {target} Lessons', target: 2, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
   { type: QUEST_TYPES.PERFECT_SPEAKING, title: 'Score Perfect in Speaking', target: 1, rewardGems: GEM_REWARDS.QUEST_COMPLETE },
   { type: QUEST_TYPES.REVIEW_WORDS, title: 'Review {target} Words', target: 5, rewardGems: GEM_REWARDS.QUEST_COMPLETE },

@@ -87,7 +87,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
         ...prev,
         streak: progress.streak,
         xp: progress.xp,
-        level: Math.floor(progress.xp / 1000) + 1
+        level: Math.floor(progress.xp / 100) + 1
       }));
 
       try {
@@ -273,10 +273,10 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   }
 
   // Full screen standalone apps
-  if (dubbingEnabled && location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 50, accuracy: 95, time: '2:30' })} /></Suspense>;
-  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => handleLessonComplete({ xp: 45, accuracy: 85, time: '3:00' })} /></Suspense>;
-  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => handleLessonComplete({ xp: 60, accuracy: 100, time: '4:20' })} /></Suspense>;
-  if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => handleLessonComplete({ xp: 40, accuracy: 92, time: '1:45' })} /></Suspense>;
+  if (dubbingEnabled && location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })} /></Suspense>;
+  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => handleLessonComplete({ xp: 5, accuracy: 85, time: '3:00' })} /></Suspense>;
+  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => handleLessonComplete({ xp: 6, accuracy: 100, time: '4:20' })} /></Suspense>;
+  if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => handleLessonComplete({ xp: 4, accuracy: 92, time: '1:45' })} /></Suspense>;
   if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={handleLessonComplete} /></Suspense>;
 
   // The Reward Interstitial

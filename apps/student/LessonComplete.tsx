@@ -11,7 +11,7 @@ interface LessonCompleteProps {
   };
 }
 
-const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { xp: 50, accuracy: 92, time: '2:15' } }) => {
+const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { xp: 5, accuracy: 92, time: '2:15' } }) => {
   const [stars, setStars] = useState(0);
   const [xp, setXp] = useState(0);
 

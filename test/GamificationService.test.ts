@@ -73,7 +73,7 @@ describe('GamificationService', () => {
     it('awards XP and returns new total and level', async () => {
       const selectChain = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { xp: 500, total_xp_earned: 2000 }, error: null }),
+          single: vi.fn().mockResolvedValue({ data: { xp: 50, total_xp_earned: 200 }, error: null }),
         }),
       });
       const updateChain = vi.fn().mockReturnValue({
@@ -87,8 +87,8 @@ describe('GamificationService', () => {
         return makeChain(undefined).proxy;
       });
 
-      const result = await GamificationService.awardXP(100, 'lesson_complete');
-      expect(result.newXP).toBe(600);
+      const result = await GamificationService.awardXP(10, 'lesson_complete');
+      expect(result.newXP).toBe(60);
       expect(result.newLevel).toBe(1);
     });
 
@@ -101,7 +101,7 @@ describe('GamificationService', () => {
     it('calculates level correctly at XP boundary', async () => {
       const selectChain = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { xp: 950, total_xp_earned: 3000 }, error: null }),
+          single: vi.fn().mockResolvedValue({ data: { xp: 95, total_xp_earned: 300 }, error: null }),
         }),
       });
       const updateChain = vi.fn().mockReturnValue({
@@ -113,8 +113,8 @@ describe('GamificationService', () => {
         return makeChain(undefined).proxy;
       });
 
-      const result = await GamificationService.awardXP(100, 'test');
-      expect(result.newXP).toBe(1050);
+      const result = await GamificationService.awardXP(10, 'test');
+      expect(result.newXP).toBe(105);
       expect(result.newLevel).toBe(2);
     });
   });
@@ -188,7 +188,7 @@ describe('GamificationService', () => {
   describe('getDailyQuests', () => {
     it('returns existing quests when already assigned today', async () => {
       const existingQuests = [
-        { id: 'q1', quest_type: 'earn_xp', title: 'Earn 50 XP', target: 50, current: 30, reward_gems: 10, reward_xp: 15 },
+        { id: 'q1', quest_type: 'earn_xp', title: 'Earn 5 XP', target: 5, current: 3, reward_gems: 10, reward_xp: 2 },
       ];
 
       const selectChain = vi.fn().mockReturnValue({
@@ -208,7 +208,7 @@ describe('GamificationService', () => {
 
     it('generates quests from templates when none exist', async () => {
       const newQuests = [
-        { id: 'q1', quest_type: 'earn_xp', title: 'Earn 50 XP', target: 50, current: 0 },
+        { id: 'q1', quest_type: 'earn_xp', title: 'Earn 5 XP', target: 5, current: 0 },
         { id: 'q2', quest_type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, current: 0 },
       ];
 
@@ -246,7 +246,7 @@ describe('GamificationService', () => {
 
   describe('claimQuestReward', () => {
     it('claims a completed quest and returns rewards', async () => {
-      const quest = { id: 'q1', current: 50, target: 50, claimed: false, reward_xp: 15, reward_gems: 10 };
+      const quest = { id: 'q1', current: 5, target: 5, claimed: false, reward_xp: 2, reward_gems: 10 };
 
       const selectChain = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -278,11 +278,11 @@ describe('GamificationService', () => {
       });
 
       const result = await GamificationService.claimQuestReward('q1');
-      expect(result).toEqual({ xp: 15, gems: 10 });
+      expect(result).toEqual({ xp: 2, gems: 10 });
     });
 
     it('returns null when quest is not complete', async () => {
-      const quest = { id: 'q1', current: 20, target: 50, claimed: false, reward_xp: 15, reward_gems: 10 };
+      const quest = { id: 'q1', current: 2, target: 5, claimed: false, reward_xp: 2, reward_gems: 10 };
 
       const selectChain = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
@@ -297,7 +297,7 @@ describe('GamificationService', () => {
     });
 
     it('returns null when quest already claimed', async () => {
-      const quest = { id: 'q1', current: 50, target: 50, claimed: true, reward_xp: 15, reward_gems: 10 };
+      const quest = { id: 'q1', current: 5, target: 5, claimed: true, reward_xp: 2, reward_gems: 10 };
 
       const selectChain = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({

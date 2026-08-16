@@ -92,8 +92,8 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
   const handleChildResult = (isCorrect: boolean) => {
     if (isCorrect) {
       setLessonStatus('correct');
-      if (currentStudentId) addPoints(currentStudentId, 10);
-      toast.success('+10 XP!', { icon: '🌟', style: { background: '#22c55e', color: 'white', border: 'none' } });
+      if (currentStudentId) addPoints(currentStudentId, 1);
+      toast.success('+1 XP!', { icon: '🌟', style: { background: '#22c55e', color: 'white', border: 'none' } });
     } else {
       setLessonStatus('wrong');
       setLives(l => Math.max(0, l - 1));
@@ -123,7 +123,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
         setLessonStatus('idle');
         setIsAnswerReady(false);
       } else {
-        onComplete({ xp: 50, accuracy: (lives / 5) * 100, time: '2:30' });
+        onComplete({ xp: 5, accuracy: (lives / 5) * 100, time: '2:30' });
       }
     }
   };

@@ -41,10 +41,10 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
       loadData();
    }, [userProfile?.id]);
 
-   const speakingScore = Math.min(100, Math.round(xp / 20));
-   const readingScore = Math.min(100, Math.round(xp / 15));
-   const listeningScore = Math.min(100, Math.round(xp / 18));
-   const grammarScore = Math.min(100, Math.round(xp / 16));
+   const speakingScore = Math.min(100, Math.round(xp / 2));
+   const readingScore = Math.min(100, Math.round(xp / 1.5));
+   const listeningScore = Math.min(100, Math.round(xp / 1.8));
+   const grammarScore = Math.min(100, Math.round(xp / 1.6));
 
    const handleShare = () => {
       toast.success("Report link copied to clipboard!");

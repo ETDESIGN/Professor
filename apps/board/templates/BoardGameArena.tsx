@@ -238,7 +238,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
                      {winner.avatar}
                   </div>
                   <h2 className="text-9xl font-fun text-white mb-4">{winner.name}</h2>
-                  <div className="text-4xl text-white/60 font-mono">+50 XP Bonus</div>
+                  <div className="text-4xl text-white/60 font-mono">+5 XP Bonus</div>
                   <div className="text-sm text-white/50 mt-6 animate-pulse">tap to dismiss</div>
                </div>
              </div>

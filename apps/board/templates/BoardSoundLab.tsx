@@ -465,7 +465,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
   // Replay-cost copy is surfaced in ALL phases (audit fix — used to be
   // phase 1 only): after the first free listen each replay costs −5.
   const replayHint = replayCount > 0 && replayCount < 2 ? (
-    <div className="text-sm text-gray-500 mt-2">Replay: {2 - replayCount} left (−5 pts each)</div>
+    <div className="text-sm text-gray-500 mt-2">Replay: {2 - replayCount} left (−1 pt each)</div>
   ) : null;
 
   const allComplete = allDone || (currentPhase === 3 && phase3Idx >= phase3Items.length && phase3Items.length > 0 && phaseComplete);

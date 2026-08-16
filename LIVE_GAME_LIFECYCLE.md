@@ -26,8 +26,8 @@ The teacher runs a **live loop**, one student at a time:
                 (whose-turn footer + commander bar persist); the GAME RESETS fresh
                 for this student (NEW_TURN → currentTurnId changes)
       ↓ student attempts the exercise
-[SCORE]         wrong attempt  → addPoints(picked, −5) + mistake++
-                success        → addPoints(picked, scoreForAttempt(mistakes))
+[SCORE]         wrong attempt  → addPoints(picked, −1) + mistake++
+                success        → addPoints(picked, scoreForAttempt(mistakes, difficulty))
                                 + personalized "[Name] nailed it! +N pts"
       ↓ teacher taps "Next Student →"
 [NEXT]          CLEAR_RESPONDER + auto-spin → back to [WHEEL] for the next kid
@@ -156,13 +156,15 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 const picked = state.quickWheelWinner;
 if (picked) {
   mistakesRef.current += 1;
-  addPoints(picked, -MISTAKE_PENALTY);          // −5, live, clamps at 0
+  addPoints(picked, -MISTAKE_PENALTY);          // −1, live, clamps at 0
 }
 
 // On SUCCESS (guard with awardedRef so it only pays once):
 if (picked && !awardedRef.current) {
   awardedRef.current = true;
-  addPoints(picked, scoreForAttempt(mistakesRef.current));   // max(0, 30 − mistakes×5)
+  addPoints(picked, scoreForAttempt(mistakesRef.current, difficulty));
+  // 1–3 by difficulty, +1/+2 streak bonus, min 1, hard cap 5.
+  // Prior mistakes do NOT reduce the award — the live −1 is the whole cost.
 }
 ```
 `addPoints` accepts negatives (clamps the displayed total at 0, no confetti on
@@ -182,7 +184,7 @@ const pickedStudent = usePickedStudent();   // {id, name, avatar} | null
 
 | File | Exports | Use for |
 |---|---|---|
-| `apps/board/templates/scoringDefaults.ts` | `CLEAN_SCORE` (30), `MISTAKE_PENALTY` (5), `scoreForAttempt(mistakes)`, `pointsForCorrect(stepType)` | Scoring math |
+| `apps/board/templates/scoringDefaults.ts` | `CLEAN_SCORE_BASE` (1), `DIFFICULTY_MULTIPLIER` (1/2/3), `MISTAKE_PENALTY` (1), `STREAK_BONUS` (+1/+2), `MAX_QUESTION_POINTS` (5), `scoreForAttempt(mistakes, difficulty, partialCreditRatio?, streak?)` | Scoring math |
 | `apps/board/templates/usePickedStudent.ts` | `usePickedStudent()` → `{id, name, avatar} \| null` | Resolving the picked student's name for messages |
 | `services/attendanceLogic.ts` | `filterPresent(students)` | Excluding absent kids from pickers/rosters |
 
@@ -207,7 +209,7 @@ const pickedStudent = usePickedStudent();   // {id, name, avatar} | null
 6. **Filter absent students** if the game picks from the roster
    (`filterPresent`).
 7. **Verify** in two tabs (commander + board): practice mode on entry → spin →
-   overlay dismisses on both → fresh board → wrong −5 → success +N with name →
+   overlay dismisses on both → fresh board → wrong −1 → success +N with name →
    Next Student → loop.
 
 ---
@@ -238,10 +240,10 @@ const pickedStudent = usePickedStudent();   // {id, name, avatar} | null
 ## 9. Exceptions
 
 ### TeamBattle (`BoardTeamBattle.tsx`)
-Team-vs-team, not per-individual. It does NOT use the 30/−5 pick model — it has
-its own team-score rails and round/steal state machine. Scoring there awards the
-picked student on a correct answer but the team totals are tracked separately.
-If you build another team-based game, follow TeamBattle's pattern instead of §5.
+Team-vs-team, not per-individual. It layers on top of the pick model — it does
+award the picked student via `scoreForAttempt` on correct answers — but its team
+totals and round/steal state machine are tracked separately. If you build
+another team-based game, follow TeamBattle's pattern instead of §5.
 
 ### Display-only templates (BoardFocusCards, BoardStoryStage, BoardMediaPlayer, etc.)
 No per-student scoring. They only subscribe to navigation controls
