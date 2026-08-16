@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { ChevronLeft, Volume2, Mic, Lock, Users, Bell, LogOut, ChevronRight, Moon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ChevronLeft, Volume2, Mic, Bell, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -9,17 +9,36 @@ interface SettingsProps {
    onSignOut?: () => void;
 }
 
+const PREFS_KEY = 'student-settings';
+
+interface StudentPrefs {
+   sound: boolean;
+   speaking: boolean;
+   notifications: boolean;
+}
+
+const DEFAULT_PREFS: StudentPrefs = { sound: true, speaking: true, notifications: true };
+
+const loadPrefs = (): StudentPrefs => {
+   try {
+      const raw = localStorage.getItem(PREFS_KEY);
+      if (raw) return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
+   } catch { /* corrupted prefs fall back to defaults */ }
+   return DEFAULT_PREFS;
+};
+
 const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
-   const [toggles, setToggles] = useState({
-      sound: true,
-      speaking: true,
-      notifications: true,
-      darkMode: false,
-   });
+   const [toggles, setToggles] = useState<StudentPrefs>(loadPrefs);
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 
-   const toggle = (key: keyof typeof toggles) => {
+   useEffect(() => {
+      try {
+         localStorage.setItem(PREFS_KEY, JSON.stringify(toggles));
+      } catch { /* storage full/blocked — prefs just won't persist */ }
+   }, [toggles]);
+
+   const toggle = (key: keyof StudentPrefs) => {
       setToggles(prev => ({ ...prev, [key]: !prev[key] }));
    };
 
@@ -37,25 +56,25 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
          {/* Content */}
          <div className="flex-1 overflow-y-auto p-4 space-y-6">
 
-            {/* Profile Stub */}
+            {/* Profile */}
             <motion.div
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm"
             >
-               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-4xl border-2 border-white shadow-md relative">
+               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-4xl border-2 border-white shadow-md">
                   🦁
-                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-slate-800 rounded-full flex items-center justify-center border-2 border-white">
-                     <span className="text-white text-[10px]">✎</span>
-                  </div>
                </div>
                <div>
                   <h2 className="font-bold text-slate-800 text-lg">{displayName}</h2>
-                  <p className="text-slate-500 text-xs font-bold uppercase">Level 5 • 12 Day Streak</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase">Student account</p>
                </div>
             </motion.div>
 
-            {/* Audio Group */}
+            {/* Preferences — persisted on this device. The fake "Level 5 • 12
+                Day Streak" line, the non-persisting toggles and the dead
+                Change PIN / Parent Dashboard buttons were removed (audit
+                2026-08-17). */}
             <motion.div
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
@@ -73,6 +92,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                      </div>
                      <button
                         onClick={() => toggle('sound')}
+                        aria-pressed={toggles.sound}
                         className={`w-12 h-7 rounded-full transition-colors relative ${toggles.sound ? 'bg-duo-green' : 'bg-slate-200'}`}
                      >
                         <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-1 transition-all ${toggles.sound ? 'left-6' : 'left-1'}`}></div>
@@ -85,6 +105,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                      </div>
                      <button
                         onClick={() => toggle('speaking')}
+                        aria-pressed={toggles.speaking}
                         className={`w-12 h-7 rounded-full transition-colors relative ${toggles.speaking ? 'bg-duo-green' : 'bg-slate-200'}`}
                      >
                         <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-1 transition-all ${toggles.speaking ? 'left-6' : 'left-1'}`}></div>
@@ -93,35 +114,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                </div>
             </motion.div>
 
-            {/* Account Group */}
-            <motion.div
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.2 }}
-               className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
-            >
-               <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Account
-               </div>
-               <div className="divide-y divide-slate-100">
-                  <button className="w-full p-4 flex items-center justify-between hover:bg-slate-50">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg"><Lock size={20} /></div>
-                        <span className="font-bold text-slate-700">Change PIN</span>
-                     </div>
-                     <ChevronRight size={20} className="text-slate-300" />
-                  </button>
-                  <button className="w-full p-4 flex items-center justify-between hover:bg-slate-50">
-                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-pink-100 text-pink-600 rounded-lg"><Users size={20} /></div>
-                        <span className="font-bold text-slate-700">Parent Dashboard</span>
-                     </div>
-                     <ChevronRight size={20} className="text-slate-300" />
-                  </button>
-               </div>
-            </motion.div>
-
-            {/* Notifications Group */}
+            {/* Notifications */}
             <motion.div
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
@@ -136,11 +129,12 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                      <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><Bell size={20} /></div>
                      <div>
                         <div className="font-bold text-slate-700">Daily Reminder</div>
-                        <div className="text-xs text-slate-400">18:00 PM</div>
+                        <div className="text-xs text-slate-400">Saved on this device</div>
                      </div>
                   </div>
                   <button
                      onClick={() => toggle('notifications')}
+                     aria-pressed={toggles.notifications}
                      className={`w-12 h-7 rounded-full transition-colors relative ${toggles.notifications ? 'bg-duo-green' : 'bg-slate-200'}`}
                   >
                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-1 transition-all ${toggles.notifications ? 'left-6' : 'left-1'}`}></div>
@@ -159,7 +153,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
             </motion.button>
 
             <div className="text-center text-xs text-slate-400 font-medium pb-8">
-               Student App v1.2.0 (Build 402)
+               Professor Student
             </div>
          </div>
       </div>

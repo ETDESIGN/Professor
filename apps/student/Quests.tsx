@@ -28,16 +28,12 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
   const { data: quests = [], isLoading } = useDailyQuests();
   const claimQuest = useClaimQuest();
 
-  const fallbackQuests = quests.length > 0 ? quests : [
-    { id: '1', title: 'Earn 50 XP', current: 35, target: 50, reward_gems: 10, quest_type: 'earn_xp', claimed: false },
-    { id: '2', title: 'Complete 2 Lessons', current: 1, target: 2, reward_gems: 10, quest_type: 'complete_lessons', claimed: false },
-    { id: '3', title: 'Score Perfect in Speaking', current: 0, target: 1, reward_gems: 10, quest_type: 'perfect_speaking', claimed: false },
-  ];
-
   const handleClaim = async (questId: string) => {
     const result = await claimQuest.mutateAsync(questId);
     if (result) {
       toast.success(`+${result.xp} XP, +${result.gems} Gems!`);
+    } else {
+      toast.error("Couldn't claim the reward — try again.");
     }
   };
 
@@ -49,9 +45,11 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
     );
   }
 
-  const completedCount = fallbackQuests.filter(q => q.current >= q.target).length;
-  const claimedCount = fallbackQuests.filter(q => q.claimed).length;
-  const progressPercent = (claimedCount / fallbackQuests.length) * 100;
+  // Real data only — fabricated fallback quests were removed (audit: they
+  // masked query failures and their claim buttons silently did nothing).
+  const completedCount = quests.filter(q => q.current >= q.target).length;
+  const claimedCount = quests.filter(q => q.claimed).length;
+  const progressPercent = quests.length > 0 ? (claimedCount / quests.length) * 100 : 0;
 
   return (
     <div className="h-full bg-slate-50 flex flex-col font-sans">
@@ -77,7 +75,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
                   <p className="text-blue-100 text-sm font-medium">Complete quests to open the chest!</p>
                </div>
                <div className="bg-white/20 backdrop-blur rounded-lg px-3 py-1 font-bold text-sm border border-white/20">
-                   {claimedCount} / {fallbackQuests.length}
+                   {claimedCount} / {quests.length}
                </div>
             </div>
 
@@ -102,7 +100,16 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
          </motion.div>
 
          <div className="space-y-4">
-             {fallbackQuests.map((quest, index) => {
+            {quests.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl border-2 border-slate-100 shadow-sm text-center">
+                 <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Gift size={32} className="text-indigo-400" />
+                 </div>
+                 <h3 className="font-bold text-slate-800 mb-1">No quests yet</h3>
+                 <p className="text-sm text-slate-500">Your daily quests will appear here. Check back soon!</p>
+              </div>
+            ) : (
+            quests.map((quest, index) => {
                const isComplete = quest.current >= quest.target;
                const progress = Math.min((quest.current / quest.target) * 100, 100);
                const colors = QUEST_COLORS[quest.quest_type] || { color: 'text-blue-500', bg: 'bg-blue-100' };
@@ -141,21 +148,8 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
                      </div>
                   </motion.div>
                );
-            })}
+            }))}
          </div>
-
-         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 0.8, y: 0 }} transition={{ delay: 0.5 }}
-            className="mt-8 bg-purple-50 border-2 border-dashed border-purple-200 rounded-2xl p-6 text-center grayscale">
-            <h3 className="font-bold text-purple-800 uppercase tracking-widest text-sm mb-2">Weekly Challenge</h3>
-            <p className="text-purple-600 text-xs mb-4">Unlocks in 2 days</p>
-            <div className="flex justify-center gap-2">
-               {[1,2,3].map(i => (
-                  <div key={i} className="w-10 h-10 bg-white rounded-lg border-2 border-purple-100 flex items-center justify-center">
-                     <Lock size={16} className="text-purple-200" />
-                  </div>
-               ))}
-            </div>
-         </motion.div>
       </div>
     </div>
   );

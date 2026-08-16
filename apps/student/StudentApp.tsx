@@ -77,7 +77,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   });
 
   // Track selected unit for lesson
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
+  const [, setSelectedUnitId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -189,15 +189,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
     await GamificationService.updateQuestProgress(QUEST_TYPES.COMPLETE_LESSONS, 1);
     await GamificationService.updateQuestProgress(QUEST_TYPES.EARN_XP, sessionResults.xp || XP_REWARDS.LESSON_COMPLETE);
-
-    const activeId = selectedUnitId || state.activeUnit?.id;
-    if (activeId && userId) {
-      try {
-        await Engine.ensureStudentSRSItems(activeId, userId);
-      } catch (err) {
-        log.warn('failed_to_ensure_srs_items', { error: err instanceof Error ? err.message : String(err) });
-      }
-    }
 
     setUserStats(prev => ({
       ...prev,

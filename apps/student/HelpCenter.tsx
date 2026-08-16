@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Search, HelpCircle, Mail, Bug, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Search, HelpCircle, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface HelpCenterProps {
@@ -8,6 +8,7 @@ interface HelpCenterProps {
 
 const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const faqs = [
     { id: 'xp', q: "How do I earn XP?", a: "You earn XP by completing lessons, winning class games, and keeping your daily streak alive!" },
@@ -15,6 +16,11 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
     { id: 'streak', q: "I lost my streak!", a: "Don't worry! You can use a Streak Freeze from the shop to repair it." },
     { id: 'password', q: "How do I reset my password?", a: "Ask your teacher or parent to help you reset your PIN from their dashboard." }
   ];
+
+  const visibleFaqs = faqs.filter(faq =>
+    faq.q.toLowerCase().includes(query.trim().toLowerCase()) ||
+    faq.a.toLowerCase().includes(query.trim().toLowerCase())
+  );
 
   return (
     <div className="h-full bg-slate-50 flex flex-col font-sans">
@@ -35,15 +41,17 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
                <HelpCircle size={32} />
             </div>
             <h1 className="text-2xl font-bold text-slate-800">How can we help?</h1>
-            <p className="text-slate-500">Search for answers or contact support.</p>
+            <p className="text-slate-500">Search the answers below.</p>
          </div>
 
          {/* Search */}
          <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-               type="text" 
-               placeholder="Search help articles..." 
+            <input
+               type="text"
+               value={query}
+               onChange={(e) => setQuery(e.target.value)}
+               placeholder="Search help articles..."
                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-duo-green focus:outline-none font-medium text-slate-700 placeholder:text-slate-400 transition-colors"
             />
          </div>
@@ -55,7 +63,12 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
                Frequently Asked
             </h3>
             <div className="space-y-3">
-               {faqs.map((faq, index) => (
+               {visibleFaqs.length === 0 && (
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
+                     No articles match "{query}".
+                  </div>
+               )}
+               {visibleFaqs.map((faq, index) => (
                   <motion.div 
                      key={faq.id} 
                      initial={{ opacity: 0, y: 10 }}
@@ -88,35 +101,6 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
                   </motion.div>
                ))}
             </div>
-         </div>
-
-         {/* Contact Actions */}
-         <div>
-            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-               <span className="w-1 h-4 bg-duo-blue rounded-full"></span>
-               Contact Us
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-               <button className="bg-white p-4 rounded-xl border-2 border-slate-200 hover:border-duo-blue hover:text-duo-blue transition-all group text-left">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                     <Mail size={20} />
-                  </div>
-                  <div className="font-bold text-slate-800 group-hover:text-duo-blue">Email Support</div>
-                  <div className="text-xs text-slate-400">Response in 24h</div>
-               </button>
-               <button className="bg-white p-4 rounded-xl border-2 border-slate-200 hover:border-red-400 hover:text-red-500 transition-all group text-left">
-                  <div className="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                     <Bug size={20} />
-                  </div>
-                  <div className="font-bold text-slate-800 group-hover:text-red-500">Report Bug</div>
-                  <div className="text-xs text-slate-400">Help us improve</div>
-               </button>
-            </div>
-         </div>
-
-         <div className="pt-8 flex justify-center gap-6 text-xs font-bold text-slate-400">
-            <button className="hover:text-slate-600">Privacy Policy</button>
-            <button className="hover:text-slate-600">Terms of Service</button>
          </div>
       </div>
     </div>

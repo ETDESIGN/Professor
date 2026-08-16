@@ -21,7 +21,6 @@ import {
     listTrashedUnits,
     getUnitPipelineMeta,
 } from './BookService';
-import { diffMissingSRSWords, SRS_DEFAULTS } from './srs';
 import {
   getLearnerState,
   recordAttempt,
@@ -338,6 +337,10 @@ const supabaseFetchSRSItems = async (studentId?: string) => {
         .from('srs_items')
         .select('*')
         .eq('student_id', effectiveId)
+        // objective_id NOT NULL = FSRS-engine items only. The legacy SM-2
+        // clone rows (objective_id NULL) are dead data the new engine
+        // explicitly excludes (audit 2026-08-17).
+        .not('objective_id', 'is', null)
         .lte('next_review', new Date().toISOString());
 
     if (error || !data || data.length === 0) {
@@ -345,6 +348,7 @@ const supabaseFetchSRSItems = async (studentId?: string) => {
             .from('srs_items')
             .select('*')
             .eq('student_id', effectiveId)
+            .not('objective_id', 'is', null)
             .order('next_review', { ascending: true })
             .limit(10);
         return allData || [];
@@ -383,47 +387,11 @@ const supabaseUpdateSRSItem = async (id: string, quality: number) => {
     }
 };
 
-const supabaseEnsureStudentSRSItems = async (unitId: string, studentId: string): Promise<void> => {
-    // Phase 3 (P0-3): RECONCILE the student's deck against the unit's templates.
-    // Previously this cloned only when the student had ZERO items, so a teacher
-    // re-orchestrating a unit (adding/changing vocab) never reached students who
-    // had already started. Now we add only the MISSING words, preserving each
-    // existing item's SM-2 state. Non-destructive (never deletes or resets).
-    const { data: templates, error: tErr } = await supabase
-        .from('srs_items')
-        .select('word, translation')
-        .is('student_id', null)
-        .eq('unit_id', unitId);
-
-    if (tErr) {
-        log.warn('srs_templates_fetch_failed', { error: tErr.message });
-        return;
-    }
-    if (!templates || templates.length === 0) return;
-
-    const { data: existing } = await supabase
-        .from('srs_items')
-        .select('word')
-        .eq('student_id', studentId)
-        .eq('unit_id', unitId);
-
-    const toClone = diffMissingSRSWords(templates as { word: string }[], (existing || []) as { word: string }[]);
-    if (toClone.length === 0) return; // already in sync
-
-    const clones = toClone.map((t) => ({
-        unit_id: unitId,
-        student_id: studentId,
-        word: t.word,
-        translation: (templates as any[]).find((tp) => tp.word === t.word)?.translation ?? '',
-        ...SRS_DEFAULTS,
-        next_review: new Date().toISOString(),
-    }));
-
-    const { error: cloneError } = await supabase.from('srs_items').insert(clones);
-    if (cloneError) {
-        log.warn('srs_items_clone_failed', { error: cloneError.message });
-    }
-};
+// supabaseEnsureStudentSRSItems (legacy SM-2 word-template clone) removed
+// 2026-08-17: it created srs_items rows with objective_id NULL, which the
+// FSRS engine's selectPracticeItems explicitly excludes — dead data accruing
+// on every lesson. The objective-based path is services/learnerState.ts
+// (ensureStudentLearnerState), called via prepareUnitForStudent.
 
 // ------------------------------------------------------------------
 // Unified Engine — delegates to Supabase
@@ -493,11 +461,6 @@ export const Engine = {
     updateSRSItem: async (id: string, quality: number) => {
         requireSupabase();
         return supabaseUpdateSRSItem(id, quality);
-    },
-
-    ensureStudentSRSItems: async (unitId: string, studentId: string): Promise<void> => {
-        requireSupabase();
-        return supabaseEnsureStudentSRSItems(unitId, studentId);
     },
 
     // --- LearnerState (FSRS) seam (Phase 0.7) ---

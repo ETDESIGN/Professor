@@ -328,29 +328,14 @@ export const GamificationService = {
     return data || [];
   },
 
-  async getLeaderboard(classId?: string): Promise<any[]> {
-    // C2: read from class_roster_analytics_view so the leaderboard matches the
-    // live board's source of truth (roster_students + point_transactions +
-    // student_progress, INCLUDING unclaimed kids who have class points but no
-    // home account). Previously this read student_progress filtered by
-    // class_enrollments, which silently excluded every unclaimed roster
-    // student — so the board showed 20 kids but the leaderboard showed 5.
-    //
-    // total_points = class_points (ledger) + home_xp (student_progress) — the
-    // same formula the board's getSessionRoster uses, so a point awarded on
-    // the board appears on the leaderboard within one refetch.
-    let query = supabase
-      .from('class_roster_analytics_view')
-      .select('roster_student_id, student_name, avatar_url, total_points, class_points, home_xp, streak, gems, is_claimed')
-      .eq('is_archived', false)
-      .order('total_points', { ascending: false })
-      .limit(50);
+  async getLeaderboard(_classId?: string): Promise<any[]> {
+    // C2 + audit P0-4: rank by the roster model (class points ledger + home XP,
+    // including unclaimed roster kids) so it matches the live board — but via
+    // the get_class_leaderboard RPC, because the view's underlying RLS hides
+    // roster rows from students entirely (empty podium). The RPC scopes rows
+    // to the caller's enrolled classes.
+    const { data, error } = await supabase.rpc('get_class_leaderboard', { p_limit: 50 });
 
-    if (classId) {
-      query = query.eq('class_id', classId);
-    }
-
-    const { data, error } = await query;
     if (error) {
       log.warn('leaderboard_error', { error: error.message });
       return [];
@@ -358,14 +343,14 @@ export const GamificationService = {
 
     return (data || []).map((row: any, index: number) => ({
       rank: index + 1,
-      // Use roster_student_id as the identity — matches the board's state.students,
-      // so a leaderboard row can be cross-referenced with the picked/awarded student.
-      id: row.roster_student_id,
+      // Prefer the claimed profile id when present so clients comparing
+      // against auth.uid() highlight "(You)" correctly; unclaimed kids keep
+      // their roster id.
+      id: row.profile_id || row.roster_student_id,
       name: row.student_name || 'Student',
       avatar: row.avatar_url || '',
-      // Surface the unified total as `xp` (the field existing UI consumers sort by)
-      // AND as `points` for new consumers. Keeps backward compatibility with
-      // components that read .xp while making the roster-identity model explicit.
+      // Surface the unified total as `xp` (the field existing UI consumers
+      // read) AND as `points` for newer consumers.
       xp: row.total_points || 0,
       points: row.total_points || 0,
       streak: row.streak || 0,

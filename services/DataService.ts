@@ -791,10 +791,16 @@ export async function getStudentAssignments(studentId: string): Promise<Assignme
 }
 
 /**
- * Update a student's assignment status
+ * Update a student's assignment status.
+ *
+ * Keyed on (assignment_id, student_id) — the old signature took the
+ * student_assignment row id, but getStudentAssignments returns the
+ * ASSIGNMENT id as `id`, so every "Mark Done" updated the wrong key
+ * (audit P0-8, 2026-08-17).
  */
 export async function updateStudentAssignmentStatus(
-    studentAssignmentId: string,
+    assignmentId: string,
+    studentId: string,
     status: 'pending' | 'submitted' | 'graded',
     grade?: number
 ): Promise<void> {
@@ -814,7 +820,8 @@ export async function updateStudentAssignmentStatus(
     const { error } = await supabase
         .from('student_assignments')
         .update(updateData)
-        .eq('id', studentAssignmentId);
+        .eq('assignment_id', assignmentId)
+        .eq('student_id', studentId);
 
     if (error) {
         log.warn('error_updating_student_assignment', { error: error?.message || String(error) });

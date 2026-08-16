@@ -179,8 +179,8 @@ export function useStudentAssignments(studentId: string | undefined) {
 export function useSubmitAssignment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ assignmentId }: { assignmentId: string; studentId: string }) =>
-      updateStudentAssignmentStatus(assignmentId, 'submitted'),
+    mutationFn: ({ assignmentId, studentId }: { assignmentId: string; studentId: string }) =>
+      updateStudentAssignmentStatus(assignmentId, studentId, 'submitted'),
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['studentAssignments', variables.studentId] });
     },

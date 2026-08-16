@@ -29,12 +29,17 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
    ];
 
     const handleBuy = async (id: string, cost: number) => {
-       if (gemCount >= cost && !purchasedIds.includes(id)) {
-          const result = await buyItem.mutateAsync({ itemId: id, cost });
-          if (result.success) {
-             setPurchased(prev => [...prev, id]);
-             toast.success('Item purchased!');
-          }
+       if (purchasedIds.includes(id)) return;
+       if (gemCount < cost) {
+          toast.error('Not enough gems yet — keep learning to earn more!', { icon: '💎' });
+          return;
+       }
+       const result = await buyItem.mutateAsync({ itemId: id, cost });
+       if (result.success) {
+          setPurchased(prev => [...prev, id]);
+          toast.success('Item purchased!');
+       } else {
+          toast.error("Purchase failed — your gems weren't spent. Try again.");
        }
     };
 
@@ -137,17 +142,6 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                   })}
                </div>
             </section>
-
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-6 text-white text-center relative overflow-hidden">
-               <div className="relative z-10">
-                  <h3 className="font-black text-xl italic uppercase tracking-wider mb-2">Get Plus</h3>
-                  <p className="text-sm text-purple-100 mb-4">Unlimited hearts and no ads!</p>
-                  <button className="bg-white text-purple-600 font-bold px-6 py-3 rounded-xl shadow-lg active:scale-95 transition-transform">
-                     Try Free
-                  </button>
-               </div>
-               <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-            </div>
 
          </div>
       </div>

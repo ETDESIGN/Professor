@@ -9,6 +9,7 @@ vi.mock('../services/supabaseClient', () => ({
       delete: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       is: vi.fn().mockReturnThis(),
+      not: vi.fn().mockReturnThis(),
       gt: vi.fn().mockReturnThis(),
       lte: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
@@ -46,12 +47,7 @@ describe('SupabaseService Engine', () => {
     expect(typeof Engine.updateStudentProgress).toBe('function');
     expect(typeof Engine.fetchSRSItems).toBe('function');
     expect(typeof Engine.updateSRSItem).toBe('function');
-    expect(typeof Engine.ensureStudentSRSItems).toBe('function');
     expect(typeof Engine.simulateScan).toBe('function');
-  });
-
-  it('ensureStudentSRSItems is callable without error', async () => {
-    await expect(Engine.ensureStudentSRSItems('unit-1', 'student-1')).resolves.toBeUndefined();
   });
 
   it('fetchUnits returns an array', async () => {

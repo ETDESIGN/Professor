@@ -16,7 +16,7 @@ interface SentenceScrambleProps {
   };
 }
 
-const SentenceScramble: React.FC<SentenceScrambleProps> = ({ 
+const SentenceScramble: React.FC<SentenceScrambleProps> = ({
   onBack,
   mode = 'standalone',
   onReady,
@@ -24,22 +24,14 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
   onResult,
   data
 }) => {
-  const [targetSentence] = useState(data?.targetSentence || { en: '', translation: '' });
+  // Derived (never mutated) — reading from props each render avoids the
+  // frozen-state staleness the audit flagged.
+  const targetSentence = data?.targetSentence || { en: '', translation: '' };
 
   const [wordBank, setWordBank] = useState<{ id: string; text: string }[]>(data?.wordBank || []);
 
   const [placedWords, setPlacedWords] = useState<any[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // No-content empty state (replaces the hardcoded Spanish cat/mat defaults).
-  if (!targetSentence.en && wordBank.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-slate-400 font-bold mb-1">No sentence-building content for this activity.</p>
-        <p className="text-slate-300 text-sm">Tap Continue to proceed.</p>
-      </div>
-    );
-  }
 
   // Report readiness to parent
   useEffect(() => {
@@ -54,6 +46,18 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
       checkAnswer();
     }
   }, [validateTrigger]);
+
+  // No-content empty state (replaces the hardcoded Spanish cat/mat defaults).
+  // Kept AFTER all hooks — the previous early return between the useStates
+  // and useEffects violated the Rules of Hooks (audit 2026-08-17).
+  if (!targetSentence.en && wordBank.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-slate-400 font-bold mb-1">No sentence-building content for this activity.</p>
+        <p className="text-slate-300 text-sm">Tap Continue to proceed.</p>
+      </div>
+    );
+  }
 
   const handleWordClick = (word: any) => {
     if (showSuccess) return; // Locked

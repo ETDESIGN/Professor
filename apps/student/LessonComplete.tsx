@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Star, Check, ArrowRight, RefreshCw, Trophy, Gem } from 'lucide-react';
+import { Star, Check, ArrowRight, Trophy, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { GEM_REWARDS } from '../../constants/gamification';
 
 interface LessonCompleteProps {
   onContinue: () => void;
@@ -41,7 +42,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
   }, [stats.xp]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6 font-sans overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6 font-sans overflow-y-auto">
       {/* Background Burst */}
       <div className="absolute inset-0 z-0 opacity-20">
          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[conic-gradient(var(--tw-gradient-stops))] from-yellow-500 via-transparent to-transparent animate-spin-slow rounded-full blur-3xl"></div>
@@ -114,7 +115,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
                   </div>
                   <div className="text-left">
                      <div className="text-emerald-600 font-bold text-xs uppercase">Rewards</div>
-                     <div className="text-emerald-800 font-black">+20 Gems</div>
+                     <div className="text-emerald-800 font-black">+{GEM_REWARDS.PERFECT_LESSON} Gems</div>
                   </div>
                </div>
                <div className="text-emerald-400"><Check size={24} /></div>
@@ -128,14 +129,11 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
             transition={{ delay: 1.1 }}
             className="space-y-3"
          >
-            <button 
+            <button
                onClick={onContinue}
                className="w-full bg-duo-green hover:bg-duo-green-dark text-white font-bold text-lg py-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wide flex items-center justify-center gap-2"
             >
                Continue <ArrowRight size={24} />
-            </button>
-            <button className="w-full bg-white text-slate-400 font-bold py-3 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
-               <RefreshCw size={18} /> Review Mistakes
             </button>
          </motion.div>
       </div>

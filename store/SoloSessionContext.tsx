@@ -127,15 +127,6 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
         totalCorrect: 0,
         totalAttempts: 0,
       }));
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await Engine.ensureStudentSRSItems(unitId, user.id);
-        }
-      } catch (err) {
-        log.warn('srs_clone_error', { error: err instanceof Error ? err.message : String(err) });
-      }
     }
   };
 

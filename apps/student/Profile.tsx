@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { ChevronLeft, Settings, Camera, Flame, Zap, Trophy, Mic, Play, Share2 } from 'lucide-react';
+import { ChevronLeft, Settings, Camera, Flame, Zap, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useSoloSession } from '../../store/SoloSessionContext';
 import { useAppStore } from '../../store/useAppStore';
 import { XP_LEVELS } from '../../constants/gamification';
 
@@ -19,7 +18,6 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
-   const { state } = useSoloSession();
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 
@@ -68,7 +66,9 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                   Level {stats.level}: {levelLabel}
                </div>
 
-               {/* Stats Row */}
+               {/* Stats Row — real data only (fake "#4 League" card removed
+                   along with the mock "My Studio" and "Unit 4 Review" promo,
+                   audit 2026-08-17). */}
                <div className="grid grid-cols-3 gap-3 w-full">
                   <motion.div
                      initial={{ scale: 0.8, opacity: 0 }}
@@ -96,75 +96,20 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                      transition={{ delay: 0.3 }}
                      className="bg-white p-3 rounded-xl border border-slate-200 shadow-[0_4px_0_0_#e2e8f0] flex flex-col items-center gap-1"
                   >
-                     <Trophy className="text-purple-500 fill-purple-500" size={24} />
-                     <span className="font-bold text-slate-800 text-lg">#4</span>
-                     <span className="text-[10px] font-bold text-slate-400 uppercase">League</span>
+                     <Gem className="text-blue-500 fill-blue-500" size={24} />
+                     <span className="font-bold text-slate-800 text-lg">{stats.gems}</span>
+                     <span className="text-[10px] font-bold text-slate-400 uppercase">Gems</span>
                   </motion.div>
                </div>
             </motion.div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4">
-               <button
-                  onClick={onCustomize}
-                  className="bg-duo-green hover:bg-duo-green-dark text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all"
-               >
-                  Customize Avatar
-               </button>
-               <button className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-3 px-4 rounded-xl shadow-[0_4px_0_0_#e2e8f0] active:shadow-none active:translate-y-1 transition-all">
-                  View Report
-               </button>
-            </div>
-
-            <div className="h-px bg-slate-200 w-full my-4"></div>
-
-            {/* Dubbing Studio Section */}
-            <div>
-               <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-bold text-slate-800 text-lg">My Studio</h2>
-                  <button className="text-duo-blue font-bold text-sm">See all</button>
-               </div>
-
-               <div className="grid grid-cols-2 gap-4">
-                  {/* New Record Card */}
-                  <button className="aspect-[4/5] rounded-xl border-2 border-dashed border-slate-300 hover:border-duo-green hover:bg-green-50 flex flex-col items-center justify-center gap-2 group transition-colors">
-                     <div className="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-duo-green text-slate-400 group-hover:text-white flex items-center justify-center transition-colors">
-                        <Mic size={24} />
-                     </div>
-                     <span className="text-sm font-bold text-slate-500 group-hover:text-duo-green">Record New</span>
-                  </button>
-
-                  {/* Video Card */}
-                  <div className="aspect-[4/5] bg-slate-800 rounded-xl overflow-hidden relative group">
-                      <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=studio&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} className="w-full h-full object-cover opacity-80" alt="Video" />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col justify-end p-3">
-                        <h3 className="text-white font-bold text-sm truncate">The Lost Hat</h3>
-                        <div className="text-xs text-white/60 mb-2">Oct 24 • Level 1</div>
-                        <div className="flex gap-2">
-                           <button className="w-8 h-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/40">
-                              <Play size={14} fill="white" />
-                           </button>
-                           <button className="w-8 h-8 rounded-full bg-white/20 backdrop-blur flex items-center justify-center text-white hover:bg-white/40">
-                              <Share2 size={14} />
-                           </button>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            {/* Learning Path Promo */}
-            <div className="bg-gradient-to-r from-cyan-400 to-blue-500 rounded-2xl p-5 text-white relative overflow-hidden shadow-lg">
-               <div className="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
-               <div className="relative z-10">
-                  <div className="text-xs font-bold uppercase opacity-80 mb-1">Up Next</div>
-                  <h3 className="text-xl font-bold mb-1">Unit 4 Review</h3>
-                  <p className="text-sm opacity-90 mb-4">Keep your streak alive!</p>
-                  <button className="bg-white text-blue-600 font-bold px-6 py-2 rounded-lg shadow-sm active:scale-95 transition-transform">
-                     Start Now
-                  </button>
-               </div>
-            </div>
+            <button
+               onClick={onCustomize}
+               className="w-full bg-duo-green hover:bg-duo-green-dark text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all"
+            >
+               Customize Avatar
+            </button>
 
          </div>
       </div>

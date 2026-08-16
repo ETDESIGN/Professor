@@ -224,16 +224,15 @@ describe('Phase 9 Tests', () => {
     });
   });
 
-  describe('T9.02: SRS Item Cloning', () => {
-    it('Engine.ensureStudentSRSItems is a callable function', () => {
-      expect(typeof Engine.ensureStudentSRSItems).toBe('function');
-    });
-
-    it('Engine has ensureStudentSRSItems method alongside other methods', () => {
-      expect(Engine).toHaveProperty('ensureStudentSRSItems');
+  describe('T9.02: SRS Item Cloning (removed)', () => {
+    // ensureStudentSRSItems (legacy SM-2 clone) was removed 2026-08-17 — it
+    // created objective_id-NULL rows the FSRS engine excludes. The objective-
+    // based path lives in services/learnerState.ts.
+    it('Engine no longer exposes the legacy SM-2 clone', () => {
       expect(Engine).toHaveProperty('fetchSRSItems');
       expect(Engine).toHaveProperty('updateSRSItem');
       expect(Engine).toHaveProperty('fetchUnits');
+      expect(Engine).not.toHaveProperty('ensureStudentSRSItems');
     });
   });
 

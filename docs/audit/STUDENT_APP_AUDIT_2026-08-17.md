@@ -75,8 +75,20 @@ Auth gate + role guard; solo lesson player (`SoloLessonPlayer.tsx`, all step typ
 7. Migration: `student_progress` auto-create trigger + backfill (fixes XP/gems/hearts/shop silent no-ops).
 8. Migration: `join_class_by_code` SECURITY DEFINER RPC + DataService rewire (fixes join-class RLS deadlock).
 
-### Phase 2 — functional correctness
-Leaderboard student view (student-safe view/RPC + fix `(You)` id compare); homework wiring end-to-end (create `student_assignments` rows on assignment/publish; fix update key); shop/quest failure surfacing + remove fabricated fallbacks; retire hub dual mounts; remove legacy SM-2 SRS clone path; FlashMatch/SentenceScramble hooks fix; CSP `frame-src https://www.youtube-nocookie.com` for media steps; remove remaining fake data (Profile/Quests/Settings/Help).
+### Phase 2 — functional correctness (COMPLETED 2026-08-17)
+1. ✅ Leaderboard: `get_class_leaderboard` SECURITY DEFINER RPC (migration `20260817000003`) — same roster model as the board (class points + home XP incl. unclaimed kids), scoped to the caller's classes; `GamificationService.getLeaderboard` rewired to it; `(You)` now matches via `claimed_profile_id`.
+2. ✅ Homework: `on_assignment_created` trigger fans out `student_assignments` rows per enrolled student + backfill (migration `20260817000004`); `updateStudentAssignmentStatus` now keys on `(assignment_id, student_id)` instead of the wrong row id. Known gap: students joining a class after an assignment is created don't receive that older assignment (INSERT-time fan-out only).
+3. ✅ Shop/quest failure surfacing (error toasts) + fabricated quest fallbacks, weekly-challenge placeholder and "Get Plus" dead block removed.
+4. ✅ Hub dual mounts retired: `App.tsx` portal routes now `PortalRedirect` (full-page handoff to the standalone entries); board/remote/onboarding/login/claim hub routes unchanged.
+5. ✅ Legacy SM-2 SRS clone removed (`Engine.ensureStudentSRSItems` + call sites); `fetchSRSItems` now filters `objective_id NOT NULL` so badges count only FSRS items. Existing NULL-objective rows were left in place (displayed nowhere; deletion needs owner sign-off).
+6. ✅ Rules-of-Hooks fixed in `FlashMatch` / `SentenceScramble` (empty-state returns moved below all hooks; SentenceScramble no longer freezes `targetSentence`).
+7. ✅ CSP: `frame-src https://www.youtube.com https://www.youtube-nocookie.com` + `img-src … https://i.ytimg.com` — YouTube MEDIA_PLAYER steps now work in production.
+8. ✅ Fake data removed: Profile "#4 League"/"My Studio"/"Unit 4 Review" promo/"View Report"; Settings fake level-streak/dead buttons (toggles now persist to localStorage); HelpCenter dead contact/legal buttons (search now filters FAQs); LessonComplete "+20 Gems" now shows the real `GEM_REWARDS.PERFECT_LESSON` and the dead "Review Mistakes" button is gone (card also scrolls on short screens).
+
+### Phase 2 — remaining items (moved to Phase 3/4 backlog)
+- Power-ups (Streak Freeze / Heart Refill) still have no gameplay effect — nothing consumes `student_inventory` (needs a consumer in learnerState/hearts flow).
+- Hardcoded XP/accuracy results for pronounce/reading/phonics exits (`StudentApp.tsx` onBack handlers) — computing real results requires child components to report outcomes.
+- `reach_familiar` quest type still missing from `quest_templates` seed (progress updates on a quest that never exists).
 
 ### Phase 3 — content pipeline
 Depends on the existing `generate-exercises` fix plan (`docs/brainstorming/02_FOUNDATION_DEEPDIVE.md` §1: stamp `teacher_id` at unit creation, backfill NULL-owner units, make the orchestrator trigger reliable/re-runnable). Without it, Phases 1-2 still leave practice empty. Also: student RLS on `pool_items`/`objectives` requires per-unit assignment rows — either seed them on enrollment or relax via RPC.

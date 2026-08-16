@@ -1,8 +1,7 @@
 
 import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { SessionProvider, useSession } from './store/SessionContext';
-import { SoloSessionProvider } from './store/SoloSessionContext';
+import { SessionProvider } from './store/SessionContext';
 import { Toaster } from 'sonner';
 import Hub from './apps/Hub';
 import Login from './apps/Login';
@@ -21,11 +20,6 @@ const log = createClientLogger('App');
 
 const ClassroomBoard = lazy(() => import('./apps/board/ClassroomBoard'));
 const TeacherRemote = lazy(() => import('./apps/remote/TeacherRemote'));
-const StudentApp = lazy(() => import('./apps/student/StudentApp'));
-const TeacherDashboard = lazy(() => import('./apps/teacher/TeacherDashboard'));
-const ParentApp = lazy(() => import('./apps/parent/ParentApp'));
-const LiveCommander = lazy(() => import('./apps/teacher/LiveCommander'));
-const AdminPortal = lazy(() => import('./apps/admin/AdminPortal'));
 const TeacherOnboarding = lazy(() => import('./apps/teacher/TeacherOnboarding'));
 const StudentOnboarding = lazy(() => import('./apps/student/StudentOnboarding'));
 const ParentOnboarding = lazy(() => import('./apps/parent/ParentOnboarding'));
@@ -62,14 +56,16 @@ function homePathForRole(role: string | undefined): string {
   return '/student';
 }
 
-/** Post-live-exit wrapper: reads the active unit from the session so it can
- * navigate to the Unit Studio (or /teacher/units fallback). Must be rendered
- * inside <SessionProvider>. */
-const LiveCommanderRoute: React.FC = () => {
-  const navigate = useNavigate();
-  const { state } = useSession();
-  const unitId = state.activeUnit?.id;
-  return <LiveCommander onExit={() => navigate(unitId ? `/teacher/unit/${unitId}` : '/teacher/units')} />;
+/** Portals are separate Vite entries served by the vercel.json rewrites
+ * (/student, /teacher, ...) — the hub no longer embeds them (the dual mount
+ * is what caused the basename routing bug, audit 2026-08-17). A full-page
+ * navigation to the same path hands off to the correct entry. */
+const PortalRedirect: React.FC = () => {
+  const location = useLocation();
+  useEffect(() => {
+    window.location.replace(location.pathname + location.search);
+  }, [location.pathname, location.search]);
+  return <PageLoader />;
 };
 
 const App: React.FC = () => {
@@ -192,23 +188,17 @@ const App: React.FC = () => {
 
         <Route path="/claim" element={<RouteErrorBoundary name="claim"><Suspense fallback={<PageLoader />}><ClaimStudent /></Suspense></RouteErrorBoundary>} />
 
-        <Route path="/admin/*" element={<RouteErrorBoundary name="admin"><Suspense fallback={<PageLoader />}><AdminPortal /></Suspense></RouteErrorBoundary>} />
+        {/* Portal entries live in their own HTML bundles — hand off with a
+            full-page navigation (see PortalRedirect above). */}
+        <Route path="/admin/*" element={<PortalRedirect />} />
 
-        <Route path="/teacher/*" element={<RouteErrorBoundary name="teacher"><Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense></RouteErrorBoundary>} />
-        <Route path="/teacher/live" element={<RouteErrorBoundary name="live-commander"><Suspense fallback={<PageLoader />}><LiveCommanderRoute /></Suspense></RouteErrorBoundary>} />
+        <Route path="/teacher/live" element={<PortalRedirect />} />
+        <Route path="/teacher/*" element={<PortalRedirect />} />
 
         <Route path="/board" element={<RouteErrorBoundary name="classroom-board"><Suspense fallback={<PageLoader />}><ClassroomBoard /></Suspense></RouteErrorBoundary>} />
         <Route path="/remote" element={<RouteErrorBoundary name="teacher-remote"><Suspense fallback={<PageLoader />}><TeacherRemote /></Suspense></RouteErrorBoundary>} />
-        <Route path="/student/*" element={<RouteErrorBoundary name="student"><Suspense fallback={<PageLoader />}><SoloSessionProvider><StudentApp onSignOut={async () => {
-          await supabase.auth.signOut();
-          useAppStore.getState().clearUserProfile();
-          window.location.assign(window.location.origin);
-        }} /></SoloSessionProvider></Suspense></RouteErrorBoundary>} />
-        <Route path="/parent/*" element={<RouteErrorBoundary name="parent"><Suspense fallback={<PageLoader />}><ParentApp onSignOut={async () => {
-          await supabase.auth.signOut();
-          useAppStore.getState().clearUserProfile();
-          window.location.assign(window.location.origin);
-        }} /></Suspense></RouteErrorBoundary>} />
+        <Route path="/student/*" element={<PortalRedirect />} />
+        <Route path="/parent/*" element={<PortalRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
 
