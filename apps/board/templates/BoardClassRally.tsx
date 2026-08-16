@@ -23,6 +23,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { logAttempt } from './scoreAttempt';
 import { playCue } from './playCue';
 import { playAudioUrl } from '../../../services/SpeechService';
+import { recordChoralReview } from '../../../services/boardLearner';
 import type { PoolItem } from '../../../types/exercise';
 
 /** MCQ option — IMAGE_SELECT rows carry {image_url, label?} objects. */
@@ -52,7 +53,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
 
   const [questionIdx, setQuestionIdx] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [phase, setPhase] = useState<'question' | 'feedback' | 'victory'>('question');
+  const [phase, setPhase] = useState<'question' | 'choral' | 'feedback' | 'victory'>('question');
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [lastMilestone, setLastMilestone] = useState(0);
   const [showMilestone, setShowMilestone] = useState<number | null>(null);
@@ -64,6 +65,11 @@ const BoardClassRally = ({ data }: { data: any }) => {
   // bar these persist across picks within the slide; no scoring multiplier —
   // the bar is collective — just the 3/5 cue + confetti moments.
   const studentStreaksRef = useRef<Record<string, number>>({});
+  // Choral mode (Tier 2, NEWGEN_AUDIT Part 4 #12): the whole class answers
+  // together — no individual points, the bar fills on a strong class answer
+  // and the FSRS signal is the roster-wide recordChoralReview write. Latched
+  // per question so a double remote tap can't double-fill.
+  const choralResolvedRef = useRef(false);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
@@ -112,6 +118,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
     if (turnId === null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    choralResolvedRef.current = false;
     setSelectedOption(null);
     setRevealedIdx(null);
     setPhase('question');
@@ -124,6 +131,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
     if (type === 'RESET_GAME') {
       mistakesRef.current = 0;
       awardedRef.current = false;
+      choralResolvedRef.current = false;
       studentStreaksRef.current = {};
       setQuestionIdx(0);
       setSelectedOption(null);
@@ -133,9 +141,26 @@ const BoardClassRally = ({ data }: { data: any }) => {
       setLastMilestone(0);
       setShowMilestone(null);
     } else if (type === 'SKIP_ITEM') {
-      advanceQuestion();
+      if (phase === 'choral') {
+        // During choral mode Skip doubles as the "class struggled" mark.
+        resolveChoral(false);
+      } else {
+        advanceQuestion();
+      }
     } else if (type === 'MARK_CORRECT') {
-      handleForceCorrect();
+      if (phase === 'choral') {
+        // During choral mode Correct doubles as the "class nailed it" mark.
+        resolveChoral(true);
+      } else {
+        handleForceCorrect();
+      }
+    } else if (type === 'CHORAL_ROUND') {
+      // Enter choral mode from the question phase (remote "ALL ANSWER").
+      if (phase === 'question' && !awardedRef.current && revealedIdx === null) {
+        choralResolvedRef.current = false;
+        setSelectedOption(null);
+        setPhase('choral');
+      }
     } else if (type === 'SLIDE_COMPLETE') {
       // Forced end from the teacher — settle into the complete state.
       setPhase('victory');
@@ -218,6 +243,42 @@ const BoardClassRally = ({ data }: { data: any }) => {
     resolveCorrect();
   };
 
+  // Choral resolution (Tier 2): the CLASS answers together — no individual
+  // points; a strong answer fills the bar, the FSRS signal is the roster-wide
+  // recordChoralReview write (Tier 3, same as LiveClassWarmup). Marked from
+  // the board's two big buttons or the remote (Correct = strong, Skip = weak).
+  const resolveChoral = (strong: boolean) => {
+    if (!currentQuestion || phase !== 'choral' || choralResolvedRef.current) return;
+    choralResolvedRef.current = true;
+    const objectiveId = currentQuestion.poolItem.objective_id;
+    recordChoralReview(objectiveId, roster, strong ? 'strong' : 'weak').catch(() => {});
+
+    if (strong) {
+      playCue('correct');
+      triggerConfetti();
+      setSelectedOption(currentQuestion.correctIndex);
+      const newTotal = totalCorrect + 1;
+      setTotalCorrect(newTotal);
+      checkMilestone(newTotal);
+      setPhase('feedback');
+      setTimeout(() => {
+        if (newTotal >= TARGET_CORRECT) {
+          setPhase('victory');
+          playCue('win');
+          if (typeof triggerConfetti === 'function') triggerConfetti();
+          triggerAction('SLIDE_COMPLETE', { forced: false });
+        } else {
+          advanceQuestion();
+        }
+      }, 900);
+    } else {
+      // Weak choral answer: reveal + teach, no bar change, then move on.
+      playCue('reveal');
+      setRevealedIdx(currentQuestion.correctIndex);
+      setTimeout(() => advanceQuestion(), 2200);
+    }
+  };
+
   const handleOptionSelect = (idx: number) => {
     if (!currentQuestion || phase !== 'question' || revealedIdx !== null) return;
     const correct = currentQuestion.correctIndex;
@@ -264,6 +325,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
   const advanceQuestion = () => {
     mistakesRef.current = 0;
     awardedRef.current = false;
+    choralResolvedRef.current = false;
     setSelectedOption(null);
     setRevealedIdx(null);
     setPhase('question');
@@ -354,6 +416,86 @@ const BoardClassRally = ({ data }: { data: any }) => {
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
+        {phase === 'choral' && (
+          <motion.div
+            key={`choral-${questionIdx}`}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="flex-1 flex flex-col items-center justify-center"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+              className="mb-4 px-10 py-3 bg-gradient-to-r from-fuchsia-600 to-purple-600 rounded-full text-white text-4xl font-black tracking-widest shadow-xl"
+            >
+              📣 EVERYONE!
+            </motion.div>
+            <div className="text-xl text-fuchsia-800 font-bold mb-4">The whole class answers together!</div>
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl w-full mb-6">
+              <div className="text-center text-3xl text-gray-800 mb-4">{currentQuestion.prompt}</div>
+              {currentQuestion.audioUrl && (
+                <div className="text-center">
+                  <button
+                    onClick={playAudio}
+                    className="px-6 py-3 bg-fuchsia-500 hover:bg-fuchsia-600 text-white rounded-xl font-bold inline-flex items-center gap-2"
+                  >
+                    <Volume2 size={20} /> Listen again
+                  </button>
+                </div>
+              )}
+            </div>
+            {revealedIdx === null ? (
+              <div className="flex gap-6">
+                <motion.button
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => resolveChoral(true)}
+                  className="px-10 py-6 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-2xl font-black shadow-lg"
+                >
+                  ✓ CLASS NAILED IT
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => resolveChoral(false)}
+                  className="px-10 py-6 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-2xl font-black shadow-lg"
+                >
+                  ✗ NEEDS PRACTICE
+                </motion.button>
+              </div>
+            ) : (
+              <div className="text-2xl font-bold text-amber-700">
+                The answer was: {currentQuestion.options[currentQuestion.correctIndex]?.label}
+              </div>
+            )}
+            {currentQuestion.explanation && revealedIdx !== null && (
+              <div className="mt-3 p-3 bg-amber-50 border-2 border-amber-200 rounded-xl text-amber-900 max-w-2xl text-center">
+                {currentQuestion.explanation}
+              </div>
+            )}
+            {/* Options visible so the class can read them while answering together */}
+            <div className="mt-6 grid grid-cols-2 gap-3 opacity-80 pointer-events-none">
+              {currentQuestion.options.map((option, idx) => (
+                <div
+                  key={`choral-${idx}`}
+                  className={`rounded-xl p-4 border-2 text-lg font-semibold ${
+                    revealedIdx === idx
+                      ? 'bg-amber-100 border-amber-400 ring-4 ring-amber-400'
+                      : 'bg-white border-gray-200 text-gray-800'
+                  }`}
+                >
+                  {option.imageUrl ? (
+                    <span className="flex items-center gap-3">
+                      <img src={option.imageUrl} alt={option.label || ''} className="w-14 h-14 object-cover rounded-lg" />
+                      {option.label && <span>{option.label}</span>}
+                    </span>
+                  ) : (
+                    option.label
+                  )}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
         {phase === 'question' && (
           <motion.div
             key={`q-${questionIdx}`}

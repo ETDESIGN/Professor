@@ -26,6 +26,13 @@
 // MARK_CORRECT phase guard, MCQ hint now ELIMINATES a wrong option instead of
 // painting the answer yellow, TRANSFORM bank carries real distractors,
 // pure-updater advance, SLIDE_COMPLETE broadcast + inbound handling.
+//
+// 2026-08-17 steal mechanic: STEAL_OFFER landing during the 2nd-miss reveal
+// hold cancels the reveal→advance timer and freezes the question (the turnId
+// reset effect is suppressed while a steal is live, so the stealer pick's
+// NEW_TURN can't wipe the item). The picked stealer re-answers the SAME item
+// for HALF points (the ratio arg does the halving — no streak multiplier on
+// steals), one steal per question (latched until the item advances).
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,6 +59,12 @@ interface GrammarItem {
 // so round 3 pulls the higher-rung shapes via the engine.
 const TOTAL_ROUNDS = 3;
 
+/** Steal banner render state (STEAL_OFFER flow). Null = no steal live. */
+type StealBanner =
+  | { kind: 'offer' }
+  | { kind: 'active'; name: string }
+  | { kind: 'stolen'; name: string; points: number };
+
 const BoardGrammarLab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
@@ -62,6 +75,20 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
   const resolvedRef = useRef(false);
   /** Completion latch — makes the SLIDE_COMPLETE broadcast idempotent. */
   const completeRef = useRef(false);
+  /** Steal phase: null = none live; 'pending' = STEAL_OFFER accepted, waiting
+   *  for the teacher to pick the stealer; 'active' = stealer answering the
+   *  SAME item. One steal per item — latched until the item advances. Kept in
+   *  a ref (not state) because handlers/effects must read it synchronously,
+   *  most critically the turnId reset effect, which must be a no-op while a
+   *  steal is live (the stealer pick's NEW_TURN must not wipe the item). */
+  const stealPhaseRef = useRef<'pending' | 'active' | null>(null);
+  const stealerIdRef = useRef<string | null>(null);
+  const preStealWinnerRef = useRef<string | null>(null);
+  const [stealBanner, setStealBanner] = useState<StealBanner | null>(null);
+  /** Pending auto-advance (reveal hold / feedback hold / stolen celebration).
+   *  STEAL_OFFER must be able to cancel it or the question would slide on
+   *  mid-steal. */
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [currentItemIdx, setCurrentItemIdx] = useState(0);
   const [phase, setPhase] = useState<'pattern' | 'answer' | 'feedback' | 'complete' | 'empty'>('pattern');
@@ -78,6 +105,44 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id).filter(Boolean), [state.students]);
+
+  // ── Steal plumbing (STEAL_OFFER → pick → half-points steal) ──────────────
+  /** Schedule the auto-advance through the cancellable ref so a steal (or a
+   *  remote SKIP/RESET racing a hold) can kill it. The callback nulls the ref
+   *  BEFORE running, so a self-fired advance can never clear a live timer. */
+  const scheduleAdvance = (fn: () => void, ms: number) => {
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      fn();
+    }, ms);
+  };
+  const cancelAdvance = () => {
+    if (advanceTimerRef.current !== null) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  };
+  /** Full steal teardown — every advance/reset/completion path calls this, so
+   *  a steal never leaks across items, turns, or a RESET_GAME. */
+  const clearSteal = () => {
+    cancelAdvance();
+    stealPhaseRef.current = null;
+    stealerIdRef.current = null;
+    preStealWinnerRef.current = null;
+    setStealBanner(null);
+  };
+  const resolveName = (id: string | null): string => {
+    const s = (state.students || []).find((st: any) => st.id === id);
+    return s?.name || s?.full_name || s?.display_name || 'Student';
+  };
+  const beginStealPending = () => {
+    // CRITICAL: kill the reveal hold's pending advance so the question STAYS.
+    cancelAdvance();
+    stealPhaseRef.current = 'pending';
+    preStealWinnerRef.current = state.quickWheelWinner;
+    stealerIdRef.current = null;
+    setStealBanner({ kind: 'offer' });
+  };
 
   // ── Content: ERROR_SPOT / TRANSFORM / GRAMMAR_FILL via the director ────
   const { items: poolItems, loading } = useEscalatingPool({
@@ -151,6 +216,12 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
   // ── Lifecycle: reset everything on a NEW picked student ─────────────────
   useEffect(() => {
     if (turnId === null) return;
+    // STEAL FREEZE: picking the stealer is a normal pick, which broadcasts
+    // SPIN_WHEEL + NEW_TURN — the NEW_TURN turnId change would normally wipe
+    // the board back to round 1 / item 0. While a steal is pending or active
+    // the stolen item is frozen in place; the steal refs are cleared on the
+    // item's advance/reset instead, after which normal per-pick resets resume.
+    if (stealPhaseRef.current !== null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
     resolvedRef.current = false;
@@ -169,6 +240,31 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     setRoundTransition(false);
   }, [turnId]);
 
+  // ── Steal lock-in: convert the stealer pick into an active steal ────────
+  // A pick broadcasts SPIN_WHEEL (quickWheelWinner changes NOW) and NEW_TURN
+  // (currentTurnId changes ~2.5s later, after the wheel animation). The turnId
+  // effect above is frozen while the steal is live, so neither half of the
+  // pick can wipe the item; THIS effect is what locks the pick in. It only
+  // acts while a steal is pending — quickWheelWinner changes at any other
+  // time (a fresh turn after the steal resolved) are ignored here.
+  useEffect(() => {
+    if (stealPhaseRef.current !== 'pending') return;
+    const winner = state.quickWheelWinner;
+    if (!winner || winner === preStealWinnerRef.current) return; // same kid re-picked → keep waiting
+    stealPhaseRef.current = 'active';
+    stealerIdRef.current = winner;
+    // Re-present the SAME item, answerable by the stealer: clear the amber
+    // reveal ring, un-latch the resolve guard (it blocked input during the
+    // reveal hold / steal-pending), wipe the first student's wrong
+    // selection/tiles so the stealer gets a clean board.
+    resolvedRef.current = false;
+    setRevealed(false);
+    setSelectedOption(null);
+    setBuildTiles([]);
+    setStealBanner({ kind: 'active', name: resolveName(winner) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.quickWheelWinner]);
+
   // ── Empty state once the pool resolves with nothing usable ─────────────
   useEffect(() => {
     if (!loading && !roundTransition && grammarItems.length === 0 && !completeRef.current) setPhase('empty');
@@ -179,6 +275,7 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     if (!state.lastAction) return;
     const { type } = state.lastAction;
     if (type === 'RESET_GAME') {
+      clearSteal();
       mistakesRef.current = 0;
       awardedRef.current = false;
       resolvedRef.current = false;
@@ -223,6 +320,15 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
       // completeRef stops us echoing our own broadcast back (our own
       // optimistic lastAction update re-enters this listener).
       completeGame(false);
+    } else if (type === 'STEAL_OFFER') {
+      // Steal window: ONLY while the 2nd-miss reveal hold is on screen
+      // (phase 'answer' + revealed — the only moment `revealed` is true).
+      // Everywhere else (1st miss, pattern/feedback/complete) the tap is a
+      // harmless no-op. resolvedRef is still latched here, so the original
+      // student cannot sneak an answer while the steal waits for the pick.
+      if (phase === 'answer' && revealed && !completeRef.current && stealPhaseRef.current === null) {
+        beginStealPending();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
@@ -237,6 +343,12 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
   // ── Scoring helpers (per-item attempt lifecycle) ────────────────────────
   const handleSuccess = (partialCreditRatio: number, forced = false) => {
     if (!currentItem || resolvedRef.current || phase !== 'answer') return;
+    // MARK_CORRECT (or any success routing) during a live steal resolves the
+    // STEAL — half points to the stealer — never a full-price override.
+    if (stealPhaseRef.current === 'active') {
+      handleStealCorrect();
+      return;
+    }
     resolvedRef.current = true;
     playCue('correct');
     const nextStreak = streak + 1;
@@ -272,7 +384,7 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     setLastAward(points);
     setPhase('feedback');
     // Dead-time compression: pure celebration holds ≤900ms (audit fix).
-    setTimeout(() => advanceToNext(), 900);
+    scheduleAdvance(() => advanceToNext(), 900);
   };
 
   const handleMiss = () => {
@@ -305,10 +417,56 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     playCue('reveal');
     resolvedRef.current = true;
     setRevealed(true);
-    setTimeout(() => {
+    scheduleAdvance(() => {
       setRevealed(false);
       advance();
     }, 2200);
+  };
+
+  // ── Steal resolution ─────────────────────────────────────────────────────
+  // Stealer CORRECT: HALF points via the ratio arg (the halving mechanism),
+  // no streak multiplier — steals never count toward streaks. Awarded to the
+  // LATCHED stealer id (quickWheelWinner already points at them after the
+  // pick, but the latch is authoritative even if another pick sneaks in).
+  const handleStealCorrect = () => {
+    if (!currentItem || resolvedRef.current || phase !== 'answer') return;
+    const stealer = stealerIdRef.current;
+    if (!stealer) return;
+    resolvedRef.current = true;
+    playCue('correct');
+    const difficulty = currentItem.poolItem.difficulty || 2;
+    const points = scoreForAttempt(mistakesRef.current, difficulty, 0.5);
+    if (!awardedRef.current) {
+      awardedRef.current = true;
+      if (points > 0) addPoints(stealer, points);
+      logAttempt({
+        state,
+        picked: stealer,
+        unitId,
+        objectiveId: currentItem.poolItem.objective_id,
+        exerciseType: currentItem.poolItem.exercise_type,
+        difficulty,
+        correctness: 'correct',
+        modality: currentItem.shape === 'transform' ? 'productive' : 'receptive',
+        pushToRemediation,
+      });
+    }
+    setLastAward(points);
+    setPhase('feedback');
+    setStealBanner({ kind: 'stolen', name: resolveName(stealer), points });
+    scheduleAdvance(() => advanceToNext(), 1200);
+  };
+
+  // Stealer WRONG: one shot only — wrong cue, then the standard reveal path
+  // (answer + explanation, ~2.2s teaching hold) and advance. No penalty /
+  // attempt logged against the stealer (the original student already paid
+  // for the misses), and NO second steal — stealPhaseRef stays latched until
+  // the advance clears it, so a repeat STEAL_OFFER is rejected.
+  const handleStealWrong = () => {
+    if (!currentItem || resolvedRef.current || phase !== 'answer') return;
+    playCue('wrong');
+    setStealBanner(null);
+    revealAnswer(() => advanceToNext());
   };
 
   // Natural completion → terminal card + SLIDE_COMPLETE broadcast. The ref
@@ -317,6 +475,7 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
   const completeGame = (broadcast = true) => {
     if (completeRef.current) return;
     completeRef.current = true;
+    clearSteal(); // forced End during a steal: tear it down + kill pending holds
     playCue('win');
     setPhase('complete');
     if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
@@ -328,6 +487,12 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     if (eliminated.includes(idx)) return;
     const content = currentItem.poolItem.content as ErrorSpotContent | GrammarFillContent;
     setSelectedOption(idx);
+    if (stealPhaseRef.current === 'active') {
+      // Stealer answers through the same UI: half points or the reveal.
+      if (idx === content.correct_index) handleStealCorrect();
+      else handleStealWrong();
+      return;
+    }
     if (idx === content.correct_index) {
       handleSuccess(1.0);
     } else {
@@ -351,6 +516,13 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     const content = currentItem.poolItem.content as TransformContent;
     const target = (content.options?.[content.correct_index] || '').split(' ');
     const ratio = computeLCSPartialCredit(buildTiles, target);
+    if (stealPhaseRef.current === 'active') {
+      // Steal attempts are flat half-of-base — the 0.5 ratio in
+      // handleStealCorrect does the halving, so LCS partials don't stack.
+      if (ratio >= PARTIAL_PASS_THRESHOLD) handleStealCorrect();
+      else handleStealWrong();
+      return;
+    }
     if (ratio >= PARTIAL_PASS_THRESHOLD) {
       handleSuccess(ratio);
     } else {
@@ -366,6 +538,12 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
   // effects now live here, in the calling callback.
   const advanceToNext = () => {
     if (completeRef.current) return;
+    // A steal lives within the current item ONLY — every advance path
+    // (answer, reveal, steal resolution, SKIP_ITEM escape hatch) lands here,
+    // so this is the single funnel that retires the steal. cancelAdvance
+    // inside clearSteal also kills any straggling hold timer, fixing the
+    // latent double-advance when SKIP races a reveal/feedback hold.
+    clearSteal();
     const resetItemState = () => {
       // Per-item attempt reset — each item is its own scored attempt.
       mistakesRef.current = 0;
@@ -480,6 +658,33 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
           </div>
         )}
       </div>
+
+      {/* Steal banner (STEAL_OFFER → pick → half-points steal) */}
+      <AnimatePresence>
+        {stealBanner && (
+          <motion.div
+            key={stealBanner.kind}
+            initial={{ y: -24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -24, opacity: 0 }}
+            className={`mb-4 mx-auto w-fit px-8 py-3 rounded-2xl text-center text-white shadow-2xl ${
+              stealBanner.kind === 'stolen' ? 'bg-green-600' : 'bg-purple-600'
+            }`}
+          >
+            {stealBanner.kind === 'offer' && (
+              <div className="text-2xl font-black animate-pulse">🆚 STEAL CHANCE! Pick the stealer!</div>
+            )}
+            {stealBanner.kind === 'active' && (
+              <div className="text-2xl font-black">
+                🆚 {stealBanner.name} — steal for <span className="text-yellow-300">HALF</span> points!
+              </div>
+            )}
+            {stealBanner.kind === 'stolen' && (
+              <div className="text-3xl font-black">⚡ STOLEN! {stealBanner.name} +{stealBanner.points}</div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {/* Pattern beat */}

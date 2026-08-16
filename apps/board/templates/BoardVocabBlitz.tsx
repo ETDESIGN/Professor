@@ -11,6 +11,15 @@
 //   6. Final Blitz round as closer
 //
 // Zero teacher typing. All tap-driven. Full lifecycle compliance.
+//
+// 2026-08-17 steal mechanic: STEAL_OFFER lands at the REVEAL moment — i.e.
+// when revealCorrect is true (the retry was exhausted by a 2nd miss, OR the
+// timeout fired — both reveal). A 1st miss does NOT open the window (the
+// student's own retry is still live); the tap is a no-op there. On offer:
+// the reveal→advance timer is cancelled, the countdown pauses, and the
+// per-turn reset is suppressed so the stealer pick's NEW_TURN can't wipe the
+// question. The picked stealer re-answers the SAME question UNTIMED for half
+// of base (bets ignored on steals), one steal per question (latched).
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +50,12 @@ interface QuizQuestion {
 /** MCQ-only pool → single recognition timing (25s production tier removed). */
 const QUESTION_TIME_LIMIT = 15;
 
+/** Steal banner render state (STEAL_OFFER flow). Null = no steal live. */
+type StealBanner =
+  | { kind: 'offer' }
+  | { kind: 'active'; name: string }
+  | { kind: 'stolen'; name: string; points: number };
+
 const BoardVocabBlitz = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
@@ -61,10 +76,62 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
   // Guards the zero-dispatch effect against double-firing (StrictMode
   // double-invocation / repeated renders at timeRemaining === 0).
   const timeoutHandledRef = useRef(false);
+  /** Steal phase: null = none live; 'pending' = STEAL_OFFER accepted, waiting
+   *  for the teacher to pick the stealer; 'active' = stealer answering the
+   *  SAME question. One steal per question — latched until it advances. Kept
+   *  in a ref (not state) because handlers/effects must read it synchronously,
+   *  most critically the turnId reset effect, which must be a no-op while a
+   *  steal is live (the stealer pick's NEW_TURN must not wipe the question). */
+  const stealPhaseRef = useRef<'pending' | 'active' | null>(null);
+  const stealerIdRef = useRef<string | null>(null);
+  const preStealWinnerRef = useRef<string | null>(null);
+  const [stealBanner, setStealBanner] = useState<StealBanner | null>(null);
+  /** Pending auto-advance (reveal hold / feedback hold / stolen celebration).
+   *  STEAL_OFFER must be able to cancel it or the question would slide on
+   *  mid-steal. */
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
   const roster = state.students?.map((s: any) => s.id).filter(Boolean) || [];
+
+  // ── Steal plumbing (STEAL_OFFER → pick → half-of-base steal) ────────────
+  /** Schedule the auto-advance through the cancellable ref so a steal (or a
+   *  remote SKIP/RESET racing a hold) can kill it. The callback nulls the ref
+   *  BEFORE running, so a self-fired advance can never clear a live timer. */
+  const scheduleAdvance = (fn: () => void, ms: number) => {
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      fn();
+    }, ms);
+  };
+  const cancelAdvance = () => {
+    if (advanceTimerRef.current !== null) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  };
+  /** Full steal teardown — every advance/reset/completion path calls this, so
+   *  a steal never leaks across questions, turns, or a RESET_GAME. */
+  const clearSteal = () => {
+    cancelAdvance();
+    stealPhaseRef.current = null;
+    stealerIdRef.current = null;
+    preStealWinnerRef.current = null;
+    setStealBanner(null);
+  };
+  const resolveName = (id: string | null): string => {
+    const s = (state.students || []).find((st: any) => st.id === id);
+    return s?.name || s?.full_name || s?.display_name || 'Student';
+  };
+  const beginStealPending = () => {
+    // CRITICAL: kill the reveal hold's pending advance so the question STAYS.
+    cancelAdvance();
+    stealPhaseRef.current = 'pending';
+    preStealWinnerRef.current = state.quickWheelWinner;
+    stealerIdRef.current = null;
+    setStealBanner({ kind: 'offer' });
+  };
 
   // Pull quiz items
   const { items: poolItems, loading } = useBoardPool({
@@ -100,6 +167,13 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
   // Reset on new turn
   useEffect(() => {
     if (turnId === null) return;
+    // STEAL FREEZE: picking the stealer is a normal pick, which broadcasts
+    // SPIN_WHEEL + NEW_TURN — the NEW_TURN turnId change would normally wipe
+    // the board back to question 0. While a steal is pending or active the
+    // stolen question is frozen in place; the steal refs are cleared on the
+    // question's advance/reset instead, after which normal per-pick resets
+    // resume.
+    if (stealPhaseRef.current !== null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
     streakRef.current = 0;
@@ -115,6 +189,29 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     setTimedOut(false);
   }, [turnId]);
 
+  // ── Steal lock-in: convert the stealer pick into an active steal ────────
+  // A pick broadcasts SPIN_WHEEL (quickWheelWinner changes NOW) and NEW_TURN
+  // (currentTurnId changes ~2.5s later, after the wheel animation). The turnId
+  // effect above is frozen while the steal is live, so neither half of the
+  // pick can wipe the question; THIS effect is what locks the pick in. It only
+  // acts while a steal is pending — quickWheelWinner changes at any other
+  // time (a fresh turn after the steal resolved) are ignored here.
+  useEffect(() => {
+    if (stealPhaseRef.current !== 'pending') return;
+    const winner = state.quickWheelWinner;
+    if (!winner || winner === preStealWinnerRef.current) return; // same kid re-picked → keep waiting
+    stealPhaseRef.current = 'active';
+    stealerIdRef.current = winner;
+    // Re-present the SAME question, answerable by the stealer: clear the
+    // amber reveal ring and wipe the first student's wrong pick. The clock
+    // stays frozen (the steal attempt itself is untimed) and the bet is
+    // ignored (half of base only).
+    setRevealCorrect(false);
+    setSelectedOption(null);
+    setStealBanner({ kind: 'active', name: resolveName(winner) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.quickWheelWinner]);
+
   // Timer countdown — pure state update only. Side effects must NEVER live
   // inside the updater: React may double-invoke updaters (StrictMode), which
   // used to call handleTimeUp twice → double penalty + double analytics +
@@ -123,6 +220,10 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     if (phase !== 'question' || !currentQuestion) return;
 
     const timer = setInterval(() => {
+      // Steal freeze: while a steal is pending/active the countdown is
+      // PAUSED — the clock must not eat the steal, and the stealer's attempt
+      // is untimed (no restart for them).
+      if (stealPhaseRef.current !== null) return;
       setTimeRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
 
@@ -144,6 +245,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     const { type } = state.lastAction;
 
     if (type === 'RESET_GAME') {
+      clearSteal();
       mistakesRef.current = 0;
       awardedRef.current = false;
       streakRef.current = 0;
@@ -163,7 +265,18 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
       handleForceCorrect();
     } else if (type === 'SLIDE_COMPLETE') {
       // Forced end from the teacher — settle into the complete state.
+      clearSteal(); // tear down any live steal + kill pending hold timers
       setPhase('complete');
+    } else if (type === 'STEAL_OFFER') {
+      // Steal window = the REVEAL moment: revealCorrect is true after the
+      // retry is exhausted by a 2nd miss, OR after the timeout (both reveal).
+      // A 1st miss does NOT open the window (the student's own retry is still
+      // live); everywhere else the tap is a harmless no-op. While pending,
+      // revealCorrect stays true, so neither student can sneak an answer
+      // before the stealer is picked.
+      if (phase === 'question' && revealCorrect && stealPhaseRef.current === null) {
+        beginStealPending();
+      }
     }
   }, [state.lastAction]);
 
@@ -181,6 +294,13 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     const difficulty = currentQuestion.poolItem.difficulty || 1;
 
     setSelectedOption(idx);
+
+    if (stealPhaseRef.current === 'active') {
+      // Stealer answers through the same UI: half of base or the reveal.
+      if (idx === correct) handleStealCorrect();
+      else handleStealWrong();
+      return;
+    }
 
     if (idx === correct) {
       // Correct - award points (50% ratio when won on the retry; streak
@@ -214,7 +334,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
       }
       setLastAward(points);
       setPhase('feedback');
-      setTimeout(() => advanceToNext(), 900);
+      scheduleAdvance(() => advanceToNext(), 900);
     } else {
       // Wrong - real bet downside: a 2x miss costs 2 × MISTAKE_PENALTY,
       // a 1x miss the usual 1 ×. Streak resets either way.
@@ -247,16 +367,66 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
         }, 800);
       } else {
         // Retry exhausted — reveal the correct answer + explanation, teach
-        // for a beat, then advance (no loop).
+        // for a beat, then advance (no loop). Scheduled via the cancellable
+        // ref: a STEAL_OFFER landing inside this hold must be able to cancel
+        // the advance so the question stays up for the stealer.
         playCue('reveal');
         setRevealCorrect(true);
-        setTimeout(() => advanceToNext(), 2200);
+        scheduleAdvance(() => advanceToNext(), 2200);
       }
     }
   };
 
+  // ── Steal resolution ─────────────────────────────────────────────────────
+  // Stealer CORRECT: HALF of base via the ratio arg (the halving mechanism).
+  // Bets are IGNORED on steals (no ×bet) and no streak multiplier — steals
+  // never count toward streaks. Awarded to the LATCHED stealer id
+  // (quickWheelWinner already points at them after the pick, but the latch is
+  // authoritative even if another pick sneaks in).
+  const handleStealCorrect = () => {
+    if (!currentQuestion || phase !== 'question' || revealCorrect || awardedRef.current) return;
+    const stealer = stealerIdRef.current;
+    if (!stealer) return;
+    playCue('correct');
+    const difficulty = currentQuestion.poolItem.difficulty || 1;
+    const points = scoreForAttempt(mistakesRef.current, difficulty, 0.5);
+    awardedRef.current = true;
+    if (points > 0) addPoints(stealer, points);
+    logAttempt({
+      state,
+      picked: stealer,
+      unitId,
+      objectiveId: currentQuestion.poolItem.objective_id,
+      exerciseType: currentQuestion.poolItem.exercise_type,
+      difficulty,
+      correctness: 'correct',
+      modality: 'receptive',
+      pushToRemediation,
+    });
+    setLastAward(points);
+    setSelectedOption(currentQuestion.correctIndex);
+    setPhase('feedback');
+    setStealBanner({ kind: 'stolen', name: resolveName(stealer), points });
+    scheduleAdvance(() => advanceToNext(), 1200);
+  };
+
+  // Stealer WRONG: one shot only — wrong cue, then the standard reveal path
+  // (answer + explanation, ~2.2s teaching hold) and advance. No penalty /
+  // attempt logged against the stealer (the original student already paid
+  // for the miss/timeout), and NO second steal — stealPhaseRef stays latched
+  // until the advance clears it, so a repeat STEAL_OFFER is rejected.
+  const handleStealWrong = () => {
+    if (!currentQuestion || phase !== 'question' || revealCorrect) return;
+    playCue('wrong');
+    setStealBanner(null);
+    playCue('reveal');
+    setRevealCorrect(true);
+    scheduleAdvance(() => advanceToNext(), 2200);
+  };
+
   const handleTimeUp = () => {
     if (timeoutHandledRef.current || phase !== 'question' || revealCorrect) return;
+    if (stealPhaseRef.current !== null) return; // steal live → the clock is frozen
     timeoutHandledRef.current = true;
     // Timeout = teaching moment, not punishment: NO raw −5 penalty (6–12
     // year-olds shouldn't be docked for clock anxiety). The miss is still
@@ -280,13 +450,25 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     setTimedOut(true);
     playCue('reveal');
     setRevealCorrect(true);
-    setTimeout(() => advanceToNext(), 2200);
+    // Cancellable: a STEAL_OFFER landing inside this hold must keep the
+    // question up for the stealer (the timeout is one of the two reveal
+    // moments that open the steal window).
+    scheduleAdvance(() => advanceToNext(), 2200);
   };
 
   // MARK_CORRECT (teacher override): score the current item as a clean correct
   // (mistakesRef preserved), then advance.
   const handleForceCorrect = () => {
-    if (!currentQuestion || phase !== 'question' || awardedRef.current || revealCorrect || timeoutHandledRef.current) {
+    if (!currentQuestion || phase !== 'question') return;
+    // MARK_CORRECT during a live steal resolves the STEAL — half of base to
+    // the stealer — never a full-price override. Checked BEFORE the
+    // timeout/reveal guards: a timeout-born steal already latched
+    // timeoutHandledRef, which would otherwise swallow the override.
+    if (stealPhaseRef.current === 'active') {
+      handleStealCorrect();
+      return;
+    }
+    if (awardedRef.current || revealCorrect || timeoutHandledRef.current) {
       return;
     }
     timeoutHandledRef.current = true; // stop the timeout path from racing
@@ -319,10 +501,16 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     setLastAward(points);
     setSelectedOption(currentQuestion.correctIndex);
     setPhase('feedback');
-    setTimeout(() => advanceToNext(), 900);
+    scheduleAdvance(() => advanceToNext(), 900);
   };
 
   const advanceToNext = () => {
+    // A steal lives within the current question ONLY — every advance path
+    // (answer, reveal, steal resolution, SKIP_ITEM escape hatch) lands here,
+    // so this is the single funnel that retires the steal. cancelAdvance
+    // inside clearSteal also kills any straggling hold timer, fixing the
+    // latent double-advance when SKIP races a reveal/feedback hold.
+    clearSteal();
     if (currentQIdx < questions.length - 1) {
       // Per-question attempt reset.
       mistakesRef.current = 0;
@@ -390,6 +578,33 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
         </div>
       </div>
 
+      {/* Steal banner (STEAL_OFFER → pick → half-of-base steal) */}
+      <AnimatePresence>
+        {stealBanner && (
+          <motion.div
+            key={stealBanner.kind}
+            initial={{ y: -24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -24, opacity: 0 }}
+            className={`mb-4 mx-auto w-fit px-8 py-3 rounded-2xl text-center text-white shadow-2xl ${
+              stealBanner.kind === 'stolen' ? 'bg-green-600' : 'bg-purple-600'
+            }`}
+          >
+            {stealBanner.kind === 'offer' && (
+              <div className="text-2xl font-black animate-pulse">🆚 STEAL CHANCE! Pick the stealer!</div>
+            )}
+            {stealBanner.kind === 'active' && (
+              <div className="text-2xl font-black">
+                🆚 {stealBanner.name} — steal for <span className="text-yellow-300">HALF</span> points!
+              </div>
+            )}
+            {stealBanner.kind === 'stolen' && (
+              <div className="text-3xl font-black">⚡ STOLEN! {stealBanner.name} +{stealBanner.points}</div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main content */}
       <AnimatePresence mode="wait">
         {phase === 'bet' && (
@@ -436,23 +651,33 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
             className="flex-1 flex flex-col items-center justify-center"
           >
             <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl w-full">
-              {/* Timer bar */}
+              {/* Timer bar — replaced by the untimed steal strip while the
+                  stealer answers (the countdown is frozen from the steal
+                  offer onward and never restarts for them). */}
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Timer size={20} />
-                    <span className="text-2xl font-bold">{timeRemaining}s</span>
+                {stealBanner?.kind === 'active' ? (
+                  <div className="flex items-center justify-center py-1 text-purple-600">
+                    <span className="text-2xl font-black">⚡ STEAL — untimed!</span>
                   </div>
-                  {retryUsed && <div className="text-sm text-orange-500">Retry used (50% points)</div>}
-                </div>
-                <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <motion.div
-                    className={`h-full ${timeRemaining > 5 ? 'bg-green-500' : timeRemaining > 3 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                    initial={{ width: '100%' }}
-                    animate={{ width: `${(timeRemaining / QUESTION_TIME_LIMIT) * 100}%` }}
-                    transition={{ duration: 0.1 }}
-                  />
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Timer size={20} />
+                        <span className="text-2xl font-bold">{timeRemaining}s</span>
+                      </div>
+                      {retryUsed && <div className="text-sm text-orange-500">Retry used (50% points)</div>}
+                    </div>
+                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full ${timeRemaining > 5 ? 'bg-green-500' : timeRemaining > 3 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        initial={{ width: '100%' }}
+                        animate={{ width: `${(timeRemaining / QUESTION_TIME_LIMIT) * 100}%` }}
+                        transition={{ duration: 0.1 }}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Question */}
@@ -535,7 +760,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
               </h2>
               <div className="text-2xl text-gray-600">
                 +{lastAward} points
-                {bet === 2 && ' (2x bet!)'}
+                {bet === 2 && stealBanner?.kind !== 'stolen' && ' (2x bet!)'}
               </div>
             </div>
           </motion.div>

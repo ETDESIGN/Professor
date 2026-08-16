@@ -51,3 +51,42 @@ export function playCue(kind: CueKind): void {
     // Sound is enhancement, never load-bearing — swallow all failures.
   }
 }
+
+/** Start a repeating "ticking clock" loop (e.g. the memorize-phase countdown
+ *  in BoardMemoryLab). Each tick is one ~40ms sine blip at ~880Hz (gain
+ *  ~0.08) scheduled at ctx.currentTime — same tone shape as playSoundCue's
+ *  envelope, on this module's shared AudioContext. Driven by setInterval:
+ *  precision is not critical, this is a tension cue, not a metronome.
+ *
+ *  Returns a stop function that clears the interval. Calling the stop
+ *  function more than once is safe (first stop wins, later calls are no-ops),
+ *  so overlapping owners can never leak the interval. */
+export function startTickLoop(intervalMs = 1000): () => void {
+  let stopped = false;
+  const tick = () => {
+    try {
+      const audio = ensureCtx();
+      if (!audio) return;
+      if (audio.state === 'suspended') audio.resume().catch(() => {});
+      const now = audio.currentTime;
+      const osc = audio.createOscillator();
+      const env = audio.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      env.gain.setValueAtTime(0, now);
+      env.gain.linearRampToValueAtTime(0.08, now + 0.01);
+      env.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+      osc.connect(env).connect(audio.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } catch {
+      // Sound is enhancement, never load-bearing — swallow all failures.
+    }
+  };
+  const id = window.setInterval(tick, intervalMs);
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    window.clearInterval(id);
+  };
+}

@@ -7,7 +7,11 @@
 //     Rounds 1-2 (recognize): student TAPS which card is missing (MCQ candidates)
 //     Round 3 (produce): student SPEAKS the missing word — speech recognition
 //     scores it (replaces the legacy teacher-typing produce mode)
-//   → Progressive: grid 4→6→8, memorize time 10s→8s→6s → FSRS push per round
+//     Round 4 (produce, tension peak): 10 cards / 5s — appended ONLY when the
+//     illustrated card pool has ≥10 distinct cards
+//   → Progressive: grid 4→6→8(→10), memorize 10s→8s→6s(→5s) → FSRS push per round
+//   → Tension pack: ticking clock while memorizing (ramps to 500ms under 4s
+//     left) + a ~1.5s choral "Everyone — point!" callout before recall
 //
 // Lifecycle: NEW_TURN reset on currentTurnId, per-round mistakesRef/awardedRef
 // reset, remote controls via state.lastAction (RESET_GAME / SKIP_ITEM).
@@ -23,7 +27,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { useSpeechRecognition } from './useSpeechRecognition';
 import { logAttempt } from './scoreAttempt';
 import { shuffle } from './scoringUtils';
-import { playCue } from './playCue';
+import { playCue, startTickLoop } from './playCue';
 import { useSpeech } from './useSpeech';
 import { preloadRoundSpeech } from './speechPreload';
 import type { PoolItem, ImageSelectContent } from '../../../types/exercise';
@@ -49,6 +53,11 @@ const ROUNDS: RoundConfig[] = [
   { gridSize: 8, memorizeTime: 6, mode: 'produce' },
 ];
 
+/** Round 4 — the tension peak (biggest grid, shortest clock). Only staged
+ *  when the illustrated card pool has ≥10 distinct cards; advanceRound's
+ *  per-round gridSize guard enforces it exactly like rounds 2-3. */
+const TENSION_ROUND: RoundConfig = { gridSize: 10, memorizeTime: 5, mode: 'produce' };
+
 const BoardMemoryLab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
@@ -61,9 +70,12 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   /** Round generation counter — stale auto-advance timers (e.g. after a
    *  remote SKIP_ITEM raced the pending timeout) must not skip a 2nd round. */
   const roundGenRef = useRef(0);
+  /** Per-round choral-callout latch — the "Everyone — point!" reveal cue must
+   *  fire exactly once per round (reset to -1 in setupRound, re-render safe). */
+  const choralFiredRef = useRef(-1);
 
   const [round, setRound] = useState(0);
-  const [phase, setPhase] = useState<'memorize' | 'recall' | 'feedback' | 'complete'>('memorize');
+  const [phase, setPhase] = useState<'memorize' | 'choral' | 'recall' | 'feedback' | 'complete'>('memorize');
   const [countdown, setCountdown] = useState(ROUNDS[0].memorizeTime);
   const [grid, setGrid] = useState<MemoryCard[]>([]);
   const [removedIdx, setRemovedIdx] = useState(-1);
@@ -106,6 +118,15 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     return cards;
   }, [poolItems]);
 
+  // Effective round ladder: the 3 base rounds always, + the 10-card/5s
+  // tension round only when the pool has ≥10 distinct cards. Every
+  // round-count surface (progress dots, "Round x of y", advanceRound, mode
+  // lookups) reads this — nothing hardcodes 3.
+  const rounds = useMemo<RoundConfig[]>(
+    () => (cardPool.length >= TENSION_ROUND.gridSize ? [...ROUNDS, TENSION_ROUND] : ROUNDS),
+    [cardPool.length]
+  );
+
   // Warm the TTS cache for the round's cards (bounded, fire-and-forget).
   useEffect(() => {
     if (poolItems.length > 0) preloadRoundSpeech(unitId, poolItems);
@@ -113,7 +134,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
 
   // ── Round setup: build grid, pick the removed card, build candidates ────
   const setupRound = (roundIdx: number) => {
-    const cfg = ROUNDS[roundIdx];
+    const cfg = rounds[roundIdx];
     if (!cfg) return;
     const shuffledCards = shuffle(cardPool);
     const gridCards = shuffledCards.slice(0, cfg.gridSize);
@@ -133,6 +154,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     awardedRef.current = false;
     roundResolvedRef.current = false;
     roundGenRef.current += 1;
+    choralFiredRef.current = -1;
     setPhase('memorize');
   };
 
@@ -145,20 +167,50 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, cardPool.length]);
 
-  // ── Memorize countdown → recall ─────────────────────────────────────────
+  // ── Memorize countdown → choral callout → recall ────────────────────────
+  // grid.length === 0 guards the loading/empty-pool screens: phase state sits
+  // at 'memorize' there, and without this guard the clock (and its ticks)
+  // would run audibly behind them.
   useEffect(() => {
-    if (phase !== 'memorize') return;
+    if (phase !== 'memorize' || grid.length === 0) return;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          setPhase('recall');
+          setPhase('choral');
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
+  }, [phase, round, grid.length]);
+
+  // ── Ticking clock (tension): one tick per memorize second, doubling up
+  // (every 500ms) for the final stretch (<4s left). Restarting on each
+  // countdown change re-anchors the tick to the visible number; the cleanup
+  // makes every exit path — countdown exhausted, phase/round change
+  // (SKIP_ITEM / RESET_GAME / new turn / advance), unmount — stop the loop,
+  // so no path can leave a tick interval running. ─────────────────────────
+  useEffect(() => {
+    if (phase !== 'memorize' || grid.length === 0) return;
+    const stopTicks = startTickLoop(countdown > 0 && countdown < 4 ? 500 : 1000);
+    return stopTicks;
+  }, [phase, round, countdown, grid.length]);
+
+  // ── Choral callout: ~1.5s full-screen "Everyone — point!" beat between
+  // memorize and recall. choralFiredRef guarantees the reveal cue fires once
+  // per round (re-render / re-entry safe); the cleanup drops the pending
+  // timer whenever the phase exits early (SKIP_ITEM / MARK_CORRECT /
+  // SLIDE_COMPLETE / reset), so recall is never entered by a stale timer. ──
+  useEffect(() => {
+    if (phase !== 'choral') return;
+    if (choralFiredRef.current !== round) {
+      choralFiredRef.current = round;
+      playCue('reveal');
+    }
+    const t = setTimeout(() => setPhase('recall'), 1500);
+    return () => clearTimeout(t);
   }, [phase, round]);
 
   // Reveal cue exactly when the missing card bounces in (feedback phase
@@ -285,7 +337,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
         exerciseType: 'IMAGE_SELECT',
         difficulty,
         correctness: partialRatio >= 1 ? 'correct' : 'partial',
-        modality: ROUNDS[round]?.mode === 'produce' ? 'productive' : 'receptive',
+        modality: rounds[round]?.mode === 'produce' ? 'productive' : 'receptive',
         pushToRemediation,
       });
     }
@@ -335,7 +387,10 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   // answer without recognition — scores as a clean correct with mistakesRef
   // preserved, shows the card, and advances.
   const markCorrect = () => {
-    if (phase !== 'recall' || roundResolvedRef.current || completeRef.current) return;
+    // Also accept during the choral callout — never drop a remote "Correct"
+    // press (dead-button avoidance). roundSuccess moves us to feedback and
+    // the callout's pending timer is cleaned up by the phase change.
+    if ((phase !== 'recall' && phase !== 'choral') || roundResolvedRef.current || completeRef.current) return;
     roundSuccess(1.0);
   };
 
@@ -355,7 +410,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   };
 
   const advanceRound = () => {
-    if (round < ROUNDS.length - 1 && cardPool.length >= ROUNDS[round + 1].gridSize) {
+    if (round < rounds.length - 1 && cardPool.length >= rounds[round + 1].gridSize) {
       const next = round + 1;
       setRound(next);
       setupRound(next);
@@ -389,7 +444,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     );
   }
 
-  const cfg = ROUNDS[round];
+  const cfg = rounds[round];
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-cyan-50 to-blue-50 p-8">
@@ -404,7 +459,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
           Memory Lab
         </motion.h1>
         <div className="flex items-center justify-center gap-2">
-          {ROUNDS.map((_, r) => (
+          {rounds.map((_, r) => (
             <div
               key={r}
               className={`w-3 h-3 rounded-full ${
@@ -414,7 +469,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
           ))}
         </div>
         <div className="text-sm text-gray-500 mt-1">
-          Round {round + 1} of {ROUNDS.length} — {cfg?.mode === 'produce' ? 'Say what is missing' : 'Tap what is missing'}
+          Round {round + 1} of {rounds.length} — {cfg?.mode === 'produce' ? 'Say what is missing' : 'Tap what is missing'}
         </div>
         {streak > 1 && (
           <div className="inline-flex items-center gap-1 mt-1 px-3 py-1 bg-cyan-500 text-white rounded-full font-bold text-sm">
@@ -464,6 +519,29 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
                 </motion.div>
               ))}
             </div>
+          </motion.div>
+        )}
+
+        {/* Choral callout — full-screen rally right before recall */}
+        {phase === 'choral' && (
+          <motion.div
+            key={`choral-${round}`}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+            className="flex-1 flex items-center justify-center"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ repeat: Infinity, duration: 0.7, ease: 'easeInOut' }}
+              className="text-center px-12 py-16 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-2xl"
+            >
+              <div className="text-8xl mb-4">👉</div>
+              <div className="text-4xl md:text-6xl font-extrabold text-white leading-tight">
+                Everyone — point at the missing card!
+              </div>
+            </motion.div>
           </motion.div>
         )}
 

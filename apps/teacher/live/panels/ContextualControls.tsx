@@ -156,6 +156,7 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('SKIP_ITEM')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><SkipForward size={18} /> Skip</button>
           <button onClick={() => triggerAction('REVEAL_HINT')} className="h-12 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Lightbulb size={18} /> Hint</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Correct</button>
+          <button onClick={() => triggerAction('STEAL_OFFER')} className="h-12 px-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Zap size={18} /> Steal</button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={18} /> Redo</button>
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
         </div>
@@ -214,6 +215,7 @@ export const renderContextualControls = (
         <div className="flex gap-2">
           <button onClick={() => triggerAction('SKIP_ITEM')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><SkipForward size={18} /> Skip</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Correct</button>
+          <button onClick={() => triggerAction('STEAL_OFFER')} className="h-12 px-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Zap size={18} /> Steal</button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={18} /> Redo</button>
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
         </div>
@@ -230,6 +232,7 @@ export const renderContextualControls = (
     case 'CLASS_RALLY':
       return (
         <div className="flex gap-2">
+          <button onClick={() => triggerAction('CHORAL_ROUND')} className="h-12 px-4 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Users size={18} /> ALL ANSWER</button>
           <button onClick={() => triggerAction('SKIP_ITEM')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><SkipForward size={18} /> Next</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Correct</button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={18} /> Reset Rally</button>
