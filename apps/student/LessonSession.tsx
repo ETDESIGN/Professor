@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Heart, Check, ArrowRight, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +30,7 @@ interface LessonSessionProps {
 // that branch was unreachable dead code.
 const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onExit }) => {
   const { addPoints } = useSoloSession();
+  const { t } = useTranslation();
 
   const [localIndex, setLocalIndex] = useState(0);
   const currentIndex = localIndex;
@@ -72,7 +74,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
 
   const handleContinue = () => {
     if (lives === 0) {
-      toast.error('Out of hearts! Try again later.', { icon: '💔' });
+      toast.error(t('student.outOfHearts', 'Out of hearts! Try again later.'), { icon: '💔' });
       onExit();
       return;
     }
@@ -94,13 +96,13 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
         <div className="w-20 h-20 bg-slate-100 rounded-3xl flex items-center justify-center mb-5">
           <AlertCircle size={40} className="text-slate-400" />
         </div>
-        <h2 className="text-xl font-bold text-slate-700 mb-2">No activities available</h2>
-        <p className="text-slate-400 max-w-sm mb-6">This lesson doesn't have any activities yet. Try again later or pick another lesson.</p>
+        <h2 className="text-xl font-bold text-slate-700 mb-2">{t('student.noActivities', 'No activities available')}</h2>
+        <p className="text-slate-400 max-w-sm mb-6">{t('student.noActivitiesHint', 'This lesson doesn\'t have any activities yet. Try again later or pick another lesson.')}</p>
         <button
           onClick={onExit}
           className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
         >
-          Go back
+          {t('common.back', 'Go back')}
         </button>
       </div>
     );
@@ -120,7 +122,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
       case 'SCRAMBLE': return <SentenceScramble {...commonProps} data={currentActivity.data} onBack={() => {}} />;
       case 'SPEAKING': return <PronunciationCoach {...commonProps} data={currentActivity.data} onBack={() => {}} />;
       case 'FLASH_MATCH': return <FlashMatch {...commonProps} data={currentActivity.data} onBack={() => {}} />;
-      default: return <div className="p-6 text-slate-400">Unknown activity.</div>;
+      default: return <div className="p-6 text-slate-400">{t('student.unknownActivity', 'Unknown activity.')}</div>;
     }
   };
 
@@ -159,7 +161,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
               disabled={!isAnswerReady || lessonStatus === 'checking'}
               className="w-full bg-duo-green hover:bg-duo-green-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-4 rounded-2xl text-lg shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
             >
-              {lessonStatus === 'checking' ? 'Checking...' : 'Check'}
+              {lessonStatus === 'checking' ? t('student.checking', 'Checking...') : t('student.check', 'Check')}
             </button>
           </div>
         ) : (
@@ -171,16 +173,16 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
                 </div>
                 <div>
                   <h2 className={`text-2xl font-bold mb-1 ${lessonStatus === 'correct' ? 'text-green-700' : 'text-red-700'}`}>
-                    {lessonStatus === 'correct' ? 'Excellent!' : 'Incorrect'}
+                    {lessonStatus === 'correct' ? t('student.excellent', 'Excellent!') : t('student.incorrect', 'Incorrect')}
                   </h2>
-                  {lessonStatus === 'wrong' && <p className="text-red-600 font-medium">The correct answer is shown above.</p>}
+                  {lessonStatus === 'wrong' && <p className="text-red-600 font-medium">{t('student.correctAnswerAbove', 'The correct answer is shown above.')}</p>}
                 </div>
               </div>
               <button
                 onClick={handleContinue}
                 className={`w-full font-bold py-4 rounded-2xl text-lg shadow-lg active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide flex items-center justify-center gap-2 ${lessonStatus === 'correct' ? 'bg-duo-green text-white shadow-[0_4px_0_0_#46a302]' : 'bg-red-500 text-white shadow-[0_4px_0_0_#b91c1c]'}`}
               >
-                Continue <ArrowRight size={24} />
+                {t('student.continue', 'Continue')} <ArrowRight size={24} />
               </button>
             </div>
           </div>

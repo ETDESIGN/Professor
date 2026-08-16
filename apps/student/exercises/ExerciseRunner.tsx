@@ -5,6 +5,7 @@
 // meets the learner model — every onComplete -> recordAttempt closes the loop.
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Heart, X, Trophy, Check, RotateCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { PoolItem, toPoolItem } from '../../../types/exercise';
@@ -32,6 +33,7 @@ interface ExerciseRunnerProps {
 }
 
 const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title, onExit, onDone }) => {
+  const { t } = useTranslation();
   const registry = useMemo(() => getExerciseRegistry(), []);
   // Mutable queue (P-D): a missed word is re-queued once (retry) so it gets
   // another attempt in the same session — desirable difficulty / retrieval loop.
@@ -140,7 +142,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
   if (queue.length === 0) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-slate-400 font-bold mb-2">No exercises available</p>
+        <p className="text-slate-400 font-bold mb-2">{t('exercise.noExercises', 'No exercises available')}</p>
         <p className="text-slate-300 text-sm mb-6">This unit has no practice content yet.</p>
         <button onClick={() => onDone({ total: 0, correct: 0, items: [] })} className="bg-duo-green text-white font-bold px-6 py-3 rounded-xl">
           Continue

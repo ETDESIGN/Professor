@@ -32,11 +32,25 @@ export function checkRateLimit(
 }
 
 export function extractIdentifier(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-
+  // Per-USER first: an entire classroom behind one school NAT shares an IP,
+  // so IP-first keying let 30 kids burn one shared 10/min budget (audit
+  // backlog, fixed 2026-08-17). The JWT `sub` is only a cache key here —
+  // authorization still happens in authMiddleware with real verification.
   const authHeader = req.headers.get('authorization');
-  if (authHeader) return `auth:${authHeader.slice(0, 20)}`;
+  if (authHeader?.startsWith('Bearer ')) {
+    const payloadPart = authHeader.split('.')[1];
+    if (payloadPart) {
+      try {
+        // JWT payloads are base64url; normalize for atob.
+        const b64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const claims: { sub?: string } = JSON.parse(atob(b64));
+        if (claims.sub) return `user:${claims.sub}`;
+      } catch { /* malformed token — fall through */ }
+    }
+  }
+
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return `ip:${forwarded.split(',')[0].trim()}`;
 
   return `ip:unknown`;
 }

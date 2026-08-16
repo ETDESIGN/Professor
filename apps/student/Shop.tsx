@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Gem, Heart, Zap, Shirt, Crown, Glasses, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useInventory, useStudentGems, useBuyShopItem } from '../../hooks/useQueries';
@@ -14,6 +15,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
    const { data: gemCount = 0 } = useStudentGems();
    const { data: inventory = [], isLoading } = useInventory();
    const buyItem = useBuyShopItem();
+  const { t } = useTranslation();
    const [purchased, setPurchased] = useState<string[]>([]);
 
    const purchasedIds = purchased.length > 0 ? purchased : inventory.map((i: any) => i.item_id);
@@ -32,26 +34,26 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
     const handleBuy = async (id: string, cost: number) => {
        if (purchasedIds.includes(id) && id !== 'hearts' && id !== 'freeze') return;
        if (gemCount < cost) {
-          toast.error('Not enough gems yet — keep learning to earn more!', { icon: '💎' });
+          toast.error(t('student.notEnoughGems', 'Not enough gems yet — keep learning to earn more!'), { icon: '💎' });
           return;
        }
        const result = await buyItem.mutateAsync({ itemId: id, cost });
        if (result.success) {
           setPurchased(prev => [...prev, id]);
-          toast.success('Item purchased!');
+          toast.success(t('student.itemPurchased', 'Item purchased!'));
        } else {
-          toast.error("Purchase failed — your gems weren't spent. Try again.");
+          toast.error(t('student.purchaseFailed', "Purchase failed — your gems weren't spent. Try again."));
        }
     };
 
     const handleUseHeartRefill = async () => {
        const result = await GamificationService.useHeartRefill();
        if (result.success) {
-          toast.success(`Hearts restored — ${result.hearts}/${5}!`, { icon: '❤️' });
+          toast.success(t('student.heartsRestored', { defaultValue: 'Hearts restored — {{n}}/5!', n: result.hearts }), { icon: '❤️' });
        } else if (result.hearts >= 5) {
-          toast('Your hearts are already full!', { icon: '❤️' });
+          toast(t('student.heartsFull', 'Your hearts are already full!'), { icon: '❤️' });
        } else {
-          toast.error("Couldn't use the refill — try again.");
+          toast.error(t('student.refillFailed', "Couldn't use the refill — try again."));
        }
     };
 
@@ -71,7 +73,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
                   <ChevronLeft size={24} />
                </button>
-               <span className="font-bold text-slate-800 text-lg">Shop</span>
+               <span className="font-bold text-slate-800 text-lg">{t('student.shop', 'Shop')}</span>
             </div>
             <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
                <Gem size={18} className="text-blue-500 fill-blue-500" />
@@ -84,7 +86,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
 
             {/* Power Ups */}
             <section>
-               <h3 className="font-bold text-slate-800 text-lg mb-4">Power-ups</h3>
+               <h3 className="font-bold text-slate-800 text-lg mb-4">{t('student.powerups', 'Power-ups')}</h3>
                <div className="space-y-4">
                   {powerups.map((item, index) => {
                      const owned = inventory.find((i: any) => i.item_id === item.id);
@@ -102,7 +104,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                         </div>
                         <div className="flex-1">
                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-slate-800">{item.name}</h4>
+                              <h4 className="font-bold text-slate-800">{t(`student.item_${item.id}`, item.name)}</h4>
                               {ownedQty > 0 && (
                                  <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">
                                     ×{ownedQty} {item.id === 'freeze' ? 'ready' : 'owned'}
@@ -110,8 +112,8 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                               )}
                            </div>
                            <p className="text-xs text-slate-500 leading-tight mt-1">
-                              {item.desc}
-                              {item.id === 'freeze' && ' Used automatically if you miss a day.'}
+                              {t(`student.itemDesc_${item.id}`, item.desc)}
+                              {item.id === 'freeze' && ' ' + t('student.freezeAuto', 'Used automatically if you miss a day.')}
                            </p>
                            <div className="mt-3 flex items-center gap-2">
                               <button
@@ -139,7 +141,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
 
             {/* Outfits */}
             <section>
-               <h3 className="font-bold text-slate-800 text-lg mb-4">Avatar Style</h3>
+               <h3 className="font-bold text-slate-800 text-lg mb-4">{t('student.avatarStyle', 'Avatar Style')}</h3>
                <div className="grid grid-cols-2 gap-4">
                   {items.map((item, index) => {
                      const isOwned = purchasedIds.includes(item.id);
@@ -154,11 +156,11 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-3 ${item.bg} ${item.color}`}>
                               <item.icon size={40} />
                            </div>
-                           <h4 className="font-bold text-slate-800 text-sm mb-3">{item.name}</h4>
+                           <h4 className="font-bold text-slate-800 text-sm mb-3">{t(`student.item_${item.id}`, item.name)}</h4>
 
                            {isOwned ? (
                               <div className="mt-auto flex items-center gap-2 text-green-600 font-bold text-sm bg-green-50 px-3 py-1.5 rounded-lg w-full justify-center">
-                                 <Check size={16} /> Owned
+                                 <Check size={16} /> {t('student.owned', 'Owned')}
                               </div>
                            ) : (
                               <button

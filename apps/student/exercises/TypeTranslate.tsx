@@ -3,6 +3,7 @@
 // (ages 6-8 fall back to a word bank variant — handled by selection).
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BaseExerciseProps } from '../../../types/exercise';
 import { FeedbackBanner, useElapsedMs, textMatches, Feedback } from './shared';
 
@@ -12,6 +13,7 @@ const FINE_POINTER = typeof window !== 'undefined'
   && window.matchMedia('(pointer: fine)').matches;
 
 const TypeTranslate: React.FC<BaseExerciseProps> = ({ data, onComplete }) => {
+  const { t } = useTranslation();
   const c = data.content as Extract<import('../../../types/exercise').ExerciseContent, { type: 'TYPE_TRANSLATE' }>;
   const elapsed = useElapsedMs();
   const [value, setValue] = useState('');
@@ -26,7 +28,7 @@ const TypeTranslate: React.FC<BaseExerciseProps> = ({ data, onComplete }) => {
 
   return (
     <div className="flex-1 flex flex-col p-6 max-w-lg mx-auto w-full">
-      <p className="text-duo-blue font-bold mb-1">Translate to English</p>
+      <p className="text-duo-blue font-bold mb-1">{t('exercise.translateToEnglish', 'Translate to English')}</p>
       <h2 className="text-3xl font-black text-slate-800 mb-4">{c.prompt_l1}</h2>
 
       <input
@@ -35,10 +37,10 @@ const TypeTranslate: React.FC<BaseExerciseProps> = ({ data, onComplete }) => {
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         disabled={feedback !== 'idle'}
-        placeholder="Type the English…"
+        placeholder={t('exercise.typeEnglish', 'Type the English…')}
         className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-duo-blue outline-none text-lg font-medium text-slate-800 bg-white"
       />
-      {c.hint && <p className="text-sm text-slate-400 mt-2">Hint: {c.hint}</p>}
+      {c.hint && <p className="text-sm text-slate-400 mt-2">{t('exercise.hint', 'Hint')}: {c.hint}</p>}
 
       {feedback === 'idle' ? (
         <button

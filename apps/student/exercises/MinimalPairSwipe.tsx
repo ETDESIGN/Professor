@@ -2,10 +2,12 @@
 // phonics choice driven by the confusable pair + audio of the correct member.
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BaseExerciseProps } from '../../../types/exercise';
 import { AudioButton, FeedbackBanner, useElapsedMs, optionClasses, Feedback } from './shared';
 
 const MinimalPairSwipe: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) => {
+  const { t } = useTranslation();
   const c = data.content as Extract<import('../../../types/exercise').ExerciseContent, { type: 'MINIMAL_PAIR_SWIPE' }>;
   const elapsed = useElapsedMs();
   const [selected, setSelected] = useState<number | null>(null);
@@ -24,7 +26,7 @@ const MinimalPairSwipe: React.FC<BaseExerciseProps> = ({ data, onComplete, onErr
 
   return (
     <div className="flex-1 flex flex-col p-6 max-w-lg mx-auto w-full">
-      <p className="text-slate-500 font-bold mb-3">{c.prompt || 'Which word did you hear?'}</p>
+      <p className="text-slate-500 font-bold mb-3">{c.prompt || t('exercise.whichWordHeard', 'Which word did you hear?')}</p>
       <div className="flex items-center gap-4 mb-6">
         <AudioButton url={c.audio_url} fallbackText={options[correctIndex]?.text} large onError={onError} />
         <span className="text-slate-400 text-sm">Tap to listen</span>

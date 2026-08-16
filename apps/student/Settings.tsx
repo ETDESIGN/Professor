@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Volume2, Mic, Bell, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
@@ -29,6 +30,7 @@ const loadPrefs = (): StudentPrefs => {
 
 const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
    const [toggles, setToggles] = useState<StudentPrefs>(loadPrefs);
+  const { t } = useTranslation();
    const { userProfile } = useAppStore();
    const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 
@@ -49,7 +51,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
             <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
                <ChevronLeft size={24} />
             </button>
-            <span className="font-bold text-slate-800">Settings</span>
+            <span className="font-bold text-slate-800">{t('student.settings', 'Settings')}</span>
             <div className="w-10"></div>
          </header>
 
@@ -67,7 +69,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                </div>
                <div>
                   <h2 className="font-bold text-slate-800 text-lg">{displayName}</h2>
-                  <p className="text-slate-500 text-xs font-bold uppercase">Student account</p>
+                  <p className="text-slate-500 text-xs font-bold uppercase">{t('student.studentAccount', 'Student account')}</p>
                </div>
             </motion.div>
 
@@ -82,13 +84,13 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
             >
                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Audio Preferences
+                  {t('student.audioPrefs', 'Audio Preferences')}
                </div>
                <div className="divide-y divide-slate-100">
                   <div className="p-4 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Volume2 size={20} /></div>
-                        <span className="font-bold text-slate-700">Sound Effects</span>
+                        <span className="font-bold text-slate-700">{t('student.soundEffects', 'Sound Effects')}</span>
                      </div>
                      <button
                         onClick={() => toggle('sound')}
@@ -101,7 +103,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                   <div className="p-4 flex items-center justify-between">
                      <div className="flex items-center gap-3">
                         <div className="p-2 bg-purple-100 text-purple-600 rounded-lg"><Mic size={20} /></div>
-                        <span className="font-bold text-slate-700">Speaking Exercises</span>
+                        <span className="font-bold text-slate-700">{t('student.speakingExercises', 'Speaking Exercises')}</span>
                      </div>
                      <button
                         onClick={() => toggle('speaking')}
@@ -122,14 +124,14 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                className="bg-white rounded-2xl border border-slate-200 overflow-hidden"
             >
                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Notifications
+                  {t('student.notifications', 'Notifications')}
                </div>
                <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                      <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><Bell size={20} /></div>
                      <div>
-                        <div className="font-bold text-slate-700">Daily Reminder</div>
-                        <div className="text-xs text-slate-400">Saved on this device</div>
+                        <div className="font-bold text-slate-700">{t('student.dailyReminder', 'Daily Reminder')}</div>
+                        <div className="text-xs text-slate-400">{t('student.savedOnDevice', 'Saved on this device')}</div>
                      </div>
                   </div>
                   <button
@@ -149,11 +151,11 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                onClick={onSignOut}
                className="w-full py-4 rounded-2xl border-2 border-slate-200 text-red-500 font-bold uppercase tracking-wider hover:bg-red-50 hover:border-red-100 transition-colors flex items-center justify-center gap-2"
             >
-               <LogOut size={20} /> Sign Out
+               <LogOut size={20} /> {t('auth.logout', 'Sign Out')}
             </motion.button>
 
             <div className="text-center text-xs text-slate-400 font-medium pb-8">
-               Professor Student
+               {t('student.appName', 'Professor Student')}
             </div>
          </div>
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Gift, Lock, Zap, Check, BookOpen, Mic, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -27,13 +28,14 @@ const QUEST_COLORS: Record<string, { color: string; bg: string }> = {
 const Quests: React.FC<QuestsProps> = ({ onBack }) => {
   const { data: quests = [], isLoading } = useDailyQuests();
   const claimQuest = useClaimQuest();
+  const { t } = useTranslation();
 
   const handleClaim = async (questId: string) => {
     const result = await claimQuest.mutateAsync(questId);
     if (result) {
-      toast.success(`+${result.xp} XP, +${result.gems} Gems!`);
+      toast.success(t('student.claimReward', { defaultValue: '+{{xp}} XP, +{{gems}} Gems!', xp: result.xp, gems: result.gems }));
     } else {
-      toast.error("Couldn't claim the reward — try again.");
+      toast.error(t('student.claimFailed', "Couldn't claim the reward — try again."));
     }
   };
 
@@ -57,7 +59,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
         <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
            <ChevronLeft size={24} />
         </button>
-        <span className="font-bold text-slate-800">Daily Quests</span>
+        <span className="font-bold text-slate-800">{t('student.dailyQuests', 'Daily Quests')}</span>
         <div className="w-10"></div>
       </header>
 
@@ -71,8 +73,8 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
             <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
             <div className="flex justify-between items-start mb-4 relative z-10">
                <div>
-                  <h2 className="text-xl font-black italic uppercase tracking-wide">Daily Goal</h2>
-                  <p className="text-blue-100 text-sm font-medium">Complete quests to open the chest!</p>
+                  <h2 className="text-xl font-black italic uppercase tracking-wide">{t('student.dailyGoal', 'Daily Goal')}</h2>
+                  <p className="text-blue-100 text-sm font-medium">{t('student.dailyGoalHint', 'Complete quests to open the chest!')}</p>
                </div>
                <div className="bg-white/20 backdrop-blur rounded-lg px-3 py-1 font-bold text-sm border border-white/20">
                    {claimedCount} / {quests.length}
@@ -105,8 +107,8 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
                  <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Gift size={32} className="text-indigo-400" />
                  </div>
-                 <h3 className="font-bold text-slate-800 mb-1">No quests yet</h3>
-                 <p className="text-sm text-slate-500">Your daily quests will appear here. Check back soon!</p>
+                 <h3 className="font-bold text-slate-800 mb-1">{t('student.noQuests', 'No quests yet')}</h3>
+                 <p className="text-sm text-slate-500">{t('student.noQuestsHint', 'Your daily quests will appear here. Check back soon!')}</p>
               </div>
             ) : (
             quests.map((quest, index) => {
@@ -142,7 +144,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
                         ) : (
                            <div className="flex flex-col items-center justify-center w-10">
                               <div className="text-amber-500 font-black text-sm">+{quest.reward_gems}</div>
-                              <div className="text-[10px] font-bold text-slate-400 uppercase">Gems</div>
+                              <div className="text-[10px] font-bold text-slate-400 uppercase">{t('student.gems', 'Gems')}</div>
                            </div>
                         )}
                      </div>

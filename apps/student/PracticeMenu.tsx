@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Volume2, Mic, Puzzle, BookOpen, Dumbbell, Feather, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Engine } from '../../services/SupabaseService';
@@ -11,6 +12,7 @@ interface PracticeMenuProps {
 
 const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
    const [srsCount, setSrsCount] = useState(0);
+  const { t } = useTranslation();
 
    useEffect(() => {
       const fetchSrs = async () => {
@@ -27,7 +29,7 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
             <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
                <ChevronLeft size={24} />
             </button>
-            <span className="font-bold text-slate-800">Practice Arena</span>
+            <span className="font-bold text-slate-800">{t('student.practiceArena', 'Practice Arena')}</span>
          </header>
 
          {/* Content */}
@@ -40,8 +42,8 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-orange-200">
                   <Dumbbell size={32} />
                </div>
-               <h1 className="text-2xl font-bold text-slate-800">Train your skills</h1>
-               <p className="text-slate-500">Select a category to practice.</p>
+               <h1 className="text-2xl font-bold text-slate-800">{t('student.trainSkills', 'Train your skills')}</h1>
+               <p className="text-slate-500">{t('student.selectCategory', 'Select a category to practice.')}</p>
             </motion.div>
 
             <motion.div
@@ -57,11 +59,11 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   disabled
                   className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm opacity-60 cursor-not-allowed group flex flex-col items-center gap-4 relative"
                >
-                  <span className="absolute top-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Soon</span>
+                  <span className="absolute top-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">{t('student.comingSoon', 'Soon')}</span>
                   <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
                      <Volume2 size={24} />
                   </div>
-                  <span className="font-bold text-slate-700">Listening</span>
+                  <span className="font-bold text-slate-700">{t('student.practiceListening', 'Listening')}</span>
                </motion.button>
 
                <motion.button
@@ -75,7 +77,7 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   <div className="w-14 h-14 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                      <Mic size={24} />
                   </div>
-                  <span className="font-bold text-slate-700">Speaking</span>
+                  <span className="font-bold text-slate-700">{t('student.practiceSpeaking', 'Speaking')}</span>
                </motion.button>
 
                {/* Grammar has no route yet (audit P0-6) — shown disabled until built. */}
@@ -85,11 +87,11 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   disabled
                   className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm opacity-60 cursor-not-allowed group flex flex-col items-center gap-4 relative"
                >
-                  <span className="absolute top-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">Soon</span>
+                  <span className="absolute top-2 right-2 bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">{t('student.comingSoon', 'Soon')}</span>
                   <div className="w-14 h-14 bg-green-50 text-green-500 rounded-full flex items-center justify-center">
                      <Puzzle size={24} />
                   </div>
-                  <span className="font-bold text-slate-700">Grammar</span>
+                  <span className="font-bold text-slate-700">{t('student.practiceGrammar', 'Grammar')}</span>
                </motion.button>
 
                <motion.button
@@ -103,7 +105,7 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   <div className="w-14 h-14 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                      <BookOpen size={24} />
                   </div>
-                  <span className="font-bold text-slate-700">Reading</span>
+                  <span className="font-bold text-slate-700">{t('student.practiceReading', 'Reading')}</span>
                </motion.button>
 
                <motion.button
@@ -117,7 +119,7 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   <div className="w-14 h-14 bg-sky-50 text-sky-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                      <Feather size={24} />
                   </div>
-                  <span className="font-bold text-slate-700">Phonics Fly</span>
+                  <span className="font-bold text-slate-700">{t('student.practicePhonics', 'Phonics Fly')}</span>
                </motion.button>
 
                <motion.button
@@ -136,7 +138,7 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                      <RotateCcw size={24} />
                   </div>
-                  <span className="font-bold text-slate-700">SRS Review</span>
+                  <span className="font-bold text-slate-700">{t('student.practiceSrs', 'SRS Review')}</span>
                </motion.button>
             </motion.div>
 
@@ -146,7 +148,7 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                transition={{ delay: 0.5 }}
                className="mt-8 bg-slate-100 p-4 rounded-xl text-center"
             >
-               <p className="text-xs text-slate-500 font-medium">More practice modes coming soon!</p>
+               <p className="text-xs text-slate-500 font-medium">{t('student.moreModesSoon', 'More practice modes coming soon!')}</p>
             </motion.div>
          </div>
       </div>

@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Settings, Camera, Flame, Zap, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
@@ -19,6 +20,7 @@ interface ProfileProps {
 
 const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
    const { userProfile } = useAppStore();
+  const { t } = useTranslation();
    const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 
    const levelLabel = XP_LEVELS.getTitleForLevel(stats.level);
@@ -30,7 +32,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
             <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
                <ChevronLeft size={24} />
             </button>
-            <span className="font-bold text-slate-800">My Profile</span>
+            <span className="font-bold text-slate-800">{t('student.myProfile', 'My Profile')}</span>
             <button className="p-2 -mr-2 text-slate-400 hover:text-slate-600">
                <Settings size={24} />
             </button>
@@ -78,7 +80,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                   >
                      <Flame className="text-orange-500 fill-orange-500" size={24} />
                      <span className="font-bold text-slate-800 text-lg">{stats.streak}</span>
-                     <span className="text-[10px] font-bold text-slate-400 uppercase">Days</span>
+                     <span className="text-[10px] font-bold text-slate-400 uppercase">{t('student.days', 'Days')}</span>
                   </motion.div>
                   <motion.div
                      initial={{ scale: 0.8, opacity: 0 }}
@@ -88,7 +90,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                   >
                      <Zap className="text-yellow-400 fill-yellow-400" size={24} />
                      <span className="font-bold text-slate-800 text-lg">{stats.xp}</span>
-                     <span className="text-[10px] font-bold text-slate-400 uppercase">Total XP</span>
+                     <span className="text-[10px] font-bold text-slate-400 uppercase">{t('student.totalXp', 'Total XP')}</span>
                   </motion.div>
                   <motion.div
                      initial={{ scale: 0.8, opacity: 0 }}
@@ -98,7 +100,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                   >
                      <Gem className="text-blue-500 fill-blue-500" size={24} />
                      <span className="font-bold text-slate-800 text-lg">{stats.gems}</span>
-                     <span className="text-[10px] font-bold text-slate-400 uppercase">Gems</span>
+                     <span className="text-[10px] font-bold text-slate-400 uppercase">{t('student.gems', 'Gems')}</span>
                   </motion.div>
                </div>
             </motion.div>
@@ -108,7 +110,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                onClick={onCustomize}
                className="w-full bg-duo-green hover:bg-duo-green-dark text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all"
             >
-               Customize Avatar
+               {t('student.customizeAvatar', 'Customize Avatar')}
             </button>
 
          </div>

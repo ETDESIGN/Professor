@@ -2,6 +2,7 @@
 // insensitive. Audio plays via the real audio_url (fixes mock playAudio).
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BaseExerciseProps } from '../../../types/exercise';
 import { AudioButton, FeedbackBanner, useElapsedMs, textMatches, Feedback } from './shared';
 
@@ -11,6 +12,7 @@ const FINE_POINTER = typeof window !== 'undefined'
   && window.matchMedia('(pointer: fine)').matches;
 
 const Dictation: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) => {
+  const { t } = useTranslation();
   const c = data.content as Extract<import('../../../types/exercise').ExerciseContent, { type: 'DICTATION' }>;
   const elapsed = useElapsedMs();
   const [value, setValue] = useState('');
@@ -25,7 +27,7 @@ const Dictation: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) =
 
   return (
     <div className="flex-1 flex flex-col p-6 max-w-lg mx-auto w-full">
-      <p className="text-slate-500 font-bold mb-3">Type what you hear</p>
+      <p className="text-slate-500 font-bold mb-3">{t('exercise.typeWhatYouHear', 'Type what you hear')}</p>
       <div className="flex items-center gap-4 mb-4">
         <AudioButton url={c.audio_url} fallbackText={c.correct_text} large onError={onError} />
         <span className="text-slate-400 text-sm">Tap to listen, then type</span>
@@ -37,7 +39,7 @@ const Dictation: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) =
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
         disabled={feedback !== 'idle'}
-        placeholder="Type the word or sentence…"
+        placeholder={t('exercise.typeWordSentence', 'Type the word or sentence…')}
         className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-duo-blue outline-none text-lg font-medium text-slate-800 bg-white"
       />
       {c.hint && feedback !== 'idle' && <p className="text-sm text-slate-500 mt-2">Hint: {c.hint}</p>}

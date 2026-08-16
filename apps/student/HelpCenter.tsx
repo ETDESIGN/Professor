@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Search, HelpCircle, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,12 +10,13 @@ interface HelpCenterProps {
 const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const { t } = useTranslation();
 
   const faqs = [
-    { id: 'xp', q: "How do I earn XP?", a: "You earn XP by completing lessons, winning class games, and keeping your daily streak alive!" },
-    { id: 'offline', q: "Can I learn offline?", a: "Yes! Once you open a unit, it is saved to your device for 24 hours." },
-    { id: 'streak', q: "I lost my streak!", a: "Don't worry! You can use a Streak Freeze from the shop to repair it." },
-    { id: 'password', q: "How do I reset my password?", a: "Ask your teacher or parent to help you reset your PIN from their dashboard." }
+    { id: 'xp', q: t('student.faqXpQ', 'How do I earn XP?'), a: t('student.faqXpA', 'You earn XP by completing lessons, winning class games, and keeping your daily streak alive!') },
+    { id: 'offline', q: t('student.faqOfflineQ', 'Can I learn offline?'), a: t('student.faqOfflineA', 'Yes! Once you open a unit, it is saved to your device for 24 hours.') },
+    { id: 'streak', q: t('student.faqStreakQ', 'I lost my streak!'), a: t('student.faqStreakA', "Don't worry! You can use a Streak Freeze from the shop to repair it.") },
+    { id: 'password', q: t('student.faqPasswordQ', 'How do I reset my password?'), a: t('student.faqPasswordA', 'Ask your teacher or parent to help you reset your PIN from their dashboard.') }
   ];
 
   const visibleFaqs = faqs.filter(faq =>
@@ -29,7 +31,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
         <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
            <ChevronLeft size={24} />
         </button>
-        <span className="font-bold text-slate-800">Help Center</span>
+        <span className="font-bold text-slate-800">{t('student.helpCenter', 'Help Center')}</span>
       </header>
 
       {/* Content */}
@@ -40,8 +42,8 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
             <div className="w-16 h-16 bg-duo-green/10 text-duo-green rounded-2xl flex items-center justify-center mx-auto mb-4">
                <HelpCircle size={32} />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800">How can we help?</h1>
-            <p className="text-slate-500">Search the answers below.</p>
+            <h1 className="text-2xl font-bold text-slate-800">{t('student.howCanWeHelp', 'How can we help?')}</h1>
+            <p className="text-slate-500">{t('student.helpSubtitle', 'Search the answers below.')}</p>
          </div>
 
          {/* Search */}
@@ -51,21 +53,35 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
                type="text"
                value={query}
                onChange={(e) => setQuery(e.target.value)}
-               placeholder="Search help articles..."
+               placeholder={t('student.searchHelp', 'Search help articles...')}
                className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-duo-green focus:outline-none font-medium text-slate-700 placeholder:text-slate-400 transition-colors"
             />
          </div>
+
+         {/* Tour */}
+         <button
+            onClick={() => { window.location.href = '/onboarding/student'; }}
+            className="w-full bg-indigo-50 border-2 border-indigo-100 rounded-2xl p-4 flex items-center gap-4 text-left hover:border-indigo-300 transition-colors"
+         >
+            <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+               <HelpCircle size={20} />
+            </div>
+            <div>
+               <div className="font-bold text-slate-800">{t('student.takeTour', 'Take the app tour')}</div>
+               <div className="text-xs text-slate-400">{t('student.takeTourHint', 'See how joining a class and claiming your name works')}</div>
+            </div>
+         </button>
 
          {/* FAQ */}
          <div>
             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                <span className="w-1 h-4 bg-duo-yellow rounded-full"></span>
-               Frequently Asked
+               {t('student.faq', 'Frequently Asked')}
             </h3>
             <div className="space-y-3">
                {visibleFaqs.length === 0 && (
                   <div className="bg-white p-6 rounded-xl border border-slate-200 text-center text-slate-400 text-sm">
-                     No articles match "{query}".
+                     {t('student.noHelpMatch', { defaultValue: 'No articles match "{{q}}".', q: query })}
                   </div>
                )}
                {visibleFaqs.map((faq, index) => (

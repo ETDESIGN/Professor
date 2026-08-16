@@ -7,6 +7,7 @@
 // WHO_SAID_IT (Phase 3 additions — all MCQ-shaped).
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BaseExerciseProps, ExerciseContent } from '../../../types/exercise';
 import {
   AudioButton,
@@ -36,11 +37,12 @@ export function isChoiceType(type: string): boolean {
 const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError }) => {
   const c = data.content as ExerciseContent;
   const elapsed = useElapsedMs();
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<Feedback>('idle');
 
   // Extract fields per content shape.
-  const t = c.type;
+  const kind = c.type;
   let promptText = '';
   let promptAudio: string | undefined;
   let sentencePrompt = '';
@@ -51,7 +53,7 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
   let optionsRaw: any[] = [];
   let correctIndex = 0;
 
-  switch (t) {
+  switch (kind) {
     case 'IMAGE_SELECT':
       promptText = c.prompt;
       promptAudio = c.prompt_audio;
@@ -70,7 +72,7 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       optionsRaw = c.options;
       correctIndex = c.correct_index;
       audioButton = true;
-      promptText = 'Listen and choose the correct meaning';
+      promptText = t('exercise.listenMeaning', 'Listen and choose the correct meaning');
       break;
     case 'LISTEN_SELECT':
       promptAudio = c.audio_url;
@@ -78,7 +80,7 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       correctIndex = c.correct_index;
       audioButton = true;
       imageOptions = c.options?.some((o: any) => o?.image_url);
-      promptText = 'Listen and tap the correct answer';
+      promptText = t('exercise.listenTap', 'Listen and tap the correct answer');
       break;
     case 'SPELL_CLOZE':
       sentencePrompt = c.sentence_with_blank;
@@ -91,7 +93,7 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       optionsRaw = c.options;
       correctIndex = c.correct_index;
       explanation = c.explanation;
-      instruction = 'Choose the correct version';
+      instruction = t('exercise.chooseCorrect', 'Choose the correct version');
       break;
     case 'TRANSFORM':
       sentencePrompt = c.prompt_sentence;
@@ -101,20 +103,20 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       break;
     case 'GRAMMAR_FILL':
       sentencePrompt = c.sentence_with_blank;
-      instruction = c.rule_name;
+      instruction = c.rule_name; // (rule name is content, not UI copy)
       optionsRaw = c.options;
       correctIndex = c.correct_index;
       explanation = c.explanation;
       break;
     case 'STORY_COMPREHENSION':
       promptText = c.prompt;
-      instruction = 'Think about the story';
+      instruction = t('exercise.thinkStory', 'Think about the story');
       optionsRaw = c.options;
       correctIndex = c.correct_index;
       break;
     case 'WHO_SAID_IT':
       sentencePrompt = c.line_text;
-      instruction = 'Who said this?';
+      instruction = t('exercise.whoSaidIt', 'Who said this?');
       optionsRaw = c.options;
       correctIndex = c.correct_index;
       if (c.context_before || c.context_after) {
@@ -122,7 +124,7 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       }
       break;
     default:
-      return <div className="p-6 text-slate-400">Unsupported exercise.</div>;
+      return <div className="p-6 text-slate-400">{t('exercise.unsupported', 'Unsupported exercise.')}</div>;
   }
 
   const handleSelect = (i: number) => {

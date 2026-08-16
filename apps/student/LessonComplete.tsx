@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Star, Check, ArrowRight, Trophy, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { GEM_REWARDS } from '../../constants/gamification';
@@ -15,6 +16,7 @@ interface LessonCompleteProps {
 const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { xp: 5, accuracy: 92, time: '2:15' } }) => {
   const [stars, setStars] = useState(0);
   const [xp, setXp] = useState(0);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Animate stars
@@ -78,8 +80,8 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
             ))}
          </div>
 
-         <h1 className="text-3xl font-black text-slate-800 mb-2 uppercase tracking-wide">Lesson Complete!</h1>
-         <p className="text-slate-500 font-bold mb-8">You did an amazing job!</p>
+         <h1 className="text-3xl font-black text-slate-800 mb-2 uppercase tracking-wide">{t('student.lessonComplete', 'Lesson Complete!')}</h1>
+         <p className="text-slate-500 font-bold mb-8">{t('student.amazingJob', 'You did an amazing job!')}</p>
 
          {/* Stats Grid */}
          <div className="grid grid-cols-2 gap-4 mb-8">
@@ -89,7 +91,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
                transition={{ delay: 0.5 }}
                className="bg-orange-50 p-4 rounded-2xl border-2 border-orange-100 flex flex-col items-center"
             >
-               <div className="text-orange-500 font-bold text-xs uppercase mb-1">Total XP</div>
+               <div className="text-orange-500 font-bold text-xs uppercase mb-1">{t('student.totalXp', 'Total XP')}</div>
                <div className="text-3xl font-black text-orange-600 flex items-center gap-1">
                   <span className="text-2xl">⚡</span> {xp}
                </div>
@@ -100,7 +102,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
                transition={{ delay: 0.7 }}
                className="bg-blue-50 p-4 rounded-2xl border-2 border-blue-100 flex flex-col items-center"
             >
-               <div className="text-blue-500 font-bold text-xs uppercase mb-1">Accuracy</div>
+               <div className="text-blue-500 font-bold text-xs uppercase mb-1">{t('student.accuracy', 'Accuracy')}</div>
                <div className="text-3xl font-black text-blue-600">{stats.accuracy}%</div>
             </motion.div>
             <motion.div 
@@ -114,7 +116,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
                      <Gem size={20} />
                   </div>
                   <div className="text-left">
-                     <div className="text-emerald-600 font-bold text-xs uppercase">Rewards</div>
+                     <div className="text-emerald-600 font-bold text-xs uppercase">{t('student.rewards', 'Rewards')}</div>
                      <div className="text-emerald-800 font-black">+{GEM_REWARDS.PERFECT_LESSON} Gems</div>
                   </div>
                </div>
@@ -133,7 +135,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
                onClick={onContinue}
                className="w-full bg-duo-green hover:bg-duo-green-dark text-white font-bold text-lg py-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wide flex items-center justify-center gap-2"
             >
-               Continue <ArrowRight size={24} />
+               {t('student.continue', 'Continue')} <ArrowRight size={24} />
             </button>
          </motion.div>
       </div>

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Star, Play, Lock, Headphones, Activity, Mic, LayoutGrid, Check, Flame, Gift, Target, BookOpen, Crown, AlertTriangle } from 'lucide-react';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { supabase } from '../../services/supabaseClient';
@@ -16,6 +17,7 @@ interface HomeMapProps {
 
 const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
   const { state, loadUnits } = useSoloSession();
+  const { t } = useTranslation();
   const soloState = state as any;
 
   const units = state.units;
@@ -83,9 +85,9 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
       <div className="bg-white mx-4 mt-6 mb-8 rounded-2xl p-4 shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <Target size={20} className="text-orange-500" /> Daily Quests
+            <Target size={20} className="text-orange-500" /> {t('student.dailyQuests', 'Daily Quests')}
           </h2>
-          <span className="text-sm font-bold text-slate-400">{hoursLeft}h left</span>
+          <span className="text-sm font-bold text-slate-400">{t('student.timeLeft', { defaultValue: '{{hours}}h left', hours: hoursLeft })}</span>
         </div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -94,7 +96,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-bold text-slate-700">Earn {xpGoal} XP</span>
+                <span className="text-sm font-bold text-slate-700">{t('student.questEarnXp', { defaultValue: 'Earn {{xp}} XP', xp: xpGoal })}</span>
                 <span className="text-sm font-bold text-slate-400">{Math.min(studentXp, xpGoal)}/{xpGoal}</span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -108,7 +110,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-bold text-slate-700">Complete 2 Lessons</span>
+                <span className="text-sm font-bold text-slate-700">{t('student.questLessons', 'Complete 2 Lessons')}</span>
                 <span className="text-sm font-bold text-slate-400">{Math.min(completedUnitIds.length, 2)}/2</span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -123,8 +125,8 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               </div>
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm font-bold text-slate-700">Keep your streak!</span>
-                  <span className="text-sm font-bold text-green-500">{studentStreak} days</span>
+                  <span className="text-sm font-bold text-slate-700">{t('student.questKeepStreak', 'Keep your streak!')}</span>
+                  <span className="text-sm font-bold text-green-500">{t('student.streakDays', { defaultValue: '{{n}} days', n: studentStreak })}</span>
                 </div>
               </div>
             </div>
@@ -144,20 +146,20 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               <div className="w-20 h-20 rounded-full bg-slate-200 animate-pulse" style={{ opacity: 1 - i * 0.25 }} />
             </div>
           ))}
-          <p className="text-center text-sm text-slate-400">Loading your lessons…</p>
+          <p className="text-center text-sm text-slate-400">{t('student.loadingLessons', 'Loading your lessons…')}</p>
         </div>
       ) : unitsError ? (
         <div className="mx-4 bg-white rounded-2xl p-8 shadow-sm border border-red-100 text-center">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle size={32} className="text-red-500" />
           </div>
-          <h3 className="font-bold text-slate-800 mb-1">Couldn't load your lessons</h3>
+          <h3 className="font-bold text-slate-800 mb-1">{t('student.loadLessonsFailed', 'Couldn\'t load your lessons')}</h3>
           <p className="text-sm text-slate-500 mb-5">{unitsError}</p>
           <button
             onClick={() => loadUnits()}
             className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
           >
-            Try again
+            {t('common.retry', 'Try again')}
           </button>
         </div>
       ) : units.length === 0 ? (
@@ -165,16 +167,24 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen size={32} className="text-blue-500" />
           </div>
-          <h3 className="font-bold text-slate-800 mb-1">No lessons yet</h3>
-          <p className="text-sm text-slate-500 mb-5">Join a class with the code from your teacher to see your lessons here.</p>
-          {onJoinClass && (
+          <h3 className="font-bold text-slate-800 mb-1">{t('student.noLessonsYet', 'No lessons yet')}</h3>
+          <p className="text-sm text-slate-500 mb-5">{t('student.noLessonsHint', 'Join a class with the code from your teacher to see your lessons here.')}</p>
+          <div className="flex flex-col items-center gap-3">
+            {onJoinClass && (
+              <button
+                onClick={onJoinClass}
+                className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+              >
+                {t('student.joinClass', 'Join a class')}
+              </button>
+            )}
             <button
-              onClick={onJoinClass}
-              className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+              onClick={() => { window.location.href = '/onboarding/student'; }}
+              className="text-duo-blue font-bold text-sm underline underline-offset-4 hover:text-blue-700 transition-colors"
             >
-              Join a class
+              {t('student.takeTour', 'New here? Take the app tour')}
             </button>
-          )}
+          </div>
         </div>
       ) : (
       units.map((unit, unitIndex) => {
