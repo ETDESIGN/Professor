@@ -19,6 +19,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { recordChoralReview } from '../../../services/boardLearner';
 import { getVocabulary } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
+import { playCue } from './playCue';
 
 interface WarmupItem {
   objectiveId: string;
@@ -110,9 +111,14 @@ const BoardLiveClassWarmup: React.FC<{ data?: any }> = ({ data }) => {
   }, [state.lastAction]);
 
   // ── Choral rating → recordChoralReview ──────────────────────────────
+  // Sound cues only (choral by design — exempt from picked-student scoring):
+  // "Class Got It" → correct, "Class Struggled" → wrong, and the win cue when
+  // the final item resolves (the warmup round is complete).
   const onClassResponse = (outcome: 'strong' | 'weak') => {
     const item = items[activeIdx];
     if (!item || resolved.has(activeIdx)) return;
+    if (activeIdx === items.length - 1) playCue('win');
+    else playCue(outcome === 'strong' ? 'correct' : 'wrong');
     setResolved((prev) => new Set(prev).add(activeIdx));
     recordChoralReview(item.objectiveId, roster, outcome).catch(() => {});
     // Advance after a brief delay so the teacher sees the acknowledgment.

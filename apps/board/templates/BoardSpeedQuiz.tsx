@@ -20,6 +20,7 @@ import { useSession } from '../../../store/SessionContext';
 import { useQuizComposition, type QuizQuestion } from '../quizEngine';
 import { computeLCSPartialCredit } from './BoardUnscramble';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeObjective } from '../../../services/boardLearner';
@@ -37,7 +38,7 @@ const SHAPES = [
 ];
 
 const BoardSpeedQuiz = ({ data }: { data: any }) => {
-  const { state, addPoints, pushToRemediation, triggerAction } = useSession();
+  const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
   const pickedStudent = usePickedStudent();
@@ -105,6 +106,7 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
     const a = state.lastAction;
     if (!a) return;
     if (a.type === 'REVEAL_ANSWER' && phase === 'answering') handleTimeout();
+    else if (a.type === 'MARK_CORRECT' && phase === 'answering') handleForceCorrect();
     else if ((a.type === 'NEXT_ROUND' || a.type === 'RESET_GAME') && phase === 'reveal') nextQuestion();
     else if (a.type === 'RESET_GAME' && phase === 'results') resetQuiz();
   }, [state.lastAction]);
@@ -158,15 +160,28 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
 
     const isCorrect = tileIdx === (currentQ.item.content as any).correct_index;
     setSelectedTile(tileIdx);
-    if (isCorrect) { setScore(s => s + 1); setStreak(s => s + 1); }
-    else setStreak(0);
 
     const picked = state.quickWheelWinner;
-    if (picked) {
-      if (isCorrect) {
-        const points = scoreForAttempt(0, currentQ.difficulty, 1.0);
-        doDualWrite(currentQ, 'correct', points);
+    if (isCorrect) {
+      // Streak persists ACROSS questions (resets only on wrong/timeout) —
+      // the multiplier + flame tiers are quiz-wide, not per-question.
+      const nextStreak = streak + 1;
+      setScore(s => s + 1);
+      setStreak(nextStreak);
+      if (nextStreak === 3 || nextStreak === 5 || nextStreak === 10) {
+        playCue('streak');
+        triggerConfetti();
       } else {
+        playCue('correct');
+      }
+      if (picked) {
+        const points = scoreForAttempt(0, currentQ.difficulty, 1.0, nextStreak);
+        doDualWrite(currentQ, 'correct', points);
+      }
+    } else {
+      setStreak(0);
+      playCue('wrong');
+      if (picked) {
         mistakesRef.current += 1;
         setMistakes(mistakesRef.current);
         doDualWrite(currentQ, 'incorrect', -MISTAKE_PENALTY);
@@ -202,17 +217,69 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
         const strip = (s: string) => s.replace(/[.,!?;:]/g, '');
         const ratio = computeLCSPartialCredit(placedTiles.map(strip), targetTiles.map(strip));
         const correctness = ratio >= 1 ? 'correct' : ratio >= 0.5 ? 'partial' : 'incorrect';
-        const points = scoreForAttempt(0, currentQ.difficulty, ratio);
-        if (ratio >= 0.5) { setScore(s => s + 1); setStreak(s => s + 1); }
-        else setStreak(0);
+        // Success (ratio ≥ 0.5) extends the quiz-wide streak; failure resets.
+        const nextStreak = ratio >= 0.5 ? streak + 1 : 0;
+        const points = scoreForAttempt(0, currentQ.difficulty, ratio, nextStreak);
+        if (ratio >= 0.5) {
+          setScore(s => s + 1);
+          setStreak(nextStreak);
+          if (nextStreak === 3 || nextStreak === 5 || nextStreak === 10) {
+            playCue('streak');
+            triggerConfetti();
+          } else {
+            playCue('correct');
+          }
+        } else {
+          setStreak(0);
+          // The reveal hold teaches the answer — cue the reveal, not "wrong".
+          playCue('reveal');
+        }
         doDualWrite(currentQ, correctness as any, points);
       } else {
-        // MCQ timeout = wrong
+        // MCQ timeout = wrong; the 2500ms reveal hold that follows shows the
+        // answer for teaching — cue the reveal beat.
         mistakesRef.current += 1;
         setMistakes(mistakesRef.current);
         setStreak(0);
+        playCue('reveal');
         doDualWrite(currentQ, 'incorrect', -MISTAKE_PENALTY);
       }
+    }
+
+    setPhase('reveal');
+    setTimeout(() => nextQuestion(), 2500);
+  }
+
+  // ── MARK_CORRECT (teacher override): force-score as clean correct ─────
+  // mistakesRef is preserved (a forced success after misses still costs the
+  // mistake deduction), awardedRef latches per question so a double remote
+  // tap can't double-award. Advances like a correct answer.
+  function handleForceCorrect() {
+    if (phase !== 'answering' || !currentQ || awardedRef.current) return;
+    awardedRef.current = true;
+
+    const nextStreak = streak + 1;
+    setScore(s => s + 1);
+    setStreak(nextStreak);
+    if (nextStreak === 3 || nextStreak === 5 || nextStreak === 10) {
+      playCue('streak');
+      triggerConfetti();
+    } else {
+      playCue('correct');
+    }
+
+    if (isWordBank) {
+      // Show the completed assembly so the reveal reads "✓ Correct!".
+      const targetSentence = (currentQ.item.content as any)?.target_sentence || '';
+      setPlacedTiles(targetSentence.split(/\s+/).filter(Boolean));
+    } else {
+      setSelectedTile((currentQ.item.content as any).correct_index);
+    }
+
+    const picked = state.quickWheelWinner;
+    if (picked) {
+      const points = scoreForAttempt(mistakesRef.current, currentQ.difficulty, 1.0, nextStreak);
+      doDualWrite(currentQ, 'correct', points);
     }
 
     setPhase('reveal');
@@ -223,6 +290,7 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   function nextQuestion() {
     if (isLastQ) {
       setPhase('results');
+      playCue('win');
       // Broadcast SLIDE_COMPLETE
       triggerAction('SLIDE_COMPLETE', { forced: false });
       return;
@@ -238,7 +306,10 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
     setQIdx(i => i + 1);
     setSelectedTile(null);
     setPlacedTiles([]);
-    setStreak(0);
+    // NOTE: streak is deliberately NOT reset here — it persists across
+    // questions within the quiz and resets only on a wrong answer / timeout
+    // (handleAnswer / handleTimeout) or a new turn / full reset. The old
+    // per-question setStreak(0) made the flame tiers + multiplier dead code.
     setPhase('ready');
   }
 

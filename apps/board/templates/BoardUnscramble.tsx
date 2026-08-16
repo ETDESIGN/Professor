@@ -27,6 +27,7 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeObjective } from '../../../services/boardLearner';
+import { playCue } from './playCue';
 import type { ContextualControlsSpec } from '../lessonDirector';
 import type { PoolItem } from '../../../types/exercise';
 
@@ -155,7 +156,7 @@ interface Tile { id: string; text: string; }
 type Outcome = 'correct' | 'partial' | null;
 
 const BoardUnscramble = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints, pushToRemediation } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phaseTag = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -212,13 +213,28 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   const [isWrongFlash, setIsWrongFlash] = useState(false);
   const [slideComplete, setSlideComplete] = useState(false);
   const [alreadyScoredChip, setAlreadyScoredChip] = useState(false);
+  /** Designed reveal (2nd failed check this round): the target sentence as
+   *  in-order tiles, each colored green (student had the right word in that
+   *  position) or amber (misplaced/missing) — BoardSentenceLab's
+   *  placedFeedback pattern. Null when not revealing. */
+  const [revealTiles, setRevealTiles] = useState<{ word: string; inPlace: boolean }[] | null>(null);
 
   // ── Lifecycle refs (the 4 must-dos) ───────────────────────────────────
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  /** Failed checks within the CURRENT round (reveal trigger — reset on round
+   *  change and new turn via buildBoard). Distinct from mistakesRef, which is
+   *  the turn-wide accumulation scoreForAttempt deducts against. */
+  const roundMissesRef = useRef(0);
+  // Slide-scoped streak for the picked responder (consecutive correct
+  // rounds; reset on a failed check and a new turn). 4th arg to
+  // scoreForAttempt — 3 = 1.25x, 5 = 1.5x.
+  const streakRef = useRef(0);
 
   // ── Build/rebuild the tray for the current round ──────────────────────
   const buildBoard = useCallback((r: AssemblyRound | null) => {
+    roundMissesRef.current = 0; // per-round reveal counter (round change / new turn / reset)
+    setRevealTiles(null);
     if (!r) { setTray([]); setPlaced([]); return; }
     setTray(shuffle(r.trayTiles).map((w, i) => ({ id: `t-${i}-${w}`, text: w })));
     setPlaced([]);
@@ -240,9 +256,9 @@ const BoardUnscramble = ({ data }: { data: any }) => {
 
   // ── Tile moves (broadcast for multi-board-tab sync, as before) ────────
   const handleTileClick = useCallback((tile: Tile, from: 'bank' | 'placed') => {
-    if (outcome) return;
+    if (outcome || revealTiles) return;
     triggerAction('UNSCRAMBLE_MOVE', { wordId: tile.id, from });
-  }, [outcome, triggerAction]);
+  }, [outcome, revealTiles, triggerAction]);
 
   // ── Dual-write + cognitive capture ────────────────────────────────────
   const doScoring = useCallback((correctness: 'correct' | 'partial' | 'incorrect', points: number, r: AssemblyRound, passed: boolean) => {
@@ -276,6 +292,9 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     if (slideComplete) return;
     if (roundIndex >= TOTAL_ROUNDS) {
       setSlideComplete(true);
+      // Natural end (NEXT_ROUND on the last round) celebrates; a silent skip
+      // ({ silent: true } from SKIP_ROUND) doesn't.
+      if (!opts?.silent) playCue('win');
       triggerAction('SLIDE_COMPLETE', { forced: !!opts?.silent ? true : false });
     } else {
       setRoundIndex((r) => r + 1);
@@ -286,6 +305,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     setTimeout(() => {
       if (roundIndex >= TOTAL_ROUNDS) {
         setSlideComplete(true);
+        playCue('win'); // natural completion after real play
         triggerAction('SLIDE_COMPLETE', { forced: false });
       } else {
         setRoundIndex((r) => r + 1);
@@ -298,13 +318,14 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   // sitting stuck behind "Great building!" if the teacher walks away.
   useEffect(() => {
     if (!slideComplete) return;
+    setRevealTiles(null); // a final-round reveal must not outlive this overlay
     const t = setTimeout(() => setSlideComplete(false), 6000);
     return () => clearTimeout(t);
   }, [slideComplete]);
 
   // ── Submit (spec A3) ──────────────────────────────────────────────────
   const checkAnswer = useCallback(() => {
-    if (!round || outcome || slideComplete) return;
+    if (!round || outcome || slideComplete || revealTiles) return;
     if (placed.length === 0) return;
 
     const placedTexts = placed.map((t) => t.text);
@@ -316,15 +337,40 @@ const BoardUnscramble = ({ data }: { data: any }) => {
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
       const clean = ratio >= 1;
-      const points = scoreForAttempt(mistakesRef.current, round.difficulty, ratio);
+      streakRef.current += 1; // bumped before scoring so the award sees it
+      const points = scoreForAttempt(mistakesRef.current, round.difficulty, ratio, streakRef.current);
       setOutcome(clean ? 'correct' : 'partial');
       setLastRatio(ratio);
       doScoring(clean ? 'correct' : 'partial', points, round, true);
+      playCue('correct');
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
       afterResolve();
     } else {
       mistakesRef.current += 1;
+      roundMissesRef.current += 1;
       setLastRatio(ratio);
       doScoring('incorrect', -MISTAKE_PENALTY, round, false);
+      playCue('wrong');
+      streakRef.current = 0;
+
+      // 2nd failed check this round → designed reveal (replaces the endless
+      // red-flash + hint loop): the target sentence as in-order tiles with
+      // per-position coloring vs the current placement, ~2.4s teaching hold
+      // (afterResolve's own timer), then advance. roundMissesRef resets on
+      // round change / new turn via buildBoard.
+      if (roundMissesRef.current >= 2) {
+        playCue('reveal');
+        setRevealTiles(round.targetTiles.map((w, i) => ({
+          word: w,
+          inPlace: strip(placedTexts[i] ?? '') === strip(w),
+        })));
+        afterResolve();
+        return;
+      }
+
       setIsWrongFlash(true);
       setTimeout(() => setIsWrongFlash(false), 900);
       // Targeted feedback (spec A1): clean adjacent swap → highlight exactly
@@ -338,28 +384,34 @@ const BoardUnscramble = ({ data }: { data: any }) => {
         setWrongIdx(highlightFirstWrongPosition(placedTexts, round.targetTiles));
       }
     }
-  }, [round, placed, outcome, slideComplete, doScoring, afterResolve, showAlreadyScored]);
+  }, [round, placed, outcome, slideComplete, revealTiles, doScoring, afterResolve, showAlreadyScored]);
 
   // ── Teacher controls ──────────────────────────────────────────────────
   const revealHint = useCallback(() => {
-    if (!round || outcome) return;
+    if (!round || outcome || revealTiles) return;
     const placedTexts = placed.map((t) => t.text);
     if (placedTexts.length === 0) return;
     const swap = detectSwappedPair(placedTexts, round.targetTiles);
     if (swap) { setSwapHint(swap); setWrongIdx(-1); }
     else { setSwapHint(null); setWrongIdx(highlightFirstWrongPosition(placedTexts, round.targetTiles)); }
-  }, [round, placed, outcome]);
+  }, [round, placed, outcome, revealTiles]);
 
   const forceCorrect = useCallback(() => {
-    if (!round || outcome || slideComplete) return;
+    if (!round || outcome || slideComplete || revealTiles) return;
     if (awardedRef.current) { showAlreadyScored(); return; }
     awardedRef.current = true;
-    const points = scoreForAttempt(mistakesRef.current, round.difficulty, 1.0);
+    streakRef.current += 1; // teacher-confirmed oral answer counts toward the streak
+    const points = scoreForAttempt(mistakesRef.current, round.difficulty, 1.0, streakRef.current);
     setOutcome('correct');
     setLastRatio(1);
     doScoring('correct', points, round, true);
+    playCue('correct');
+    if (streakRef.current === 3 || streakRef.current === 5) {
+      playCue('streak');
+      triggerConfetti();
+    }
     afterResolve();
-  }, [round, outcome, slideComplete, doScoring, afterResolve, showAlreadyScored]);
+  }, [round, outcome, slideComplete, revealTiles, doScoring, afterResolve, showAlreadyScored]);
 
   const skipRound = useCallback(() => {
     advanceRound({ silent: true });
@@ -378,6 +430,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
       case 'RESET_GAME':
         mistakesRef.current = 0;
         awardedRef.current = false;
+        streakRef.current = 0;
         buildSigRef.current = '';
         buildBoard(round);
         break;
@@ -417,7 +470,8 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     if (turnId === null) return; // no responder = practice mode
     mistakesRef.current = 0;
     awardedRef.current = false;
-    buildBoard(round);
+    streakRef.current = 0; // fresh responder → fresh streak
+    buildBoard(round); // also zeroes roundMissesRef + clears the reveal
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
 
@@ -543,7 +597,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
         </div>
 
         {/* Check button (in-board; the remote/contextual bar also broadcast CHECK_ANSWER) */}
-        {!outcome && !slideComplete && (
+        {!outcome && !slideComplete && !revealTiles && (
           <button onClick={checkAnswer} disabled={!canCheck}
             className={`px-10 py-4 rounded-2xl font-bold text-2xl flex items-center gap-3 transition-all
               ${canCheck ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg active:scale-95' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
@@ -571,6 +625,34 @@ const BoardUnscramble = ({ data }: { data: any }) => {
             )}
             <p className="text-3xl font-bold text-slate-700 text-center">{round?.targetTiles.join(' ')}</p>
             <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
+          </div>
+        </div>
+      )}
+
+      {/* Designed reveal (2nd failed check) — the target sentence in order,
+          per-position colored vs what the student had placed: green = that
+          position was already right, amber = misplaced/missing. A teaching
+          hold (~2.4s via afterResolve), then the round advances. */}
+      {revealTiles && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
+            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-5">
+              <Lightbulb size={44} strokeWidth={2.5} />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800 mb-1">Here's the sentence</h2>
+            <p className="text-base text-slate-500 mb-6 font-medium">
+              <span className="text-emerald-600 font-bold">Green</span> = you had it right ·
+              <span className="text-amber-600 font-bold"> Amber</span> = wrong spot
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {revealTiles.map((t, i) => (
+                <span key={i}
+                  className={`text-3xl font-bold px-6 py-3 rounded-2xl shadow-md animate-pop-in
+                    ${t.inPlace ? 'bg-green-500 text-white' : 'bg-amber-400 text-amber-950'}`}>
+                  {t.word}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}

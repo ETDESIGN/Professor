@@ -24,6 +24,7 @@ import { useSession } from '../../../store/SessionContext';
 import { getDialogues } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { useBoardPool } from '../useBoardPool';
 import { recordAttempt } from '../../../services/attemptsLog';
@@ -44,7 +45,7 @@ function deriveCharacters(lines: { speaker: string }[]): string[] {
 
 // ── Component ──────────────────────────────────────────────────────────
 const BoardDialogueStage = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints, pushToRemediation } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -120,12 +121,19 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
   const [roleAssignments, setRoleAssignments] = useState<Record<string, { id: string; name: string }>>({});
   const [ratedCharacters, setRatedCharacters] = useState<Set<string>>(new Set());
   const [scoringMode, setScoringMode] = useState<'choral' | 'picked'>('picked');
+  // Consecutive successful role-read ratings (correct/partial extend it,
+  // incorrect resets) → streak multiplier + confetti at 3/5.
+  const [roleStreak, setRoleStreak] = useState(0);
+  // Terminal-overlay dismissal (click or 6s auto — FlashMatch pattern).
+  const [completeDismissed, setCompleteDismissed] = useState(false);
 
   // WHO_SAID_IT state
   const [qIndex, setQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
   const [alreadyScoredChip, setAlreadyScoredChip] = useState(false);
+  // 2nd-miss teaching reveal: amber-ring the correct speaker + context.
+  const [revealed, setRevealed] = useState(false);
 
   // ── Lifecycle refs ───────────────────────────────────────────────────
   const mistakesRef = useRef(0);
@@ -192,8 +200,20 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
     const student = roleAssignments[character];
     if (!student || !dialogueItem) return;
 
+    // Role-read streak: successful ratings (correct/partial) extend it,
+    // incorrect resets. Milestones 3/5 get the streak cue + confetti;
+    // every other rating acknowledges with the correct cue.
+    const nextStreak = rating === 'incorrect' ? 0 : roleStreak + 1;
+    if (nextStreak === 3 || nextStreak === 5) {
+      playCue('streak');
+      triggerConfetti();
+    } else {
+      playCue('correct');
+    }
+    setRoleStreak(nextStreak);
+
     const ratio = rating === 'correct' ? 1.0 : rating === 'partial' ? 0.6 : 0;
-    const points = scoreForAttempt(0, dialogueItem.difficulty, ratio);
+    const points = scoreForAttempt(0, dialogueItem.difficulty, ratio, nextStreak);
     const objectiveId = dialogueItem.objective_id || dialogueObjectiveId;
 
     doDualWrite({
@@ -210,12 +230,12 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
     if (unitId && objectiveId) {
       gradeObjective(student.id, unitId, objectiveId, ratio >= 0.6, 'productive').catch(() => {});
     }
-  }, [roleAssignments, dialogueItem, dialogueObjectiveId, doDualWrite, unitId, showAlreadyScored]);
+  }, [roleAssignments, dialogueItem, dialogueObjectiveId, doDualWrite, unitId, showAlreadyScored, roleStreak]);
 
   // ── WHO_SAID_IT answer handler ───────────────────────────────────────
   const handleWhoSaidItAnswer = useCallback((optIndex: number) => {
     const item = whoSaidItItems[qIndex];
-    if (!item || selectedOption !== null) return;
+    if (!item || selectedOption !== null || revealed) return;
     const c = item.content as any;
     const correctIndex = Number(c.correct_index);
     setSelectedOption(optIndex);
@@ -225,6 +245,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
     if (correct) {
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
+      playCue('correct');
       const picked = state.quickWheelWinner;
       const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0);
       if (picked) {
@@ -236,6 +257,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
       }
       setTimeout(() => advanceWhoSaidIt(qIndex), 1800);
     } else {
+      playCue('wrong');
       mistakesRef.current += 1;
       const picked = state.quickWheelWinner;
       if (picked) {
@@ -244,6 +266,18 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
           exerciseType: 'WHO_SAID_IT', difficulty: item.difficulty,
           passed: false, modality: 'receptive', studentId: picked,
         });
+      }
+      // 2nd miss → teaching reveal: amber-ring the correct speaker, surface
+      // the context, hold ~2.2s, then advance (no further attempts on this
+      // item). 1st miss keeps the eliminate-a-distractor retry beat. The
+      // awardedRef latch makes the item resolve-once — blocks a MARK_CORRECT
+      // during the hold from scheduling a second advance.
+      if (mistakesRef.current >= 2) {
+        playCue('reveal');
+        awardedRef.current = true;
+        setRevealed(true);
+        setTimeout(() => advanceWhoSaidIt(qIndex), 2200);
+        return;
       }
       // MCQ hint: eliminate one distractor on 1st miss
       setEliminatedOptions(prev => {
@@ -257,7 +291,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
       });
       setTimeout(() => setSelectedOption(null), 900);
     }
-  }, [whoSaidItItems, qIndex, selectedOption, dialogueObjectiveId, state.quickWheelWinner, doDualWrite, showAlreadyScored]);
+  }, [whoSaidItItems, qIndex, selectedOption, revealed, dialogueObjectiveId, state.quickWheelWinner, doDualWrite, showAlreadyScored]);
 
   // ── WHO_SAID_IT advancement ──────────────────────────────────────────
   const advanceWhoSaidIt = useCallback((idx: number) => {
@@ -268,6 +302,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
       setQIndex(idx + 1);
       setSelectedOption(null);
       setEliminatedOptions([]);
+      setRevealed(false);
       mistakesRef.current = 0;
       awardedRef.current = false;
     }
@@ -289,6 +324,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
           setQIndex(0);
           setSelectedOption(null);
           setEliminatedOptions([]);
+          setRevealed(false);
           mistakesRef.current = 0;
           awardedRef.current = false;
         } else {
@@ -300,6 +336,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
         setStage('role_read');
         awardedByCharacterRef.current = new Set();
         setRatedCharacters(new Set());
+        setRoleStreak(0);
         break;
       case 'role_read':
         if (hasWhoSaidIt) {
@@ -307,6 +344,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
           setQIndex(0);
           setSelectedOption(null);
           setEliminatedOptions([]);
+          setRevealed(false);
           mistakesRef.current = 0;
           awardedRef.current = false;
         } else {
@@ -349,8 +387,11 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
         setQIndex(0);
         setSelectedOption(null);
         setEliminatedOptions([]);
+        setRevealed(false);
         setRatedCharacters(new Set());
         setRoleAssignments({});
+        setRoleStreak(0);
+        setCompleteDismissed(false);
         mistakesRef.current = 0;
         awardedRef.current = false;
         awardedByCharacterRef.current = new Set();
@@ -373,6 +414,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
         if (stage === 'who_said_it') {
           if (awardedRef.current) { showAlreadyScored(); break; }
           awardedRef.current = true;
+          playCue('correct');
           const item = whoSaidItItems[qIndex];
           if (item) {
             const picked = state.quickWheelWinner;
@@ -419,8 +461,26 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
     mistakesRef.current = 0;
     awardedRef.current = false;
     awardedByCharacterRef.current = new Set();
+    setRoleStreak(0);
+    setRevealed(false);
+    setCompleteDismissed(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
+
+  // ── Completion: win cue + dismissible terminal overlay ───────────────
+  useEffect(() => {
+    if (stage === 'complete') playCue('win');
+  }, [stage]);
+
+  // Auto-dismiss the terminal celebration after 6s so a forgotten tab never
+  // stays stuck behind the "Great acting!" overlay (scoring already fired
+  // before this stage — the dismissal is purely cosmetic). Matches the
+  // BoardFlashMatch pattern: click-to-dismiss + 6s auto-dismiss.
+  useEffect(() => {
+    if (stage !== 'complete' || completeDismissed) return;
+    const t = setTimeout(() => setCompleteDismissed(true), 6000);
+    return () => clearTimeout(t);
+  }, [stage, completeDismissed]);
 
   // ── Empty state ──────────────────────────────────────────────────────
   if (totalLines === 0 && !poolLoading) {
@@ -597,9 +657,10 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
                   const isEliminated = eliminatedOptions.includes(i);
                   const showResult = selectedOption !== null;
                   return (
-                    <button key={i} onClick={() => handleWhoSaidItAnswer(i)} disabled={isEliminated || (showResult && resolved)}
+                    <button key={i} onClick={() => handleWhoSaidItAnswer(i)} disabled={isEliminated || revealed || (showResult && resolved)}
                       className={`px-6 py-4 rounded-2xl text-xl font-bold border-4 transition-all text-center
-                        ${showResult && isCorrect ? 'bg-green-500/30 border-green-400 text-green-100'
+                        ${revealed && isCorrect ? 'bg-amber-500/20 border-amber-400 text-amber-100 ring-4 ring-amber-400'
+                          : showResult && isCorrect ? 'bg-green-500/30 border-green-400 text-green-100'
                           : showResult && isSelected && !isCorrect ? 'bg-red-500/30 border-red-400 text-red-100 animate-shake'
                           : isEliminated ? 'bg-white/5 border-white/10 text-white/20 opacity-40 cursor-not-allowed'
                           : 'bg-white/10 border-white/20 text-sky-50 hover:border-sky-400 hover:-translate-y-1 shadow-md'}`}>
@@ -619,14 +680,25 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
                   <Check size={32} /> {pickedStudent ? `${pickedStudent.name} got it!` : 'Correct!'}
                 </div>
               )}
+              {/* 2nd-miss teaching reveal: the answer + its context */}
+              {revealed && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 max-w-3xl w-full bg-amber-500/10 border-2 border-amber-400/60 rounded-2xl px-8 py-4 text-center">
+                  <p className="text-xl font-bold text-amber-300">It was {c.options[correctIndex]}!</p>
+                  {(c.context_before || c.context_after) && (
+                    <p className="text-sm text-slate-400 italic mt-2">"{c.context_after || c.context_before}"</p>
+                  )}
+                </motion.div>
+              )}
             </motion.div>
           );
         })()}
 
-        {/* ═══ COMPLETE ═══ */}
-        {stage === 'complete' && (
+        {/* ═══ COMPLETE — click to dismiss or auto-dismiss after 6s ═══ */}
+        {stage === 'complete' && !completeDismissed && (
           <motion.div key="dlg-done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+            onClick={() => setCompleteDismissed(true)}
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer">
             <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center">
               <div className="w-32 h-32 bg-sky-100 text-sky-500 rounded-full flex items-center justify-center mb-6">
                 <Users size={60} />
@@ -635,6 +707,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
                 {pickedStudent ? `Great acting, ${pickedStudent.name}!` : 'Great dialogue, everyone!'}
               </h2>
               <p className="text-2xl text-slate-500 font-medium">Ready for the next slide.</p>
+              <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
             </div>
           </motion.div>
         )}

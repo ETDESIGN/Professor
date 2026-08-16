@@ -20,6 +20,7 @@ import { useSession } from '../../../store/SessionContext';
 import { getVocabulary, getStory } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { useBoardPool } from '../useBoardPool';
 import { recordAttempt } from '../../../services/attemptsLog';
@@ -58,7 +59,7 @@ const FALLBACK_COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#F59E0B', '#A855F7', 
 
 // ── Component ──────────────────────────────────────────────────────────
 const BoardStoryStage = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints, pushToRemediation } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -119,10 +120,15 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
   const [alreadyScoredChip, setAlreadyScoredChip] = useState(false);
   const [slideDone, setSlideDone] = useState(false);
+  // 2nd-miss comprehension reveal: correct option amber-ringed + explanation.
+  const [revealedAnswer, setRevealedAnswer] = useState(false);
 
   // ── Lifecycle refs (the 4 must-dos) ──────────────────────────────────
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  // Consecutive-correct streak across comprehension questions (4th
+  // scoreForAttempt arg; resets on a miss or a new turn).
+  const streakRef = useRef(0);
 
   const totalContentPanels = pages.length;
   const hasComprehension = comprehensionItems.length > 0;
@@ -168,12 +174,14 @@ const BoardStoryStage = ({ data }: { data: any }) => {
       markComprehensionAsked(currentItem.objective_id, [currentItem.id]);
     }
     if (idx + 1 >= comprehensionItems.length) {
+      playCue('win');
       setSlideDone(true);
       setTimeout(() => triggerAction('SLIDE_COMPLETE', { forced: false }), 2000);
     } else {
       setQIndex(idx + 1);
       setSelectedOption(null);
       setEliminatedOptions([]);
+      setRevealedAnswer(false);
       mistakesRef.current = 0;
       awardedRef.current = false;
     }
@@ -192,14 +200,22 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     if (correct) {
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
-      const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0);
+      playCue('correct');
+      streakRef.current += 1;
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
+      const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0, streakRef.current);
       doDualWrite({
         correctness: 'correct', points, objectiveId,
         exerciseType: 'STORY_COMPREHENSION', difficulty: item.difficulty, passed: true,
       });
-      setTimeout(() => advanceQuestion(qIndex), 1800);
+      // Pure celebration — ≤900ms (dead-time rule).
+      setTimeout(() => advanceQuestion(qIndex), 900);
     } else {
       mistakesRef.current += 1;
+      streakRef.current = 0;
       doDualWrite({
         correctness: 'incorrect', points: -MISTAKE_PENALTY, objectiveId,
         exerciseType: 'STORY_COMPREHENSION', difficulty: item.difficulty, passed: false,
@@ -214,9 +230,23 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         }
         return next;
       });
-      setTimeout(() => setSelectedOption(null), 900);
+      if (mistakesRef.current >= 2) {
+        // 2nd miss → teaching reveal: correct option amber-ringed + the
+        // explanation when the content carries one (the correct option shown
+        // prominently otherwise), ~2.2s hold, then advance.
+        playCue('reveal');
+        setRevealedAnswer(true);
+        setTimeout(() => {
+          setRevealedAnswer(false);
+          advanceQuestion(qIndex);
+        }, 2200);
+      } else {
+        // 1st miss: retry with the distractor eliminated.
+        playCue('wrong');
+        setTimeout(() => setSelectedOption(null), 900);
+      }
     }
-  }, [comprehensionItems, qIndex, selectedOption, storyObjectiveId, doDualWrite, advanceQuestion, showAlreadyScored]);
+  }, [comprehensionItems, qIndex, selectedOption, storyObjectiveId, doDualWrite, advanceQuestion, showAlreadyScored, triggerConfetti]);
 
   // ── Remote/commander action listener ─────────────────────────────────
   useEffect(() => {
@@ -240,9 +270,11 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         setQIndex(0);
         setSelectedOption(null);
         setEliminatedOptions([]);
+        setRevealedAnswer(false);
         setSlideDone(false);
         mistakesRef.current = 0;
         awardedRef.current = false;
+        streakRef.current = 0;
         break;
       case 'REVEAL_HINT':
         if (selectedOption !== null || !hasComprehension) break;
@@ -265,13 +297,20 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         {
           const item = comprehensionItems[qIndex];
           if (item) {
-            const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0);
+            playCue('correct');
+            streakRef.current += 1;
+            if (streakRef.current === 3 || streakRef.current === 5) {
+              playCue('streak');
+              triggerConfetti();
+            }
+            const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0, streakRef.current);
             doDualWrite({
               correctness: 'correct', points,
               objectiveId: item.objective_id || storyObjectiveId,
               exerciseType: 'STORY_COMPREHENSION', difficulty: item.difficulty, passed: true,
             });
-            setTimeout(() => advanceQuestion(qIndex), 1200);
+            // Pure celebration — ≤900ms (dead-time rule).
+            setTimeout(() => advanceQuestion(qIndex), 900);
           }
         }
         break;
@@ -294,6 +333,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     if (turnId === null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    streakRef.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
 
@@ -486,7 +526,8 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                         ${showResult && isCorrect ? 'bg-green-500/30 border-green-400 text-green-100'
                           : showResult && isSelected && !isCorrect ? 'bg-red-500/30 border-red-400 text-red-100 animate-shake'
                           : isEliminated ? 'bg-white/5 border-white/10 text-white/20 opacity-40 cursor-not-allowed'
-                          : 'bg-white/10 border-white/20 text-amber-50 hover:border-amber-400 hover:-translate-y-1 shadow-md'}`}>
+                          : 'bg-white/10 border-white/20 text-amber-50 hover:border-amber-400 hover:-translate-y-1 shadow-md'}
+                        ${revealedAnswer && isCorrect ? 'ring-4 ring-amber-400' : ''}`}>
                       {opt}
                     </button>
                   );
@@ -496,6 +537,14 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               {resolved && (
                 <div className="mt-6 flex items-center gap-2 text-green-400 font-bold text-2xl animate-bounce">
                   <Check size={32} /> {pickedStudent ? `${pickedStudent.name} got it!` : 'Correct!'}
+                </div>
+              )}
+              {/* 2nd-miss reveal: the correct option prominent + the
+                  explanation when the content carries one. */}
+              {revealedAnswer && (
+                <div className="mt-6 bg-amber-500/15 border-2 border-amber-400/50 rounded-2xl px-8 py-4 text-center max-w-2xl">
+                  <div className="text-xl font-bold text-amber-300">The answer: {c.options[correctIndex]}</div>
+                  {c.explanation && <p className="text-amber-100/80 mt-1">{c.explanation}</p>}
                 </div>
               )}
             </motion.div>

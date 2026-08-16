@@ -35,6 +35,7 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeStudent } from '../../../services/boardLearner';
+import { playCue } from './playCue';
 import type { ContextualControlsSpec } from '../lessonDirector';
 import type { PoolItem } from '../../../types/exercise';
 
@@ -126,7 +127,7 @@ export const WHATS_MISSING_CONTROLS: ContextualControlsSpec = {
 
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?: WhatsMissingMode }) => {
-  const { state, triggerAction, addPoints, pushToRemediation } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phaseTag = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -198,6 +199,13 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   const awardedRef = useRef(false);
   const roundResolvedRef = useRef(false);
   const missedThisSlideRef = useRef<Map<string, string[]>>(new Map());
+  // Slide-scoped streak for the picked responder (consecutive correct
+  // rounds; reset on a wrong answer and a new turn). Passed as the 4th arg
+  // to scoreForAttempt — 3 = 1.25x, 5 = 1.5x.
+  const streakRef = useRef(0);
+  // Latch so the win cue plays exactly once per slide completion (our own
+  // SLIDE_COMPLETE broadcast echoes back into the lastAction listener).
+  const winCuedRef = useRef(false);
 
   // ── Interaction mode for the current round (spec §4) ──────────────────
   // whats_missing escalates recognize → produce in the second half of the
@@ -305,13 +313,15 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   }, []);
 
   const checkSlideComplete = useCallback(() => {
+    // Dead-time compression: these are pure celebration holds (the reveal
+    // strip already shows the answer) — ≤900ms, down from 2200ms.
     if (roundIndex >= TOTAL_ROUNDS) {
       setTimeout(() => {
         setGamePhase('slideComplete');
         triggerAction('SLIDE_COMPLETE', { forced: false });
-      }, 2200);
+      }, 900);
     } else {
-      setTimeout(() => setRoundIndex((r) => r + 1), 2200);
+      setTimeout(() => setRoundIndex((r) => r + 1), 900);
     }
   }, [roundIndex, triggerAction]);
 
@@ -322,17 +332,29 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (cand.isCorrect) {
       awardedRef.current = true;
       const difficulty = effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, interactionMode);
-      const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0);
+      streakRef.current += 1; // bumped before scoring so the award sees it
+      const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0, streakRef.current);
       doScoring('correct', points, testedEntry.objectiveId, testedEntry.word);
+      playCue('correct');
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
       finishRound(true);
       checkSlideComplete();
     } else {
       mistakesRef.current += 1;
       doScoring('incorrect', -MISTAKE_PENALTY, testedEntry.objectiveId, testedEntry.word);
+      playCue('wrong');
+      streakRef.current = 0;
       setEliminated((prev) => (prev.includes(candIndex) ? prev : [...prev, candIndex]));
       setFeedback('incorrect');
       setTimeout(() => setFeedback(null), 700);
-      if (mistakesRef.current >= 2) { setShowExplanation(true); setTimeout(() => setShowExplanation(false), 2500); }
+      if (mistakesRef.current >= 2) {
+        playCue('reveal');
+        setShowExplanation(true);
+        setTimeout(() => setShowExplanation(false), 2500);
+      }
     }
   }, [gamePhase, testedEntry, interactionMode, poolItemByObjective, doScoring, finishRound, checkSlideComplete, showAlreadyScored]);
 
@@ -348,17 +370,30 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (correct) {
       awardedRef.current = true;
       const difficulty = effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, 'produce');
-      const points = scoreForAttempt(mistakesRef.current, difficulty, ratio);
+      streakRef.current += 1; // bumped before scoring so the award sees it
+      const points = scoreForAttempt(mistakesRef.current, difficulty, ratio, streakRef.current);
       doScoring(ratio < 1 ? 'partial' : 'correct', points, testedEntry.objectiveId, testedEntry.word);
+      playCue('correct');
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
       finishRound(true);
       checkSlideComplete();
     } else {
+      // Produce-mode (speech) miss — same feedback weight as recognize mode.
       mistakesRef.current += 1;
       doScoring('incorrect', -MISTAKE_PENALTY, testedEntry.objectiveId, testedEntry.word);
+      playCue('wrong');
+      streakRef.current = 0;
       setFirstLetterHint(true); // narrowed hint: reveal the first letter
       setFeedback('incorrect');
       setTimeout(() => setFeedback(null), 700);
-      if (mistakesRef.current >= 2) { setShowExplanation(true); setTimeout(() => setShowExplanation(false), 2500); }
+      if (mistakesRef.current >= 2) {
+        playCue('reveal');
+        setShowExplanation(true);
+        setTimeout(() => setShowExplanation(false), 2500);
+      }
     }
   }, [gamePhase, testedEntry, interactionMode, poolItemByObjective, doScoring, finishRound, checkSlideComplete, showAlreadyScored]);
 
@@ -373,11 +408,13 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     setTimer(mode === 'magic_eyes' ? FLASH_SECONDS : MEMORIZE_SECONDS);
   }, [gamePhase, mode]);
 
-  const advanceRound = useCallback(() => {
+  const advanceRound = useCallback((opts?: { silent?: boolean }) => {
     if (gamePhase === 'slideComplete') return;
     if (roundIndex >= TOTAL_ROUNDS) {
       setGamePhase('slideComplete');
-      triggerAction('SLIDE_COMPLETE', { forced: false });
+      // Natural end (NEXT_ROUND on the last round) celebrates via the inbound
+      // SLIDE_COMPLETE echo; a silent skip ({ silent: true }) stays quiet.
+      triggerAction('SLIDE_COMPLETE', { forced: !!opts?.silent ? true : false });
     } else {
       setRoundIndex((r) => r + 1);
     }
@@ -392,8 +429,8 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   }, [gamePhase]);
 
   const skipRound = useCallback(() => {
-    // Skip: no penalty, no remediation push — just advance.
-    advanceRound();
+    // Skip: no penalty, no remediation push — just advance (no win cue).
+    advanceRound({ silent: true });
   }, [advanceRound]);
 
   const revealHint = useCallback(() => {
@@ -415,8 +452,14 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (awardedRef.current) { showAlreadyScored(); return; }
     awardedRef.current = true;
     const difficulty = effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, interactionMode);
-    const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0);
+    streakRef.current += 1; // teacher-confirmed oral answer counts toward the streak
+    const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0, streakRef.current);
     doScoring('correct', points, testedEntry.objectiveId, testedEntry.word);
+    playCue('correct');
+    if (streakRef.current === 3 || streakRef.current === 5) {
+      playCue('streak');
+      triggerConfetti();
+    }
     finishRound(true);
     checkSlideComplete();
   }, [gamePhase, testedEntry, interactionMode, poolItemByObjective, doScoring, finishRound, checkSlideComplete, showAlreadyScored]);
@@ -434,17 +477,32 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
       case 'RESTART':        // legacy MagicEyes alias
         replayMemorize(); break;
       case 'NEXT_ROUND': advanceRound(); break;
-      case 'REVEAL': finishRound(false); break; // legacy "give up, show it"
+      case 'REVEAL':
+        playCue('reveal'); // legacy "give up, show it" — still a reveal beat
+        finishRound(false);
+        break;
       case 'WM_SUBMIT_ANSWER': handleProduceSubmit(String(action.payload?.text ?? '')); break;
       case 'RESET_GAME':
         setupSigRef.current = '';
         mistakesRef.current = 0;
         awardedRef.current = false;
         roundResolvedRef.current = false;
+        streakRef.current = 0;
+        winCuedRef.current = false;
         setRoundIndex(1);
         replayMemorize();
         break;
-      case 'SLIDE_COMPLETE': setGamePhase('slideComplete'); break;
+      case 'SLIDE_COMPLETE':
+        // Forced End from the remote/commander AND our own natural-completion
+        // broadcast (optimistic lastAction echo) both land here — a single
+        // win-cue site, latched so it plays exactly once. The only forced:true
+        // producer is a skip path, which stays silent.
+        setGamePhase('slideComplete');
+        if (action.payload?.forced !== true && !winCuedRef.current) {
+          winCuedRef.current = true;
+          playCue('win');
+        }
+        break;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
@@ -457,6 +515,8 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (turnId === null) return; // no responder = choral/practice mode
     mistakesRef.current = 0;
     awardedRef.current = false;
+    streakRef.current = 0; // fresh responder → fresh streak
+    winCuedRef.current = false;
     if (roundResolvedRef.current) {
       roundResolvedRef.current = false;
       if (roundIndex >= TOTAL_ROUNDS) {

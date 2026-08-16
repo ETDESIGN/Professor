@@ -14,7 +14,7 @@
 // (the spec's invented targetWord/sentenceAudioUrl/correctSide are corrected)
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Mic, Volume2, X, Zap } from 'lucide-react';
+import { Check, Lightbulb, Mic, Volume2, X, Zap } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { usePickedStudent } from './usePickedStudent';
@@ -22,6 +22,7 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeObjective } from '../../../services/boardLearner';
 import { playAudioUrl } from '../../../services/SpeechService';
+import { playCue } from './playCue';
 
 type ShellPhase = 'discrimination' | 'choral';
 type ChoralStage = 'whole_first' | 'isolated_word' | 'whole_second';
@@ -33,6 +34,8 @@ interface DiscriminationItem {
   correctIndex: number;
   objectiveId: string;
   difficulty: 1 | 2 | 3;
+  /** Teaching text for the miss reveal (present when the generator wrote one). */
+  explanation?: string;
 }
 
 interface ChoralItem {
@@ -42,7 +45,7 @@ interface ChoralItem {
 }
 
 const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
-  const { state, addPoints } = useSession();
+  const { state, addPoints, triggerConfetti } = useSession();
   const unitId = state.activeUnit?.id || '';
   const pickedStudent = usePickedStudent();
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -70,6 +73,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
           correctIndex: typeof c.correct_index === 'number' ? c.correct_index : 0,
           objectiveId: it.objective_id,
           difficulty: (it.difficulty >= 1 && it.difficulty <= 3 ? it.difficulty : 1) as 1 | 2 | 3,
+          explanation: typeof c.explanation === 'string' ? c.explanation : undefined,
         };
       });
   }, [minimalPairPool]);
@@ -112,16 +116,42 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
   // Lifecycle (discrimination round only — choral has no scoring).
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  // Consecutive-correct streak across discrimination items (scores as the
+  // 4th scoreForAttempt arg; resets on a miss or a new turn).
+  const streakRef = useRef(0);
+  // Miss teaching-hold timer — cleared whenever the item advances so a
+  // teacher "Next" tap during the hold can't double-advance.
+  const missHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const turnId = state.currentTurnId;
   useEffect(() => {
     if (shellPhase !== 'discrimination') return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    streakRef.current = 0;
     setRevealed(false);
     setOutcome(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId, discIdx, shellPhase]);
+
+  // ── Discrimination advancement ──────────────────────────────────────
+  const advanceDiscrimination = useCallback(() => {
+    if (missHoldTimer.current) {
+      clearTimeout(missHoldTimer.current);
+      missHoldTimer.current = null;
+    }
+    if (discIdx < discriminationItems.length - 1) {
+      setDiscIdx(discIdx + 1);
+      setRevealed(false); setOutcome(null); awardedRef.current = false; mistakesRef.current = 0;
+    } else {
+      // Phase transition: discrimination → choral (or straight to the end
+      // card when no choral content exists).
+      if (choralItems.length === 0) playCue('win');
+      else playCue('correct');
+      setShellPhase('choral');
+      setChoralIdx(0); setChoralStage('whole_first');
+    }
+  }, [discIdx, discriminationItems.length, choralItems.length]);
 
   // ── Discrimination scoring ──────────────────────────────────────────
   const onDiscriminationAnswer = useCallback((chosenIndex: number) => {
@@ -133,8 +163,14 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
     if (correct) {
       awardedRef.current = true;
       setOutcome('correct');
+      playCue('correct');
+      streakRef.current += 1;
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
       if (pickedStudent) {
-        const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0);
+        const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0, streakRef.current);
         addPoints(pickedStudent.id, points);
         recordAttempt({
           rosterId: pickedStudent.id, classId: state.activeClassId,
@@ -146,6 +182,8 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
     } else {
       mistakesRef.current += 1;
       setOutcome('incorrect');
+      streakRef.current = 0;
+      playCue('wrong');
       if (pickedStudent) {
         addPoints(pickedStudent.id, -MISTAKE_PENALTY);
         recordAttempt({
@@ -155,22 +193,24 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
         }).catch(() => {});
         gradeObjective(pickedStudent.id, unitId, item.objectiveId, false, 'receptive').catch(() => {});
       }
+      // Teaching beat: which word was correct (+ why, when the item carries
+      // an explanation) — ~2.2s hold, then advance. A single miss already
+      // ends the item in this game, so the miss IS the reveal moment.
+      playCue('reveal');
+      if (missHoldTimer.current) clearTimeout(missHoldTimer.current);
+      missHoldTimer.current = setTimeout(() => {
+        missHoldTimer.current = null;
+        advanceDiscrimination();
+      }, 2200);
     }
-  }, [awardedRef, revealed, discriminationItems, discIdx, pickedStudent, addPoints, state.activeClassId, state.students, unitId]);
-
-  const advanceDiscrimination = useCallback(() => {
-    if (discIdx < discriminationItems.length - 1) {
-      setDiscIdx(discIdx + 1);
-      setRevealed(false); setOutcome(null); awardedRef.current = false; mistakesRef.current = 0;
-    } else {
-      // Move to the choral phase.
-      setShellPhase('choral');
-      setChoralIdx(0); setChoralStage('whole_first');
-    }
-  }, [discIdx, discriminationItems.length]);
+  }, [awardedRef, revealed, discriminationItems, discIdx, pickedStudent, addPoints, state.activeClassId, state.students, unitId, advanceDiscrimination, triggerConfetti]);
 
   // ── Choral stage advancement ────────────────────────────────────────
   const advanceChoral = useCallback(() => {
+    // The advance IS the class got-it mark (teacher confirms the repeat) —
+    // cue it; the final Finish gets the win cue.
+    const finishing = choralStage === 'whole_second' && choralIdx >= choralItems.length - 1;
+    playCue(finishing ? 'win' : 'correct');
     if (choralStage === 'whole_first') setChoralStage('isolated_word');
     else if (choralStage === 'isolated_word') setChoralStage('whole_second');
     else {
@@ -193,9 +233,15 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
       if (a.type === 'MARK_CORRECT' && !awardedRef.current) {
         // Force-correct teacher override.
         awardedRef.current = true; setRevealed(true); setOutcome('correct');
+        playCue('correct');
+        streakRef.current += 1;
+        if (streakRef.current === 3 || streakRef.current === 5) {
+          playCue('streak');
+          triggerConfetti();
+        }
         const item = discriminationItems[discIdx];
         if (pickedStudent && item) {
-          const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0);
+          const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0, streakRef.current);
           addPoints(pickedStudent.id, points);
           recordAttempt({ rosterId: pickedStudent.id, classId: state.activeClassId, profileId: (state.students.find((s:any)=>s.id===pickedStudent.id) as any)?.claimed_profile_id, correctness: 'correct', objectiveId: item.objectiveId, exerciseType: 'MINIMAL_PAIR_SWIPE', difficulty: item.difficulty }).catch(()=>{});
         }
@@ -213,8 +259,10 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
       }
     }
     if (a.type === 'RESET_GAME') {
+      if (missHoldTimer.current) { clearTimeout(missHoldTimer.current); missHoldTimer.current = null; }
       setShellPhase('discrimination'); setDiscIdx(0); setChoralIdx(0); setChoralStage('whole_first');
       setRevealed(false); setOutcome(null); mistakesRef.current = 0; awardedRef.current = false;
+      streakRef.current = 0;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastAction]);
@@ -286,6 +334,19 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
               );
             })}
           </div>
+
+          {/* Miss teaching beat: which word was correct (+ why, when the item
+              carries an explanation) — ~2.2s hold, then auto-advances. */}
+          {revealed && outcome === 'incorrect' && (
+            <div className="bg-white/10 border-2 border-amber-400/40 rounded-2xl px-8 py-4 text-center max-w-xl">
+              <div className="flex items-center justify-center gap-2 font-bold text-xl text-amber-300">
+                <Lightbulb size={22} /> You heard: {item.options[item.correctIndex].text}
+              </div>
+              {item.explanation && (
+                <p className="text-slate-300 text-base mt-1">{item.explanation}</p>
+              )}
+            </div>
+          )}
 
           {revealed && (
             <button

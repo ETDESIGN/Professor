@@ -17,6 +17,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { playAudioUrl } from '../../../services/SpeechService';
+import { playCue } from './playCue';
 import type { PoolItem } from '../../../types/exercise';
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -86,7 +87,7 @@ const MIN_PAIRS = 3;
 
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardFlashMatch = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints } = useSession();
+  const { state, triggerAction, addPoints, triggerConfetti } = useSession();
   const unitId = state.activeUnit?.id || '';
   const phase = (state.activeSlideData?.phase || 'PRACTICE') as any;
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -149,6 +150,13 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const mistakesByPairRef = useRef<Record<string, number>>({});
   const awardedPairsRef = useRef<Set<string>>(new Set());
   const missedObjectivesRef = useRef<Map<string, { studentId: string }>>(new Map());
+  // Slide-scoped streak for the picked responder (consecutive correct pairs,
+  // across rounds; reset on a wrong match and on a new turn). Passed as the
+  // 4th arg to scoreForAttempt — 3 = 1.25x, 5 = 1.5x.
+  const streakRef = useRef(0);
+  // Latch so the win cue plays exactly once per slide completion (our own
+  // SLIDE_COMPLETE broadcast echoes back into the lastAction listener).
+  const winCuedRef = useRef(false);
 
   // ── Build / rebuild the board ─────────────────────────────────────────
   const rebuild = useCallback(() => {
@@ -167,6 +175,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     setShowMicroExplanation(null);
     mistakesByPairRef.current = {};
     awardedPairsRef.current = new Set();
+    winCuedRef.current = false;
   }, [matchPairs]);
 
   // Build on pair resolution + frozen sync
@@ -174,7 +183,10 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
 
   // Reset on RESET_GAME action
   useEffect(() => {
-    if (state.lastAction?.type === 'RESET_GAME' && matchPairs.length > 0) rebuild();
+    if (state.lastAction?.type === 'RESET_GAME' && matchPairs.length > 0) {
+      streakRef.current = 0;
+      rebuild();
+    }
   }, [state.lastAction, rebuild]);
 
   // ── Game-lifecycle: new turn (currentTurnId change) ───────────────────
@@ -183,6 +195,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     if (turnId === null) return;
     if (matchPairs.length > 0) rebuild();
     missedObjectivesRef.current = new Map();
+    streakRef.current = 0; // fresh responder → fresh streak
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
 
@@ -236,8 +249,16 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         break;
       }
       case 'SLIDE_COMPLETE': {
-        // Teacher forced end — mark all complete
+        // Teacher forced end — mark all complete. Also fires for our own
+        // natural-completion broadcast (optimistic lastAction echo), so this
+        // is the single win-cue site: exactly one per completion. The only
+        // forced:true producer is the empty-pool "Skip Round" button —
+        // that one stays silent (nothing was played).
         setAllComplete(true);
+        if (action.payload?.forced !== true && !winCuedRef.current) {
+          winCuedRef.current = true;
+          playCue('win');
+        }
         break;
       }
     }
@@ -258,10 +279,11 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     }
   }, [roundIndex, TOTAL_ROUNDS, triggerAction]);
 
-  // Auto-advance when round is complete
+  // Auto-advance when round is complete (dead-time compression: pure
+  // celebration hold, ≤900ms — the teacher can still click through faster).
   useEffect(() => {
     if (roundComplete && matchPairs.length > 0) {
-      const t = setTimeout(advanceRound, 2000);
+      const t = setTimeout(advanceRound, 900);
       return () => clearTimeout(t);
     }
   }, [roundComplete, advanceRound, matchPairs.length]);
@@ -282,7 +304,9 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     const student = (state.students || []).find((s: any) => s.id === picked);
     if (correctness === 'correct') {
       const mistakes = mistakesByPairRef.current[pair.id] ?? 0;
-      const points = scoreForAttempt(mistakes, pair.difficulty, 1.0);
+      // streakRef holds the streak INCLUDING this pair (the caller bumps it
+      // before scoring) — 3+ = 1.25x, 5+ = 1.5x on the success award.
+      const points = scoreForAttempt(mistakes, pair.difficulty, 1.0, streakRef.current);
       addPoints(picked, points);
     } else {
       addPoints(picked, -MISTAKE_PENALTY);
@@ -315,7 +339,13 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       setLeftItems(prev => prev.map(l => l.id === leftId ? { ...l, matched: true } : l));
       setRightItems(prev => prev.map(r => r.id === rightId ? { ...r, matched: true } : r));
 
+      streakRef.current += 1; // bumped before scoring so the award sees it
       doDualWrite(pair, 'correct');
+      playCue('correct');
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
 
       const newCount = matchedCount + 1;
       setMatchedCount(newCount);
@@ -329,7 +359,10 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         }
       }
     } else {
-      // Wrong match
+      // Wrong match — the previously-silent red flash now has a voice, and
+      // the responder's streak resets.
+      playCue('wrong');
+      streakRef.current = 0;
       setIsWrong(true);
       setTimeout(() => setIsWrong(false), 800);
 
@@ -352,8 +385,10 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
             setTimeout(() => setHintTileId(null), 1500);
           }
         }
-        // 2nd miss: show micro-explanation card
+        // 2nd miss: show micro-explanation card (the pair itself — teaching
+        // hold ~3s, click-through unaffected) + the reveal cue.
         if (missCount === 2) {
+          playCue('reveal');
           setShowMicroExplanation(pair);
           setTimeout(() => setShowMicroExplanation(null), 3000);
         }

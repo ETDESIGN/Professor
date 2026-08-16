@@ -25,6 +25,7 @@ import { useSession } from '../../../store/SessionContext';
 import { getStory } from '../../../services/manifest';
 import { supabase } from '../../../services/supabaseClient';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeObjective } from '../../../services/boardLearner';
@@ -72,7 +73,7 @@ export const STORY_SEQUENCING_CONTROLS: ContextualControlsSpec = {
 type Stage = 'sequencing' | 'comprehension' | 'complete';
 
 const BoardStorySequencing = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints, pushToRemediation } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phaseTag = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -144,11 +145,16 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [eliminatedOptions, setEliminatedOptions] = useState<number[]>([]);
   const [alreadyScoredChip, setAlreadyScoredChip] = useState(false);
+  // 2nd-miss comprehension reveal: correct option amber-ringed + explanation.
+  const [revealedAnswer, setRevealedAnswer] = useState(false);
 
   // ── Lifecycle refs (the 4 must-dos) — fresh per activity (sequence
   //    submission and each comprehension question are separate attempts). ──
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
+  // Consecutive-correct streak across scored attempts (4th scoreForAttempt
+  // arg; resets on a miss or a new turn).
+  const streakRef = useRef(0);
 
   const initializeSequencing = useCallback(() => {
     const items = buildCards();
@@ -210,9 +216,11 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
         setQIndex(0);
         setSelectedOption(null);
         setEliminatedOptions([]);
+        setRevealedAnswer(false);
         mistakesRef.current = 0; // fresh attempt refs per question (spec B3)
         awardedRef.current = false;
       } else {
+        playCue('win');
         setStage('complete');
         triggerAction('SLIDE_COMPLETE', { forced: false });
       }
@@ -222,16 +230,18 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
   const afterQuestionResolved = useCallback((idx: number) => {
     setTimeout(() => {
       if (idx + 1 >= comprehensionItems.length) {
+        playCue('win');
         setStage('complete');
         triggerAction('SLIDE_COMPLETE', { forced: false });
       } else {
         setQIndex(idx + 1);
         setSelectedOption(null);
         setEliminatedOptions([]);
+        setRevealedAnswer(false);
         mistakesRef.current = 0; // fresh attempt refs per question (spec B3)
         awardedRef.current = false;
       }
-    }, 2000);
+    }, 900); // pure celebration — ≤900ms (dead-time rule)
   }, [comprehensionItems.length, triggerAction]);
 
   // ── Round 1 — sequencing submit (spec B3, LCS partial credit) ─────────
@@ -247,8 +257,14 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     if (ratio >= SEQUENCING_PASS_THRESHOLD) {
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
+      playCue('correct');
+      streakRef.current += 1;
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
       const clean = ratio >= 1;
-      const points = scoreForAttempt(mistakesRef.current, SEQUENCING_DIFFICULTY, ratio);
+      const points = scoreForAttempt(mistakesRef.current, SEQUENCING_DIFFICULTY, ratio, streakRef.current);
       setSeqOutcome(clean ? 'correct' : 'partial');
       doScoring({
         correctness: clean ? 'correct' : 'partial',
@@ -262,6 +278,8 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
       afterSequenceResolved();
     } else {
       mistakesRef.current += 1;
+      streakRef.current = 0;
+      playCue('wrong');
       doScoring({
         correctness: 'incorrect',
         points: -MISTAKE_PENALTY,
@@ -286,7 +304,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
         });
       }, 1200);
     }
-  }, [stage, seqOutcome, slots, storyCards, storyObjectiveId, doScoring, afterSequenceResolved, showAlreadyScored]);
+  }, [stage, seqOutcome, slots, storyCards, storyObjectiveId, doScoring, afterSequenceResolved, showAlreadyScored, triggerConfetti]);
 
   // ── Round 2 — comprehension MCQ (spec B2/B3, binary) ──────────────────
   const currentQuestion = stage === 'comprehension' ? comprehensionItems[qIndex] : null;
@@ -303,7 +321,13 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     if (correct) {
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
-      const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0);
+      playCue('correct');
+      streakRef.current += 1;
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
+      const points = scoreForAttempt(mistakesRef.current, item.difficulty, 1.0, streakRef.current);
       doScoring({
         correctness: 'correct',
         points,
@@ -316,6 +340,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
       afterQuestionResolved(qIndex);
     } else {
       mistakesRef.current += 1;
+      streakRef.current = 0;
       doScoring({
         correctness: 'incorrect',
         points: -MISTAKE_PENALTY,
@@ -332,9 +357,22 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
           .find((i) => i !== correctIndex && !next.includes(i));
         return extra !== undefined && mistakesRef.current === 1 ? [...next, extra] : next;
       });
-      setTimeout(() => setSelectedOption(null), 900);
+      if (mistakesRef.current >= 2) {
+        // 2nd miss → teaching reveal: correct option amber-ringed + the
+        // explanation when the content carries one, ~2.2s hold, then advance.
+        playCue('reveal');
+        setRevealedAnswer(true);
+        setTimeout(() => {
+          setRevealedAnswer(false);
+          afterQuestionResolved(qIndex);
+        }, 2200);
+      } else {
+        // 1st miss: retry with the distractor eliminated.
+        playCue('wrong');
+        setTimeout(() => setSelectedOption(null), 900);
+      }
     }
-  }, [currentQuestion, selectedOption, storyObjectiveId, doScoring, afterQuestionResolved, qIndex, showAlreadyScored]);
+  }, [currentQuestion, selectedOption, storyObjectiveId, doScoring, afterQuestionResolved, qIndex, showAlreadyScored, triggerConfetti]);
 
   // ── Teacher controls ──────────────────────────────────────────────────
   const revealHint = useCallback(() => {
@@ -358,7 +396,13 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
       if (seqOutcome) return;
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
-      const points = scoreForAttempt(mistakesRef.current, SEQUENCING_DIFFICULTY, 1.0);
+      playCue('correct');
+      streakRef.current += 1;
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
+      const points = scoreForAttempt(mistakesRef.current, SEQUENCING_DIFFICULTY, 1.0, streakRef.current);
       setSeqOutcome('correct');
       doScoring({
         correctness: 'correct',
@@ -373,7 +417,13 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     } else if (stage === 'comprehension' && currentQuestion) {
       if (awardedRef.current) { showAlreadyScored(); return; }
       awardedRef.current = true;
-      const points = scoreForAttempt(mistakesRef.current, currentQuestion.difficulty, 1.0);
+      playCue('correct');
+      streakRef.current += 1;
+      if (streakRef.current === 3 || streakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
+      const points = scoreForAttempt(mistakesRef.current, currentQuestion.difficulty, 1.0, streakRef.current);
       doScoring({
         correctness: 'correct',
         points,
@@ -385,7 +435,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
       });
       afterQuestionResolved(qIndex);
     }
-  }, [stage, seqOutcome, currentQuestion, storyObjectiveId, doScoring, afterSequenceResolved, afterQuestionResolved, qIndex, showAlreadyScored]);
+  }, [stage, seqOutcome, currentQuestion, storyObjectiveId, doScoring, afterSequenceResolved, afterQuestionResolved, qIndex, showAlreadyScored, triggerConfetti]);
 
   const skipActivity = useCallback(() => {
     // Skip: no penalty, no remediation push.
@@ -415,6 +465,8 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
         setQIndex(0);
         setSelectedOption(null);
         setEliminatedOptions([]);
+        setRevealedAnswer(false);
+        streakRef.current = 0;
         initializeSequencing();
         break;
       case 'SLIDE_COMPLETE': setStage('complete'); break;
@@ -428,6 +480,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     if (turnId === null) return; // no responder = practice mode
     mistakesRef.current = 0;
     awardedRef.current = false;
+    streakRef.current = 0;
     initializeSequencing();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
@@ -596,7 +649,8 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
                       ${showResult && isCorrect ? 'bg-green-100 border-green-500 text-green-800'
                         : showResult && isSelected && !isCorrect ? 'bg-red-100 border-red-400 text-red-700 animate-shake'
                         : isEliminated ? 'bg-slate-100 border-slate-200 text-slate-300 opacity-40 cursor-not-allowed'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-purple-400 hover:-translate-y-1 shadow-md'}`}>
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-purple-400 hover:-translate-y-1 shadow-md'}
+                      ${revealedAnswer && isCorrect ? 'ring-4 ring-amber-400' : ''}`}>
                     {opt}
                   </button>
                 );
@@ -605,6 +659,14 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
             {resolved && (
               <div className="flex items-center gap-2 text-green-600 font-bold text-2xl animate-bounce">
                 <Check size={32} /> {pickedStudent ? `${pickedStudent.name} got it!` : 'Correct!'}
+              </div>
+            )}
+            {/* 2nd-miss reveal: the correct option prominent + the
+                explanation when the content carries one. */}
+            {revealedAnswer && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl px-8 py-4 text-center max-w-2xl">
+                <div className="text-xl font-bold text-amber-900">The answer: {c.options[correctIndex]}</div>
+                {c.explanation && <p className="text-amber-800 mt-1">{c.explanation}</p>}
               </div>
             )}
           </div>

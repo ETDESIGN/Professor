@@ -13,9 +13,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Check, X, Flame, ChevronRight, Keyboard } from 'lucide-react';
+import { Volume2, Check, X, Flame, ChevronRight, Keyboard, Lightbulb } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { recordAttempt } from '../../../services/attemptsLog';
@@ -51,7 +52,7 @@ type RoundKind = 'LISTEN_SELECT' | 'MINIMAL_PAIR_SWIPE' | 'DICTATION';
 
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardListenTap = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints } = useSession();
+  const { state, triggerAction, addPoints, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phase = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -75,7 +76,11 @@ const BoardListenTap = ({ data }: { data: any }) => {
   const [dictationInput, setDictationInput] = useState('');
   const [dictationResult, setDictationResult] = useState<{ text: string; ratio: number } | null>(null);
   const [hintActive, setHintActive] = useState(false);
+  // 2nd-consecutive-miss teaching card: the correct option + the item's prompt
+  // (pattern from BoardFlashMatch's micro-explanation overlay).
   const [showMicroExplanation, setShowMicroExplanation] = useState(false);
+  // 1st-miss feedback: brief red shake on the wrong tile, then retry.
+  const [wrongFlash, setWrongFlash] = useState(false);
 
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -119,7 +124,8 @@ const BoardListenTap = ({ data }: { data: any }) => {
     const pi = currentItem.poolItem;
 
     if (correctness === 'correct' || (correctness === 'partial' && partialRatio && partialRatio >= DICTATION_PASS_THRESHOLD)) {
-      const pts = scoreForAttempt(mistakesRef.current, pi.difficulty, partialRatio ?? 1.0);
+      // 4th arg: the class streak — ≥3 = 1.25x, ≥5 = 1.5x (streaks now score).
+      const pts = scoreForAttempt(mistakesRef.current, pi.difficulty, partialRatio ?? 1.0, classStreakRef.current);
       addPoints(picked, pts);
     } else if (correctness === 'incorrect') {
       addPoints(picked, -MISTAKE_PENALTY);
@@ -183,11 +189,15 @@ const BoardListenTap = ({ data }: { data: any }) => {
     if (turnId === null) return;
     mistakesRef.current = 0;
     awardedRef.current = false;
+    classStreakRef.current = 0;
+    setClassStreak(0);
     setSelectedTile(null);
     setRound(r => r + 1);
     setUiPhase('listen');
     setDictationInput('');
     setDictationResult(null);
+    setWrongFlash(false);
+    setShowMicroExplanation(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
 
@@ -232,34 +242,72 @@ const BoardListenTap = ({ data }: { data: any }) => {
     }
   }, [currentItem]);
 
+  const advanceRound = useCallback(() => {
+    setSelectedTile(null);
+    setUiPhase('listen');
+    setDictationInput('');
+    setDictationResult(null);
+    setWrongFlash(false);
+    setShowMicroExplanation(false);
+    // Per-item attempt reset — each item is its own scored attempt (the
+    // 2nd-miss reveal relies on mistakes counting per item, not per turn).
+    mistakesRef.current = 0;
+    awardedRef.current = false;
+    setRound(r => r + 1);
+    // Check if pool exhausted
+    if (round >= poolItems.length - 1 && poolItems.length > 0) {
+      playCue('win');
+      triggerAction('SLIDE_COMPLETE', { forced: false });
+    }
+  }, [round, poolItems.length, triggerAction]);
+
   const handleTap = useCallback((index: number) => {
-    if (uiPhase !== 'options' || !currentItem) return;
+    if (uiPhase !== 'options' || !currentItem || wrongFlash) return;
     setSelectedTile(index);
     const isCorrect = index === correctIndex;
 
     if (isCorrect) {
       classStreakRef.current += 1;
       setClassStreak(classStreakRef.current);
+      playCue('correct');
+      if (classStreakRef.current === 3 || classStreakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
+      // Dual-write scoring (doDualWrite guards the picked student itself).
+      if (!awardedRef.current) {
+        awardedRef.current = true;
+        doDualWrite('correct');
+      }
+      setUiPhase('feedback');
+      // Pure celebration — compressed to ≤900ms (dead-time rule).
+      setTimeout(() => setUiPhase('preview'), 900);
     } else {
       classStreakRef.current = 0;
       setClassStreak(0);
-    }
-
-    // Dual-write scoring
-    const picked = state.quickWheelWinner;
-    if (picked) {
-      if (isCorrect && !awardedRef.current) {
-        awardedRef.current = true;
-        doDualWrite('correct');
-      } else if (!isCorrect) {
-        mistakesRef.current += 1;
-        doDualWrite('incorrect');
+      mistakesRef.current += 1;
+      doDualWrite('incorrect');
+      if (mistakesRef.current >= 2) {
+        // 2nd consecutive miss → teaching reveal: the correct option + the
+        // item's prompt on a micro-explanation card, ~2.2s hold, then advance.
+        playCue('reveal');
+        setShowMicroExplanation(true);
+        setUiPhase('feedback');
+        setTimeout(() => {
+          setShowMicroExplanation(false);
+          advanceRound();
+        }, 2200);
+      } else {
+        // 1st miss: brief wrong flash (no answer reveal), then retry.
+        playCue('wrong');
+        setWrongFlash(true);
+        setTimeout(() => {
+          setWrongFlash(false);
+          setSelectedTile(null);
+        }, 700);
       }
     }
-
-    setUiPhase('feedback');
-    setTimeout(() => setUiPhase('preview'), 2500);
-  }, [uiPhase, currentItem, correctIndex, state.quickWheelWinner, doDualWrite]);
+  }, [uiPhase, currentItem, correctIndex, wrongFlash, doDualWrite, advanceRound, triggerConfetti]);
 
   const handleDictationSubmit = useCallback((text: string) => {
     if (!currentItem?.poolItem || awardedRef.current) return;
@@ -276,39 +324,53 @@ const BoardListenTap = ({ data }: { data: any }) => {
       awardedRef.current = true;
       classStreakRef.current += 1;
       setClassStreak(classStreakRef.current);
+      playCue('correct');
+      if (classStreakRef.current === 3 || classStreakRef.current === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
       doDualWrite(ratio < 1 ? 'partial' : 'correct', ratio);
+      setUiPhase('feedback');
+      // Teaching hold: shows the typed attempt vs the target + match %.
+      setTimeout(() => setUiPhase('preview'), 3000);
     } else {
       mistakesRef.current += 1;
       classStreakRef.current = 0;
       setClassStreak(0);
       doDualWrite('incorrect');
+      setUiPhase('feedback');
+      if (mistakesRef.current >= 2) {
+        // 2nd miss → teaching reveal (micro card over the dictation compare),
+        // then advance.
+        playCue('reveal');
+        setShowMicroExplanation(true);
+        setTimeout(() => {
+          setShowMicroExplanation(false);
+          advanceRound();
+        }, 2200);
+      } else {
+        playCue('wrong');
+        // Teaching hold: the compare view shows attempt vs target + match %.
+        setTimeout(() => setUiPhase('preview'), 3000);
+      }
     }
-
-    setUiPhase('feedback');
-    setTimeout(() => setUiPhase('preview'), 3000);
-  }, [currentItem, doDualWrite]);
+  }, [currentItem, doDualWrite, advanceRound, triggerConfetti]);
 
   const handleForceCorrect = useCallback(() => {
     if (awardedRef.current || !currentItem) return;
     awardedRef.current = true;
     classStreakRef.current += 1;
     setClassStreak(classStreakRef.current);
+    playCue('correct');
+    if (classStreakRef.current === 3 || classStreakRef.current === 5) {
+      playCue('streak');
+      triggerConfetti();
+    }
     doDualWrite('correct');
     setUiPhase('feedback');
-    setTimeout(() => setUiPhase('preview'), 2500);
-  }, [currentItem, doDualWrite]);
-
-  const advanceRound = useCallback(() => {
-    setSelectedTile(null);
-    setUiPhase('listen');
-    setDictationInput('');
-    setDictationResult(null);
-    setRound(r => r + 1);
-    // Check if pool exhausted
-    if (round >= poolItems.length - 1 && poolItems.length > 0) {
-      triggerAction('SLIDE_COMPLETE', { forced: false });
-    }
-  }, [round, poolItems.length, triggerAction]);
+    // Pure celebration — compressed to ≤900ms (dead-time rule).
+    setTimeout(() => setUiPhase('preview'), 900);
+  }, [currentItem, doDualWrite, triggerConfetti]);
 
   // ── Derived ───────────────────────────────────────────────────────────
   const nextStudent = useMemo(() => {
@@ -413,6 +475,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
                     className={`group relative rounded-2xl border-2 w-[160px] h-[200px] flex flex-col items-center justify-center gap-3 transition-all duration-200 ${
                       showResult && isCorrect ? 'border-green-400 bg-green-500/20 scale-110 shadow-[0_0_30px_rgba(34,197,94,.5)]' :
                       showResult && isSelected && !isCorrect ? 'border-red-400 bg-red-500/10' :
+                      wrongFlash && isSelected ? 'border-red-400 bg-red-500/10' :
                       isHinted ? 'border-yellow-400 bg-yellow-500/20 animate-pulse shadow-lg' :
                       `${color.border} bg-white/5 hover:scale-105 hover:shadow-lg`
                     } ${uiPhase === 'options' ? 'cursor-pointer' : 'cursor-default'}`}>
@@ -428,8 +491,8 @@ const BoardListenTap = ({ data }: { data: any }) => {
                       </motion.div>
                     )}
                     {showResult && isCorrect && <Check size={24} className="absolute top-2 right-2 text-green-400" strokeWidth={4} />}
-                    {showResult && isSelected && !isCorrect && <X size={24} className="absolute top-2 right-2 text-red-400" strokeWidth={4} />}
-                    {showResult && isSelected && !isCorrect && (
+                    {(showResult || wrongFlash) && isSelected && !isCorrect && <X size={24} className="absolute top-2 right-2 text-red-400" strokeWidth={4} />}
+                    {(showResult || wrongFlash) && isSelected && !isCorrect && (
                       <motion.div className="absolute inset-0 rounded-2xl border-2 border-red-400"
                         animate={{ x: [-4, 4, -4, 4, 0] }} transition={{ duration: 0.3 }} />
                     )}
@@ -503,6 +566,25 @@ const BoardListenTap = ({ data }: { data: any }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Micro-explanation overlay — 2nd consecutive miss teaching beat
+          (BoardFlashMatch pattern): the correct option + the item's prompt. */}
+      {showMicroExplanation && currentItem && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 pointer-events-none">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-md text-center">
+            <Lightbulb size={40} className="text-amber-500 mb-3" />
+            {currentItem.options[correctIndex]?.image && String(currentItem.options[correctIndex].image).startsWith('http') ? (
+              <img src={currentItem.options[correctIndex].image} alt=""
+                className="w-24 h-24 object-contain mb-2 drop-shadow-lg" />
+            ) : null}
+            <p className="text-3xl font-bold text-slate-800">{currentItem.options[correctIndex]?.label}</p>
+            {currentItem.promptText && (
+              <p className="text-lg text-slate-500 mt-1">You heard: “{currentItem.promptText}”</p>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

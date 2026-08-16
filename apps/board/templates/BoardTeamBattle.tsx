@@ -16,6 +16,7 @@ import { useSession } from '../../../store/SessionContext';
 import { useQuizComposition, type QuizQuestion } from '../quizEngine';
 import { computeLCSPartialCredit } from './BoardUnscramble';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { playCue } from './playCue';
 import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeObjective } from '../../../services/boardLearner';
 import { playAudioUrl } from '../../../services/SpeechService';
@@ -62,7 +63,17 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
   const [answerRevealed, setAnswerRevealed] = useState(false);
   const [winResult, setWinResult] = useState<{ team: Team; line: number[] } | null>(null);
   const [teamTurnTracker, setTeamTurnTracker] = useState<Record<Team, string[]>>({ red: [], blue: [] });
+  // Per-team consecutive-correct streak → scoreForAttempt 4th arg (no confetti
+  // at team milestones — confetti is reserved for victory).
+  const [teamStreak, setTeamStreak] = useState<Record<Team, number>>({ red: 0, blue: 0 });
   const stealRef = useRef(false);
+  // Lifecycle trio (Aug-6 audit): wrong answers per question feed
+  // scoreForAttempt's mistake deduction; awardedRef latches per attempt so a
+  // question can only be scored once (double remote taps, timer-vs-answer
+  // races). Both reset in nextRound (question advance) and on the steal re-arm
+  // — the steal is a NEW attempt by the other team.
+  const mistakesRef = useRef(0);
+  const awardedRef = useRef(false);
 
   // Race cell state (WORD_BANK_BUILD)
   const [redPlacedTiles, setRedPlacedTiles] = useState<string[]>([]);
@@ -118,6 +129,10 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     }
     else if (a.type === 'SWITCH_TURN' && (phase === 'question' || phase === 'steal')) {
       stealRef.current = false;
+      // Manual hand-over = fresh attempt for the incoming team (otherwise the
+      // stale awardedRef latch would dead-lock the new team's answer buttons).
+      awardedRef.current = false;
+      mistakesRef.current = 0;
       setActiveTeam(t => t === 'red' ? 'blue' : 'red');
       setSelectedTile(null);
       setAnswerRevealed(false);
@@ -127,7 +142,21 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     else if (a.type === 'RESET_TIMER' && (phase === 'question' || phase === 'steal')) {
       setTimeLeft(15);
     }
+    else if (a.type === 'MARK_CORRECT' && (phase === 'question' || phase === 'steal')) {
+      handleForceCorrect();
+    }
   }, [state.lastAction]);
+
+  // ── Game-lifecycle: new turn (NEW_TURN) — full battle reset ──────────
+  // The last unfixed Aug-6 audit finding: without this, a newly picked
+  // student inherited the previous battle's grid, turn tracker, phase and
+  // steal state.
+  const turnId = state.currentTurnId;
+  useEffect(() => {
+    if (turnId === null) return;
+    resetGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
 
   // RULES OF HOOKS: all hooks above.
   if (!teamsReady) {
@@ -182,7 +211,8 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
 
   // ── Handle MCQ answer ────────────────────────────────────────────────
   function handleAnswer(tileIdx: number) {
-    if (answerRevealed || !currentQ || isRaceCell) return;
+    if (answerRevealed || awardedRef.current || !currentQ || isRaceCell) return;
+    awardedRef.current = true;
     const isCorrect = tileIdx === (currentQ.item.content as any).correct_index;
     setSelectedTile(tileIdx);
     setAnswerRevealed(true);
@@ -191,9 +221,19 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     if (picked) {
       setTeamTurnTracker(prev => ({ ...prev, [activeTeam]: [...new Set([...prev[activeTeam], picked.id])] }));
       if (isCorrect) {
-        const points = scoreForAttempt(0, currentQ.difficulty, 1.0);
+        const nextStreak = teamStreak[activeTeam] + 1;
+        setTeamStreak(prev => ({ ...prev, [activeTeam]: nextStreak }));
+        if (nextStreak === 3 || nextStreak === 5) playCue('streak');
+        else playCue('correct');
+        const points = scoreForAttempt(mistakesRef.current, currentQ.difficulty, 1.0, nextStreak);
         doDualWrite(currentQ, picked.id, 'correct', points);
       } else {
+        // tileIdx -1 = timer expiry / forced REVEAL_ANSWER — no student tap,
+        // the board reveals the answer: cue the reveal beat, not "wrong".
+        if (tileIdx === -1) playCue('reveal');
+        else playCue('wrong');
+        mistakesRef.current += 1;
+        setTeamStreak(prev => ({ ...prev, [activeTeam]: 0 }));
         doDualWrite(currentQ, picked.id, 'incorrect', -MISTAKE_PENALTY);
       }
     }
@@ -202,8 +242,11 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
       if (isCorrect) {
         setPhase('choose_cell');
       } else if (phase === 'question' && !stealRef.current) {
-        // Steal!
+        // Steal! The steal is a NEW attempt by the other team — hand them a
+        // fresh awardedRef + mistakesRef so their answer scores cleanly.
         stealRef.current = true;
+        awardedRef.current = false;
+        mistakesRef.current = 0;
         setActiveTeam(t => t === 'red' ? 'blue' : 'red');
         setPhase('steal');
         setSelectedTile(null);
@@ -216,6 +259,30 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
         nextRound();
       }
     }, 2000);
+  }
+
+  // ── MARK_CORRECT (teacher override): force-correct the current question
+  // for the ACTIVE team — points go to the current pickStudent result and the
+  // tic-tac-toe flow advances like a correct answer (choose a cell). The
+  // awardedRef latch (reset per question / per steal) blocks double taps.
+  function handleForceCorrect() {
+    if ((phase !== 'question' && phase !== 'steal') || answerRevealed || awardedRef.current || !currentQ || isRaceCell) return;
+    awardedRef.current = true;
+
+    const picked = pickStudent(activeTeam);
+    if (picked) {
+      setTeamTurnTracker(prev => ({ ...prev, [activeTeam]: [...new Set([...prev[activeTeam], picked.id])] }));
+      const nextStreak = teamStreak[activeTeam] + 1;
+      setTeamStreak(prev => ({ ...prev, [activeTeam]: nextStreak }));
+      if (nextStreak === 3 || nextStreak === 5) playCue('streak');
+      else playCue('correct');
+      const points = scoreForAttempt(mistakesRef.current, currentQ.difficulty, 1.0, nextStreak);
+      doDualWrite(currentQ, picked.id, 'correct', points);
+    }
+
+    setSelectedTile((currentQ.item.content as any).correct_index);
+    setAnswerRevealed(true);
+    setTimeout(() => setPhase('choose_cell'), 2000);
   }
 
   // ── Handle Race Cell (WORD_BANK_BUILD) ───────────────────────────────
@@ -265,7 +332,15 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     if (picked) {
       setTeamTurnTracker(prev => ({ ...prev, [winnerTeam]: [...new Set([...prev[winnerTeam], picked.id])] }));
       const correctness = winnerRatio >= 1 ? 'correct' : winnerRatio >= 0.5 ? 'partial' : 'incorrect';
-      const points = scoreForAttempt(0, currentQ.difficulty, winnerRatio);
+      // Race win = success for the winner (streak extends when the assembly
+      // was at least half right); the losing team's attempt failed → reset.
+      const success = winnerRatio >= 0.5;
+      const loserTeam: Team = winnerTeam === 'red' ? 'blue' : 'red';
+      const nextStreak = success ? teamStreak[winnerTeam] + 1 : 0;
+      setTeamStreak(prev => ({ ...prev, [winnerTeam]: nextStreak, [loserTeam]: 0 }));
+      if (nextStreak === 3 || nextStreak === 5) playCue('streak');
+      else playCue('win');
+      const points = scoreForAttempt(0, currentQ.difficulty, winnerRatio, nextStreak);
       doDualWrite(currentQ, picked.id, correctness as any, points);
     }
 
@@ -285,6 +360,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     if (win) {
       setWinResult(win);
       setPhase('victory');
+      playCue('win');
       triggerConfetti();
       triggerAction('SLIDE_COMPLETE', { forced: false });
     } else if (newGrid.every(c => c !== null)) {
@@ -294,6 +370,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
       const winnerTeam = redCount >= blueCount ? 'red' : 'blue';
       setWinResult({ team: winnerTeam as Team, line: [] });
       setPhase('victory');
+      playCue('win');
       triggerConfetti();
       triggerAction('SLIDE_COMPLETE', { forced: false });
     } else {
@@ -308,6 +385,9 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     setSelectedTile(null);
     setAnswerRevealed(false);
     setTimeLeft(15);
+    // Question-advance path: fresh attempt latches for the next question.
+    awardedRef.current = false;
+    mistakesRef.current = 0;
     setPhase('question');
   }
 
@@ -320,10 +400,13 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     setAnswerRevealed(false);
     setWinResult(null);
     setTeamTurnTracker({ red: [], blue: [] });
+    setTeamStreak({ red: 0, blue: 0 });
     setRedPlacedTiles([]);
     setBluePlacedTiles([]);
     setRaceComplete(false);
     stealRef.current = false;
+    mistakesRef.current = 0;
+    awardedRef.current = false;
     setCountdown(3);
     setPhase('pregame');
   }
