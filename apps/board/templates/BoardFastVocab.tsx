@@ -74,6 +74,11 @@ const BoardFastVocab = ({ data }: { data: any }) => {
   const cursorRef = useRef(0);
   const [wavePairs, setWavePairs] = useState<FastVocabPair[]>([]);
   const [turnSummary, setTurnSummary] = useState<FastVocabTurnSummary | null>(null);
+  // The score screen must show the student who JUST played, frozen at
+  // completion — never the live pickedStudent (which flips to the next kid
+  // on NEW_TURN while the engine's reset chain is still tearing down).
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryName, setSummaryName] = useState<string | null>(null);
   const [turnPoints, setTurnPoints] = useState(0);
   const turnPointsRef = useRef(0);
   const winCuedRef = useRef(false);
@@ -198,6 +203,8 @@ const BoardFastVocab = ({ data }: { data: any }) => {
       },
       onComplete: (summary: FastVocabTurnSummary) => {
         setTurnSummary(summary);
+        setShowSummary(true);
+        setSummaryName(pickedStudent?.name ?? null);
         if (!winCuedRef.current) {
           winCuedRef.current = true;
           playCue('win');
@@ -229,6 +236,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
     turnPointsRef.current = 0;
     setTurnPoints(0);
     setTurnSummary(null);
+    setShowSummary(false); // drop the previous turn's score screen instantly
     winCuedRef.current = false;
     if (unitPairs.length > 0) buildWave(cursorRef.current); // next words, NOT q0
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -239,10 +247,19 @@ const BoardFastVocab = ({ data }: { data: any }) => {
     const action = state.lastAction;
     if (!action) return;
     switch (action.type) {
+      case 'SPIN_WHEEL':
+      case 'CLEAR_RESPONDER':
+      case 'GAME_WIN':
+        // The teacher started the Next-Student cycle — hide the previous
+        // turn's score screen right away so the new student's name never
+        // lands on the old screen.
+        setShowSummary(false);
+        break;
       case 'RESET_GAME': {
         turnPointsRef.current = 0;
         setTurnPoints(0);
         setTurnSummary(null);
+        setShowSummary(false);
         winCuedRef.current = false;
         cursorRef.current = 0; // full restart → wave 0 for the whole slide
         if (unitPairs.length > 0) buildWave(0);
@@ -393,13 +410,14 @@ const BoardFastVocab = ({ data }: { data: any }) => {
 
       {/* Turn-complete overlay */}
       <AnimatePresence>
-        {turn.phase === 'complete' && (
+        {turn.phase === 'complete' && showSummary && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
             onClick={() => {
+              setShowSummary(false);
               // Choral practice: clicking rolls straight into the next wave.
               // Picked mode: dismiss (the teacher's Next Student rebuilds).
               if (!state.quickWheelWinner && unitPairs.length > 0) {
@@ -420,7 +438,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-3xl md:text-5xl font-black text-slate-800 mb-2 text-center">
-                {pickedStudent ? `${pickedStudent.name} nailed it!` : 'Complete!'}
+                {summaryName ? `${summaryName} nailed it!` : 'Complete!'}
               </h2>
 
               {turnSummary && (
