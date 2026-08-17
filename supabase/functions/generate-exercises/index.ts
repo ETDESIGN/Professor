@@ -18,7 +18,13 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { normalizeManifest } from '../_shared/manifest.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
-import { mapWithConcurrency } from '../_shared/tts.ts';
+import {
+  generateAndStoreAudio,
+  primarySpeechSignature,
+  canonicalSpeechHash,
+  detectLang,
+  mapWithConcurrency,
+} from '../_shared/tts.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import {
   ExerciseType,
@@ -458,8 +464,73 @@ serve(async (req) => {
       });
     }
 
-    // Persist the upgraded images back onto the manifest so the board / future
-    // runs see the real images (and skip re-generation via image_status).
+    // ── 1.5 Ensure one spoken-word audio per word (cache-first, ONE generation) ──
+    // Owner decision 2026-08-18: pronunciation audio is generated at publish
+    // time, alongside the images — classes never burn TTS credits. Cache-first
+    // by the SAME canonical prompt_hash the play-time resolver computes, so
+    // anything already generated (previous publish, or on-demand during an old
+    // class) is REUSED with zero synthesis; only true misses are generated,
+    // exactly once. The on-demand resolver stays as the runtime safety net for
+    // words whose generation failed here (empty url on failure — never stored).
+    const needAudio = vocabWithImages.filter((v) => v.word && !v.audio_url);
+    const audioMap = new Map<string, string>();
+    if (needAudio.length > 0) {
+      const AUDIO_LANG = 'en'; // the spoken words are the L2 target (English)
+      const sig = primarySpeechSignature(AUDIO_LANG, null);
+      const hashByWord = new Map<string, string>();
+      for (const v of needAudio) {
+        const word = String(v.word);
+        hashByWord.set(word, await canonicalSpeechHash(word, AUDIO_LANG, sig.voice, sig.model));
+      }
+      // Batch assets lookup — reuse stored MP3s instead of re-synthesizing.
+      try {
+        const hashes = [...new Set(hashByWord.values())];
+        const { data: cached } = await sb.from('assets')
+          .select('prompt_hash, public_url')
+          .eq('type', 'audio')
+          .in('prompt_hash', hashes);
+        for (const a of (cached || []) as any[]) {
+          if (a?.prompt_hash && a?.public_url) {
+            for (const [word, hash] of hashByWord) {
+              if (hash === a.prompt_hash) audioMap.set(word, a.public_url);
+            }
+          }
+        }
+      } catch { /* cache lookup is best-effort — misses just generate */ }
+      const toGenerate = needAudio.filter((v) => !audioMap.has(String(v.word)));
+      if (toGenerate.length > 0) {
+        const audioResults = await mapWithConcurrency(toGenerate, 3, (v) =>
+          generateAndStoreAudio(String(v.word), unitId, {
+            lang: AUDIO_LANG,
+            promptHash: hashByWord.get(String(v.word)) ?? null,
+          }).then((r) => ({ word: String(v.word), url: r.url, error: r.error })),
+        );
+        let audioFailures = 0;
+        for (const r of audioResults) {
+          if (r.url && !r.error) audioMap.set(r.word, r.url);
+          else audioFailures++;
+        }
+        if (audioFailures > 0) {
+          errors.push(`word audio generation failed for ${audioFailures} word(s) — the play-time resolver covers them`);
+        }
+      }
+      vocabWithImages.forEach((v) => {
+        const url = audioMap.get(String(v.word));
+        if (url) v.audio_url = url;
+      });
+      // Persist back onto vocabulary_items (the canonical content row) so
+      // future runs and the Content-tab reconciliation see the audio. Best-
+      // effort per word; manifest-only units are covered by the manifest
+      // persist below.
+      for (const [word, url] of audioMap) {
+        try {
+          await sb.from('vocabulary_items').update({ audio_url: url }).eq('unit_id', unitId).eq('word', word);
+        } catch { /* best-effort per word */ }
+      }
+    }
+
+    // Persist the upgraded images + audio back onto the manifest so the board /
+    // future runs see the real media (and skip re-generation via image_status).
     try {
       const ec = (unit.manifest?.enriched_content && typeof unit.manifest.enriched_content === 'object')
         ? { ...unit.manifest.enriched_content }
@@ -467,12 +538,15 @@ serve(async (req) => {
       if (Array.isArray(ec.vocabulary)) {
         ec.vocabulary = ec.vocabulary.map((v: any) => {
           const upgraded = vocabWithImages.find((w) => w.word === v.word);
-          return upgraded && upgraded.image_url !== v.image_url ? { ...v, image_url: upgraded.image_url, image_status: 'ready' } : v;
+          const changed = upgraded && (upgraded.image_url !== v.image_url || upgraded.audio_url !== v.audio_url);
+          return changed
+            ? { ...v, image_url: upgraded.image_url, image_status: 'ready', audio_url: upgraded.audio_url }
+            : v;
         });
       }
       await sb.from('units').update({ manifest: { ...unit.manifest, enriched_content: ec } }).eq('id', unitId);
     } catch (err: any) {
-      errors.push(`manifest image update failed: ${err?.message || err}`);
+      errors.push(`manifest media update failed: ${err?.message || err}`);
     }
 
     // ── 2. Reconcile objectives (preserve ids -> keep srs_items links) ─────
@@ -653,6 +727,183 @@ serve(async (req) => {
       }
     } catch (err: any) {
       errors.push(`objective reconciliation failed: ${err?.message || err}`);
+    }
+
+    // ── 3.5 Unified speech backfill: ONE audio generation for everything the
+    // published unit will ever speak (owner decision 2026-08-18). Publish is
+    // the PRIMARY generator for all TTS consumers; the play-time resolver
+    // stays as the safety net. Sources, mirroring the client play contract
+    // (apps/board/templates/speechPreload.ts speechTextOf + the story/dialogue
+    // stages' per-page/per-line audio buttons):
+    //   • pool rows — reference-based listening/production items whose speech
+    //     text has no stored audio (LISTEN_SELECT / AUDIO_L1_SELECT /
+    //     MINIMAL_PAIR_SWIPE / DICTATION / SPEAK_SENTENCE)
+    //   • vocab example sentences → vocabulary_items.example_audio_url
+    //   • story page text → story_pages.audio_asset_id
+    //   • dialogue line text → dialogue_lines.audio_asset_id
+    // Cache-first by the SAME canonical prompt_hash the play-time resolver
+    // computes (and step 1.5 used for words): hits reuse the stored MP3 with
+    // zero synthesis, only true misses are generated — exactly once, ever.
+    // Grammar emits no audio fields and no grammar game speaks text, so there
+    // is deliberately nothing to generate for grammar.
+    try {
+      const speechJobs: { text: string; lang: string; hash: string }[] = [];
+      const seenText = new Set<string>();
+      const addSpeech = async (raw: any) => {
+        const text = String(raw || '').trim();
+        if (!text || seenText.has(text)) return;
+        seenText.add(text);
+        const lang = detectLang(text);
+        const sig = primarySpeechSignature(lang, null);
+        speechJobs.push({ text, lang, hash: await canonicalSpeechHash(text, lang, sig.voice, sig.model) });
+      };
+
+      for (const row of allRows) {
+        const c = row.content as any;
+        if (c.audio_url) continue; // already carries stored audio
+        switch (row.exercise_type) {
+          case 'LISTEN_SELECT':
+          case 'AUDIO_L1_SELECT':
+          case 'MINIMAL_PAIR_SWIPE':
+            await addSpeech(c.prompt_text);
+            break;
+          case 'DICTATION':
+            await addSpeech(c.prompt_text || c.correct_text);
+            break;
+          case 'SPEAK_SENTENCE':
+            if (!c.target_audio) await addSpeech(c.target_sentence || c.target_word);
+            break;
+        }
+      }
+      for (const v of vocabWithImages) {
+        if (v.word && !v.example_audio_url && v.example_sentence) await addSpeech(v.example_sentence);
+      }
+
+      const storyPagesNeedingAudio: { id: string; text: string }[] = [];
+      try {
+        const { data: spRows } = await sb.from('story_pages')
+          .select('id, text, audio_asset_id')
+          .eq('unit_id', unitId)
+          .order('page_number', { ascending: true });
+        for (const p of (spRows || []) as any[]) {
+          if (p?.id && p?.text && !p.audio_asset_id) storyPagesNeedingAudio.push({ id: p.id, text: String(p.text) });
+        }
+      } catch { /* best-effort — table may not exist yet on legacy projects */ }
+      for (const p of storyPagesNeedingAudio) await addSpeech(p.text);
+
+      const dialogueLinesNeedingAudio: { id: string; text: string }[] = [];
+      try {
+        const { data: dlRows } = await sb.from('dialogue_lines')
+          .select('id, text, audio_asset_id')
+          .eq('unit_id', unitId)
+          .order('order_index', { ascending: true });
+        for (const l of (dlRows || []) as any[]) {
+          if (l?.id && l?.text && !l.audio_asset_id) dialogueLinesNeedingAudio.push({ id: l.id, text: String(l.text) });
+        }
+      } catch { /* best-effort */ }
+      for (const l of dialogueLinesNeedingAudio) await addSpeech(l.text);
+
+      if (speechJobs.length > 0) {
+        const urlByHash = new Map<string, string>();
+        const hashes = [...new Set(speechJobs.map((j) => j.hash))];
+        try {
+          const { data: cached } = await sb.from('assets')
+            .select('prompt_hash, public_url')
+            .eq('type', 'audio')
+            .in('prompt_hash', hashes);
+          for (const a of (cached || []) as any[]) {
+            if (a?.prompt_hash && a?.public_url) urlByHash.set(a.prompt_hash, a.public_url);
+          }
+        } catch { /* cache lookup is best-effort — misses just generate */ }
+
+        const misses = speechJobs.filter((j) => !urlByHash.has(j.hash));
+        if (misses.length > 0) {
+          const results = await mapWithConcurrency(misses, 3, (j) =>
+            generateAndStoreAudio(j.text, unitId, { lang: j.lang, promptHash: j.hash })
+              .then((r) => ({ hash: j.hash, url: r.url, error: r.error })),
+          );
+          let speechFailures = 0;
+          for (const r of results) {
+            if (r.url && !r.error) urlByHash.set(r.hash, r.url);
+            else speechFailures++;
+          }
+          if (speechFailures > 0) {
+            errors.push(`speech backfill: ${speechFailures}/${misses.length} generations failed — play-time resolver covers them`);
+          }
+        }
+
+        const urlForText = (raw: any): string | undefined => {
+          const job = speechJobs.find((j) => j.text === String(raw || '').trim());
+          return job ? urlByHash.get(job.hash) : undefined;
+        };
+
+        // Patch the pool rows BEFORE the insert below, so the published items
+        // carry their audio and games never hit the resolver for them.
+        for (const row of allRows) {
+          const c = row.content as any;
+          if (c.audio_url) continue;
+          if (row.exercise_type === 'SPEAK_SENTENCE') {
+            if (!c.target_audio) {
+              const url = urlForText(c.target_sentence || c.target_word);
+              if (url) c.target_audio = url;
+            }
+          } else if (
+            row.exercise_type === 'LISTEN_SELECT' ||
+            row.exercise_type === 'AUDIO_L1_SELECT' ||
+            row.exercise_type === 'MINIMAL_PAIR_SWIPE' ||
+            row.exercise_type === 'DICTATION'
+          ) {
+            const url = urlForText(c.prompt_text || c.correct_text);
+            if (url) c.audio_url = url;
+          }
+        }
+
+        // Example sentences → vocabulary_items.example_audio_url (canonical
+        // content row; future runs skip via the has-audio checks above).
+        const exUpdates: Promise<any>[] = [];
+        for (const v of vocabWithImages) {
+          if (!v.example_audio_url && v.example_sentence) {
+            const url = urlForText(v.example_sentence);
+            if (url) {
+              exUpdates.push(
+                sb.from('vocabulary_items').update({ example_audio_url: url }).eq('unit_id', unitId).eq('word', String(v.word)),
+              );
+            }
+          }
+        }
+        if (exUpdates.length > 0) await runBounded(exUpdates, 6);
+
+        // Story pages + dialogue lines reference audio by asset ID (FK), so
+        // resolve hash → asset id (covers cached AND freshly generated rows).
+        if (storyPagesNeedingAudio.length > 0 || dialogueLinesNeedingAudio.length > 0) {
+          const idByHash = new Map<string, string>();
+          try {
+            const { data: assetRows } = await sb.from('assets')
+              .select('id, prompt_hash')
+              .eq('type', 'audio')
+              .in('prompt_hash', hashes);
+            for (const a of (assetRows || []) as any[]) {
+              if (a?.id && a?.prompt_hash) idByHash.set(a.prompt_hash, a.id);
+            }
+          } catch { /* best-effort */ }
+          const assetIdForText = (raw: any): string | null => {
+            const job = speechJobs.find((j) => j.text === String(raw || '').trim());
+            return job ? (idByHash.get(job.hash) ?? null) : null;
+          };
+          const linkUpdates: Promise<any>[] = [];
+          for (const p of storyPagesNeedingAudio) {
+            const assetId = assetIdForText(p.text);
+            if (assetId) linkUpdates.push(sb.from('story_pages').update({ audio_asset_id: assetId }).eq('id', p.id));
+          }
+          for (const l of dialogueLinesNeedingAudio) {
+            const assetId = assetIdForText(l.text);
+            if (assetId) linkUpdates.push(sb.from('dialogue_lines').update({ audio_asset_id: assetId }).eq('id', l.id));
+          }
+          if (linkUpdates.length > 0) await runBounded(linkUpdates, 6);
+        }
+      }
+    } catch (err: any) {
+      errors.push(`speech backfill failed: ${err?.message || err}`);
     }
 
     // Backfill objective_id on existing TEMPLATE srs_items (student_id IS NULL)

@@ -32,6 +32,7 @@ import FastVocabHud from '../../../components/games/fastVocab/FastVocabHud';
 import FastVocabMatchWave from '../../../components/games/fastVocab/FastVocabMatchWave';
 import FastVocabSpeedRound from '../../../components/games/fastVocab/FastVocabSpeedRound';
 import { useFastVocabTurn } from '../../../components/games/fastVocab/useFastVocabTurn';
+import { preloadWaveAudio } from '../../../components/games/fastVocab/preloadWaveAudio';
 import {
   detectMode,
   buildUnitPairs,
@@ -82,6 +83,8 @@ const BoardFastVocab = ({ data }: { data: any }) => {
       const { wave, nextCursor } = takeWave(unitPairs, fromCursor, waveSize);
       cursorRef.current = nextCursor;
       setWavePairs(wave);
+      // The match phase doubles as audio prefetch time (fetch-only, no TTS).
+      preloadWaveAudio(wave);
     },
     [unitPairs, waveSize],
   );

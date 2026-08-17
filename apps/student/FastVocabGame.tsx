@@ -24,6 +24,7 @@ import FastVocabHud from '../../components/games/fastVocab/FastVocabHud';
 import FastVocabMatchWave from '../../components/games/fastVocab/FastVocabMatchWave';
 import FastVocabSpeedRound from '../../components/games/fastVocab/FastVocabSpeedRound';
 import { useFastVocabTurn } from '../../components/games/fastVocab/useFastVocabTurn';
+import { preloadWaveAudio } from '../../components/games/fastVocab/preloadWaveAudio';
 import {
   detectMode,
   buildUnitPairs,
@@ -244,6 +245,12 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
     timeLimit: SPEED_TIME_LIMIT,
     events,
   });
+
+  // Fetch-only prefetch of the wave's stored audio (covers the first wave and
+  // every wave advance in one place).
+  useEffect(() => {
+    if (wavePairs.length > 0) preloadWaveAudio(wavePairs);
+  }, [wavePairs]);
 
   // ── Run completion: stars, personal best, XP/gems/quests (once) ────────
   const finishRun = () => {
