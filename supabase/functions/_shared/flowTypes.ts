@@ -68,6 +68,11 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   // Fast Vocab — match wave + timed speed recall (shared engine with the
   // student solo app), 2026-08-17.
   'FAST_VOCAB',
+  // Word Search — hidden-vocabulary grid, open/collaborative/relay modes, 2026-08-18.
+  'WORD_SEARCH',
+  // Spelling Bee — letter-by-letter spelling on the QWERTY keyboard with
+  // adaptive key elimination (shared engine with the student solo app), 2026-08-18.
+  'SPELLING_BEE',
 ]);
 
 export interface FlowBlock {

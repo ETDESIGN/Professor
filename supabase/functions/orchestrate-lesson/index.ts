@@ -286,6 +286,8 @@ function transformManifestToFlow(assets: any): any[] {
     MEMORY_LAB: 'PRACTICE',
     CLASS_RALLY: 'PRACTICE',
     FAST_VOCAB: 'PRACTICE',
+    WORD_SEARCH: 'PRACTICE',
+    SPELLING_BEE: 'PRACTICE',
   };
   const POOL_DRIVEN_TYPES = new Set([
     'LISTEN_TAP', 'FLASH_MATCH', 'SCRAMBLE', 'SPEAKING', 'TEAM_BATTLE',
@@ -296,7 +298,7 @@ function transformManifestToFlow(assets: any): any[] {
     // manifest).
     'GRAMMAR_LAB', 'WORD_DETECTIVE', 'SOUND_LAB', 'STORY_QUEST',
     'SENTENCE_LAB', 'PHONICS_ARENA', 'VOCAB_BLITZ', 'MEMORY_LAB', 'CLASS_RALLY',
-    'FAST_VOCAB',
+    'FAST_VOCAB', 'WORD_SEARCH', 'SPELLING_BEE',
   ]);
   for (const block of flow) {
     if (PHASE_FOR_TYPE[block.type]) block.phase = PHASE_FOR_TYPE[block.type];

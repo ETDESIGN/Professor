@@ -101,6 +101,8 @@ PREFERRED new-generation games (pool-driven: they pull their own exercise conten
 - STORY_QUEST — interactive story: prediction gates + comprehension questions (use after STORY_STAGE when a story exists)
 - SENTENCE_LAB — sentence tile-building with distractors and feedback (prefer over SCRAMBLE)
 - MEMORY_LAB — memorize-then-recall picture grid that escalates 4→6→8 cards
+- WORD_SEARCH — vocabulary hidden in a letter grid; rounds escalate directions and hide clue text; open-class, wheel-picked or team-relay scoring (good PRACTICE activity when vocabulary exists)
+- SPELLING_BEE — letter-by-letter spelling of vocabulary on an on-screen keyboard under a countdown; wrong keys drop away as scaffolding; wheel-picked turns (good PRACTICE activity when vocabulary exists; alternate with WORD_SEARCH/FAST_VOCAB)
 - VOCAB_BLITZ — timed vocabulary quiz with betting and streaks (alternate with TEAM_BATTLE for assessment)
 - CLASS_RALLY — cooperative class-wide progress bar closer (good final activity)
 

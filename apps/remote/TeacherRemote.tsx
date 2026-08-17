@@ -599,6 +599,61 @@ const TeacherRemote: React.FC = () => {
             </button>
           </div>
         );
+      case 'WORD_SEARCH':
+        // Same action strings BoardWordSearch listens for (and that the
+        // commander's ContextualControls emit) — the dead-button gotcha.
+        // Clue circles a first letter (halves that word's points).
+        return (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('PLAY_PAUSE')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Play size={18} /> Timer
+            </button>
+            <button onClick={() => triggerAction('ADD_TIME_30')} className="bg-sky-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Clock size={18} /> +30s
+            </button>
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Lightbulb size={18} /> Clue
+            </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('REVEAL_ANSWER')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Eye size={18} /> Reveal
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+            <button onClick={() => triggerAction('SKIP_ROUND')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('NEXT_ROUND')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform col-span-2">
+              <ChevronRight size={18} /> Next Round
+            </button>
+          </div>
+        );
+      case 'SPELLING_BEE':
+        // Same action strings BoardSpellingBee listens for (and that the
+        // commander's ContextualControls emit) — the dead-button gotcha.
+        // Hint sheds 3 keyboard keys / pulses the next letter.
+        return (
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Lightbulb size={18} /> Hint
+            </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('SKIP_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+            <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-red-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform col-span-2">
+              <X size={18} /> End
+            </button>
+          </div>
+        );
       default:
         return null;
     }

@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import {
   Plus, Trash2, Save, Play, Loader2, Wand2, Clock, BookOpen, MessageSquare,
   PenTool, Music, Image as ImageIcon, Gamepad2, Layers, RefreshCw,
-  Search, Volume2, Mic, Zap, Brain, Users, Puzzle, Gauge
+  Search, Volume2, Mic, Zap, Brain, Users, Puzzle, Gauge, LayoutGrid, SpellCheck
 } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
@@ -61,6 +61,8 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
   MEMORY_LAB: { icon: <Brain size={16} />, chip: 'bg-blue-100 text-blue-600' },
   CLASS_RALLY: { icon: <Users size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' },
   FAST_VOCAB: { icon: <Gauge size={16} />, chip: 'bg-amber-100 text-amber-600' },
+  WORD_SEARCH: { icon: <LayoutGrid size={16} />, chip: 'bg-teal-100 text-teal-600' },
+  SPELLING_BEE: { icon: <SpellCheck size={16} />, chip: 'bg-lime-100 text-lime-600' },
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
@@ -126,6 +128,25 @@ const buildBlockData = (type: string, ec: any): any => {
         correct: v.word,
       }));
       return { topic: ec.topic || 'Review', questions };
+    }
+    case 'WORD_SEARCH': {
+      // BoardWordSearch pulls words from the pool/vocabulary at runtime; the
+      // frozen data only carries the game settings (mode: open | collaborative | relay).
+      return {
+        rounds: 3,
+        wordsPerRound: Math.min(5, Math.max(3, vocab.length || 5)),
+        seconds: 120,
+        mode: 'open',
+      };
+    }
+    case 'SPELLING_BEE': {
+      // BoardSpellingBee pulls words from the pool/vocabulary at runtime; the
+      // frozen data only carries the game settings (per-student turn config).
+      return {
+        wordsPerTurn: 3,
+        timerSeconds: 15,
+        letterRemoval: true,
+      };
     }
     default:
       return {};
@@ -244,6 +265,8 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (vocabCount > 0) items.push({ key: 'memory_lab', label: 'Memory Lab', detail: 'what\u2019s missing?', type: 'MEMORY_LAB', icon: <Brain size={16} />, chip: 'bg-blue-100 text-blue-600' });
     if (vocabCount > 0) items.push({ key: 'class_rally', label: 'Class Rally', detail: 'cooperative goal', type: 'CLASS_RALLY', icon: <Users size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' });
     if (vocabCount > 0) items.push({ key: 'fast_vocab', label: 'Fast Vocab', detail: 'match + speed recall', type: 'FAST_VOCAB', icon: <Gauge size={16} />, chip: 'bg-amber-100 text-amber-600' });
+    if (vocabCount > 0) items.push({ key: 'word_search', label: 'Word Search', detail: 'hidden-word grid hunt', type: 'WORD_SEARCH', icon: <LayoutGrid size={16} />, chip: 'bg-teal-100 text-teal-600' });
+    if (vocabCount > 0) items.push({ key: 'spelling_bee', label: 'Spelling Bee', detail: 'type the word, beat the clock', type: 'SPELLING_BEE', icon: <SpellCheck size={16} />, chip: 'bg-lime-100 text-lime-600' });
 
     return items;
   }, [unit?.manifest, bundle]);
@@ -381,6 +404,8 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     STORY_QUEST: 'PRACTICE', SENTENCE_LAB: 'PRACTICE', PHONICS_ARENA: 'PRACTICE',
     MEMORY_LAB: 'PRACTICE', CLASS_RALLY: 'PRACTICE',
     FAST_VOCAB: 'PRACTICE',
+    WORD_SEARCH: 'PRACTICE',
+    SPELLING_BEE: 'PRACTICE',
   };
   const buildDbFlow = () => timeline.map((b) => ({
     id: b.id,
@@ -628,6 +653,81 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
                       >
                         <span
                           className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : ''}`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            {activeBlock.type === 'SPELLING_BEE' && (
+              // Spelling Bee game settings — stored on the block's data and
+              // read by BoardSpellingBee at runtime.
+              <div className="bg-lime-50 border border-lime-200 rounded-xl p-4">
+                <label className="block text-xs font-bold text-lime-700 uppercase mb-3">Game settings</label>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800">Words per turn</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Words each picked student spells</p>
+                  </div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={Number(activeBlock.data?.wordsPerTurn) || 3}
+                    onChange={(e) =>
+                      updateBlock(activeBlock.id, {
+                        data: { ...activeBlock.data, wordsPerTurn: Math.max(1, Math.min(10, parseInt(e.target.value || '3', 10))) },
+                      })
+                    }
+                    className="w-16 p-2 border border-slate-200 rounded-lg text-sm font-bold text-center"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800">Seconds per word</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">0 = no countdown timer</p>
+                  </div>
+                  <select
+                    value={String(activeBlock.data?.timerSeconds ?? 15)}
+                    onChange={(e) =>
+                      updateBlock(activeBlock.id, {
+                        data: { ...activeBlock.data, timerSeconds: parseInt(e.target.value, 10) },
+                      })
+                    }
+                    className="p-2 border border-slate-200 rounded-lg text-sm font-bold bg-white"
+                  >
+                    <option value="0">Off</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                    <option value="25">25</option>
+                  </select>
+                </div>
+                {(() => {
+                  const removal = activeBlock.data?.letterRemoval !== false;
+                  return (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">Remove letters</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {removal ? 'wrong keys drop off as the clock burns' : 'full keyboard all game (harder)'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={removal}
+                        onClick={() =>
+                          updateBlock(activeBlock.id, {
+                            data: { ...activeBlock.data, letterRemoval: !removal },
+                          })
+                        }
+                        className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${removal ? 'bg-lime-500' : 'bg-slate-300'}`}
+                        title="Adaptive keyboard narrowing"
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${removal ? 'translate-x-5' : ''}`}
                         />
                       </button>
                     </div>

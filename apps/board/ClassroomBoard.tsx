@@ -39,6 +39,8 @@ import BoardVocabBlitz from './templates/BoardVocabBlitz';
 import BoardMemoryLab from './templates/BoardMemoryLab';
 import BoardClassRally from './templates/BoardClassRally';
 import BoardFastVocab from './templates/BoardFastVocab';
+import BoardWordSearch from './templates/BoardWordSearch';
+import BoardSpellingBee from './templates/BoardSpellingBee';
 import ClassWeakBanner from './ClassWeakBanner';
 import ClassLeaderboard from './ClassLeaderboard';
 import BoardShell from './BoardShell';
@@ -170,6 +172,8 @@ const ClassroomBoard: React.FC = () => {
               {currentStep.type === 'MEMORY_LAB' && <BoardMemoryLab data={currentStep.data} />}
               {currentStep.type === 'CLASS_RALLY' && <BoardClassRally data={currentStep.data} />}
               {currentStep.type === 'FAST_VOCAB' && <BoardFastVocab data={currentStep.data} />}
+              {currentStep.type === 'WORD_SEARCH' && <BoardWordSearch data={currentStep.data} />}
+              {currentStep.type === 'SPELLING_BEE' && <BoardSpellingBee data={currentStep.data} />}
             </motion.div>
           </AnimatePresence>
         </BoardShell>

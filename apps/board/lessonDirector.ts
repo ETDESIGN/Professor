@@ -136,6 +136,14 @@ export const SHELL_CAPABILITIES: Record<string, ShellCapability> = {
   // words. Image mode when the unit has real IMAGE_SELECT images, else the
   // MEANING_MATCH word↔L1 fallback (see components/games/fastVocab).
   FAST_VOCAB:        { consumes: ['IMAGE_SELECT', 'MEANING_MATCH'],                                             rungRange: [1, 2] },
+  // Word Search (2026-08-18): vocabulary hidden in a letter grid. Escalates by
+  // round (directions + clue-card support), falls back to vocabulary_items
+  // when the pool is empty (see wordSearch/content.ts).
+  WORD_SEARCH:       { consumes: ['IMAGE_SELECT', 'MEANING_MATCH'],                                             rungRange: [1, 3] },
+  // Spelling Bee (2026-08-18): letter-by-letter spelling under a per-word
+  // countdown with adaptive keyboard narrowing. Same 3-tier content fallback
+  // as Word Search (pool → vocabulary_items → frozen, see spellingBee/contentBuilder).
+  SPELLING_BEE:      { consumes: ['IMAGE_SELECT', 'MEANING_MATCH', 'DICTATION'],                                 rungRange: [3, 4] },
 };
 
 // =====================================================================

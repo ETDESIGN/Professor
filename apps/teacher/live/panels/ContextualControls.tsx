@@ -252,6 +252,61 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
         </div>
       );
+    case 'WORD_SEARCH':
+      // BoardWordSearch listens for exactly these strings: Clue circles an
+      // unfound word's first letter and halves its award; Reveal locks a word
+      // without points; Play/Pause and +30s drive the round timer.
+      return (
+        <div className="flex gap-2 flex-wrap items-center">
+          <button onClick={() => triggerAction('PLAY_PAUSE')} className="h-12 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Pause / resume the round timer">
+            <Play size={18} /> Timer
+          </button>
+          <button onClick={() => triggerAction('ADD_TIME_30')} className="h-12 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Add 30 seconds">
+            <Clock size={18} /> +30s
+          </button>
+          <button onClick={() => triggerAction('REVEAL_HINT')} className="h-12 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95" title="Circle a word's first letter — halves its points">
+            <Lightbulb size={18} /> Clue
+          </button>
+          <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+            <Check size={18} /> Correct
+          </button>
+          <button onClick={() => triggerAction('REVEAL_ANSWER')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+            <Eye size={18} /> Reveal
+          </button>
+          <button onClick={() => triggerAction('SKIP_ROUND')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+            <SkipForward size={18} /> Skip
+          </button>
+          <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+            <RefreshCw size={18} /> Redo
+          </button>
+          <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-rose-700 hover:bg-rose-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+            <X size={18} /> End
+          </button>
+        </div>
+      );
+    case 'SPELLING_BEE':
+      // BoardSpellingBee listens for exactly these strings (match: hint sheds
+      // 3 keyboard keys or pulses the next letter; skip reveals the word, no
+      // penalty). RESET_GAME rewinds the word queue to the start of the pool.
+      return (
+        <div className="flex gap-2 flex-wrap items-center">
+          <button onClick={() => triggerAction('REVEAL_HINT')} className="h-12 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Drop 3 more keyboard keys / pulse the next letter">
+            <Lightbulb size={18} /> Hint
+          </button>
+          <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Teacher override for defensible oral answers">
+            <Check size={18} /> Correct
+          </button>
+          <button onClick={() => triggerAction('SKIP_ITEM')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Skip this word (no penalty)">
+            <SkipForward size={18} /> Skip Word
+          </button>
+          <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+            <RefreshCw size={18} /> Redo
+          </button>
+          <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-rose-700 hover:bg-rose-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="End this slide">
+            <X size={18} /> End
+          </button>
+        </div>
+      );
     case 'STORY_STAGE':
       // BoardStoryStage v2: read-through + scored comprehension MCQs.
       // Controls: Hint (eliminate distractor) / Mark Correct / Skip / End.
