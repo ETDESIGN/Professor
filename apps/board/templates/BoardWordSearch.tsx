@@ -244,6 +244,8 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   const buildSigRef = useRef('');
   const dragRef = useRef(false);
   const gridElRef = useRef<HTMLDivElement | null>(null);
+  const gridWrapRef = useRef<HTMLDivElement | null>(null);
+  const [boxPx, setBoxPx] = useState(0);
   const totalsRef = useRef({ found: 0, revealed: 0, total: 0, misses: 0, hints: 0 });
 
   // Relay teams: derived from the roster's team values (assignTeams uses
@@ -479,6 +481,26 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
     if (stage === 'play' && playStartRef.current === 0) playStartRef.current = Date.now();
   }, [stage]);
 
+  // ── Grid box: measure the wrapper, force a TRUE pixel square ────────────
+  // aspect-square + max-h-full gets clamped into a rectangle by short
+  // containers (commander preview), which desyncs the pill geometry from the
+  // letters — pills mix % of width and % of height as one unit, which is only
+  // exact for a perfect square. A measured square + pixel math is exact in
+  // every container. The wrapper only mounts in the play stage, so this must
+  // re-run on stage changes.
+  useEffect(() => {
+    const el = gridWrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      setBoxPx(Math.max(0, Math.floor(Math.min(r.width, r.height))));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [stage]);
+
   // Hint ring auto-clears.
   useEffect(() => {
     if (!hintCell) return;
@@ -669,14 +691,17 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   const selKeySet = new Set(selCells.map((c) => `${c.row},${c.col}`));
   const timePct = TIMED ? Math.max(0, Math.min(100, (timeLeft / SECONDS) * 100)) : 100;
 
-  // Pill geometry (percent coordinates — the grid container is square).
+  // Pill geometry in pixels of the measured square box (boxPx) — always in
+  // lockstep with the letter cells, in every container size.
   const pillStyle = (cells: Cell[], tone: 'sel' | 'found' | 'revealed'): React.CSSProperties => {
+    if (!boxPx) return { display: 'none' };
+    const cell = boxPx / size;
     const a = cells[0];
     const b = cells[cells.length - 1];
-    const x0 = ((a.col + 0.5) / size) * 100;
-    const y0 = ((a.row + 0.5) / size) * 100;
-    const x1 = ((b.col + 0.5) / size) * 100;
-    const y1 = ((b.row + 0.5) / size) * 100;
+    const x0 = (a.col + 0.5) * cell;
+    const y0 = (a.row + 0.5) * cell;
+    const x1 = (b.col + 0.5) * cell;
+    const y1 = (b.row + 0.5) * cell;
     const len = Math.hypot(x1 - x0, y1 - y0);
     const angle = (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI;
     const bg = tone === 'sel'
@@ -684,10 +709,10 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       : tone === 'found' ? 'rgba(52, 211, 153, 0.35)' : 'rgba(148, 163, 184, 0.35)';
     return {
       position: 'absolute',
-      left: `${x0}%`,
-      top: `${y0}%`,
-      width: `${len}%`,
-      height: `${(100 / size) * 0.94}%`,
+      left: `${x0}px`,
+      top: `${y0}px`,
+      width: `${len}px`,
+      height: `${cell * 0.94}px`,
       transform: `translate(-50%, -50%) rotate(${angle}deg)`,
       background: bg,
       border: tone === 'sel' ? '2px solid rgba(234, 179, 8, 0.9)' : '2px solid rgba(255,255,255,0.35)',
@@ -774,16 +799,16 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
               ))}
             </div>
 
-            {/* The grid */}
-            <div className="flex-1 w-full flex items-center justify-center min-h-0">
+            {/* The grid — wrapper measured; box forced to an exact square */}
+            <div ref={gridWrapRef} className="flex-1 w-full flex items-center justify-center min-h-0">
               <div
                 ref={gridElRef}
                 onPointerDown={onGridPointerDown}
                 onPointerMove={onGridPointerMove}
                 onPointerUp={onGridPointerUp}
                 onPointerCancel={() => { dragRef.current = false; setSel(null); }}
-                className={`relative aspect-square max-h-full w-full max-w-[min(100%,64vh)] rounded-3xl bg-slate-800/70 border border-slate-700 shadow-2xl touch-none select-none ${wrongFlash ? 'animate-shake' : ''}`}
-                style={{ cursor: stage === 'play' ? 'pointer' : 'default' }}
+                className={`relative rounded-3xl bg-slate-800/70 border border-slate-700 shadow-2xl touch-none select-none ${wrongFlash ? 'animate-shake' : ''}`}
+                style={{ width: boxPx || undefined, height: boxPx || undefined, cursor: stage === 'play' ? 'pointer' : 'default' }}
               >
                 {/* Locked + selection pills (letters render above) */}
                 {Object.entries(found).map(([wordId, entry]) => (
@@ -794,14 +819,14 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
                 )}
 
                 {/* Hint ring on a first letter */}
-                {hintCell && (
+                {hintCell && boxPx > 0 && (
                   <div
                     className="absolute rounded-full border-4 border-amber-400 animate-ping-soft pointer-events-none z-20"
                     style={{
-                      left: `${((hintCell.col + 0.5) / size) * 100}%`,
-                      top: `${((hintCell.row + 0.5) / size) * 100}%`,
-                      width: `${(100 / size) * 0.95}%`,
-                      height: `${(100 / size) * 0.95}%`,
+                      left: (hintCell.col + 0.5) * (boxPx / size),
+                      top: (hintCell.row + 0.5) * (boxPx / size),
+                      width: (boxPx / size) * 0.95,
+                      height: (boxPx / size) * 0.95,
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
@@ -815,8 +840,8 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
                       return (
                         <div key={`${r}-${c}`}
                           className={`flex items-center justify-center font-black transition-colors
-                            text-[clamp(12px,3.4vh,2.4rem)]
-                            ${inSel ? 'text-slate-900' : 'text-slate-200'}`}>
+                            ${inSel ? 'text-slate-900' : 'text-slate-200'}`}
+                          style={{ fontSize: boxPx ? (boxPx / size) * 0.52 : undefined, lineHeight: 1 }}>
                           {letter}
                         </div>
                       );
