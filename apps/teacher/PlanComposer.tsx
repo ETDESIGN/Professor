@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import {
   Plus, Trash2, Save, Play, Loader2, Wand2, Clock, BookOpen, MessageSquare,
   PenTool, Music, Image as ImageIcon, Gamepad2, Layers, RefreshCw,
-  Search, Volume2, Mic, Zap, Brain, Users, Puzzle
+  Search, Volume2, Mic, Zap, Brain, Users, Puzzle, Gauge
 } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
@@ -59,6 +59,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
   VOCAB_BLITZ: { icon: <Zap size={16} />, chip: 'bg-yellow-100 text-yellow-600' },
   MEMORY_LAB: { icon: <Brain size={16} />, chip: 'bg-blue-100 text-blue-600' },
   CLASS_RALLY: { icon: <Users size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' },
+  FAST_VOCAB: { icon: <Gauge size={16} />, chip: 'bg-amber-100 text-amber-600' },
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
@@ -241,6 +242,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (vocabCount > 0) items.push({ key: 'vocab_blitz', label: 'Vocab Blitz', detail: 'timed quiz + bet', type: 'VOCAB_BLITZ', icon: <Zap size={16} />, chip: 'bg-yellow-100 text-yellow-600' });
     if (vocabCount > 0) items.push({ key: 'memory_lab', label: 'Memory Lab', detail: 'what\u2019s missing?', type: 'MEMORY_LAB', icon: <Brain size={16} />, chip: 'bg-blue-100 text-blue-600' });
     if (vocabCount > 0) items.push({ key: 'class_rally', label: 'Class Rally', detail: 'cooperative goal', type: 'CLASS_RALLY', icon: <Users size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' });
+    if (vocabCount > 0) items.push({ key: 'fast_vocab', label: 'Fast Vocab', detail: 'match + speed recall', type: 'FAST_VOCAB', icon: <Gauge size={16} />, chip: 'bg-amber-100 text-amber-600' });
 
     return items;
   }, [unit?.manifest, bundle]);
@@ -377,6 +379,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     GRAMMAR_LAB: 'PRACTICE', WORD_DETECTIVE: 'PRACTICE', SOUND_LAB: 'PRACTICE',
     STORY_QUEST: 'PRACTICE', SENTENCE_LAB: 'PRACTICE', PHONICS_ARENA: 'PRACTICE',
     MEMORY_LAB: 'PRACTICE', CLASS_RALLY: 'PRACTICE',
+    FAST_VOCAB: 'PRACTICE',
   };
   const buildDbFlow = () => timeline.map((b) => ({
     id: b.id,

@@ -35,6 +35,7 @@ const LessonComplete = lazy(() => import('./LessonComplete'));
 const PhonicsPhlyer = lazy(() => import('./PhonicsPhlyer'));
 const SpacedRepetition = lazy(() => import('./SpacedRepetition'));
 const SoloLessonPlayer = lazy(() => import('./SoloLessonPlayer'));
+const FastVocabGame = lazy(() => import('./FastVocabGame'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full">
@@ -229,6 +230,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => navigate('/student')} onSessionEnd={(s) => handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 100, time: '—' })} /></Suspense>;
   if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => navigate('/student')} /></Suspense>;
   if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={() => navigate('/student')} /></Suspense>;
+  if (location.pathname === '/student/fast-vocab') return <Suspense fallback={<PageLoader />}><FastVocabGame onBack={() => navigate('/student/practice')} /></Suspense>;
 
   // The Reward Interstitial
   if (location.pathname === '/student/lesson-complete') return <Suspense fallback={<PageLoader />}><LessonComplete onContinue={finalizeLesson} stats={sessionResults} /></Suspense>;

@@ -583,6 +583,22 @@ const TeacherRemote: React.FC = () => {
             </button>
           </div>
         );
+      case 'FAST_VOCAB':
+        // Same action strings BoardFastVocab listens for (and that the
+        // commander's ContextualControls emit) — the dead-button gotcha.
+        return (
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('SKIP_ITEM')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <SkipForward size={18} /> Skip
+            </button>
+            <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <Check size={18} /> Correct
+            </button>
+            <button onClick={() => triggerAction('RESET_GAME')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+              <RefreshCw size={18} /> Redo
+            </button>
+          </div>
+        );
       default:
         return null;
     }

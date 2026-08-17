@@ -275,6 +275,7 @@ if/when a 1:1 student-device model is introduced.
 | Remote (teacher mobile) Baton | `apps/remote/TeacherRemote.tsx` |
 | Remote contextual controls | `apps/teacher/live/panels/ContextualControls.tsx` |
 | Reference games | `apps/board/templates/Board{FlashMatch,SpeedQuiz,ListenTap,Unscramble,StorySequencing,GrammarPractice}.tsx` |
+| Shared two-surface game engine (board + student solo) | `components/games/fastVocab/` — `BoardFastVocab.tsx` (board wrapper) and `apps/student/FastVocabGame.tsx` (solo wrapper) drive the same turn controller (`useFastVocabTurn`); wrappers own all scoring writes |
 
 ---
 

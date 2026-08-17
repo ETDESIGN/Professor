@@ -28,6 +28,7 @@ import BoardPhonicsArena from '../../../board/templates/BoardPhonicsArena';
 import BoardVocabBlitz from '../../../board/templates/BoardVocabBlitz';
 import BoardMemoryLab from '../../../board/templates/BoardMemoryLab';
 import BoardClassRally from '../../../board/templates/BoardClassRally';
+import BoardFastVocab from '../../../board/templates/BoardFastVocab';
 
 // Mirrors the render switch in apps/board/ClassroomBoard.tsx, which is the
 // source of truth per supabase/functions/_shared/flowTypes.ts. Every type in
@@ -72,6 +73,7 @@ const BOARD_MAP: Record<string, React.FC<any>> = {
   VOCAB_BLITZ: BoardVocabBlitz,
   MEMORY_LAB: BoardMemoryLab,
   CLASS_RALLY: BoardClassRally,
+  FAST_VOCAB: BoardFastVocab,
   UNIT_SELECTION: BoardUnitSelection,
 };
 

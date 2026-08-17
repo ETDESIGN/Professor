@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Volume2, Mic, Puzzle, BookOpen, Dumbbell, Feather, RotateCcw } from 'lucide-react';
+import { ChevronLeft, Volume2, Mic, Puzzle, BookOpen, Dumbbell, Feather, RotateCcw, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Engine } from '../../services/SupabaseService';
 
@@ -120,6 +120,20 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                      <Feather size={24} />
                   </div>
                   <span className="font-bold text-slate-700">{t('student.practicePhonics', 'Phonics Fly')}</span>
+               </motion.button>
+
+               <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onNavigate('fast-vocab')}
+                  className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-amber-400 hover:shadow-md transition-all group flex flex-col items-center gap-4"
+               >
+                  <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                     <Zap size={24} />
+                  </div>
+                  <span className="font-bold text-slate-700">{t('student.practiceFastVocab', 'Fast Vocab')}</span>
                </motion.button>
 
                <motion.button

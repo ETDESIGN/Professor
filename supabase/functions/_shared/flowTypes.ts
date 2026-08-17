@@ -65,6 +65,9 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   'VOCAB_BLITZ',
   'MEMORY_LAB',
   'CLASS_RALLY',
+  // Fast Vocab — match wave + timed speed recall (shared engine with the
+  // student solo app), 2026-08-17.
+  'FAST_VOCAB',
 ]);
 
 export interface FlowBlock {

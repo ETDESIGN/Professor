@@ -132,6 +132,10 @@ export const SHELL_CAPABILITIES: Record<string, ShellCapability> = {
   VOCAB_BLITZ:       { consumes: ['MEANING_MATCH', 'IMAGE_SELECT', 'SPELL_CLOZE', 'ERROR_SPOT', 'LISTEN_SELECT', 'STORY_COMPREHENSION'], rungRange: [1, 3] },
   MEMORY_LAB:        { consumes: ['IMAGE_SELECT'],                                                               rungRange: [1, 4] },
   CLASS_RALLY:       { consumes: ['MEANING_MATCH', 'IMAGE_SELECT', 'SPELL_CLOZE', 'LISTEN_SELECT', 'ERROR_SPOT', 'STORY_COMPREHENSION'], rungRange: [1, 3] },
+  // Fast Vocab (2026-08-17): match wave + timed speed recall on the SAME
+  // words. Image mode when the unit has real IMAGE_SELECT images, else the
+  // MEANING_MATCH word↔L1 fallback (see components/games/fastVocab).
+  FAST_VOCAB:        { consumes: ['IMAGE_SELECT', 'MEANING_MATCH'],                                             rungRange: [1, 2] },
 };
 
 // =====================================================================

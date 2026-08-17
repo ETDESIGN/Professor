@@ -38,6 +38,7 @@ import BoardPhonicsArena from './templates/BoardPhonicsArena';
 import BoardVocabBlitz from './templates/BoardVocabBlitz';
 import BoardMemoryLab from './templates/BoardMemoryLab';
 import BoardClassRally from './templates/BoardClassRally';
+import BoardFastVocab from './templates/BoardFastVocab';
 import ClassWeakBanner from './ClassWeakBanner';
 import ClassLeaderboard from './ClassLeaderboard';
 import BoardShell from './BoardShell';
@@ -168,6 +169,7 @@ const ClassroomBoard: React.FC = () => {
               {currentStep.type === 'VOCAB_BLITZ' && <BoardVocabBlitz data={currentStep.data} />}
               {currentStep.type === 'MEMORY_LAB' && <BoardMemoryLab data={currentStep.data} />}
               {currentStep.type === 'CLASS_RALLY' && <BoardClassRally data={currentStep.data} />}
+              {currentStep.type === 'FAST_VOCAB' && <BoardFastVocab data={currentStep.data} />}
             </motion.div>
           </AnimatePresence>
         </BoardShell>
