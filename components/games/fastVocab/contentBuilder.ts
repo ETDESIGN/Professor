@@ -175,3 +175,15 @@ export function starsFor(firstTryCorrect: number, totalInteractions: number): nu
   if (totalInteractions <= 0) return 0;
   return Math.max(1, Math.round((firstTryCorrect / totalInteractions) * 5));
 }
+
+/** Supported match-wave sizes (the "Longer cycle" game setting: 3 ⇄ 5). */
+export type FastVocabWaveSize = 3 | 5;
+
+/**
+ * Resolve a raw settings value (flow block `data.waveSize`, localStorage,
+ * anything) to a legal wave size. Anything that isn't exactly 5 means the
+ * default lightning cycle of 3 — an unknown value must never brick the game.
+ */
+export function resolveWaveSize(value: unknown): FastVocabWaveSize {
+  return Number(value) === 5 ? 5 : 3;
+}

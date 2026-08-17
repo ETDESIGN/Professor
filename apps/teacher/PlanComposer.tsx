@@ -10,6 +10,7 @@ import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
 import { toast } from 'sonner';
+import { resolveWaveSize } from '../../components/games/fastVocab/contentBuilder';
 
 // Phase 2 — the Unit Studio Plan composer (option A). A timeline/session
 // composer that is concretely better than the legacy LessonStudio one:
@@ -596,6 +597,44 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
                 className="w-full p-3 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
               />
             </div>
+            {activeBlock.type === 'FAST_VOCAB' && (
+              // Fast Vocab game settings — stored on the block's data and read
+              // by BoardFastVocab at runtime. Default = the 3-pair lightning
+              // cycle; the switch lengthens each match wave to 5 pairs.
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <label className="block text-xs font-bold text-amber-700 uppercase mb-3">Game settings</label>
+                {(() => {
+                  const size = resolveWaveSize(activeBlock.data?.waveSize);
+                  const on = size === 5;
+                  return (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800">Longer cycle</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {on ? '5 images per match wave' : '3 images per match wave (default)'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={on}
+                        onClick={() =>
+                          updateBlock(activeBlock.id, {
+                            data: { ...activeBlock.data, waveSize: on ? 3 : 5 },
+                          })
+                        }
+                        className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${on ? 'bg-amber-500' : 'bg-slate-300'}`}
+                        title="Toggle the match wave between 3 and 5 pairs"
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : ''}`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
               <div className="text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">

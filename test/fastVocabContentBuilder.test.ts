@@ -6,6 +6,7 @@ import {
   takeWave,
   buildSpeedQuestions,
   starsFor,
+  resolveWaveSize,
   shuffle,
 } from '../components/games/fastVocab/contentBuilder';
 import type { PoolItem } from '../types/exercise';
@@ -189,6 +190,23 @@ describe('starsFor', () => {
     expect(starsFor(1, 5)).toBe(1);
     expect(starsFor(0, 5)).toBe(1); // floor of 1 star whenever something was played
     expect(starsFor(0, 0)).toBe(0); // nothing played → no stars
+  });
+});
+
+describe('resolveWaveSize (the "Longer cycle" setting)', () => {
+  it('accepts exactly 3 and 5', () => {
+    expect(resolveWaveSize(3)).toBe(3);
+    expect(resolveWaveSize(5)).toBe(5);
+  });
+
+  it('falls back to the lightning default of 3 on anything unknown', () => {
+    expect(resolveWaveSize(undefined)).toBe(3);
+    expect(resolveWaveSize(null)).toBe(3);
+    expect(resolveWaveSize('5')).toBe(5); // flow JSON keeps numbers, but tolerate strings
+    expect(resolveWaveSize('4')).toBe(3);
+    expect(resolveWaveSize(4)).toBe(3);
+    expect(resolveWaveSize(0)).toBe(3);
+    expect(resolveWaveSize(99)).toBe(3);
   });
 });
 

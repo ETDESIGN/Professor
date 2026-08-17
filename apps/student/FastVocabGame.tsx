@@ -30,6 +30,7 @@ import {
   takeWave,
   starsFor,
   shuffle,
+  resolveWaveSize,
 } from '../../components/games/fastVocab/contentBuilder';
 import type {
   FastVocabMode,
@@ -38,10 +39,11 @@ import type {
 } from '../../components/games/fastVocab/types';
 import type { FastVocabMatchResult, FastVocabSpeedResult } from '../../components/games/fastVocab/useFastVocabTurn';
 
-const WAVE_SIZE = 3;
 const SPEED_COUNT = 2;
 const SPEED_TIME_LIMIT = 10;
 const WAVES_PER_RUN = 4;
+/** localStorage key for the "Longer cycle" preference (5-pair waves). */
+const LONG_WAVES_KEY = 'fastvocab-longwaves';
 
 interface FastVocabGameProps {
   onBack: () => void;
@@ -81,6 +83,26 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
   const [totalWaves, setTotalWaves] = useState(WAVES_PER_RUN);
   const cursorRef = useRef(0);
 
+  // "Longer cycle" game setting — 5-pair match waves instead of the 3-pair
+  // lightning default. Persisted so the student's choice sticks between runs.
+  const [longWaves, setLongWaves] = useState(() => {
+    try {
+      return localStorage.getItem(LONG_WAVES_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const waveSize = resolveWaveSize(longWaves ? 5 : 3);
+  const toggleLongWaves = () =>
+    setLongWaves((on) => {
+      try {
+        localStorage.setItem(LONG_WAVES_KEY, on ? '0' : '1');
+      } catch {
+        /* preference persistence is a nicety, never load-bearing */
+      }
+      return !on;
+    });
+
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -119,13 +141,13 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
       }
       setMode(detected);
       setUnitPairs(pairs);
-      const first = takeWave(pairs, 0, WAVE_SIZE);
+      const first = takeWave(pairs, 0, waveSize);
       cursorRef.current = first.nextCursor;
       setWavePairs(first.wave);
       setWaveIndex(0);
       // Tiny pools wrap the cursor, so cap waves at the pool's fresh-content
       // capacity (a 4-word unit gets 2 distinct waves, not 4 repeats).
-      setTotalWaves(Math.max(1, Math.min(WAVES_PER_RUN, Math.ceil(pairs.length / WAVE_SIZE))));
+      setTotalWaves(Math.max(1, Math.min(WAVES_PER_RUN, Math.ceil(pairs.length / waveSize))));
       setScore(0);
       scoreRef.current = 0;
       setCorrectCount(0);
@@ -135,7 +157,7 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
       awardedRef.current = false;
       setScreen('play');
     },
-    [],
+    [waveSize],
   );
 
   // ── Events (same math as the board, local writes only) ─────────────────
@@ -198,7 +220,7 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
           const nextWave = waveIndex + 1;
           if (nextWave < totalWaves) {
             // advance to the next wave (wraps the pool cursor)
-            const { wave, nextCursor } = takeWave(unitPairs, cursorRef.current, WAVE_SIZE);
+            const { wave, nextCursor } = takeWave(unitPairs, cursorRef.current, waveSize);
             cursorRef.current = nextCursor;
             setWaveIndex(nextWave);
             setWavePairs(wave);
@@ -277,7 +299,30 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
               <Zap size={30} />
             </div>
             <h1 className="text-xl font-bold text-slate-800">Pick your words</h1>
-            <p className="text-slate-500 text-sm">Match {WAVE_SIZE} pairs, then beat the clock — {WAVES_PER_RUN} waves.</p>
+            <p className="text-slate-500 text-sm">
+              Match {waveSize} pairs, then beat the clock — up to {WAVES_PER_RUN} waves.
+            </p>
+            {/* Longer-cycle game setting — same option the teacher has on the plan block. */}
+            <div className="mt-4 mx-auto max-w-xs bg-white border border-slate-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+              <div className="text-left min-w-0">
+                <p className="text-sm font-bold text-slate-800">Longer cycle</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {longWaves ? '5 images per wave' : '3 images per wave (default)'}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={longWaves}
+                onClick={toggleLongWaves}
+                className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${longWaves ? 'bg-amber-500' : 'bg-slate-300'}`}
+                title="Toggle the match wave between 3 and 5 images"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${longWaves ? 'translate-x-5' : ''}`}
+                />
+              </button>
+            </div>
             {loadError && <p className="text-red-500 text-sm mt-3 font-medium">{loadError}</p>}
           </div>
           {screen === 'loading' ? (

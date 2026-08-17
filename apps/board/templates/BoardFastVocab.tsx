@@ -37,6 +37,7 @@ import {
   buildUnitPairs,
   takeWave,
   starsFor,
+  resolveWaveSize,
 } from '../../../components/games/fastVocab/contentBuilder';
 import type {
   FastVocabPair,
@@ -49,14 +50,16 @@ import type {
 } from '../../../components/games/fastVocab/useFastVocabTurn';
 
 // Lightning config (owner decision 2026-08-17): 3 pairs + 2 speed questions.
-const WAVE_SIZE = 3;
+// The match wave length is the "Longer cycle" game setting — set on the plan
+// block (data.waveSize via the Plan Composer inspector), 5 for a longer wave.
 const SPEED_COUNT = 2;
 const SPEED_TIME_LIMIT = 10;
 
-const BoardFastVocab = (_props: { data: any }) => {
+const BoardFastVocab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
+  const waveSize = resolveWaveSize((data as any)?.waveSize);
 
   // ── Pool → pairs ────────────────────────────────────────────────────────
   const { items: poolItems, loading } = useBoardPool({
@@ -76,11 +79,11 @@ const BoardFastVocab = (_props: { data: any }) => {
 
   const buildWave = useCallback(
     (fromCursor: number) => {
-      const { wave, nextCursor } = takeWave(unitPairs, fromCursor, WAVE_SIZE);
+      const { wave, nextCursor } = takeWave(unitPairs, fromCursor, waveSize);
       cursorRef.current = nextCursor;
       setWavePairs(wave);
     },
-    [unitPairs],
+    [unitPairs, waveSize],
   );
 
   // Initial wave once the pool resolves (also covers a turn that was picked
@@ -311,7 +314,7 @@ const BoardFastVocab = (_props: { data: any }) => {
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">Fast Vocab</h1>
             <p className="text-slate-400 text-xs md:text-sm">
-              {mode === 'image' ? 'Image Match' : 'Meaning Match'} · tap or drag to pair, then speed recall
+              {mode === 'image' ? 'Image Match' : 'Meaning Match'} · {waveSize} pairs + {SPEED_COUNT} speed · tap or drag to pair
             </p>
           </div>
         </div>
