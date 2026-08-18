@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { X, Heart, ArrowRight, ArrowLeft, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,12 @@ import { playAudioUrl } from '../../services/SpeechService';
 import ExerciseRunner from './exercises/ExerciseRunner';
 import WordLab from './WordLab';
 import ReactPlayer from 'react-player/lazy';
+
+// Real game engines as in-lesson steps (Student Path): a FAST_VOCAB /
+// SPELLING_BEE block plays the shared game engine, not the exercise
+// battery. Lazy so the engines stay out of the player's main bundle.
+const FastVocabStep = lazy(() => import('./steps/FastVocabStep'));
+const SpellingBeeStep = lazy(() => import('./steps/SpellingBeeStep'));
 
 interface SoloLessonPlayerProps {
   onComplete: (results: { xp: number; accuracy: number; time: string; stars?: number }) => void;
@@ -69,8 +75,12 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   }, []);
 
   // Detect pool-driven steps (phase tag from orchestrate-lesson, or explicit flag).
+  // The two engine-game types are excluded: they render the shared game
+  // engines (FastVocabStep / SpellingBeeStep), not the exercise battery.
   const unitId = state.activeUnit?.id || '';
-  const isPoolStep = Boolean(
+  const isEngineStep =
+    currentStep?.type === 'FAST_VOCAB' || currentStep?.type === 'SPELLING_BEE';
+  const isPoolStep = !isEngineStep && Boolean(
     currentStep?.data?.poolDriven || currentStep?.phase === 'PRACTICE' || currentStep?.phase === 'ASSESS',
   );
 
@@ -570,7 +580,37 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     );
   };
 
+  // Engine-game step: the shared game engine owns the full screen. Completion
+  // (onDone) flows through handleNext → stage completion, exactly like the
+  // battery's onDone.
+  const renderEngineStep = () => {
+    if (currentStep.type === 'FAST_VOCAB') {
+      return (
+        <FastVocabStep
+          unitId={unitId}
+          unitTitle={state.activeUnit?.title || ''}
+          waveSize={currentStep.data?.waveSize}
+          onDone={() => handleNext()}
+          onExit={onExit}
+        />
+      );
+    }
+    return (
+      <SpellingBeeStep
+        unitId={unitId}
+        unitTitle={state.activeUnit?.title || ''}
+        wordsPerRound={currentStep.data?.wordsPerTurn}
+        timerSeconds={currentStep.data?.timerSeconds}
+        letterRemoval={currentStep.data?.letterRemoval}
+        onDone={() => handleNext()}
+        onExit={onExit}
+      />
+    );
+  };
+
   const renderCurrentStep = () => {
+    // Real game engines own the screen for their block types.
+    if (isEngineStep) return renderEngineStep();
     // Pool-driven PRACTICE/ASSESS steps render the FSRS exercise battery.
     if (isPoolStep) return renderExerciseBattery();
     switch (currentStep.type) {
@@ -587,10 +627,10 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
   const showNavigation = currentStep.type !== 'INTRO_SPLASH';
 
-  // When running a pool-driven battery, the ExerciseRunner owns the full
-  // screen (its own header with real hearts + battery progress). The player
-  // shell returns for passive steps.
-  if (isPoolStep) {
+  // When running a pool-driven battery or an engine game, the runner/engine
+  // owns the full screen (its own header with real hearts/HUD + progress).
+  // The player shell returns for passive steps.
+  if (isPoolStep || isEngineStep) {
     return (
       <div className="h-full bg-slate-50 flex flex-col font-sans relative overflow-hidden">
         <AnimatePresence mode="wait">
@@ -602,7 +642,9 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
             transition={{ duration: 0.25 }}
             className="h-full w-full"
           >
-            {renderExerciseBattery()}
+            {isPoolStep
+              ? renderExerciseBattery()
+              : <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400 font-bold">Loading…</div>}>{renderEngineStep()}</Suspense>}
           </motion.div>
         </AnimatePresence>
       </div>
