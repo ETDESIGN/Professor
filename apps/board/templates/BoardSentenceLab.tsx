@@ -25,7 +25,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Check } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -57,6 +58,9 @@ const TOTAL_ROUNDS = 3;
 
 const BoardSentenceLab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded rng base: commander preview and projector must deal
+  // identical distractors / tile banks for the same item.
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -148,7 +152,7 @@ const BoardSentenceLab = ({ data }: { data: any }) => {
             if (!targetSet.has(w) && !distractorPool.includes(w)) distractorPool.push(w);
           }
         });
-        const distractors = shuffle(distractorPool).slice(0, 2);
+        const distractors = shuffle(distractorPool, makeRng(seedBase, pi.id, 'distractors')).slice(0, 2);
         items.push({
           poolItem: pi,
           promptText: transform.prompt_sentence,
@@ -159,7 +163,7 @@ const BoardSentenceLab = ({ data }: { data: any }) => {
       }
     }
     return items;
-  }, [roundItems]);
+  }, [roundItems, seedBase]);
 
   const currentItem = sentenceItems[currentItemIdx];
 
@@ -168,8 +172,8 @@ const BoardSentenceLab = ({ data }: { data: any }) => {
   // so duplicate words keep separate identities (audit fix).
   const bankTiles = useMemo(() => {
     if (!currentItem) return [];
-    return shuffle(currentItem.wordBank).map((text, idx) => ({ id: idx, text }));
-  }, [currentItemIdx, currentItem]);
+    return shuffle(currentItem.wordBank, makeRng(seedBase, currentItem.poolItem.id, 'bank')).map((text, idx) => ({ id: idx, text }));
+  }, [currentItemIdx, currentItem, seedBase]);
 
   // Reset on new turn
   useEffect(() => {

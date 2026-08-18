@@ -20,7 +20,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Volume2 } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -60,6 +61,8 @@ const TENSION_ROUND: RoundConfig = { gridSize: 10, memorizeTime: 5, mode: 'produ
 
 const BoardMemoryLab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded grid/candidates (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -139,7 +142,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     const cfg = rounds[roundIdx];
     if (!cfg) return;
     const cardKey = (c: MemoryCard) => c.poolItem?.id ?? c.imageUrl;
-    const shuffledCards = shuffle(cardPool);
+    const shuffledCards = shuffle(cardPool, makeRng(seedBase, roundIdx, 'cards'));
     // Coverage fix: pick the removed (tested) card from the not-yet-probed
     // ones first — the old pure-random pick inside a reshuffled grid could
     // re-test the same word round after round while the rest of the pool was
@@ -154,13 +157,13 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     const gridCards = shuffle([
       removedCard,
       ...shuffledCards.filter((c) => c !== removedCard).slice(0, cfg.gridSize - 1),
-    ]);
+    ], makeRng(seedBase, roundIdx, 'grid'));
     const removed = gridCards.indexOf(removedCard);
     // Candidates = the missing card + 3 distractors NOT in the grid.
     const distractors = shuffledCards
       .filter((c) => !gridCards.includes(c))
       .slice(0, 3);
-    setCandidates(shuffle([removedCard, ...distractors]));
+    setCandidates(shuffle([removedCard, ...distractors], makeRng(seedBase, roundIdx, 'candidates')));
     setGrid(gridCards);
     setRemovedIdx(removed);
     setCountdown(cfg.memorizeTime);

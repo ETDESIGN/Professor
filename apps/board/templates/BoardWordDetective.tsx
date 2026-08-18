@@ -13,7 +13,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -39,6 +40,8 @@ interface VocabItem {
 
 const BoardWordDetective = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded hint elimination (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -182,7 +185,10 @@ const BoardWordDetective = ({ data }: { data: any }) => {
         const wrongs = currentItem.options
           .map((_, i) => i)
           .filter((i) => i !== currentItem.correctIndex && i !== eliminatedIdx);
-        if (wrongs.length > 1) setEliminatedIdx(wrongs[Math.floor(Math.random() * wrongs.length)]);
+        if (wrongs.length > 1) {
+          const draw = makeRng(seedBase, currentItem.poolItem?.id ?? currentItemIdx, 'hint')();
+          setEliminatedIdx(wrongs[Math.floor(draw * wrongs.length)]);
+        }
       }
     } else if (type === 'SKIP_ITEM') {
       advanceToNext();

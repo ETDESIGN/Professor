@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Lightbulb } from 'lucide-react';
 import type { FastVocabMode, FastVocabPair } from './types';
 import { useTapDragPairing } from './useTapDragPairing';
+import { makeRng } from '../../../services/seededRandom';
 
 export interface FastVocabMatchWaveProps {
   pairs: FastVocabPair[];
@@ -22,6 +23,9 @@ export interface FastVocabMatchWaveProps {
   wrongPairId?: string | null;
   /** Disable interaction (during transitions). */
   locked?: boolean;
+  /** FIXPLAN E1.6 — live surfaces pass the shared seed base so target-pod
+   *  order is identical on every tab; solo omits it (Math.random). */
+  seedKey?: string;
   onPairAttempt: (sourcePairId: string, targetPairId: string) => void;
 }
 
@@ -36,6 +40,7 @@ const FastVocabMatchWave: React.FC<FastVocabMatchWaveProps> = ({
   revealPair = null,
   wrongPairId = null,
   locked = false,
+  seedKey,
   onPairAttempt,
 }) => {
   const handlePairAttempt = useCallback(
@@ -57,16 +62,19 @@ const FastVocabMatchWave: React.FC<FastVocabMatchWaveProps> = ({
   const matchedSet = useMemo(() => new Set(matchedPairIds), [matchedPairIds]);
 
   // Target pods keep a stable shuffle per wave (pairs identity) so pairs
-  // aren't vertically aligned.
+  // aren't vertically aligned. Seeded when a seedKey is provided (E1.6) so
+  // the commander preview and the projector agree on pod order.
   const targets = useMemo(() => {
+    const ids = pairs.map((p) => p.id).join('|');
+    const rng = seedKey ? makeRng(seedKey, ids, 'targets') : Math.random;
     const arr = pairs.slice();
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rng() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pairs.map((p) => p.id).join('|')]);
+  }, [pairs.map((p) => p.id).join('|'), seedKey]);
 
   const selectedSrc = selected?.side === 'source' ? selected.podId : null;
   const selectedTgt = selected?.side === 'target' ? selected.podId : null;

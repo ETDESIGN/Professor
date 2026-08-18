@@ -37,7 +37,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -67,6 +68,8 @@ type StealBanner =
 
 const BoardGrammarLab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded tile bank (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -210,8 +213,12 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
         if (!targetSet.has(w) && !distractorPool.includes(w)) distractorPool.push(w);
       }
     });
-    return shuffle([...targetWords, ...shuffle(distractorPool).slice(0, 3)]);
-  }, [currentItemIdx, currentItem]);
+    const itemId = currentItem.poolItem.id;
+    return shuffle(
+      [...targetWords, ...shuffle(distractorPool, makeRng(seedBase, itemId, 'distractors')).slice(0, 3)],
+      makeRng(seedBase, itemId, 'bank'),
+    );
+  }, [currentItemIdx, currentItem, seedBase]);
 
   // ── Lifecycle: reset everything on a NEW picked student ─────────────────
   useEffect(() => {

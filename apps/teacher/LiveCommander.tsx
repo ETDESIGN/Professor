@@ -31,7 +31,8 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const {
       state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction, deductAllPoints,
       clearDrawings, selectNextStudent, setSelectionMode, closeOverlay, cancelTurn,
-      setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence, nextStudent
+      setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence, nextStudent,
+      retrySync
    } = useSession();
 
    // Bind the live session to the class chosen on the Classes screen (?class=…).
@@ -102,6 +103,21 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
 
    return (
       <div className="h-screen bg-slate-950 text-white flex flex-col font-sans overflow-hidden">
+
+      {/* FIXPLAN E1.7 — a failed classroom_sessions persist (all retries out)
+          means the board never saw the last slide change. Surface it instead
+          of swallowing, with a one-tap resync that re-persists the slide. */}
+      {state.syncError === 'slide-persist-failed' && (
+         <div className="flex items-center justify-between gap-3 bg-amber-500 text-slate-950 px-4 py-2 font-medium shrink-0 z-40">
+            <span className="text-sm sm:text-base">⚠️ Board may be behind — the last slide change couldn't save.</span>
+            <button
+               onClick={() => void retrySync()}
+               className="bg-slate-950 text-amber-300 px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors whitespace-nowrap"
+            >
+               Resync board
+            </button>
+         </div>
+      )}
 
          {/* Header */}
          <header className="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 shrink-0 z-30">

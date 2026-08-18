@@ -12,6 +12,7 @@
 | **A** | Capture untracked RPCs | [`FIXPLAN_A_RPCs.md`](./FIXPLAN_A_RPCs.md) | Codify 4 cloud-only RPCs into a versioned migration | 🟢 Low | — |
 | **B** | Live Board scoring + dead buttons | [`FIXPLAN_B_LIVEBOARD.md`](./FIXPLAN_B_LIVEBOARD.md) | Wire `addPoints` into 7 game templates; fix dead board handlers; stop self-echo | 🟡 Medium | A (for clean baseline) |
 | **C** | Student-mgmt data integrity | [`FIXPLAN_C_STUDENTMGMT.md`](./FIXPLAN_C_STUDENTMGMT.md) | Cascade archive; rebuild leaderboard/analytics over roster; parent-link bridge; 2-arg `is_school_manager` | 🟡 Medium | A |
+| **E** | Live sync hardening + authoritative turn state | [`FIXPLAN_E_LIVE_SYNC.md`](./FIXPLAN_E_LIVE_SYNC.md) | Phase 1: seeded determinism, persist-retry, 3-channel reconnect/rehydrate, staleness guards. Phase 2: `live_state`+`seq` on `classroom_sessions`, derived pick timers, path collapse. Origin: [`brainstorming/09_LIVE_SYNC_ARCHITECTURE_AUDIT.md`](./brainstorming/09_LIVE_SYNC_ARCHITECTURE_AUDIT.md) | 🟢 Phase 1 low / 🟡 Phase 2 medium | A/B/C landed (2026-08-02) |
 
 **Deferred** (not in scope yet — best after A/B/C stabilize):
 - **D** Architecture cleanup: discriminated action union, single `<Wheel>` component, Group Maker → `assignTeams` merge, remove decorative buttons. Tracked as a follow-up.
@@ -49,3 +50,4 @@ The "Unable to verify user role" error fired from `services/AuthService.ts:53` b
 2. Then `FIXPLAN_B_LIVEBOARD.md` for the user-facing "things aren't connected" fixes.
 3. Then `FIXPLAN_C_STUDENTMGMT.md` for the data-integrity reconciliation.
 4. D is deferred; revisit after B+C are stable in production.
+5. **E is next** (2026-08-19): Phase 1 first (frontend-only, kills both observed classroom desync symptoms), then a classroom verification gate, then Phase 2 (one additive migration). See [`FIXPLAN_E_LIVE_SYNC.md`](./FIXPLAN_E_LIVE_SYNC.md).

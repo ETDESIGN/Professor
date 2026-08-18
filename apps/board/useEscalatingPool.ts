@@ -22,6 +22,8 @@ import {
   type RungSrsState,
 } from './lessonDirector';
 import type { PoolItem } from '../../types/exercise';
+import { useSession } from '../../store/SessionContext';
+import { makeRng } from '../../services/seededRandom';
 
 export interface UseEscalatingPoolInput {
   unitId: string;
@@ -67,6 +69,10 @@ export interface UseEscalatingPoolOutput {
  */
 export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingPoolOutput {
   const { unitId, shellType, phase, roster, roundIndex, totalRounds, roundSize = 6 } = input;
+  // FIXPLAN E1.3: seed buildRound's tie-break shuffle so every tab of one
+  // session builds the identical round (roundIndex keeps rounds varied).
+  const { state } = useSession();
+  const sessionId = state.sessionId ?? 'local';
 
   // ── 1. Objectives for this unit (id + type), cached per unitId. ────────
   const [objectives, setObjectives] = useState<{ id: string; type: ObjectiveType }[]>([]);
@@ -155,8 +161,9 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       phase,
       roundSize,
       servedObjectives: servedAtRoundStart,
+      rng: makeRng(sessionId, unitId, roundIndex),
     });
-  }, [objectives, srsByObjective, weakOrder, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart]);
+  }, [objectives, srsByObjective, weakOrder, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart, sessionId, unitId]);
 
   // Record the round's objectives as dealt (advances the sequential deal for
   // the NEXT round / next slide's shell; idempotent within the same round).

@@ -27,7 +27,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, BookOpen, Check, RotateCcw, Sparkles, UserCheck, Zap } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng, seededShuffle } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { usePickedStudent } from './usePickedStudent';
 import { scoreForAttempt, MISTAKE_PENALTY, type Difficulty } from './scoringDefaults';
@@ -83,6 +84,8 @@ const ROUNDS_BY_RUNG = { error_spot: 2, transform: 2, produce: 1 } as const;
 
 const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
   const { state, addPoints, pushToRemediation, triggerAction } = useSession();
+  // FIXPLAN E1.5 — seeded tile order (identical on every tab).
+  const seedBase = useSeedBase();
   const unitId = state.activeUnit?.id || '';
   const pickedStudent = usePickedStudent();
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -134,7 +137,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
       const correctText = String(c.options[c.correct_index] ?? '');
       if (!correctText) return;
       const targetTiles = correctText.split(/\s+/).filter(Boolean);
-      const shuffled = [...targetTiles].sort(() => Math.random() - 0.5);
+      const shuffled = seededShuffle(targetTiles, makeRng(seedBase, item.id, 'transform'));
       out.push({
         kind: 'TRANSFORM',
         item,
@@ -165,7 +168,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
     }
 
     return out;
-  }, [errorSpotItems, transformItems, grammarRules, data]);
+  }, [errorSpotItems, transformItems, grammarRules, data, seedBase]);
 
   // ── Game state ──────────────────────────────────────────────────────
   const [roundIndex, setRoundIndex] = useState(0);

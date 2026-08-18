@@ -21,7 +21,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { History, Check, RefreshCcw, ArrowRight, Lightbulb } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng, seededShuffle } from '../../../services/seededRandom';
 import { getStory } from '../../../services/manifest';
 import { supabase } from '../../../services/supabaseClient';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
@@ -74,6 +75,8 @@ type Stage = 'sequencing' | 'comprehension' | 'complete';
 
 const BoardStorySequencing = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded card order (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phaseTag = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -158,13 +161,13 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
 
   const initializeSequencing = useCallback(() => {
     const items = buildCards();
-    setCards([...items].sort(() => Math.random() - 0.5));
+    setCards(seededShuffle(items, makeRng(seedBase, state.currentTurnId ?? 'choral', 'cards')));
     setSlots(new Array(items.length).fill(null));
     setSeqOutcome(null);
     setMisplacedHint(-1);
     mistakesRef.current = 0;
     awardedRef.current = false;
-  }, [buildCards]);
+  }, [buildCards, seedBase, state.currentTurnId]);
 
   useEffect(() => {
     initializeSequencing();

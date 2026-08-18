@@ -13,7 +13,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Mic, MicOff } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -46,6 +47,8 @@ interface SoundItem {
 
 const BoardSoundLab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded option order (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -112,7 +115,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
     return dictation.map((pi) => {
       const content = pi.content as DictationContent;
       const distractors = allTexts.filter((t) => t !== content.correct_text).slice(0, 2);
-      const options = shuffle([content.correct_text, ...distractors]);
+      const options = shuffle([content.correct_text, ...distractors], makeRng(seedBase, pi.id, 'options'));
       return {
         poolItem: pi,
         audioUrl: content.audio_url,
@@ -123,7 +126,7 @@ const BoardSoundLab = ({ data }: { data: any }) => {
         explanation: (content as any).explanation,
       };
     });
-  }, [poolItems]);
+  }, [poolItems, seedBase]);
 
   const phase3Items: SoundItem[] = React.useMemo(() => {
     return poolItems

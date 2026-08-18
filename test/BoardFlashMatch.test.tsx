@@ -8,6 +8,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useSession } from '../store/SessionContext';
 
 vi.mock('../store/SessionContext', () => ({
+  // FIXPLAN E1.2: templates now also read useSeedBase() for deterministic
+  // cross-tab deals — mock it alongside useSession.
+  useSeedBase: () => 'test-session|u1|0',
   useSession: () => ({
     state: {
       activeUnit: { id: 'u1' },

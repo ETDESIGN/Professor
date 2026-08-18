@@ -21,7 +21,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCcw, Star, Zap } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -58,6 +59,9 @@ const SPEED_TIME_LIMIT = 10;
 
 const BoardFastVocab = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.6 — seed the wave deal + speed questions + target-pod order so
+  // every tab of one session plays the identical round.
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const waveSize = resolveWaveSize((data as any)?.waveSize);
@@ -85,13 +89,13 @@ const BoardFastVocab = ({ data }: { data: any }) => {
 
   const buildWave = useCallback(
     (fromCursor: number) => {
-      const { wave, nextCursor } = takeWave(unitPairs, fromCursor, waveSize);
+      const { wave, nextCursor } = takeWave(unitPairs, fromCursor, waveSize, makeRng(seedBase, fromCursor, 'wave'));
       cursorRef.current = nextCursor;
       setWavePairs(wave);
       // The match phase doubles as audio prefetch time (fetch-only, no TTS).
       preloadWaveAudio(wave);
     },
-    [unitPairs, waveSize],
+    [unitPairs, waveSize, seedBase],
   );
 
   // Initial wave once the pool resolves (also covers a turn that was picked
@@ -226,6 +230,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
     mode,
     speedCount: SPEED_COUNT,
     timeLimit: SPEED_TIME_LIMIT,
+    seedKey: seedBase,
     events,
   });
 
@@ -378,6 +383,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
                 hintPairId={turn.hintPairId}
                 revealPair={turn.revealPair}
                 wrongPairId={turn.wrongPairId}
+                seedKey={seedBase}
                 onPairAttempt={turn.attemptPair}
               />
             </motion.div>

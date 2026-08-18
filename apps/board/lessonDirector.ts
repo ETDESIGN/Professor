@@ -264,6 +264,11 @@ export interface BuildRoundInput {
    *  repeats. Optional for tests/legacy callers — omitting it restores the
    *  pre-rotation weakest-first slice. */
   servedObjectives?: string[];
+  /** FIXPLAN E1.3 — injectable rng for the tie-break shuffle. Callers on live
+   *  surfaces MUST pass a seeded rng (makeRng(sessionId, unitId, roundIndex))
+   *  so every tab builds the identical round; defaults to Math.random for
+   *  tests/solo callers. */
+  rng?: () => number;
 }
 
 export interface BuildRoundOutput {
@@ -289,6 +294,7 @@ export function roundBaselineRung(shellType: string, roundIndex: number, totalRo
 
 export function buildRound(input: BuildRoundInput): BuildRoundOutput {
   const { roundIndex, totalRounds, objectiveIds, objectiveTypeById, srsByObjective, weakOrder, shellType, phase, roundSize, servedObjectives } = input;
+  const rng = input.rng ?? Math.random;
   const baseline = roundBaselineRung(shellType, roundIndex, totalRounds);
   const env = PHASE_ENVELOPE[phase];
   // Clamp the baseline into the phase envelope (a PRACTICE slide can't exceed its envelope even at round N).
@@ -305,7 +311,7 @@ export function buildRound(input: BuildRoundInput): BuildRoundOutput {
   };
   const shuffled = objectiveIds.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   const ranked = shuffled.sort((a, b) => weakRank(a) - weakRank(b));

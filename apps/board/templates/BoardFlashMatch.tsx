@@ -11,7 +11,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Check, RefreshCcw, Volume2, Lightbulb } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng, seededShuffle } from '../../../services/seededRandom';
 import { scoreForAttempt, MISTAKE_PENALTY, type Difficulty } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { useEscalatingPool } from '../useEscalatingPool';
@@ -88,6 +89,8 @@ const MIN_PAIRS = 3;
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardFlashMatch = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded right-column shuffle (identical on every tab).
+  const seedBase = useSeedBase();
   const unitId = state.activeUnit?.id || '';
   const phase = (state.activeSlideData?.phase || 'PRACTICE') as any;
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -166,8 +169,10 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     setLeftItems(matchPairs.map((p) => ({
       ...p.left, pairId: p.id, objectiveId: p.objectiveId, difficulty: p.difficulty, matched: false,
     })));
-    setRightItems(matchPairs.map((p) => ({ ...p.right, pairId: p.id, matched: false }))
-      .sort(() => Math.random() - 0.5));
+    setRightItems(seededShuffle(
+      matchPairs.map((p) => ({ ...p.right, pairId: p.id, matched: false })),
+      makeRng(seedBase, state.currentTurnId ?? 'choral', 'right'),
+    ));
     setSelectedLeft(null);
     setSelectedRight(null);
     setMatchedCount(0);
@@ -179,7 +184,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     mistakesByPairRef.current = {};
     awardedPairsRef.current = new Set();
     winCuedRef.current = false;
-  }, [matchPairs]);
+  }, [matchPairs, seedBase, state.currentTurnId]);
 
   // Build on pair resolution + frozen sync
   useEffect(() => { if (matchPairs.length > 0) rebuild(); }, [rebuild]);

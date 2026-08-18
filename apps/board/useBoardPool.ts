@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { PoolItem, toPoolItem } from '../../types/exercise';
 import { classWeakObjectives } from '../../services/boardLearner';
+import { useSession } from '../../store/SessionContext';
+import { makeRng, seededShuffle } from '../../services/seededRandom';
 
 interface Options {
   unitId: string;
@@ -37,6 +39,13 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
   const [weakOrder, setWeakOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  // FIXPLAN E1.3: seed the pool deal from the shared session scope. The
+  // commander preview and the projector each run this hook — Math.random dealt
+  // DIFFERENT pool orders per tab ("different content on screens"). Seeded by
+  // (sessionId, unitId) both tabs deal identically; games add turn/round parts
+  // on top via makeRng when they reshuffle per pick.
+  const { state } = useSession();
+  const sessionId = state.sessionId ?? 'local';
 
   useEffect(() => {
     let cancelled = false;
@@ -72,11 +81,11 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       // the weak-rank sort below is stable — without a shuffle, every session
       // served the same first-N items in the same order ("same items repeating").
       // Shuffle first, THEN stable-sort by weak rank, so weak-first ordering is
-      // preserved but order within equal ranks is random per session.
-      for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
-      }
+      // preserved but order within equal ranks varies.
+      // FIXPLAN E1.3: the shuffle is SEEDED on (sessionId, unitId) — identical
+      // on every tab of one session (cross-tab deal agreement), and the weak-rank
+      // ordering still drives which objectives surface first.
+      pool = seededShuffle(pool, makeRng(sessionId, unitId));
       if (order.length > 0) {
         const rank = (oid: string) => {
           const i = order.indexOf(oid);
@@ -93,7 +102,7 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       if (!cancelled) { setItems(pool); setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [unitId, exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
+  }, [unitId, sessionId, exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
 
   return { items, loading, error, weakOrder };
 }

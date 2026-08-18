@@ -29,7 +29,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Eye, EyeOff, HelpCircle, Lightbulb, Check } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -66,10 +67,10 @@ const MAX_GRID_ITEMS = 8;
 const PRODUCE_PASS_FLOOR = 0.6; // same "close enough" floor as DICTATION rounds
 
 // ── Small helpers ────────────────────────────────────────────────────────
-const shuffle = <T,>(a: T[]): T[] => {
+const shuffle = <T,>(a: T[], rng: () => number = Math.random): T[] => {
   const arr = a.slice();
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
@@ -128,6 +129,8 @@ export const WHATS_MISSING_CONTROLS: ContextualControlsSpec = {
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?: WhatsMissingMode }) => {
   const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded candidate order (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phaseTag = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -260,7 +263,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
 
     setGrid(roundGrid);
     setMissingIndex(idx);
-    setCandidates(shuffle(cands));
+    setCandidates(shuffle(cands, makeRng(seedBase, entry.image, 'candidates')));
     setEliminated([]);
     setFirstLetterHint(false);
     setShowExplanation(false);

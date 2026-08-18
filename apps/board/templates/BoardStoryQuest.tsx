@@ -14,7 +14,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng, seededShuffle } from '../../../services/seededRandom';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -33,6 +34,8 @@ interface StoryPanel {
 
 const BoardStoryQuest = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded prediction options (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -221,9 +224,10 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
       { text: next.text, correct: true },
       ...distractors.map((t) => ({ text: t, correct: false })),
     ];
-    // Shuffle so correct isn't always first.
-    return opts.sort(() => Math.random() - 0.5);
-  }, [currentPanelIdx, storyPanels]);
+    // Shuffle so correct isn't always first — seeded (E1.5): same order on
+    // every tab.
+    return seededShuffle(opts, makeRng(seedBase, currentPanelIdx, 'predict'));
+  }, [currentPanelIdx, storyPanels, seedBase]);
 
   const handlePredictionSelect = (idx: number) => {
     if (!currentItem || phase !== 'prediction') return;

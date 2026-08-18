@@ -14,6 +14,8 @@ import { classWeakObjectives } from '../../services/boardLearner';
 import { servedFor, markServed } from './coverageStore';
 import { nextRungForObjective, type ObjectiveType, type RungSrsState } from './lessonDirector';
 import type { PoolItem, ExerciseType } from '../../types/exercise';
+import { useSession } from '../../store/SessionContext';
+import { makeRng } from '../../services/seededRandom';
 
 // =====================================================================
 // 1. correctAnswerFor — the critical helper (spec correction note).
@@ -56,6 +58,9 @@ export function buildQuizComposition(
   weakOrder: string[],
   srsByObjective: Record<string, RungSrsState | null>,
   servedObjectives: string[] = [],
+  /** FIXPLAN E1.4 — seeded rng so both tabs compose the identical quiz.
+   *  Defaults to Math.random for tests/legacy callers. */
+  rng: () => number = Math.random,
 ): { objectiveId: string; exerciseType: ExerciseType }[] {
   // Step 1: Count objectives by type
   const typeCounts: Record<string, number> = {};
@@ -102,7 +107,7 @@ export function buildQuizComposition(
   for (const [type, slotCount] of Object.entries(slots)) {
     const eligible = lessonObjectives.filter(o => o.type === type);
     for (let i = eligible.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rng() * (i + 1));
       [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
     }
     eligible.sort((a, b) => {
@@ -169,6 +174,11 @@ export function useQuizComposition(
   totalQuestions: number,
   roster: string[],
 ): { questions: QuizQuestion[]; loading: boolean } {
+  // FIXPLAN E1.4: one rng for the whole composition, seeded on the shared
+  // session scope — the commander preview and the projector mount separate
+  // quiz instances and must compose the IDENTICAL question set.
+  const { state } = useSession();
+  const sessionId = state.sessionId ?? 'local';
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [weakOrder, setWeakOrder] = useState<string[]>([]);
   const [srsByObjective, setSrsByObjective] = useState<Record<string, RungSrsState | null>>({});
@@ -274,17 +284,19 @@ export function useQuizComposition(
   // Build quiz composition
   const questions = useMemo(() => {
     if (objectives.length === 0 || poolItems.length === 0) return [];
-    const composition = buildQuizComposition(objectives, totalQuestions, weakOrder, srsByObjective, servedAtMount);
+    const rng = makeRng(sessionId, unitId);
+    const composition = buildQuizComposition(objectives, totalQuestions, weakOrder, srsByObjective, servedAtMount, rng);
     const out: QuizQuestion[] = [];
     for (const { objectiveId, exerciseType } of composition) {
-      // Pick a RANDOM item among the objective's matching items (pool-coverage
+      // Pick a random item among the objective's matching items (pool-coverage
       // fix): the previous first-match find() always represented an objective
       // with the same DB-insertion-order row, so remakes served identical
-      // questions.
+      // questions. Draws from the SEEDED rng (E1.4) — same objective resolves
+      // to the same item on every tab.
       const byType = poolItems.filter(p => p.objective_id === objectiveId && p.exercise_type === exerciseType);
       const byObjective = byType.length > 0 ? byType : poolItems.filter(p => p.objective_id === objectiveId);
       if (byObjective.length === 0) continue;
-      const item = byObjective[Math.floor(Math.random() * byObjective.length)];
+      const item = byObjective[Math.floor(rng() * byObjective.length)];
       out.push({
         objectiveId,
         exerciseType: item.exercise_type,
@@ -293,13 +305,13 @@ export function useQuizComposition(
         correctAnswer: correctAnswerFor(item),
       });
     }
-    // Shuffle for variety
+    // Shuffle for variety — seeded (E1.4): identical order on every tab.
     for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(rng() * (i + 1));
       [out[i], out[j]] = [out[j], out[i]];
     }
     return out;
-  }, [objectives, poolItems, totalQuestions, weakOrder, srsByObjective, servedAtMount]);
+  }, [objectives, poolItems, totalQuestions, weakOrder, srsByObjective, servedAtMount, sessionId, unitId]);
 
   // Advance the sequential deal for the NEXT quiz game on this unit.
   const questionsKey = useMemo(() => questions.map((q) => q.objectiveId).join(','), [questions]);

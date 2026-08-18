@@ -58,7 +58,11 @@ const ClassroomBoard: React.FC = () => {
 
   const timeString = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  if (!state.isConnected) {
+  // FIXPLAN E1.8: the gate now requires BOTH channels — the broadcast bus
+  // (isConnected) AND the classroom_sessions postgres_changes channel that
+  // actually carries slide position (sessionSyncHealthy). Previously a dead
+  // channel B left the board "connected" but permanently behind the teacher.
+  if (!state.isConnected || !state.sessionSyncHealthy) {
     return (
       <div className="h-screen w-screen bg-slate-950 flex flex-col items-center justify-center text-white">
         <div className="relative mb-8">

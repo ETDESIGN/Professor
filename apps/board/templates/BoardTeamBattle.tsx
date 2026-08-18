@@ -12,7 +12,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sword, Shield, Zap, Check, X, Trophy, Star, Volume2 } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useQuizComposition, type QuizQuestion } from '../quizEngine';
 import { computeLCSPartialCredit } from './BoardUnscramble';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
@@ -45,6 +46,9 @@ function checkWin(grid: (string|null)[]): { team: Team; line: number[] } | null 
 
 const BoardTeamBattle = ({ data }: { data: any }) => {
   const { state, triggerConfetti, addPoints, pushToRemediation, triggerAction } = useSession();
+  // FIXPLAN E1.5 — seeded team pick so tabs with matching game state pick the
+  // same responder (TeamBattle's team machine is otherwise per-tab, §9).
+  const seedBase = useSeedBase();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
 
@@ -206,7 +210,8 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
     const gone = teamTurnTracker[team];
     const remaining = members.filter(m => !gone.includes(m.id));
     const pool = remaining.length > 0 ? remaining : members;
-    return pool[Math.floor(Math.random() * pool.length)];
+    const draw = makeRng(seedBase, team, gone.length, 'pick')();
+    return pool[Math.floor(draw * pool.length)];
   };
 
   // ── Handle MCQ answer ────────────────────────────────────────────────

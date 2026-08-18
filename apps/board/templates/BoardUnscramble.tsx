@@ -21,7 +21,8 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Check, RefreshCcw, ArrowRight, ArrowLeftRight, Lightbulb } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -87,16 +88,18 @@ export interface AssemblyRound {
   trayTiles: string[];
 }
 
-const shuffle = <T,>(a: T[]): T[] => {
+const shuffle = <T,>(a: T[], rng: () => number = Math.random): T[] => {
   const arr = a.slice();
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 };
 
-export function normalizeToAssemblyRound(item: PoolItem): AssemblyRound | null {
+/** FIXPLAN E1.5 — pass a seeded rng so both tabs normalize the item to the
+ *  identical tray. Defaults to Math.random for tests/legacy callers. */
+export function normalizeToAssemblyRound(item: PoolItem, rng: () => number = Math.random): AssemblyRound | null {
   const base = {
     id: item.id,
     objectiveId: item.objective_id,
@@ -111,7 +114,7 @@ export function normalizeToAssemblyRound(item: PoolItem): AssemblyRound | null {
     const target = String(c.target_sentence).split(/\s+/).filter(Boolean);
     const bank = Array.isArray(c.word_bank) && c.word_bank.length > 0
       ? c.word_bank.map((w: any) => String(w))
-      : shuffle(target);
+      : shuffle(target, rng);
     return { ...base, targetTiles: target, trayTiles: bank, translation: c.translation };
   }
   if (item.exercise_type === 'TRANSFORM') {
@@ -120,7 +123,7 @@ export function normalizeToAssemblyRound(item: PoolItem): AssemblyRound | null {
     const correctOption = String(c?.options?.[c.correct_index] ?? '');
     if (!correctOption) return null;
     const target = correctOption.split(/\s+/).filter(Boolean);
-    return { ...base, promptText: c.prompt_sentence, instruction: c.instruction, targetTiles: target, trayTiles: shuffle(target) };
+    return { ...base, promptText: c.prompt_sentence, instruction: c.instruction, targetTiles: target, trayTiles: shuffle(target, rng) };
   }
   return null;
 }
@@ -157,6 +160,8 @@ type Outcome = 'correct' | 'partial' | null;
 
 const BoardUnscramble = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded tray deal (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phaseTag = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -197,11 +202,11 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   const round: AssemblyRound | null = useMemo(() => {
     if (usingFrozen) return frozenRound;
     for (const it of items) {
-      const r = normalizeToAssemblyRound(it);
+      const r = normalizeToAssemblyRound(it, makeRng(seedBase, it.id));
       if (r) return r;
     }
     return null;
-  }, [items, usingFrozen, frozenRound]);
+  }, [items, usingFrozen, frozenRound, seedBase]);
 
   // ── Tile state ────────────────────────────────────────────────────────
   const [tray, setTray] = useState<Tile[]>([]);
@@ -236,7 +241,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     roundMissesRef.current = 0; // per-round reveal counter (round change / new turn / reset)
     setRevealTiles(null);
     if (!r) { setTray([]); setPlaced([]); return; }
-    setTray(shuffle(r.trayTiles).map((w, i) => ({ id: `t-${i}-${w}`, text: w })));
+    setTray(shuffle(r.trayTiles, makeRng(seedBase, r.id, 'tray')).map((w, i) => ({ id: `t-${i}-${w}`, text: w })));
     setPlaced([]);
     setOutcome(null);
     setLastRatio(0);

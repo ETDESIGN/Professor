@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FastVocabMode, FastVocabPair, FastVocabSpeedQ, FastVocabTurnSummary } from './types';
 import { buildSpeedQuestions } from './contentBuilder';
+import { makeRng } from '../../../services/seededRandom';
 import { useFastVocabTimer } from './useFastVocabTimer';
 
 export interface FastVocabMatchResult {
@@ -49,6 +50,10 @@ export interface FastVocabTurnOptions {
   speedCount?: number;
   /** Seconds per speed question (default 10). */
   timeLimit?: number;
+  /** FIXPLAN E1.6 — live surfaces pass the shared seed base (useSeedBase())
+   *  so every tab composes identical speed questions; solo omits it and gets
+   *  Math.random variety. */
+  seedKey?: string;
   events: FastVocabTurnEvents;
 }
 
@@ -60,6 +65,7 @@ export function useFastVocabTurn({
   mode,
   speedCount = 2,
   timeLimit = 10,
+  seedKey,
   events,
 }: FastVocabTurnOptions) {
   const eventsRef = useRef(events);
@@ -99,8 +105,14 @@ export function useFastVocabTurn({
 
   // ── Speed questions for this wave (learn→recall arc: same words). ────────
   const speedQs = useMemo(
-    () => buildSpeedQuestions(wavePairs, poolPairs, mode, speedCount),
-    [wavePairs, poolPairs, mode, speedCount],
+    () => buildSpeedQuestions(
+      wavePairs,
+      poolPairs,
+      mode,
+      speedCount,
+      seedKey ? makeRng(seedKey, wavePairs.map((p) => p.id).join('|'), 'speed') : Math.random,
+    ),
+    [wavePairs, poolPairs, mode, speedCount, seedKey],
   );
   const currentQ = speedQs[qIdx];
 

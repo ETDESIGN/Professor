@@ -13,7 +13,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Mic, MicOff } from 'lucide-react';
-import { useSession } from '../../../store/SessionContext';
+import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
@@ -64,6 +65,8 @@ const toPhonicsItem = (pi: PoolItem): PhonicsItem => {
 
 const BoardPhonicsArena = ({ data }: { data: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
+  // FIXPLAN E1.5 — seeded option order (identical on every tab).
+  const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
@@ -177,8 +180,8 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
       .flatMap((it) => [it.word1, it.word2])
       .filter((w) => w && w !== currentItem.word1 && w !== currentItem.word2);
     const distractors = Array.from(new Set(others)).slice(0, 2);
-    return shuffle([currentItem.word1, currentItem.word2, ...distractors]);
-  }, [currentItem, currentRound, round1Items, round2Items]);
+    return shuffle([currentItem.word1, currentItem.word2, ...distractors], makeRng(seedBase, currentItem.poolItem.id, currentRound, 'options'));
+  }, [currentItem, currentRound, round1Items, round2Items, seedBase]);
 
   // ── Unified per-item success/failure (triple-write) ────────────────────
   const itemSuccess = (modality: 'receptive' | 'productive', partialRatio = 1.0) => {
