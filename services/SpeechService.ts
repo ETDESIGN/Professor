@@ -62,9 +62,64 @@ function canUseServerStt(): boolean {
     && !!navigator.mediaDevices?.getUserMedia;
 }
 
+// Latch: once Chrome's Web Speech proves unusable (region-blocked 'network'
+// error, or it ends silently with no result), stop wasting every tap on it —
+// go straight to the server-STT recorder for the rest of the session.
+// Without this, each tap burns the user's sentence on a doomed Web Speech
+// attempt and the recorder starts AFTER they already spoke (audit 2026-08-17).
+let webSpeechBlocked = false;
+
 /** Handle returned by startPronunciationCheck — call stop() to end early. */
 export interface PronunciationCheckHandle {
   stop: () => void;
+}
+
+/** Decode the recorded blob and re-encode as 16-bit PCM WAV. Browsers record
+ *  webm/opus or mp4 — codec/container support on STT models is inconsistent,
+ *  while WAV is universally accepted. Returns null if decoding fails. */
+async function blobToWavBase64(blob: Blob): Promise<{ base64: string; seconds: number } | null> {
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioCtx = new AudioContext();
+    const decoded = await audioCtx.decodeAudioData(arrayBuffer.slice(0));
+    await audioCtx.close().catch(() => {});
+
+    const channels = Math.min(1, decoded.numberOfChannels);
+    const sampleRate = decoded.sampleRate;
+    // Downsample to 16 kHz mono — plenty for speech, 10x smaller payload.
+    const targetRate = 16000;
+    const ratio = sampleRate / targetRate;
+    const src = decoded.getChannelData(0);
+    const length = Math.floor(src.length / ratio);
+    const samples = new Int16Array(length);
+    for (let i = 0; i < length; i++) {
+      const s = Math.max(-1, Math.min(1, src[Math.floor(i * ratio)]));
+      samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+
+    // Minimal WAV header (mono, 16-bit, 16 kHz).
+    const buf = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buf);
+    const writeStr = (off: number, str: string) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
+    writeStr(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); writeStr(8, 'WAVE');
+    writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true); view.setUint32(24, targetRate, true);
+    view.setUint32(28, targetRate * channels * 2, true); view.setUint16(32, channels * 2, true);
+    view.setUint16(34, 16, true); writeStr(36, 'data'); view.setUint32(40, samples.length * 2, true);
+    new Int16Array(buf, 44).set(samples);
+
+    // base64 without FileReader (exact length, no async race).
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    return { base64: btoa(binary), seconds: length / targetRate };
+  } catch (err: any) {
+    log.warn('wav_encode_failed', { error: err?.message || String(err) });
+    return null;
+  }
 }
 
 /**
@@ -114,6 +169,13 @@ async function startServerSttCheck(
   // Silence detection: watch the input level; once speech has started,
   // stop after 1.2s below the threshold. Hard cap at 10s.
   const audioCtx = new AudioContext();
+  // Browsers create AudioContexts 'suspended' outside a user gesture (and
+  // sometimes even inside one) — a suspended context feeds the analyser
+  // nothing, so silence detection never sees speech and every take ends as
+  // "No speech detected". Resume before watching (audit 2026-08-17).
+  if (audioCtx.state === 'suspended') {
+    try { await audioCtx.resume(); } catch { /* gesture-backed resume */ }
+  }
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 512;
   audioCtx.createMediaStreamSource(stream).connect(analyser);
@@ -151,21 +213,19 @@ async function startServerSttCheck(
       return;
     }
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const s = String(reader.result || '');
-          resolve(s.slice(s.indexOf(',') + 1));
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      // Re-encode to 16 kHz mono WAV — universally digestible by STT models,
+      // unlike the browser's webm/opus or mp4 containers.
+      const wav = await blobToWavBase64(blob);
+      if (!wav) {
+        onError('Could not process the recording. Please try again.');
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('evaluate-pronunciation', {
         body: {
           targetText,
-          audioBase64: base64,
-          audioFormat: (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm',
+          audioBase64: wav.base64,
+          audioFormat: 'wav',
           language: 'en',
         },
       });
@@ -186,7 +246,7 @@ async function startServerSttCheck(
       });
     } catch (err: any) {
       log.warn('server_stt_failed', { error: err?.message || String(err) });
-      onError('Speech check failed. Please try again.');
+      onError('Speech check failed — the voice service may be busy. Try again.');
     }
   };
 
@@ -204,18 +264,32 @@ export function startPronunciationCheck(
   passThreshold = 0.6,
 ): PronunciationCheckHandle | null {
   const SpeechRecognition = getSpeechRecognition();
+  const useWebSpeech = !!SpeechRecognition && !webSpeechBlocked;
 
-  // No Web Speech (e.g. Firefox) → go straight to the server-STT recorder.
-  if (!SpeechRecognition) {
+  // The active recorder (server-STT path) so the returned stop() controls
+  // whichever path is live.
+  let activeServerStop: (() => void) | null = null;
+  const startFallback = () => {
     if (!canUseServerStt()) {
+      onError('Speech recognition is not supported in this browser.');
+      return;
+    }
+    startServerSttCheck(targetText, onResult, onError, passThreshold).then(h => {
+      if (h) activeServerStop = h.stop;
+    });
+  };
+
+  // No Web Speech available, or it already proved region-blocked earlier in
+  // this session → go straight to the server-STT recorder. Skipping the
+  // doomed Web Speech attempt matters: it fails only AFTER the user has
+  // spoken, so the recorder would always start too late (audit 2026-08-17).
+  if (!useWebSpeech) {
+    if (!SpeechRecognition && !canUseServerStt()) {
       onError('Speech recognition is not supported in this browser.');
       return null;
     }
-    startServerSttCheck(targetText, onResult, onError, passThreshold).then(h => {
-      if (!h) return; // errors already surfaced inside
-    });
-    // stop() before the recorder spins up is a no-op the caller can safely call.
-    return { stop: () => {} };
+    startFallback();
+    return { stop: () => activeServerStop?.() };
   }
 
   const recognition = new SpeechRecognition();
@@ -223,6 +297,9 @@ export function startPronunciationCheck(
   recognition.continuous = false;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
+
+  let gotResult = false;
+  let handled = false; // an error or fallback already fired
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
     const lastResult = event.results[event.results.length - 1];
@@ -233,6 +310,7 @@ export function startPronunciationCheck(
     }
 
     if (lastResult.isFinal) {
+      gotResult = true;
       const transcript = lastResult[0].transcript;
       const confidence = lastResult[0].confidence;
       const similarity = calculateSimilarity(transcript, targetText);
@@ -250,24 +328,49 @@ export function startPronunciationCheck(
 
   recognition.onerror = (event: { error: string }) => {
     // Chrome's Web Speech routes audio via Google — in regions where Google
-    // is unreachable it dies with 'network'/'service-not-allowed'. Fall back
-    // to the region-safe server-STT recorder instead of failing outright.
-    if (event.error === 'network' || event.error === 'service-not-allowed') {
+    // is unreachable it dies with 'network'/'service-not-allowed' (and
+    // sometimes reports 'no-speech' or 'audio-capture' for the same root
+    // cause). Latch the blockage and use the region-safe recorder instead.
+    const networkClass = event.error === 'network' || event.error === 'service-not-allowed';
+    if (networkClass) {
+      handled = true;
+      webSpeechBlocked = true;
       log.warn('web_speech_blocked_region_fallback', { metadata: { error: event.error } });
-      startServerSttCheck(targetText, onResult, onError, passThreshold);
+      startFallback();
       return;
     }
     if (event.error === 'no-speech') {
+      handled = true;
       onError('No speech detected. Please try again.');
     } else if (event.error === 'not-allowed') {
+      handled = true;
       onError('Microphone access denied. Please allow microphone permissions.');
     } else {
+      handled = true;
       onError(`Speech recognition error: ${event.error}`);
     }
   };
 
-  recognition.start();
-  return { stop: () => recognition.stop() };
+  // Silent-death guard: a blocked Web Speech sometimes fires onend with no
+  // result and no error. Treat one empty ending as "service unusable" →
+  // latch + fallback so the SECOND tap records properly (the current take's
+  // audio is already lost at that point).
+  recognition.onend = () => {
+    if (gotResult || handled) return;
+    handled = true;
+    webSpeechBlocked = true;
+    log.warn('web_speech_silent_end_fallback');
+    startFallback();
+  };
+
+  try {
+    recognition.start();
+  } catch {
+    // start() throws when a previous instance is still active — fall back.
+    handled = true;
+    startFallback();
+  }
+  return { stop: () => { try { recognition.stop(); } catch { /* not started */ } activeServerStop?.(); } };
 }
 
 function levenshteinDistance(a: string, b: string): number {

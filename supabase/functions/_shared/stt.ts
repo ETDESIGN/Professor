@@ -57,6 +57,24 @@ export async function transcribe(
  * Sends the audio inline so the model actually hears it (unlike the previous
  * OpenAI fallback which never transmitted audio).
  */
+/**
+ * Reasoning models (e.g. the free NVIDIA omni used for STT) wrap their
+ * answer in <think>…</think> traces, markdown fences, or quotes. The
+ * transcript must be a bare utterance — anything else zeroes the Levenshtein
+ * similarity and every take scores wrong (audit 2026-08-17).
+ */
+function sanitizeTranscript(raw: string): string {
+  let s = raw;
+  s = s.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  s = s.replace(/<\/?think>/gi, '');
+  s = s.replace(/```[\s\S]*?```/g, '');
+  // Reasoning traces put the final answer on the last non-empty line.
+  const lines = s.split('\n').map((l: string) => l.trim()).filter(Boolean);
+  s = lines.length ? lines[lines.length - 1] : '';
+  s = s.replace(/^["'“”]+|["'“”]+$/g, '');
+  return s.trim();
+}
+
 async function openRouterAudioProvider(
   audioBase64: string,
   language: string,
@@ -92,9 +110,19 @@ async function openRouterAudioProvider(
     }),
   });
 
-  if (!resp.ok) return null;
+  if (!resp.ok) {
+    // Surface the provider's actual complaint in the function logs — the
+    // dashboard is the only place these failures are visible.
+    const body = await resp.text().catch(() => '');
+    console.error(`stt_openrouter_http_${resp.status}:`, body.slice(0, 300));
+    return null;
+  }
   const data = await resp.json();
-  const transcript = (data.choices?.[0]?.message?.content || '').toString().trim();
-  if (!transcript) return null;
+  const raw = (data.choices?.[0]?.message?.content || '').toString();
+  const transcript = sanitizeTranscript(raw);
+  if (!transcript) {
+    console.error('stt_openrouter_empty_after_sanitize:', raw.slice(0, 300));
+    return null;
+  }
   return { transcript, confidence: 0.85 };
 }
