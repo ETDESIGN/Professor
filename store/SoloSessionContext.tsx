@@ -3,6 +3,8 @@ import { Engine, LessonUnit } from '../services/SupabaseService';
 import { SessionContextType } from './SessionContext';
 import { supabase } from '../services/supabaseClient';
 import { createClientLogger } from '../services/logger';
+import { resolveUnitPath } from '../services/stageProgressService';
+import type { StudentStage } from '../types/stage';
 
 const log = createClientLogger('SoloSessionContext');
 
@@ -20,6 +22,8 @@ interface SoloSessionState {
   currentStepIndex: number;
   activeSlideData: any;
   activeUnit: LessonUnit | null;
+  /** The student-path node in play, when launched from a map node. Null = full-flow lesson. */
+  activeStage: StudentStage | null;
   students: any[];
   pointsLog: any[];
   selectionHistory: string[];
@@ -47,6 +51,7 @@ const initialState: SoloSessionState = {
   currentStepIndex: 0,
   activeSlideData: null,
   activeUnit: null,
+  activeStage: null,
   students: [],
   pointsLog: [],
   selectionHistory: [],
@@ -100,7 +105,7 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  const setActiveUnit = async (unitId: string) => {
+  const setActiveUnit = async (unitId: string, stageId?: string) => {
     let unit = state.units.find(u => u.id === unitId);
     if (!unit) {
       unit = await Engine.getUnitById(unitId);
@@ -117,11 +122,23 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       } catch {
         // normalizers fall back to the manifest if the bundle is unavailable
       }
-      const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : [];
+      // Student-path node: scope the played flow to this stage's blocks (the
+      // unit object is copied — the stored unit.flow is never mutated).
+      // Without a stageId, the full flow plays (legacy / fallback behavior).
+      let activeStage: StudentStage | null = null;
+      let flowToPlay = unit.flow && unit.flow.length > 0 ? unit.flow : [];
+      if (stageId) {
+        const path = resolveUnitPath(unit as any);
+        activeStage = path.find(s => s.id === stageId) || null;
+        if (activeStage && activeStage.blocks.length > 0) {
+          flowToPlay = activeStage.blocks;
+        }
+      }
       setState(prev => ({
         ...prev,
-        activeUnit: unit,
-        activeSlideData: initialFlow[0],
+        activeUnit: activeStage ? { ...unit, flow: flowToPlay } : unit,
+        activeStage,
+        activeSlideData: flowToPlay[0],
         currentStepIndex: 0,
         score: 0,
         totalCorrect: 0,

@@ -1,17 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Star, Play, Lock, Headphones, Activity, Mic, LayoutGrid, Check, Flame, Gift, Target, BookOpen, Crown, AlertTriangle } from 'lucide-react';
+import { Star, Lock, Headphones, Mic, LayoutGrid, Check, Flame, Target, BookOpen, Crown, AlertTriangle } from 'lucide-react';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { supabase } from '../../services/supabaseClient';
 import { Engine } from '../../services/SupabaseService';
+import {
+  getAllStageProgress,
+  computeNodeStates,
+  isPathComplete,
+  resolveUnitPath,
+} from '../../services/stageProgressService';
+import type { StageProgressMap } from '../../services/stageProgressService';
+import { StageIcon } from '../../components/shared/stageIcons';
 import { motion } from 'framer-motion';
 
 // Feature flag: dubbing is a mock (audit P1-5). Default OFF.
 const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
 
 interface HomeMapProps {
-  onNavigate: (view: string, unitId?: string) => void;
+  onNavigate: (view: string, unitId?: string, stageId?: string) => void;
   onJoinClass?: () => void;
 }
 
@@ -24,7 +32,6 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
   const unitsLoading = Boolean(soloState.unitsLoading);
   const unitsError: string | null = soloState.unitsError ?? null;
   const completedUnitIds: string[] = soloState.studentProgress?.completedUnitIds || [];
-  const currentUnitId: string = soloState.studentProgress?.currentUnitId || '';
   const studentXp: number = soloState.studentProgress?.xp || 0;
   const studentStreak: number = soloState.studentProgress?.streak || 0;
 
@@ -59,14 +66,25 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId, units]);
 
-  // Helper to generate the path string
-  const generatePath = (startIndex: number) => {
-    const nodeHeight = 130;
-    let d = `M 50 ${startIndex * nodeHeight + 40}`;
+  // Student Path: one progress query for all units — the real node states
+  // (locked / active / completed + stars) come from computeNodeStates over
+  // each unit's path (teacher-saved student_path, or the derived default).
+  const [stageProgress, setStageProgress] = useState<StageProgressMap>({});
+  useEffect(() => {
+    if (!studentId) return;
+    let cancelled = false;
+    getAllStageProgress(studentId).then((map) => { if (!cancelled) setStageProgress(map); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [studentId, units]);
 
-    for (let i = 0; i < 4; i++) {
-      const yStart = (startIndex + i) * nodeHeight + 40;
-      const yEnd = (startIndex + i + 1) * nodeHeight + 40;
+  // Helper to generate the path string (works for any node count)
+  const generatePath = (nodeCount: number) => {
+    const nodeHeight = 130;
+    let d = `M 50 40`;
+
+    for (let i = 0; i < nodeCount; i++) {
+      const yStart = i * nodeHeight + 40;
+      const yEnd = (i + 1) * nodeHeight + 40;
 
       const xStart = i % 2 === 0 ? 50 : (i % 4 === 1 ? 75 : 25);
       const xEnd = (i + 1) % 2 === 0 ? 50 : ((i + 1) % 4 === 1 ? 75 : 25);
@@ -189,6 +207,16 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
       ) : (
       units.map((unit, unitIndex) => {
         const summary = masteryByUnit[unit.id];
+        // The Student Path: real nodes from the teacher's plan (or the
+        // derived default), gated by real per-stage progress. Sequential
+        // unlock with per-node teacher overrides — computeNodeStates is the
+        // single evaluator (same one the player trusts).
+        const path = resolveUnitPath(unit as any);
+        const nodes = computeNodeStates(path, stageProgress);
+        const unitLocked = unit.status === 'Locked';
+        const pathDone = !unitLocked && isPathComplete(nodes);
+        const nodeCount = nodes.length;
+        const svgHeight = Math.max(600, nodeCount * 130 + 130);
         return (
           <div key={unit.id} className="relative z-10 pb-8">
             {/* Unit Header */}
@@ -224,12 +252,12 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             </div>
 
             {/* Path Visualization Layer */}
-            <div className="absolute top-28 left-0 w-full h-[600px] pointer-events-none -z-10">
-              <svg width="100%" height="100%" viewBox="0 0 100 600" preserveAspectRatio="none">
+            <div className="absolute top-28 left-0 w-full pointer-events-none -z-10" style={{ height: svgHeight }}>
+              <svg width="100%" height="100%" viewBox={`0 0 100 ${svgHeight}`} preserveAspectRatio="none">
                 <path
-                  d={generatePath(0)}
+                  d={generatePath(nodeCount)}
                   fill="none"
-                  stroke={unit.status === 'Locked' ? '#e2e8f0' : '#e5e7eb'}
+                  stroke={unitLocked ? '#e2e8f0' : '#e5e7eb'}
                   strokeWidth="3"
                   strokeDasharray="0"
                   vectorEffect="non-scaling-stroke"
@@ -237,39 +265,25 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               </svg>
             </div>
 
-            {/* Nodes Container */}
+            {/* Nodes Container — the real Student Path */}
             <div className="flex flex-col items-center gap-6 mt-10 pb-4">
-              {[1, 2, 3, 4].map((lesson, i) => {
-                const isUnitCompleted = completedUnitIds.includes(unit.id) || unit.status === 'Completed';
-                const isUnitActive = unit.status === 'Active' && (currentUnitId === unit.id || !currentUnitId);
-                const isCompleted = isUnitCompleted || (unit.status === 'Active' && i < 2 && completedUnitIds.length > 0);
-                const isActive = isUnitActive && i === 2;
-                const isLocked = unit.status === 'Locked' || (!isCompleted && !isActive && unit.status === 'Active' && i > 2);
+              {nodes.map(({ stage, state: nodeState, stars }, i) => {
+                const isCompleted = nodeState === 'completed' && !unitLocked;
+                const isActive = nodeState === 'active' && !unitLocked;
+                const isLocked = !isCompleted && !isActive;
 
                 let offsetClass = '';
                 if (i % 4 === 1) offsetClass = 'translate-x-16';
                 if (i % 4 === 3) offsetClass = '-translate-x-16';
 
-                // Bug #8 fix: derive each node from the unit's ACTUAL lesson flow
-                // (phase/type) instead of a fixed listen/pronounce/dubbing/scramble
-                // mapping, so the path represents the real lesson. Falls back to a
-                // neutral book icon when the unit has no flow step at this index.
-                const flowStep = (unit.flow?.[i] || unit.flow?.[i % Math.max(1, (unit.flow?.length || 1))]) as any;
-                const nodePhase: string = flowStep?.phase || (i === 0 ? 'WARMUP' : i === 1 ? 'INPUT' : i === 2 ? 'PRACTICE' : 'OUTPUT');
-                let Icon = BookOpen;
-                if (nodePhase === 'WARMUP' || flowStep?.type === 'MEDIA_PLAYER') Icon = Headphones;
-                else if (nodePhase === 'INPUT') Icon = BookOpen;
-                else if (nodePhase === 'PRACTICE') Icon = Activity;
-                else if (nodePhase === 'OUTPUT' || flowStep?.type === 'STORY_STAGE') Icon = Mic;
-                else if (nodePhase === 'ASSESS') Icon = Star;
-                const action = () => onNavigate('lesson', unit.id);
+                const action = () => onNavigate('lesson', unit.id, stage.id);
 
                 return (
                   <motion.div
-                    key={i}
+                    key={stage.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
+                    transition={{ delay: Math.min(i * 0.1, 0.6) }}
                     className={`relative flex flex-col items-center ${offsetClass}`}
                   >
                     <button
@@ -277,6 +291,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                         if (isActive || isCompleted) action();
                       }}
                       disabled={isLocked}
+                      title={stage.title}
                       className={`
                           w-20 h-20 rounded-full flex items-center justify-center relative transition-all duration-300 z-10
                           ${isCompleted
@@ -288,16 +303,24 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                         `}
                     >
                       {/* Icon */}
-                      {isCompleted && <Check size={32} className="text-yellow-700" strokeWidth={4} />}
-                      {isActive && <Play fill="white" className="text-white w-10 h-10 ml-1" />}
+                      {isCompleted && <Check size={30} className="text-yellow-700" strokeWidth={4} />}
+                      {isActive && (
+                        <span className="text-white flex items-center justify-center">
+                          <StageIcon icon={stage.icon === 'trophy' ? 'star' : stage.icon} size={30} />
+                        </span>
+                      )}
                       {isLocked && <Lock className="text-slate-400 w-8 h-8" />}
 
-                      {/* Stars for completed */}
+                      {/* Stars earned for completed nodes (real values) */}
                       {isCompleted && (
                         <div className="absolute -top-2 flex gap-1 bg-white/20 backdrop-blur rounded-full px-2 py-0.5">
-                          <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                          <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                          <Star size={10} className="text-yellow-500 fill-yellow-500" />
+                          {[1, 2, 3].map((s) => (
+                            <Star
+                              key={s}
+                              size={10}
+                              className={s <= stars ? 'text-yellow-500 fill-yellow-500' : 'text-yellow-500/30'}
+                            />
+                          ))}
                         </div>
                       )}
 
@@ -309,19 +332,29 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                         </div>
                       )}
                     </button>
+
+                    {/* Node label */}
+                    <span className={`mt-2 text-[11px] font-bold max-w-[7rem] text-center leading-tight ${isLocked ? 'text-slate-300' : 'text-slate-500'}`}>
+                      {stage.title}
+                    </span>
                   </motion.div>
                 );
               })}
 
-              {/* Final Chest Node */}
+              {/* Final Chest Node — opens when every stage is completed */}
               <div className="relative mt-6">
-                <div className={`w-24 h-24 rounded-3xl flex items-center justify-center border-b-8 transition-colors ${unit.status === 'Locked' ? 'bg-slate-200 border-slate-300' : 'bg-gradient-to-b from-blue-400 to-blue-600 border-blue-700'}`}>
+                <div className={`w-24 h-24 rounded-3xl flex items-center justify-center border-b-8 transition-colors ${unitLocked || !pathDone ? 'bg-slate-200 border-slate-300' : 'bg-gradient-to-b from-blue-400 to-blue-600 border-blue-700 shadow-2xl ring-4 ring-blue-100'}`}>
                   <img
                     src="https://api.dicebear.com/7.x/icons/svg?seed=chest"
-                    className={`w-16 h-16 ${unit.status === 'Locked' ? 'opacity-30 grayscale' : 'drop-shadow-lg'}`}
+                    className={`w-16 h-16 ${unitLocked || !pathDone ? 'opacity-30 grayscale' : 'drop-shadow-lg animate-bounce-subtle'}`}
                     alt="Chest"
                   />
                 </div>
+                {pathDone && (
+                  <div className="absolute -top-3 -right-2 bg-duo-yellow text-yellow-900 text-[10px] font-black px-2 py-1 rounded-full shadow border border-yellow-600/30 animate-bounce-subtle">
+                    UNIT DONE!
+                  </div>
+                )}
               </div>
             </div>
           </div>

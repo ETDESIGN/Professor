@@ -120,7 +120,9 @@ export interface SessionContextType {
   /** Bind the live session to a class (roster-first). Persists class_id on the
    *  classroom_sessions row and (re)loads that class's roster. */
   setActiveClass: (classId: string | null) => Promise<void>;
-  setActiveUnit: (unitId: string) => Promise<void>;
+  /** stageId is the student-path (solo) extension: scope the lesson to one
+   *  node. The live teacher implementation ignores it. */
+  setActiveUnit: (unitId: string, stageId?: string) => Promise<void>;
   /** Ensure an attendance occurrence exists for the live class (for opening the
    *  attendance modal before go-live). Returns the occurrence id or null. */
   ensureAttendanceOccurrence: () => Promise<{ id: string | null; error: string | null }>;

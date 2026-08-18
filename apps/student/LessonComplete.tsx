@@ -10,6 +10,8 @@ interface LessonCompleteProps {
     xp: number;
     accuracy: number;
     time: string;
+    /** Stars earned this run (student-path nodes); defaults to 3 (legacy full lesson). */
+    stars?: number;
   };
 }
 
@@ -17,12 +19,13 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
   const [stars, setStars] = useState(0);
   const [xp, setXp] = useState(0);
   const { t } = useTranslation();
+  const totalStars = Math.max(1, Math.min(3, stats.stars ?? 3));
 
   useEffect(() => {
     // Animate stars
-    const t1 = setTimeout(() => setStars(1), 500);
-    const t2 = setTimeout(() => setStars(2), 1000);
-    const t3 = setTimeout(() => setStars(3), 1500);
+    const t1 = setTimeout(() => setStars(prev => Math.min(1, totalStars)), 500);
+    const t2 = setTimeout(() => setStars(prev => Math.min(2, totalStars)), 1000);
+    const t3 = setTimeout(() => setStars(totalStars), 1500);
 
     // Animate XP
     const interval = setInterval(() => {
@@ -41,7 +44,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
       clearTimeout(t3);
       clearInterval(interval);
     };
-  }, [stats.xp]);
+  }, [stats.xp, totalStars]);
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6 font-sans overflow-y-auto">
@@ -69,12 +72,12 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
          {/* Stars Header */}
          <div className="flex justify-center gap-4 mb-8 -mt-16">
             {[1, 2, 3].map((i) => (
-               <div key={i} className={`transform transition-all duration-500 ${stars >= i ? 'scale-100 rotate-0' : 'scale-0 rotate-180'}`}>
-                  <Star 
-                     size={64} 
-                     className="text-yellow-400 fill-yellow-400 drop-shadow-lg" 
+               <div key={i} className={`transform transition-all duration-500 ${stars >= i ? 'scale-100 rotate-0' : i > totalStars ? 'scale-100' : 'scale-0 rotate-180'}`}>
+                  <Star
+                     size={64}
+                     className={i <= totalStars ? 'text-yellow-400 fill-yellow-400 drop-shadow-lg' : 'text-slate-200 fill-slate-200'}
                      strokeWidth={3}
-                     stroke="#b45309"
+                     stroke={i <= totalStars ? '#b45309' : '#cbd5e1'}
                   />
                </div>
             ))}

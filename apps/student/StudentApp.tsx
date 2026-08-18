@@ -132,7 +132,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const [avatarConfig, setAvatarConfig] = useState<any>(null);
 
   // Temp storage for lesson results to pass to the Complete screen
-  const [sessionResults, setSessionResults] = useState({ xp: 0, accuracy: 0, time: '0:00' });
+  const [sessionResults, setSessionResults] = useState({ xp: 0, accuracy: 0, time: '0:00', stars: 3 });
 
   // Class enrollment state
   const [showJoinClassModal, setShowJoinClassModal] = useState(false);
@@ -173,8 +173,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student/profile');
   };
 
-  const handleLessonComplete = (results: { xp: number, accuracy: number, time: string }) => {
-    setSessionResults(results);
+  const handleLessonComplete = (results: { xp: number, accuracy: number, time: string, stars?: number }) => {
+    setSessionResults({ xp: results.xp, accuracy: results.accuracy, time: results.time, stars: results.stars ?? 3 });
     navigate('/student/lesson-complete');
   };
 
@@ -200,11 +200,12 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student');
   };
 
-  // Navigate to solo lesson session
-  const startLesson = async (unitId?: string) => {
+  // Navigate to solo lesson session. With a stageId, only that student-path
+  // node's blocks play (Duolingo-style step); without it, the full flow.
+  const startLesson = async (unitId?: string, stageId?: string) => {
     if (unitId) {
       setSelectedUnitId(unitId);
-      await setActiveUnit(unitId);
+      await setActiveUnit(unitId, stageId);
     }
     navigate('/student/solo-lesson');
   };
@@ -352,9 +353,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                     </div>
                   </div>
 
-                  <HomeMap onJoinClass={() => setShowJoinClassModal(true)} onNavigate={(view, unitId) => {
+                  <HomeMap onJoinClass={() => setShowJoinClassModal(true)} onNavigate={(view, unitId, stageId) => {
                     if (view === 'lesson' || view === 'listen' || view === 'scramble') {
-                      startLesson(unitId);
+                      startLesson(unitId, stageId);
                     } else {
                       navigate(`/student/${view}`);
                     }

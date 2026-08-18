@@ -2,6 +2,7 @@
 
 import { supabase } from './supabaseClient';
 import { LessonManifest } from '../types/pipeline';
+import { StudentStage } from '../types/stage';
 import { transformManifestToFlow } from './LessonTransformer';
 import { createClientLogger } from './logger';
 import {
@@ -51,6 +52,8 @@ export interface LessonUnit {
     coverImage: string;
     lastUpdated?: string;
     flow: any[];
+    /** Teacher-planned Duolingo-style stage plan (units.student_path). */
+    studentPath?: StudentStage[];
     scannedAssets: ScannedAsset[];
     manifest?: LessonManifest;
     topic?: string;
@@ -90,6 +93,7 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
             coverImage: row.cover_image ?? '',
             lastUpdated: row.last_updated,
             flow: row.flow ?? [],
+            studentPath: row.student_path ?? [],
             scannedAssets: row.scanned_assets ?? [],
             manifest: row.manifest ?? undefined,
             topic: row.topic ?? undefined,
@@ -148,6 +152,7 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
         coverImage: data.cover_image,
         lastUpdated: data.last_updated,
         flow: data.flow ?? [],
+        studentPath: data.student_path ?? [],
         scannedAssets: data.scanned_assets ?? [],
         manifest: data.manifest ?? undefined,
         topic: data.topic ?? undefined,
@@ -167,6 +172,7 @@ const supabaseGetUnitById = async (id: string): Promise<LessonUnit | undefined> 
         coverImage: data.cover_image,
         lastUpdated: data.last_updated,
         flow: data.flow ?? [],
+        studentPath: data.student_path ?? [],
         scannedAssets: data.scanned_assets ?? [],
         manifest: data.manifest ?? undefined,
         topic: data.topic ?? undefined,
@@ -182,6 +188,7 @@ const supabaseUpdateUnit = async (id: string, updates: Partial<LessonUnit>): Pro
     if (updates.coverImage !== undefined) row.cover_image = updates.coverImage;
     if (updates.topic !== undefined) row.topic = updates.topic;
     if (updates.scannedAssets !== undefined) row.scanned_assets = updates.scannedAssets;
+    if (updates.studentPath !== undefined) row.student_path = updates.studentPath;
 
     if (updates.manifest) {
         row.manifest = updates.manifest;

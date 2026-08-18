@@ -1,11 +1,12 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../services/supabaseClient';
 import { invokeGenerateExercises, waitForGenerationJob, getPoolCount } from '../../services/ExercisePoolService';
 import UnitContentVault from './UnitContentVault';
 import PlanComposer from './PlanComposer';
+import StudentPathComposer from './StudentPathComposer';
 import { useUnitStudioStore } from '../../store/useUnitStudioStore';
 
 // Task 15: AssetWorkshop is now an IN-STUDIO Review mode (not a separate route).
@@ -25,7 +26,7 @@ const AssetWorkshop = lazy(() => import('./AssetWorkshop'));
 // (LessonTimelineBuilder mock, LessonStudio KG toggle, AssetWorkshop, and the
 // standalone UnitContentVault route) once validated.
 
-type StudioTab = 'content' | 'plan';
+type StudioTab = 'content' | 'plan' | 'path';
 
 const UnitStudio: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
@@ -36,11 +37,10 @@ const UnitStudio: React.FC = () => {
   const dirty = useUnitStudioStore(s => s.dirty);
   // Initial tab honors ?tab=plan so the unit card's "Plan" action lands on the
   // Plan tab (the Content/"Review Content" action lands on Content by default).
-  const [tab, setTab] = useState<StudioTab>(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'plan'
-      ? 'plan'
-      : 'content'
-  );
+  const [tab, setTab] = useState<StudioTab>(() => {
+    const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+    return q === 'plan' ? 'plan' : q === 'path' ? 'path' : 'content';
+  });
   const [unit, setUnit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   // Task 15: in-Studio Review mode (replaces the /teacher/review/:id route).
@@ -57,9 +57,9 @@ const UnitStudio: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // If we shrink to mobile while on the Plan tab, fall back to Content.
+  // If we shrink to mobile while on the Plan/Path tab, fall back to Content.
   useEffect(() => {
-    if (isMobile && tab === 'plan') setTab('content');
+    if (isMobile && (tab === 'plan' || tab === 'path')) setTab('content');
   }, [isMobile, tab]);
 
   useEffect(() => {
@@ -135,6 +135,7 @@ const UnitStudio: React.FC = () => {
   }
 
   const flow: any[] = Array.isArray(unit.flow) ? unit.flow : [];
+  const studentPathLength: number = Array.isArray(unit.student_path) ? unit.student_path.length : 0;
   const manifest = unit.manifest?.enriched_content || {};
   const theme = unit.manifest?.meta?.theme || manifest.topic || unit.topic || '';
   const cefr = unit.manifest?.meta?.difficulty_cefr || manifest.gradeLevel || unit.level || '';
@@ -239,6 +240,23 @@ const UnitStudio: React.FC = () => {
             )}
           </button>
           )}
+          {!isMobile && (
+          <button
+            onClick={() => setTab('path')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border-b-2 transition-colors ${
+              tab === 'path'
+                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+            }`}
+            title="Plan the Duolingo-style node path students play in the student app"
+          >
+            <Route size={16} />
+            Student Path
+            {studentPathLength > 0 && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === 'path' ? 'bg-emerald-100' : 'bg-slate-100'}`}>{studentPathLength}</span>
+            )}
+          </button>
+          )}
         </nav>
       </header>
 
@@ -246,11 +264,17 @@ const UnitStudio: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {tab === 'content' ? (
           <UnitContentVault embedded />
-        ) : (
+        ) : tab === 'plan' ? (
           <PlanComposer
             unitId={unit.id}
             unit={unit}
             onFlowSaved={(f) => setUnit((prev: any) => ({ ...prev, flow: f }))}
+          />
+        ) : (
+          <StudentPathComposer
+            unitId={unit.id}
+            unit={unit}
+            onPathSaved={(p) => setUnit((prev: any) => ({ ...prev, student_path: p }))}
           />
         )}
       </div>

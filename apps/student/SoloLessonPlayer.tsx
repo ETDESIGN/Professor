@@ -7,13 +7,15 @@ import { MediaService } from '../../services/MediaService';
 import { getVocabulary } from '../../services/manifest';
 import { supabase } from '../../services/supabaseClient';
 import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
+import { completeStage, starsForAccuracy } from '../../services/stageProgressService';
+import type { StudentStage } from '../../types/stage';
 import { playAudioUrl } from '../../services/SpeechService';
 import ExerciseRunner from './exercises/ExerciseRunner';
 import WordLab from './WordLab';
 import ReactPlayer from 'react-player/lazy';
 
 interface SoloLessonPlayerProps {
-  onComplete: (results: { xp: number; accuracy: number; time: string }) => void;
+  onComplete: (results: { xp: number; accuracy: number; time: string; stars?: number }) => void;
   onExit: () => void;
 }
 
@@ -24,6 +26,8 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   const currentStep = state.activeSlideData;
   const currentIndex = state.currentStepIndex;
   const totalSteps = flow.length;
+  // The student-path node in play (null = full-flow legacy lesson).
+  const activeStage = (state as any).activeStage as StudentStage | null;
 
   const [lives, setLives] = useState(5);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -119,10 +123,23 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       const accuracy = state.totalAttempts > 0
         ? Math.round((state.totalCorrect / state.totalAttempts) * 100)
         : 100;
-      const xp = Math.max(1, state.score + 3);
-      onComplete({ xp, accuracy, time: `${minutes}:${seconds.toString().padStart(2, '0')}` });
+      const xp = Math.max(1, state.score + 3) + (activeStage?.xpReward ?? 0);
+      // Student-path node completion: persist stars (best kept, replays
+      // counted). Fire-and-forget — a failed write only means the node can
+      // be replayed, it must not block the reward screen.
+      if (activeStage && studentId && unitId) {
+        completeStage(studentId, unitId, activeStage.id, accuracy).catch((e) =>
+          console.warn('[SoloLessonPlayer] stage completion not recorded', e),
+        );
+      }
+      onComplete({
+        xp,
+        accuracy,
+        time: `${minutes}:${seconds.toString().padStart(2, '0')}`,
+        stars: starsForAccuracy(accuracy),
+      });
     }
-  }, [currentIndex, totalSteps, nextSlide, onComplete, state.score, state.totalCorrect, state.totalAttempts]);
+  }, [currentIndex, totalSteps, nextSlide, onComplete, state.score, state.totalCorrect, state.totalAttempts, activeStage, studentId, unitId]);
 
   const handlePrev = () => {
     if (currentIndex > 0) prevSlide();
