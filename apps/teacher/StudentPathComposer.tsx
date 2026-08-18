@@ -261,6 +261,30 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
       ? true
       : t.requires === 'vocab' ? hasVocab : hasStory;
 
+  // "In path" detection — how many path nodes match each template. Signature-
+  // based (the template's characteristic block types), so it also lights up
+  // for auto-built/derived paths, not just template-added nodes. Study+Practice
+  // vs Practice disambiguate on the FOCUS_CARDS lead-in.
+  const countInPath = (t: NodeTemplate): number =>
+    stages.filter((s) => {
+      const hasType = (type: string) => s.blocks.some((b) => b.type === type);
+      const hasFocusCards = hasType('FOCUS_CARDS');
+      switch (t.key) {
+        case 'review': return s.kind === 'review' || hasType('UNIT_REVIEW');
+        case 'study_practice': return hasFocusCards && s.blocks.length > 1;
+        case 'story': return hasType('STORY_STAGE');
+        case 'practice': return hasType('GAME_ARENA') && !hasFocusCards;
+        case 'listening': return hasType('SOUND_LAB');
+        case 'speaking': return hasType('SPEAKING');
+        case 'grammar': return hasType('GRAMMAR_LAB');
+        case 'spelling': return hasType('SPELLING_BEE');
+        case 'fastvocab': return hasType('FAST_VOCAB');
+        case 'phonics': return hasType('PHONICS_ARENA');
+        case 'quiz': return hasType('SPEED_QUIZ');
+        default: return false;
+      }
+    }).length;
+
   const activeStage = stages.find((s) => s.id === activeStageId) || null;
   const hasReview = stages.some((s) => s.kind === 'review');
 
@@ -353,22 +377,34 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
           <div className="space-y-2">
             {NODE_TEMPLATES.map((t) => {
               const available = templateAvailable(t);
+              const inPathCount = countInPath(t);
+              const inPath = inPathCount > 0;
               return (
                 <button
                   key={t.key}
                   onClick={() => available && addNode(t)}
                   disabled={!available}
-                  title={available ? undefined : 'This unit has no matching content yet'}
-                  className="w-full bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-300 hover:shadow transition-all flex items-center gap-3 text-left group disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={available ? (inPath ? `${inPathCount} matching node${inPathCount === 1 ? '' : 's'} already on the path — click to add another` : undefined) : 'This unit has no matching content yet'}
+                  className={`w-full bg-white p-3 rounded-xl border shadow-sm transition-all flex items-center gap-3 text-left group disabled:opacity-40 disabled:cursor-not-allowed ${
+                    inPath
+                      ? 'border-emerald-300 bg-emerald-50/40'
+                      : 'border-slate-200 hover:border-emerald-300 hover:shadow'
+                  }`}
                 >
-                  <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600 shrink-0">
+                  <div className={`p-2 rounded-lg shrink-0 ${inPath ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-600'}`}>
                     <StageIcon icon={t.icon} size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-bold text-slate-700 truncate">{t.label}</div>
                     <div className="text-[11px] text-slate-400">{t.detail}</div>
                   </div>
-                  <Plus size={16} className="text-slate-300 group-hover:text-emerald-500 shrink-0" />
+                  {inPath ? (
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded shrink-0">
+                      {inPathCount > 1 ? `In path ×${inPathCount}` : 'In path'}
+                    </span>
+                  ) : (
+                    <Plus size={16} className="text-slate-300 group-hover:text-emerald-500 shrink-0" />
+                  )}
                 </button>
               );
             })}
