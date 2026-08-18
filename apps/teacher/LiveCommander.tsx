@@ -41,6 +41,21 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
       if (classId) setActiveClass(classId);
    }, [searchParams, setActiveClass]);
 
+   // Forced SLIDE_COMPLETE escape hatch (B5-class fix): every board game's
+   // "Skip Round" / "End" button broadcasts SLIDE_COMPLETE {forced:true}, but
+   // nothing consumed it — on a dead slide (e.g. "no vocabulary words") those
+   // buttons did NOTHING and the teacher was stuck. The commander owns slide
+   // navigation, so it advances here. Natural-completion echoes (forced:false)
+   // are deliberately ignored: the teacher decides when a finished game moves on.
+   useEffect(() => {
+      const action = state.lastAction;
+      if (!action) return;
+      if (action.type === 'SLIDE_COMPLETE' && (action.payload as any)?.forced) {
+         nextSlide();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [state.lastAction]);
+
    // Class picker: the curriculum "Teach" and dashboard "Launch Live" buttons
    // navigate to /teacher/live WITHOUT ?class=, so no class gets bound and the
    // session row sits with class_id=null. That breaks attendance (which needs a

@@ -138,14 +138,19 @@ const SpellingBeeGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     words = poolToWords(items);
 
     if (words.length === 0) {
-      // pool_items is still empty on many production units — the
-      // vocabulary_items fallback is the de-facto primary source.
-      const { data: vocabRows } = await supabase
-        .from('vocabulary_items')
-        .select('word,image_url,audio_url,l1_translation')
-        .eq('unit_id', id)
-        .limit(500);
-      words = vocabularyToWords(vocabRows || []);
+      // pool_items is still empty on many production units — fall back to the
+      // vocabulary via get_unit_bundle (SECURITY DEFINER). A DIRECT
+      // vocabulary_items select is RLS-blocked for students on teacher-owned
+      // units (the student branch is still assignment-gated — the pattern
+      // migration 20260817000005 fixed everywhere else), which silently
+      // returned 0 rows here.
+      try {
+        const { data: bundle } = await supabase.rpc('get_unit_bundle', { p_unit_id: id });
+        const vocabRows = (bundle as any)?.vocabulary_items;
+        if (Array.isArray(vocabRows)) words = vocabularyToWords(vocabRows);
+      } catch {
+        /* fall through to the empty-pool error below */
+      }
     }
 
     if (words.length === 0) {
@@ -170,6 +175,10 @@ const SpellingBeeGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   }, []);
 
   // ── Events (same math as the board, local writes only) ─────────────────
+  // The engine is created below; the ref lets events reach it (halting it on
+  // the timeout fail rule) without a circular dependency.
+  const turnRef = useRef<ReturnType<typeof useSpellingBeeTurn> | null>(null);
+
   const events = useMemo(
     () => ({
       onWrongLetter: () => {
@@ -177,7 +186,8 @@ const SpellingBeeGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         scoreRef.current -= MISTAKE_PENALTY;
         setScore(scoreRef.current);
         totalsRef.current.mistakes += 1;
-        recordAnswer(false);
+        // Session accuracy is recorded per WORD (in onWordResult), matching
+        // the Fast Vocab one-record-per-interaction contract.
       },
       onWordResult: (r: SpellingBeeWordResult) => {
         if (r.solved) {
@@ -199,8 +209,12 @@ const SpellingBeeGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           totalsRef.current.attempted += 1;
           setBadges((prev) => [...prev, { word: r.word.word, solved: false, points: 0 }]);
           recordAnswer(false);
-          // The SPLIT fail rule: solo timeout ends the run (after the reveal
-          // hold, so the student sees the word they missed).
+          // The SPLIT fail rule: solo timeout ends the run. Halt the engine
+          // FIRST (forceComplete kills the pending auto-advance, the clock
+          // and all input) so no phantom word can be played on the results
+          // screen, and the last-word timeout can't race the round-complete
+          // path into a "Well Done!" instead of "Time's Up!".
+          turnRef.current?.forceComplete();
           if (endTimerRef.current) clearTimeout(endTimerRef.current);
           endTimerRef.current = setTimeout(() => finishRun(true), 1800);
         } else if (r.skipped) {
@@ -226,6 +240,7 @@ const SpellingBeeGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     events,
     seedKey: unitId,
   });
+  turnRef.current = turn;
 
   // ── Run completion: stars, personal best, XP/gems/quests (once) ────────
   const finishRun = (byTimeout: boolean) => {

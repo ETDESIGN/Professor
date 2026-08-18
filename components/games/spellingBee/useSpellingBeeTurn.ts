@@ -33,6 +33,12 @@ export interface SpellingBeeTurnOptions {
   events: SpellingBeeTurnEvents;
   /** Extra seed space for the keyboard-removal rng (unit id upstream). */
   seedKey?: string;
+  /**
+   * Freeze gameplay (clock + typing) without resetting — the board passes
+   * this while the wheel overlay is up so the spin window can never charge
+   * the incoming student for the outgoing word.
+   */
+  paused?: boolean;
 }
 
 export type SpellingBeeStatus = 'typing' | 'solved' | 'revealed' | 'complete';
@@ -42,7 +48,7 @@ const REVEAL_HOLD_MS = 1600;
 const WRONG_FLASH_MS = 600;
 const HINT_PULSE_MS = 2500;
 
-export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }: SpellingBeeTurnOptions) {
+export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', paused = false }: SpellingBeeTurnOptions) {
   const eventsRef = useRef(events);
   eventsRef.current = events;
 
@@ -81,6 +87,8 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
   typedCountRef.current = typedCount;
   const removedKeysRef = useRef<ReadonlySet<string>>(removedKeys);
   removedKeysRef.current = removedKeys;
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const clearTimeouts = () => {
@@ -91,12 +99,47 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
     timeoutsRef.current.push(setTimeout(fn, ms));
   };
 
+  // ── Full reset on a new wave (NEW_TURN / RESET_GAME / solo next round) ───
+  // Render-phase adjustment (the documented "adjust state when props change"
+  // pattern, same as the clock): the render that observes a new waveWords
+  // identity already carries the reset — no intermediate frame can paint the
+  // new wave's words against the old wordIdx/mistakes/removedKeys.
+  function resetTurnState() {
+    turnKeyRef.current += 1;
+    setTurnKey(turnKeyRef.current);
+    mistakesRef.current = 0;
+    resolvedRef.current = false;
+    streakRef.current = 0;
+    bestStreakRef.current = 0;
+    solvedCountRef.current = 0;
+    attemptedRef.current = 0;
+    firstTryRef.current = 0;
+    completedRef.current = false;
+    wordIdxRef.current = 0;
+    setStatus('typing');
+    setWordIdx(0);
+    setTypedCount(0);
+    typedCountRef.current = 0;
+    setMistakes(0);
+    setHintCount(0);
+    setWrongLetter(null);
+    setHintKey(null);
+    setRemovedKeys(new Set());
+    setStreak(0);
+  }
+
+  const lastWaveRef = useRef(waveWords);
+  if (lastWaveRef.current !== waveWords) {
+    lastWaveRef.current = waveWords;
+    resetTurnState();
+  }
+
   const currentWord = waveWords[wordIdx];
   const currentWordId = currentWord?.id ?? '';
 
   // ── Per-word countdown ───────────────────────────────────────────────────
   const handleExpire = useCallback(() => {
-    if (statusRef.current !== 'typing') return;
+    if (statusRef.current !== 'typing' || pausedRef.current) return;
     resolveWord({ solved: false, timedOut: true });
     // Everything resolveWord reads lives in refs (deps [] keeps the clock's
     // onExpire stable, mirroring the useFastVocabTimer contract).
@@ -104,11 +147,13 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
   }, []);
   const clock = useSpellingBeeClock({
     seconds: settings.timerSeconds,
-    running: status === 'typing',
+    running: status === 'typing' && !paused,
     onExpire: handleExpire,
     resetKey: `${turnKey}:${wordIdx}:${currentWordId}`,
   });
   timeRemainingRef.current = clock.timeRemaining;
+  const elapsedRatioRef = useRef(clock.elapsedRatio);
+  elapsedRatioRef.current = clock.elapsedRatio;
 
   // ── Word resolution (solved / timeout / skip / force) ────────────────────
   function resolveWord(opts: { solved: boolean; timedOut?: boolean; forced?: boolean; skipped?: boolean }) {
@@ -133,6 +178,12 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
       solvedCountRef.current += 1;
       firstTry = wordMistakes === 0 && !forced;
       if (firstTry) firstTryRef.current += 1;
+      if (forced) {
+        // MARK_CORRECT: fill the untyped tail so the class sees the full
+        // spelling on the green slots (timeouts/skips already reveal it).
+        typedCountRef.current = word.letters.length;
+        setTypedCount(word.letters.length);
+      }
     } else {
       streakRef.current = 0;
     }
@@ -190,7 +241,7 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
   // ── Typing ────────────────────────────────────────────────────────────────
   const typeLetter = useCallback(
     (ch: string) => {
-      if (statusRef.current !== 'typing') return;
+      if (statusRef.current !== 'typing' || pausedRef.current || resolvedRef.current) return;
       const word = waveWordsRef.current[wordIdxRef.current];
       if (!word) return;
       const letter = ch.toUpperCase();
@@ -249,36 +300,17 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWordId, wordIdx, typedCount, mistakes, clock.elapsedRatio, hintCount, settings.letterRemoval, status]);
 
-  // ── Full reset on a new wave (NEW_TURN / RESET_GAME / solo next round) ───
+  // Wave changes reset synchronously in render (lastWaveRef above); the
+  // effect only handles the impure part — killing pending holds.
   const resetTurn = useCallback(() => {
     clearTimeouts();
-    turnKeyRef.current += 1;
-    setTurnKey(turnKeyRef.current);
-    mistakesRef.current = 0;
-    resolvedRef.current = false;
-    streakRef.current = 0;
-    bestStreakRef.current = 0;
-    solvedCountRef.current = 0;
-    attemptedRef.current = 0;
-    firstTryRef.current = 0;
-    completedRef.current = false;
-    wordIdxRef.current = 0;
-    setStatus('typing');
-    setWordIdx(0);
-    setTypedCount(0);
-    typedCountRef.current = 0;
-    setMistakes(0);
-    setHintCount(0);
-    setWrongLetter(null);
-    setHintKey(null);
-    setRemovedKeys(new Set());
-    setStreak(0);
+    resetTurnState();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    resetTurn();
-  }, [waveWords, resetTurn]);
+    clearTimeouts();
+  }, [waveWords]);
 
   useEffect(() => clearTimeouts, []);
 
@@ -298,9 +330,14 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '' }
       return;
     }
     const rng = mulberry32(hashString(`${seedKey}|${word.id}`));
-    const removed = computeRemovedKeys(word.letters, typedCountRef.current, mistakesRef.current, clock.elapsedRatio, nextHintCount, rng);
-    setRemovedKeys((prev) => (prev.size === removed.size ? prev : removed));
-    const key = hintKeyFor(word.letters, typedCountRef.current, removed);
+    const removed = computeRemovedKeys(word.letters, typedCountRef.current, mistakesRef.current, elapsedRatioRef.current, nextHintCount, rng);
+    // Union with the live set: removals are monotonic within a word — a hint
+    // can only shed more keys, never resurrect already-dropped ones (the
+    // elapsedRatio captured here can lag the recompute effect by a tick).
+    const merged = new Set(removedKeysRef.current);
+    for (const k of removed) merged.add(k);
+    setRemovedKeys(merged.size === removedKeysRef.current.size ? removedKeysRef.current : merged);
+    const key = hintKeyFor(word.letters, typedCountRef.current, merged);
     if (key) {
       setHintKey(key);
       later(() => setHintKey(null), HINT_PULSE_MS);

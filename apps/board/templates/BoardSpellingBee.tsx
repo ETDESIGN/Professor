@@ -92,9 +92,11 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
   const LETTER_REMOVAL = data?.letterRemoval !== false;
 
   // ── Content: pool_items → vocabulary_items → frozen data.words ───────────
-  const { items: poolItems, loading } = useBoardPool({
+  const [poolRefresh, setPoolRefresh] = useState(0);
+  const { items: poolItems, loading, error: poolError } = useBoardPool({
     unitId,
     exerciseTypes: ['IMAGE_SELECT', 'MEANING_MATCH', 'DICTATION'],
+    refreshKey: poolRefresh,
   });
   const poolWords = useMemo(() => poolToWords(poolItems), [poolItems]);
   const vocabWords = useMemo(
@@ -118,6 +120,10 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
   const turnPointsRef = useRef(0);
   const turnMistakesRef = useRef(0);
   const winCuedRef = useRef(false);
+  // Who this wave was dealt to, frozen at deal time — onComplete must never
+  // read the live pickedStudent (which flips to the NEXT kid if the teacher
+  // taps Next Student while the last word's hold is still running).
+  const turnOwnerNameRef = useRef<string | null>(null);
 
   const buildWave = useCallback(
     (fromCursor: number) => {
@@ -140,8 +146,10 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
       setTurnSummary(null);
       turnMistakesRef.current = 0;
       winCuedRef.current = false;
+      turnOwnerNameRef.current = pickedStudent?.name ?? null;
       buildWave(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitId, allWords, buildWave]);
 
   // ── Turn controller (engine) ─────────────────────────────────────────────
@@ -155,18 +163,9 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
         addPoints(picked, -MISTAKE_PENALTY);
         turnPointsRef.current -= MISTAKE_PENALTY;
         setTurnPoints(turnPointsRef.current);
-        logAttempt({
-          state,
-          picked,
-          unitId,
-          objectiveId: UUID_RE.test(word.objectiveId) ? word.objectiveId : undefined,
-          exerciseType: word.exerciseType,
-          difficulty: word.difficulty,
-          correctness: 'incorrect',
-          correct: false,
-          modality: 'productive',
-          pushToRemediation,
-        });
+        // No analytics/FSRS write here: attempts are logged per WORD (in
+        // onWordResult, carrying the mistake count) — per-letter writes
+        // flooded remediation and skewed mastery for struggling spellers.
       },
       onWordResult: (r: SpellingBeeWordResult) => {
         if (r.solved) {
@@ -221,7 +220,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
       onComplete: (summary: SpellingBeeTurnSummary) => {
         setTurnSummary(summary);
         setShowSummary(true);
-        setSummaryName(pickedStudent?.name ?? null);
+        setSummaryName(turnOwnerNameRef.current ?? pickedStudent?.name ?? null);
         if (!winCuedRef.current) {
           winCuedRef.current = true;
           playCue('win');
@@ -242,6 +241,11 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
     settings: { timerSeconds: TIMER_SECONDS, letterRemoval: LETTER_REMOVAL },
     events,
     seedKey: unitId,
+    // Freeze gameplay while the wheel overlay is up: quickWheelWinner already
+    // points at the INCOMING student during the 2.5s spin, and the overlay is
+    // pointer-events-none — without this, taps/timeouts in that window charge
+    // the wrong kid.
+    paused: state.activeOverlay === 'QUICK_WHEEL',
   });
 
   // ── Lifecycle: NEW_TURN (keyed on currentTurnId, never lastAction) ──────
@@ -254,6 +258,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
     setShowSummary(false); // drop the previous turn's score screen instantly
     turnMistakesRef.current = 0;
     winCuedRef.current = false;
+    turnOwnerNameRef.current = pickedStudent?.name ?? null; // freeze this wave's owner
     if (allWords.length > 0) buildWave(cursorRef.current); // next words, NOT word 0
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnId]);
@@ -306,18 +311,31 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
   // ── Empty pool state ────────────────────────────────────────────────────
   if (loading || (allWords.length === 0 && waveWords.length === 0)) {
     if (!loading && allWords.length === 0) {
+      const fetchFailed = poolError && poolWords.length === 0;
       return (
         <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
           <h2 className="text-4xl font-bold text-slate-500 mb-2">Spelling Bee</h2>
           <p className="text-slate-600 text-xl max-w-xl">
-            This unit has no vocabulary words yet. Add vocabulary (or generate the exercise pool) first.
+            {fetchFailed
+              ? "Couldn't load the words — check the connection and retry."
+              : 'This unit has no vocabulary words yet. Add vocabulary (or generate the exercise pool) first.'}
           </p>
-          <button
-            onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
-            className="mt-6 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white"
-          >
-            Skip Round
-          </button>
+          <div className="mt-6 flex gap-3">
+            {fetchFailed && (
+              <button
+                onClick={() => setPoolRefresh((k) => k + 1)}
+                className="px-6 py-3 bg-amber-600 hover:bg-amber-500 rounded-xl font-bold text-white"
+              >
+                Retry
+              </button>
+            )}
+            <button
+              onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
+              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white"
+            >
+              Skip Round
+            </button>
+          </div>
         </div>
       );
     }

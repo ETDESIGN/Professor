@@ -18,25 +18,32 @@ interface Options {
   /** Cap the number of items returned (applied client-side, AFTER the
    * shuffle — see below). */
   limit?: number;
+  /** Changing this value forces a refetch (retry button). */
+  refreshKey?: number;
 }
 
 export interface BoardPoolState {
   items: PoolItem[];
   loading: boolean;
+  /** True when the last fetch FAILED (transient network/RLS error) — lets the
+   * shell say "couldn't load, retry" instead of the misleading "no content". */
+  error: boolean;
   /** Objective ids ordered weakest-first (when classWeak requested). */
   weakOrder: string[];
 }
 
-export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit }: Options): BoardPoolState {
+export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, refreshKey }: Options): BoardPoolState {
   const [items, setItems] = useState<PoolItem[]>([]);
   const [weakOrder, setWeakOrder] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!unitId) { setLoading(false); return; }
       setLoading(true);
+      setError(false);
 
       let order: string[] = [];
       if (classWeak && roster && roster.length > 0) {
@@ -55,9 +62,9 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit }
       // client-side AFTER the shuffle below.
       let query = supabase.from('pool_items').select('*').eq('unit_id', unitId).limit(500);
       if (exerciseTypes && exerciseTypes.length > 0) query = query.in('exercise_type', exerciseTypes);
-      const { data, error } = await query;
+      const { data, error: queryError } = await query;
       if (cancelled) return;
-      if (error || !data) { setItems([]); setLoading(false); return; }
+      if (queryError || !data) { setItems([]); setError(true); setLoading(false); return; }
 
       let pool = data.map(toPoolItem).filter((p): p is PoolItem => p !== null);
 
@@ -86,7 +93,7 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit }
       if (!cancelled) { setItems(pool); setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [unitId, exerciseTypes?.join(','), classWeak, roster?.join(','), limit]);
+  }, [unitId, exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
 
-  return { items, loading, weakOrder };
+  return { items, loading, error, weakOrder };
 }

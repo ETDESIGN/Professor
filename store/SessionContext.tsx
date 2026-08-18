@@ -204,6 +204,22 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [currentStrokeId, setCurrentStrokeId] = useState<string | null>(null);
   const channelRef = useRef<any>(null);
   const activeUnitRef = useRef<LessonUnit | null>(null);
+  // ── Spin-cycle guard rails ────────────────────────────────────────────────
+  // One physical spin = one SPIN_WHEEL → (2.5s) → GAME_WIN/NEW_TURN/DISMISS_
+  // WHEEL chain. Without the in-flight guard a double-tap on "Next Student"
+  // ran the whole chain twice (cursor skipped a full wave, round-robin
+  // bookkeeping double-appended); without timer cancellation a slide change
+  // mid-spin still fired NEW_TURN/confetti onto whatever slide came next.
+  const spinInFlightRef = useRef(false);
+  const spinTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const turnSeqRef = useRef(0);
+  /** Last step index this tab synced via applySessionRow (slide-change detection). */
+  const lastSyncedStepRef = useRef<number | null>(null);
+  const cancelSpinTimers = () => {
+    spinTimeoutsRef.current.forEach(clearTimeout);
+    spinTimeoutsRef.current = [];
+    spinInFlightRef.current = false;
+  };
 
   // Class-points ledger accumulator (debounced flush). Keyed by roster student id.
   const pendingPointsRef = useRef<Record<string, number>>({});
@@ -297,8 +313,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
             // Game-lifecycle signal: a fresh responder is up. Games key their
             // reset effect on `currentTurnId` changing, so they start a clean
             // attempt for this student. Emitted by selectNextStudent /
-            // magicSelectStudent right after GAME_WIN.
-            newState.currentTurnId = action.payload?.studentId ?? null;
+            // magicSelectStudent right after GAME_WIN. The token (not the raw
+            // studentId) is the value: re-picking the SAME student must still
+            // change the id, or no game resets ("wheel spun, board stayed").
+            newState.currentTurnId = action.payload?.turnToken ?? action.payload?.studentId ?? null;
           } else if (action.type === 'TEAMS_ASSIGNED') {
             // Phase A.3: Team Builder assigned teams. Payload = { assignments: { studentId: team } }.
             const assignments = action.payload?.assignments || {};
@@ -349,6 +367,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     return () => {
       supabase.removeChannel(channel);
+      // Kill any pending spin chain too — a pending GAME_WIN/NEW_TURN must
+      // never fire into an unmounted provider.
+      cancelSpinTimers();
     };
   }, []);
 
@@ -388,6 +409,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const flow = unit.flow || [];
     const idx = Math.min(Math.max(0, row.current_index ?? 0), Math.max(0, flow.length - 1));
+    // Slide-change side effects live OUTSIDE the setState updater (updaters
+    // must stay pure — StrictMode double-invokes them): kill any in-flight
+    // spin chain so its 2.5s timers can't fire GAME_WIN/NEW_TURN/confetti
+    // onto the slide the class just moved to.
+    if (lastSyncedStepRef.current !== null && lastSyncedStepRef.current !== idx) {
+      cancelSpinTimers();
+    }
+    lastSyncedStepRef.current = idx;
     setState(prev => {
       const slideChanged = idx !== prev.currentStepIndex;
       return {
@@ -408,6 +437,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         // pick so a realtime re-broadcast doesn't drop a mid-slide responder.
         quickWheelWinner: slideChanged ? null : prev.quickWheelWinner,
         currentTurnId: slideChanged ? null : prev.currentTurnId,
+        // Same mirror for the overlays/ink: without this a LEADERBOARD overlay
+        // (and accumulated drawings) persisted over the NEXT slide on the
+        // projector — "the screen is stuck".
+        activeOverlay: slideChanged ? 'NONE' : prev.activeOverlay,
+        drawings: slideChanged ? [] : prev.drawings,
       };
     });
   }, []);
@@ -939,6 +973,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     // with a falsy id (e.g. caller bug) would broadcast SPIN_WHEEL with an
     // undefined target and the board's spinTo() would crash.
     if (!studentId) return;
+    if (spinInFlightRef.current) return; // a spin chain is already running
     const spinAction = { type: 'SPIN_WHEEL', payload: { targetId: studentId, magic: true, overlay: true }, timestamp: Date.now() };
     broadcastAction(spinAction);
 
@@ -964,21 +999,28 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     //     sender — so games never reset on the teacher's own screen).
     //   • dismiss the QUICK_WHEEL overlay (RC#2 fix: previously the overlay
     //     never auto-dismissed, hiding the freshly-reset game underneath).
-    setTimeout(() => {
-      triggerAction('GAME_WIN', { winnerId: studentId });
-      const turnAction = { type: 'NEW_TURN', payload: { studentId }, timestamp: Date.now() };
-      broadcastAction(turnAction);
-      // Broadcast DISMISS_WHEEL (not just a local setState) so the board
-      // projector tab also hides its overlay — while KEEPING quickWheelWinner
-      // so the picked student stays live for scoring + the whose-turn footer.
-      broadcastAction({ type: 'DISMISS_WHEEL', timestamp: Date.now() });
-      setState(prev => ({
-        ...prev,
-        currentTurnId: studentId,
-        activeOverlay: 'NONE',
-        lastAction: turnAction,
-      }));
-    }, 2500);
+    // Unique per-turn token: games key their reset on currentTurnId CHANGING —
+    // re-picking the same student must still produce a new value.
+    const turnToken = `${studentId}::${++turnSeqRef.current}`;
+    spinInFlightRef.current = true;
+    spinTimeoutsRef.current.push(
+      setTimeout(() => {
+        spinInFlightRef.current = false;
+        triggerAction('GAME_WIN', { winnerId: studentId });
+        const turnAction = { type: 'NEW_TURN', payload: { studentId, turnToken }, timestamp: Date.now() };
+        broadcastAction(turnAction);
+        // Broadcast DISMISS_WHEEL (not just a local setState) so the board
+        // projector tab also hides its overlay — while KEEPING quickWheelWinner
+        // so the picked student stays live for scoring + the whose-turn footer.
+        broadcastAction({ type: 'DISMISS_WHEEL', timestamp: Date.now() });
+        setState(prev => ({
+          ...prev,
+          currentTurnId: turnToken,
+          activeOverlay: 'NONE',
+          lastAction: turnAction,
+        }));
+      }, 2500),
+    );
   };
 
   const selectNextStudent = (filterTeam?: string, useOverlay: boolean = true) => {
@@ -1034,6 +1076,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     const spinAction = { type: 'SPIN_WHEEL', payload: { targetId: selectedId, overlay: useOverlay }, timestamp: Date.now() };
+    if (spinInFlightRef.current) return; // a spin chain is already running
     broadcastAction(spinAction);
 
     // Optimistic update (record the turn for strict round-robin coverage).
@@ -1048,26 +1091,33 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       lastAction: spinAction
     }));
 
-    setTimeout(() => {
-      // After the wheel reveal (~2s animation + 0.5s to read the winner), do
-      // ALL the post-spin work in one place so the picking tab and other tabs
-      // converge. See magicSelectStudent for the full rationale (RC#1 + RC#2).
-      triggerAction('GAME_WIN', { winnerId: selectedId });
-      const turnAction = { type: 'NEW_TURN', payload: { studentId: selectedId }, timestamp: Date.now() };
-      broadcastAction(turnAction);
-      // Broadcast DISMISS_WHEEL (not just a local setState) so the board
-      // projector tab also hides its overlay — while KEEPING quickWheelWinner
-      // so the picked student stays live for scoring + the whose-turn footer.
-      broadcastAction({ type: 'DISMISS_WHEEL', timestamp: Date.now() });
-      setState(prev => ({
-        ...prev,
-        currentTurnId: selectedId,
-        // Dismiss the overlay so the freshly-reset game is visible/interactive.
-        // Keep quickWheelWinner so scoring still targets this student.
-        activeOverlay: 'NONE',
-        lastAction: turnAction,
-      }));
-    }, 2500);
+    // Unique per-turn token: games key their reset on currentTurnId CHANGING —
+    // re-picking the same student must still produce a new value.
+    const turnToken = `${selectedId}::${++turnSeqRef.current}`;
+    spinInFlightRef.current = true;
+    spinTimeoutsRef.current.push(
+      setTimeout(() => {
+        // After the wheel reveal (~2s animation + 0.5s to read the winner), do
+        // ALL the post-spin work in one place so the picking tab and other tabs
+        // converge. See magicSelectStudent for the full rationale (RC#1 + RC#2).
+        spinInFlightRef.current = false;
+        triggerAction('GAME_WIN', { winnerId: selectedId });
+        const turnAction = { type: 'NEW_TURN', payload: { studentId: selectedId, turnToken }, timestamp: Date.now() };
+        broadcastAction(turnAction);
+        // Broadcast DISMISS_WHEEL (not just a local setState) so the board
+        // projector tab also hides its overlay — while KEEPING quickWheelWinner
+        // so the picked student stays live for scoring + the whose-turn footer.
+        broadcastAction({ type: 'DISMISS_WHEEL', timestamp: Date.now() });
+        setState(prev => ({
+          ...prev,
+          currentTurnId: turnToken,
+          // Dismiss the overlay so the freshly-reset game is visible/interactive.
+          // Keep quickWheelWinner so scoring still targets this student.
+          activeOverlay: 'NONE',
+          lastAction: turnAction,
+        }));
+      }, 2500),
+    );
   };
 
   /**
@@ -1076,6 +1126,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
    * immediately spins for the next one. The Baton "Next Student" button calls
    * this so the teacher advances the whole loop in one tap. */
   const nextStudent = () => {
+    if (spinInFlightRef.current) return; // a spin chain is already running
     triggerAction('CLEAR_RESPONDER');
     // Tiny delay so the clear renders before the spin overlay opens; otherwise
     // the overlay's winner card flickers with the old student's data.
