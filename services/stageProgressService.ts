@@ -117,6 +117,9 @@ export interface NodeStatus {
  *   • 'open' forces the node playable (skip ahead);
  *   • 'auto' (default) plays only when the PREVIOUS stage is completed —
  *     an 'open' node does not complete the sequence for the nodes after it.
+ * Invisible stages (visible === false) are SKIPPED: they are not returned,
+ * do not render in the student app, and do not gate the chain — the node
+ * after a hidden one inherits the last visible predecessor's completion.
  */
 export const computeNodeStates = (
   path: StudentStage[],
@@ -125,6 +128,7 @@ export const computeNodeStates = (
   const out: NodeStatus[] = [];
   let prevCompleted = true; // the first node has no predecessor
   for (const stage of path) {
+    if (stage.visible === false) continue;
     const row = progress[stage.id];
     const completed = row?.status === 'completed';
     let state: NodeVisualState;
@@ -256,6 +260,7 @@ const normalizeStage = (raw: any): StudentStage | null => {
     icon: raw.icon || 'star',
     kind: raw.kind === 'review' ? 'review' : 'lesson',
     lock: raw.lock === 'locked' || raw.lock === 'open' ? raw.lock : 'auto',
+    visible: raw.visible !== false,
     xpReward: typeof raw.xpReward === 'number' ? raw.xpReward : 10,
     blocks: Array.isArray(raw.blocks) ? raw.blocks.map(toBlock) : [],
   };

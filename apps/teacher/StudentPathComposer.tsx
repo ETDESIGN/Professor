@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
-  Plus, Trash2, Save, Loader2, Wand2, Lock, Unlock, RefreshCw,
+  Plus, Trash2, Save, Loader2, Wand2, Lock, Unlock, RefreshCw, Eye, EyeOff,
   Image as ImageIcon, Music, Layers, GripVertical,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -223,6 +223,7 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
         icon: s.icon || 'star',
         kind: s.kind === 'review' ? 'review' : 'lesson',
         lock: s.lock === 'locked' || s.lock === 'open' ? s.lock : 'auto',
+        visible: s.visible !== false,
         xpReward: typeof s.xpReward === 'number' ? s.xpReward : 10,
         blocks: Array.isArray(s.blocks) ? s.blocks : [],
       }));
@@ -459,16 +460,23 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
                           <div {...prov.dragHandleProps} className="absolute right-2 top-2 text-slate-300 opacity-0 group-hover:opacity-100">
                             <GripVertical size={14} />
                           </div>
-                          <div className={`bg-white p-4 rounded-2xl border-2 transition-all shadow-sm ${activeStageId === stage.id ? 'border-emerald-500 ring-4 ring-emerald-50' : 'border-transparent hover:border-slate-300'}`}>
+                          <div className={`bg-white p-4 rounded-2xl border-2 transition-all shadow-sm ${
+                            activeStageId === stage.id
+                              ? 'border-emerald-500 ring-4 ring-emerald-50'
+                              : 'border-transparent hover:border-slate-300'
+                          } ${stage.visible === false ? 'opacity-60' : ''}`}>
                             <div className="flex items-start gap-3">
-                              <div className={`p-2.5 rounded-xl shrink-0 ${stage.lock === 'locked' ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
+                              <div className={`p-2.5 rounded-xl shrink-0 ${stage.visible === false ? 'bg-slate-200 text-slate-400' : stage.lock === 'locked' ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}>
                                 <StageIcon icon={stage.icon} size={18} />
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="font-bold text-slate-800 truncate">{stage.title}</h3>
+                                  <h3 className={`font-bold truncate ${stage.visible === false ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-800'}`}>{stage.title}</h3>
                                   {stage.kind === 'review' && (
                                     <span className="text-[9px] font-bold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Review</span>
+                                  )}
+                                  {stage.visible === false && (
+                                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-500 bg-slate-100 border border-slate-300 px-1.5 py-0.5 rounded flex items-center gap-0.5"><EyeOff size={9} /> Hidden</span>
                                   )}
                                   {stage.lock === 'locked' && (
                                     <span className="text-[9px] font-bold uppercase tracking-wide text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded flex items-center gap-0.5"><Lock size={9} /> Locked</span>
@@ -546,6 +554,46 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Visibility in student app</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => updateStage(activeStage.id, { visible: true })}
+                  className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-colors ${
+                    activeStage.visible !== false
+                      ? 'border-emerald-500 bg-emerald-50 text-slate-700'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                >
+                  <Eye size={15} className={activeStage.visible !== false ? 'text-emerald-600' : 'text-slate-400'} />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold">Visible</span>
+                    <span className="block text-[10px] text-slate-400">students see the node</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => updateStage(activeStage.id, { visible: false })}
+                  className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-colors ${
+                    activeStage.visible === false
+                      ? 'border-slate-500 bg-slate-100 text-slate-700'
+                      : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                  }`}
+                  title="Students won't see this node — it stays in your plan and reappears when you switch it back on"
+                >
+                  <EyeOff size={15} className={activeStage.visible === false ? 'text-slate-600' : 'text-slate-400'} />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold">Hidden</span>
+                    <span className="block text-[10px] text-slate-400">kept in plan only</span>
+                  </span>
+                </button>
+              </div>
+              {activeStage.visible === false && (
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Invisible nodes don't appear on the student map and don't block the nodes after them.
+                </p>
+              )}
             </div>
 
             <div>

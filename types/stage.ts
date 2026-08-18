@@ -27,6 +27,12 @@ export interface StudentStage {
   icon: string;
   kind: StageKind;
   lock: StageLock;
+  /**
+   * Teacher visibility switch: false = the node stays in the plan but is NOT
+   * rendered in the student app at all (and does not gate the unlock chain).
+   * Distinct from lock:'locked', which shows the node closed. Default true.
+   */
+  visible?: boolean;
   xpReward?: number;
   blocks: StageBlock[];
 }

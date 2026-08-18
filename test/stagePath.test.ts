@@ -91,6 +91,30 @@ describe('computeNodeStates', () => {
     expect(isPathComplete(computeNodeStates(path, { a: done('a'), b: done('b') }))).toBe(true);
     expect(isPathComplete(computeNodeStates([], {}))).toBe(false);
   });
+
+  it('invisible nodes are skipped entirely — not returned, not shown', () => {
+    const path = [stage({ id: 'a' }), stage({ id: 'ghost', visible: false }), stage({ id: 'b' })];
+    const states = computeNodeStates(path, {});
+    expect(states.map((s) => s.stage.id)).toEqual(['a', 'b']);
+  });
+
+  it('an invisible node does not gate the chain — the node after it inherits the last visible predecessor', () => {
+    const path = [stage({ id: 'a' }), stage({ id: 'ghost', visible: false }), stage({ id: 'b' })];
+    // a NOT completed, ghost invisible: b still requires a -> locked
+    expect(computeNodeStates(path, {}).map((s) => s.state)).toEqual(['active', 'locked']);
+    // a completed: b unlocks even though the hidden ghost between them was never played
+    expect(computeNodeStates(path, { a: done('a') }).map((s) => s.state)).toEqual(['completed', 'active']);
+  });
+
+  it('an invisible LOCKED node does not block the chain (unlike a visible locked one)', () => {
+    const path = [stage({ id: 'a' }), stage({ id: 'wall', visible: false, lock: 'locked' }), stage({ id: 'b' })];
+    expect(computeNodeStates(path, { a: done('a') }).map((s) => s.state)).toEqual(['completed', 'active']);
+  });
+
+  it('the chest ignores invisible nodes (isPathComplete over visible nodes only)', () => {
+    const path = [stage({ id: 'a' }), stage({ id: 'ghost', visible: false })];
+    expect(isPathComplete(computeNodeStates(path, { a: done('a') }))).toBe(true);
+  });
 });
 
 describe('deriveDefaultPath', () => {
@@ -154,5 +178,11 @@ describe('resolveUnitPath', () => {
     expect(path[0].lock).toBe('auto');
     expect(path[0].kind).toBe('lesson');
     expect(path[0].blocks).toEqual([]);
+    expect(path[0].visible).toBe(true);
+  });
+
+  it('passes an explicit visible:false through normalization', () => {
+    const path = resolveUnitPath({ id: 'u1', flow: [], studentPath: [{ id: 'h', visible: false }] });
+    expect(path[0].visible).toBe(false);
   });
 });
