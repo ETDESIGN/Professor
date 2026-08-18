@@ -8,39 +8,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ConfettiSystem from '../../components/effects/ConfettiSystem';
 import DrawingLayer from '../../components/shared/DrawingLayer';
 
-// Import enhanced templates
-import BoardGameArena from './templates/BoardGameArena';
-import BoardMediaPlayer from './templates/BoardMediaPlayer';
-import BoardFocusCards from './templates/BoardFocusCards';
-import BoardStoryStage from './templates/BoardStoryStage';
-import BoardDialogueStage from './templates/BoardDialogueStage';
-import BoardGrammarSandbox from './templates/BoardGrammarSandbox';
-import BoardGrammarForge from './templates/BoardGrammarForge';
-import BoardTeamBattle from './templates/BoardTeamBattle';
-import BoardIntroSplash from './templates/BoardIntroSplash';
-import BoardUnscramble from './templates/BoardUnscramble';
-import BoardWhatsMissing from './templates/BoardWhatsMissing';
-import BoardSpeedQuiz from './templates/BoardSpeedQuiz';
-import BoardStorySequencing from './templates/BoardStorySequencing';
-import BoardISayYouSay from './templates/BoardISayYouSay';
-import BoardLiveClassWarmup from './templates/BoardLiveClassWarmup';
-import BoardUnitSelection from './templates/BoardUnitSelection';
-import BoardWheelOfDestiny from './templates/BoardWheelOfDestiny';
+// FIXPLAN P3.8: the step-type → template map is SHARED with the commander's
+// BoardRenderer (apps/teacher/live/panels/BoardRenderer.tsx) — one place to
+// register templates. The two hand-mirrored switches had already drifted
+// once (commit a44e1bb: 6 unregistered types + GAME_ARENA mislabeled).
+import { BOARD_MAP } from './templates/boardMap';
 import BoardOverlayLayer from './templates/BoardOverlayLayer';
-import BoardFlashMatch from './templates/BoardFlashMatch';
-import BoardListenTap from './templates/BoardListenTap';
-import BoardGrammarLab from './templates/BoardGrammarLab';
-import BoardWordDetective from './templates/BoardWordDetective';
-import BoardSoundLab from './templates/BoardSoundLab';
-import BoardStoryQuest from './templates/BoardStoryQuest';
-import BoardSentenceLab from './templates/BoardSentenceLab';
-import BoardPhonicsArena from './templates/BoardPhonicsArena';
-import BoardVocabBlitz from './templates/BoardVocabBlitz';
-import BoardMemoryLab from './templates/BoardMemoryLab';
-import BoardClassRally from './templates/BoardClassRally';
-import BoardFastVocab from './templates/BoardFastVocab';
-import BoardWordSearch from './templates/BoardWordSearch';
-import BoardSpellingBee from './templates/BoardSpellingBee';
 import ClassWeakBanner from './ClassWeakBanner';
 import ClassLeaderboard from './ClassLeaderboard';
 import BoardShell from './BoardShell';
@@ -143,41 +116,14 @@ const ClassroomBoard: React.FC = () => {
               exit={{ opacity: 0, scale: 1.02, filter: 'blur(8px)' }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              {currentStep.type === 'INTRO_SPLASH' && <BoardIntroSplash data={currentStep.data} />}
-              {currentStep.type === 'MEDIA_PLAYER' && <BoardMediaPlayer data={currentStep.data} />}
-              {currentStep.type === 'LIVE_WARMUP' && <BoardLiveClassWarmup data={currentStep.data} />}
-              {currentStep.type === 'FOCUS_CARDS' && <BoardFocusCards data={currentStep.data} />}
-              {currentStep.type === 'GAME_ARENA' && <BoardGameArena data={currentStep.data} />}
-              {currentStep.type === 'STORY_STAGE' && <BoardStoryStage data={currentStep.data} />}
-              {currentStep.type === 'DIALOGUE_STAGE' && <BoardDialogueStage data={currentStep.data} />}
-              {currentStep.type === 'GRAMMAR_SANDBOX' && <BoardGrammarSandbox data={currentStep.data} />}
-              {currentStep.type === 'GRAMMAR_PRACTICE' && <BoardGrammarForge data={currentStep.data} />}
-              {currentStep.type === 'TEAM_BATTLE' && <BoardTeamBattle data={currentStep.data} />}
-              {currentStep.type === 'UNSCRAMBLE' && <BoardUnscramble data={currentStep.data} />}
-              {currentStep.type === 'WHATS_MISSING' && <BoardWhatsMissing data={currentStep.data} mode="whats_missing" />}
-              {currentStep.type === 'SPEED_QUIZ' && <BoardSpeedQuiz data={currentStep.data} />}
-              {currentStep.type === 'STORY_SEQUENCING' && <BoardStorySequencing data={currentStep.data} />}
-              {(currentStep.type === 'I_SAY_YOU_SAY' || currentStep.type === 'SPEAKING') && <BoardISayYouSay data={currentStep.data} />}
-              {/* MAGIC_EYES consolidated into BoardWhatsMissing (architecture §6.2) —
-                  kept in SUPPORTED_FLOW_TYPES; existing flows route here. */}
-              {currentStep.type === 'MAGIC_EYES' && <BoardWhatsMissing data={currentStep.data} mode="magic_eyes" />}
-              {currentStep.type === 'WHEEL_OF_DESTINY' && <BoardWheelOfDestiny data={currentStep.data} />}
-              {currentStep.type === 'UNIT_SELECTION' && <BoardUnitSelection />}
-              {(currentStep.type === 'SCRAMBLE') && <BoardUnscramble data={currentStep.data} />}
-              {currentStep.type === 'FLASH_MATCH' && <BoardFlashMatch data={currentStep.data} />}
-              {currentStep.type === 'LISTEN_TAP' && <BoardListenTap data={currentStep.data} />}
-              {currentStep.type === 'GRAMMAR_LAB' && <BoardGrammarLab data={currentStep.data} />}
-              {currentStep.type === 'WORD_DETECTIVE' && <BoardWordDetective data={currentStep.data} />}
-              {currentStep.type === 'SOUND_LAB' && <BoardSoundLab data={currentStep.data} />}
-              {currentStep.type === 'STORY_QUEST' && <BoardStoryQuest data={currentStep.data} />}
-              {currentStep.type === 'SENTENCE_LAB' && <BoardSentenceLab data={currentStep.data} />}
-              {currentStep.type === 'PHONICS_ARENA' && <BoardPhonicsArena data={currentStep.data} />}
-              {currentStep.type === 'VOCAB_BLITZ' && <BoardVocabBlitz data={currentStep.data} />}
-              {currentStep.type === 'MEMORY_LAB' && <BoardMemoryLab data={currentStep.data} />}
-              {currentStep.type === 'CLASS_RALLY' && <BoardClassRally data={currentStep.data} />}
-              {currentStep.type === 'FAST_VOCAB' && <BoardFastVocab data={currentStep.data} />}
-              {currentStep.type === 'WORD_SEARCH' && <BoardWordSearch data={currentStep.data} />}
-              {currentStep.type === 'SPELLING_BEE' && <BoardSpellingBee data={currentStep.data} />}
+              {(() => {
+                // FIXPLAN P3.8 — the shared BOARD_MAP replaces the 32-line
+                // hand-mirrored conditional chain (drift hazard, a44e1bb).
+                const BoardComponent = BOARD_MAP[currentStep.type];
+                if (!BoardComponent) return null; // unknown type: shell frame still renders
+                if (currentStep.type === 'UNIT_SELECTION') return <BoardComponent />;
+                return <BoardComponent data={currentStep.data} />;
+              })()}
             </motion.div>
           </AnimatePresence>
         </BoardShell>

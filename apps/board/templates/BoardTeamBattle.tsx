@@ -628,17 +628,37 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
 };
 
 // ── Team roster column component ─────────────────────────────────────────
+// Static Tailwind class maps (audit P1 fix): the previous `border-${color}-500`
+// interpolations never survived JIT purging, so the team rails rendered with
+// no color/border/glow. Static strings are scannable and always emitted.
+const TEAM_RAIL_STYLES: Record<'red' | 'blue', { rail: string; railIdle: string; dot: string; label: string; score: string }> = {
+  red: {
+    rail: 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,.2)]',
+    railIdle: 'border-red-500/30',
+    dot: 'bg-red-500',
+    label: 'text-red-400',
+    score: 'text-red-300',
+  },
+  blue: {
+    rail: 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,.2)]',
+    railIdle: 'border-blue-500/30',
+    dot: 'bg-blue-500',
+    label: 'text-blue-400',
+    score: 'text-blue-300',
+  },
+};
+
 const TeamRosterColumn: React.FC<{ team: Team; members: any[]; score: number; active: boolean; winResult: boolean }> = ({ team, members, score, active, winResult }) => {
-  const color = team === 'red' ? 'red' : 'blue';
+  const styles = team === 'red' ? TEAM_RAIL_STYLES.red : TEAM_RAIL_STYLES.blue;
   return (
     <div className={`w-[140px] shrink-0 rounded-2xl border-2 p-3 flex flex-col gap-2 transition-all ${
-      active ? `border-${color}-500 shadow-[0_0_20px_rgba(${color==='red'?'239,68,68':'59,130,246'},.2)]` : `border-${color}-500/30`
+      active ? styles.rail : styles.railIdle
     } ${winResult ? 'ring-2 ring-amber-400' : ''}`}>
       <div className="flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full bg-${color}-500`} />
-        <span className={`font-display text-sm font-bold text-${color}-400`}>Team {color === 'red' ? 'Red' : 'Blue'}</span>
+        <div className={`w-3 h-3 rounded-full ${styles.dot}`} />
+        <span className={`font-display text-sm font-bold ${styles.label}`}>Team {team === 'red' ? 'Red' : 'Blue'}</span>
       </div>
-      <div className={`font-display text-3xl font-black tabular-nums text-${color}-300 leading-none`}>{score}</div>
+      <div className={`font-display text-3xl font-black tabular-nums ${styles.score} leading-none`}>{score}</div>
       <div className="flex flex-col gap-1 overflow-y-auto">
         {members.map((s: any, i: number) => (
           <div key={s.id} className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2 py-1">

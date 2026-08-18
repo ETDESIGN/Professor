@@ -349,7 +349,6 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
     if (!a) return;
     switch (a.type) {
       case 'REVEAL_ANSWER':
-      case 'REVEAL':
         if (round?.kind === 'ERROR_SPOT') setRevealed(true);
         else if (round?.kind === 'TRANSFORM') checkTransform();
         else if (round?.kind === 'PRODUCE') setProduceRevealed(true);

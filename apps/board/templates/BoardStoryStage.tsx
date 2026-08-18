@@ -23,7 +23,7 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { useBoardPool } from '../useBoardPool';
-import { recordAttempt } from '../../../services/attemptsLog';
+import { logAttempt } from './scoreAttempt';
 import { supabase } from '../../../services/supabaseClient';
 import type { PoolItem } from '../../../types/exercise';
 
@@ -145,21 +145,20 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   }) => {
     const picked = state.quickWheelWinner;
     if (!picked) return;
-    const student = (state.students || []).find((s: any) => s.id === picked);
     if (opts.points !== 0) addPoints(picked, opts.points);
-    recordAttempt({
-      rosterId: picked,
-      classId: state.activeClassId,
-      profileId: student?.claimed_profile_id ?? null,
-      correctness: opts.correctness,
+    // FIXPLAN P3.3 — unified triple-write: previously analytics + remediation
+    // only; the FSRS grade was silently missing for real story objectives.
+    logAttempt({
+      state, picked, unitId,
       objectiveId: opts.objectiveId ?? undefined,
       exerciseType: opts.exerciseType,
       difficulty: opts.difficulty,
-    }).catch(() => {});
-    if (opts.correctness === 'incorrect' && opts.objectiveId) {
-      pushToRemediation(opts.objectiveId, picked);
-    }
-  }, [state.quickWheelWinner, state.students, state.activeClassId, addPoints, pushToRemediation]);
+      correctness: opts.correctness,
+      correct: opts.passed,
+      modality: 'receptive',
+      pushToRemediation,
+    });
+  }, [state.quickWheelWinner, state.students, state.activeClassId, addPoints, unitId, pushToRemediation]);
 
   const showAlreadyScored = useCallback(() => {
     setAlreadyScoredChip(true);

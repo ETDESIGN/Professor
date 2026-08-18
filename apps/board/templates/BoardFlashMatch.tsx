@@ -16,7 +16,7 @@ import { makeRng, seededShuffle } from '../../../services/seededRandom';
 import { scoreForAttempt, MISTAKE_PENALTY, type Difficulty } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { useEscalatingPool } from '../useEscalatingPool';
-import { recordAttempt } from '../../../services/attemptsLog';
+import { logAttempt } from './scoreAttempt';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { playCue } from './playCue';
 import type { PoolItem } from '../../../types/exercise';
@@ -88,7 +88,7 @@ const MIN_PAIRS = 3;
 
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardFlashMatch = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints, triggerConfetti } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   // FIXPLAN E1.5 — seeded right-column shuffle (identical on every tab).
   const seedBase = useSeedBase();
   const unitId = state.activeUnit?.id || '';
@@ -309,7 +309,6 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const doDualWrite = useCallback((pair: MatchPair, correctness: 'correct' | 'incorrect') => {
     const picked = state.quickWheelWinner;
     if (!picked) return;
-    const student = (state.students || []).find((s: any) => s.id === picked);
     if (correctness === 'correct') {
       const mistakes = mistakesByPairRef.current[pair.id] ?? 0;
       // streakRef holds the streak INCLUDING this pair (the caller bumps it
@@ -319,16 +318,18 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
     } else {
       addPoints(picked, -MISTAKE_PENALTY);
     }
-    recordAttempt({
-      rosterId: picked,
-      classId: state.activeClassId,
-      profileId: student?.claimed_profile_id ?? null,
-      correctness,
+    // FIXPLAN P3.3 — unified triple-write: previously analytics-only, so this
+    // game's objectives never reached the FSRS ladder or remediation queue.
+    logAttempt({
+      state, picked, unitId,
       objectiveId: pair.objectiveId,
       exerciseType: pair.exerciseType,
       difficulty: pair.difficulty,
-    }).catch(() => {});
-  }, [state.quickWheelWinner, state.activeClassId, state.students, addPoints]);
+      correctness,
+      modality: 'receptive',
+      pushToRemediation,
+    });
+  }, [state.quickWheelWinner, state.activeClassId, state.students, addPoints, unitId, pushToRemediation]);
 
   // ── Match attempt handler ─────────────────────────────────────────────
   const handleMatch = useCallback((pairId: string, leftId: string, rightId: string) => {

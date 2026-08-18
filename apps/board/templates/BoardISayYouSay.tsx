@@ -124,15 +124,32 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
   const missHoldTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const turnId = state.currentTurnId;
+  // Lifecycle — every NEW pick starts the drill fresh, whatever phase the
+  // previous student left it in (audit fix: this used to bail unless
+  // shellPhase === 'discrimination', so a pick during the choral phase left
+  // the new student mid-choral with a stale stage/index).
+  useEffect(() => {
+    if (missHoldTimer.current) {
+      clearTimeout(missHoldTimer.current);
+      missHoldTimer.current = null;
+    }
+    setShellPhase('discrimination');
+    setDiscIdx(0); setChoralIdx(0); setChoralStage('whole_first');
+    setRevealed(false); setOutcome(null);
+    mistakesRef.current = 0; awardedRef.current = false; streakRef.current = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnId]);
+  // Per-discrimination-item ref reset. streakRef is deliberately NOT here —
+  // the streak is documented as "across discrimination items" (the 3/5 tiers
+  // in the MARK_CORRECT bonus); resetting it per item made those tiers dead.
   useEffect(() => {
     if (shellPhase !== 'discrimination') return;
     mistakesRef.current = 0;
     awardedRef.current = false;
-    streakRef.current = 0;
     setRevealed(false);
     setOutcome(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnId, discIdx, shellPhase]);
+  }, [discIdx, shellPhase]);
 
   // ── Discrimination advancement ──────────────────────────────────────
   const advanceDiscrimination = useCallback(() => {

@@ -64,6 +64,7 @@ const TeacherRemote: React.FC = () => {
   const voiceCommandsEnabled = import.meta.env.VITE_ENABLE_VOICE_COMMANDS === 'true';
   const [showQuickSpin, setShowQuickSpin] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const [isDrawingMode, setIsDrawingMode] = useState(false); // Drawing State
   // BoardWhatsMissing v2 produce mode (whatsmissing-v2-spec §2): the teacher
   // types what the picked student said; the board scores it (WM_SUBMIT_ANSWER).
@@ -81,10 +82,10 @@ const TeacherRemote: React.FC = () => {
     setHasConnected(false);
   };
 
-  const startCamera = async () => {
+  const startCamera = async (facing: 'user' | 'environment' = 'environment') => {
     setIsCameraActive(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -93,6 +94,16 @@ const TeacherRemote: React.FC = () => {
       setLiveSnap(null);
       setIsCameraActive(false);
     }
+  };
+
+  /** P3.7 (was a dead decorative button): switch front/back camera. */
+  const flipCamera = async () => {
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+    }
+    const next = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(next);
+    await startCamera(next);
   };
 
   const capturePhoto = () => {
@@ -812,13 +823,6 @@ const TeacherRemote: React.FC = () => {
             <ChevronLeft size={32} />
           </button>
 
-          <button className="bg-blue-600 aspect-square rounded-2xl flex flex-col items-center justify-center active:scale-95 transition-all shadow-lg shadow-blue-900/50 col-span-1 border-b-4 border-blue-800">
-            <span className="text-xs uppercase font-bold tracking-widest mb-1 opacity-80">Action</span>
-            <div className="w-10 h-10 rounded-full border-2 border-white flex items-center justify-center">
-              <div className="w-6 h-6 bg-white rounded-full"></div>
-            </div>
-          </button>
-
           <button
             onClick={nextSlide}
             disabled={!nextStep}
@@ -832,7 +836,7 @@ const TeacherRemote: React.FC = () => {
         <h3 className="text-xs font-bold text-slate-500 uppercase mb-3 ml-1">Tools</h3>
         <div className="grid grid-cols-4 gap-3 mb-6">
           <button
-            onClick={state.liveSnapImage ? () => setLiveSnap(null) : startCamera}
+            onClick={state.liveSnapImage ? () => setLiveSnap(null) : () => void startCamera()}
             className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 active:scale-95 transition-all border ${state.liveSnapImage ? 'bg-red-500 border-red-600' : 'bg-slate-800 border-slate-700'}`}
           >
             {state.liveSnapImage ? <X size={24} /> : <Camera size={24} className="text-purple-400" />}
@@ -954,7 +958,7 @@ const TeacherRemote: React.FC = () => {
             >
               <div className="w-16 h-16 bg-white rounded-full active:scale-90 transition-transform"></div>
             </button>
-            <button className="text-white p-4">Flip</button>
+            <button onClick={flipCamera} className="text-white p-4">Flip</button>
           </div>
         </div>
       )}

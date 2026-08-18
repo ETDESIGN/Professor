@@ -159,7 +159,22 @@ Migration via MCP → verify (§8) → frontend push → projector banner-reload
 
 ---
 
-## Phase 3 — backlog (not scheduled; pick up after Phase 2 stabilizes)
+## Phase 3 — backlog
+
+**Status: implemented 2026-08-19** (same session, frontend-only, no migration). Details:
+
+- **SpeedQuiz reveal penalty (P3.1):** `REVEAL_ANSWER` now runs a neutral `handleRevealOnly()` — shows the answer, no points/mistake/attempt write (was: full wrong-answer charge). Bonus from the same audit block: TeamBattle's team rails had interpolated Tailwind classes (`border-${color}-500`) that JIT purges — replaced with static per-team class maps.
+- **ISayYouSay reset (P3.2):** a new pick now resets the FULL drill from any phase (was: bailed unless in discrimination, leaking choral state to the next student). Also found + fixed its streak tiers being dead (streakRef was reset per item, contradicting its own docs — same class as SpeedQuiz F1).
+- **Unified write-back (P3.3):** FlashMatch, ListenTap, StoryStage migrated from analytics-only to the full `logAttempt` triple-write (they never touched FSRS/remediation); WhatsMissing's direct `gradeStudent` replaced with the shared path. Games already doing the full triple-write by hand were left alone (churn without behavior change).
+- **BoardGrammarPractice deleted (P3.4)** — orphaned since GRAMMAR_PRACTICE routed to GrammarForge (comment references only).
+- **Legacy aliases (P3.5):** dead plain-`REVEAL` listener cases removed (GrammarForge, WhatsMissing ×2 — no emitter exists). `RESTART`/`SHOW_AGAIN`/`START_MEMORIZE` KEPT: the remote really emits them.
+- **Wheel family (P3.6):** GameArena now also accepts `RESET_GAME` — the commander's reset button was dead for it (only the remote's `RESET_ROUND`/`RESET_WHEEL` worked).
+- **TeacherRemote dead buttons (P3.7):** decorative no-op "Action" pad button removed; the camera "Flip" button now actually switches front/back camera (facing-mode state + stream restart). The audit's "Class/Settings bottom nav" no longer exists in the file — obsolete.
+- **Shared BOARD_MAP (P3.8):** `apps/board/templates/boardMap.tsx` is now the ONE step-type → template registry, consumed by both ClassroomBoard (projector) and BoardRenderer (commander preview). ClassroomBoard's 32-line chain and BoardRenderer's mirror map are gone — the a44e1bb drift class is structurally retired.
+- **Typed core vocabulary (P3.9):** `store/sessionActionTypes.ts` — payload map for every SessionContext-emitted action; `SessionAction.type` is typed over it as an OPEN union (`(string & {})`) so game pass-through strings compile unchanged. Full discriminated enforcement stays available if drift reappears.
+- Per-game Option-B mirror conversion: still deferred until classroom data shows a game that still drifts post-Phase-2.
+
+## Phase 3 — original backlog list (pre-implementation)
 
 Typed action union (FIXPLAN D) · collapse `ClassroomBoard` vs `BoardRenderer` switches (design doc §4.1) · delete or route orphaned `BoardGrammarPractice` · unify score write-back on `logAttempt` (FlashMatch/ListenTap/StoryStage missing FSRS; WhatsMissing's direct `gradeStudent`) · SpeedQuiz reveal-penalty bug (AUDIT_ROADMAP open) · ISayYouSay conditional NEW_TURN reset (`:127`) · wheel-family vocabulary vs ContextualControls (`RESET_ROUND`/`RESET_WHEEL`) · WhatsMissing legacy aliases (`REVEAL`/`RESTART`) · dead TeacherRemote buttons (P3-10) · per-game Option-B mirror conversion if any game still drifts.
 

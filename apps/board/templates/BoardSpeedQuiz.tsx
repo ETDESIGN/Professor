@@ -105,7 +105,7 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   useEffect(() => {
     const a = state.lastAction;
     if (!a) return;
-    if (a.type === 'REVEAL_ANSWER' && phase === 'answering') handleTimeout();
+    if (a.type === 'REVEAL_ANSWER' && phase === 'answering') handleRevealOnly();
     else if (a.type === 'MARK_CORRECT' && phase === 'answering') handleForceCorrect();
     else if ((a.type === 'NEXT_ROUND' || a.type === 'RESET_GAME') && phase === 'reveal') nextQuestion();
     else if (a.type === 'RESET_GAME' && phase === 'results') resetQuiz();
@@ -206,6 +206,26 @@ const BoardSpeedQuiz = ({ data }: { data: any }) => {
   function handleTileRemove(idx: number) {
     if (phase !== 'answering' || !isWordBank) return;
     setPlacedTiles(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  // ── REVEAL_ANSWER (teacher "Reveal"): show the answer NEUTRALLY ──────
+  // No points, no mistake, no attempt/FSRS write — the teacher asked to see
+  // the answer; the student is not charged. (Audit P1 fix: this used to run
+  // handleTimeout()'s wrong-answer branch — −MISTAKE_PENALTY + mistake +
+  // an 'incorrect' attempt row.) Latches awardedRef so the question can't be
+  // scored after the reveal, then advances like any resolved question.
+  function handleRevealOnly() {
+    if (phase !== 'answering' || !currentQ || awardedRef.current) return;
+    awardedRef.current = true;
+    if (isWordBank) {
+      const targetSentence = (currentQ.item.content as any)?.target_sentence || '';
+      setPlacedTiles(targetSentence.split(/\s+/).filter(Boolean));
+    } else {
+      setSelectedTile((currentQ.item.content as any).correct_index);
+    }
+    playCue('reveal');
+    setPhase('reveal');
+    setTimeout(() => nextQuestion(), 2500);
   }
 
   // ── Handle timeout ───────────────────────────────────────────────────

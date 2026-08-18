@@ -33,7 +33,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
           setWinner(selectedStudent);
         }
       }
-    } else if (state.lastAction?.type === 'RESET_ROUND' || state.lastAction?.type === 'RESET_WHEEL') {
+    } else if (state.lastAction?.type === 'RESET_ROUND' || state.lastAction?.type === 'RESET_WHEEL' || state.lastAction?.type === 'RESET_GAME') {
       setWinner(null);
       setRotation(0);
       setIsSpinning(false);

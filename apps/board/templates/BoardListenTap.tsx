@@ -19,7 +19,7 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { playCue } from './playCue';
 import { usePickedStudent } from './usePickedStudent';
 import { useEscalatingPool } from '../useEscalatingPool';
-import { recordAttempt } from '../../../services/attemptsLog';
+import { logAttempt } from './scoreAttempt';
 import { playAudioUrl } from '../../../services/SpeechService';
 import type { PoolItem } from '../../../types/exercise';
 
@@ -52,7 +52,7 @@ type RoundKind = 'LISTEN_SELECT' | 'MINIMAL_PAIR_SWIPE' | 'DICTATION';
 
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardListenTap = ({ data }: { data: any }) => {
-  const { state, triggerAction, addPoints, triggerConfetti } = useSession();
+  const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const phase = (state.activeSlideData?.phase || 'PRACTICE') as any;
@@ -120,7 +120,6 @@ const BoardListenTap = ({ data }: { data: any }) => {
   const doDualWrite = useCallback((correctness: 'correct' | 'incorrect' | 'partial', partialRatio?: number) => {
     const picked = state.quickWheelWinner;
     if (!picked || !currentItem?.poolItem) return;
-    const student = (state.students || []).find((s: any) => s.id === picked);
     const pi = currentItem.poolItem;
 
     if (correctness === 'correct' || (correctness === 'partial' && partialRatio && partialRatio >= DICTATION_PASS_THRESHOLD)) {
@@ -130,16 +129,20 @@ const BoardListenTap = ({ data }: { data: any }) => {
     } else if (correctness === 'incorrect') {
       addPoints(picked, -MISTAKE_PENALTY);
     }
-    recordAttempt({
-      rosterId: picked,
-      classId: state.activeClassId,
-      profileId: student?.claimed_profile_id ?? null,
-      correctness: partialRatio != null && partialRatio < 1 && partialRatio >= DICTATION_PASS_THRESHOLD ? 'partial' : correctness,
+    // FIXPLAN P3.3 — unified triple-write: previously analytics-only, so this
+    // game's objectives never reached the FSRS ladder or remediation queue.
+    const verdict: 'correct' | 'incorrect' | 'partial' =
+      partialRatio != null && partialRatio < 1 && partialRatio >= DICTATION_PASS_THRESHOLD ? 'partial' : correctness;
+    logAttempt({
+      state, picked, unitId,
       objectiveId: pi.objective_id,
       exerciseType: pi.exercise_type,
       difficulty: pi.difficulty,
-    }).catch(() => {});
-  }, [state.quickWheelWinner, state.activeClassId, state.students, addPoints, currentItem]);
+      correctness: verdict,
+      modality: 'receptive',
+      pushToRemediation,
+    });
+  }, [state.quickWheelWinner, state.activeClassId, state.students, addPoints, currentItem, unitId, pushToRemediation]);
 
   // ── Remote/commander actions ──────────────────────────────────────────
   useEffect(() => {

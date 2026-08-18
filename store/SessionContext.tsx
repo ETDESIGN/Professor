@@ -12,6 +12,7 @@ import {
   rowToLiveTurn,
   turnTokenFor,
 } from './liveTurnState';
+import type { SessionActionType } from './sessionActionTypes';
 
 const log = createClientLogger('SessionContext');
 
@@ -31,7 +32,9 @@ type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
 type SelectionMode = 'ROUND_ROBIN' | 'RANDOM' | 'FAIR';
 
 interface SessionAction {
-  type: string;
+  /** FIXPLAN P3.9 — typed over the core vocabulary (store/sessionActionTypes),
+   *  open for game pass-through strings. */
+  type: SessionActionType;
   payload?: any;
   timestamp: number;
   /** FIXPLAN E1.9/E1.10 — stamped by broadcastAction: who sent this (userId:surface)

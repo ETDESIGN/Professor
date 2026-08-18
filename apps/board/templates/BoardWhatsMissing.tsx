@@ -34,8 +34,7 @@ import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
-import { recordAttempt } from '../../../services/attemptsLog';
-import { gradeStudent } from '../../../services/boardLearner';
+import { logAttempt } from './scoreAttempt';
 import { playCue } from './playCue';
 import type { ContextualControlsSpec } from '../lessonDirector';
 import type { PoolItem } from '../../../types/exercise';
@@ -287,22 +286,23 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   const doScoring = useCallback((correctness: 'correct' | 'partial' | 'incorrect', points: number, objectiveId: string, word: string) => {
     const picked = state.quickWheelWinner;
     if (!picked) return;
-    const student = (state.students || []).find((s: any) => s.id === picked);
     if (points !== 0) addPoints(picked, points);
     const difficulty = testedEntry
       ? effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, interactionMode)
       : 1;
-    recordAttempt({
-      rosterId: picked,
-      classId: state.activeClassId,
-      profileId: student?.claimed_profile_id ?? null,
-      correctness,
+    // FIXPLAN P3.3 — unified triple-write. Previously hand-rolled with a
+    // direct gradeStudent call (the only game bypassing the contract); now
+    // the shared logAttempt path (analytics + FSRS gradeObjective + remediation).
+    void word;
+    logAttempt({
+      state, picked, unitId,
       objectiveId,
       exerciseType: 'IMAGE_SELECT',
       difficulty,
-    }).catch(() => {});
-    if (unitId && word) gradeStudent(picked, unitId, word, correctness !== 'incorrect').catch(() => {});
-    if (correctness === 'incorrect') pushToRemediation(objectiveId, picked);
+      correctness,
+      modality: 'receptive',
+      pushToRemediation,
+    });
   }, [state.quickWheelWinner, state.students, state.activeClassId, addPoints, unitId, testedEntry, interactionMode, poolItemByObjective, pushToRemediation]);
 
   const showAlreadyScored = useCallback(() => {
@@ -483,10 +483,6 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
       case 'RESTART':        // legacy MagicEyes alias
         replayMemorize(); break;
       case 'NEXT_ROUND': advanceRound(); break;
-      case 'REVEAL':
-        playCue('reveal'); // legacy "give up, show it" — still a reveal beat
-        finishRound(false);
-        break;
       case 'WM_SUBMIT_ANSWER': handleProduceSubmit(String(action.payload?.text ?? '')); break;
       case 'RESET_GAME':
         setupSigRef.current = '';
@@ -557,8 +553,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (!legacyMagicEyes) return;
     const action = state.lastAction;
     if (!action) return;
-    if (action.type === 'REVEAL') setLegacyPhase('reveal');
-    else if (action.type === 'RESTART' || action.type === 'SHOW_AGAIN' || action.type === 'RESET_GAME') {
+    if (action.type === 'RESTART' || action.type === 'SHOW_AGAIN' || action.type === 'RESET_GAME') {
       setLegacyPhase('flash');
       setLegacyTimer(data?.timer || FLASH_SECONDS);
     }
