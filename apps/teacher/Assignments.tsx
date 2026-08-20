@@ -24,7 +24,7 @@ const Assignments: React.FC = () => {
    const classes = data?.classes || [];
 
    const handleCreateAssignment = async () => {
-      if (!newAssignment.title || !newAssignment.class_id) return;
+      if (!newAssignment.title || !newAssignment.class_id || createAssignmentMut.isPending) return;
 
       try {
          await createAssignmentMut.mutateAsync({
@@ -248,10 +248,11 @@ const Assignments: React.FC = () => {
                            </button>
                            <button
                               onClick={handleCreateAssignment}
-                              disabled={!newAssignment.title || !newAssignment.class_id}
-                              className="flex-1 py-2 text-sm font-bold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!newAssignment.title || !newAssignment.class_id || createAssignmentMut.isPending}
+                              className="flex-1 py-2 text-sm font-bold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                            >
-                              Create Assignment
+                              {createAssignmentMut.isPending && <Loader2 size={14} className="animate-spin" />}
+                              {createAssignmentMut.isPending ? 'Creating…' : 'Create Assignment'}
                            </button>
                         </div>
                      </div>

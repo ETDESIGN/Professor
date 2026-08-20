@@ -59,6 +59,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const [showNewUnitModal, setShowNewUnitModal] = useState(false);
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null); // unit.id or book:ID of open kebab
   const [unitToTrash, setUnitToTrash] = useState<any | null>(null);
+  const [bookToTrash, setBookToTrash] = useState<Book | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // ── Book manager state ───────────────────────────────────────────────────
@@ -74,6 +75,10 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const [renameValue, setRenameValue] = useState('');
   const [movingUnit, setMovingUnit] = useState<any | null>(null);
   const [foreverTarget, setForeverTarget] = useState<{ kind: 'unit' | 'book'; id: string; title: string } | null>(null);
+
+  // ── Library filters (bookshelf search + level) ───────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [levelFilter, setLevelFilter] = useState('all');
 
   // ── Phase 3: bulk pool backfill ──────────────────────────────────────────
   const [backfillState, setBackfillState] = useState<{ running: boolean; done: number; total: number }>({ running: false, done: 0, total: 0 });
@@ -101,6 +106,24 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   useEffect(() => {
     if (tab === 'trash') refreshTrash();
   }, [tab, refreshTrash]);
+
+  // Close the open kebab menu on outside click or Escape. Document-level
+  // listeners instead of a fixed overlay: the card's hover transform turns a
+  // `fixed` child into a card-relative element, which broke outside-click.
+  useEffect(() => {
+    if (!menuOpenFor) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest?.('[data-kebab-menu]')) setMenuOpenFor(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpenFor(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpenFor]);
 
   // Pipeline meta for badges
   useEffect(() => {
@@ -157,6 +180,32 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
 
   const activeBook = books.find(b => b.id === activeBookId) || null;
   const isOwner = (b: Book) => !!b.owner_id && (!userId || b.owner_id === userId);
+
+  // ── Bookshelf filtering (search + level) ─────────────────────────────────
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const levelActive = levelFilter !== 'all';
+  const unitMatches = (u: any) => {
+    if (normalizedQuery && !String(u.title || '').toLowerCase().includes(normalizedQuery)) return false;
+    if (levelActive) {
+      // unit.level is freeform ("A1", "Beginner (A1)"…) — match leniently, both directions.
+      const lv = String(u.level || '').toLowerCase();
+      const sel = levelFilter.toLowerCase();
+      if (lv !== sel && !lv.includes(sel) && !sel.includes(lv)) return false;
+    }
+    return true;
+  };
+  const filtersActive = !!normalizedQuery || levelActive;
+  const levelOptions = useMemo(() => {
+    const levels = new Set<string>();
+    for (const u of (state.units || []) as any[]) { if (u.level) levels.add(String(u.level)); }
+    return Array.from(levels).sort();
+  }, [state.units]);
+  const visibleBooks = filtersActive
+    ? books.filter(b =>
+        (!!normalizedQuery && b.title.toLowerCase().includes(normalizedQuery)) ||
+        (unitsByBook[b.id] || []).some(unitMatches))
+    : books;
+  const visibleUnassigned = filtersActive ? unassigned.filter(unitMatches) : unassigned;
 
   // ── Existing actions (unchanged) ────────────────────────────────────────
   const handleLaunch = async (unit: any) => {
@@ -217,14 +266,21 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
     } catch (err: any) { toast.error(`Rename failed: ${err?.message || err}`); }
   };
 
-  const handleTrashBook = async (book: Book) => {
+  const handleTrashBook = async () => {
+    if (!bookToTrash) return;
+    setIsDeleting(true);
     try {
-      await Engine.softDeleteBook(book.id);
-      toast.success(`Moved "${book.title}" to Trash`);
-      if (activeBookId === book.id) setActiveBookId(null);
+      await Engine.softDeleteBook(bookToTrash.id);
+      toast.success(`Moved "${bookToTrash.title}" to Trash`);
+      if (activeBookId === bookToTrash.id) setActiveBookId(null);
       await Promise.all([refreshBooks(), loadUnits()]);
-    } catch (err: any) { toast.error(`Could not trash book: ${err?.message || err}`); }
-    setMenuOpenFor(null);
+    } catch (err: any) {
+      toast.error(`Could not trash book: ${err?.message || err}`);
+    } finally {
+      setIsDeleting(false);
+      setBookToTrash(null);
+      setMenuOpenFor(null);
+    }
   };
 
   const handleMoveUnit = async (bookId: string | null) => {
@@ -277,10 +333,11 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
     <motion.div
       key={unit.id}
       variants={itemVariants}
-      className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all group duration-300 hover:-translate-y-1"
+      className="bg-white rounded-xl border border-slate-200 hover:shadow-lg transition-all group duration-300 hover:-translate-y-1"
     >
-      {/* Thumbnail Area */}
-      <div className="h-48 bg-slate-100 relative overflow-hidden">
+      {/* Thumbnail Area — own overflow-hidden + top rounding; the card wrapper
+          must NOT clip so the kebab dropdown can extend past the card edge. */}
+      <div className="h-48 bg-slate-100 relative overflow-hidden rounded-t-xl">
         <div className="absolute top-4 left-4 z-10">
           <PipelineBadge unit={unit} meta={pipelineMeta[unit.id]} />
         </div>
@@ -332,18 +389,20 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                   className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5" title="Move down"><ArrowDown size={14} /></button>
               </div>
             )}
-            <div className="relative">
+            <div className="relative" data-kebab-menu>
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpenFor(menuOpenFor === unit.id ? null : unit.id); }}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
                 title="Unit actions"
+                aria-label={`Actions for ${unit.title ?? 'unit'}`}
+                aria-haspopup="menu"
+                aria-expanded={menuOpenFor === unit.id}
               >
                 <MoreVertical size={20} />
               </button>
               {menuOpenFor === unit.id && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
-                  <div className="absolute right-0 top-8 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-48">
+                  <div className="absolute right-0 top-8 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-48" role="menu">
                     <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handlePlan(unit); }}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                       <Edit2 size={14} /> Plan / Edit
@@ -405,10 +464,10 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
       <motion.div
         key={book.id}
         variants={itemVariants}
-        className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all group duration-300 hover:-translate-y-1 cursor-pointer relative"
+        className="bg-white rounded-xl border border-slate-200 hover:shadow-lg transition-all group duration-300 hover:-translate-y-1 cursor-pointer relative"
         onClick={() => setActiveBookId(book.id)}
       >
-        <div className="h-40 bg-gradient-to-br from-indigo-100 to-emerald-50 relative overflow-hidden">
+        <div className="h-40 bg-gradient-to-br from-indigo-100 to-emerald-50 relative overflow-hidden rounded-t-xl">
           {cover ? (
             <img src={cover} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Book cover" referrerPolicy="no-referrer" />
           ) : (
@@ -420,33 +479,33 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
           <div className="absolute bottom-3 left-4 text-white font-bold text-lg drop-shadow">
             {book.title}
           </div>
-          {managed && (
-            <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => setMenuOpenFor(menuOpenFor === `book:${book.id}` ? null : `book:${book.id}`)}
-                className="bg-white/90 text-slate-600 p-1.5 rounded-full hover:bg-white shadow"
-                title="Book actions"
-              >
-                <MoreVertical size={16} />
-              </button>
-              {menuOpenFor === `book:${book.id}` && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpenFor(null)} />
-                  <div className="absolute right-0 top-9 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-44">
-                    <button onClick={() => { setRenamingBook(book); setRenameValue(book.title); setMenuOpenFor(null); }}
-                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                      <Edit2 size={14} /> Rename
-                    </button>
-                    <button onClick={() => handleTrashBook(book)}
-                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                      <Trash2 size={14} /> Move to Trash
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
+        {managed && (
+          <div className="absolute top-3 right-3 z-20" onClick={(e) => e.stopPropagation()} data-kebab-menu>
+            <button
+              onClick={() => setMenuOpenFor(menuOpenFor === `book:${book.id}` ? null : `book:${book.id}`)}
+              className="bg-white/90 text-slate-600 p-1.5 rounded-full hover:bg-white shadow"
+              title="Book actions"
+              aria-label={`Actions for ${book.title}`}
+              aria-haspopup="menu"
+              aria-expanded={menuOpenFor === `book:${book.id}`}
+            >
+              <MoreVertical size={16} />
+            </button>
+            {menuOpenFor === `book:${book.id}` && (
+              <div className="absolute right-0 top-9 z-20 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-44" role="menu">
+                <button onClick={() => { setRenamingBook(book); setRenameValue(book.title); setMenuOpenFor(null); }}
+                  className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                  <Edit2 size={14} /> Rename
+                </button>
+                <button onClick={() => { setBookToTrash(book); setMenuOpenFor(null); }}
+                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                  <Trash2 size={14} /> Move to Trash
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <div className="p-4 flex items-center justify-between text-sm text-slate-500 font-medium">
           <span>{bookUnits.length} unit{bookUnits.length === 1 ? '' : 's'}</span>
           {!managed && <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Shared</span>}
@@ -600,33 +659,55 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
               <input
                 type="text"
-                placeholder="Search units..."
+                placeholder="Search units & books..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search units and books"
                 className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div className="flex items-center gap-2 border-l border-slate-200 pl-4">
               <Filter size={20} className="text-slate-400" />
-              <select className="border-none bg-transparent font-medium text-slate-600 focus:ring-0 cursor-pointer">
-                <option>All Levels</option>
-                <option>Beginner (A1)</option>
-                <option>Intermediate (B1)</option>
+              <select
+                value={levelFilter}
+                onChange={(e) => setLevelFilter(e.target.value)}
+                aria-label="Filter by level"
+                className="border-none bg-transparent font-medium text-slate-600 focus:ring-0 cursor-pointer"
+              >
+                <option value="all">All Levels</option>
+                {levelOptions.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
 
           {/* Books grid */}
-          <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-            {books.map(renderBookCard)}
-          </motion.div>
+          {visibleBooks.length > 0 && (
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+              {visibleBooks.map(renderBookCard)}
+            </motion.div>
+          )}
 
           {/* Unassigned units */}
-          {unassigned.length > 0 && (
+          {visibleUnassigned.length > 0 && (
             <>
               <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Unassigned units</h3>
               <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {unassigned.map((unit) => renderUnitCard(unit))}
+                {visibleUnassigned.map((unit) => renderUnitCard(unit))}
               </motion.div>
             </>
+          )}
+
+          {visibleBooks.length === 0 && visibleUnassigned.length === 0 && (
+            <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
+              {filtersActive ? (
+                <p>No matches for your search or filters.</p>
+              ) : (
+                <>
+                  <p className="font-bold text-slate-500 mb-1">No books yet</p>
+                  <p className="text-sm">Create your first book to group units, or upload material to generate a unit.</p>
+                </>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -833,6 +914,47 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                   Cancel
                 </button>
                 <button onClick={handleTrashUnit} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {isDeleting ? 'Moving…' : 'Move to Trash'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Book Move-to-Trash Confirmation Modal */}
+      <AnimatePresence>
+        {bookToTrash && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => !isDeleting && setBookToTrash(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-slate-800">Move this book to Trash?</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    "<span className="font-semibold text-slate-700">{bookToTrash.title}</span>" will be moved to the Trash.
+                    Its units are kept and appear under Unassigned until you restore the book or move them elsewhere.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setBookToTrash(null)} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={handleTrashBook} disabled={isDeleting}
                   className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
                   {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   {isDeleting ? 'Moving…' : 'Move to Trash'}
