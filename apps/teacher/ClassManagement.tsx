@@ -1,23 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, Copy, Users, CheckCircle, School, Link2, Bell, Loader2,
-    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play, CalendarCheck, QrCode,
+    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play, CalendarCheck,
 } from 'lucide-react';
 import AttendanceHistoryModal from './AttendanceHistoryModal';
-import PassportsView from './Passports';
-import { PassportCardsModal } from './PassportCards';
 import { createClass, ClassData } from '../../services/DataService';
-import {
-    buildClaimUrl, RosterStudent, getRosterClaimToken, PassportService, PassportCard,
-} from '../../services/ManagementService';
+import { buildClaimUrl, RosterStudent, getRosterClaimToken } from '../../services/ManagementService';
 import { Modal, Field } from './SharedUI';
 import {
     useTeacherClasses, useMyMemberships, useSchoolDirectory, useRequestAffiliation,
     useWithdrawAffiliation, useRosterForClass, useCreateRosterStudent,
     useArchiveRosterStudent, usePendingParentLinks, useDecideParentRosterLink,
     useClassAnnouncements, useCreateClassAnnouncement,
-    usePassportsForClass, useCreatePassport, useDeactivatePassport,
 } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -321,41 +316,15 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
     const { data: roster = [], isLoading } = useRosterForClass(cls.id);
     const createStudent = useCreateRosterStudent();
     const archiveStudent = useArchiveRosterStudent();
-    const { data: passports = [] } = usePassportsForClass(cls.id);
-    const createPassport = useCreatePassport();
-    const deactivatePassport = useDeactivatePassport();
     const [showAdd, setShowAdd] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
-    const [showPassports, setShowPassports] = useState(false);
     const [name, setName] = useState('');
-    // Add-student mode: share a one-time claim link (self-signup at home), or
-    // mint accounts here and print login cards (student + optional parent).
-    const [addMode, setAddMode] = useState<'claim' | 'cards'>('claim');
-    const [withParent, setWithParent] = useState(true);
-    const [cardsModal, setCardsModal] = useState<{ title: string; cards: PassportCard[] } | null>(null);
 
-    const passportByRoster = useMemo(
-        () => new Map(passports.filter(p => p.status === 'active').map(p => [p.roster_student_id, p])),
-        [passports]
-    );
     const claimedCount = roster.filter(r => !!r.claimed_profile_id).length;
-    const cardsCount = passportByRoster.size;
-
-    const openCardsModal = (title: string, cards: PassportCard[]) => setCardsModal({ title, cards });
 
     const handleAdd = async () => {
         if (!name.trim()) return;
         try {
-            if (addMode === 'cards') {
-                const card = await createPassport.mutateAsync({
-                    classId: cls.id,
-                    opts: { displayName: name, createStudent: true, createParent: withParent },
-                });
-                setName('');
-                setShowAdd(false);
-                openCardsModal(`${card.display_name} — login cards ready`, [card]);
-                return;
-            }
             const created = await createStudent.mutateAsync({ classId: cls.id, teacherId, displayName: name });
             setName('');
             setShowAdd(false);
@@ -371,43 +340,6 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                 { duration: 8000 }
             );
         } catch { /* toast handled in service */ }
-    };
-
-    /** Mint accounts for an EXISTING roster row (unclaimed -> student+parent; claimed -> parent-only). */
-    const createForRoster = async (r: RosterStudent) => {
-        try {
-            const card = await createPassport.mutateAsync({
-                classId: cls.id,
-                opts: { rosterId: r.id, createStudent: !r.claimed_profile_id, createParent: true },
-            });
-            openCardsModal(`${card.display_name} — login cards ready`, [card]);
-        } catch { /* handled */ }
-    };
-
-    const showCardsFor = async (r: RosterStudent) => {
-        try {
-            const cards = await PassportService.getCards({ rosterId: r.id });
-            if (cards.length) openCardsModal(`${r.display_name} — login cards`, cards);
-            else toast.error('No login cards found');
-        } catch { /* handled */ }
-    };
-
-    const handleRemove = async (r: RosterStudent) => {
-        if (!confirm(`Remove ${r.display_name} from roster?`)) return;
-        try {
-            await archiveStudent.mutateAsync({ id: r.id, classId: cls.id });
-        } catch { return; }
-        // If this student had minted logins, ban them so a removed student
-        // can't keep signing in.
-        const passport = passportByRoster.get(r.id);
-        if (passport) {
-            try {
-                await deactivatePassport.mutateAsync({ rosterId: r.id, classId: cls.id });
-                toast.success('Student removed — their logins were deactivated');
-            } catch {
-                toast.warning('Student removed, but their logins could not be deactivated. Deactivate them from “Login cards”.');
-            }
-        }
     };
 
     const copyCode = () => { if (cls.code) { navigator.clipboard.writeText(cls.code); toast.success('Class code copied'); } };
@@ -440,7 +372,6 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                                 <Copy size={12} /> code
                             </button>
                             <span>{roster.length} roster · {claimedCount} claimed</span>
-                            {cardsCount > 0 && <span>· {cardsCount} with login cards</span>}
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -454,9 +385,6 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                           className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
                           <CalendarCheck size={15} /> Attendance
                         </button>
-                        <button onClick={() => setShowPassports(true)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
-                            <QrCode size={15} /> Login cards
-                        </button>
                         <button onClick={onAnnounce} className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
                             <Send size={15} /> Announce
                         </button>
@@ -467,9 +395,6 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                 </div>
             </div>
 
-            {showPassports ? (
-                <PassportsView cls={cls} onBack={() => setShowPassports(false)} />
-            ) : (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -495,65 +420,36 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                                     </button>
                                 </td>
                             </tr>
-                        ) : roster.map(r => {
-                            const passport = passportByRoster.get(r.id);
-                            return (
+                        ) : roster.map(r => (
                             <tr key={r.id} className="hover:bg-slate-50">
                                 <td className="p-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500">
                                             {r.display_name?.[0]?.toUpperCase() || '?'}
                                         </div>
-                                        <div>
-                                            <div className="font-bold text-slate-800">{r.display_name}</div>
-                                            {passport && (
-                                                <div className="text-xs text-slate-400 font-mono">
-                                                    {passport.student_username}{passport.parent_username ? ` · ${passport.parent_username}` : ''}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <div className="font-bold text-slate-800">{r.display_name}</div>
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                        {r.claimed_profile_id ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                                <CheckCircle size={12} /> Claimed
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
-                                                <Clock size={12} /> Unclaimed
-                                            </span>
-                                        )}
-                                        {passport && (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
-                                                <QrCode size={12} /> Cards
-                                            </span>
-                                        )}
-                                    </div>
+                                    {r.claimed_profile_id ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                            <CheckCircle size={12} /> Claimed
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+                                            <Clock size={12} /> Unclaimed
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="inline-flex items-center gap-2">
-                                        {!r.claimed_profile_id && !passport && (
+                                        {!r.claimed_profile_id && (
                                             <button onClick={() => copyClaim(r)} className="text-xs font-medium text-duo-blue hover:underline flex items-center gap-1">
                                                 <Link2 size={13} /> Claim link
                                             </button>
                                         )}
-                                        {passport ? (
-                                            <button onClick={() => showCardsFor(r)} className="text-xs font-medium text-emerald-600 hover:underline flex items-center gap-1">
-                                                <QrCode size={13} /> Cards
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={() => createForRoster(r)}
-                                                disabled={createPassport.isPending}
-                                                className="text-xs font-medium text-emerald-600 hover:underline flex items-center gap-1 disabled:opacity-50"
-                                            >
-                                                <QrCode size={13} /> {r.claimed_profile_id ? 'Parent login' : 'Login cards'}
-                                            </button>
-                                        )}
                                         <button
-                                            onClick={() => handleRemove(r)}
+                                            onClick={() => { if (confirm(`Remove ${r.display_name} from roster?`)) archiveStudent.mutate({ id: r.id, classId: cls.id }); }}
                                             className="text-xs font-medium text-red-500 hover:underline flex items-center gap-1"
                                         >
                                             <Archive size={13} /> Remove
@@ -561,45 +457,18 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                                     </div>
                                 </td>
                             </tr>
-                            );
-                        })}
+                        ))}
                     </tbody>
                 </table>
             </div>
-            )}
 
             {/* Attendance history modal */}
             {showHistory && <AttendanceHistoryModal classId={cls.id} onClose={() => setShowHistory(false)} />}
 
-            {/* Login cards preview (after create / show) */}
-            <PassportCardsModal
-                open={!!cardsModal}
-                title={cardsModal?.title || ''}
-                subtitle="Print these cards and hand them to the family — the QR code logs in directly."
-                cards={cardsModal?.cards || []}
-                onClose={() => setCardsModal(null)}
-            />
-
             {/* Add student modal */}
             <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add student to roster">
-                <div className="flex bg-slate-100 p-1 rounded-lg mb-4">
-                    {(['claim', 'cards'] as const).map(mode => (
-                        <button
-                            key={mode}
-                            onClick={() => setAddMode(mode)}
-                            className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${addMode === mode
-                                ? 'bg-white text-slate-800 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                        >
-                            {mode === 'claim' ? 'Share claim link' : 'Create login cards'}
-                        </button>
-                    ))}
-                </div>
                 <p className="text-sm text-slate-500 mb-4">
-                    {addMode === 'claim'
-                        ? 'Creates a roster entry (no login yet). You\'ll get a one-time claim link for the student to bind their home account.'
-                        : 'Creates ready-to-use accounts with a printable login card (username, password, QR) for the student — they just scan and go.'}
+                    Creates a roster entry (no login yet). You'll get a one-time claim link for the student to bind their home account.
                 </p>
                 <Field label="Student name">
                     <input
@@ -611,25 +480,12 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teacher-primary"
                     />
                 </Field>
-                {addMode === 'cards' && (
-                    <label className="flex items-center gap-2 text-sm text-slate-700 mt-3 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={withParent}
-                            onChange={e => setWithParent(e.target.checked)}
-                            className="rounded"
-                        />
-                        Also create a parent login (own card, pre-linked to the student)
-                    </label>
-                )}
                 <button
                     onClick={handleAdd}
-                    disabled={!name.trim() || createStudent.isPending || createPassport.isPending}
+                    disabled={!name.trim() || createStudent.isPending}
                     className="w-full mt-4 py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50"
                 >
-                    {addMode === 'claim'
-                        ? (createStudent.isPending ? 'Adding…' : 'Add & generate claim link')
-                        : (createPassport.isPending ? 'Creating accounts…' : 'Add & create login cards')}
+                    {createStudent.isPending ? 'Adding…' : 'Add & generate claim link'}
                 </button>
             </Modal>
         </div>

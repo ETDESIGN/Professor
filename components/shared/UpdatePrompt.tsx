@@ -11,8 +11,12 @@
 //   1. New deploy ships → SW installs → fires `onNeedRefresh` → needRefresh=true.
 //   2. This banner appears. The user picks WHEN to reload (important for a
 //      live-classroom tool — we never auto-reload mid-lesson).
-//   3. "Reload now" → updateServiceWorker(true) posts SKIP_WAITING → the waiting
-//      SW activates → the page reloads into the new bundle.
+//   3. "Reload now" → handleReload() below (NOT the plugin's
+//      updateServiceWorker: its reload depends on workbox-window's
+//      `controlling` event with isUpdate=true, a flag captured at page load —
+//      when it's false, or when the waiting worker already activated via
+//      another tab, the plugin's click handler is a SILENT NO-OP. That was
+//      the "clicked Reload, nothing happened" bug).
 //   4. "Later" hides the banner for the current session; it returns on the next
 //      page load while a newer version is still waiting.
 //
@@ -26,7 +30,6 @@ export const UpdatePrompt: React.FC = () => {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady, setOfflineReady],
-    updateServiceWorker,
   } = useRegisterSW();
 
   // One-shot toast the first time the SW caches everything for offline use.
@@ -38,6 +41,36 @@ export const UpdatePrompt: React.FC = () => {
       setOfflineReady(false);
     }
   }, [offlineReady, setOfflineReady]);
+
+  // Reload the page into the new build. Guarantees a reload happens even when
+  // the standard SKIP_WAITING → controllerchange chain drops an event.
+  const handleReload = async () => {
+    setNeedRefresh(false);
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      const waiting = reg?.waiting;
+      if (waiting) {
+        let reloaded = false;
+        const doReload = () => {
+          if (reloaded) return;
+          reloaded = true;
+          window.location.reload();
+        };
+        // Reload the moment the new SW takes control…
+        navigator.serviceWorker.addEventListener('controllerchange', doReload, { once: true });
+        // …and no matter what, reload shortly after: covers the cases where
+        // the message is ignored or the controller already changed.
+        setTimeout(doReload, 4000);
+        waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        // Nothing waiting (e.g. another tab already activated it): a plain
+        // reload fetches the new build.
+        window.location.reload();
+      }
+    } catch {
+      window.location.reload();
+    }
+  };
 
   if (!needRefresh) return null;
 
@@ -52,7 +85,7 @@ export const UpdatePrompt: React.FC = () => {
           <p className="text-xs text-slate-400 leading-tight mt-0.5">Reload to get the latest update.</p>
         </div>
         <button
-          onClick={() => updateServiceWorker(true)}
+          onClick={handleReload}
           className="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-3.5 py-2 rounded-lg transition-colors"
         >
           Reload
