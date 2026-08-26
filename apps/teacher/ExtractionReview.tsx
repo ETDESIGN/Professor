@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Check, Loader2, Plus, RotateCcw, X, AlertTriangle, FileImage, ChevronRight, BookOpen } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Check, Loader2, Plus, RotateCcw, X, AlertTriangle, FileImage, ChevronRight, BookOpen, Crop, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBookScan, type ScanPage, type ScanStructure } from '../../hooks/useBookScan';
 import type { StructureType } from '../../types/pipeline';
@@ -172,15 +172,83 @@ function AddStructureForm({ pageId, onAdd }: { pageId: string; onAdd: (type: Str
   );
 }
 
+const POOL_FOR_TYPE: Record<string, string> = {
+  vocab_set: 'word_image',
+  comic: 'panel',
+  grammar_box: 'snapshot',
+  song_sheet: 'snapshot',
+  reading_passage: 'scene',
+  clil_passage: 'scene',
+  mission_opener: 'snapshot',
+  character_appearance: 'character_appearance',
+  review_statements: 'snapshot',
+  dialogue_sequence: 'snapshot',
+  printed_activity: 'snapshot',
+};
+
 const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, onConfirm, onBack }) => {
-  const { pages, scanning, loading, removeStructure, restoreStructure, addStructure, confirmBatch } = useBookScan(unitId);
+  const { pages, scanning, loading, removeStructure, restoreStructure, addStructure, confirmBatch, updateBbox, previewCrop } = useBookScan(unitId);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // ✎ bbox editor state (P3.4): editing structure + normalized draft box.
+  const [editBbox, setEditBbox] = useState<{ id: string; bbox: number[] } | null>(null);
+  const [cropResult, setCropResult] = useState<{ id: string; url?: string; flagged?: string; error?: string } | null>(null);
+  const [cropping, setCropping] = useState<string | null>(null);
+  const imgWrapRef = useRef<HTMLDivElement>(null);
 
   const active: ScanPage | null = useMemo(() => pages.find(p => p.id === activeId) || pages[0] || null, [pages, activeId]);
   const visibleStructures = (p: ScanPage) => p.structures.filter(s => s.review_status !== 'removed');
   const removedCount = (p: ScanPage) => p.structures.filter(s => s.review_status === 'removed').length;
   const flagCount = (p: ScanPage) => visibleStructures(p).filter(s => s.verification_flags?.length > 0).length;
+
+  const handleCrop = async (s: ScanStructure) => {
+    if (!active || !s.bbox) return;
+    setCropping(s.id);
+    setCropResult(null);
+    try {
+      const r = await previewCrop(active.id, s.id, s.bbox, POOL_FOR_TYPE[s.structure_type] || 'snapshot');
+      setCropResult({ id: s.id, ...r } as any);
+    } finally {
+      setCropping(null);
+    }
+  };
+
+  // Drag-handle editing: pointer deltas are normalized against the rendered
+  // image wrapper; corners resize, the body moves.
+  const beginDrag = (e: React.PointerEvent, corner: string) => {
+    if (!editBbox || !imgWrapRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const wrap = imgWrapRef.current.getBoundingClientRect();
+    const [x, y, w, h] = editBbox.bbox;
+    const start = { px: e.clientX, py: e.clientY, x, y, w, h };
+    const move = (ev: PointerEvent) => {
+      const dx = (ev.clientX - start.px) / wrap.width;
+      const dy = (ev.clientY - start.py) / wrap.height;
+      let { x: nx, y: ny, w: nw, h: nh } = start;
+      if (corner === 'move') { nx = Math.max(0, Math.min(1 - nw, start.x + dx)); ny = Math.max(0, Math.min(1 - nh, start.y + dy)); }
+      else {
+        if (corner.includes('w')) { nx = Math.max(0, start.x + dx); nw = Math.min(1 - nx, start.w - dx); }
+        if (corner.includes('e')) { nw = Math.min(1 - start.x, start.w + dx); }
+        if (corner.includes('n')) { ny = Math.max(0, start.y + dy); nh = Math.min(1 - ny, start.h - dy); }
+        if (corner.includes('s')) { nh = Math.min(1 - start.y, start.h + dy); }
+      }
+      nw = Math.max(0.02, nw); nh = Math.max(0.02, nh);
+      setEditBbox({ id: editBbox.id, bbox: [nx, ny, nw, nh] });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  const saveBbox = async () => {
+    if (!editBbox) return;
+    const ok = await updateBbox(editBbox.id, editBbox.bbox.map(v => Math.round(v * 10000) / 10000));
+    if (ok !== false) { toast.success('Crop area updated.'); setEditBbox(null); }
+  };
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -259,11 +327,39 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
         <div className="w-2/5 p-4 bg-slate-100 border-r border-slate-200 flex flex-col">
           <div className="flex-1 bg-white p-3 shadow-md rounded-xl flex items-center justify-center border border-slate-200 relative overflow-hidden min-h-0">
             {active?.public_url ? (
-              <img src={active.public_url} alt="page" className="max-w-full max-h-full object-contain" />
+              <div ref={imgWrapRef} className="relative inline-block max-w-full max-h-full leading-none">
+                <img src={active.public_url} alt="page" className="max-w-full max-h-full object-contain select-none" draggable={false} />
+                {/* All structure boxes (hover context) */}
+                {!editBbox && active.structures.filter(s => s.review_status !== 'removed' && s.bbox).map(s => (
+                  <div key={s.id} className="absolute border border-emerald-400/60 pointer-events-none" title={(TYPE_STYLES[s.structure_type] || { label: s.structure_type }).label}
+                    style={{ left: `${s.bbox![0] * 100}%`, top: `${s.bbox![1] * 100}%`, width: `${s.bbox![2] * 100}%`, height: `${s.bbox![3] * 100}%` }} />
+                ))}
+                {/* ✎ editable draft box with corner handles */}
+                {editBbox && (
+                  <div className="absolute border-2 border-blue-500 bg-blue-500/10 cursor-move"
+                    style={{ left: `${editBbox.bbox[0] * 100}%`, top: `${editBbox.bbox[1] * 100}%`, width: `${editBbox.bbox[2] * 100}%`, height: `${editBbox.bbox[3] * 100}%` }}
+                    onPointerDown={(e) => beginDrag(e, 'move')}>
+                    {[['nw', 0, 0], ['ne', 1, 0], ['sw', 0, 1], ['se', 1, 1]].map(([c, ex, ey]) => (
+                      <div key={c as string} className="absolute w-3.5 h-3.5 bg-white border-2 border-blue-500 rounded-full"
+                        style={{ left: ex ? '100%' : '0', top: ey ? '100%' : '0', transform: 'translate(-50%, -50%)', cursor: `${c}-resize` }}
+                        onPointerDown={(e) => beginDrag(e, c as string)} />
+                    ))}
+                    <div className="absolute -top-8 left-0 flex gap-1">
+                      <button onClick={saveBbox} className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded shadow">Save area</button>
+                      <button onClick={() => setEditBbox(null)} className="px-2 py-1 bg-white text-slate-600 text-xs font-bold rounded shadow border">Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="text-slate-400 flex flex-col items-center gap-2"><FileImage size={40} className="opacity-50" /><span>Page preview</span></div>
             )}
           </div>
+          {editBbox && (
+            <div className="mt-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">
+              Drag the box or its corners to fix the crop area, then Save. Crop boxes feed the book's original artwork into games and flashcards.
+            </div>
+          )}
           {active && (
             <div className="mt-3 text-xs text-slate-500 space-y-1">
               {active.printed_unit_label && (
@@ -311,6 +407,25 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
                           )}
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                          {s.bbox && (
+                            <>
+                              <button
+                                onClick={() => handleCrop(s)}
+                                disabled={cropping === s.id}
+                                className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded disabled:opacity-50"
+                                title="Preview the book-art crop for this structure"
+                              >
+                                {cropping === s.id ? <Loader2 size={15} className="animate-spin" /> : <Crop size={15} />}
+                              </button>
+                              <button
+                                onClick={() => setEditBbox({ id: s.id, bbox: [...s.bbox!] })}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                title="Adjust the crop area"
+                              >
+                                <Pencil size={15} />
+                              </button>
+                            </>
+                          )}
                           <button
                             onClick={() => removeStructure(s.id)}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
@@ -321,6 +436,9 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
                         </div>
                       </div>
                       <StructureBody s={s} />
+                      {cropResult?.id === s.id && (cropResult.url
+                        ? <img src={cropResult.url} alt="book crop" className="mt-2 max-h-32 rounded border border-emerald-200" />
+                        : <div className="mt-2 text-xs text-amber-700">{cropResult.flagged || cropResult.error}</div>)}
                     </div>
                   );
                 })}

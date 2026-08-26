@@ -3,6 +3,7 @@ import { supabase } from '../services/supabaseClient';
 import { toast } from 'sonner';
 import { createClientLogger } from '../services/logger';
 import { rasterizePdf, isPdfFile, type RasterizedPage } from '../services/pdfRasterize';
+import { assessImageQuality } from '../services/imageQuality';
 import type { StructureType } from '../types/pipeline';
 
 const log = createClientLogger('useBookScan');
@@ -114,7 +115,8 @@ export function useBookScan(unitId: string | null) {
 
   /**
    * Rasterize PDFs, upload every page, scan in parallel (bounded), then
-   * reload the server-side page list.
+   * reload the server-side page list. Photos run through the intake quality
+   * gate first — warnings surface as toasts, never as blocks.
    */
   const scanFiles = useCallback(async (files: File[]) => {
     if (!unitId || files.length === 0) return;
@@ -123,24 +125,35 @@ export function useBookScan(unitId: string | null) {
       // Expand: PDFs → pages; images pass through.
       const entries: { blob: Blob; width: number; height: number; name: string; pageNumber: number; order: number }[] = [];
       let order = pages.length;
-      for (const file of files) {
-        if (isPdfFile(file)) {
-          toast.info(`Splitting ${file.name} into pages…`);
-          let rasterized: RasterizedPage[];
-          try {
-            rasterized = await rasterizePdf(file);
-          } catch (err: any) {
-            toast.error(`Could not split ${file.name}: ${err?.message || err}`);
-            continue;
-          }
-          for (const p of rasterized) {
-            entries.push({ blob: p.blob, width: p.width, height: p.height, name: `p${p.pageNumber}.jpg`, pageNumber: p.pageNumber, order: order++ });
-          }
-        } else {
+      const photoFiles = files.filter(f => !isPdfFile(f));
+      const qualityWarnings: string[] = [];
+      for (const file of photoFiles) {
+        try {
+          const q = await assessImageQuality(file);
+          qualityWarnings.push(...q.warnings.map(w => `${file.name}: ${w}`));
+          entries.push({ blob: file, width: q.width, height: q.height, name: file.name, pageNumber: 0, order: order++ });
+        } catch {
           const dims = await imageDims(file).catch(() => ({ width: 0, height: 0 }));
-          entries.push({ blob: file, width: dims.width, height: dims.height, name: file.name, pageNumber: 0, order: order++ });
+          entries.push({ blob: file, ...dims, name: file.name, pageNumber: 0, order: order++ });
         }
       }
+      for (const file of files) {
+        if (!isPdfFile(file)) continue;
+        toast.info(`Splitting ${file.name} into pages…`);
+        let rasterized: RasterizedPage[];
+        try {
+          rasterized = await rasterizePdf(file);
+        } catch (err: any) {
+          toast.error(`Could not split ${file.name}: ${err?.message || err}`);
+          continue;
+        }
+        for (const p of rasterized) {
+          entries.push({ blob: p.blob, width: p.width, height: p.height, name: `p${p.pageNumber}.jpg`, pageNumber: p.pageNumber, order: order++ });
+        }
+      }
+      // Surface at most the first few warnings (retake prompt, non-blocking).
+      for (const w of qualityWarnings.slice(0, 3)) toast.warning(w);
+      if (qualityWarnings.length > 3) toast.warning(`…and ${qualityWarnings.length - 3} more pages with quality notes.`);
 
       const results = await mapWithConcurrency(entries, 2, (e) => scanOne(unitId, e));
       const failed = results.filter(r => !r.ok);
@@ -239,10 +252,33 @@ export function useBookScan(unitId: string | null) {
     return true;
   }, [unitId, pages, loadPages]);
 
+  /** ✎ — teacher-adjusted bbox (crop handles); marks the structure edited. */
+  const updateBbox = useCallback(async (structureId: string, bbox: number[]) => {
+    const { error } = await supabase
+      .from('page_structures')
+      .update({ bbox, review_status: 'edited' })
+      .eq('id', structureId);
+    if (error) { toast.error(error.message); return false; }
+    await loadPages();
+    return true;
+  }, [loadPages]);
+
+  /** Preview a deterministic crop for a structure (P3 geometry layer). */
+  const previewCrop = useCallback(async (pageId: string, structureId: string, bbox: number[], pool: string) => {
+    const { data, error } = await supabase.functions.invoke('generate-media', {
+      body: { action: 'crop-book-image', pageId, structureId, bbox, pool },
+    });
+    if (error) return { error: error.message };
+    if (data?.flagged === 'low_resolution') return { flagged: true, message: data.message };
+    if (!data?.url) return { error: data?.error || 'Crop failed' };
+    return { url: data.url as string };
+  }, []);
+
   return {
     pages, scanning, loading,
     loadPages, scanFiles, retryScan,
     removeStructure, restoreStructure, addStructure, confirmBatch,
+    updateBbox, previewCrop,
   };
 }
 

@@ -7,6 +7,7 @@ import { useSession } from '../../store/SessionContext';
 import { Engine } from '../../services/SupabaseService';
 import type { Book, UnitPipelineMeta } from '../../services/BookService';
 import { backfillPools } from '../../services/ExercisePoolService';
+import { supabase } from '../../services/supabaseClient';
 import { toast } from 'sonner';
 
 interface UnitListProps {
@@ -61,6 +62,9 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const [unitToTrash, setUnitToTrash] = useState<any | null>(null);
   const [bookToTrash, setBookToTrash] = useState<Book | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // FIXPLAN_F P4.3 — Rebuild-from-pages dialog state.
+  const [rebuildUnit, setRebuildUnit] = useState<any | null>(null);
+  const [rebuildRunning, setRebuildRunning] = useState(false);
 
   // ── Book manager state ───────────────────────────────────────────────────
   const [tab, setTab] = useState<'library' | 'trash'>('library');
@@ -139,6 +143,39 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
       .filter(u => Array.isArray(u.flow) && u.flow.length > 0 && (pipelineMeta[u.id]?.poolCount ?? 0) === 0)
       .map(u => u.id);
   }, [state.units, pipelineMeta]);
+
+  // FIXPLAN_F P4.3 — Rebuild a legacy unit from its stored page images via
+  // the book-fidelity pipeline (resumable job; polls generation_jobs).
+  const handleRebuild = async (mode: 'fresh' | 'preserve') => {
+    if (!rebuildUnit || rebuildRunning) return;
+    setRebuildRunning(true);
+    const unitId = rebuildUnit.id;
+    try {
+      const { data, error } = await supabase.functions.invoke('rebuild-unit', { body: { unitId, mode } });
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || 'Rebuild failed to start');
+      toast.info(`Rebuilding "${rebuildUnit.title}" from its pages… (each page is re-scanned; this can take a few minutes)`);
+      setRebuildUnit(null);
+      // Poll the job until it settles (rebuild-unit chains itself).
+      const deadline = Date.now() + 30 * 60 * 1000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 5000));
+        const { data: job } = await supabase
+          .from('generation_jobs')
+          .select('status, error')
+          .eq('unit_id', unitId)
+          .eq('stage', 'rebuild-unit')
+          .maybeSingle();
+        if (job?.status === 'succeeded') { toast.success(`Rebuild complete — open the unit to review and re-enrich.`); return; }
+        if (job?.status === 'failed') { toast.error(`Rebuild failed: ${job.error || 'unknown error'}`); return; }
+      }
+      toast.warning('Rebuild is still running in the background — check back in a few minutes.');
+    } catch (err: any) {
+      toast.error(`Rebuild error: ${err?.message || err}`);
+    } finally {
+      setRebuildRunning(false);
+    }
+  };
 
   const handleBackfillPools = async () => {
     if (backfillState.running || missingPoolUnitIds.length === 0) return;
@@ -414,6 +451,10 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                     <button onClick={(e) => { e.stopPropagation(); setMovingUnit(unit); setMenuOpenFor(null); }}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                       <FolderInput size={14} /> Move to book…
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setRebuildUnit(unit); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <RotateCcw size={14} /> Rebuild from pages
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setUnitToTrash(unit); }}
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
@@ -876,6 +917,60 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
               <div className="px-6 pb-6">
                 <button onClick={() => setShowNewUnitModal(false)} className="w-full py-2 text-slate-500 font-medium hover:text-slate-700">
                   Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rebuild-from-pages mode dialog (FIXPLAN_F P4) */}
+      <AnimatePresence>
+        {rebuildUnit && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => !rebuildRunning && setRebuildUnit(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                  <RotateCcw size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-slate-800">Rebuild “{rebuildUnit.title}” from its pages?</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Every stored page image is re-scanned and transcribed exactly as printed (verbatim, no quotas).
+                    This runs in the background and can take a few minutes.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-3 mt-5">
+                <button onClick={() => handleRebuild('fresh')} disabled={rebuildRunning}
+                  className="text-left p-4 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 disabled:opacity-50">
+                  <div className="font-bold text-slate-800 text-sm">Fresh rebuild</div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Start clean: the current AI-generated content is archived (recoverable), and the unit re-enriches
+                    purely from what the pages actually contain.
+                  </div>
+                </button>
+                <button onClick={() => handleRebuild('preserve')} disabled={rebuildRunning}
+                  className="text-left p-4 rounded-xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/50 disabled:opacity-50">
+                  <div className="font-bold text-slate-800 text-sm">Preserve matched edits</div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Keep content you already edited or approved; only gaps are filled from the pages
+                    (matched by word / rule / line).
+                  </div>
+                </button>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button onClick={() => setRebuildUnit(null)} disabled={rebuildRunning}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+                  {rebuildRunning ? 'Starting…' : 'Cancel'}
                 </button>
               </div>
             </motion.div>

@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
+import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import {
   canonicalSpeechHash,
   detectLang,
@@ -163,8 +165,95 @@ serve(async (req) => {
         };
       }
 
+      case 'crop-book-image': {
+        // FIXPLAN_F P3.2 — the geometry layer's cropper. Deterministic crop
+        // of a stored page image by normalized bbox, written to the
+        // materials bucket as an assets row (kind 'book_extract') with full
+        // provenance (page → structure → bbox → pool). Crops below the
+        // LiveBoard-zoom floor are flagged, never written.
+        //   { pageId, structureId?, bbox: [x,y,w,h], pool, paddingPx? }
+        const pageId = String(body.pageId || '');
+        const structureId = body.structureId ? String(body.structureId) : null;
+        const pool = String(body.pool || 'snapshot');
+        const bboxRaw = body.bbox;
+        if (!pageId || !Array.isArray(bboxRaw) || bboxRaw.length !== 4 || !bboxRaw.every((n: any) => typeof n === 'number' && Number.isFinite(n))) {
+          throw new Error('crop-book-image requires pageId and bbox [x,y,w,h] (normalized)');
+        }
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        if (!supabaseUrl || !serviceKey) throw new Error('Service credentials not configured');
+        const sb = createClient(supabaseUrl, serviceKey);
+
+        const { data: page, error: pageErr } = await sb
+          .from('book_pages')
+          .select('id, unit_id, book_id, teacher_id, public_url, width, height')
+          .eq('id', pageId).single();
+        if (pageErr || !page) throw new Error('Page not found');
+        if (page.teacher_id && page.teacher_id !== _auth?.userId && _auth?.role !== 'admin') {
+          throw new Error('You do not own this page');
+        }
+
+        // Deterministic dedupe key — identical (page, structure, box, pool)
+        // crops resolve to the same asset.
+        const key = `crop:${pageId}:${structureId || 'manual'}:${bboxRaw.map((n: number) => n.toFixed(4)).join(',')}:${pool}`;
+        const encoder = new TextEncoder();
+        const hashBytes = await crypto.subtle.digest('SHA-256', encoder.encode(key));
+        const promptHash = [...new Uint8Array(hashBytes)].map(b => b.toString(16).padStart(2, '0')).join('');
+        const { data: cached } = await sb.from('assets').select('id, public_url').eq('prompt_hash', promptHash).eq('type', 'image').limit(1);
+        if (cached && cached.length > 0 && cached[0].public_url) {
+          return { url: cached[0].public_url, asset_id: cached[0].id, pool, cached: true };
+        }
+
+        const imgResp = await fetch(page.public_url, { signal: AbortSignal.timeout(20000) });
+        if (!imgResp.ok) throw new Error(`Could not fetch the page image (${imgResp.status})`);
+        const image = await Image.decode(new Uint8Array(await imgResp.arrayBuffer()));
+
+        const [nx, ny, nw, nh] = bboxRaw as number[];
+        const pad = typeof body.paddingPx === 'number' ? body.paddingPx : Math.round(Math.max(image.width, image.height) * 0.02);
+        let x = Math.round(nx * image.width) - pad;
+        let y = Math.round(ny * image.height) - pad;
+        let w = Math.round(nw * image.width) + pad * 2;
+        let h = Math.round(nh * image.height) + pad * 2;
+        x = Math.max(0, x); y = Math.max(0, y);
+        w = Math.min(image.width - x, w); h = Math.min(image.height - y, h);
+        if (w < 200 || h < 200) {
+          return { flagged: 'low_resolution', width: w, height: h, message: 'Crop is below the 200px usability floor; consider AI generation for this item.' };
+        }
+
+        const cropped = image.crop(x, y, w, h);
+        const jpeg = await cropped.encodeJPEG(85);
+        const storagePath = `crops/${pageId}/${pool}-${structureId || 'manual'}-${Date.now()}.jpg`;
+        const { error: upErr } = await sb.storage.from('materials').upload(storagePath, new Uint8Array(jpeg), { contentType: 'image/jpeg' });
+        if (upErr) throw new Error(`Crop upload failed: ${upErr.message}`);
+        const { data: urlData } = sb.storage.from('materials').getPublicUrl(storagePath);
+
+        const { data: assetRow, error: assetErr } = await sb.from('assets').insert({
+          unit_id: page.unit_id,
+          owner_id: page.teacher_id,
+          book_id: page.book_id,
+          type: 'image',
+          kind: 'book_extract',
+          prompt: key,
+          prompt_hash: promptHash,
+          storage_path: storagePath,
+          public_url: urlData.publicUrl,
+          source_url: page.public_url,
+          metadata: { page_id: pageId, structure_id: structureId, bbox: bboxRaw, pool, crop: { x, y, w, h } },
+        }).select('id').single();
+        if (assetErr) throw new Error(`Asset insert failed: ${assetErr.message}`);
+
+        if (page.unit_id) {
+          await sb.from('unit_media').upsert(
+            { unit_id: page.unit_id, asset_id: assetRow.id, role: pool },
+            { onConflict: 'unit_id,asset_id,role' },
+          ).then(() => undefined, () => undefined);
+        }
+
+        return { url: urlData.publicUrl, asset_id: assetRow.id, pool, width: cropped.width, height: cropped.height };
+      }
+
       default:
-        throw new Error(`Unknown action: ${action}. Valid actions: generate-image, generate-audio, resolve-speech, resolve-speech-batch, batch, youtube-search`);
+        throw new Error(`Unknown action: ${action}. Valid actions: generate-image, generate-audio, resolve-speech, resolve-speech-batch, batch, youtube-search, crop-book-image`);
     }
   });
 });
