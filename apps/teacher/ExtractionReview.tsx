@@ -274,8 +274,10 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
         <div>
           <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review extracted content</h2>
           <p className="text-sm text-slate-500">
-            {pages.length} page{pages.length === 1 ? '' : 's'} · everything below was transcribed from your book.
-            Remove anything wrong, add anything missed, then confirm.
+            {scanning
+              ? `Scanning your pages — this can take 1–3 minutes per page on busy pages. Keep this tab open…`
+              : `${pages.length} page${pages.length === 1 ? '' : 's'} · everything below was transcribed from your book.
+                 Remove anything wrong, add anything missed, then confirm.`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -309,14 +311,17 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
                 onClick={() => setActiveId(p.id)}
                 className={`w-full text-left p-2.5 rounded-lg border transition-colors ${active?.id === p.id ? 'bg-white border-blue-400 shadow-sm' : 'border-transparent hover:bg-slate-100'}`}
               >
-                <div className="text-sm font-bold text-slate-700">
+                <div className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
                   {p.printed_page_number ? `Page ${p.printed_page_number}` : `Sheet ${p.upload_order + 1}`}
-                  {p.status === 'failed' && <span className="ml-2 text-red-500 text-xs">failed</span>}
+                  {(p.status === 'pending' || p.status === 'scanning') && (
+                    <span className="text-amber-600 flex items-center gap-1 text-xs font-medium"><Loader2 size={11} className="animate-spin" /> scanning</span>
+                  )}
+                  {p.status === 'failed' && <span className="ml-1 text-red-500 text-xs">failed</span>}
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">
-                  {visibleStructures(p).length} structures
-                  {removedCount(p) > 0 && ` · ${removedCount(p)} removed`}
-                  {flagCount(p) > 0 && <span className="text-amber-600"> · {flagCount(p)} to check</span>}
+                  {p.status === 'pending' || p.status === 'scanning'
+                    ? 'reading the page…'
+                    : `${visibleStructures(p).length} structures${removedCount(p) > 0 ? ` · ${removedCount(p)} removed` : ''}${flagCount(p) > 0 ? <span className="text-amber-600">{` · ${flagCount(p)} to check`}</span> : ''}`}
                 </div>
               </button>
             ))}

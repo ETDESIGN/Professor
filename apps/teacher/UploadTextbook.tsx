@@ -118,7 +118,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
 
       const unitId = await ensureDraftUnit();
       if (!unitId) return;
-      await scanFiles(newFiles);
+      await scanFiles(unitId, newFiles);
 
       // Default the unit title to the opener's printed title when the book
       // provides one (doc 10 §5; teacher can rename anytime).

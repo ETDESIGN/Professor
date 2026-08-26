@@ -117,10 +117,28 @@ export function useBookScan(unitId: string | null) {
    * Rasterize PDFs, upload every page, scan in parallel (bounded), then
    * reload the server-side page list. Photos run through the intake quality
    * gate first — warnings surface as toasts, never as blocks.
+   *
+   * AUDIT FIX (2026-08-26): accepts an explicit unitId — the first pick
+   * after page load used the hook's stale closure (unitId still null) and
+   * silently skipped the scan, forcing a second pick. Also refreshes after
+   * EVERY page settles so the review screen shows progress instead of a
+   * frozen "0 pages" for the multi-minute scan window.
    */
-  const scanFiles = useCallback(async (files: File[]) => {
-    if (!unitId || files.length === 0) return;
+  const scanFiles = useCallback(async (explicitUnitId: string | null, files: File[]) => {
+    const unit = explicitUnitId || unitId;
+    if (!unit || files.length === 0) return;
     setScanning(true);
+    // Optimistic placeholders so the sidebar reflects work immediately.
+    setPages(prev => {
+      let order = prev.length;
+      const placeholders = files.flatMap(f => (isPdfFile(f) ? [{ key: `${f.name}-pdf` }] : [{ key: f.name }]))
+        .map(p => ({
+          id: `pending-${p.key}-${order}`,
+          public_url: '', printed_page_number: null, printed_unit_label: null, printed_title: null,
+          upload_order: order++, pdf_page_number: null, status: 'pending' as const, error: null, structures: [],
+        }));
+      return [...prev, ...placeholders];
+    });
     try {
       // Expand: PDFs → pages; images pass through.
       const entries: { blob: Blob; width: number; height: number; name: string; pageNumber: number; order: number }[] = [];
@@ -155,7 +173,19 @@ export function useBookScan(unitId: string | null) {
       for (const w of qualityWarnings.slice(0, 3)) toast.warning(w);
       if (qualityWarnings.length > 3) toast.warning(`…and ${qualityWarnings.length - 3} more pages with quality notes.`);
 
-      const results = await mapWithConcurrency(entries, 2, (e) => scanOne(unitId, e));
+      let done = 0;
+      const results = await mapWithConcurrency(entries, 2, async (e) => {
+        const r = await scanOne(unit, e);
+        done++;
+        // Refresh after every settled page — live progress, never a frozen
+        // empty screen during the 1-3 min a dense page can take.
+        loadPages().catch(() => undefined);
+        if (done % 2 === 0 || done === entries.length) {
+          setPages(prev => prev.filter(p => !String(p.id).startsWith('pending-')));
+        }
+        return r;
+      });
+
       const failed = results.filter(r => !r.ok);
       await loadPages();
       if (failed.length === results.length && results.length > 0) {
