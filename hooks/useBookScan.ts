@@ -202,10 +202,22 @@ export function useBookScan(unitId: string | null) {
           setErrors(prev => [...prev, msg]);
           continue;
         }
+        toast.success(`${file.name}: split into ${rasterized.length} pages — uploading…`);
         for (const p of rasterized) {
           entries.push({ blob: p.blob, width: p.width, height: p.height, name: `p${p.pageNumber}.jpg`, pageNumber: p.pageNumber, order: order++ });
         }
       }
+      // One sidebar row per page (replaces the per-FILE placeholders above)
+      // so a 26-page PDF shows 26 rows filling in live.
+      setPages(prev => [
+        ...prev.filter(p => !String(p.id).startsWith('pending-')),
+        ...entries.map(e => ({
+          id: `pending-${e.order}-${e.name}`,
+          public_url: '', printed_page_number: null, printed_unit_label: null, printed_title: null,
+          upload_order: e.order, pdf_page_number: e.pageNumber || null,
+          status: 'pending' as const, error: null, structures: [],
+        })),
+      ]);
       // Surface at most the first few warnings (retake prompt, non-blocking).
       for (const w of qualityWarnings.slice(0, 3)) toast.warning(w);
       if (qualityWarnings.length > 3) toast.warning(`…and ${qualityWarnings.length - 3} more pages with quality notes.`);
@@ -214,10 +226,11 @@ export function useBookScan(unitId: string | null) {
       const results = await mapWithConcurrency(entries, 2, async (e) => {
         const r = await scanOne(unit, e);
         done++;
-        // Refresh after every settled page — live progress, never a frozen
-        // empty screen during the 1-3 min a dense page can take.
-        loadPages().catch(() => undefined);
-        if (done % 2 === 0 || done === entries.length) {
+        // Refresh after every settled page. AWAIT the refresh before dropping
+        // placeholders so the sidebar never flashes empty in the gap between
+        // the filter and the server rows arriving (audit 2026-08-26).
+        await loadPages().catch(() => undefined);
+        if (done % 3 === 0 || done === entries.length) {
           setPages(prev => prev.filter(p => !String(p.id).startsWith('pending-')));
         }
         return r;
