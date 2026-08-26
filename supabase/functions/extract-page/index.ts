@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PROMPTS } from '../_shared/prompts/index.ts';
 import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 import { fetchChatCompletion } from '../_shared/ai.ts';
+import { resolveImageDataUrl } from '../_shared/imageInput.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -31,38 +32,20 @@ serve(async (req) => {
     const aiApiKey = Deno.env.get('AI_API_KEY');
 
     if (!aiApiKey) {
+      // Honest failure (FIXPLAN_F P0.3 / R6): a placeholder "success" here
+      // used to be ingested downstream as real page text.
       return {
-        success: true,
-        url: inputUrl,
-        metadata: {
-          extractedText: 'Text extraction requires AI configuration.',
-          pageCount: 1,
-          language: 'en',
-        },
+        success: false,
+        error: 'Text extraction is not configured (missing AI_API_KEY). Please contact the administrator.',
       };
     }
 
     const prompt = PROMPTS.extraction;
 
-    // Resolve the image to a model-readable form. If a URL is given, fetch it
-    // server-side and re-encode as base64 — this guarantees the VL model can
-    // actually READ the bytes (a private/non-public storage URL the model can't
-    // fetch is the usual cause of "Cannot read image" even on a VL model).
-    let imageDataUrl = imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : '';
-    if (!imageDataUrl && inputUrl) {
-      try {
-        const imgResp = await fetch(inputUrl, { signal: AbortSignal.timeout(20000) });
-        if (imgResp.ok) {
-          const buf = await imgResp.arrayBuffer();
-          const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-          const ct = imgResp.headers.get('content-type') || 'image/jpeg';
-          imageDataUrl = `data:${ct};base64,${b64}`;
-        }
-      } catch {
-        /* fall back to the raw URL below */
-      }
-    }
-    const finalImage = imageDataUrl || inputUrl;
+    // Resolve the image to a model-readable form (shared util; falls back to
+    // the raw URL when the bytes cannot be fetched).
+    const image = await resolveImageDataUrl({ imageBase64, url: inputUrl });
+    const finalImage = image.finalUrl;
 
     const messages: any[] = [
       { role: 'system', content: prompt.systemPrompt },
@@ -128,15 +111,13 @@ serve(async (req) => {
     }
 
     if (!aiContent) {
+      // Honest failure (FIXPLAN_F P0.3 / R6): the old placeholder text
+      // ("Text extraction unavailable…") was persisted into
+      // units.scanned_assets and ingested by enrich-unit as real page text.
       return {
-        success: true,
+        success: false,
         url: inputUrl,
-        metadata: {
-          extractedText: `Text extraction unavailable (${lastError}). Please try again later.`,
-          pageCount: 1,
-          language: 'en',
-          _debug: lastError,
-        },
+        error: `Text extraction failed: ${lastError}. Please try again (Re-extract).`,
       };
     }
 

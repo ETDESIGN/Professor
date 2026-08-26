@@ -3,7 +3,6 @@ import { UploadCloud, Check, X, ArrowRight, Loader2, FileText, Trash2, Plus, Ale
 import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { useSession } from '../../store/SessionContext';
-import { AIService } from '../../services/AIService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getOrCreateDefaultBookForCurrentUser, listBooks, createBook, Book } from '../../services/BookService';
@@ -11,6 +10,23 @@ import { createClientLogger } from '../../services/logger';
 import AssetWorkshop from './AssetWorkshop';
 
 const log = createClientLogger('UploadTextbook');
+
+// Run fn over items with at most `limit` in flight, preserving input order in
+// the results. extract-page rate-limits 15 req/60s per user; three concurrent
+// vision calls (~20-40s each) stay well under it.
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+   const results: R[] = new Array(items.length);
+   let next = 0;
+   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (true) {
+         const i = next++;
+         if (i >= items.length) break;
+         results[i] = await fn(items[i], i);
+      }
+   });
+   await Promise.all(workers);
+   return results;
+}
 
 // Mock components to represent the Workspace
 const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, onUploadClick, isExtracting }: any) => (
@@ -37,9 +53,11 @@ const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, o
                      <h4 className="text-sm font-bold text-slate-700 truncate">{file.name}</h4>
                      <div className="flex items-center gap-1 text-xs font-bold mt-1">
                         {scan && scan.status === 'success' ? (
-                           <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data?.page_type || scan.data?.metadata?.extractedText?.slice(0, 20) || 'Page'} Extracted</span>
+                           <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data?.metadata?.extractedText?.slice(0, 20) || 'Page'} Extracted</span>
                         ) : scan && scan.status === 'scanning' ? (
                            <span className="text-amber-500 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Scanning...</span>
+                        ) : scan && scan.status === 'error' ? (
+                           <span className="text-red-500 flex items-center gap-1"><AlertTriangle size={12} /> Failed</span>
                         ) : (
                            <span className="text-slate-400">Ready</span>
                         )}
@@ -255,6 +273,17 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       }
    };
 
+   // Null only manifest.enriched_content (keep meta / knowledge_graph
+   // projections) so a re-enrich starts clean without wiping the rest of
+   // the manifest. The old blanket `manifest: null` destroyed unit meta
+   // that had nothing to do with enrichment freshness.
+   const clearEnrichedContent = async (unitId: string) => {
+      const { data: unit } = await supabase.from('units').select('manifest').eq('id', unitId).single();
+      const manifest = unit?.manifest ?? {};
+      if (manifest.enriched_content == null) return;
+      await supabase.from('units').update({ manifest: { ...manifest, enriched_content: null } }).eq('id', unitId);
+   };
+
    const handleApprove = async () => {
       if (!draftUnitId) {
          toast.error('No draft unit found. Upload a page first.');
@@ -265,8 +294,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          toast.error('No successfully extracted pages found.');
          return;
       }
-      // Clear stale manifest so AssetWorkshop does a fresh enrichment
-      await supabase.from('units').update({ manifest: null }).eq('id', draftUnitId);
+      // Clear stale enriched content so AssetWorkshop does a fresh enrichment
+      await clearEnrichedContent(draftUnitId);
       setShowWorkshop(true);
    };
 
@@ -288,7 +317,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             const { data: unit } = await supabase.from('units').select('scanned_assets').eq('id', draftUnitId).single();
             const assets = [...(unit?.scanned_assets || [])];
             assets[activeFileIndex] = data;
-            await supabase.from('units').update({ scanned_assets: assets, manifest: null }).eq('id', draftUnitId);
+            await supabase.from('units').update({ scanned_assets: assets }).eq('id', draftUnitId);
+            await clearEnrichedContent(draftUnitId);
          }
          toast.success('Page re-extracted with updated AI!');
       } catch (err: any) {
@@ -315,11 +345,14 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       }
    };
 
-   const processFileUpload = async (file: File, fileIndex: number, currentDraftId: string | null) => {
-      try {
-         setIsExtracting(true);
-         setScans(prev => ({ ...prev, [fileIndex]: { status: 'scanning' } }));
+   // ── Upload + extraction ─────────────────────────────────────────────────
+   // Pages upload/extract with bounded concurrency; the draft unit row is
+   // written ONCE per batch (single insert or single append). The old
+   // per-page read-modify-write of units.scanned_assets raced once pages
+   // were processed in parallel — batching the DB write removes the race.
 
+   const extractOneFile = async (file: File, fileIndex: number): Promise<{ ok: boolean; aiData?: any; error?: string }> => {
+      try {
          // 1. Upload to storage
          const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
          const { error: uploadError } = await supabase.storage.from('materials').upload(fileName, file);
@@ -328,58 +361,74 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          const { data: urlData } = supabase.storage.from('materials').getPublicUrl(fileName);
          const fileUrl = urlData.publicUrl;
 
-         setFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, fileUrl: fileUrl } : f));
+         setFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, fileUrl } : f));
 
-         // 2. Invoke extract-page Agent 1 Function
-         let aiData: any;
-         try {
-            const { data, error: aiError } = await supabase.functions.invoke('extract-page', {
-               body: { fileUrl, pageNumber: fileIndex + 1, ...(currentDraftId ? { unitId: currentDraftId } : {}) }
-            });
-            if (aiError) throw aiError;
-            aiData = data;
-            if (!aiData.success) throw new Error(aiData.error || "Unknown Edge Function error");
-         } catch (extractErr: any) {
-            const msg = extractErr?.message || String(extractErr);
-            const isDeployError = msg.includes('non-2xx') || msg.includes('500') || msg.includes('Edge Function');
-            if (isDeployError) {
-               // Fallback shape mirrors the real edge function response (flat, no wrapper key)
-               aiData = {
-                  success: true,
-                  url: fileUrl,
-                  metadata: { extractedText: 'Text extraction is being updated. Your file has been uploaded and will be processed shortly.', pageCount: 1, language: 'en' }
-               };
-               log.warn('extraction_fallback', { error: msg });
+         // 2. Invoke extract-page (vision OCR). Failures are surfaced
+         //    honestly as page errors — no placeholder "success".
+         const { data, error: aiError } = await supabase.functions.invoke('extract-page', {
+            body: { fileUrl, pageNumber: fileIndex + 1, ...(draftUnitId ? { unitId: draftUnitId } : {}) }
+         });
+         if (aiError) throw aiError;
+         if (!data?.success) throw new Error(data?.error || 'Extraction failed');
+         return { ok: true, aiData: data };
+      } catch (err: any) {
+         return { ok: false, error: err?.message || String(err) };
+      }
+   };
+
+   const processBatch = async (newFiles: File[], startIndex: number) => {
+      setIsExtracting(true);
+      setScans(prev => {
+         const next = { ...prev };
+         for (let i = 0; i < newFiles.length; i++) next[startIndex + i] = { status: 'scanning' };
+         return next;
+      });
+      try {
+         const results = await mapWithConcurrency(newFiles, 3, (file, i) => extractOneFile(file, startIndex + i));
+
+         const successes: any[] = [];
+         let failures = 0;
+         results.forEach((r, i) => {
+            if (r.ok) {
+               setScans(prev => ({ ...prev, [startIndex + i]: { status: 'success', data: r.aiData } }));
+               successes.push(r.aiData);
             } else {
-               throw extractErr;
+               failures++;
+               log.warn('extraction_error', { error: `${newFiles[i].name}: ${r.error}` });
+               setScans(prev => ({ ...prev, [startIndex + i]: { status: 'error', error: r.error } }));
             }
+         });
+
+         if (successes.length === 0) {
+            toast.error('Text extraction failed for all pages. Click a page to see its error, then use Re-extract.');
+            return;
          }
 
-         // The edge function returns { success, url, metadata } directly — no .extraction wrapper
-         setScans(prev => ({ ...prev, [fileIndex]: { status: 'success', data: aiData } }));
-
-         // 3. Save into draft
-         let activeUnitId = currentDraftId;
-         if (!activeUnitId) {
-            // Create draft unit if doesn't exist
-            // Stamp teacher_id at creation: NULL-owner units are rejected by
-            // generate-exercises (the strict ownership guard), which silently
-            // starves the exercise pool (Bug B1). Engine.createUnit already
-            // stamps teacher_id; the textbook-scan path must too.
+         if (draftUnitId) {
+            // Single append for the whole batch — no interleaved writes.
+            const { data: existingUnit, error: readError } = await supabase.from('units').select('scanned_assets').eq('id', draftUnitId).single();
+            if (readError) throw readError;
+            const { error: updateError } = await supabase.from('units').update({
+               scanned_assets: [...(existingUnit?.scanned_assets || []), ...successes] // flat response shape — no .extraction wrapper
+            }).eq('id', draftUnitId);
+            if (updateError) throw updateError;
+         } else {
+            // Create the draft unit once, with every successful page in file
+            // order. Stamp teacher_id at creation: NULL-owner units are
+            // rejected by generate-exercises (the strict ownership guard),
+            // which silently starves the exercise pool (Bug B1).
             const { data: { user } } = await supabase.auth.getUser();
             // Hard-block instead of `?? null`: a lost session silently created
             // NULL-owner units that the generation pipeline rejects (Bug B1).
             if (!user) {
                throw new Error('Your session expired — please sign in again before uploading.');
             }
-            // Phase 0B: every unit belongs to a book (characters are book-level
-            // per L1; vault scopes per-book). Non-fatal if it fails.
-            // Unit & Book Manager: honor the upload's book selector; fall back
-            // to the teacher's default book (previous behavior).
+            // Every unit belongs to a book (characters are book-level per L1;
+            // vault scopes per-book). Honor the upload's book selector; fall
+            // back to the teacher's default book.
             const targetBook = selectedBookId
                ? { id: selectedBookId }
                : await getOrCreateDefaultBookForCurrentUser();
-            // Append at the end of the target book's ordering.
             let nextOrderIndex = 0;
             if (targetBook?.id) {
                const { count } = await supabase
@@ -398,23 +447,30 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                teacher_id: user.id,
                book_id: targetBook?.id ?? null,
                order_index: nextOrderIndex,
-               scanned_assets: [aiData] // flat response shape — no .extraction wrapper
+               scanned_assets: successes
             }).select().single();
             if (createError) throw createError;
-            activeUnitId = newUnit.id;
-            setDraftUnitId(activeUnitId);
-         } else {
-            // Append to scanned_assets
-            const { data: existingUnit } = await supabase.from('units').select('scanned_assets').eq('id', activeUnitId).single();
-            const currentAssets = existingUnit?.scanned_assets || [];
-            await supabase.from('units').update({
-               scanned_assets: [...currentAssets, aiData] // flat response shape — no .extraction wrapper
-            }).eq('id', activeUnitId);
+            setDraftUnitId(newUnit.id);
          }
 
+         if (failures > 0) {
+            toast.error(`${failures} of ${newFiles.length} pages failed extraction — click a page to see its error, then use Re-extract.`);
+         } else {
+            toast.success(`${successes.length} page${successes.length === 1 ? '' : 's'} extracted.`);
+         }
       } catch (err: any) {
-         log.warn('extraction_error', { error: err?.message || String(err) });
-         setScans(prev => ({ ...prev, [fileIndex]: { status: 'error', error: err.message } }));
+         // Batch-level failure (storage/DB) — fail any still-scanning pages.
+         log.warn('extraction_batch_error', { error: err?.message || String(err) });
+         toast.error(err?.message || 'Upload failed.');
+         setScans(prev => {
+            const next = { ...prev };
+            for (let i = 0; i < newFiles.length; i++) {
+               if (next[startIndex + i]?.status === 'scanning') {
+                  next[startIndex + i] = { status: 'error', error: err?.message || 'Upload failed' };
+               }
+            }
+            return next;
+         });
       } finally {
          setIsExtracting(false);
       }
@@ -425,16 +481,13 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          const newFiles = Array.from(e.target.files);
          const startIndex = files.length;
 
-         const newFilesState = [...files, ...newFiles.map(f => ({ file: f, name: f.name, fileUrl: null }))];
-         setFiles(newFilesState);
+         setFiles([...files, ...newFiles.map(f => ({ file: f, name: f.name, fileUrl: null }))]);
 
          if (activeFileIndex === -1 && newFiles.length > 0) {
             setActiveFileIndex(startIndex);
          }
 
-         for (let i = 0; i < newFiles.length; i++) {
-            await processFileUpload(newFiles[i], startIndex + i, draftUnitId);
-         }
+         await processBatch(newFiles, startIndex);
       }
       if (fileInputRef.current) fileInputRef.current.value = '';
    };
