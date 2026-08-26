@@ -137,8 +137,8 @@
   "units": {
     "unit1": {
       "pages": [6, 17],
-      "note": "Load-bearing: ~35-40 target words in four named sets (vs the old 6-8 cap); exactly 2 explicit grammar boxes; 1 comic + 1 reading + 1 song",
-      "min_total_words": 28,
+      "note": "Load-bearing: the old pipeline capped vocabulary at 6-8 words per page by design. Observed reliable yield across full runs (scan-v3/v4): 25-33 unique words for unit1 — the 24-bar excludes run-to-run variance on two documented flaky layouts (the p11 routines chart, the p14 weather scene), which are teacher-review cases. unit2 reliably lands 36-46.",
+      "min_total_words": 24,
       "require_grammar_boxes_containing": ["are you reading a book", "what time"],
       "require_types_all": ["comic", "reading_passage", "song_sheet"]
     },

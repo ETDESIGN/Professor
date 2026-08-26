@@ -17,7 +17,7 @@ Detect these structure kinds:
 - vocab_set: ANY labelled word-picture pairing — lesson word sets under a "Vocabulary" header, the numbered word strips that accompany songs (words with little circled numbers are the song's target words — capture them all), word rows beside reading passages, labelled scenes (family members, colours, classroom objects), and routines/schedule charts (capture the ACTIVITY words shown with pictures — "go to school", "have lunch" — not the clock times). If words are shown with small pictures anywhere on the page, there is a vocab_set there.
 - comic: a sequence of story panels with speech bubbles
 - grammar_box: a boxed grammar rule, usually with example sentences
-- song_sheet: a song with lyrics (often numbered action lines with small illustrations). Song pages usually ALSO have a vocab_set word strip — detect BOTH.
+- song_sheet: a song or chant — lyrics in verses or numbered/lettered action lines, often with small illustrations. Songs may have NO explicit "song" label: a repeated-verse structure ("How often ... how often ...") or a rhyming chant with a play illustration IS a song_sheet. Song pages usually ALSO have a vocab_set word strip — detect BOTH.
 - reading_passage: a titled continuous story text, usually with scene illustrations and follow-up activities
 - printed_activity: a numbered instruction directing a task ("Listen and point.", "Match.", "Circle...") — detect EACH separate activity on the page
 - review_statements: "I can ..." self-assessment statements

@@ -159,8 +159,14 @@ async function main() {
     while (true) {
       const i = next++;
       if (i >= total) break;
-      results[i] = await scanPdfPage(pdfPages[i]);
-      const r = results[i];
+      let r = await scanPdfPage(pdfPages[i]);
+      // One retry for transient provider/platform failures (non-2xx kills,
+      // slow vision calls) — mirrors the teacher's per-page retry.
+      if (!r.ok) {
+        console.log(`  [${i + 1}/${total}] pdf p${r.pdfPage} failed (${r.error?.slice(0, 80)}) — retrying once…`);
+        r = await scanPdfPage(pdfPages[i]);
+      }
+      results[i] = r;
       console.log(`  [${i + 1}/${total}] pdf p${r.pdfPage} printed=${r.printed ?? '?'} ${r.ok ? `structures=${r.structures.length}` : `FAILED: ${r.error}`}`);
     }
   });

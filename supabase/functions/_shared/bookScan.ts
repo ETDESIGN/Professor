@@ -10,7 +10,7 @@
 //   * no quotas — nothing here imposes or implies counts
 //   * absence = absence — empty arrays are valid, complete answers
 
-export const EXTRACTOR_VERSION = 'scan-v3';
+export const EXTRACTOR_VERSION = 'scan-v4';
 
 /** Normalized [x, y, w, h], origin top-left, each in [0, 1] of the full page. */
 export type Bbox = [number, number, number, number];

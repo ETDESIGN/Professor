@@ -138,7 +138,11 @@ serve(async (req) => {
     const pageId = pageRow.id;
 
     const failPage = async (error: string) => {
-      await sb.from('book_pages').update({ status: 'failed', error }).eq('id', pageId);
+      // Best-effort status write — a failure here must not mask the original
+      // error with a 500 (the runner/teacher retry path depends on the
+      // honest success:false response).
+      await sb.from('book_pages').update({ status: 'failed', error }).eq('id', pageId)
+        .then(() => undefined, (e: any) => console.warn('scan-page: failure-status write failed:', e?.message || e));
       return { success: false, pageId, error };
     };
 
