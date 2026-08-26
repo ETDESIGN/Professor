@@ -33,7 +33,11 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
-   const { pages, scanning, errors, dismissErrors, scanFiles } = useBookScan(draftUnitId);
+   const { pages, scanning, errors, dismissErrors, scanFiles, ...scanStateRest } = useBookScan(draftUnitId);
+   // Single hook instance for the whole flow — ExtractionReview receives it
+   // via scanState so it shows LIVE progress (a second instance never
+   // refreshes; that was the invisible-success bug).
+   const scanState = { pages, scanning, errors, dismissErrors, scanFiles, ...scanStateRest };
 
    // ── Book selector (Unit & Book Manager): uploaded units land in the chosen
    //    book; empty selection = default book ("My Units"). ────────────────────
@@ -205,6 +209,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             <ExtractionReview
                unitId={draftUnitId}
                unitTitle={unitTitle || 'this unit'}
+               scanState={scanState}
                onConfirm={() => setShowWorkshop(true)}
             />
          ) : (

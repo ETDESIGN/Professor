@@ -14,6 +14,16 @@ interface ExtractionReviewProps {
   unitTitle: string;
   onConfirm: () => void;
   onBack?: () => void;
+  /**
+   * AUDIT FIX (2026-08-26): when the upload flow renders this screen, it
+   * MUST pass its own useBookScan instance here. A second instance would
+   * load the page list once — before any page exists — and never refresh,
+   * showing "0 pages / no structures" forever while the scans succeed
+   * invisibly in the parent's instance (the owner's exact symptom; E2E
+   * reproduced 6 pages + 24 structures behind a dead "0 pages" screen).
+   * The Studio overlay path passes nothing and uses its own instance.
+   */
+  scanState?: ReturnType<typeof useBookScan>;
 }
 
 const TYPE_STYLES: Record<string, { label: string; classes: string }> = {
@@ -186,8 +196,11 @@ const POOL_FOR_TYPE: Record<string, string> = {
   printed_activity: 'snapshot',
 };
 
-const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, onConfirm, onBack }) => {
-  const { pages, scanning, loading, errors, dismissErrors, removeStructure, restoreStructure, addStructure, confirmBatch, updateBbox, previewCrop } = useBookScan(unitId);
+const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, onConfirm, onBack, scanState }) => {
+  // Single source of truth: prefer the parent's instance (upload flow);
+  // the local instance only serves the standalone Studio overlay path.
+  const own = useBookScan(unitId);
+  const { pages, scanning, loading, errors, dismissErrors, removeStructure, restoreStructure, addStructure, confirmBatch, updateBbox, previewCrop } = scanState ?? own;
   const [activeId, setActiveId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   // ✎ bbox editor state (P3.4): editing structure + normalized draft box.
