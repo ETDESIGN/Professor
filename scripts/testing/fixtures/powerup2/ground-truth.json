@@ -1,0 +1,152 @@
+{
+  "book": "Power Up 2 Pupil's Book (Cambridge) — publisher sample",
+  "source": "doc 10 Appendix A (transcribed expectations; the PDF itself is never committed)",
+  "pdf_pages": 26,
+  "printed_range": [4, 29],
+  "matching": {
+    "key": "printed_page_number",
+    "note": "Physical PDF order is jumbled vs printed numbers. The runner maps scan results by the printed page number the model reads; pages whose printed number is fuzzy (marked ~ in Appendix A) are soft-matched by unit range.",
+    "word_normalization": "lowercase, trim, collapse whitespace, strip trailing punctuation"
+  },
+  "pages": {
+    "4": {
+      "note": "Welcome — Meet the family: family labels + listen-and-point",
+      "require_types_any": ["vocab_set"],
+      "require_words_any": ["grandpa", "jenny", "mum", "dad"],
+      "soft_types_any": ["printed_activity"]
+    },
+    "5": {
+      "note": "Welcome — Class Rules: chant + 10 colour words + name-card craft. Colours are soft: the words appear inside the chant text on this sample; the review UI's teacher-add path covers a missed strip.",
+      "require_types_any": ["vocab_set", "comic", "dialogue_sequence"],
+      "soft_words_any": ["red", "blue", "green", "black", "white", "orange", "purple", "brown", "pink", "yellow"]
+    },
+    "6": {
+      "note": "U1 opener/mission (daily-routine chart project); no drillable structures",
+      "require_types_any": ["mission_opener"]
+    },
+    "7": {
+      "note": "U1 VOCAB set Countryside (11 words) + listen/point/stick/say activities",
+      "require_types": ["vocab_set"],
+      "require_words_all": ["mountain", "lake", "river", "forest", "grass", "field", "tractor", "rock"],
+      "require_words_any": ["ground", "leaves", "leaf"],
+      "require_verbs_any": ["listen", "point"]
+    },
+    "8": {
+      "note": "U1 COMIC 6 panels; present continuous in context",
+      "require_types": ["comic"],
+      "comic_min_panels": 5
+    },
+    "9": {
+      "note": "U1 GRAMMAR BOX LP1",
+      "require_types": ["grammar_box"],
+      "require_text_contains": ["are you reading a book"]
+    },
+    "10": {
+      "note": "U1 SONG Wake up, get up + routines set (8 numbered words; the strip's coverage is reviewed by the teacher)",
+      "require_types_any": ["song_sheet"],
+      "require_song_title_contains": ["wake up"],
+      "require_words_all": ["wake up", "get up", "have a shower", "get dressed"],
+      "soft_words_any": ["toothpaste", "toothbrush", "towel", "have breakfast", "clean your teeth"]
+    },
+    "11": {
+      "note": "U1 GRAMMAR BOX LP2 What time…? + routines set + poster project. The routines chart is a hard layout (schedule with clock times) — grammar box is the hard bar; the strip's words are teacher-reviewable.",
+      "require_types": ["grammar_box"],
+      "require_text_contains": ["what time"],
+      "soft_words_any": ["go to school", "have lunch", "go to bed", "do your homework", "go home"]
+    },
+    "12": {
+      "note": "U1 READING story + prediction + comprehension MCQ. Reading vs CLIL typing is book-dependent (both carry passage_text identically) — accept either.",
+      "require_types_any": ["reading_passage", "clil_passage"]
+    },
+    "13": {
+      "note": "U1 Life Skills branching scenario",
+      "soft_types_any": ["reading_passage", "dialogue_sequence", "comic"]
+    },
+    "14": {
+      "note": "U1 CLIL Our World: weather set — the passage typing bar is hard; the strip's weather words are soft (this layout — words around an illustrated scene — is the residual teacher-review case)",
+      "require_types_any": ["clil_passage", "reading_passage", "vocab_set"],
+      "soft_words_any": ["summer", "winter", "sunny", "cloudy", "rainy", "windy", "snowy"]
+    },
+    "15": {
+      "note": "U1 Review: I can… statements + mixed exercises (review-page bubbles may surface as dialogues — doc 10 §5 maps them there)",
+      "require_types_any": ["review_statements", "dialogue_sequence", "comic"]
+    },
+    "16": {
+      "note": "U1 Exam prep: A1 Movers Speaking Pt 1 (describe picture, There is/are)",
+      "soft_types_any": ["printed_activity", "reading_passage", "vocab_set"]
+    },
+    "17": {
+      "note": "U1 Consolidation: project completion, closing text",
+      "soft_types_any": ["printed_activity", "mission_opener", "reading_passage", "dialogue_sequence"]
+    },
+    "18": {
+      "note": "U2 opener/mission + watch the video (likely spread with p19)",
+      "soft_types_any": ["mission_opener", "vocab_set"]
+    },
+    "19": {
+      "note": "U2 free-time/sports set (18-19 spread — days-of-week words on this physical page are equally valid book content)",
+      "require_types_any": ["vocab_set"],
+      "soft_words_any": ["ping pong", "badminton", "football", "basketball", "monday", "tuesday", "wednesday"]
+    },
+    "20": {
+      "note": "U2 COMIC drilling How often…? adverbs",
+      "require_types_any": ["comic"]
+    },
+    "21": {
+      "note": "U2 GRAMMAR BOX: How often do you clean your teeth? + always/often/sometimes/never",
+      "require_types": ["grammar_box"],
+      "require_text_contains": ["how often"]
+    },
+    "22": {
+      "note": "U2 SONG + free-time set",
+      "require_types_any": ["song_sheet"],
+      "require_words_all": ["listen to music", "read a comic", "go shopping"],
+      "require_words_any": ["write an email", "go skating", "watch films"]
+    },
+    "23": {
+      "note": "U2 GRAMMAR BOX: must/mustn't",
+      "require_types": ["grammar_box"],
+      "require_text_contains_any": ["mustn't", "must not", "must"]
+    },
+    "24": {
+      "note": "U2 READING The gecko's big day (reading vs CLIL typing accepted)",
+      "require_types_any": ["reading_passage", "clil_passage"],
+      "soft_reading_title_contains": ["gecko"]
+    },
+    "25": {
+      "note": "U2 Life Skills",
+      "soft_types_any": ["reading_passage", "dialogue_sequence"]
+    },
+    "26": {
+      "note": "U2 CLIL",
+      "soft_types_any": ["clil_passage", "reading_passage"]
+    },
+    "27": {
+      "note": "U2 Review (printed number fuzzy ~)",
+      "soft_types_any": ["review_statements", "printed_activity"]
+    },
+    "28": {
+      "note": "U2 A1 Movers Reading & Writing prep",
+      "soft_types_any": ["printed_activity", "reading_passage"]
+    },
+    "29": {
+      "note": "U2 mission-in-action consolidation with dialogue bubbles",
+      "soft_types_any": ["dialogue_sequence", "comic"]
+    }
+  },
+  "units": {
+    "unit1": {
+      "pages": [6, 17],
+      "note": "Load-bearing: ~35-40 target words in four named sets (vs the old 6-8 cap); exactly 2 explicit grammar boxes; 1 comic + 1 reading + 1 song",
+      "min_total_words": 28,
+      "require_grammar_boxes_containing": ["are you reading a book", "what time"],
+      "require_types_all": ["comic", "reading_passage", "song_sheet"]
+    },
+    "unit2": {
+      "pages": [18, 29],
+      "min_total_words": 20,
+      "require_grammar_boxes_containing": ["how often", "must"],
+      "require_types_all": ["comic", "reading_passage", "song_sheet"]
+    }
+  }
+}

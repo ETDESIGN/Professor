@@ -1,20 +1,34 @@
 
-// --- AGENT 1: VISION SCANNER (The Eyes) ---
-export type VisualZoneType = 'VISUAL_PUZZLE' | 'COMIC_STRIP' | 'GRAMMAR_TABLE' | 'SONG_SHEET' | 'VOCAB_LIST' | 'READING_PASSAGE' | 'ILLUSTRATION';
-
-export interface VisualZone {
-  id: string;
-  type: VisualZoneType;
-  description: string;
-  text_content?: string;
-  coordinates_hint?: string; // e.g. "Top-left", "Bottom-center"
-}
-
-export interface RawPageInventory {
-  detected_zones: VisualZone[];
-  overall_layout: string; // e.g., "Two-column mixed media"
-  dominating_visual: string; // e.g., "A large jungle maze"
-}
+// --- BOOK-FIDELITY EXTRACTION CONTRACT (FIXPLAN_F P1.2) ---
+// Single source of truth: supabase/functions/_shared/bookScan.ts (pure TS,
+// no Deno imports). This block replaced the dormant Jan-2026 zone model —
+// `coordinates_hint` became literal normalized bboxes (doc 10 §2/§11).
+export type {
+  Bbox,
+  StructureType,
+  StructureData,
+  VocabItem,
+  VocabSetData,
+  SpeechBubble,
+  ComicPanel,
+  ComicData,
+  GrammarBoxData,
+  SongActionLine,
+  SongSheetData,
+  ActivityRef,
+  SceneIllustration,
+  ReadingPassageData,
+  PrintedActivityData,
+  ReviewStatementsData,
+  MissionOpenerData,
+  CharacterAppearanceData,
+  ClilPassageData,
+  DialogueLineRef,
+  DialogueSequenceData,
+  RawStructure,
+  VerifiedStructure,
+} from '../supabase/functions/_shared/bookScan';
+export { STRUCTURE_TYPES, EXTRACTOR_VERSION, VERIFICATION_FLAG, verifyStructures } from '../supabase/functions/_shared/bookScan';
 
 // --- AGENT 2: PEDAGOGUE (The Brain) ---
 export interface LearningObjective {
@@ -127,13 +141,4 @@ export interface LessonManifest {
     video_suggestions: any[];
     dialogues: any[];
   };
-}
-
-// --- THE MASTER PIPELINE OBJECT ---
-export interface AgentPipelineOutput {
-  agent_1_vision: RawPageInventory;
-  agent_2_pedagogy: LearningObjective;
-  agent_3_assets: AssetManifest;
-  agent_4_mechanics: GameConfig[];
-  agent_5_orchestrator: PipelineOrchestratorOutput;
 }
