@@ -102,12 +102,6 @@ serve(async (req) => {
       return { success: false, error: ownership.reason || 'You do not own this unit.' };
     }
 
-    // ── Image → model-readable form ───────────────────────────────────────
-    const image = await resolveImageDataUrl({ imageBase64, url: fileUrl });
-    if (!image.finalUrl) {
-      return { success: false, error: 'No readable image was provided.' };
-    }
-
     // storage_path from a materials public URL, else '(inline)' for direct
     // base64 uploads (the P2 frontend always uploads to storage first).
     const pathMatch = fileUrl?.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
@@ -145,6 +139,18 @@ serve(async (req) => {
         .then(() => undefined, (e: any) => console.warn('scan-page: failure-status write failed:', e?.message || e));
       return { success: false, pageId, error };
     };
+
+    // ── BACKGROUND SCAN (audit fix 2026-08-26) ─────────────────────────────
+    // A dense page's scan legitimately runs minutes (parallel chunks ×
+    // model-fallback chains) — past the edge HTTP wall clock, which left
+    // four of the owner's five same-image retries stuck in 'scanning'. The
+    // HTTP call returns immediately below; the heavy work continues in
+    // EdgeRuntime.waitUntil, progress lives in the DB (book_pages.status),
+    // and clients poll the page row.
+    const background = (async () => {
+      try {
+        const image = await resolveImageDataUrl({ imageBase64, url: fileUrl });
+        if (!image.finalUrl) throw new Error('No readable image was provided.');
 
     // ── REGION-SAFE vision chain (same as extract-page) ───────────────────
     const models = [
@@ -306,21 +312,22 @@ serve(async (req) => {
       if (structErr) return await failPage(`Could not save structures: ${structErr.message}`);
     }
 
+    console.log(`scan-page: page ${pageId} scanned — ${verified.length} structures`);
+
+      } catch (e: any) {
+        await failPage(e?.message || String(e));
+      }
+    })();
+    // @ts-ignore EdgeRuntime is a global in Supabase edge functions
+    EdgeRuntime.waitUntil(background);
+
+    // Immediate response — the scan continues in the background and the
+    // page row records its progress/result.
     return {
       success: true,
       pageId,
-      extractorVersion: EXTRACTOR_VERSION,
-      page_labels: inventoryRaw.page_labels || {},
-      structures: verified.map((v) => ({
-        structure_type: v.structure_type,
-        order_index: v.order_index,
-        bbox: v.bbox,
-        confidence: v.confidence,
-        set_label: v.set_label,
-        grammar_tier: v.grammar_tier,
-        verification_flags: v.verification_flags,
-        data: v.data,
-      })),
+      status: 'scanning',
+      note: 'Scan running in the background. Poll the page record (book_pages.status) for the result.',
     };
   });
 });

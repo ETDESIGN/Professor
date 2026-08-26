@@ -34,7 +34,7 @@ const PAGE_TIME_BUDGET_MS = 120_000; // per invocation, leave headroom for the c
  * OVERSHADOWS any fetch timeout we pick — so we never trust the fetch; the
  * database is the only source of truth for "this page is done".
  */
-async function waitForPageSettled(sb: any, pageUrl: string, timeoutMs = 180_000): Promise<'scanned' | 'failed' | 'timeout'> {
+async function waitForPageSettled(sb: any, pageUrl: string, timeoutMs = 240_000): Promise<'scanned' | 'failed' | 'timeout'> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const { data: row } = await sb.from('book_pages')

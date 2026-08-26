@@ -83,7 +83,10 @@ export function useBookScan(unitId: string | null) {
 
   useEffect(() => { loadPages(); }, [loadPages]);
 
-  /** Upload one page image + invoke scan-page. */
+  /** Upload one page image + invoke scan-page, then poll the page row until
+   *  the background scan settles. scan-page returns IMMEDIATELY (the heavy
+   *  work runs server-side past the edge HTTP wall clock) — the DB is the
+   *  progress oracle, never the fetch. */
   const scanOne = useCallback(async (
     unit: string, page: { blob: Blob; width: number; height: number; name: string; pageNumber: number; order: number },
   ): Promise<{ ok: boolean; error?: string; printed?: string }> => {
@@ -106,8 +109,31 @@ export function useBookScan(unitId: string | null) {
         },
       });
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Scan failed');
-      return { ok: true, printed: data.page_labels?.printed_page_number || null };
+      if (!data?.success) throw new Error(data?.error || 'Scan failed to start');
+      const pageId: string | undefined = data.pageId;
+      if (!pageId) throw new Error('Scan started but no page record was returned.');
+
+      // Poll until settled — dense pages take 1-3+ minutes.
+      const deadline = Date.now() + 240_000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 4000));
+        const { data: row } = await supabase
+          .from('book_pages')
+          .select('status, error, printed_page_number')
+          .eq('id', pageId)
+          .maybeSingle();
+        if (row && row.status !== 'scanning' && row.status !== 'pending') {
+          if (row.status === 'failed') return { ok: false, error: row.error || 'Scan failed' };
+          const m = String(row.printed_page_number || '').match(/\d{1,3}/);
+          return { ok: true, printed: m ? m[0] : undefined };
+        }
+      }
+      // Timed out — record it honestly so the page never rots in 'scanning'.
+      await supabase.from('book_pages')
+        .update({ status: 'failed', error: 'Scan timed out after 4 minutes — please retry this page.' })
+        .eq('id', pageId)
+        .then(() => undefined, () => undefined);
+      return { ok: false, error: 'Scan timed out after 4 minutes — please retry this page.' };
     } catch (err: any) {
       return { ok: false, error: err?.message || String(err) };
     }
