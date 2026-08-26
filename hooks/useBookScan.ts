@@ -73,10 +73,17 @@ export function useBookScan(unitId: string | null) {
         .eq('unit_id', unitId)
         .order('upload_order', { ascending: true });
       if (error) throw error;
-      setPages((pageRows || []).map((p: any) => ({
+      const server = (pageRows || []).map((p: any) => ({
         ...p,
         structures: (p.page_structures || []).sort((a: any, b: any) => a.order_index - b.order_index),
-      })));
+      }));
+      // Merge, never clobber: the mount-effect load races the optimistic
+      // placeholders scanFiles just added and used to erase them (empty
+      // sidebar for minutes on slow PDFs — audit 2026-08-26).
+      setPages(prev => {
+        const pending = prev.filter(p => String(p.id).startsWith('pending-'));
+        return [...server, ...pending];
+      });
     } catch (err: any) {
       log.warn('load_pages_failed', { error: err?.message });
     } finally {
@@ -218,6 +225,8 @@ export function useBookScan(unitId: string | null) {
 
       const failed = results.filter(r => !r.ok);
       await loadPages();
+      // Drop any leftover placeholders (settled pages now carry the truth).
+      setPages(prev => prev.filter(p => !String(p.id).startsWith('pending-')));
       if (failed.length === results.length && results.length > 0) {
         toast.error('Scanning failed for all pages. Open a page to see the error and retry.');
       } else if (failed.length > 0) {
