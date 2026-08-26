@@ -9,13 +9,16 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Stable public paths (public/pdfjs/, kept in sync by scripts/copy-pdfjs-assets.mjs
-// via the predev/prebuild hooks). Vite's ?url assets are content-hashed
-// (openjpeg-<hash>.wasm) but pdfjs appends the LITERAL codec filename to
-// wasmUrl — hashed names 404 and JPEG2000 PDFs fail to split (owner report
-// 2026-08-26). Public assets keep the exact filenames pdfjs expects.
-const PDFJS_WORKER_URL = '/pdfjs/pdf.worker.min.mjs';
-const PDFJS_WASM_URL = '/pdfjs/wasm/';
+// VERSIONED public paths (public/pdfjs/v2/, kept in sync by
+// scripts/copy-pdfjs-assets.mjs via the predev/prebuild hooks). The version
+// segment busts every cache layer — browser HTTP caches can pin a
+// response's OLD security headers, which kept the CSP wasm block alive on
+// the owner's machine long after the server-side fix (2026-08-26). Bump
+// this together with the copy script's target directory whenever the pdfjs
+// assets change.
+const PDFJS_ASSETS_VERSION = 'v2';
+const PDFJS_WORKER_URL = `/pdfjs/${PDFJS_ASSETS_VERSION}/pdf.worker.min.mjs`;
+const PDFJS_WASM_URL = `/pdfjs/${PDFJS_ASSETS_VERSION}/wasm/`;
 
 let workerReady = false;
 async function ensureWorker() {
