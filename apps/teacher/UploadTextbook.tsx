@@ -1,231 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, Check, X, ArrowRight, Loader2, FileText, Trash2, Plus, AlertTriangle, ShieldCheck, ChevronRight, FileImage, Settings, Play, Wand2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { UploadCloud, Loader2, FileText, Plus, ChevronRight, FileImage } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
-import { useSession } from '../../store/SessionContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getOrCreateDefaultBookForCurrentUser, listBooks, createBook, Book } from '../../services/BookService';
-import { createClientLogger } from '../../services/logger';
+import { useBookScan } from '../../hooks/useBookScan';
+import ExtractionReview from './ExtractionReview';
 import AssetWorkshop from './AssetWorkshop';
 
-const log = createClientLogger('UploadTextbook');
-
-// Run fn over items with at most `limit` in flight, preserving input order in
-// the results. extract-page rate-limits 15 req/60s per user; three concurrent
-// vision calls (~20-40s each) stay well under it.
-async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
-   const results: R[] = new Array(items.length);
-   let next = 0;
-   const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-      while (true) {
-         const i = next++;
-         if (i >= items.length) break;
-         results[i] = await fn(items[i], i);
-      }
-   });
-   await Promise.all(workers);
-   return results;
-}
-
-// Mock components to represent the Workspace
-const WorkspaceSidebar = ({ files, scans, activeFileIndex, setActiveFileIndex, onUploadClick, isExtracting }: any) => (
-   <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col h-full">
-      <div className="p-4 border-b border-slate-200 font-bold text-slate-800 flex justify-between items-center">
-         <span>Uploaded Pages</span>
-         <button onClick={onUploadClick} className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200" disabled={isExtracting}>
-            <Plus size={16} />
-         </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-         {files.map((file: any, idx: number) => {
-             const scan = scans[idx];
-             return (
-               <div
-                  key={idx}
-                  onClick={() => !isExtracting && setActiveFileIndex(idx)}
-                  className={`p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-colors ${activeFileIndex === idx ? 'bg-white border-blue-400 shadow-sm' : 'bg-transparent border-transparent hover:bg-slate-100'} ${isExtracting ? 'opacity-50 cursor-not-allowed' : ''}`}
-               >
-                  <div className={`p-2 rounded ${activeFileIndex === idx ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-500'}`}>
-                     <FileImage size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                     <h4 className="text-sm font-bold text-slate-700 truncate">{file.name}</h4>
-                     <div className="flex items-center gap-1 text-xs font-bold mt-1">
-                        {scan && scan.status === 'success' ? (
-                           <span className="text-emerald-600 flex items-center gap-1"><Check size={12} /> {scan.data?.metadata?.extractedText?.slice(0, 20) || 'Page'} Extracted</span>
-                        ) : scan && scan.status === 'scanning' ? (
-                           <span className="text-amber-500 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Scanning...</span>
-                        ) : scan && scan.status === 'error' ? (
-                           <span className="text-red-500 flex items-center gap-1"><AlertTriangle size={12} /> Failed</span>
-                        ) : (
-                           <span className="text-slate-400">Ready</span>
-                        )}
-                     </div>
-                  </div>
-               </div>
-            )
-         })}
-
-         {files.length === 0 && (
-            <div className="text-center p-8 text-slate-400 text-sm">
-               No pages uploaded yet.<br />Click + to add.
-            </div>
-         )}
-      </div>
-   </div>
-);
-
-const ExtractionReviewPane = ({ file, scan, isOrchestrating, onApprove, onReextract }: any) => {
-   if (!file) return (
-      <div className="flex-1 flex items-center justify-center bg-slate-50 text-slate-400">
-         Select a page from the sidebar to review extraction.
-      </div>
-   );
-
-   return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden">
-         <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-white shadow-sm z-10">
-            <div>
-               <h2 className="font-bold text-slate-800 text-lg">Stage 2: Review & Edit</h2>
-               <p className="text-sm text-slate-500">{file.name} {scan ? `(${scan.data?.metadata?.topic || scan.data?.metadata?.extractedText?.slice(0, 30) || 'Draft'})` : 'Extraction Draft'}</p>
-            </div>
-            <div className="flex gap-2">
-               {scan?.status === 'success' && onReextract && (
-                  <button
-                     className="px-3 py-2 border border-blue-200 text-blue-600 font-bold rounded-lg flex items-center gap-2 hover:bg-blue-50 text-sm"
-                     onClick={onReextract}
-                     disabled={isOrchestrating}
-                  >
-                     <Wand2 size={16} /> Re-extract
-                  </button>
-               )}
-               <button
-                  className="px-4 py-2 bg-teacher-primary text-white font-bold rounded-lg flex items-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
-                  disabled={!scan || scan.status !== 'success' || isOrchestrating}
-                  onClick={() => onApprove()}
-               >
-                   {isOrchestrating ? <Loader2 size={18} className="animate-spin" /> : 'Review & Enrich Content'}
-                   {!isOrchestrating && <ChevronRight size={18} />}
-               </button>
-            </div>
-         </div>
-
-         <div className="flex-1 flex overflow-hidden">
-            {/* Document Preview */}
-            <div className="w-1/2 p-6 bg-slate-100 border-r border-slate-200 flex flex-col">
-               <div className="flex-1 bg-white p-4 shadow-md rounded-xl flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
-                  {file?.fileUrl ? (
-                     <img src={file.fileUrl} alt="document preview" className="max-w-full max-h-full object-contain" />
-                  ) : (
-                     <div className="text-slate-400 flex flex-col items-center gap-2">
-                        <FileImage size={48} className="opacity-50" />
-                        <span>Document Preview</span>
-                     </div>
-                  )}
-               </div>
-            </div>
-
-            {/* Extracted Content */}
-            <div className="w-1/2 bg-white flex flex-col">
-               <div className="p-3 border-b flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-50">
-                  <Settings size={16} /> Extracted Content
-               </div>
-               <div className="flex-1 p-6 overflow-y-auto">
-                  {!scan || scan.status === 'scanning' ? (
-                     <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
-                        <Loader2 size={32} className="animate-spin text-teacher-primary" />
-                        <p>Extracting data using Agent 1 Vision Scanner...</p>
-                     </div>
-                  ) : scan.status === 'error' ? (
-                     <div className="text-red-500 p-4 bg-red-50 border border-red-200 rounded-lg whitespace-pre-wrap">
-                        <strong>Error:</strong> {scan.error}
-                     </div>
-                  ) : (
-                     <div className="space-y-4">
-                        {/* Topic & Grade Header */}
-                        {(scan.data?.metadata?.topic || scan.data?.metadata?.gradeLevel) && (
-                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h3 className="font-bold text-blue-800 text-lg mb-1">{scan.data.metadata.topic || 'Untitled'}</h3>
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                 {scan.data.metadata.gradeLevel && (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">CEFR: {scan.data.metadata.gradeLevel}</span>
-                                 )}
-                                 {scan.data.metadata.unit_number && (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Unit {scan.data.metadata.unit_number}</span>
-                                 )}
-                                 <span className="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full">Language: {scan.data.metadata.language || 'en'}</span>
-                              </div>
-                              {scan.data.metadata.visual_context && (
-                                 <p className="text-sm text-blue-600 mt-2 italic">{scan.data.metadata.visual_context}</p>
-                              )}
-                              {scan.data.metadata.learning_objectives?.length > 0 && (
-                                 <div className="flex flex-wrap gap-2 mt-3">
-                                    {scan.data.metadata.learning_objectives.map((obj: string, i: number) => (
-                                       <span key={i} className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">{obj}</span>
-                                    ))}
-                                 </div>
-                              )}
-                           </div>
-                        )}
-
-                        {/* Vocabulary Cards */}
-                        {scan.data?.metadata?.vocabulary?.length > 0 && (
-                           <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                              <h4 className="font-bold text-emerald-800 mb-3 flex items-center gap-2"><FileText size={16} /> Vocabulary ({scan.data.metadata.vocabulary.length} words)</h4>
-                              <div className="grid grid-cols-2 gap-3">
-                                 {scan.data.metadata.vocabulary.map((v: any, i: number) => (
-                                    <div key={i} className="p-3 bg-white border border-emerald-100 rounded shadow-sm">
-                                       <div className="font-bold text-emerald-700">{v.word}</div>
-                                       <div className="text-sm text-emerald-600 mt-1">{v.definition || v.definition_or_context}</div>
-                                       {v.category && <span className="text-xs text-slate-400 mt-1 inline-block">{v.category}</span>}
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* Exercises */}
-                        {scan.data?.metadata?.exercises?.length > 0 && (
-                           <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                              <h4 className="font-bold text-purple-800 mb-3 flex items-center gap-2"><Settings size={16} /> Exercises</h4>
-                              <div className="space-y-3">
-                                 {scan.data.metadata.exercises.map((ex: any, i: number) => (
-                                    <div key={i} className="p-3 bg-white border border-purple-100 rounded shadow-sm">
-                                       <div className="font-bold text-purple-700 text-sm">{ex.instruction}</div>
-                                       <div className="text-sm text-purple-600 mt-1">{ex.content}</div>
-                                       {ex.type && <span className="text-xs text-purple-400 mt-1 inline-block italic">{ex.type}</span>}
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        )}
-
-                        {/* Extracted Text Fallback */}
-                        {scan.data?.metadata?.extractedText && !scan.data?.metadata?.vocabulary?.length && (
-                           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <h3 className="font-bold text-blue-800 text-lg mb-2">Extracted Text</h3>
-                              <p className="text-sm text-blue-700 whitespace-pre-wrap">{scan.data.metadata.extractedText}</p>
-                           </div>
-                        )}
-
-                        {/* Raw JSON Data Tracker */}
-                        <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                           <h3 className="font-bold text-slate-700 mb-2">Raw JSON Data Tracker</h3>
-                           <textarea
-                              className="w-full p-3 border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                              rows={8}
-                              defaultValue={JSON.stringify(scan.data, null, 2)}
-                           />
-                        </div>
-                     </div>
-                  )}
-               </div>
-            </div>
-         </div>
-      </div>
-   );
-};
+// FIXPLAN_F P2.3 — new-flow upload (doc 10 §4, owner decision 2026-08-26:
+// hard switch for new uploads; legacy units keep the old read path).
+//
+//   select files (images / PDF → rasterized per page)
+//     → draft unit created UPFRONT (book selector honored)
+//     → scan-page per page (parallel, server-side persistence)
+//     → ExtractionReview (✕ / ➕ / low-confidence highlights)
+//     → Confirm batch → AssetWorkshop (basket-driven enrichment)
+//
+// The old extract-page/scanned_assets machinery is no longer used here; the
+// edge function stays deployed until P4 rebuild completes (then removed).
 
 interface UploadTextbookProps {
    onFinish?: () => void;
@@ -233,19 +26,17 @@ interface UploadTextbookProps {
 }
 
 const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => {
-   const [files, setFiles] = useState<any[]>([]);
-   const [scans, setScans] = useState<Record<number, any>>({});
-   const [activeFileIndex, setActiveFileIndex] = useState<number>(-1);
-   const [isExtracting, setIsExtracting] = useState<boolean>(false);
-   const [isOrchestrating, setIsOrchestrating] = useState<boolean>(false);
    const [draftUnitId, setDraftUnitId] = useState<string | null>(null);
-   const [showWorkshop, setShowWorkshop] = useState<boolean>(false);
+   const [unitTitle, setUnitTitle] = useState<string>('');
+   const [creatingUnit, setCreatingUnit] = useState(false);
+   const [showWorkshop, setShowWorkshop] = useState(false);
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
+   const { pages, scanning, scanFiles } = useBookScan(draftUnitId);
+
    // ── Book selector (Unit & Book Manager): uploaded units land in the chosen
-   //    book; empty selection = default book ("My Units" — preserves the
-   //    pre-manager behavior). ────────────────────────────────────────────────
+   //    book; empty selection = default book ("My Units"). ────────────────────
    const [books, setBooks] = useState<Book[]>([]);
    const [selectedBookId, setSelectedBookId] = useState<string>('');
    const [newBookTitle, setNewBookTitle] = useState<string>('');
@@ -273,237 +64,92 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       }
    };
 
-   // Null only manifest.enriched_content (keep meta / knowledge_graph
-   // projections) so a re-enrich starts clean without wiping the rest of
-   // the manifest. The old blanket `manifest: null` destroyed unit meta
-   // that had nothing to do with enrichment freshness.
-   const clearEnrichedContent = async (unitId: string) => {
-      const { data: unit } = await supabase.from('units').select('manifest').eq('id', unitId).single();
-      const manifest = unit?.manifest ?? {};
-      if (manifest.enriched_content == null) return;
-      await supabase.from('units').update({ manifest: { ...manifest, enriched_content: null } }).eq('id', unitId);
-   };
-
-   const handleApprove = async () => {
-      if (!draftUnitId) {
-         toast.error('No draft unit found. Upload a page first.');
-         return;
-      }
-      const successScans = Object.values(scans).filter((s: any) => s.status === 'success');
-      if (successScans.length === 0) {
-         toast.error('No successfully extracted pages found.');
-         return;
-      }
-      // Clear stale enriched content so AssetWorkshop does a fresh enrichment
-      await clearEnrichedContent(draftUnitId);
-      setShowWorkshop(true);
-   };
-
-   const handleReextract = async () => {
-      const file = files[activeFileIndex];
-      if (!file?.fileUrl || activeFileIndex < 0) return;
-      setIsExtracting(true);
-      setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'scanning' } }));
+   /** Draft unit is created UPFRONT so every scan-page call persists
+    *  server-side against a real unit (kills the old per-page
+    *  scanned_assets read-modify-write race entirely). */
+   const ensureDraftUnit = async (): Promise<string | null> => {
+      if (draftUnitId) return draftUnitId;
+      setCreatingUnit(true);
       try {
-         const { data, error } = await supabase.functions.invoke('extract-page', {
-            body: { fileUrl: file.fileUrl, pageNumber: activeFileIndex + 1, ...(draftUnitId ? { unitId: draftUnitId } : {}) }
-         });
-         if (error) throw error;
-         if (!data?.success) throw new Error(data?.error || 'Re-extraction failed');
-         setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'success', data } }));
-
-         // Update scanned_assets in DB (replace, not append)
-         if (draftUnitId) {
-            const { data: unit } = await supabase.from('units').select('scanned_assets').eq('id', draftUnitId).single();
-            const assets = [...(unit?.scanned_assets || [])];
-            assets[activeFileIndex] = data;
-            await supabase.from('units').update({ scanned_assets: assets }).eq('id', draftUnitId);
-            await clearEnrichedContent(draftUnitId);
+         const { data: { user } } = await supabase.auth.getUser();
+         if (!user) {
+            throw new Error('Your session expired — please sign in again before uploading.');
          }
-         toast.success('Page re-extracted with updated AI!');
+         const targetBook = selectedBookId
+            ? { id: selectedBookId }
+            : await getOrCreateDefaultBookForCurrentUser();
+         let nextOrderIndex = 0;
+         if (targetBook?.id) {
+            const { count } = await supabase
+               .from('units')
+               .select('id', { count: 'exact', head: true })
+               .eq('book_id', targetBook.id);
+            nextOrderIndex = count ?? 0;
+         }
+         const title = `Draft Unit ${new Date().toLocaleDateString()}`;
+         const { data: newUnit, error: createError } = await supabase.from('units').insert({
+            title,
+            topic: 'Uploaded Material',
+            level: 'General',
+            status: 'Draft',
+            lessons: 1,
+            flow: [],
+            teacher_id: user.id,
+            book_id: targetBook?.id ?? null,
+            order_index: nextOrderIndex,
+            scanned_assets: [], // new flow: pages live in book_pages, not here
+         }).select().single();
+         if (createError) throw createError;
+         setDraftUnitId(newUnit.id);
+         setUnitTitle(title);
+         return newUnit.id;
       } catch (err: any) {
-         setScans(prev => ({ ...prev, [activeFileIndex]: { status: 'error', error: err.message } }));
-         toast.error(err.message || 'Re-extraction failed');
+         toast.error(err?.message || 'Could not create the draft unit.');
+         return null;
       } finally {
-         setIsExtracting(false);
-      }
-   };
-
-   const handleWorkshopOrchestrate = async (unitId: string, enriched: any) => {
-      setIsOrchestrating(true);
-      try {
-         toast.success('Lesson orchestrated and published!');
-         // Phase 2.3 (B): land in the Unit Studio (single authoring surface)
-         // instead of the unit list, so the teacher continues straight into
-         // Content/Plan/Review rather than an orphaned screen.
-         navigate(`/teacher/unit/${unitId}`);
-         if (onFinish) onFinish();
-      } catch (err: any) {
-         toast.error(err.message || 'Navigation failed');
-      } finally {
-         setIsOrchestrating(false);
-      }
-   };
-
-   // ── Upload + extraction ─────────────────────────────────────────────────
-   // Pages upload/extract with bounded concurrency; the draft unit row is
-   // written ONCE per batch (single insert or single append). The old
-   // per-page read-modify-write of units.scanned_assets raced once pages
-   // were processed in parallel — batching the DB write removes the race.
-
-   const extractOneFile = async (file: File, fileIndex: number): Promise<{ ok: boolean; aiData?: any; error?: string }> => {
-      try {
-         // 1. Upload to storage
-         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-         const { error: uploadError } = await supabase.storage.from('materials').upload(fileName, file);
-         if (uploadError) throw uploadError;
-
-         const { data: urlData } = supabase.storage.from('materials').getPublicUrl(fileName);
-         const fileUrl = urlData.publicUrl;
-
-         setFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, fileUrl } : f));
-
-         // 2. Invoke extract-page (vision OCR). Failures are surfaced
-         //    honestly as page errors — no placeholder "success".
-         const { data, error: aiError } = await supabase.functions.invoke('extract-page', {
-            body: { fileUrl, pageNumber: fileIndex + 1, ...(draftUnitId ? { unitId: draftUnitId } : {}) }
-         });
-         if (aiError) throw aiError;
-         if (!data?.success) throw new Error(data?.error || 'Extraction failed');
-         return { ok: true, aiData: data };
-      } catch (err: any) {
-         return { ok: false, error: err?.message || String(err) };
-      }
-   };
-
-   const processBatch = async (newFiles: File[], startIndex: number) => {
-      setIsExtracting(true);
-      setScans(prev => {
-         const next = { ...prev };
-         for (let i = 0; i < newFiles.length; i++) next[startIndex + i] = { status: 'scanning' };
-         return next;
-      });
-      try {
-         const results = await mapWithConcurrency(newFiles, 3, (file, i) => extractOneFile(file, startIndex + i));
-
-         const successes: any[] = [];
-         let failures = 0;
-         results.forEach((r, i) => {
-            if (r.ok) {
-               setScans(prev => ({ ...prev, [startIndex + i]: { status: 'success', data: r.aiData } }));
-               successes.push(r.aiData);
-            } else {
-               failures++;
-               log.warn('extraction_error', { error: `${newFiles[i].name}: ${r.error}` });
-               setScans(prev => ({ ...prev, [startIndex + i]: { status: 'error', error: r.error } }));
-            }
-         });
-
-         if (successes.length === 0) {
-            toast.error('Text extraction failed for all pages. Click a page to see its error, then use Re-extract.');
-            return;
-         }
-
-         if (draftUnitId) {
-            // Single append for the whole batch — no interleaved writes.
-            const { data: existingUnit, error: readError } = await supabase.from('units').select('scanned_assets').eq('id', draftUnitId).single();
-            if (readError) throw readError;
-            const { error: updateError } = await supabase.from('units').update({
-               scanned_assets: [...(existingUnit?.scanned_assets || []), ...successes] // flat response shape — no .extraction wrapper
-            }).eq('id', draftUnitId);
-            if (updateError) throw updateError;
-         } else {
-            // Create the draft unit once, with every successful page in file
-            // order. Stamp teacher_id at creation: NULL-owner units are
-            // rejected by generate-exercises (the strict ownership guard),
-            // which silently starves the exercise pool (Bug B1).
-            const { data: { user } } = await supabase.auth.getUser();
-            // Hard-block instead of `?? null`: a lost session silently created
-            // NULL-owner units that the generation pipeline rejects (Bug B1).
-            if (!user) {
-               throw new Error('Your session expired — please sign in again before uploading.');
-            }
-            // Every unit belongs to a book (characters are book-level per L1;
-            // vault scopes per-book). Honor the upload's book selector; fall
-            // back to the teacher's default book.
-            const targetBook = selectedBookId
-               ? { id: selectedBookId }
-               : await getOrCreateDefaultBookForCurrentUser();
-            let nextOrderIndex = 0;
-            if (targetBook?.id) {
-               const { count } = await supabase
-                  .from('units')
-                  .select('id', { count: 'exact', head: true })
-                  .eq('book_id', targetBook.id);
-               nextOrderIndex = count ?? 0;
-            }
-            const { data: newUnit, error: createError } = await supabase.from('units').insert({
-               title: `Draft Unit ${new Date().toLocaleDateString()}`,
-               topic: 'Uploaded Material',
-               level: 'General',
-               status: 'Draft',
-               lessons: 1,
-               flow: [],
-               teacher_id: user.id,
-               book_id: targetBook?.id ?? null,
-               order_index: nextOrderIndex,
-               scanned_assets: successes
-            }).select().single();
-            if (createError) throw createError;
-            setDraftUnitId(newUnit.id);
-         }
-
-         if (failures > 0) {
-            toast.error(`${failures} of ${newFiles.length} pages failed extraction — click a page to see its error, then use Re-extract.`);
-         } else {
-            toast.success(`${successes.length} page${successes.length === 1 ? '' : 's'} extracted.`);
-         }
-      } catch (err: any) {
-         // Batch-level failure (storage/DB) — fail any still-scanning pages.
-         log.warn('extraction_batch_error', { error: err?.message || String(err) });
-         toast.error(err?.message || 'Upload failed.');
-         setScans(prev => {
-            const next = { ...prev };
-            for (let i = 0; i < newFiles.length; i++) {
-               if (next[startIndex + i]?.status === 'scanning') {
-                  next[startIndex + i] = { status: 'error', error: err?.message || 'Upload failed' };
-               }
-            }
-            return next;
-         });
-      } finally {
-         setIsExtracting(false);
+         setCreatingUnit(false);
       }
    };
 
    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) {
-         const newFiles = Array.from(e.target.files);
-         const startIndex = files.length;
-
-         setFiles([...files, ...newFiles.map(f => ({ file: f, name: f.name, fileUrl: null }))]);
-
-         if (activeFileIndex === -1 && newFiles.length > 0) {
-            setActiveFileIndex(startIndex);
-         }
-
-         await processBatch(newFiles, startIndex);
-      }
+      if (!e.target.files || e.target.files.length === 0) return;
+      const newFiles = Array.from(e.target.files);
       if (fileInputRef.current) fileInputRef.current.value = '';
+
+      const unitId = await ensureDraftUnit();
+      if (!unitId) return;
+      await scanFiles(newFiles);
+
+      // Default the unit title to the opener's printed title when the book
+      // provides one (doc 10 §5; teacher can rename anytime).
+      const titled = pages.find(p => p.printed_title?.trim());
+      if (titled?.printed_title) {
+         const t = titled.printed_title.trim();
+         setUnitTitle(t);
+         supabase.from('units').update({ title: t }).eq('id', unitId).then();
+      }
    };
 
-    if (showWorkshop && draftUnitId) {
-       return (
-          <AssetWorkshop
-             unitId={draftUnitId}
-             onBack={() => setShowWorkshop(false)}
-             onOrchestrate={handleWorkshopOrchestrate}
-          />
-       );
-    }
+   const handleWorkshopOrchestrate = async (unitId: string, _enriched: any) => {
+      toast.success('Lesson orchestrated and published!');
+      navigate(`/teacher/unit/${unitId}`);
+      if (onFinish) onFinish();
+   };
 
-    return (
-       <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-white">
+   if (showWorkshop && draftUnitId) {
+      return (
+         <AssetWorkshop
+            unitId={draftUnitId}
+            onBack={() => setShowWorkshop(false)}
+            onOrchestrate={handleWorkshopOrchestrate}
+         />
+      );
+   }
+
+   const hasPages = pages.length > 0 || scanning;
+
+   return (
+      <div className="flex-1 flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-white">
          {/* Book selector bar (Unit & Book Manager) */}
          <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0">
             <span className="text-sm font-bold text-slate-600 flex items-center gap-1.5">
@@ -512,7 +158,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             <select
                value={selectedBookId}
                onChange={(e) => setSelectedBookId(e.target.value)}
-               className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 max-w-[240px]"
+               disabled={!!draftUnitId}
+               className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 max-w-[240px] disabled:text-slate-400"
                title="Uploaded pages become a unit inside this book"
             >
                <option value="">My Units (default)</option>
@@ -520,50 +167,62 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                   <option key={b.id} value={b.id}>{b.title}</option>
                ))}
             </select>
-            <input
-               value={newBookTitle}
-               onChange={(e) => setNewBookTitle(e.target.value)}
-               onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBookInline(); }}
-               placeholder="＋ New book…"
-               className="text-sm border border-dashed border-slate-300 rounded-lg px-3 py-1.5 w-44 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            {newBookTitle.trim() && (
-               <button
-                  onClick={handleCreateBookInline}
-                  disabled={creatingBook}
-                  className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold disabled:opacity-50 flex items-center gap-1.5"
-               >
-                  {creatingBook ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create
-               </button>
+            {!draftUnitId && (
+               <>
+                  <input
+                     value={newBookTitle}
+                     onChange={(e) => setNewBookTitle(e.target.value)}
+                     onKeyDown={(e) => { if (e.key === 'Enter') handleCreateBookInline(); }}
+                     placeholder="＋ New book…"
+                     className="text-sm border border-dashed border-slate-300 rounded-lg px-3 py-1.5 w-44 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  {newBookTitle.trim() && (
+                     <button
+                        onClick={handleCreateBookInline}
+                        disabled={creatingBook}
+                        className="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold disabled:opacity-50 flex items-center gap-1.5"
+                     >
+                        {creatingBook ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Create
+                     </button>
+                  )}
+               </>
             )}
          </div>
-         <div className="flex-1 flex overflow-hidden">
-         <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileSelect}
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-         />
 
-         <WorkspaceSidebar
-            files={files}
-            scans={scans}
-            activeFileIndex={activeFileIndex}
-            setActiveFileIndex={setActiveFileIndex}
-            onUploadClick={() => fileInputRef.current?.click()}
-            isExtracting={isExtracting}
-         />
-
-         <ExtractionReviewPane
-            file={files[activeFileIndex]}
-            scan={scans[activeFileIndex]}
-            isOrchestrating={isOrchestrating}
-            onApprove={handleApprove}
-            onReextract={handleReextract}
-         />
-         </div>
+         {hasPages && draftUnitId ? (
+            <ExtractionReview
+               unitId={draftUnitId}
+               unitTitle={unitTitle || 'this unit'}
+               onConfirm={() => setShowWorkshop(true)}
+            />
+         ) : (
+            <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-8">
+               <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  multiple={true}
+               />
+               <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={creatingUnit}
+                  className="w-full max-w-xl border-4 border-dashed border-slate-300 rounded-3xl p-14 flex flex-col items-center gap-4 text-slate-400 hover:border-teacher-primary hover:text-teacher-primary transition-colors disabled:opacity-50"
+               >
+                  {creatingUnit ? (
+                     <Loader2 size={56} className="animate-spin" />
+                  ) : (
+                     <UploadCloud size={56} strokeWidth={1.2} />
+                  )}
+                  <span className="text-xl font-extrabold">Upload textbook pages</span>
+                  <span className="text-sm">Photos of pages, or a whole PDF — each page is scanned and transcribed exactly as printed.</span>
+                  <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                     <FileImage size={13} /> JPG, PNG or PDF · multiple files at once
+                  </span>
+               </button>
+            </div>
+         )}
       </div>
    );
 };

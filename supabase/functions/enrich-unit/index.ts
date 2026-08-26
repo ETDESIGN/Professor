@@ -81,25 +81,89 @@ serve(async (req) => {
       ? existingCast.map((c) => `${c.name} (${c.role || 'unknown'}${c.personality ? ', ' + c.personality : ''})`).join('; ')
       : '';
 
-    const scannedAssets = unit.scanned_assets || [];
+    // ── FIXPLAN_F P2.2: BASKET SOURCE MODE ─────────────────────────────
+    // New-flow units (scan-page → teacher-reviewed baskets) feed enrichment
+    // from get_unit_baskets(); legacy units keep the scanned_assets path
+    // below, byte-for-byte unchanged. Enrichment runs ONLY after the
+    // teacher's batch confirm (units.baskets_confirmed_at, doc 10 §5).
+    let baskets: any = null;
+    try {
+      const { data: basketData } = await sbClient.rpc('get_unit_baskets', { p_unit_id: unitId });
+      baskets = basketData && typeof basketData === 'object' ? basketData : null;
+    } catch {
+      /* basket RPC unavailable (pre-P2 schema) -> legacy path */
+    }
+    const basketConfirmed = !!baskets && !!baskets.confirmed_at;
+    const basketVocab: any[] = basketConfirmed && Array.isArray(baskets.vocabulary) ? baskets.vocabulary : [];
+    const basketGrammar: any[] = basketConfirmed && Array.isArray(baskets.grammar) ? baskets.grammar : [];
+    const basketDialogues: any[] = basketConfirmed && Array.isArray(baskets.dialogues) ? baskets.dialogues : [];
+    const basketPassages: any[] = basketConfirmed && Array.isArray(baskets.story?.passages) ? baskets.story.passages : [];
+    const basketComics: any[] = basketConfirmed && Array.isArray(baskets.story?.comics) ? baskets.story.comics : [];
+    const basketSongs: any[] = basketConfirmed && Array.isArray(baskets.book_songs) ? baskets.book_songs : [];
+    const basketAppearances: any[] = basketConfirmed && Array.isArray(baskets.character_appearances) ? baskets.character_appearances : [];
+    const useBaskets = basketConfirmed && (
+      basketVocab.length > 0 || basketGrammar.length > 0 || basketDialogues.length > 0 ||
+      basketPassages.length > 0 || basketComics.length > 0 || basketSongs.length > 0
+    );
 
-    const allVocab: any[] = [];
-    let topic = unit.topic || '';
-    let gradeLevel = 'Beginner';
-    let extractedText = '';
-
-    for (const asset of scannedAssets) {
-      const meta = asset?.metadata || asset || {};
-      if (meta.topic) topic = meta.topic;
-      if (meta.gradeLevel) gradeLevel = meta.gradeLevel;
-      if (meta.extractedText) extractedText += meta.extractedText + '\n';
-      if (Array.isArray(meta.vocabulary)) {
-        allVocab.push(...meta.vocabulary);
-      }
+    // Per-teacher L1 (doc 10 §5): basket mode reads profiles.native_language;
+    // zh-CN default keeps output identical to today's hardcoded behavior.
+    let l1PromptPhrase = 'Simplified Chinese (简体中文)';
+    let l1Name = '简体中文';
+    if (useBaskets) {
+      try {
+        const { data: profile } = await sbClient.from('profiles').select('native_language').eq('id', unit.teacher_id).single();
+        const code = profile?.native_language || 'zh-CN';
+        if (code === 'zh-CN' || code === 'zh') {
+          l1PromptPhrase = 'Simplified Chinese (简体中文)';
+          l1Name = '简体中文';
+        } else if (code === 'en') {
+          l1PromptPhrase = 'English';
+          l1Name = 'English';
+        } else {
+          l1PromptPhrase = code;
+          l1Name = code;
+        }
+      } catch { /* profile read is best-effort */ }
     }
 
-    if (allVocab.length === 0 && !extractedText) {
+    const scannedAssets = unit.scanned_assets || [];
+
+    const allVocab: any[] = useBaskets
+      ? basketVocab.map((v) => ({ word: v.word, definition: '', category: v.set_label || (v.is_clil ? 'CLIL' : '') }))
+      : [];
+    let topic = unit.topic || '';
+    let gradeLevel = 'Beginner';
+    let extractedText = useBaskets ? '' : '';
+
+    if (!useBaskets) {
+      for (const asset of scannedAssets) {
+        const meta = asset?.metadata || asset || {};
+        if (meta.topic) topic = meta.topic;
+        if (meta.gradeLevel) gradeLevel = meta.gradeLevel;
+        if (meta.extractedText) extractedText += meta.extractedText + '\n';
+        if (Array.isArray(meta.vocabulary)) {
+          allVocab.push(...meta.vocabulary);
+        }
+      }
+    } else {
+      // Basket mode context for the grounded prompts: printed titles and the
+      // confirmed word inventory stand in for the old extractedText blob.
+      topic = unit.topic && unit.topic !== 'Uploaded Material' ? unit.topic : (baskets.narrative?.[0]?.printed_title || unit.title || 'Lesson');
+      const wordSample = basketVocab.slice(0, 40).map((v) => v.word).join(', ');
+      extractedText = [
+        baskets.narrative?.map((n: any) => n.mission_text).filter(Boolean).join('\n'),
+        basketGrammar.map((g) => `Grammar box: ${g.rule_text}`).join('\n'),
+        basketSongs.map((s) => `Song: ${s.title}`).join('\n'),
+        wordSample ? `Words: ${wordSample}` : '',
+      ].filter(Boolean).join('\n');
+    }
+
+    if (!useBaskets && allVocab.length === 0 && !extractedText) {
       return { success: false, error: 'No content found to enrich. Upload and extract pages first.' };
+    }
+    if (useBaskets && category === 'vocabulary' && basketVocab.length === 0) {
+      return { success: false, error: 'No confirmed vocabulary in the baskets for this unit.' };
     }
 
     // ── REGION-SAFE MODELS ──────────────────────────────────────────────
@@ -377,6 +441,17 @@ serve(async (req) => {
         inventory.push(v);
       }
 
+      // FIXPLAN_F P2.2: basket mode carries provenance (set label + structure)
+      // keyed by word so toVocabRow can persist it without changing the
+      // legacy inventory shape.
+      const basketProvenance = new Map<string, { set_label: string | null; structure_id: string | null }>();
+      for (const v of basketVocab) {
+        const w = String(v?.word || '').trim().toLowerCase();
+        if (w && !basketProvenance.has(w)) {
+          basketProvenance.set(w, { set_label: v.set_label || null, structure_id: v.structure_id || null });
+        }
+      }
+
       // Idempotent: skip words already enriched for this unit (safe re-enrich).
       let existingWords = new Set<string>();
       let existingCount = 0;
@@ -402,22 +477,27 @@ Return ONLY a valid JSON object. No markdown, no explanations, no text before or
 
       // Map one enriched word to a vocabulary_items row (mirrors the end-of-run
       // emitter so incremental + final writes produce identical rows).
-      const toVocabRow = (v: any) => ({
-        unit_id: unitId,
-        order_index: typeof v.order_index === 'number' ? v.order_index : 0,
-        word: String(v.word).trim(),
-        definition: v.definition ? String(v.definition) : null,
-        example_sentence: v.example_sentence ? String(v.example_sentence) : null,
-        l1_translation: v.l1_translation ? String(v.l1_translation) : (v.translation ? String(v.translation) : null),
-        phonetic: v.phonetic ? String(v.phonetic) : null,
-        part_of_speech: v.part_of_speech ? String(v.part_of_speech) : null,
-        image_prompt: v.image_prompt ? String(v.image_prompt) : null,
-        image_url: isPlaceholderImage(v.image_url) ? null : (v.image_url || null),
-        audio_url: v.audio_url || null,
-        example_audio_url: v.example_audio_url || null,
-        distractors: Array.isArray(v.distractors) ? v.distractors : [],
-        confusables: Array.isArray(v.confusables) ? v.confusables : [],
-      });
+      const toVocabRow = (v: any) => {
+        const prov = basketProvenance.get(String(v.word || '').trim().toLowerCase()) || { set_label: null, structure_id: null };
+        return {
+          unit_id: unitId,
+          order_index: typeof v.order_index === 'number' ? v.order_index : 0,
+          word: String(v.word).trim(),
+          definition: v.definition ? String(v.definition) : null,
+          example_sentence: v.example_sentence ? String(v.example_sentence) : null,
+          l1_translation: v.l1_translation ? String(v.l1_translation) : (v.translation ? String(v.translation) : null),
+          phonetic: v.phonetic ? String(v.phonetic) : null,
+          part_of_speech: v.part_of_speech ? String(v.part_of_speech) : null,
+          image_prompt: v.image_prompt ? String(v.image_prompt) : null,
+          image_url: isPlaceholderImage(v.image_url) ? null : (v.image_url || null),
+          audio_url: v.audio_url || null,
+          example_audio_url: v.example_audio_url || null,
+          distractors: Array.isArray(v.distractors) ? v.distractors : [],
+          confusables: Array.isArray(v.confusables) ? v.confusables : [],
+          set_label: prov.set_label,
+          source_structure_id: prov.structure_id,
+        };
+      };
 
       const words: any[] = [];
       let budgetHit = false;
@@ -431,17 +511,17 @@ Return ONLY a valid JSON object. No markdown, no explanations, no text before or
         const wordList = batch.map((v: any) => ({ word: v.word, definition: v.definition || '', category: v.category || '' }));
         const batchPrompt = `Topic: ${topic}
 Grade Level: ${gradeLevel}
-Learners' native language: Simplified Chinese (简体中文).
+Learners' native language: ${l1PromptPhrase}.
 
 Enrich EXACTLY these ${batch.length} vocabulary words (no more, no fewer):
 ${JSON.stringify(wordList)}
 
 Return ONLY this JSON format:
-{ "vocabulary": [ { "word": "...", "phonetic": "/IPA/", "part_of_speech": "noun", "definition": "simple child-friendly English definition", "l1_translation": "简体中文翻译", "example_sentence": "a short sentence using the word", "translation": "简体中文翻译", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["wrong meaning 1","wrong meaning 2","wrong meaning 3"], "confusables": ["an easily confused word"] } ] }
+{ "vocabulary": [ { "word": "...", "phonetic": "/IPA/", "part_of_speech": "noun", "definition": "simple child-friendly English definition", "l1_translation": "${l1Name}", "example_sentence": "a short sentence using the word", "translation": "${l1Name}", "image_prompt": "a cute cartoon illustration of [word] for children, simple flat style, bright colors", "distractors": ["wrong meaning 1","wrong meaning 2","wrong meaning 3"], "confusables": ["an easily confused word"] } ] }
 
 Rules:
 - Output one entry per provided word, in the same order. Keep every value concise.
-- l1_translation and translation MUST be Simplified Chinese.
+- l1_translation and translation MUST be in the learners' native language (${l1Name}).
 - Output the COMPLETE closing brackets/braces. A truncated response is useless.`;
 
         const res = await callAI(batchSystem, batchPrompt, 0.5, FAST_MODELS);
@@ -535,6 +615,188 @@ Rules:
         break;
     }
 
+    // ── FIXPLAN_F P2.2: BASKET-MODE BUILDERS ─────────────────────────────
+    // Verbatim-first: category content comes from the baskets themselves;
+    // the LLM is used ONLY for derived fields (explanations, pattern drills,
+    // comprehension questions grounded in the actual text, 1+1 media
+    // suggestions). Nothing is invented; nothing is quota'd (doc 10 §3).
+    const buildBasketGrammar = async (): Promise<any[]> => {
+      if (basketGrammar.length === 0) return [];
+      // One grounded call for all boxes: derive teaching scaffolding FROM the
+      // verbatim box texts — the rule text itself is never rewritten.
+      const boxes = basketGrammar.map((g, i) => ({ index: i, rule_text: g.rule_text, example_sentences: g.example_sentences || [] }));
+      const sys = `You are an ESL grammar teacher for children aged 6-12.
+Given grammar boxes transcribed VERBATIM from a textbook, derive teaching scaffolding for each box. Never rewrite the box text itself.
+Return ONLY a valid JSON object.`;
+      const usr = `Grammar boxes (verbatim):
+${JSON.stringify(boxes)}
+
+For EACH box, derive:
+- explanation: a simple child-friendly explanation of the pattern IN the box
+- pattern_template: a fill-in-the-blank structure of the box's pattern
+- transformation_pairs: pairs {original, transformed} showing different ways the pattern applies
+- error_examples: pairs {wrong, correct} of typical learner mistakes with this pattern
+
+Return ONLY: { "boxes": [ { "index": 0, "explanation": "...", "pattern_template": "...", "transformation_pairs": [...], "error_examples": [...] } ] }
+One output box per input box, same order. Keep every value concise so the response is not cut off.`;
+      const res = await callAI(sys, usr, 0.4, FAST_MODELS);
+      const derived = Array.isArray(res?.boxes) ? res.boxes : [];
+      return basketGrammar.map((g, i) => {
+        const d = derived.find((x: any) => Number(x?.index) === i) || {};
+        // Examples-only boxes: the first verbatim sentence stands in as the
+        // rule (grammar_rules.rule is NOT NULL) — still book text, never
+        // invented (doc 10 §7.3).
+        const examples = Array.isArray(g.example_sentences) ? g.example_sentences.filter((s: any) => typeof s === 'string' && s.trim()) : [];
+        const ruleText = String(g.rule_text || '').trim() || examples[0] || '';
+        return {
+          rule: ruleText,
+          explanation: d.explanation ? String(d.explanation) : null,
+          examples,
+          pattern_template: d.pattern_template ? String(d.pattern_template) : null,
+          transformation_pairs: Array.isArray(d.transformation_pairs) ? d.transformation_pairs : [],
+          error_examples: Array.isArray(d.error_examples) ? d.error_examples : [],
+          tier: 'BOX',
+          source_structure_id: g.structure_id || null,
+        };
+      });
+    };
+
+    const buildBasketStory = async (): Promise<any> => {
+      const pages: any[] = [];
+      let title = '';
+      // Reading passages verbatim → one page per passage.
+      for (const p of basketPassages) {
+        if (!title && p.title) title = String(p.title);
+        pages.push({
+          text: String(p.passage_text || ''),
+          speaker: null,
+          image_prompt: null,
+          source_structure_id: p.structure_id || null,
+          needs_questions: true,
+        });
+      }
+      // Comics → one page per panel (narration + bubbles as dialogue lines).
+      for (const c of basketComics) {
+        const panels = Array.isArray(c.panels) ? c.panels : [];
+        for (const panel of panels) {
+          const bits: string[] = [];
+          if (panel?.narration) bits.push(String(panel.narration));
+          for (const b of (Array.isArray(panel?.bubbles) ? panel.bubbles : [])) {
+            const speaker = b?.speaker ? `${b.speaker}: ` : '';
+            if (b?.text) bits.push(speaker + String(b.text));
+          }
+          if (bits.length > 0) {
+            pages.push({
+              text: bits.join('\n'),
+              speaker: null,
+              image_prompt: null,
+              source_structure_id: c.structure_id || null,
+              needs_questions: panels.length >= 3, // panel slides are for telling, not quizzing
+            });
+          }
+        }
+      }
+      if (pages.length === 0) return null;
+
+      // Comprehension questions — generated ONLY from the actual passage
+      // text, never about invented content (doc 10 §6 story basket).
+      for (const page of pages) {
+        if (!page.needs_questions) { delete page.needs_questions; continue; }
+        const qSys = `You write reading-comprehension questions for children aged 6-12.
+Questions must be answerable STRICTLY from the provided text. Never add facts.
+Return ONLY a valid JSON object.`;
+        const qUsr = `Text (verbatim from the book):
+${String(page.text).slice(0, 4000)}
+
+Write comprehension questions about THIS text only.
+Return ONLY: { "questions": [ { "question": "...", "options": ["a","b","c"], "answer": 0 } ] }
+answer is the 0-based index of the correct option. Keep language simple.`;
+        const qRes = await callAI(qSys, qUsr, 0.4, FAST_MODELS);
+        page.comprehension_questions = Array.isArray(qRes?.questions)
+          ? qRes.questions.map((q: any) => ({
+              question: String(q?.question || ''),
+              options: Array.isArray(q?.options) ? q.options.slice(0, 4) : [],
+              answer: Number.isInteger(q?.answer) ? q.answer : 0,
+            }))
+          : [];
+        delete page.needs_questions;
+      }
+      return { title: title || 'Story', setting: '', pages };
+    };
+
+    const buildBasketDialogues = (): any[] => {
+      // Verbatim lines grouped by (page, structure) into dialogues.
+      const groups = new Map<string, any[]>();
+      for (const d of basketDialogues) {
+        const key = `${d.order_hint}-${d.structure_id}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(d);
+      }
+      return [...groups.entries()].map(([key, lines], i) => ({
+        title: `Dialogue ${i + 1}`,
+        lines: lines.map((l) => ({
+          speaker: l.speaker ? String(l.speaker) : null,
+          text: String(l.text || ''),
+          source_structure_id: l.structure_id || null,
+        })),
+      }));
+    };
+
+    const buildBasketMedia = async (): Promise<any> => {
+      // Exactly 1 topic-matched song + 1 video suggestion (doc 10 §5 media
+      // slot decision), plus the book's own songs as separate marked items.
+      const sys = `You suggest REAL, existing children's educational media on YouTube.
+Return ONLY a valid JSON object.`;
+      const usr = `Lesson topic: ${topic}
+Confirmed words: ${basketVocab.slice(0, 30).map((v) => v.word).join(', ')}
+
+Suggest ONE song and ONE video that fit this lesson.
+Return ONLY: { "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits", "search_query": "YouTube search query" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits", "search_query": "YouTube search query" } ] }
+Exactly one entry in each array.`;
+      const res = await callAI(sys, usr, 0.5);
+      const songs = Array.isArray(res?.song_suggestions) ? res.song_suggestions.slice(0, 1) : [];
+      const videos = Array.isArray(res?.video_suggestions) ? res.video_suggestions.slice(0, 1) : [];
+      // The book's own songs: separate items, teacher-removable independently.
+      const bookSongs = basketSongs.map((s) => ({
+        title: s.title || 'Song',
+        topic_relevance: 'From the book (lyrics transcribed verbatim)',
+        lyrics: s.lyrics || '',
+        source: 'book',
+        structure_id: s.structure_id || null,
+      }));
+      return { song_suggestions: [...bookSongs, ...songs], video_suggestions: videos };
+    };
+
+    const buildBasketCharacters = (): any[] => {
+      // Book cast from exhaustive appearance descriptions (doc 10 §7.9).
+      // No invented cast: only characters the scan actually found.
+      return basketAppearances
+        .filter((a) => a.visual_description)
+        .map((a, i) => ({
+          name: a.name ? String(a.name) : `Book character ${i + 1}`,
+          role: 'book character',
+          personality: null,
+          description: String(a.visual_description),
+          look_prompt: String(a.visual_description),
+          image_prompt: String(a.visual_description),
+          source: 'book',
+          source_structure_id: a.structure_id || null,
+        }));
+    };
+
+    async function buildBasketEnriched(cat: string): Promise<any> {
+      const out: any = {};
+      const want = (c: string) => cat === 'all' || cat === c;
+      if (want('grammar')) out.grammar = await buildBasketGrammar();
+      if (want('story')) out.story = await buildBasketStory();
+      if (want('dialogues')) out.dialogues = buildBasketDialogues();
+      if (want('media')) Object.assign(out, await buildBasketMedia());
+      if (want('characters')) out.characters = buildBasketCharacters();
+      out.topic = topic;
+      out.gradeLevel = gradeLevel;
+      return out;
+    }
+
     // ── WS-A: vocabulary uses the batched, uncapped enrichment; all other
  //    categories keep the single-call path (their schemas fit the budget). ──
     let enriched: any;
@@ -544,6 +806,23 @@ Rules:
       enriched = { vocabulary: r.words };
       vocabPresence = r.presence;
       console.log(`enrich-unit VOCAB batched result:`, JSON.stringify(r.presence));
+    } else if (useBaskets) {
+      // FIXPLAN_F P2.2: basket mode — verbatim-first builders (above). The
+      // legacy single-call path below stays untouched for legacy units.
+      if (category === 'grammar' && basketGrammar.length === 0) {
+        return { success: true, unitId, category, enriched: {}, presence: { grammar: { category: 'grammar', enriched_count: 0, status: 'no_source' } }, source: 'baskets' };
+      }
+      if (category === 'story' && basketPassages.length === 0 && basketComics.length === 0) {
+        return { success: true, unitId, category, enriched: {}, presence: { story: { category: 'story', enriched_count: 0, status: 'no_source' } }, source: 'baskets' };
+      }
+      if (category === 'dialogues' && basketDialogues.length === 0) {
+        return { success: true, unitId, category, enriched: {}, presence: { dialogues: { category: 'dialogues', enriched_count: 0, status: 'no_source' } }, source: 'baskets' };
+      }
+      if (category === 'characters' && basketAppearances.length === 0) {
+        return { success: true, unitId, category, enriched: {}, presence: { characters: { category: 'characters', enriched_count: 0, status: 'no_source' } }, source: 'baskets' };
+      }
+      enriched = await buildBasketEnriched(category);
+      console.log(`enrich-unit BASKET mode [${category}]:`, JSON.stringify(Object.entries(enriched).map(([k, v]) => `${k}:${Array.isArray(v) ? v.length : typeof v}`)));
     } else {
       const enrichSystemPrompt = `You are Professor AI, an expert ESL/EFL curriculum designer for children aged 6-12.
 Given raw extracted text and vocabulary from a textbook page, generate ONLY the requested category of content.
@@ -727,6 +1006,7 @@ ${categoryRules}
             text: String(p.text || ''), speaker: p.speaker ? String(p.speaker) : null,
             speaker_character_id: speakerCharId,
             image_prompt: p.image_prompt ? String(p.image_prompt) : null,
+            source_structure_id: p.source_structure_id || null, // FIXPLAN_F P2.2 provenance
           });
         }
         const { data: upsertedPages } = await sbClient
@@ -791,6 +1071,7 @@ ${categoryRules}
               speaker_override_name: speakerCharId ? null : speakerName, // override only if NOT resolved
               text: String(line?.text || ''),
               translation: line?.translation ? String(line.translation) : null,
+              source_structure_id: line?.source_structure_id || null, // FIXPLAN_F P2.2 provenance
             });
             globalOrder++;
           }
@@ -827,7 +1108,9 @@ ${categoryRules}
       try {
         const vocabRows = enriched.vocabulary
           .filter((v: any) => v && v.word)
-          .map((v: any, i: number) => ({
+          .map((v: any, i: number) => {
+            const prov = basketVocab.find((b) => String(b.word).toLowerCase() === String(v.word).toLowerCase());
+            return {
             unit_id: unitId,
             order_index: typeof v.order_index === 'number' ? v.order_index : i,
             word: String(v.word).trim(),
@@ -847,7 +1130,10 @@ ${categoryRules}
             example_audio_url: v.example_audio_url || null,
             distractors: Array.isArray(v.distractors) ? v.distractors : [],
             confusables: Array.isArray(v.confusables) ? v.confusables : [],
-          }));
+            set_label: prov?.set_label || null,                 // FIXPLAN_F P2.2
+            source_structure_id: prov?.structure_id || null,    // FIXPLAN_F P2.2 provenance
+            };
+          });
         if (vocabRows.length > 0) {
           const { error: vocabUpsertError } = await sbClient
             .from('vocabulary_items')
@@ -881,6 +1167,8 @@ ${categoryRules}
             pattern_template: g.pattern_template ? String(g.pattern_template) : null,
             transformation_pairs: Array.isArray(g.transformation_pairs) ? g.transformation_pairs : [],
             error_examples: Array.isArray(g.error_examples) ? g.error_examples : [],
+            tier: g.tier === 'BOX' || g.tier === 'INFERRED' ? g.tier : null, // FIXPLAN_F P2.2
+            source_structure_id: g.source_structure_id || null,             // FIXPLAN_F P2.2 provenance
           }));
         if (ruleRows.length > 0) {
           await sbClient

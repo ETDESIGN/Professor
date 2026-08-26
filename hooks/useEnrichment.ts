@@ -182,10 +182,6 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
           return next;
         });
       }
-
-      if (i < categories.length - 1) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
     }
 
     toast.success('Content enrichment complete!');
@@ -193,9 +189,36 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
 
   const handleEnrich = useCallback(async () => {
     setLoadError(null);
-    const categories = ['vocabulary', 'grammar', 'characters', 'story', 'media', 'dialogues'];
+    // FIXPLAN_F P2.3: basket-driven categories (doc 10 §4 stage 6): enrich
+    // ONLY non-empty baskets — absence = absence, nothing is invented. Media
+    // is always offered (the 1 song + 1 video suggestion is an explicit
+    // product slot, doc 10 §5, teacher-removable). Legacy units (no
+    // baskets) keep the full six-category set.
+    let categories: string[] | null = null;
+    try {
+      const { data: baskets } = await supabase.rpc('get_unit_baskets', { p_unit_id: unitId });
+      if (baskets && typeof baskets === 'object') {
+        categories = [];
+        if ((baskets.vocabulary || []).length > 0) categories.push('vocabulary');
+        if ((baskets.grammar || []).length > 0) categories.push('grammar');
+        if ((baskets.story?.passages || []).length > 0 || (baskets.story?.comics || []).length > 0) categories.push('story');
+        if ((baskets.dialogues || []).length > 0) categories.push('dialogues');
+        if ((baskets.character_appearances || []).length > 0) categories.push('characters');
+        categories.push('media');
+        // Preserve the canonical execution order.
+        categories = ['vocabulary', 'grammar', 'characters', 'story', 'media', 'dialogues']
+          .filter(c => categories!.includes(c));
+      }
+    } catch {
+      /* baskets unavailable (pre-P2 schema) — fall through to the legacy set */
+    }
+    if (!categories) categories = ['vocabulary', 'grammar', 'characters', 'story', 'media', 'dialogues'];
+    if (categories.length === 1 && categories[0] === 'media') {
+      // Nothing in any basket except the media suggestion slot.
+      toast.info('No vocabulary, grammar, story or dialogues were confirmed on these pages — only media suggestions will be added.');
+    }
     await handleEnrichCategories(categories);
-  }, [handleEnrichCategories]);
+  }, [handleEnrichCategories, unitId]);
 
   const loadExistingEnrichment = useCallback(async () => {
     try {
