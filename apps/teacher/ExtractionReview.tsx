@@ -187,7 +187,7 @@ const POOL_FOR_TYPE: Record<string, string> = {
 };
 
 const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, onConfirm, onBack }) => {
-  const { pages, scanning, loading, removeStructure, restoreStructure, addStructure, confirmBatch, updateBbox, previewCrop } = useBookScan(unitId);
+  const { pages, scanning, loading, errors, dismissErrors, removeStructure, restoreStructure, addStructure, confirmBatch, updateBbox, previewCrop } = useBookScan(unitId);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   // ✎ bbox editor state (P3.4): editing structure + normalized draft box.
@@ -297,6 +297,18 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
           </button>
         </div>
       </div>
+
+      {errors.length > 0 && (
+        <div className="mx-4 mt-3 p-3 rounded-lg border border-red-300 bg-red-50 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-500 mt-0.5 shrink-0" />
+          <div className="flex-1 text-sm text-red-700 space-y-1">
+            {errors.map((e, i) => <div key={i} className="font-medium break-words">{e}</div>)}
+          </div>
+          <button onClick={dismissErrors} className="p-1 text-red-400 hover:text-red-600 rounded" title="Dismiss">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         {/* Page list */}

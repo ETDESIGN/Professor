@@ -59,6 +59,9 @@ export function useBookScan(unitId: string | null) {
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Persistent, dismissible errors (owner report: toasts vanished before
+  // they could be read). Split/scan failures stay visible until dismissed.
+  const [errors, setErrors] = useState<string[]>([]);
 
   const loadPages = useCallback(async () => {
     if (!unitId) return;
@@ -183,12 +186,13 @@ export function useBookScan(unitId: string | null) {
       }
       for (const file of files) {
         if (!isPdfFile(file)) continue;
-        toast.info(`Splitting ${file.name} into pages…`);
         let rasterized: RasterizedPage[];
         try {
           rasterized = await rasterizePdf(file);
         } catch (err: any) {
-          toast.error(`Could not split ${file.name}: ${err?.message || err}`);
+          const msg = `Could not split ${file.name}: ${err?.message || err}`;
+          toast.error(msg, { duration: 10000 });
+          setErrors(prev => [...prev, msg]);
           continue;
         }
         for (const p of rasterized) {
@@ -331,7 +335,7 @@ export function useBookScan(unitId: string | null) {
   }, []);
 
   return {
-    pages, scanning, loading,
+    pages, scanning, loading, errors, dismissErrors: () => setErrors([]),
     loadPages, scanFiles, retryScan,
     removeStructure, restoreStructure, addStructure, confirmBatch,
     updateBbox, previewCrop,

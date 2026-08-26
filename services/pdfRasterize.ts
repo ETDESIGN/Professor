@@ -9,11 +9,18 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 
+// Stable public paths (public/pdfjs/, kept in sync by scripts/copy-pdfjs-assets.mjs
+// via the predev/prebuild hooks). Vite's ?url assets are content-hashed
+// (openjpeg-<hash>.wasm) but pdfjs appends the LITERAL codec filename to
+// wasmUrl — hashed names 404 and JPEG2000 PDFs fail to split (owner report
+// 2026-08-26). Public assets keep the exact filenames pdfjs expects.
+const PDFJS_WORKER_URL = '/pdfjs/pdf.worker.min.mjs';
+const PDFJS_WASM_URL = '/pdfjs/wasm/';
+
 let workerReady = false;
 async function ensureWorker() {
   if (workerReady) return;
-  const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
   workerReady = true;
 }
 
@@ -36,12 +43,13 @@ export async function rasterizePdf(
 ): Promise<RasterizedPage[]> {
   await ensureWorker();
   const data = new Uint8Array(await file.arrayBuffer());
-  // wasmUrl must be a DIRECTORY url — Vite's ?url asset gives the file;
-  // strip the filename so pdfjs can resolve openjpeg.wasm next to it.
-  const openjpegWasmUrl = (await import('pdfjs-dist/wasm/openjpeg.wasm?url')).default;
-  const wasmUrl = new URL('.', openjpegWasmUrl).href;
-
-  const doc = await pdfjsLib.getDocument({ data, isEvalSupported: false, wasmUrl }).promise;
+  const doc = await pdfjsLib.getDocument({
+    data,
+    isEvalSupported: false,
+    // Exact filenames (openjpeg.wasm etc.) resolve under the stable
+    // /pdfjs/wasm/ directory — see the note at the top of this file.
+    wasmUrl: PDFJS_WASM_URL,
+  }).promise;
   const pages: RasterizedPage[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);

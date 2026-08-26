@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadCloud, Loader2, FileText, Plus, ChevronRight, FileImage } from 'lucide-react';
+import { UploadCloud, Loader2, FileText, Plus, ChevronRight, FileImage, AlertTriangle, X } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -33,7 +33,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
-   const { pages, scanning, scanFiles } = useBookScan(draftUnitId);
+   const { pages, scanning, errors, dismissErrors, scanFiles } = useBookScan(draftUnitId);
 
    // ── Book selector (Unit & Book Manager): uploaded units land in the chosen
    //    book; empty selection = default book ("My Units"). ────────────────────
@@ -188,6 +188,18 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                </>
             )}
          </div>
+
+         {errors.length > 0 && (
+            <div className="mx-4 mt-3 p-3 rounded-lg border border-red-300 bg-red-50 flex items-start gap-3">
+               <AlertTriangle size={18} className="text-red-500 mt-0.5 shrink-0" />
+               <div className="flex-1 text-sm text-red-700 space-y-1">
+                  {errors.map((e, i) => <div key={i} className="font-medium break-words">{e}</div>)}
+               </div>
+               <button onClick={dismissErrors} className="p-1 text-red-400 hover:text-red-600 rounded" title="Dismiss">
+                  <X size={16} />
+               </button>
+            </div>
+         )}
 
          {hasPages && draftUnitId ? (
             <ExtractionReview
