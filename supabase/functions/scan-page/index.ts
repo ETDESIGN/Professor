@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
+import { stripReasoning } from '../_shared/json.ts';
 import { fetchChatCompletion } from '../_shared/ai.ts';
 import { resolveImageDataUrl } from '../_shared/imageInput.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
@@ -23,6 +23,33 @@ import { INVENTORY_PROMPT, buildStructureExtractionPrompt } from '../_shared/pro
 // pipeline stays intact until P4.
 
 const STAGE2_CHUNK = 5; // structures per extraction call when chunking
+
+/**
+ * Parse the FIRST complete JSON object from model output. Vision models
+ * occasionally emit two concatenated objects (or trailing prose after the
+ * braces); extractJsonObject returns the raw span and JSON.parse then trips
+ * over the trailing junk. Walking balanced braces from the first '{' is
+ * robust to both.
+ */
+function parseFirstJsonObject(s: string): any {
+  const t = s.trim();
+  const start = t.indexOf('{');
+  if (start === -1) throw new Error('no JSON object in output');
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < t.length; i++) {
+    const c = t[i];
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return JSON.parse(t.slice(start, i + 1));
+    }
+  }
+  throw new Error('no complete JSON object in output');
+}
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -150,7 +177,7 @@ serve(async (req) => {
     let inventoryRaw: any = null;
     try {
       const invContent = await visionCall(INVENTORY_PROMPT.systemPrompt, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory');
-      inventoryRaw = JSON.parse(extractJsonObject(invContent));
+      inventoryRaw = parseFirstJsonObject(invContent);
     } catch (e: any) {
       return await failPage(`Structure inventory failed: ${e?.message || e}. Please retry this page.`);
     }
@@ -207,17 +234,23 @@ serve(async (req) => {
     // (the sequential version blew the edge limit on dense pages).
     const chunkResults = await Promise.all(chunks.map(async (chunk) => {
       const chunkInventory = JSON.stringify(chunk.map((c, i) => ({ structure_type: c.type, bbox: c.bbox, confidence: c.confidence, hint: c.hint, order_index: i })));
-      try {
-        const content = await visionCall(
-          extractionPrompt.systemPrompt,
-          extractionPrompt.userPromptTemplate.replace('{{inventoryJson}}', chunkInventory),
-          8000,
-          'extract',
-        );
-        return { ok: true as const, parsed: JSON.parse(extractJsonObject(content)) };
-      } catch (e: any) {
-        return { ok: false as const, error: e?.message || String(e) };
+      // One retry on a malformed response — concatenated objects and fence
+      // noise are transport-quality issues, not content ambiguity.
+      let lastErr = 'unknown error';
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const content = await visionCall(
+            extractionPrompt.systemPrompt,
+            extractionPrompt.userPromptTemplate.replace('{{inventoryJson}}', chunkInventory),
+            8000,
+            'extract',
+          );
+          return { ok: true as const, parsed: parseFirstJsonObject(content) };
+        } catch (e: any) {
+          lastErr = e?.message || String(e);
+        }
       }
+      return { ok: false as const, error: lastErr };
     }));
 
     const rawStructures: RawStructure[] = [];
