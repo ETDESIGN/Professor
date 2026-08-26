@@ -211,14 +211,6 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
 
   const active: ScanPage | null = useMemo(() => pages.find(p => p.id === activeId) || pages[0] || null, [pages, activeId]);
 
-  // TEMPORARY audit heartbeat (2026-08-26): 5s state snapshot to console —
-  // removes the guesswork from the "sidebar empties at settle" hunt.
-  useEffect(() => {
-    const id = setInterval(() => {
-      console.log(`[review] pages=${pages.length} scanning=${scanning} ids=${pages.slice(0, 3).map(p => p.id).join(',')}`);
-    }, 5000);
-    return () => clearInterval(id);
-  });
   const visibleStructures = (p: ScanPage) => p.structures.filter(s => s.review_status !== 'removed');
   const removedCount = (p: ScanPage) => p.structures.filter(s => s.review_status === 'removed').length;
   const flagCount = (p: ScanPage) => visibleStructures(p).filter(s => s.verification_flags?.length > 0).length;

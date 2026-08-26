@@ -63,14 +63,20 @@ export function useBookScan(unitId: string | null) {
   // they could be read). Split/scan failures stay visible until dismissed.
   const [errors, setErrors] = useState<string[]>([]);
 
-  const loadPages = useCallback(async () => {
-    if (!unitId) return;
+  // `override` lets async flows pass an explicitly-obtained unit id: a
+  // handleFileSelect closure can predate the state update that sets unitId,
+  // and a loadPages captured in that render would silently no-op (the
+  // audit's final stale-closure — pages settled but the sidebar never
+  // refreshed, then the cleanup wiped the placeholders to pages=0).
+  const loadPages = useCallback(async (override?: string) => {
+    const uid = override || unitId;
+    if (!uid) return;
     setLoading(true);
     try {
       const { data: pageRows, error } = await supabase
         .from('book_pages')
         .select('id, public_url, printed_page_number, printed_unit_label, printed_title, upload_order, pdf_page_number, status, error, page_structures(*)')
-        .eq('unit_id', unitId)
+        .eq('unit_id', uid)
         .order('upload_order', { ascending: true });
       if (error) throw error;
       const server = (pageRows || []).map((p: any) => ({
@@ -229,7 +235,7 @@ export function useBookScan(unitId: string | null) {
         // Refresh after every settled page. AWAIT the refresh before dropping
         // placeholders so the sidebar never flashes empty in the gap between
         // the filter and the server rows arriving (audit 2026-08-26).
-        await loadPages().catch(() => undefined);
+        await loadPages(unit).catch(() => undefined);
         if (done % 3 === 0 || done === entries.length) {
           setPages(prev => prev.filter(p => !String(p.id).startsWith('pending-')));
         }
@@ -237,7 +243,7 @@ export function useBookScan(unitId: string | null) {
       });
 
       const failed = results.filter(r => !r.ok);
-      await loadPages();
+      await loadPages(unit);
       // Drop any leftover placeholders (settled pages now carry the truth).
       setPages(prev => prev.filter(p => !String(p.id).startsWith('pending-')));
       if (failed.length === results.length && results.length > 0) {
