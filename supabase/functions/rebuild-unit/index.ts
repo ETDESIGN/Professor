@@ -25,7 +25,28 @@ import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 // remediation — the strict ownership guard would otherwise reject them
 // forever).
 
-const PAGE_TIME_BUDGET_MS = 100_000; // per invocation, leave headroom for the chain
+const PAGE_TIME_BUDGET_MS = 120_000; // per invocation, leave headroom for the chain
+
+/**
+ * Wait until a page's scan actually settles in the DB (status leaves
+ * 'scanning'). ROOT-CAUSE FIX (audit 2026-08-26): a dense page's scan can
+ * legitimately run ~150s (parallel chunks × model-fallback chains), which
+ * OVERSHADOWS any fetch timeout we pick — so we never trust the fetch; the
+ * database is the only source of truth for "this page is done".
+ */
+async function waitForPageSettled(sb: any, pageUrl: string, timeoutMs = 180_000): Promise<'scanned' | 'failed' | 'timeout'> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const { data: row } = await sb.from('book_pages')
+      .select('status').eq('public_url', pageUrl).order('created_at', { ascending: false }).limit(1)
+      .maybeSingle();
+    if (row && row.status !== 'scanning' && row.status !== 'pending') {
+      return row.status as 'scanned' | 'failed';
+    }
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  return 'timeout';
+}
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -102,16 +123,19 @@ serve(async (req) => {
       for (const src of remaining) {
         if (Date.now() - started > PAGE_TIME_BUDGET_MS) break;
         try {
-          const resp = await fetch(`${supabaseUrl}/functions/v1/scan-page`, {
+          // Fire the scan; then wait for the DB to settle the page (the fetch
+          // itself may abort long before a slow multi-chunk scan finishes —
+          // audit 2026-08-26).
+          fetch(`${supabaseUrl}/functions/v1/scan-page`, {
             method: 'POST',
             headers: { Authorization: authHeader, 'Content-Type': 'application/json', apikey: serviceKey },
             body: JSON.stringify({ unitId, fileUrl: src.url, filename: `rebuild-${src.order}.jpg`, uploadOrder: src.order }),
-            signal: AbortSignal.timeout(90_000),
-          });
-          const data = await resp.json().catch(() => ({}));
-          if (!resp.ok || data?.success === false) {
-            lastError = data?.error || `scan-page HTTP ${resp.status}`;
-            console.warn(`rebuild-unit: page ${src.order} failed: ${lastError} (continuing)`);
+          }).catch((e) => console.warn('rebuild-unit: scan fetch failed:', e?.message || e));
+          const settled = await waitForPageSettled(sb, src.url);
+          if (settled === 'timeout') {
+            lastError = 'page scan did not settle in time — it will be retried on the next pass';
+          } else if (settled === 'failed') {
+            lastError = 'scan-page reported failure for this page (continuing)';
           }
         } catch (e: any) {
           lastError = e?.message || String(e);
@@ -119,9 +143,11 @@ serve(async (req) => {
         processed++;
       }
 
-      const { data: after } = await sb.from('book_pages').select('public_url').eq('unit_id', unitId);
-      const done = (after || []).length;
-      if (done < sources.length) {
+      // Done-count counts only SETTLED pages (never 'scanning'/'pending').
+      const { data: after } = await sb.from('book_pages').select('status').eq('unit_id', unitId);
+      const settledCount = (after || []).filter((p: any) => p.status === 'scanned' || p.status === 'reviewed' || p.status === 'failed').length;
+      const failedCount = (after || []).filter((p: any) => p.status === 'failed').length;
+      if (settledCount < sources.length || failedCount > 0) {
         // Chain the next batch — waitUntil keeps the isolate alive past the
         // response, mirroring orchestrate-lesson's trigger.
         const cont = fetch(`${supabaseUrl}/functions/v1/rebuild-unit`, {
@@ -131,20 +157,46 @@ serve(async (req) => {
         }).then((r) => r.json().catch(() => ({})), (e) => console.warn('rebuild-unit chain failed:', e?.message || e));
         // @ts-ignore EdgeRuntime is global in Supabase edge functions
         EdgeRuntime.waitUntil(cont);
-        return { success: true, unitId, status: 'running', pages: done, total: sources.length, processed, note: 'Rebuild continuing…' };
+        return { success: true, unitId, status: 'running', pages: settledCount, total: sources.length, processed, note: 'Rebuild continuing…' };
       }
-      void processed; void lastError;
+      void lastError;
     }
 
-    // All pages scanned → confirm the batch + finish.
+    // All pages scanned → confirm the batch + finish. Read-back verified:
+    // the audit (2026-08-26) showed a silently half-finished rebuild
+    // (structures stuck 'pending', baskets confirmed on nothing) must never
+    // report success again.
     const { data: finalPages } = await sb.from('book_pages').select('id').eq('unit_id', unitId);
     const pageIds = (finalPages || []).map((p: any) => p.id);
     if (pageIds.length > 0) {
-      await sb.from('page_structures').update({ review_status: 'confirmed' })
-        .in('page_id', pageIds).in('review_status', ['pending', 'edited'])
-        .then(() => undefined, () => undefined);
-      await sb.from('book_pages').update({ status: 'reviewed', reviewed_at: new Date().toISOString() })
-        .eq('unit_id', unitId).eq('status', 'scanned').then(() => undefined, () => undefined);
+      const confirmStructures = async (): Promise<number> => {
+        const { data: confirmedRows, error: confirmErr } = await sb.from('page_structures')
+          .update({ review_status: 'confirmed' })
+          .in('page_id', pageIds).in('review_status', ['pending', 'edited'])
+          .select('id');
+        if (confirmErr) throw new Error(`structure confirm failed: ${confirmErr.message}`);
+        return (confirmedRows || []).length;
+      };
+      let confirmedCount = 0;
+      try {
+        confirmedCount = await confirmStructures();
+        if (confirmedCount === 0) {
+          // Retry once — a transient read-after-write miss is the known shape.
+          await new Promise(r => setTimeout(r, 2000));
+          confirmedCount = await confirmStructures();
+        }
+      } catch (e: any) {
+        await markJob('failed', e?.message || 'structure confirm failed');
+        return { success: false, unitId, error: `Rebuild could not confirm the extracted structures: ${e?.message || e}` };
+      }
+      const { error: pageErr } = await sb.from('book_pages')
+        .update({ status: 'reviewed', reviewed_at: new Date().toISOString() })
+        .eq('unit_id', unitId).in('status', ['scanned']);
+      if (pageErr) {
+        await markJob('failed', `page status update failed: ${pageErr.message}`);
+        return { success: false, unitId, error: `Rebuild could not mark pages reviewed: ${pageErr.message}` };
+      }
+      console.log(`rebuild-unit: confirmed ${confirmedCount} structures across ${pageIds.length} pages`);
     }
     const unitUpdate: Record<string, any> = { baskets_confirmed_at: new Date().toISOString() };
     if (mode === 'fresh' && unit.manifest) {

@@ -130,7 +130,15 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
           body: { unitId, category },
         });
         if (error) throw error;
-        if (data?.success === false) throw new Error(data.error || `Enrichment failed for ${category}`);
+        if (data?.success === false) {
+          // FIXPLAN_F audit fix: the awaiting-confirmation gate is guidance,
+          // not an error — point the teacher at the confirm step.
+          if (data?.awaiting_confirmation) {
+            toast.info('Scanned pages are waiting for your review. Confirm the extracted content first (green "Review extraction" button), then enrich.');
+            continue;
+          }
+          throw new Error(data.error || `Enrichment failed for ${category}`);
+        }
         if (data?.enriched) {
           setEnriched(prev => {
             const patched = ensureApprovalStates(data.enriched);

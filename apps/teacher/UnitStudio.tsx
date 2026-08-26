@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route, ScanSearch } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../services/supabaseClient';
 import { invokeGenerateExercises, waitForGenerationJob, getPoolCount } from '../../services/ExercisePoolService';
@@ -15,6 +15,11 @@ import { useUnitStudioStore } from '../../store/useUnitStudioStore';
 // Content/Plan tabs, with onBack closing the mode and onOrchestrate returning to
 // the Content tab (the unit is already loaded — no re-navigation needed).
 const AssetWorkshop = lazy(() => import('./AssetWorkshop'));
+// FIXPLAN_F audit fix (2026-08-26): the extraction-review surface must be
+// reachable from the Studio too — a teacher who uploads/navigates away before
+// confirming the batch would otherwise hit a dead end (empty Review, no path
+// back to the confirm step).
+const ExtractionReview = lazy(() => import('./ExtractionReview'));
 
 // Phase 2 (F2, decided D3) — the Unified Unit Studio. One component, one route
 // (/teacher/unit/:unitId), two tabs:
@@ -45,11 +50,34 @@ const UnitStudio: React.FC = () => {
   const [loading, setLoading] = useState(true);
   // Task 15: in-Studio Review mode (replaces the /teacher/review/:id route).
   const [showReview, setShowReview] = useState(false);
+  // FIXPLAN_F audit fix: extraction-review overlay + pending counter.
+  const [showExtractionReview, setShowExtractionReview] = useState(false);
+  const [pendingExtraction, setPendingExtraction] = useState(0);
   // Phase 3: manual exercise-pool generation state (button in the header).
   const [generating, setGenerating] = useState(false);
   const [poolCount, setPoolCount] = useState<number | null>(null);
   // Phase 2.4: mobile gets a Content-only surface (no Plan tab) for v1.
   const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  // FIXPLAN_F audit fix: count unconfirmed extracted structures — the banner
+  // makes the confirm step discoverable from the Studio (it was previously
+  // only reachable inside the upload flow, so navigating away orphaned it).
+  const refreshPendingExtraction = async () => {
+    if (!unitId) return;
+    try {
+      const { data: u } = await supabase.from('units').select('baskets_confirmed_at').eq('id', unitId).maybeSingle();
+      if (u?.baskets_confirmed_at) { setPendingExtraction(0); return; }
+      const { data: pageIds } = await supabase.from('book_pages').select('id').eq('unit_id', unitId);
+      if (!pageIds?.length) { setPendingExtraction(0); return; }
+      const { count } = await supabase
+        .from('page_structures')
+        .select('id', { count: 'exact', head: true })
+        .in('page_id', pageIds.map((p: any) => p.id))
+        .in('review_status', ['pending', 'edited']);
+      setPendingExtraction(count ?? 0);
+    } catch { /* banner is best-effort */ }
+  };
+  useEffect(() => { refreshPendingExtraction(); /* eslint-disable-next-line */ }, [unitId]);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
@@ -161,6 +189,19 @@ const UnitStudio: React.FC = () => {
               toggles an overlay panel rendering AssetWorkshop, so the teacher
               never leaves the Studio to approve/regenerate. */}
           <div className="flex items-center gap-3">
+            {/* FIXPLAN_F audit fix: unconfirmed extraction banner-button —
+                enrichment is basket-gated on the teacher's confirm, so this
+                must be impossible to miss. */}
+            {pendingExtraction > 0 && (
+              <button
+                onClick={() => setShowExtractionReview(true)}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors animate-pulse"
+                title="Confirm the extracted content — enrichment only uses confirmed baskets"
+              >
+                <ScanSearch size={16} /> Review extraction
+                <span className="bg-emerald-800/60 text-xs px-1.5 py-0.5 rounded-full">{pendingExtraction}</span>
+              </button>
+            )}
             {/* Phase 3: manual pool generation — the retry path for units whose
                 fire-and-forget trigger was dropped before the Aug-17 fix. */}
             <button
@@ -309,6 +350,36 @@ const UnitStudio: React.FC = () => {
                   // The store may have new content after orchestration; reload.
                   useUnitStudioStore.getState().load(unitId);
                 }}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+      {showExtractionReview && unitId && (
+        <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shrink-0">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+              <ScanSearch size={16} className="text-emerald-600" /> Review extracted content (verbatim from your pages)
+            </div>
+            <button
+              onClick={() => setShowExtractionReview(false)}
+              className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+              title="Close (back to Studio)"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-emerald-600" /></div>}>
+              <ExtractionReview
+                unitId={unitId}
+                unitTitle={unit?.title || 'this unit'}
+                onConfirm={() => {
+                  setShowExtractionReview(false);
+                  refreshPendingExtraction();
+                  toast.success('Extraction confirmed — use Review to enrich from the baskets.');
+                }}
+                onBack={() => setShowExtractionReview(false)}
               />
             </Suspense>
           </div>

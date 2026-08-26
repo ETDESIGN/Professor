@@ -106,6 +106,30 @@ serve(async (req) => {
       basketPassages.length > 0 || basketComics.length > 0 || basketSongs.length > 0
     );
 
+    // FIXPLAN_F audit fix (2026-08-26): a unit whose pages WERE scanned but
+    // whose batch was never teacher-confirmed must not silently fall back to
+    // the legacy invent-everything path — that produced "review shows only a
+    // song suggestion and nothing else". Answer honestly and actionably.
+    if (!basketConfirmed && baskets) {
+      try {
+        const { data: pageIds } = await sbClient.from('book_pages').select('id').eq('unit_id', unitId);
+        if (pageIds && pageIds.length > 0) {
+          const { count: pendingStructures } = await sbClient
+            .from('page_structures')
+            .select('id', { count: 'exact', head: true })
+            .in('page_id', pageIds.map((p: any) => p.id))
+            .in('review_status', ['pending', 'edited']);
+          if ((pendingStructures ?? 0) > 0) {
+            return {
+              success: false,
+              error: 'This unit has scanned pages waiting for your review. Open "Review extraction" and confirm the batch first — enrichment only uses content you have confirmed.',
+              awaiting_confirmation: true,
+            };
+          }
+        }
+      } catch { /* fall through to normal behavior */ }
+    }
+
     // Per-teacher L1 (doc 10 §5): basket mode reads profiles.native_language;
     // zh-CN default keeps output identical to today's hardcoded behavior.
     let l1PromptPhrase = 'Simplified Chinese (简体中文)';
