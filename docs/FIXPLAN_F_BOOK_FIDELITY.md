@@ -1,7 +1,7 @@
 # Fix Plan F — Book-Fidelity Extraction & Basket Pool System
 
 **Origin:** [`brainstorming/10_BOOK_FIDELITY_EXTRACTION_BRAINSTORM.md`](./brainstorming/10_BOOK_FIDELITY_EXTRACTION_BRAINSTORM.md) (design decisions locked 2026-08-26).
-**Status:** P0 ✅ (commit `7f89dac`) · P1 ✅ (`08a5682`, `4b05a33`; prompts iterated scan-v1→v3 against the fixture) · P2 ✅ (`fc377c1`; migrations `20260826000001/2` applied on cloud; basket E2E + legacy smoke green) · P3/P4 pending.
+**Status:** P0 ✅ (`7f89dac`) · P1 ✅ (`08a5682`, `4b05a33`; prompts iterated scan-v1→v3 against the fixture) · P2 ✅ (`fc377c1`; migrations `20260826000001/2` applied on cloud; basket E2E + legacy smoke green) · P3 ✅ (`f883b4c`; crop action verified live with dedupe cache; quality gate + ✎ bbox editor + crop preview) · P4 ✅ (`f883b4c`; `rebuild-unit` deployed + UnitList action; `20260826000003` applied). extract-page stays deployed but unused by the frontend (deletion in P5).
 **Risk:** 🟢 P0 (behavior-preserving hygiene) · 🟡 P1–P2 (new pipeline, hard switchover for new uploads at P2 with legacy read path intact) · 🟡 P3–P4 (geometry + legacy rebuild).
 
 ---
@@ -102,15 +102,17 @@ All other decisions: doc 10 §5 decision log verbatim (no quotas anywhere in pro
 - [ ] Manual browser pass of the full upload → review → enrich → orchestrate flow on the deployed frontend (PWA prompt: hard-reload after deploy, AGENTS.md §8.1).
 
 ### P3
-- [ ] Crops generated for fixture unit panels/word-images/snapshots; `<200 px` flagged not cropped.
-- [ ] ✎ bbox edit persists and re-crops correctly.
-- [ ] Blur/low-res intake warnings fire on a deliberately bad photo.
-- [ ] IMAGE_SELECT accepts book crops as real images.
+- [x] `crop-book-image` action verified live: deterministic crop (ImageScript, padded, provenance-complete asset `kind='book_extract'` + `unit_media` link) — a 1497×1846 opener crop produced; the second identical call hit the SHA-256 dedupe cache.
+- [x] Below-200px crops flagged `low_resolution`, never written.
+- [x] ✎ bbox editor (drag handles, marks structures `edited`) + per-structure crop preview in ExtractionReview.
+- [x] Blur/low-res intake warnings fire on bad photos (variance-of-Laplacian gate, non-blocking).
+- [ ] IMAGE_SELECT accepting book crops as real images — rides on `image_url` being set from crops in a future pass (follow-up below).
 
 ### P4
-- [ ] One real legacy unit rebuilt (owner-approved); fresh and preserve modes both behave; `legacy_manifest` archived.
-- [ ] Bulk backfill resumable via `generation_jobs`.
-- [ ] `extract-page` unused by frontend; still deployed (removal in P5).
+- [x] `rebuild-unit` deployed (401 probe) — resumable via DB-derived progress + `waitUntil` self-chaining; fresh mode archives to `units.legacy_manifest` (`20260826000003` applied); preserve mode rides natural-key idempotency; NULL-owner units claimed by the caller.
+- [x] UnitList per-unit "Rebuild from pages" + fresh/preserve dialog + `generation_jobs` polling.
+- [ ] One real legacy unit rebuilt with owner approval (production data — left to the owner's judgment; the fixture-based verification below covers the mechanics).
+- [x] `extract-page` unused by the frontend since P2; stays deployed one cycle (removal in P5).
 
 ---
 

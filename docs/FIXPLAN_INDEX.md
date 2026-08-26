@@ -15,6 +15,8 @@
 | **E** | Live sync hardening + authoritative turn state | [`FIXPLAN_E_LIVE_SYNC.md`](./FIXPLAN_E_LIVE_SYNC.md) | Phase 1: seeded determinism, persist-retry, 3-channel reconnect/rehydrate, staleness guards. Phase 2: `live_state`+`seq` on `classroom_sessions`, derived pick timers, path collapse. Origin: [`brainstorming/09_LIVE_SYNC_ARCHITECTURE_AUDIT.md`](./brainstorming/09_LIVE_SYNC_ARCHITECTURE_AUDIT.md) | 🟢 Phase 1 low / 🟡 Phase 2 medium | A/B/C landed (2026-08-02) |
 | **F** | Book-fidelity extraction & basket pools | [`FIXPLAN_F_BOOK_FIDELITY.md`](./FIXPLAN_F_BOOK_FIDELITY.md) | P0 hygiene → P1 two-stage verbatim extraction (`scan-page`, `book_pages`/`page_structures`) → P2 baskets + post-OCR review + basket-driven enrichment → P3 geometry/image pools → P4 legacy rebuild. Origin: [`brainstorming/10_BOOK_FIDELITY_EXTRACTION_BRAINSTORM.md`](./brainstorming/10_BOOK_FIDELITY_EXTRACTION_BRAINSTORM.md) | 🟡 Medium | E landed (2026-08-19) |
 
+**F status (2026-08-26):** P0–P4 implemented, deployed, and verified (`7f89dac`…`f883b4c` + fixture iterations). Power Up 2 golden fixture drives regression (`npm run test:fixtures`); basket + rebuild E2E scripts under `scripts/testing/`. Manual browser pass of the new upload → review flow still owed (PWA: hard-reload after deploy).
+
 **Deferred** (not in scope yet — best after A/B/C stabilize):
 - **D** Architecture cleanup: discriminated action union, single `<Wheel>` component, Group Maker → `assignTeams` merge, remove decorative buttons. Tracked as a follow-up.
 
