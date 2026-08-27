@@ -525,13 +525,25 @@ Return ONLY a valid JSON object. No markdown, no explanations, no text before or
 
       const words: any[] = [];
       let budgetHit = false;
+
+      // AUDIT FIX (2026-08-26): baskets hold 30-40+ words (the old pipeline
+      // capped at 6-8); SEQUENTIAL batches of 5 hit the 95s wall-clock
+      // deadline after ~15 words and silently deferred the rest (owner saw
+      // 15 of ~35). Batches are independent (each enriches its own words and
+      // persists incrementally) — run them in parallel waves of 3 so a
+      // 40-word unit completes in one pass inside the same deadline.
+      const batches: any[][] = [];
       for (let i = 0; i < toEnrich.length; i += VOCAB_BATCH_SIZE) {
+        batches.push(toEnrich.slice(i, i + VOCAB_BATCH_SIZE));
+      }
+      const VOCAB_PARALLELISM = 3;
+      const runBatch = async (batchIdx: number) => {
         if (Date.now() > VOCAB_DEADLINE_MS) {
           budgetHit = true;
-          console.warn(`enrich-unit VOCAB: time-budget hit; ${toEnrich.length - i} words deferred to the next enrichment`);
-          break;
+          console.warn(`enrich-unit VOCAB: time-budget hit; batch ${batchIdx + 1} deferred to the next enrichment`);
+          return;
         }
-        const batch = toEnrich.slice(i, i + VOCAB_BATCH_SIZE);
+        const batch = batches[batchIdx];
         const wordList = batch.map((v: any) => ({ word: v.word, definition: v.definition || '', category: v.category || '' }));
         const batchPrompt = `Topic: ${topic}
 Grade Level: ${gradeLevel}
@@ -557,13 +569,14 @@ Rules:
             if (w && w.word && allowed.has(String(w.word).toLowerCase())) batchWords.push(w);
           }
         } else {
-          console.warn(`enrich-unit VOCAB: batch ${Math.floor(i / VOCAB_BATCH_SIZE) + 1} returned no vocabulary (empty/truncated)`);
+          console.warn(`enrich-unit VOCAB: batch ${batchIdx + 1} returned no vocabulary (empty/truncated)`);
         }
         // Incremental persistence: write this batch to vocabulary_items immediately
-        // so the edge wall-clock limit can never discard completed work (the old
-        // end-of-run-only write was lost when the invocation was killed mid-batch).
+        // so the edge wall-clock limit can never discard completed work. The
+        // order_index is derived from the batch's position, so parallel waves
+        // never collide.
         if (batchWords.length > 0) {
-          batchWords.forEach((w, idx) => { w.order_index = existingCount + words.length + idx; });
+          batchWords.forEach((w, idx) => { w.order_index = existingCount + batchIdx * VOCAB_BATCH_SIZE + idx; });
           try {
             const { error: incErr } = await sbClient
               .from('vocabulary_items')
@@ -574,7 +587,17 @@ Rules:
           }
           words.push(...batchWords);
         }
-      }
+      };
+      let nextBatch = 0;
+      const workers = Array.from({ length: Math.min(VOCAB_PARALLELISM, batches.length) }, async () => {
+        while (true) {
+          const i = nextBatch++;
+          if (i >= batches.length || Date.now() > VOCAB_DEADLINE_MS) break;
+          await runBatch(i);
+        }
+      });
+      await Promise.all(workers);
+      if (Date.now() > VOCAB_DEADLINE_MS && words.length < toEnrich.length) budgetHit = true;
 
       // order_index appends after the existing rows so re-enrich never collides.
       words.forEach((w, idx) => { w.order_index = existingCount + idx; });

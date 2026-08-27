@@ -10,7 +10,7 @@
 //   * no quotas — nothing here imposes or implies counts
 //   * absence = absence — empty arrays are valid, complete answers
 
-export const EXTRACTOR_VERSION = 'scan-v4';
+export const EXTRACTOR_VERSION = 'scan-v5';
 
 /** Normalized [x, y, w, h], origin top-left, each in [0, 1] of the full page. */
 export type Bbox = [number, number, number, number];
@@ -361,6 +361,24 @@ export function verifyStructures(raw: RawStructure[]): VerifiedStructure[] {
       if (items.length > 0 && items.every((it: any) => !isBbox(it?.picture_bbox))) {
         flags.push(VERIFICATION_FLAG.NO_IMAGE);
       }
+      // Owner report (2026-08-26): poster/scene titles and question captions
+      // leak in as "words" ("BOOK CLUB", "FEED FRED THE FISH?"); partial
+      // duplicates also appear ("elbow pads" vs "elbow and knee pads").
+      // Flag for review — never silently keep or drop.
+      const words = items.map((it: any) => String(it?.word || '').trim()).filter(Boolean);
+      const labelLike = words.some((w) =>
+        (w.length >= 4 && w === w.toUpperCase() && !/^\d+$/.test(w)) || /[?!]$/.test(w));
+      if (labelLike) flags.push('label_like_item');
+      const lower = words.map((w) => w.toLowerCase());
+      // Significant-token subset ("elbow pads" ⊂ "elbow and knee pads") —
+      // substring matching misses exactly this shape.
+      const tokens = lower.map((w) => w.split(/\s+/).filter((t) => t.length >= 4));
+      const containmentDup = tokens.some((tk, i) =>
+        tk.length > 0 && tokens.some((other, j) => {
+          if (j === i || other.length <= tk.length) return false;
+          return tk.every((t) => other.includes(t));
+        }));
+      if (containmentDup) flags.push('duplicate_item');
     }
     if (type === 'grammar_box') {
       // Box grammar is always tier BOX (verbatim, mandatory); INFERRED rules

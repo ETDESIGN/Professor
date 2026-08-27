@@ -127,6 +127,27 @@ describe('verifyStructures', () => {
   });
 
   it('stamps the extractor version constant used by scan-page', () => {
-    expect(EXTRACTOR_VERSION).toBe('scan-v4');
+    expect(EXTRACTOR_VERSION).toBe('scan-v5');
+  });
+});
+
+describe('vocab item quality flags (owner audit 2026-08-26)', () => {
+  it('flags ALL-CAPS scene titles and question captions as label-like', () => {
+    const out = verifyStructures([
+      { structure_type: 'vocab_set', data: { items: [{ word: 'BOOK CLUB' }, { word: 'Feed Fred the fish?' }, { word: 'forest' }] } },
+    ]);
+    expect(out[0].verification_flags).toContain('label_like_item');
+  });
+  it('does not flag normal mixed-case words', () => {
+    const out = verifyStructures([
+      { structure_type: 'vocab_set', data: { items: [{ word: 'forest' }, { word: 'get dressed' }] } },
+    ]);
+    expect(out[0].verification_flags).not.toContain('label_like_item');
+  });
+  it('flags containment duplicates within a set', () => {
+    const out = verifyStructures([
+      { structure_type: 'vocab_set', data: { items: [{ word: 'elbow pads' }, { word: 'elbow and knee pads' }] } },
+    ]);
+    expect(out[0].verification_flags).toContain('duplicate_item');
   });
 });

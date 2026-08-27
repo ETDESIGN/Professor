@@ -49,7 +49,10 @@ bbox format: [x, y, w, h] with values normalized to 0.0-1.0 relative to the FULL
 const TYPE_SCHEMA_BLOCKS: Record<StructureType, string> = {
   vocab_set: `[vocab_set]
 { "set_label": "<name of the word set, from the page's lesson header if present>", "lesson_header": "<header text if present>", "items": [ { "word": "<exact spelling; multi-word items such as 'have a shower' are allowed and expected>", "picture_bbox": [x,y,w,h] } ] }
-Transcribe EVERY word that is shown with a picture — including numbered word strips beside songs, word rows beside passages, and labelled scenes. Do not stop early, do not skip any, do not stop at any count. The WORD is the priority: if you cannot locate a word's picture precisely, still emit the word and omit its picture_bbox — never drop a word because of its box.`,
+Transcribe EVERY word that is shown with a picture — including numbered word strips beside songs, word rows beside passages, and labelled scenes. Do not stop early, do not skip any, do not stop at any count. The WORD is the priority: if you cannot locate a word's picture precisely, still emit the word and omit its picture_bbox — never drop a word because of its box.
+Items must be TEACHABLE WORDS OR PHRASES, exactly as printed:
+- Keep printed phrases COMPLETE: a strip item like "read a comic" or "write an email" is ONE item — never emit just part of it ("a comic").
+- Do NOT include poster/scene TITLES or place labels of whole scenes ("BOOK CLUB", "CLASSROOM"), activity headings, or question-form captions ("Feed Fred the fish?") — those are not vocabulary items.`,
   comic: `[comic]
 { "panels": [ { "order_index": 0, "bbox": [x,y,w,h], "narration": "<narration box text if any>", "bubbles": [ { "bbox": [x,y,w,h], "speaker": "<speaker name if identifiable, else null>", "text": "<exact bubble text>" } ] } ] }
 List panels in reading order. Transcribe every bubble word-for-word.`,
@@ -59,8 +62,8 @@ List panels in reading order. Transcribe every bubble word-for-word.`,
 { "title": "<song title exactly as printed; if no title is printed, use the first line of the lyrics>", "lyrics": "<full lyrics verbatim, preserving line breaks and the little circled numbers if present>", "action_lines": [ { "text": "<the lyric line>", "illustration_bbox": [x,y,w,h] } ] }
 Only include action_lines for lines that have their own illustration.`,
   reading_passage: `[reading_passage]
-{ "title": "<story title if present>", "passage_text": "<the full passage verbatim>", "scene_illustrations": [ { "bbox": [x,y,w,h], "caption": "<caption if any>" } ], "activities": [ { "instruction": "<exact printed instruction>", "verb": "<listen|point|read|match|circle|order|choose|write|say>", "content": "<what the activity operates on>" } ], "set_label": "<label of the passage's own word strip, if present>", "items": [ { "word": "<exact spelling>", "picture_bbox": [x,y,w,h] } ] }
-items = the word strip that belongs to this passage, when one is printed beside or under it (omit when there is none). Every labelled word-picture pair counts — never drop a word because of its box.`,
+{ "title": "<story title if present>", "passage_text": "<the full passage verbatim>", "scene_illustrations": [ { "bbox": [x,y,w,h], "caption": "<caption if any>" } ], "activities": [ { "instruction": "<exact printed instruction>", "verb": "<listen|point|read|match|circle|order|choose|write|say>", "content": "<what the activity operates on>" } ], "set_label": "<label of the passage's own word strip, if present>", "items": [ { "word": "<exact spelling, complete phrase>", "picture_bbox": [x,y,w,h] } ] }
+items = the word strip that belongs to this passage, when one is printed beside or under it (omit when there is none). Every labelled word-picture pair counts — keep printed phrases complete and exclude scene/poster titles. Never drop a word because of its box.`,
   printed_activity: `[printed_activity]
 { "instruction": "<the exact printed instruction>", "verb": "<the instruction verb, e.g. listen|point|stick|count|match|order|choose|describe|say|colour|find|ask>", "content": "<the material the activity operates on, described neutrally>" }`,
   review_statements: `[review_statements]
