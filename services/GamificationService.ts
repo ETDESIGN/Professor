@@ -256,7 +256,17 @@ export const GamificationService = {
     const consumed = await GamificationService.consumeInventoryItem('hearts');
     if (!consumed) return { success: false, hearts: current.current };
 
-    const h = await refillHearts(user.id);
+    // refillHearts re-reads hearts internally (getHearts throws on read
+    // failure). If that read fails AFTER the item was consumed, we still
+    // report failure here — the item stays consumed; Task 8 adds Shop-side
+    // pending/toast handling for this edge.
+    let h;
+    try {
+      h = await refillHearts(user.id);
+    } catch (err) {
+      log.warn('heart_refill_write_failed', { error: err instanceof Error ? err.message : String(err) });
+      return { success: false, hearts: 0 };
+    }
     return { success: true, hearts: h.current };
   },
 

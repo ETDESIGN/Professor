@@ -43,8 +43,9 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
   const [hearts, setHearts] = useState(HEARTS_MAX);
   // True when the hearts balance could not be read from the DB — the counter
   // renders disabled ("—") and wrong answers must NOT decrement an unknown
-  // balance (getHearts now throws instead of faking full hearts).
-  const [heartsUnavailable, setHeartsUnavailable] = useState(false);
+  // balance (getHearts now throws instead of faking full hearts). Starts
+  // true so an early wrong answer can't decrement an unread balance.
+  const [heartsUnavailable, setHeartsUnavailable] = useState(true);
   const [outOfHearts, setOutOfHearts] = useState(false);
   const [results, setResults] = useState<RunnerResult['items']>([]);
   // Objectives that reached 'familiar'/'mastered' THIS session — used to advance
@@ -55,7 +56,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
   useEffect(() => {
     let cancelled = false;
     Engine.getHearts(studentId)
-      .then((h) => { if (!cancelled) setHearts(h.current); })
+      .then((h) => { if (!cancelled) { setHearts(h.current); setHeartsUnavailable(false); } })
       .catch(() => { if (!cancelled) setHeartsUnavailable(true); });
     return () => { cancelled = true; };
   }, [studentId]);
