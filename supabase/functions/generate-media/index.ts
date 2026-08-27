@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
+import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -96,8 +97,32 @@ serve(async (req) => {
     validationRules: [
       { field: 'action', required: true, type: 'string' },
     ],
-  }, async (body, _auth) => {
+  }, async (body, auth) => {
     const { action, unitId, prompt, text, query, images, audios, items } = body;
+
+    // FIXPLAN H1 (audit P0-3): every action in this function can trigger paid
+    // AI generation (or write assets) but none of them checked unit ownership.
+    // Gate centrally, before any branch runs:
+    //   - unitId present → caller must own the unit (assertUnitOwnership;
+    //     admin bypasses). Applies to generate-image, generate-audio,
+    //     resolve-speech, resolve-speech-batch, batch.
+    //   - no unitId → staff-only (teacher/admin/manager). Covers youtube-search
+    //     and any unitId-less call; crop-book-image additionally keeps its own
+    //     page-level teacher_id check below.
+    const role = auth?.role;
+    const isStaff = role === 'teacher' || role === 'admin' || role === 'manager';
+    if (unitId) {
+      const adminSb = createClient(
+        Deno.env.get('SUPABASE_URL') || '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+        { auth: { persistSession: false } },
+      );
+      const { data: unit } = await adminSb.from('units').select('teacher_id').eq('id', unitId).single();
+      const ownership = assertUnitOwnership(unit?.teacher_id ?? null, { callerId: auth?.userId, callerRole: role });
+      if (!ownership.ok) return { error: ownership.reason || 'Not authorized' };
+    } else if (!isStaff) {
+      return { error: 'Teachers only' };
+    }
 
     switch (action) {
       case 'generate-image':
@@ -189,7 +214,7 @@ serve(async (req) => {
           .select('id, unit_id, book_id, teacher_id, public_url, width, height')
           .eq('id', pageId).single();
         if (pageErr || !page) throw new Error('Page not found');
-        if (page.teacher_id && page.teacher_id !== _auth?.userId && _auth?.role !== 'admin') {
+        if (page.teacher_id && page.teacher_id !== auth?.userId && auth?.role !== 'admin') {
           throw new Error('You do not own this page');
         }
 
