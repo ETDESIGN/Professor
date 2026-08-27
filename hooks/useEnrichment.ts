@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { toast } from 'sonner';
 import { createClientLogger } from '../services/logger';
@@ -349,12 +349,61 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
     return () => clearTimeout(timer);
   }, [enriched?.vocabulary, enriched?.characters]);
 
+  // Illustration v2 pass — runs AFTER vocab/character images settle. Drives
+  // cover → portraits → story scenes via bounded per-surface edge calls.
+  // Server-side each step is idempotent (already-has-image checks), so re-runs
+  // are safe; this state just prevents an infinite client loop.
+  const illusStarted = useRef(false); // double-entry guard: setIllusPass during
+  // the pass changes state identity while the effect is mid-flight; the latch
+  // keeps a single pass running until it completes or the effect unmounts.
+  const [illusPass, setIllusPass] = useState<{ done: boolean; step?: string }>({ done: false });
+  useEffect(() => {
+    if (!enriched || !unitId || illusPass.done) return;
+    const vocabPending = enriched.vocabulary?.some((v: any) => v.image_status === 'pending') ?? false;
+    const charPending = enriched.characters?.some((c: any) => c.image_status === 'pending') ?? false;
+    if (vocabPending || charPending) return; // wait for the image loop above
+    if (illusStarted.current) return; // already running this pass
+    illusStarted.current = true;
+
+    let cancelled = false;
+    (async () => {
+      const invoke = (body: any) => supabase.functions.invoke('generate-media', { body });
+      try {
+        setIllusPass({ done: false, step: 'cover' });
+        await invoke({ action: 'generate-illustrations', surface: 'cover', unitId });
+
+        if (cancelled) return;
+        setIllusPass({ done: false, step: 'portraits' });
+        const { data: chars } = await supabase
+          .from('unit_characters').select('characters(id)').eq('unit_id', unitId);
+        for (const row of chars || []) {
+          const ch = (row as any).characters;
+          if (ch?.id && !cancelled) await invoke({ action: 'generate-illustrations', surface: 'portrait', unitId, characterId: ch.id });
+        }
+
+        if (cancelled) return;
+        setIllusPass({ done: false, step: 'story' });
+        const { data: pages } = await supabase
+          .from('story_pages').select('id').eq('unit_id', unitId).order('page_number');
+        for (const pg of pages || []) {
+          if (!cancelled) await invoke({ action: 'generate-illustrations', surface: 'story_page', unitId, pageId: (pg as any).id });
+        }
+      } catch (err: any) {
+        log.warn('illustration_pass_error', { error: err?.message });
+      } finally {
+        if (!cancelled) setIllusPass({ done: true });
+      }
+    })();
+    return () => { cancelled = true; illusStarted.current = false; };
+  }, [enriched, unitId, illusPass.done]);
+
   return {
     enriched,
     setEnriched,
     loadingCategories,
     loadError,
     mediaProgress,
+    illusPass,
     handleEnrich,
     handleEnrichCategories,
     reload: loadExistingEnrichment,
