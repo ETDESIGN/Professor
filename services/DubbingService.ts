@@ -404,11 +404,19 @@ export const DubbingService = {
       .eq('is_published', true)
       .order('published_at', { ascending: false });
     if (error) throw new Error(error.message);
+    // Classmate first names via the scoped SECURITY DEFINER RPC — students
+    // cannot read other students' profiles rows under RLS, so the embed
+    // above returns null for them (privacy: FIRST NAME ONLY via the RPC;
+    // the embed fallback only ever resolves for teacher/admin contexts).
+    const { data: names } = await supabase.rpc('dubbing_classmate_first_names', { p_clip: clipId });
+    const firstNameByStudent = new Map<string, string>(
+      (names ?? []).map((n: any) => [n.student_id as string, (n.first_name ?? '') as string]),
+    );
     return (data ?? []).map((r: any) => {
       const likes: any[] = r.dubbing_likes ?? [];
       return {
         ...mapDubbing(r),
-        studentName: r.student?.full_name ?? '',
+        studentName: firstNameByStudent.get(r.student_id) ?? r.student?.full_name ?? '',
         likeCount: likes.length,
         likedByMe: likes.some((l) => l.student_id === uid),
       };

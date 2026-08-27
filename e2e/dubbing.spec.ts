@@ -146,11 +146,11 @@ test.describe.serial('Dubbing flow (teacher → student → peer → parent)', (
     await page.getByLabel("Friends' videos").click();
 
     await expect(page.getByText('Class Gallery')).toBeVisible({ timeout: 20000 });
-    // NOTE: the classmate's name shows as '?' — students cannot read other
-    // students' profiles rows under RLS (listClassDubs joins profiles), so we
-    // assert the published dub card via its actions instead of the name.
+    // Classmate FIRST name must render (via the dubbing_classmate_first_names
+    // RPC — students cannot read other students' profiles rows under RLS).
     const card = page.locator('.grid > div').filter({ has: page.getByRole('button', { name: 'Watch' }) }).first();
     await expect(card).toBeVisible({ timeout: 20000 });
+    await expect(card.getByText('student-a')).toBeVisible(); // first name only, never "?"
 
     await page.getByLabel('Like').click();
     await expect(page.getByLabel('Unlike')).toBeVisible({ timeout: 15000 });
@@ -160,8 +160,8 @@ test.describe.serial('Dubbing flow (teacher → student → peer → parent)', (
     const { data: dubs } = await fx.clients['student-b']
       .from('dubbings').select('id').eq('clip_id', clipId).eq('is_published', true);
     expect(dubs?.length).toBe(1);
-    // Like rows are not selectable by students under RLS (only the owner's
-    // optimistic count) — verify persistence via the Management API instead.
+    // Like rows ARE classmate-readable under RLS (dubbing_likes_all); this
+    // Management-API assert is belt-and-braces against optimistic-UI races.
     const likes = await sql(
       `SELECT student_id FROM public.dubbing_likes WHERE dubbing_id = '${dubs![0].id}'`,
     );
