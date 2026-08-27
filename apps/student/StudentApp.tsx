@@ -230,8 +230,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student/solo-lesson');
   };
 
-
-
   // The Main Lesson Runner (live class mode)
   if (location.pathname === '/student/lesson') {
     return <LessonSession playlist={lessonPlaylist} onComplete={handleLessonComplete} onExit={() => navigate('/student')} />;

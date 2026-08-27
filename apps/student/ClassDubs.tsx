@@ -128,11 +128,11 @@ const ClassDubs: React.FC<ClassDubsProps> = ({ onBack, onGoStudio }) => {
     try {
       await DubbingService.toggleLike(dub.id);
     } catch (err) {
-      // revert
+      // Revert to the captured PRE-toggle state (d in the callback is post-toggle).
       setDubs((prev) =>
         prev.map((d) =>
           d.id === dub.id
-            ? { ...d, likedByMe: !next, likeCount: d.likeCount }
+            ? { ...d, likedByMe: dub.likedByMe, likeCount: dub.likeCount }
             : d,
         ),
       );
