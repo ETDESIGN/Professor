@@ -103,6 +103,7 @@ serve(async (req) => {
           feedback: 'Could not capture your speech. Check microphone permissions and try again.',
           confidence: 0,
           provider: 'none',
+          client_graded: false,
         },
       };
     }
@@ -129,6 +130,10 @@ serve(async (req) => {
       feedback: generateDetailedFeedback(similarity, targetText, transcript),
       confidence: Math.round(normalizedConfidence * 100) / 100,
       provider: sttResult ? Deno.env.get('STT_PROVIDER') || 'stt' : 'web-speech',
+      // FIXPLAN H1: true when the score was computed from a client-supplied
+      // (Web Speech) transcript with no server-side STT verification — such
+      // results are practice-only; consumers must not grant XP/gems/quests.
+      client_graded: !sttResult,
     };
 
     return { success: true, evaluation };
