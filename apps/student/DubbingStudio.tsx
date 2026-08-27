@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Loader2, Mic, RefreshCw, Share2, Star, Video } from 'lucide-react';
+import { ChevronLeft, Loader2, Mic, RefreshCw, Share2, Star, Users, Video } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -20,6 +20,8 @@ type Phase = 'pick' | 'watch' | 'record' | 'result';
 
 interface DubbingStudioProps {
   onBack: () => void;
+  /** Opens the class gallery (friends' published dubs). Optional — hidden when absent. */
+  onOpenGallery?: () => void;
 }
 
 // ── Capability check (pattern kept from the previous implementation) ─────────
@@ -46,7 +48,7 @@ const BAND_LABEL: Record<string, string> = {
   try_again: 'Try again',
 };
 
-const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
+const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) => {
   const [phase, setPhase] = useState<Phase>('pick');
   const [clips, setClips] = useState<ClipWithLines[]>([]);
   const [clipsLoading, setClipsLoading] = useState(true);
@@ -381,7 +383,18 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
           </span>
           {clip && <span className="font-bold text-sm">{clip.title}</span>}
         </div>
-        <div className="w-10" />
+        {phase === 'pick' && onOpenGallery ? (
+          <button
+            onClick={onOpenGallery}
+            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+            aria-label="Friends' videos"
+            title="Friends' videos"
+          >
+            <Users size={22} />
+          </button>
+        ) : (
+          <div className="w-10" />
+        )}
       </header>
 
       {/* ── Pick phase ── */}
