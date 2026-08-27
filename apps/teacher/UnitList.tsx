@@ -110,6 +110,9 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
   const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // FIXPLAN H3: per-unit action loading so one slow unit never blocks the
+  // others' buttons (and can never stick on a throw).
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showNewUnitModal, setShowNewUnitModal] = useState(false);
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null); // unit.id or book:ID of open kebab
@@ -298,26 +301,53 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
     : books;
   const visibleUnassigned = filtersActive ? unassigned.filter(unitMatches) : unassigned;
 
-  // ── Existing actions (unchanged) ────────────────────────────────────────
+  // ── Existing actions ────────────────────────────────────────────────────
   const handleLaunch = async (unit: any) => {
-    await setActiveUnit(unit.id);
-    startSession();
-    goToSlide(0);
-    onLaunchLesson?.();
+    if (actionLoadingId) return;
+    setActionLoadingId(unit.id);
+    try {
+      await setActiveUnit(unit.id);
+      startSession();
+      goToSlide(0);
+      onLaunchLesson?.();
+    } catch (e: any) {
+      // FIXPLAN H3: launch failures must surface, not freeze silently.
+      toast.error(`Could not launch "${unit?.title || 'unit'}": ${e?.message || e}`);
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const handlePlan = (unit: any) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(unit.id);
     setIsLoading(true);
     setTimeout(async () => {
-      await setActiveUnit(unit.id);
-      setIsLoading(false);
-      onPlanLesson?.(unit.id);
+      try {
+        await setActiveUnit(unit.id);
+        onPlanLesson?.(unit.id);
+      } catch (e: any) {
+        toast.error(`Could not open the planner: ${e?.message || e}`);
+      } finally {
+        // FIXPLAN H3: always reset — a throw here used to leave the
+        // global spinner stuck for the rest of the session.
+        setIsLoading(false);
+        setActionLoadingId(null);
+      }
     }, 500);
   };
 
   const handleEditEnrichment = async (unit: any) => {
-    await setActiveUnit(unit.id);
-    onEditUnit?.(unit.id);
+    if (actionLoadingId) return;
+    setActionLoadingId(unit.id);
+    try {
+      await setActiveUnit(unit.id);
+      onEditUnit?.(unit.id);
+    } catch (e: any) {
+      toast.error(`Could not open the unit: ${e?.message || e}`);
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   // ── Unit & Book Manager actions ─────────────────────────────────────────
@@ -448,7 +478,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
             className="bg-white text-slate-800 p-3 rounded-xl font-bold hover:bg-slate-50 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
             title="Edit Lesson Plan"
           >
-            {isLoading ? <Loader2 size={20} className="animate-spin" /> : <CalendarPlus size={20} />}
+            {actionLoadingId === unit.id ? <Loader2 size={20} className="animate-spin" /> : <CalendarPlus size={20} />}
             <span className="text-xs">Plan</span>
           </button>
           <button

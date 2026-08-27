@@ -125,15 +125,18 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
 
       const unitId = await ensureDraftUnit();
       if (!unitId) return;
-      await scanFiles(unitId, newFiles);
+      // FIXPLAN H3 (stale closure): read the scan result from scanFiles' return
+      // value — the `pages` state in THIS closure still holds the pre-scan
+      // snapshot (setState during the await doesn't update this scope).
+      const scannedPages = (await scanFiles(unitId, newFiles)) || [];
 
       // Default the unit title to the opener's printed title when the book
       // provides one (doc 10 §5; teacher can rename anytime).
-      const titled = pages.find(p => p.printed_title?.trim());
+      const titled = scannedPages.find((p: any) => p.printed_title?.trim());
       if (titled?.printed_title) {
          const t = titled.printed_title.trim();
          setUnitTitle(t);
-         supabase.from('units').update({ title: t }).eq('id', unitId).then();
+         supabase.from('units').update({ title: t }).eq('id', unitId).then(() => undefined, () => undefined);
       }
    };
 

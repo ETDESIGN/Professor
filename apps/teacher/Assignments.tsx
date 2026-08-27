@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAllTeacherAssignments, useCreateAssignment } from '../../hooks/useQueries';
 import { useAppStore } from '../../store/useAppStore';
 import { createClientLogger } from '../../services/logger';
+import { toast } from 'sonner';
 
 const log = createClientLogger('Assignments');
 
@@ -26,6 +27,13 @@ const Assignments: React.FC = () => {
    const handleCreateAssignment = async () => {
       if (!newAssignment.title || !newAssignment.class_id || createAssignmentMut.isPending) return;
 
+      // FIXPLAN H3: never submit an unparseable due date (datetime-local can
+      // yield '' — handled — but guard any malformed value too).
+      if (newAssignment.due_date && isNaN(new Date(newAssignment.due_date).getTime())) {
+         toast.error('Enter a valid due date');
+         return;
+      }
+
       try {
          await createAssignmentMut.mutateAsync({
             title: newAssignment.title,
@@ -37,7 +45,11 @@ const Assignments: React.FC = () => {
          setShowCreateModal(false);
          setNewAssignment({ title: '', description: '', class_id: '', due_date: '' });
       } catch (error) {
+         // FIXPLAN H3: keep the modal open with the error visible so the
+         // teacher's typed work isn't lost — a silent log.warn looked like a
+         // dead button.
          log.warn('error_creating_assignment', { error: error instanceof Error ? error.message : String(error) });
+         toast.error('Could not create the assignment — try again');
       }
    };
 
