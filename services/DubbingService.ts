@@ -175,7 +175,8 @@ export const DubbingService = {
     return (data ?? []).map(mapLine);
   },
 
-  /** Single clip by id (parent gallery path — parents can read clips via published/child dubs per RLS). */
+  /** Single clip by id. Parent gallery path: parents get SELECT on dubbing_clips/lines
+   *  when their child has ANY dub on the clip (20260828000004) — not gated on published. */
   async getClip(clipId: string): Promise<DubbingClip | null> {
     const { data, error } = await supabase
       .from('dubbing_clips')

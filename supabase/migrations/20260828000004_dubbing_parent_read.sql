@@ -25,6 +25,11 @@ AS $$
 $$;
 
 -- Helper: may the current user (parent) delete blobs of their child's dub?
+-- The path must BOTH be referenced in the child's line_audio AND live inside
+-- the child's own 'dubs/<child-uid>/...' folder. The folder check is essential:
+-- `dubbings_insert` lets a student insert arbitrary line_audio paths, so without
+-- it a student could reference e.g. clips/<id>/source.webm or dubs/<other-uid>/x
+-- and have their parent delete those blobs (review finding 1).
 CREATE OR REPLACE FUNCTION public.dubbing_blob_parent_deletable(p_name text)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -32,6 +37,7 @@ AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.dubbings d
     WHERE EXISTS (SELECT 1 FROM jsonb_each(d.line_audio) e WHERE e.value #>> '{}' = p_name)
+      AND p_name LIKE 'dubs/' || d.student_id::text || '/%'
       AND public.is_parent_of(d.student_id, auth.uid())
   )
 $$;
