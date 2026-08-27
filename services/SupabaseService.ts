@@ -286,7 +286,7 @@ const supabaseGetStudentProgress = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         log.warn('no_authenticated_user', { metadata: { context: 'getStudentProgress' } });
-        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 };
+        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0, gems: 0 };
     }
 
     const { data, error } = await supabase
@@ -296,7 +296,7 @@ const supabaseGetStudentProgress = async () => {
         .single();
 
     if (error || !data) {
-        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 };
+        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0, gems: 0 };
     }
 
     return {
@@ -304,6 +304,7 @@ const supabaseGetStudentProgress = async () => {
         currentUnitId: data.current_unit_id || '',
         xp: data.xp ?? 0,
         streak: data.streak ?? 0,
+        gems: data.gems ?? 0,
     };
 };
 

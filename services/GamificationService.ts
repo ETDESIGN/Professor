@@ -242,7 +242,14 @@ export const GamificationService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, hearts: 0 };
 
-    const current = await getHearts(user.id);
+    let current;
+    try {
+      current = await getHearts(user.id);
+    } catch (err) {
+      // Hearts balance unreadable — report honestly instead of guessing.
+      log.warn('heart_refill_read_failed', { error: err instanceof Error ? err.message : String(err) });
+      return { success: false, hearts: 0 };
+    }
     if (current.current >= current.max) {
       return { success: false, hearts: current.current };
     }
