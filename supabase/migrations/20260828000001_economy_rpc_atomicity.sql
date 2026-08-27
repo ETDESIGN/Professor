@@ -17,10 +17,10 @@
 --   * shop_items(id TEXT PK, cost INTEGER NOT NULL)
 --   * public.is_teacher_or_admin() exists (no args, STABLE)
 --
--- OUT-parameter note: RETURNS TABLE columns are OUT params in plpgsql
--- and collide with column names in DML bodies ("column reference is
--- ambiguous"). OUT params are therefore prefixed out_ and aliased in
--- RETURN QUERY so callers still see the documented result column names.
+-- OUT-parameter note: RETURNS TABLE columns are OUT params in plpgsql;
+-- their NAMES are the caller-visible RPC result keys (RETURN QUERY assigns
+-- positionally, aliases do not rename). Any clash with column names inside
+-- DML bodies is resolved by aliasing the target table (sp.xp, sq.reward_xp).
 
 -- Self-heal helper: every award RPC ensures the progress row exists first
 -- (the auto-create trigger swallows insert failures with RAISE LOG).
@@ -39,7 +39,7 @@ $$;
 
 -- Student path: award XP to the caller (auth.uid()). Single atomic UPDATE.
 CREATE OR REPLACE FUNCTION public.award_xp(p_amount INTEGER)
-RETURNS TABLE(out_xp INTEGER, out_total_xp_earned INTEGER)
+RETURNS TABLE(xp INTEGER, total_xp_earned INTEGER)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -53,13 +53,13 @@ BEGIN
     RETURN;
   END IF;
   PERFORM public.ensure_student_progress(v_student);
-  UPDATE public.student_progress
-     SET xp = xp + p_amount,
-         total_xp_earned = total_xp_earned + GREATEST(p_amount, 0)
-   WHERE student_id = v_student
-  RETURNING xp, total_xp_earned INTO v_xp, v_total;
+  UPDATE public.student_progress sp
+     SET xp = sp.xp + p_amount,
+         total_xp_earned = sp.total_xp_earned + GREATEST(p_amount, 0)
+   WHERE sp.student_id = v_student
+  RETURNING sp.xp, sp.total_xp_earned INTO v_xp, v_total;
 
-  RETURN QUERY SELECT v_xp AS xp, v_total AS total_xp_earned;
+  RETURN QUERY SELECT v_xp, v_total;
 END;
 $$;
 
@@ -153,7 +153,7 @@ $$;
 -- the same transaction. Empty result = not claimable (already claimed /
 -- incomplete / not found).
 CREATE OR REPLACE FUNCTION public.claim_quest_reward(p_quest_id UUID)
-RETURNS TABLE(out_reward_xp INTEGER, out_reward_gems INTEGER)
+RETURNS TABLE(reward_xp INTEGER, reward_gems INTEGER)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -170,12 +170,12 @@ BEGIN
     RAISE EXCEPTION 'Not authorized' USING ERRCODE = '42501';
   END IF;
 
-  UPDATE public.student_quests
+  UPDATE public.student_quests sq
      SET claimed = TRUE
-   WHERE id = p_quest_id
-     AND claimed = FALSE
-     AND current >= target
-  RETURNING reward_xp, reward_gems INTO v_xp, v_gems;
+   WHERE sq.id = p_quest_id
+     AND sq.claimed = FALSE
+     AND sq.current >= sq.target
+  RETURNING sq.reward_xp, sq.reward_gems INTO v_xp, v_gems;
 
   IF v_xp IS NULL THEN RETURN; END IF;  -- already claimed or incomplete
 
@@ -185,7 +185,7 @@ BEGIN
          gems = gems + v_gems
    WHERE student_id = v_row.student_id;
 
-  RETURN QUERY SELECT v_xp AS reward_xp, v_gems AS reward_gems;
+  RETURN QUERY SELECT v_xp, v_gems;
 END;
 $$;
 
@@ -220,6 +220,10 @@ BEGIN
 END;
 $$;
 
+-- ensure_student_progress: deliberately NOT granted to authenticated — it is
+-- only invoked internally by the SECURITY DEFINER RPCs above (owner context);
+-- granting it would let any authenticated user create progress rows for
+-- arbitrary UUIDs.
 REVOKE ALL ON FUNCTION public.ensure_student_progress(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.award_xp(INTEGER) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.award_xp_to_student(UUID, INTEGER) FROM PUBLIC, anon;
@@ -228,7 +232,6 @@ REVOKE ALL ON FUNCTION public.spend_gems(INTEGER) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.update_quest_progress(TEXT, INTEGER) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.claim_quest_reward(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.buy_shop_item(TEXT) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.ensure_student_progress(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.award_xp(INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.award_xp_to_student(UUID, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.award_gems(INTEGER) TO authenticated;
