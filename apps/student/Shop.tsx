@@ -12,10 +12,13 @@ interface ShopProps {
 }
 
 const Shop: React.FC<ShopProps> = ({ onBack }) => {
-   const { data: gemCount = 0 } = useStudentGems();
-   const { data: inventory = [], isLoading } = useInventory();
+   const { data: gemCount, isError: gemsError } = useStudentGems();
+   const { data: inventory = [], isLoading, isError: inventoryError, refetch } = useInventory();
    const buyItem = useBuyShopItem();
   const { t } = useTranslation();
+  // Gems read failure degrades to '—' in the header and blocks buys (unknown
+  // balance) rather than showing a blocking error screen.
+  const gems: number | null = gemsError ? null : (gemCount ?? 0);
    const [purchased, setPurchased] = useState<string[]>([]);
    const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -35,7 +38,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
     const handleBuy = async (id: string, cost: number) => {
        if (pendingId) return;
        if (purchasedIds.includes(id) && id !== 'hearts' && id !== 'freeze') return;
-       if (gemCount < cost) {
+       if (gems === null || gems < cost) {
           toast.error(t('student.notEnoughGems', 'Not enough gems yet — keep learning to earn more!'), { icon: '💎' });
           return;
        }
@@ -96,11 +99,21 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
             </div>
             <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
                <Gem size={18} className="text-blue-500 fill-blue-500" />
-                <span className="font-bold text-blue-600">{gemCount}</span>
+                <span className="font-bold text-blue-600">{gems === null ? '—' : gems}</span>
             </div>
          </header>
 
          {/* Content */}
+         {inventoryError && (
+            <div className="p-4">
+               <div className="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center gap-3 text-sm text-slate-500">
+                  <span>{t('student.loadFailed', "Couldn't load —")}</span>
+                  <button onClick={() => refetch()} className="font-bold text-blue-500 hover:text-blue-600 underline">
+                     {t('student.retry', 'Retry')}
+                  </button>
+               </div>
+            </div>
+         )}
          <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-8">
 
             {/* Power Ups */}
@@ -186,13 +199,13 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                            ) : (
                               <button
                                  onClick={() => handleBuy(item.id, item.cost)}
-                                  disabled={gemCount < item.cost || pendingId !== null}
-                                  className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${gemCount >= item.cost && pendingId === null
+                                  disabled={gems === null || gems < item.cost || pendingId !== null}
+                                  className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${gems !== null && gems >= item.cost && pendingId === null
                                         ? 'bg-duo-green text-white hover:bg-green-600 shadow-green-700'
                                         : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-slate-300'
                                      }`}
                                >
-                                  <Gem size={14} className={gemCount >= item.cost ? 'text-white/80 fill-white/80' : 'text-slate-400'} />
+                                  <Gem size={14} className={gems !== null && gems >= item.cost ? 'text-white/80 fill-white/80' : 'text-slate-400'} />
                                  {pendingId === item.id ? <Loader2 size={14} className="animate-spin" /> : item.cost}
                               </button>
                            )}

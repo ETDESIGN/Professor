@@ -12,13 +12,20 @@ interface PracticeMenuProps {
 
 const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
    const [srsCount, setSrsCount] = useState(0);
+   const [srsError, setSrsError] = useState(false);
   const { t } = useTranslation();
 
-   useEffect(() => {
-      const fetchSrs = async () => {
+   const fetchSrs = async () => {
+      setSrsError(false);
+      try {
          const items = await Engine.fetchSRSItems();
          setSrsCount(items.length);
-      };
+      } catch {
+         setSrsError(true);
+      }
+   };
+
+   useEffect(() => {
       fetchSrs();
    }, []);
 
@@ -169,6 +176,15 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                   <span className="font-bold text-slate-700">{t('student.practiceSrs', 'SRS Review')}</span>
                </motion.button>
             </motion.div>
+
+            {srsError && (
+               <div className="mt-6 flex items-center justify-center gap-3 text-sm text-slate-500">
+                  <span>{t('student.loadFailed', "Couldn't load —")}</span>
+                  <button onClick={fetchSrs} className="font-bold text-indigo-500 hover:text-indigo-600 underline">
+                     {t('student.retry', 'Retry')}
+                  </button>
+               </div>
+            )}
 
             <motion.div
                initial={{ opacity: 0 }}

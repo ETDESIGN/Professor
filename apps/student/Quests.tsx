@@ -26,7 +26,7 @@ const QUEST_COLORS: Record<string, { color: string; bg: string }> = {
 };
 
 const Quests: React.FC<QuestsProps> = ({ onBack }) => {
-  const { data: quests = [], isLoading } = useDailyQuests();
+  const { data: quests = [], isLoading, isError, refetch } = useDailyQuests();
   const claimQuest = useClaimQuest();
   const { t } = useTranslation();
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -52,6 +52,17 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
     return (
       <div className="h-full bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6">
+        <p className="text-slate-600 font-bold mb-6 text-center">{t('student.questsLoadFailed', "Couldn't load your quests.")}</p>
+        <button onClick={() => refetch()} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-600 transition-colors">
+          {t('student.retry', 'Retry')}
+        </button>
       </div>
     );
   }

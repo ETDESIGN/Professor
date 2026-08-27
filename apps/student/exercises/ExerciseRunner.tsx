@@ -52,6 +52,15 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
   // the mastery-tied quest (REACH_FAMILIAR) once per word per session (plan 4.3).
   const familiarSeen = useRef<Set<string>>(new Set());
   const retried = useRef<Set<string>>(new Set()); // P-D: one retry per objective
+  // Advance-after-feedback timer — tracked so cleanup can clear it and it
+  // can never setState after unmount.
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +148,9 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
       }
 
       // Advance after a beat (the component already showed feedback).
-      setTimeout(() => {
+      if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+      advanceTimer.current = setTimeout(() => {
+        advanceTimer.current = null;
         const newLen = queue.length + (requeued ? 1 : 0);
         if (index + 1 >= newLen) setPhase('summary');
         else setIndex(index + 1);

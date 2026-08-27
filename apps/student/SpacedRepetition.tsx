@@ -19,18 +19,43 @@ const SpacedRepetition: React.FC<SpacedRepetitionProps> = ({ onBack, onComplete 
   const [studentId, setStudentId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isStarted, setIsStarted] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
     let cancelled = false;
+    setIsLoading(true);
+    setLoadError(false);
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setIsLoading(false); return; }
-      setStudentId(user.id);
-      const pool = await selectPracticeItems(user.id, 18);
-      if (!cancelled) { setItems(pool); setIsLoading(false); }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setIsLoading(false); return; }
+        setStudentId(user.id);
+        const pool = await selectPracticeItems(user.id, 18);
+        if (!cancelled) { setItems(pool); setIsLoading(false); }
+      } catch {
+        if (!cancelled) { setLoadError(true); setIsLoading(false); }
+      }
     })();
     return () => { cancelled = true; };
-  }, []);
+  };
+
+  useEffect(() => load(), []);
+
+  if (loadError) {
+    return (
+      <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6">
+        <p className="text-slate-600 font-bold mb-6 text-center">Couldn't load your practice cards.</p>
+        <div className="flex gap-3">
+          <button onClick={load} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-600 transition-colors">
+            Retry
+          </button>
+          <button onClick={onBack} className="bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-300 transition-colors">
+            Back to Map
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
