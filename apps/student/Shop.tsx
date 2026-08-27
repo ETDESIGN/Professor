@@ -50,7 +50,8 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
              toast.error(t('student.purchaseFailed', "Purchase failed — your gems weren't spent. Try again."));
           }
        } catch {
-          toast.error(t('student.purchaseFailed', "Purchase failed — your gems weren't spent. Try again."));
+          // Unknown outcome (network error/timeout) — the RPC may have committed; don't claim the debit status.
+          toast.error(t('student.purchaseError', 'Purchase may not have gone through — check your gems and try again.'));
        } finally {
           setPendingId(null);
        }
