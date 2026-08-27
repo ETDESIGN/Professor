@@ -1,43 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { getUserMock, fromMock, invokeMock } = vi.hoisted(() => {
-  const chain: any = {};
-  const createChain = () => {
-    const handler: any = new Proxy(() => {}, {
-      get(_target, prop) {
-        if (prop === 'then') return undefined;
-        if (!handler._mocks[prop]) handler._mocks[prop] = vi.fn().mockReturnValue(handler);
-        return handler._mocks[prop];
-      },
-      apply(_target, _thisArg, _args) {
-        return handler;
-      },
-    });
-    handler._mocks = {};
-    handler.mockResolvedValue = (val: any) => {
-      handler._mocks.then = vi.fn().mockResolvedValue(val);
-      return handler;
-    };
-    return handler;
-  };
-
+const { getUserMock, fromMock, rpcMock } = vi.hoisted(() => {
   const getUserMock = vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } });
-  const invokeMock = vi.fn().mockResolvedValue({ data: null, error: null });
-
-  const fromMock = vi.fn().mockImplementation(() => createChain());
-
-  return { getUserMock, fromMock, invokeMock };
+  const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
+  const fromMock = vi.fn();
+  return { getUserMock, fromMock, rpcMock };
 });
 
 vi.mock('../services/supabaseClient', () => ({
   supabase: {
-    auth: {
-      getUser: getUserMock,
-    },
+    auth: { getUser: getUserMock },
     from: fromMock,
-    functions: { invoke: invokeMock },
-    // Power-up consumption (Phase 4): default false = "none owned".
-    rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
+    rpc: rpcMock,
   },
 }));
 
@@ -51,139 +25,112 @@ describe('GamificationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getUserMock.mockResolvedValue({ data: { user: { id: 'u1' } } });
+    rpcMock.mockResolvedValue({ data: null, error: null });
   });
 
-  const makeChain = (resolvedValue: any) => {
-    const chain: Record<string, any> = {};
-    const handler = {
-      get(_target: any, prop: string) {
-        if (!chain[prop]) {
-          if (prop === 'then') return undefined;
-          chain[prop] = vi.fn().mockReturnValue(new Proxy({}, handler));
-        }
-        return chain[prop];
-      },
-    };
-    const proxy = new Proxy({}, handler);
-    if (resolvedValue !== undefined) {
-      chain.then = vi.fn().mockResolvedValue(resolvedValue);
-    }
-    return { proxy, chain };
-  };
+  describe('RPC wrappers', () => {
+    it('awardXP calls the award_xp RPC and derives level client-side', async () => {
+      rpcMock.mockResolvedValue({ data: [{ xp: 120, total_xp_earned: 340 }], error: null });
+      const res = await GamificationService.awardXP(20, 'test');
+      expect(rpcMock).toHaveBeenCalledWith('award_xp', { p_amount: 20 });
+      expect(res).toEqual({ newXP: 120, newLevel: 2 });
+    });
 
-  describe('awardXP', () => {
-    it('awards XP and returns new total and level', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { xp: 50, total_xp_earned: 200 }, error: null }),
+    it('awardXP treats empty rows as a no-op', async () => {
+      rpcMock.mockResolvedValue({ data: [], error: null });
+      expect(await GamificationService.awardXP(20, 'test')).toEqual({ newXP: 0, newLevel: 1 });
+    });
+
+    it('awardXP returns no-op on RPC error', async () => {
+      rpcMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
+      expect(await GamificationService.awardXP(20, 'test')).toEqual({ newXP: 0, newLevel: 1 });
+    });
+
+    it('awardXPToStudent returns the new xp from award_xp_to_student', async () => {
+      rpcMock.mockResolvedValue({ data: 55, error: null });
+      const res = await GamificationService.awardXPToStudent('s1', 5);
+      expect(rpcMock).toHaveBeenCalledWith('award_xp_to_student', { p_student: 's1', p_amount: 5 });
+      expect(res).toBe(55);
+    });
+
+    it('awardXPToStudent returns 0 on RPC error', async () => {
+      rpcMock.mockResolvedValue({ data: null, error: { message: 'boom' } });
+      expect(await GamificationService.awardXPToStudent('s1', 5)).toBe(0);
+    });
+
+    it('awardGems returns the new gem balance', async () => {
+      rpcMock.mockResolvedValue({ data: 42, error: null });
+      const res = await GamificationService.awardGems(2, 'test');
+      expect(rpcMock).toHaveBeenCalledWith('award_gems', { p_amount: 2 });
+      expect(res).toBe(42);
+    });
+
+    it('spendGems returns success:false with current gems when RPC returns false', async () => {
+      rpcMock.mockResolvedValue({ data: false, error: null });
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { gems: 37 }, error: null }),
+          }),
         }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') {
-          return { select: selectChain, update: updateChain };
-        }
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.awardXP(10, 'lesson_complete');
-      expect(result.newXP).toBe(60);
-      expect(result.newLevel).toBe(1);
+      }));
+      const res = await GamificationService.spendGems(50);
+      expect(rpcMock).toHaveBeenCalledWith('spend_gems', { p_amount: 50 });
+      expect(res).toEqual({ success: false, newGems: 37 });
     });
 
-    it('returns zeros when no user', async () => {
-      getUserMock.mockResolvedValueOnce({ data: { user: null } });
-      const result = await GamificationService.awardXP(100, 'test');
-      expect(result).toEqual({ newXP: 0, newLevel: 1 });
-    });
-
-    it('calculates level correctly at XP boundary', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { xp: 95, total_xp_earned: 300 }, error: null }),
+    it('spendGems returns success:true with re-read balance when RPC returns true', async () => {
+      rpcMock.mockResolvedValue({ data: true, error: null });
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { gems: 10 }, error: null }),
+          }),
         }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: updateChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.awardXP(10, 'test');
-      expect(result.newXP).toBe(105);
-      expect(result.newLevel).toBe(2);
-    });
-  });
-
-  describe('awardGems', () => {
-    it('awards gems and returns new total', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { gems: 100 }, error: null }),
-        }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: updateChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.awardGems(50, 'quest_complete');
-      expect(result).toBe(150);
+      }));
+      const res = await GamificationService.spendGems(5);
+      expect(res).toEqual({ success: true, newGems: 10 });
     });
 
-    it('returns 0 when no user', async () => {
-      getUserMock.mockResolvedValueOnce({ data: { user: null } });
-      const result = await GamificationService.awardGems(50, 'test');
-      expect(result).toBe(0);
-    });
-  });
-
-  describe('spendGems', () => {
-    it('spends gems when balance is sufficient', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { gems: 300 }, error: null }),
-        }),
+    it('spendGems returns newGems 0 when the follow-up gem read fails', async () => {
+      rpcMock.mockResolvedValue({ data: false, error: null });
+      fromMock.mockImplementation(() => {
+        throw new Error('from unavailable');
       });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: updateChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.spendGems(200);
-      expect(result.success).toBe(true);
-      expect(result.newGems).toBe(100);
+      const res = await GamificationService.spendGems(50);
+      expect(res).toEqual({ success: false, newGems: 0 });
     });
 
-    it('rejects when balance is insufficient', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { gems: 50 }, error: null }),
-        }),
-      });
+    it('updateQuestProgress calls the RPC with default increment', async () => {
+      await GamificationService.updateQuestProgress('earn_xp');
+      expect(rpcMock).toHaveBeenCalledWith('update_quest_progress', { p_quest_type: 'earn_xp', p_increment: 1 });
+    });
 
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: vi.fn() };
-        return makeChain(undefined).proxy;
-      });
+    it('claimQuestReward returns null on empty RPC result (already claimed)', async () => {
+      rpcMock.mockResolvedValue({ data: [], error: null });
+      expect(await GamificationService.claimQuestReward('q1')).toBeNull();
+    });
 
-      const result = await GamificationService.spendGems(200);
-      expect(result.success).toBe(false);
-      expect(result.newGems).toBe(50);
+    it('claimQuestReward returns rewards on success', async () => {
+      rpcMock.mockResolvedValue({ data: [{ reward_xp: 5, reward_gems: 10 }], error: null });
+      expect(await GamificationService.claimQuestReward('q1')).toEqual({ xp: 5, gems: 10 });
+    });
+
+    it('buyShopItem reports server-side verdict (insufficient)', async () => {
+      rpcMock.mockResolvedValue({ data: 'insufficient', error: null });
+      const res = await GamificationService.buyShopItem('hat_crown', 100);
+      expect(rpcMock).toHaveBeenCalledWith('buy_shop_item', { p_item_id: 'hat_crown' });
+      expect(res.success).toBe(false);
+    });
+
+    it('buyShopItem succeeds on ok verdict', async () => {
+      rpcMock.mockResolvedValue({ data: 'ok', error: null });
+      expect((await GamificationService.buyShopItem('hat_crown', 100)).success).toBe(true);
+    });
+
+    it('buyShopItem fails on invalid_item', async () => {
+      rpcMock.mockResolvedValue({ data: 'invalid_item', error: null });
+      expect((await GamificationService.buyShopItem('nope', 100)).success).toBe(false);
     });
   });
 
@@ -193,169 +140,21 @@ describe('GamificationService', () => {
         { id: 'q1', quest_type: 'earn_xp', title: 'Earn 5 XP', target: 5, current: 3, reward_gems: 10, reward_xp: 2 },
       ];
 
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ data: existingQuests }),
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: existingQuests }),
+          }),
         }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_quests') return { select: selectChain };
-        return makeChain(undefined).proxy;
-      });
+      }));
 
       const result = await GamificationService.getDailyQuests();
       expect(result).toEqual(existingQuests);
     });
 
-    it('generates quests from templates when none exist', async () => {
-      const newQuests = [
-        { id: 'q1', quest_type: 'earn_xp', title: 'Earn 5 XP', target: 5, current: 0 },
-        { id: 'q2', quest_type: 'complete_lessons', title: 'Complete 2 Lessons', target: 2, current: 0 },
-      ];
-
-      let callCount = 0;
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount === 1) return { data: [] };
-            if (callCount === 2) return { data: null };
-            return { data: [] };
-          }),
-        }),
-      });
-      const upsertChain = vi.fn().mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: newQuests }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_quests') return { select: selectChain, upsert: upsertChain };
-        if (table === 'quest_templates') return { select: vi.fn().mockReturnValue({ data: null }) };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.getDailyQuests();
-      expect(result).toEqual(newQuests);
-    });
-
     it('returns empty array when no user', async () => {
       getUserMock.mockResolvedValueOnce({ data: { user: null } });
-      const result = await GamificationService.getDailyQuests();
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('claimQuestReward', () => {
-    it('claims a completed quest and returns rewards', async () => {
-      const quest = { id: 'q1', current: 5, target: 5, claimed: false, reward_xp: 2, reward_gems: 10 };
-
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: quest, error: null }),
-        }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      let fromCallCount = 0;
-      fromMock.mockImplementation((table: string) => {
-        fromCallCount++;
-        if (fromCallCount === 1) return { select: selectChain };
-        if (fromCallCount === 2) return { update: updateChain };
-        if (table === 'student_progress') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: { xp: 100, total_xp_earned: 500, gems: 50 }, error: null }),
-              }),
-            }),
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            }),
-          };
-        }
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.claimQuestReward('q1');
-      expect(result).toEqual({ xp: 2, gems: 10 });
-    });
-
-    it('returns null when quest is not complete', async () => {
-      const quest = { id: 'q1', current: 2, target: 5, claimed: false, reward_xp: 2, reward_gems: 10 };
-
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: quest, error: null }),
-        }),
-      });
-
-      fromMock.mockImplementation(() => ({ select: selectChain, update: vi.fn() }));
-
-      const result = await GamificationService.claimQuestReward('q1');
-      expect(result).toBeNull();
-    });
-
-    it('returns null when quest already claimed', async () => {
-      const quest = { id: 'q1', current: 5, target: 5, claimed: true, reward_xp: 2, reward_gems: 10 };
-
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: quest, error: null }),
-        }),
-      });
-
-      fromMock.mockImplementation(() => ({ select: selectChain, update: vi.fn() }));
-
-      const result = await GamificationService.claimQuestReward('q1');
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('buyShopItem', () => {
-    it('purchases item when gems are sufficient', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { gems: 300 }, error: null }),
-        }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-      const upsertChain = vi.fn().mockResolvedValue({ error: null });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: updateChain };
-        if (table === 'student_inventory') return { upsert: upsertChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.buyShopItem('hat_crown', 300);
-      expect(result.success).toBe(true);
-    });
-
-    it('fails when gems are insufficient', async () => {
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { gems: 50 }, error: null }),
-        }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: vi.fn() };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.buyShopItem('hat_crown', 300);
-      expect(result.success).toBe(false);
-    });
-
-    it('fails when no user', async () => {
-      getUserMock.mockResolvedValueOnce({ data: { user: null } });
-      const result = await GamificationService.buyShopItem('hat_crown', 300);
-      expect(result.success).toBe(false);
+      expect(await GamificationService.getDailyQuests()).toEqual([]);
     });
   });
 
@@ -365,33 +164,16 @@ describe('GamificationService', () => {
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { streak: 3, last_active_date: yesterdayStr, longest_streak: 5 }, error: null }),
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { streak: 3, last_active_date: yesterdayStr, longest_streak: 5 }, error: null }),
+          }),
         }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      let fromCallCount = 0;
-      fromMock.mockImplementation((table: string) => {
-        fromCallCount++;
-        if (fromCallCount <= 2 && table === 'student_progress') return { select: selectChain, update: updateChain };
-        if (table === 'student_progress') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: { xp: 100, total_xp_earned: 500 }, error: null }),
-              }),
-            }),
-            update: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({ error: null }),
-            }),
-          };
-        }
-        return makeChain(undefined).proxy;
-      });
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }));
 
       const result = await GamificationService.checkAndUpdateStreak();
       expect(result.streak).toBe(4);
@@ -401,21 +183,17 @@ describe('GamificationService', () => {
     it('resets streak when gap is more than 1 day', async () => {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-      const threeDaysAgoStr = threeDaysAgo.toISOString().split('T')[0];
 
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { streak: 10, last_active_date: threeDaysAgoStr, longest_streak: 15 }, error: null }),
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { streak: 10, last_active_date: threeDaysAgo.toISOString().split('T')[0], longest_streak: 15 }, error: null }),
+          }),
         }),
-      });
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_progress') return { select: selectChain, update: updateChain };
-        return makeChain(undefined).proxy;
-      });
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }));
 
       const result = await GamificationService.checkAndUpdateStreak();
       expect(result.streak).toBe(1);
@@ -424,96 +202,77 @@ describe('GamificationService', () => {
 
     it('returns 0 streak when no user', async () => {
       getUserMock.mockResolvedValueOnce({ data: { user: null } });
-      const result = await GamificationService.checkAndUpdateStreak();
-      expect(result).toEqual({ streak: 0, streakBroken: false });
+      expect(await GamificationService.checkAndUpdateStreak()).toEqual({ streak: 0, streakBroken: false });
     });
   });
 
   describe('getInventory', () => {
     it('returns inventory items for user', async () => {
       const items = [{ item_id: 'hat_crown', student_id: 'u1' }];
-
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: items }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'student_inventory') return { select: selectChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.getInventory();
-      expect(result).toEqual(items);
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: items, error: null }),
+          }),
+          eq2: vi.fn(),
+        }),
+      }));
+      // getInventory: select('*, shop_items(*)').eq(...).then() — chain resolves directly
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: items }),
+        }),
+      }));
+      expect(await GamificationService.getInventory()).toEqual(items);
     });
 
     it('returns empty array when no user', async () => {
       getUserMock.mockResolvedValueOnce({ data: { user: null } });
-      const result = await GamificationService.getInventory();
-      expect(result).toEqual([]);
+      expect(await GamificationService.getInventory()).toEqual([]);
     });
   });
 
   describe('character CRUD', () => {
     it('getCharacters returns characters for unit', async () => {
       const chars = [{ id: 'c1', name: 'Alice', role: 'hero' }];
-      const selectChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: chars, error: null }),
+      fromMock.mockImplementation(() => ({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockResolvedValue({ data: chars, error: null }),
+          }),
         }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'character_ledger') return { select: selectChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.getCharacters('unit-1');
-      expect(result).toEqual(chars);
+      }));
+      expect(await GamificationService.getCharacters('unit-1')).toEqual(chars);
     });
 
     it('addCharacter inserts and returns new character', async () => {
       const newChar = { id: 'c2', name: 'Bob', role: 'villain', unit_id: 'unit-1' };
-      const insertChain = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: newChar, error: null }),
+      fromMock.mockImplementation(() => ({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: newChar, error: null }),
+          }),
         }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'character_ledger') return { insert: insertChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.addCharacter('unit-1', { name: 'Bob', role: 'villain' });
-      expect(result).toEqual(newChar);
+      }));
+      expect(await GamificationService.addCharacter('unit-1', { name: 'Bob', role: 'villain' })).toEqual(newChar);
     });
 
     it('updateCharacter returns true on success', async () => {
-      const updateChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'character_ledger') return { update: updateChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.updateCharacter('c1', { name: 'Updated' });
-      expect(result).toBe(true);
+      fromMock.mockImplementation(() => ({
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }));
+      expect(await GamificationService.updateCharacter('c1', { name: 'Updated' })).toBe(true);
     });
 
     it('deleteCharacter returns true on success', async () => {
-      const deleteChain = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
-      });
-
-      fromMock.mockImplementation((table: string) => {
-        if (table === 'character_ledger') return { delete: deleteChain };
-        return makeChain(undefined).proxy;
-      });
-
-      const result = await GamificationService.deleteCharacter('c1');
-      expect(result).toBe(true);
+      fromMock.mockImplementation(() => ({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        }),
+      }));
+      expect(await GamificationService.deleteCharacter('c1')).toBe(true);
     });
   });
 });
