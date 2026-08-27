@@ -321,11 +321,11 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
 
       <div className="flex-1 relative bg-black flex flex-col">
         <div className="absolute inset-0 z-0">
-          <img
-            src={sceneImage}
-            alt="Comic Scene"
-            className="w-full h-full object-cover opacity-60"
-          />
+          {sceneImage ? (
+            <img src={sceneImage} alt="Comic Scene" className="w-full h-full object-cover opacity-60" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-indigo-900 to-purple-900" />
+          )}
         </div>
 
         <div className="mt-auto relative z-10 p-6 pb-12 bg-gradient-to-t from-black via-black/80 to-transparent">

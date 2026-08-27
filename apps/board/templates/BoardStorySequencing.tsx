@@ -581,7 +581,11 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
               >
                 {slot ? (
                   <div className="w-full h-full p-2 flex flex-col">
-                    <img src={slot.image} className="w-full h-40 object-cover rounded-xl mb-3" />
+                    {slot.image ? (
+                      <img src={slot.image} className="w-full h-40 object-cover rounded-xl mb-3" />
+                    ) : (
+                      <div className="w-full h-40 rounded-xl mb-3 bg-purple-50 flex items-center justify-center text-3xl">📖</div>
+                    )}
                     <p className="text-center font-bold text-slate-700 leading-tight">{slot.text}</p>
                     <div className="absolute -top-4 -left-4 w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xl border-4 border-slate-100 shadow-md">
                       {i + 1}
@@ -610,7 +614,9 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
                 className="w-48 bg-white rounded-xl shadow-md border border-slate-200 p-2 hover:-translate-y-2 transition-transform hover:shadow-xl group text-left"
               >
                 <div className="h-24 overflow-hidden rounded-lg mb-2 relative">
-                  <img src={card.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                  {card.image
+                    ? <img src={card.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                    : <div className="w-full h-full bg-purple-50 flex items-center justify-center text-2xl">📖</div>}
                 </div>
                 <p className="text-xs font-bold text-slate-600 line-clamp-2">{card.text}</p>
               </button>
