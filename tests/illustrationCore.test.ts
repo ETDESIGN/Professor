@@ -7,6 +7,7 @@ import {
   sha256Hex,
   promptHashFor,
   callOpenRouterImages,
+  uploadImageToStorage,
 } from '../supabase/functions/_shared/illustrationCore';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -83,5 +84,18 @@ describe('callOpenRouterImages', () => {
     vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ data: [{}] }), { status: 200 }));
     const r = await callOpenRouterImages({ openrouterKey: 'k' }, { model: 'm', prompt: 'p' });
     expect(r.ok).toBe(false);
+  });
+});
+
+describe('uploadImageToStorage', () => {
+  it('resolves to null when fetch rejects — never throws (contract)', async () => {
+    vi.stubGlobal('fetch', async () => { throw new Error('boom'); });
+    const url = await uploadImageToStorage(
+      { supabaseUrl: 'https://s.example', serviceKey: 'k' },
+      'unit-1',
+      new Uint8Array([1, 2, 3]),
+      'image/png',
+    );
+    expect(url).toBeNull();
   });
 });

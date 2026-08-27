@@ -95,16 +95,18 @@ export async function callOpenRouterImages(
 export interface SupabaseRestConfig { supabaseUrl: string; serviceKey: string }
 
 export async function uploadImageToStorage(cfg: SupabaseRestConfig, unitId: string, bytes: Uint8Array, contentType: string): Promise<string | null> {
-  const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
-  const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
-  const resp = await fetch(`${cfg.supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${cfg.serviceKey}`, 'Content-Type': contentType },
-    body: bytes,
-    signal: AbortSignal.timeout(20000),
-  });
-  if (!resp.ok) return null;
-  return `${cfg.supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
+  try {
+    const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
+    const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
+    const resp = await fetch(`${cfg.supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${cfg.serviceKey}`, 'Content-Type': contentType },
+      body: bytes,
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!resp.ok) return null;
+    return `${cfg.supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
+  } catch { return null; }
 }
 
 export async function findAssetByHash(cfg: SupabaseRestConfig, promptHash: string): Promise<{ id: string; public_url: string } | null> {
