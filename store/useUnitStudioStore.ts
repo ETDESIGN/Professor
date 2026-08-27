@@ -164,11 +164,21 @@ export const useUnitStudioStore = create<UnitStudioState>()((set, get) => ({
         world_examples: g.examples || g.world_examples || [],
       }));
       const { data: pageRows } = await supabase.from('story_pages').select('*').eq('unit_id', unitId).order('page_number', { ascending: true });
+      // Task 13 fix: story_pages has no image_url column — resolve generated
+      // scenes via image_asset_id → assets.public_url (one batched .in() query,
+      // empty-safe; same pattern as CharacterService.attachPortraitUrls).
+      // Falls back to a legacy manifest image_url for manifest-seeded pages.
+      const sceneAssetIds = ((pageRows || []) as any[]).map((p) => p.image_asset_id).filter((v): v is string => Boolean(v));
+      let sceneUrlByAssetId = new Map<string, string>();
+      if (sceneAssetIds.length > 0) {
+        const { data: sceneAssets } = await supabase.from('assets').select('id, public_url').in('id', sceneAssetIds);
+        sceneUrlByAssetId = new Map(((sceneAssets || []) as any[]).map((a) => [a.id, a.public_url] as [string, string]));
+      }
       const storyPages: StoryPage[] = (pageRows && pageRows.length > 0 ? pageRows : (manifest?.enriched_content?.story?.pages || [])).map((p: any, i: number) => ({
         id: p.id || `p_${i}`,
         text: p.text || '',
         speaker: p.speaker || p.speaker_override_name,
-        imageUrl: p.image_url,
+        imageUrl: sceneUrlByAssetId.get(p.image_asset_id) || p.image_url,
       }));
 
       set({

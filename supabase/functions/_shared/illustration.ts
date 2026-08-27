@@ -187,7 +187,10 @@ export async function generateStoryPageScene(sb: SupabaseClient, unitId: string,
   }
 
   const content = String(page.image_prompt || '').trim() || `scene: ${String(page.text || '').slice(0, 300)}`;
-  const r = await generateIllustration({ sb, unitId, surface: 'story_scene', content, context: ctx, inputReferences: refs.slice(0, 2) });
+  // Forward `regenerate` to bypass the prompt-hash dedup — without it a
+  // "regenerate" whose prompt hash matches an existing asset returns the
+  // cached image (regenerate only skipped the image_asset_id early-return).
+  const r = await generateIllustration({ sb, unitId, surface: 'story_scene', content, context: ctx, inputReferences: refs.slice(0, 2), regenerate });
   if (r.assetId) await sb.from('story_pages').update({ image_asset_id: r.assetId }).eq('id', pageId);
   return r;
 }
