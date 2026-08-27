@@ -43,8 +43,19 @@ describe('MediaService', () => {
     const url = await MediaService.getVocabImage('unit-1', 'cat', 'The cat sat');
     expect(url).toBe('https://example.com/img.png');
     expect(invokeMock).toHaveBeenCalledWith('generate-media', expect.objectContaining({
-      body: expect.objectContaining({ action: 'generate-image' }),
+      body: expect.objectContaining({ action: 'generate-image', surface: 'vocab' }),
     }));
+  });
+
+  it('does not cache placeholder (dicebear) URLs', async () => {
+    invokeMock.mockResolvedValueOnce({
+      data: { url: 'https://api.dicebear.com/9.x/png?seed=cat' },
+      error: null,
+    });
+
+    const url = await MediaService.getVocabImage('unit-2', 'cat');
+    expect(url).toContain('api.dicebear.com');
+    expect(MediaService.getCachedImage('unit-2', 'cat')).toBeUndefined();
   });
 
   it('calls generate-media for audio generation', async () => {
@@ -60,17 +71,19 @@ describe('MediaService', () => {
     }));
   });
 
-  it('falls back to a Pollinations URL on error (guarantees an image)', async () => {
+  it('returns empty string on edge failure and caches nothing (server owns dedup/retries)', async () => {
     invokeMock.mockResolvedValueOnce({
       data: null,
       error: { message: 'fail' },
     });
 
     const url = await MediaService.getVocabImage('unit-1', 'cat');
-    // No longer empty: the client now guarantees an image via direct Pollinations
-    // when the edge function fails (region-safe, CSP-allow-listed).
-    expect(url).toContain('image.pollinations.ai');
-    expect(url).toContain('cat');
+    // No client-side Pollinations fallback anymore (free tier degraded to the
+    // sana model — root cause of the illustration regression). The edge
+    // function owns dedup + asset recording; callers render their own
+    // placeholder when the URL is empty.
+    expect(url).toBe('');
+    expect(MediaService.getCachedImage('unit-1', 'cat')).toBeUndefined();
   });
 
   it('caches image URLs on second call', async () => {

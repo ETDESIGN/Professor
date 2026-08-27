@@ -17,25 +17,6 @@ const cache: MediaCache = {
 const preloadQueue: Set<string> = new Set();
 let isPreloading = false;
 
-/**
- * Direct Pollinations image URL (region-safe, no key). Mirrors the edge
- * provider's prompt format. Used as a reliable fallback when the generate-media
- * edge function fails/times out — the browser loads the image directly from
- * Pollinations (now CSP-allow-listed), which caches server-side after first gen.
- */
-export function pollinationsImageUrl(prompt: string, size = 768): string {
-  const enc = encodeURIComponent(`children's educational illustration: ${prompt}. simple, colorful, flat vector style, kids 6-12, no text`);
-  return `https://image.pollinations.ai/prompt/${enc}?width=${size}&height=${size}&nologo=true&model=flux`;
-}
-
-async function hashPrompt(prompt: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(prompt.toLowerCase().trim());
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 async function callGenerateMedia(payload: any): Promise<any> {
   const { data, error } = await supabase.functions.invoke('generate-media', {
     body: payload,
@@ -57,39 +38,17 @@ export const MediaService = {
     const prompt = contextSentence
       ? `Illustration for the word "${word}" in context: "${contextSentence}"`
       : `Illustration of the word "${word}"`;
-    const promptHash = await hashPrompt(prompt);
 
-    const { data: globalExisting } = await supabase
-      .from('assets')
-      .select('public_url')
-      .eq('type', 'image')
-      .eq('prompt_hash', promptHash)
-      .limit(1);
-
-    if (globalExisting && globalExisting.length > 0 && globalExisting[0].public_url) {
-      cache.images.set(cacheKey, globalExisting[0].public_url);
-      return globalExisting[0].public_url;
-    }
-
+    // Illustration v2: the edge function (surface-aware) owns server-side
+    // dedup and asset recording — no client-side hash/lookup/insert here.
     const result = await callGenerateMedia({
       action: 'generate-image',
       unitId,
       prompt,
+      surface: 'vocab',
     });
-
-    let url = result?.url || '';
-    // Fallback: if the edge function failed/timed out (no URL), serve the image
-    // directly from Pollinations (CSP-allowed). Reliable + cached after first load.
-    if (!url) url = pollinationsImageUrl(prompt);
-    cache.images.set(cacheKey, url);
-    supabase.from('assets').insert({
-      unit_id: unitId,
-      type: 'image',
-      prompt: word,
-      prompt_hash: promptHash,
-      storage_path: 'external',
-      public_url: url
-    }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
+    const url = result?.url || '';
+    if (url && !url.includes('dicebear')) cache.images.set(cacheKey, url);
     return url;
   },
 
