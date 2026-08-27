@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors } from 'lucide-react';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import UnitPreviewModal from './UnitPreviewModal';
@@ -395,6 +395,19 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
     } catch (err: any) { toast.error(`Reorder failed: ${err?.message || err}`); }
   };
 
+  // Illustration v2 — force a fresh AI cover for this unit (Task 4 generate-illustrations,
+  // surface 'cover', regenerate bypasses the existing-asset reuse).
+  const regenerateCover = async (unit: any) => {
+    try {
+      const { error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'generate-illustrations', surface: 'cover', unitId: unit.id, regenerate: true },
+      });
+      if (error) throw error;
+      toast.success('Cover regenerated');
+      await loadUnits();
+    } catch (err: any) { toast.error(`Cover failed: ${err?.message || err}`); }
+  };
+
   const handleRestoreUnit = async (u: any) => {
     try { await Engine.restoreUnit(u.id); toast.success(`Restored "${u.title}"`); await Promise.all([loadUnits(), refreshTrash(), refreshBooks()]); }
     catch (err: any) { toast.error(`Restore failed: ${err?.message || err}`); }
@@ -509,6 +522,10 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                     <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setRebuildUnit(unit); }}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                       <RotateCcw size={14} /> Rebuild from pages
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); regenerateCover(unit); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <ImageIcon size={14} /> Regenerate cover
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); navigate(`/teacher/unitize/${unit.id}`); }}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">

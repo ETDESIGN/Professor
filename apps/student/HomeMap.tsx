@@ -221,6 +221,9 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
           <div key={unit.id} className="relative z-10 pb-8">
             {/* Unit Header */}
             <div className={`mx-4 mt-4 rounded-2xl p-5 text-white shadow-lg transform transition-transform border-b-4 ${unit.status === 'Locked' ? 'bg-slate-400 border-slate-500 grayscale' : 'bg-duo-green border-duo-green-dark'}`}>
+              {unit.coverImage && !unit.coverImage.includes('dicebear') && (
+                <img src={unit.coverImage} alt={unit.title} className="w-full h-36 object-cover rounded-2xl shadow-md mb-4" />
+              )}
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-display font-bold text-2xl tracking-wide">{unit.title}</h3>

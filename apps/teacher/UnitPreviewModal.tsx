@@ -57,7 +57,7 @@ const UnitPreviewModal: React.FC<UnitPreviewModalProps> = ({ unit, onClose, onLa
                {/* Header Image */}
                <div className="h-48 bg-slate-100 relative">
                   <img
-                     src={`https://api.dicebear.com/7.x/shapes/svg?seed=${unit.id}&backgroundColor=b6e3f4,c0aede,d1d4f9`}
+                     src={(unit.coverImage && !unit.coverImage.includes('dicebear')) ? unit.coverImage : `https://api.dicebear.com/7.x/shapes/svg?seed=${unit.id}&backgroundColor=b6e3f4,c0aede,d1d4f9`}
                      className="w-full h-full object-cover"
                      alt="Cover"
                      referrerPolicy="no-referrer"
