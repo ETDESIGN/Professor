@@ -173,8 +173,13 @@ export async function generateStoryPageScene(sb: SupabaseClient, unitId: string,
   const chars: any[] = (linked || []).map((l: any) => l.characters).filter(Boolean);
   const speakerName = String(page.speaker || '').trim().toLowerCase();
   for (const c of chars) {
+    const cname = String(c.name || '').toLowerCase();
     const isSpeaker = (page.speaker_character_id && c.id === page.speaker_character_id) || (speakerName && c.name?.toLowerCase() === speakerName);
-    const mentioned = speakerName && String(page.text || '').toLowerCase().includes(String(c.name || '').toLowerCase());
+    // Text-mention match is independent of speakerName (speaker is nullable):
+    // a character named in the page text is a reference even on speaker-less
+    // pages. The length guard keeps the degenerate `includes('') === true`
+    // empty-name case from matching every character.
+    const mentioned = cname.length > 1 && String(page.text || '').toLowerCase().includes(cname);
     if ((isSpeaker || mentioned) && c.reference_image_asset_id) {
       const { data: a } = await sb.from('assets').select('public_url').eq('id', c.reference_image_asset_id).maybeSingle();
       if (a?.public_url) refs.push(a.public_url);
