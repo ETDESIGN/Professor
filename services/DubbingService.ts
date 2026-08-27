@@ -39,6 +39,7 @@ export type Dubbing = {
   overallBand: 'great' | 'almost' | 'try_again' | null;
   attemptNo: number;
   isPublished: boolean;
+  createdAt: string;
 };
 
 export type Feedback = { stars: number; comment: string | null; createdAt: string };
@@ -81,6 +82,7 @@ function mapDubbing(r: any): Dubbing {
     overallBand: r.overall_band ?? null,
     attemptNo: r.attempt_no,
     isPublished: r.is_published ?? false,
+    createdAt: r.created_at ?? '',
   };
 }
 
@@ -171,6 +173,17 @@ export const DubbingService = {
       .order('order', { ascending: true });
     if (error) throw new Error(error.message);
     return (data ?? []).map(mapLine);
+  },
+
+  /** Single clip by id (parent gallery path — parents can read clips via published/child dubs per RLS). */
+  async getClip(clipId: string): Promise<DubbingClip | null> {
+    const { data, error } = await supabase
+      .from('dubbing_clips')
+      .select('*')
+      .eq('id', clipId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? mapClip(data) : null;
   },
 
   /** Teacher: all clips of a class. */

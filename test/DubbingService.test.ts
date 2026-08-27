@@ -48,6 +48,7 @@ function chainable(result: any = { data: [], error: null }) {
     order: vi.fn(() => q),
     limit: vi.fn(() => q),
     single: vi.fn(() => Promise.resolve(result.single ?? { data: null, error: null })),
+    maybeSingle: vi.fn(() => Promise.resolve(result.maybeSingle ?? result.single ?? result)),
     then: (resolve: any, reject: any) => Promise.resolve(result).then(resolve, reject),
   };
   return { q, calls };
@@ -186,6 +187,66 @@ describe('getClipLines', () => {
       { id: 'l2', order: 2, text: 'world', startMs: 2000, endMs: 3000, characterName: 'Bob' },
       { id: 'l1', order: 1, text: 'hello', startMs: 0, endMs: 2000, characterName: null },
     ]);
+  });
+});
+
+describe('getClip', () => {
+  it('returns the mapped clip for the id', async () => {
+    setTable('dubbing_clips', {
+      data: [],
+      error: null,
+      maybeSingle: {
+        data: {
+          id: 'clip-1', class_id: 'class-1', unit_id: null, title: 'Lost Hat',
+          video_path: 'clips/clip-1/source.webm', video_duration_ms: 30000,
+          language: 'en', status: 'assigned',
+        },
+        error: null,
+      },
+    });
+
+    const clip = await DubbingService.getClip('clip-1');
+
+    const q = tableState.get('dubbing_clips')!.q;
+    expect(q.eq).toHaveBeenCalledWith('id', 'clip-1');
+    expect(clip).toEqual({
+      id: 'clip-1', classId: 'class-1', unitId: null, title: 'Lost Hat',
+      videoPath: 'clips/clip-1/source.webm', videoDurationMs: 30000,
+      language: 'en', status: 'assigned',
+    });
+  });
+
+  it('returns null when the clip does not exist', async () => {
+    setTable('dubbing_clips', { data: null, error: null });
+    await expect(DubbingService.getClip('nope')).resolves.toBeNull();
+  });
+
+  it('throws on DB error', async () => {
+    setTable('dubbing_clips', { data: null, error: { message: 'rls denied' } });
+    await expect(DubbingService.getClip('clip-1')).rejects.toThrowError('rls denied');
+  });
+});
+
+describe('childDubs', () => {
+  it('queries the child\'s dubs newest-first', async () => {
+    setTable('dubbings', {
+      data: [
+        {
+          id: 'dub-1', clip_id: 'clip-1', student_id: 'kid-1', line_audio: {},
+          per_line_scores: {}, overall_band: null, attempt_no: 1,
+          is_published: false, created_at: '2026-08-28T00:00:00Z',
+        },
+      ],
+      error: null,
+    });
+
+    const dubs = await DubbingService.childDubs('kid-1');
+
+    const q = tableState.get('dubbings')!.q;
+    expect(q.eq).toHaveBeenCalledWith('student_id', 'kid-1');
+    expect(q.order).toHaveBeenCalledWith('created_at', { ascending: false });
+    expect(dubs[0].id).toBe('dub-1');
+    expect(dubs[0].createdAt).toBe('2026-08-28T00:00:00Z');
   });
 });
 
