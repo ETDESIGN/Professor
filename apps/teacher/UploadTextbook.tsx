@@ -151,6 +151,11 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                navigate('/teacher/units');
                if (onFinish) onFinish();
             }}
+            onOpenUnit={(id) => {
+               // Open the just-created unit directly (enrichment runs on open, decision #7).
+               navigate(`/teacher/unit/${id}`);
+               if (onFinish) onFinish();
+            }}
          />
       );
    }

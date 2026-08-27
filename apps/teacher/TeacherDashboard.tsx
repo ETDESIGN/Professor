@@ -1,6 +1,6 @@
 
 import React, { useState, Suspense, lazy } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -249,6 +249,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="/teacher/mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
               <Route path="/teacher/library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
               <Route path="/teacher/units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              {/* FIXPLAN_H — unknown /teacher/* paths used to render a blank shell (the entry catch-all matched this dashboard but no inner Route matched). Redirect home instead. */}
+              <Route path="*" element={<Navigate to="/teacher" replace />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
