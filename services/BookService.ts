@@ -31,6 +31,9 @@ export interface UnitPipelineMeta {
     poolCount: number;
     /** 'pending' | 'running' | 'succeeded' | 'failed' | null */
     jobStatus: string | null;
+    /** FIXPLAN_G: extraction confirmed but not yet enriched (decision #7 —
+     *  enrichment runs only when the teacher opens the unit). */
+    readyToEnrich?: boolean;
 }
 
 /**
@@ -228,10 +231,22 @@ export async function getUnitPipelineMeta(unitIds: string[]): Promise<Record<str
     if (unitIds.length === 0) return out;
     for (const id of unitIds) out[id] = { poolCount: 0, jobStatus: null };
 
-    const [poolRes, jobsRes] = await Promise.all([
+    const [poolRes, jobsRes, unitsRes, vocabRes] = await Promise.all([
         supabase.from('pool_items').select('unit_id').in('unit_id', unitIds),
         supabase.from('generation_jobs').select('unit_id, status').in('unit_id', unitIds).eq('stage', 'generate-exercises'),
+        supabase.from('units').select('id, baskets_confirmed_at').in('id', unitIds),
+        supabase.from('vocabulary_items').select('unit_id').in('unit_id', unitIds),
     ]);
+    const enrichedUnits = new Set<string>();
+    if (!vocabRes.error && vocabRes.data) {
+        for (const row of vocabRes.data as { unit_id: string }[]) enrichedUnits.add(row.unit_id);
+    }
+    const confirmedUnits = new Set<string>();
+    if (!unitsRes.error && unitsRes.data) {
+        for (const row of unitsRes.data as { id: string; baskets_confirmed_at: string | null }[]) {
+            if (row.baskets_confirmed_at) confirmedUnits.add(row.id);
+        }
+    }
 
     if (!poolRes.error && poolRes.data) {
         for (const row of poolRes.data as { unit_id: string }[]) {
@@ -242,6 +257,9 @@ export async function getUnitPipelineMeta(unitIds: string[]): Promise<Record<str
         for (const row of jobsRes.data as { unit_id: string; status: string }[]) {
             if (out[row.unit_id]) out[row.unit_id].jobStatus = row.status;
         }
+    }
+    for (const id of unitIds) {
+        out[id].readyToEnrich = confirmedUnits.has(id) && !enrichedUnits.has(id) && out[id].poolCount === 0;
     }
     return out;
 }

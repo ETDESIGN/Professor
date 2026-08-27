@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices } from 'lucide-react';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
 import { Engine } from '../../services/SupabaseService';
@@ -44,6 +45,13 @@ const PipelineBadge: React.FC<{ unit: any; meta?: UnitPipelineMeta }> = ({ unit,
       </span>
     );
   }
+  if (meta?.readyToEnrich) {
+    return (
+      <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm flex items-center gap-2 bg-indigo-100 text-indigo-700">
+        <Wand2 size={12} /> Ready to enrich
+      </span>
+    );
+  }
   const s = unit.status;
   const cls = s === 'Active' ? 'bg-green-100 text-green-700'
     : s === 'Completed' ? 'bg-blue-100 text-blue-700'
@@ -52,8 +60,54 @@ const PipelineBadge: React.FC<{ unit: any; meta?: UnitPipelineMeta }> = ({ unit,
   return <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${cls}`}>{s === 'Draft' ? 'Draft' : s}</span>;
 };
 
+
+// FIXPLAN_G — book-level setup material (doc 10 §5 / doc 11 §2): welcome and
+// class-setup pages stored on the book (unit_id NULL). Recorded verbatim,
+// never feeds units or pools; attachable to a class when class plans exist (F3).
+const BookSetupMaterial: React.FC<{ bookId: string }> = ({ bookId }) => {
+  const [pages, setPages] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('book_pages')
+        .select('id, public_url, printed_page_number, printed_title')
+        .is('unit_id', null)
+        .eq('book_id', bookId)
+        .order('upload_order');
+      if (!cancelled) setPages(data || []);
+    })();
+    return () => { cancelled = true; };
+  }, [bookId]);
+  if (pages.length === 0) return null;
+  return (
+    <div className="mt-6 bg-amber-50/60 rounded-xl border border-amber-200">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-2 px-4 py-3 text-left">
+        <BookOpen size={16} className="text-amber-700" />
+        <span className="text-sm font-bold text-amber-800">Class setup material ({pages.length} page{pages.length === 1 ? '' : 's'})</span>
+        <span className="text-xs text-amber-600 ml-1">welcome pages — kept on the book, never in units</span>
+        <ChevronRight size={15} className={`ml-auto text-amber-600 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 flex gap-3 overflow-x-auto">
+          {pages.map(p => (
+            <div key={p.id} className="shrink-0 w-28">
+              {p.public_url
+                ? <img src={p.public_url} alt={p.printed_title || 'setup page'} className="w-28 h-36 object-cover rounded-lg border border-amber-200" />
+                : <div className="w-28 h-36 rounded-lg border border-amber-200 bg-white" />}
+              <div className="text-[11px] font-bold text-amber-800 mt-1 truncate">{p.printed_page_number ? `p.${p.printed_page_number} · ` : ''}{p.printed_title || 'Setup page'}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEditUnit, onPlanLesson, onLaunchLesson }) => {
   const { state, loadUnits, setActiveUnit, startSession, goToSlide } = useSession();
+  const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -456,6 +510,10 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                       <RotateCcw size={14} /> Rebuild from pages
                     </button>
+                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); navigate(`/teacher/unitize/${unit.id}`); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <Scissors size={14} /> Split into units…
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); setUnitToTrash(unit); }}
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                       <Trash2 size={14} /> Move to Trash
@@ -690,6 +748,7 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
               {(unitsByBook[activeBook.id] || []).map((unit, i) => renderUnitCard(unit, { inBook: true, index: i, total: (unitsByBook[activeBook.id] || []).length }))}
             </motion.div>
           )}
+          <BookSetupMaterial bookId={activeBook.id} />
         </div>
       ) : (
         /* ── BOOKSHELF VIEW ─────────────────────────────────────────── */

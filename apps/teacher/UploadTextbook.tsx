@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { getOrCreateDefaultBookForCurrentUser, listBooks, createBook, Book } from '../../services/BookService';
 import { useBookScan } from '../../hooks/useBookScan';
 import ExtractionReview from './ExtractionReview';
-import AssetWorkshop from './AssetWorkshop';
+import UnitizationEditor from './UnitizationEditor';
 
 // FIXPLAN_F P2.3 — new-flow upload (doc 10 §4, owner decision 2026-08-26:
 // hard switch for new uploads; legacy units keep the old read path).
@@ -15,7 +15,10 @@ import AssetWorkshop from './AssetWorkshop';
 //     → draft unit created UPFRONT (book selector honored)
 //     → scan-page per page (parallel, server-side persistence)
 //     → ExtractionReview (✕ / ➕ / low-confidence highlights)
-//     → Confirm batch → AssetWorkshop (basket-driven enrichment)
+//     → Confirm batch → UnitizationEditor (FIXPLAN_G: split the book into
+//       units — automatic proposal, teacher authority)
+//     → created units are ready-to-enrich DRAFTS; enrichment runs only when
+//       the teacher opens a unit (owner decision #7 — never auto-start)
 //
 // The old extract-page/scanned_assets machinery is no longer used here; the
 // edge function stays deployed until P4 rebuild completes (then removed).
@@ -29,7 +32,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const [draftUnitId, setDraftUnitId] = useState<string | null>(null);
    const [unitTitle, setUnitTitle] = useState<string>('');
    const [creatingUnit, setCreatingUnit] = useState(false);
-   const [showWorkshop, setShowWorkshop] = useState(false);
+   const [showUnitization, setShowUnitization] = useState(false);
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
@@ -134,18 +137,17 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       }
    };
 
-   const handleWorkshopOrchestrate = async (unitId: string, _enriched: any) => {
-      toast.success('Lesson orchestrated and published!');
-      navigate(`/teacher/unit/${unitId}`);
-      if (onFinish) onFinish();
-   };
-
-   if (showWorkshop && draftUnitId) {
+   if (showUnitization && draftUnitId) {
       return (
-         <AssetWorkshop
-            unitId={draftUnitId}
-            onBack={() => setShowWorkshop(false)}
-            onOrchestrate={handleWorkshopOrchestrate}
+         <UnitizationEditor
+            sourceUnitId={draftUnitId}
+            onBack={() => setShowUnitization(false)}
+            onDone={() => {
+               // Created units are ready-to-enrich drafts in the library —
+               // enrichment runs when the teacher opens each unit (decision #7).
+               navigate('/teacher/units');
+               if (onFinish) onFinish();
+            }}
          />
       );
    }
@@ -210,7 +212,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                unitId={draftUnitId}
                unitTitle={unitTitle || 'this unit'}
                scanState={scanState}
-               onConfirm={() => setShowWorkshop(true)}
+               onConfirm={() => setShowUnitization(true)}
             />
          ) : (
             <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-8">
