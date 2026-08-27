@@ -12,7 +12,6 @@ import { supabase } from '../../services/supabaseClient';
 import { toast } from 'sonner';
 
 interface UnitListProps {
-  onNewUnit: () => void;
   onUploadMaterial?: () => void;
   onEditUnit?: (unitId: string) => void;
   onPlanLesson?: (unitId: string) => void;
@@ -105,7 +104,7 @@ const BookSetupMaterial: React.FC<{ bookId: string }> = ({ bookId }) => {
   );
 };
 
-const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEditUnit, onPlanLesson, onLaunchLesson }) => {
+const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPlanLesson, onLaunchLesson }) => {
   const { state, loadUnits, setActiveUnit, startSession, goToSlide } = useSession();
   const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
@@ -976,19 +975,6 @@ const UnitList: React.FC<UnitListProps> = ({ onNewUnit, onUploadMaterial, onEdit
               </div>
 
               <div className="p-6 space-y-4">
-                <button
-                  onClick={() => { setShowNewUnitModal(false); onNewUnit?.(); }}
-                  className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center gap-4 text-left group"
-                >
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all">
-                    <Wand2 size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800">Generate from Topic</h3>
-                    <p className="text-sm text-slate-500">Enter a topic and let AI create a lesson</p>
-                  </div>
-                </button>
-
                 <button
                   onClick={() => { setShowNewUnitModal(false); onUploadMaterial?.(); }}
                   className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all flex items-center gap-4 text-left group"
