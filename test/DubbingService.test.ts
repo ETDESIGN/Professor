@@ -149,6 +149,46 @@ describe('deleteDubbing', () => {
   });
 });
 
+describe('unpublishDubbing', () => {
+  it('updates is_published=false, published_at=null for the given id', async () => {
+    await DubbingService.unpublishDubbing('dub-9');
+
+    const calls = tableState.get('dubbings')!.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0].op).toBe('update');
+    expect(calls[0].patch).toEqual({ is_published: false, published_at: null });
+    const q = tableState.get('dubbings')!.q;
+    expect(q.eq).toHaveBeenCalledWith('id', 'dub-9');
+  });
+
+  it('throws on DB error', async () => {
+    setTable('dubbings', { data: null, error: { message: 'guard blocked' } });
+    await expect(DubbingService.unpublishDubbing('dub-9')).rejects.toThrowError('guard blocked');
+  });
+});
+
+describe('getClipLines', () => {
+  it('queries dubbing_clip_lines for the clip ordered by order asc and maps rows', async () => {
+    setTable('dubbing_clip_lines', {
+      data: [
+        { id: 'l2', order: 2, text: 'world', start_ms: 2000, end_ms: 3000, character_name: 'Bob' },
+        { id: 'l1', order: 1, text: 'hello', start_ms: 0, end_ms: 2000, character_name: null },
+      ],
+      error: null,
+    });
+
+    const lines = await DubbingService.getClipLines('clip-1');
+
+    const q = tableState.get('dubbing_clip_lines')!.q;
+    expect(q.eq).toHaveBeenCalledWith('clip_id', 'clip-1');
+    expect(q.order).toHaveBeenCalledWith('order', { ascending: true });
+    expect(lines).toEqual([
+      { id: 'l2', order: 2, text: 'world', startMs: 2000, endMs: 3000, characterName: 'Bob' },
+      { id: 'l1', order: 1, text: 'hello', startMs: 0, endMs: 2000, characterName: null },
+    ]);
+  });
+});
+
 describe('evaluateTake', () => {
   it('invokes evaluate-dubbing with the lines as-is and returns results', async () => {
     invokeMock.mockResolvedValueOnce({

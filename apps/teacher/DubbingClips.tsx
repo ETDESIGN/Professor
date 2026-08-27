@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Plus, Pencil, Send, Undo2, Archive, Film, Loader2, Video,
+    Plus, Pencil, Send, Undo2, Archive, Film, Loader2, Video, ClipboardCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DubbingService, DubbingClip } from '../../services/DubbingService';
@@ -9,6 +9,7 @@ import { useTeacherClasses } from '../../hooks/useQueries';
 import { useAppStore } from '../../store/useAppStore';
 import { ClassData } from '../../services/DataService';
 import ClipScriptEditor from './ClipScriptEditor';
+import DubbingReview from './DubbingReview';
 
 const statusChip = (status: DubbingClip['status']) => {
     const cls =
@@ -48,6 +49,7 @@ const DubbingClips: React.FC = () => {
     const [clips, setClips] = useState<(DubbingClip & { lineCount?: number })[]>([]);
     const [loadingClips, setLoadingClips] = useState(false);
     const [editing, setEditing] = useState<{ clip?: DubbingClip } | null>(null);
+    const [reviewing, setReviewing] = useState<DubbingClip | null>(null);
 
     useEffect(() => {
         if (!selectedClassId && classes.length > 0) setSelectedClassId(classes[0].id);
@@ -77,7 +79,7 @@ const DubbingClips: React.FC = () => {
     };
 
     useEffect(() => {
-        if (!editing) loadClips();
+        if (!editing && !reviewing) loadClips();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedClassId, editing]);
 
@@ -109,6 +111,10 @@ const DubbingClips: React.FC = () => {
         );
     const archive = (clip: DubbingClip) =>
         withToast(() => DubbingService.archiveClip(clip.id), 'Clip archived');
+
+    if (reviewing) {
+        return <DubbingReview clip={reviewing} onBack={() => setReviewing(null)} />;
+    }
 
     if (editing) {
         const cls: ClassData | undefined = classes.find((c) => c.id === (editing.clip?.classId ?? selectedClassId));
@@ -180,6 +186,14 @@ const DubbingClips: React.FC = () => {
                                 <span>{clip.lineCount ?? 0} line{(clip.lineCount ?? 0) === 1 ? '' : 's'}</span>
                             </div>
                             <div className="flex flex-wrap gap-2 mt-auto">
+                                <button
+                                    onClick={() => setReviewing(clip)}
+                                    disabled={clip.status !== 'assigned'}
+                                    title={clip.status !== 'assigned' ? 'Only assigned clips have takes' : 'Review student takes'}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                                >
+                                    <ClipboardCheck size={14} /> Review
+                                </button>
                                 <button
                                     onClick={() => setEditing({ clip })}
                                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50"

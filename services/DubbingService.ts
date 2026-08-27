@@ -162,6 +162,17 @@ export const DubbingService = {
     return clips.map((c) => ({ ...c, lines: byClip.get(c.id) ?? [] }));
   },
 
+  /** Lines of a clip, ordered by `order` ascending. */
+  async getClipLines(clipId: string): Promise<ClipLine[]> {
+    const { data, error } = await supabase
+      .from('dubbing_clip_lines')
+      .select('*')
+      .eq('clip_id', clipId)
+      .order('order', { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(mapLine);
+  },
+
   /** Teacher: all clips of a class. */
   async listTeacherClips(classId: string): Promise<DubbingClip[]> {
     const { data, error } = await supabase
@@ -330,6 +341,19 @@ export const DubbingService = {
     const { error } = await supabase
       .from('dubbings')
       .update({ is_published: true, published_at: new Date().toISOString() })
+      .eq('id', dubbingId);
+    if (error) throw new Error(error.message);
+  },
+
+  /**
+   * Teacher moderation: unpublish a dub. Plain update — teacher scope
+   * (unpublish-only columns) is enforced by the `dubbing_teacher_update_guard`
+   * DB trigger + RLS, not here.
+   */
+  async unpublishDubbing(dubbingId: string): Promise<void> {
+    const { error } = await supabase
+      .from('dubbings')
+      .update({ is_published: false, published_at: null })
       .eq('id', dubbingId);
     if (error) throw new Error(error.message);
   },
