@@ -353,12 +353,13 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
   // cover → portraits → story scenes via bounded per-surface edge calls.
   // Server-side each step is idempotent (already-has-image checks), so re-runs
   // are safe; this state just prevents an infinite client loop.
-  const illusStarted = useRef(false); // double-entry guard: setIllusPass during
-  // the pass changes state identity while the effect is mid-flight; the latch
-  // keeps a single pass running until it completes or the effect unmounts.
+  const illusStarted = useRef(false); // double-entry guard: the latch blocks a
+  // second entry within one effect-run lifecycle (e.g. StrictMode remount
+  // overlap) — React runs the cleanup (which resets the latch) before every
+  // effect re-run, so each run starts from a clean slate.
   const [illusPass, setIllusPass] = useState<{ done: boolean; step?: string }>({ done: false });
   useEffect(() => {
-    if (!enriched || !unitId || illusPass.done) return;
+    if (!enriched || !unitId || illusPass.done || loadingCategories.size > 0) return;
     const vocabPending = enriched.vocabulary?.some((v: any) => v.image_status === 'pending') ?? false;
     const charPending = enriched.characters?.some((c: any) => c.image_status === 'pending') ?? false;
     if (vocabPending || charPending) return; // wait for the image loop above
@@ -395,7 +396,7 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
       }
     })();
     return () => { cancelled = true; illusStarted.current = false; };
-  }, [enriched, unitId, illusPass.done]);
+  }, [enriched, unitId, illusPass.done, loadingCategories.size]);
 
   return {
     enriched,
