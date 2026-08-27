@@ -43,3 +43,107 @@ export function composePrompt(surface: Surface, unit: UnitArtContext, content: s
   parts.push('Strictly no text, no letters, no numbers, no logos, no watermark.');
   return parts.join(' ');
 }
+
+// ── hashing / dedup ──────────────────────────────────────────────────
+export async function sha256Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text.toLowerCase().trim());
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Dedup key — includes the model + refs so a model swap deliberately regenerates. */
+export async function promptHashFor(model: string, prompt: string, refs: string[] = []): Promise<string> {
+  return sha256Hex(`${model}\n${prompt}\n${refs.join(',')}`);
+}
+
+// ── OpenRouter Image API ─────────────────────────────────────────────
+export interface IllustrationConfig { openrouterKey: string; baseUrl?: string }
+
+export type ImageGenResult =
+  | { ok: true; b64: string; mediaType: string; model: string; cost?: number }
+  | { ok: false; error: string };
+
+export async function callOpenRouterImages(
+  cfg: IllustrationConfig,
+  req: { model: string; prompt: string; aspectRatio?: string; inputReferences?: string[] },
+): Promise<ImageGenResult> {
+  const baseUrl = cfg.baseUrl || 'https://openrouter.ai/api/v1';
+  const body: Record<string, unknown> = { model: req.model, prompt: req.prompt, n: 1 };
+  if (req.aspectRatio) body.aspect_ratio = req.aspectRatio;
+  if (req.inputReferences && req.inputReferences.length > 0) body.input_references = req.inputReferences;
+  try {
+    const resp = await fetch(`${baseUrl}/images`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${cfg.openrouterKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(60000),
+    });
+    if (!resp.ok) {
+      const errText = (await resp.text()).slice(0, 300);
+      return { ok: false, error: `openrouter images ${resp.status}: ${errText}` };
+    }
+    const data: any = await resp.json();
+    const item = data?.data?.[0];
+    if (!item?.b64_json) return { ok: false, error: 'openrouter images: no b64_json in response' };
+    return { ok: true, b64: item.b64_json, mediaType: item.media_type || 'image/png', model: req.model, cost: data?.usage?.cost };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || 'openrouter images request failed' };
+  }
+}
+
+// ── Supabase REST helpers (service role) ─────────────────────────────
+export interface SupabaseRestConfig { supabaseUrl: string; serviceKey: string }
+
+export async function uploadImageToStorage(cfg: SupabaseRestConfig, unitId: string, bytes: Uint8Array, contentType: string): Promise<string | null> {
+  const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
+  const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
+  const resp = await fetch(`${cfg.supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${cfg.serviceKey}`, 'Content-Type': contentType },
+    body: bytes,
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!resp.ok) return null;
+  return `${cfg.supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
+}
+
+export async function findAssetByHash(cfg: SupabaseRestConfig, promptHash: string): Promise<{ id: string; public_url: string } | null> {
+  try {
+    const resp = await fetch(
+      `${cfg.supabaseUrl}/rest/v1/assets?select=id,public_url&type=eq.image&prompt_hash=eq.${encodeURIComponent(promptHash)}&limit=1`,
+      { headers: { apikey: cfg.serviceKey, Authorization: `Bearer ${cfg.serviceKey}` }, signal: AbortSignal.timeout(5000) },
+    );
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    return Array.isArray(rows) && rows[0]?.public_url ? rows[0] : null;
+  } catch { return null; }
+}
+
+export interface AssetRowInput {
+  unit_id?: string | null;
+  type?: string;
+  kind?: string;
+  prompt: string;
+  prompt_hash: string;
+  model?: string | null;
+  storage_path?: string;
+  public_url: string;
+  metadata?: Record<string, unknown>;
+}
+
+export async function insertAssetRow(cfg: SupabaseRestConfig, row: AssetRowInput): Promise<{ id: string | null; conflict: boolean }> {
+  try {
+    const resp = await fetch(`${cfg.supabaseUrl}/rest/v1/assets?select=id`, {
+      method: 'POST',
+      headers: { apikey: cfg.serviceKey, Authorization: `Bearer ${cfg.serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+      body: JSON.stringify({ type: 'image', kind: 'generated', ...row }),
+    });
+    if (resp.ok) {
+      const inserted = await resp.json();
+      return { id: Array.isArray(inserted) ? inserted[0]?.id : inserted?.id, conflict: false };
+    }
+    if (resp.status === 409) return { id: null, conflict: true };
+    console.error('insertAssetRow failed:', resp.status);
+    return { id: null, conflict: false };
+  } catch { return { id: null, conflict: false }; }
+}

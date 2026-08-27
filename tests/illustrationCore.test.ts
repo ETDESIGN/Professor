@@ -1,6 +1,15 @@
 // tests/illustrationCore.test.ts
-import { describe, it, expect } from 'vitest';
-import { composePrompt, aspectRatioFor, HOUSE_STYLE } from '../supabase/functions/_shared/illustrationCore';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  composePrompt,
+  aspectRatioFor,
+  HOUSE_STYLE,
+  sha256Hex,
+  promptHashFor,
+  callOpenRouterImages,
+} from '../supabase/functions/_shared/illustrationCore';
+
+afterEach(() => vi.unstubAllGlobals());
 
 const unit = { title: 'Space Adventure', topic: 'planets and rockets', artDirection: 'deep blue palette; rockets, stars, soft glow' };
 
@@ -34,5 +43,45 @@ describe('aspectRatioFor', () => {
     expect(aspectRatioFor('cover')).toBe('16:9');
     expect(aspectRatioFor('story_scene')).toBe('16:9');
     expect(aspectRatioFor('portrait')).toBe('1:1');
+  });
+});
+
+describe('sha256Hex / promptHashFor', () => {
+  it('hashes deterministically and lowercases like the legacy dedup', async () => {
+    const h = await sha256Hex('Hello');
+    expect(h).toMatch(/^[0-9a-f]{64}$/);
+    expect(await sha256Hex('hello')).toBe(h);
+  });
+  it('promptHashFor includes model and refs', async () => {
+    const base = await promptHashFor('m1', 'p');
+    expect(await promptHashFor('m2', 'p')).not.toBe(base);
+    expect(await promptHashFor('m1', 'p', ['r1'])).not.toBe(base);
+  });
+});
+
+describe('callOpenRouterImages', () => {
+  it('parses b64_json responses and passes input_references', async () => {
+    const calls: any[] = [];
+    vi.stubGlobal('fetch', async (_url: string, init: any) => {
+      calls.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({ data: [{ b64_json: 'QUJD', media_type: 'image/png' }], usage: { cost: 0.04 } }), { status: 200 });
+    });
+    const r = await callOpenRouterImages({ openrouterKey: 'k' }, { model: 'bytedance-seed/seedream-4.5', prompt: 'p', aspectRatio: '16:9', inputReferences: ['https://x/1.png'] });
+    expect(r.ok).toBe(true);
+    if (r.ok) { expect(r.b64).toBe('QUJD'); expect(r.cost).toBe(0.04); }
+    expect(calls[0].model).toBe('bytedance-seed/seedream-4.5');
+    expect(calls[0].aspect_ratio).toBe('16:9');
+    expect(calls[0].input_references).toEqual(['https://x/1.png']);
+  });
+  it('returns ok:false on HTTP error with status', async () => {
+    vi.stubGlobal('fetch', async () => new Response('{"error":"bad"}', { status: 402 }));
+    const r = await callOpenRouterImages({ openrouterKey: 'k' }, { model: 'm', prompt: 'p' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain('402');
+  });
+  it('returns ok:false when b64_json missing', async () => {
+    vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ data: [{}] }), { status: 200 }));
+    const r = await callOpenRouterImages({ openrouterKey: 'k' }, { model: 'm', prompt: 'p' });
+    expect(r.ok).toBe(false);
   });
 });
