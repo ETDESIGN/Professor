@@ -688,7 +688,7 @@ Return ONLY: { "boxes": [ { "index": 0, "explanation": "...", "pattern_template"
 One output box per input box, same order. Keep every value concise so the response is not cut off.`;
       const res = await callAI(sys, usr, 0.4, FAST_MODELS);
       const derived = Array.isArray(res?.boxes) ? res.boxes : [];
-      return basketGrammar.map((g, i) => {
+      const built = basketGrammar.map((g, i) => {
         const d = derived.find((x: any) => Number(x?.index) === i) || {};
         // Examples-only boxes: the first verbatim sentence stands in as the
         // rule (grammar_rules.rule is NOT NULL) — still book text, never
@@ -706,6 +706,24 @@ One output box per input box, same order. Keep every value concise so the respon
           source_structure_id: g.structure_id || null,
         };
       });
+      // AUDIT FIX (2026-08-27): books reuse one heading across grammar boxes
+      // ("Gracie's Grammar") — duplicate rule values inside one batch make the
+      // (unit_id, rule) upsert throw "cannot affect row a second time" and the
+      // whole category silently wrote NOTHING (owner unit: 4 derived rules in
+      // the manifest, 0 rows in grammar_rules). Merge duplicates: shared
+      // headings get their first example sentence appended so each row stays
+      // unique and traceable to its box.
+      const byRule = new Map<string, any>();
+      for (const r of built) {
+        const key = String(r.rule || '').trim().toLowerCase();
+        const existing = byRule.get(key);
+        if (!existing) { byRule.set(key, r); continue; }
+        const firstExample = (r.examples || [])[0];
+        const suffix = firstExample ? ` — ${String(firstExample).slice(0, 80)}` : ` (box ${byRule.size + 1})`;
+        r.rule = String(r.rule) + suffix;
+        byRule.set(String(r.rule).trim().toLowerCase(), r);
+      }
+      return [...byRule.values()];
     };
 
     const buildBasketStory = async (): Promise<any> => {
@@ -747,27 +765,42 @@ One output box per input box, same order. Keep every value concise so the respon
 
       // Comprehension questions — generated ONLY from the actual passage
       // text, never about invented content (doc 10 §6 story basket).
-      for (const page of pages) {
-        if (!page.needs_questions) { delete page.needs_questions; continue; }
-        const qSys = `You write reading-comprehension questions for children aged 6-12.
+      // AUDIT FIX (2026-08-27): sequential per-page question calls ran the
+      // whole story category past the edge wall clock (owner unit: a 4.5-min
+      // story call was killed, 0 story pages landed). Questions are DERIVED
+      // content — the verbatim pages always land; questions run in parallel
+      // and are simply skipped when the budget runs out.
+      const STORY_Q_DEADLINE = Date.now() + 75_000;
+      const questionTargets = pages.filter((p) => p.needs_questions);
+      const qSys = `You write reading-comprehension questions for children aged 6-12.
 Questions must be answerable STRICTLY from the provided text. Never add facts.
 Return ONLY a valid JSON object.`;
-        const qUsr = `Text (verbatim from the book):
+      let qNext = 0;
+      const qWorkers = Array.from({ length: Math.min(2, questionTargets.length) }, async () => {
+        while (true) {
+          const i = qNext++;
+          if (i >= questionTargets.length || Date.now() > STORY_Q_DEADLINE) break;
+          const page = questionTargets[i];
+          const qUsr = `Text (verbatim from the book):
 ${String(page.text).slice(0, 4000)}
 
 Write comprehension questions about THIS text only.
 Return ONLY: { "questions": [ { "question": "...", "options": ["a","b","c"], "answer": 0 } ] }
 answer is the 0-based index of the correct option. Keep language simple.`;
-        const qRes = await callAI(qSys, qUsr, 0.4, FAST_MODELS);
-        page.comprehension_questions = Array.isArray(qRes?.questions)
-          ? qRes.questions.map((q: any) => ({
-              question: String(q?.question || ''),
-              options: Array.isArray(q?.options) ? q.options.slice(0, 4) : [],
-              answer: Number.isInteger(q?.answer) ? q.answer : 0,
-            }))
-          : [];
-        delete page.needs_questions;
-      }
+          try {
+            const qRes = await callAI(qSys, qUsr, 0.4, FAST_MODELS);
+            page.comprehension_questions = Array.isArray(qRes?.questions)
+              ? qRes.questions.map((q: any) => ({
+                  question: String(q?.question || ''),
+                  options: Array.isArray(q?.options) ? q.options.slice(0, 4) : [],
+                  answer: Number.isInteger(q?.answer) ? q.answer : 0,
+                }))
+              : [];
+          } catch { /* questions are optional derived content */ }
+        }
+      });
+      await Promise.all(qWorkers);
+      for (const page of pages) delete page.needs_questions;
       return { title: title || 'Story', setting: '', pages };
     };
 
@@ -1203,8 +1236,20 @@ ${categoryRules}
     // Idempotent via UNIQUE(unit_id, rule). Best-effort, non-fatal.
     if ((category === 'grammar' || category === 'all') && Array.isArray(enriched.grammar) && enriched.grammar.length > 0) {
       try {
+        // AUDIT FIX (2026-08-27): duplicate rule values inside one batch make
+        // PostgREST's upsert fail ENTIRELY ("cannot affect row a second
+        // time") — dedupe by normalized rule first, then upsert. Failures
+        // are logged, never swallowed silently (the owner's unit lost all 4
+        // grammar rows to the swallowed variant).
+        const seenRules = new Set<string>();
         const ruleRows = enriched.grammar
           .filter((g: any) => g && g.rule)
+          .filter((g: any) => {
+            const key = String(g.rule).trim().toLowerCase();
+            if (seenRules.has(key)) return false;
+            seenRules.add(key);
+            return true;
+          })
           .map((g: any, i: number) => ({
             unit_id: unitId,
             order_index: i,
@@ -1218,10 +1263,12 @@ ${categoryRules}
             source_structure_id: g.source_structure_id || null,             // FIXPLAN_F P2.2 provenance
           }));
         if (ruleRows.length > 0) {
-          await sbClient
+          const { error: grammarUpsertErr } = await sbClient
             .from('grammar_rules')
-            .upsert(ruleRows, { onConflict: 'unit_id,rule' })
-            .then(() => undefined, () => undefined);
+            .upsert(ruleRows, { onConflict: 'unit_id,rule' });
+          if (grammarUpsertErr) {
+            console.error('enrich-unit GRAMMAR: upsert failed:', grammarUpsertErr.message, JSON.stringify(ruleRows.map(r => r.rule)).slice(0, 300));
+          }
         }
         console.log(`enrich-unit GRAMMAR: ${ruleRows.length} rules written relationally`);
       } catch (grammErr: any) {
