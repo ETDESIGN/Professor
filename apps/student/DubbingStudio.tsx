@@ -9,7 +9,7 @@ import {
   type LineScore,
 } from '../../services/DubbingService';
 import { GamificationService } from '../../services/GamificationService';
-import { useDubRecorder } from './dubbing/useDubRecorder';
+import { useDubRecorder, buildLineWindows } from './dubbing/useDubRecorder';
 import DubPlayer from '../../components/shared/DubPlayer';
 import { createClientLogger } from '../../services/logger';
 
@@ -57,7 +57,12 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
   const [lineScores, setLineScores] = useState<Record<string, LineScore | null>>({});
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [published, setPublished] = useState(false);
-  const [xpAwarded, setXpAwarded] = useState(false);
+  /** Snapshot of the take's blobs, taken when the pass is finished (hook state is cleared on reset). */
+  const [finalBlobs, setFinalBlobs] = useState<Record<string, Blob>>({});
+  /** The saved take's dubbing row id — Share reuses this row instead of creating a duplicate take. */
+  const savedDubbingIdRef = useRef<string | null>(null);
+  /** XP already granted for this take (10 private, top-up 5 on publish → exactly 15 published / 10 private). */
+  const xpGivenRef = useRef(0);
   const [activeSubIdx, setActiveSubIdx] = useState(-1);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -121,11 +126,20 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
   // videoRef.current as a prop on every render so it tracks the live element.
 
   const openClip = useCallback(async (c: ClipWithLines) => {
+    // Guard: malformed/overlapping lines must not crash the screen.
+    try {
+      buildLineWindows(c.lines ?? [], c.videoDurationMs);
+    } catch {
+      toast.error('This clip has invalid line timings. Ask your teacher to fix it.');
+      return;
+    }
     setClip(c);
     setLineScores({});
     setSaveState('idle');
     setPublished(false);
-    setXpAwarded(false);
+    setFinalBlobs({});
+    savedDubbingIdRef.current = null;
+    xpGivenRef.current = 0;
     setPhase('watch');
     try {
       const url = await DubbingService.signedUrl(c.videoPath);
@@ -214,70 +228,91 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
   }, [phase, lines]);
 
   // ── Save + publish flow ─────────────────────────────────────────────────────
-  const saveTake = useCallback(
-    async (publish: boolean) => {
-      if (!clip || saveState === 'saving') return;
-      setSaveState('saving');
-      try {
-        const prior = await DubbingService.myDubs(clip.id);
-        const attemptNo = prior.length + 1;
-        const dubbingId = await DubbingService.createDubbing(clip.id, attemptNo);
-        const lineAudio: Record<string, string> = {};
-        for (const line of lines) {
-          const blob = recorder.lineBlobs[line.id];
-          if (!blob) continue;
-          lineAudio[line.id] = await DubbingService.uploadLineAudio(dubbingId, line.id, blob);
-        }
-        const perLineScores: Record<string, LineScore> = {};
-        for (const [k, v] of Object.entries(lineScores)) {
-          if (v) perLineScores[k] = v;
-        }
-        const overall = bandFromScores(lineScores, lines);
-        // AI-down path: persist with overallBand null → UI shows "Score pending".
-        await DubbingService.saveTake({
-          dubbingId,
-          lineAudio,
-          perLineScores,
-          overallBand: (overall ?? null) as unknown as string,
-        });
-        if (publish) {
-          await DubbingService.publishDubbing(dubbingId);
-          setPublished(true);
-        }
-        setSaveState('saved');
-        // Object URLs for DubPlayer playback.
-        const urls: Record<string, string> = {};
-        for (const line of lines) {
-          const blob = recorder.lineBlobs[line.id];
-          if (blob) urls[line.id] = URL.createObjectURL(blob);
-        }
-        blobUrlMap.current = urls;
-        if (!xpAwarded) {
-          try {
-            await GamificationService.awardXP(publish ? 15 : 10, publish ? 'dubbing_complete' : 'dubbing_complete_private');
-            setXpAwarded(true);
-          } catch (err) {
-            log.warn('xp_failed', { error: err instanceof Error ? err.message : String(err) });
-          }
-        }
-      } catch (err) {
-        log.warn('save_failed', { error: err instanceof Error ? err.message : String(err) });
-        toast.error('Could not save your take. Please try again.');
-        setSaveState('idle');
+  // Invariants (review fix round 1):
+  //   - ONE dubbing row per take: creation is guarded by savedDubbingIdRef;
+  //     Share with class re-publishes the SAME row (never a duplicate take).
+  //   - XP per take, exactly once per tier: 10 on private save, top-up +5 on
+  //     publish → exactly 15 published / 10 private-only.
+  const saveTake = useCallback(async (): Promise<string | null> => {
+    if (!clip) return null;
+    if (savedDubbingIdRef.current) return savedDubbingIdRef.current; // already saved
+    if (saveState === 'saving') return null;
+    setSaveState('saving');
+    try {
+      const prior = await DubbingService.myDubs(clip.id);
+      const attemptNo = prior.length + 1;
+      const dubbingId = await DubbingService.createDubbing(clip.id, attemptNo);
+      const lineAudio: Record<string, string> = {};
+      for (const line of lines) {
+        const blob = finalBlobs[line.id];
+        if (!blob) continue;
+        lineAudio[line.id] = await DubbingService.uploadLineAudio(dubbingId, line.id, blob);
       }
-    },
-    [clip, lines, lineScores, recorder.lineBlobs, saveState, xpAwarded],
-  );
+      const perLineScores: Record<string, LineScore> = {};
+      for (const [k, v] of Object.entries(lineScores)) {
+        if (v) perLineScores[k] = v;
+      }
+      const overall = bandFromScores(lineScores, lines);
+      // AI-down path: persist with overallBand null → UI shows "Score pending".
+      await DubbingService.saveTake({
+        dubbingId,
+        lineAudio,
+        perLineScores,
+        overallBand: (overall ?? null) as unknown as string,
+      });
+      savedDubbingIdRef.current = dubbingId;
+      setSaveState('saved');
+      // Private-save XP: 10, exactly once per take.
+      if (xpGivenRef.current < 10) {
+        try {
+          await GamificationService.awardXP(10, 'dubbing_complete_private');
+          xpGivenRef.current = 10;
+        } catch (err) {
+          log.warn('xp_failed', { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+      return dubbingId;
+    } catch (err) {
+      log.warn('save_failed', { error: err instanceof Error ? err.message : String(err) });
+      toast.error('Could not save your take. Please try again.');
+      setSaveState('idle');
+      return null;
+    }
+  }, [clip, lines, lineScores, finalBlobs, saveState]);
 
   const goResult = useCallback(() => {
     videoRef.current?.pause();
+    // Snapshot the blobs BEFORE reset clears the hook state, then release the
+    // mic/AnalyserNode/AudioContext so no recording indicator stays live.
+    const snapshot = { ...recorder.lineBlobs };
+    recorder.reset();
+    setFinalBlobs(snapshot);
+    // Object URLs for DubPlayer playback.
+    const urls: Record<string, string> = {};
+    for (const [lineId, blob] of Object.entries(snapshot)) {
+      urls[lineId] = URL.createObjectURL(blob);
+    }
+    blobUrlMap.current = urls;
     setPhase('result');
-    void saveTake(false);
-  }, [saveTake]);
+    void saveTake();
+  }, [recorder, saveTake]);
 
   const shareWithClass = useCallback(async () => {
-    await saveTake(true);
-    toast.success('Shared with your class!');
+    const dubbingId = await saveTake();
+    if (!dubbingId) return;
+    try {
+      await DubbingService.publishDubbing(dubbingId); // publish the SAME take
+      setPublished(true);
+      // Top-up so the published total is exactly 15 (10 already granted).
+      if (xpGivenRef.current < 15) {
+        await GamificationService.awardXP(15 - xpGivenRef.current, 'dubbing_complete');
+        xpGivenRef.current = 15;
+      }
+      toast.success('Shared with your class!');
+    } catch (err) {
+      log.warn('publish_failed', { error: err instanceof Error ? err.message : String(err) });
+      toast.error('Could not share your take.');
+    }
   }, [saveTake]);
 
   const tryAgain = useCallback(() => {
@@ -286,6 +321,9 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
     setLineScores({});
     setSaveState('idle');
     setPublished(false);
+    setFinalBlobs({});
+    savedDubbingIdRef.current = null;
+    xpGivenRef.current = 0;
     recorder.reset();
     setPhase('watch');
   }, [recorder]);

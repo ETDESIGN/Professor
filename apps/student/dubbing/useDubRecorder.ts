@@ -118,14 +118,29 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const windowsRef = useRef<LineWindow[]>([]);
-  const windows = buildLineWindows(lines, durationMs);
+  // Guard: malformed clip lines must never crash the render (invalid → no windows).
+  let windows: LineWindow[] = [];
+  try {
+    windows = buildLineWindows(lines, durationMs);
+  } catch {
+    windows = [];
+  }
   windowsRef.current = windows;
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const rafRef = useRef<number | null>(null);
-  const currentLineRef = useRef<LineWindow | null>(null);
+  /**
+   * BLOB ATTRIBUTION INVARIANT: `ondataavailable` fires asynchronously AFTER
+   * `recorder.stop()` returns — potentially only after the next rAF frame has
+   * already moved on to line N+1. The line is therefore snapshotted into
+   * `pendingLineRef` at stop() time and consumed (and cleared) inside
+   * ondataavailable, so a late chunk can never be attributed to the wrong
+   * line. Covered by test/useDubRecorder.test.ts ('attributes a late
+   * dataavailable chunk to the stopped line, not the next one').
+   */
+  const pendingLineRef = useRef<LineWindow | null>(null);
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const transcriptEventsRef = useRef<TranscriptEvent[]>([]);
   const passStartRef = useRef<number>(0); // performance.now() at video t=0
@@ -150,8 +165,9 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
     }
     const recorder = new MediaRecorder(stream);
     recorder.ondataavailable = (ev) => {
-      if (ev.data.size === 0 || !currentLineRef.current) return;
-      const line = currentLineRef.current;
+      const line = pendingLineRef.current;
+      if (ev.data.size === 0 || !line) return;
+      pendingLineRef.current = null; // consume exactly one chunk per stop()
       const blob = new Blob([ev.data], { type: ev.data.type || 'audio/webm' });
       // Slice transcript events captured inside this window (relative to pass start).
       const win = line;
@@ -237,7 +253,6 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
         } else if (t < win.endMs) {
           // Enter the line window: start the recorder chunk (guarded by
           // recorder state — setState does not refresh this closure).
-          currentLineRef.current = win;
           const rec = recorderRef.current;
           if (rec && rec.state !== 'recording') {
             try {
@@ -250,12 +265,16 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
           setActiveLineIndex(win.index);
         } else {
           // Window finished: stop the recorder chunk for this line.
+          // Snapshot the line NOW — ondataavailable fires asynchronously,
+          // possibly after the loop has already started line N+1 (see
+          // pendingLineRef invariant above).
           const rec = recorderRef.current;
           if (rec && rec.state === 'recording') {
+            pendingLineRef.current = win;
             try {
               rec.stop();
             } catch {
-              /* ignore */
+              pendingLineRef.current = null;
             }
           }
           if (mode === 'rerecord') {
@@ -303,7 +322,8 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
       if (!video || !win) return;
       if (!recorderRef.current || !streamRef.current) return; // mic session must be alive
       video.muted = true;
-      video.currentTime = Math.max(0, win.startMs - 500) / 1000;
+      // Same countdown lead as the full pass (1500ms), clamped >= 0.
+      video.currentTime = Math.max(0, win.startMs - COUNTDOWN_LEAD_MS) / 1000;
       // Recompute pass start so transcript timestamps map to video time again.
       passStartRef.current = performance.now() - video.currentTime * 1000;
       try {
@@ -339,7 +359,7 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
     }
     audioCtxRef.current = null;
     setAnalyser(null);
-    currentLineRef.current = null;
+    pendingLineRef.current = null;
     setState('idle');
     setActiveLineIndex(-1);
     setLineBlobs({});

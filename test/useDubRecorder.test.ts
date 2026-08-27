@@ -1,6 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
 import type { ClipLine } from '../services/DubbingService';
-import { buildLineWindows } from '../apps/student/dubbing/useDubRecorder';
+
+vi.mock('../services/logger', () => ({
+  createClientLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}));
+
+vi.mock('../services/SpeechService', () => ({
+  captureTranscript: () => null, // unsupported → transcript capture skipped
+}));
+
+import { buildLineWindows, useDubRecorder } from '../apps/student/dubbing/useDubRecorder';
 
 function line(id: string, order: number, startMs: number, endMs: number): ClipLine {
   return { id, order, text: `line ${id}`, startMs, endMs, characterName: null };
@@ -49,5 +59,121 @@ describe('buildLineWindows', () => {
   it('sorts windows by startMs regardless of order field', () => {
     const windows = buildLineWindows([line('b', 1, 6000, 7000), line('a', 0, 1000, 2000)], 10_000);
     expect(windows.map((w) => w.lineId)).toEqual(['a', 'b']);
+  });
+});
+
+// ── Hook-level regression: blob→line attribution race ────────────────────────
+// ondataavailable fires asynchronously AFTER stop(); the rAF loop may already
+// have started line N+1. The pending line is snapshotted at stop() time so a
+// late chunk is attributed to the line that was STOPPED, not the next one.
+describe('useDubRecorder blob attribution', () => {
+  let rafQueue: FrameRequestCallback[];
+  const video: HTMLVideoElement = document.createElement('video');
+  let recorderInstances: any[];
+
+  class FakeRecorder {
+    static instances: any[] = [];
+    state = 'inactive';
+    ondataavailable: ((ev: { data: Blob }) => void) | null = null;
+    constructor(_stream: any) {
+      FakeRecorder.instances.push(this);
+    }
+    start() {
+      this.state = 'recording';
+    }
+    stop() {
+      this.state = 'inactive';
+      // NOTE: does NOT fire ondataavailable synchronously — the test fires it late.
+    }
+    fireChunkLate(data: Blob) {
+      this.ondataavailable?.({ data });
+    }
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal('MediaRecorder', FakeRecorder);
+    FakeRecorder.instances = [];
+    recorderInstances = FakeRecorder.instances;
+    rafQueue = [];
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      rafQueue.push(cb);
+      return rafQueue.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+    (navigator as any).mediaDevices = {
+      getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [] }),
+    };
+    video.play = vi.fn().mockResolvedValue(undefined) as any;
+    video.pause = vi.fn();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    act(() => {
+      // let hook cleanup run on unmount (renderHandle.unmount in the test)
+    });
+  });
+
+  /** Run one rAF tick at the given video time (ms). */
+  const tickAt = (ms: number) => {
+    video.currentTime = ms / 1000;
+    const cbs = rafQueue.splice(0);
+    act(() => {
+      cbs.forEach((cb) => cb(performance.now()));
+    });
+  };
+
+  it('attributes a late dataavailable chunk to the stopped line, not the next one', async () => {
+    const lines = [line('a', 0, 1000, 2000), line('b', 1, 3000, 4000)];
+    const captured: Array<[string, Blob, string]> = [];
+    const handle = renderHook(() =>
+      useDubRecorder({
+        videoEl: video,
+        lines,
+        durationMs: 6000,
+        onLineCaptured: (lineId, blob, transcript) => captured.push([lineId, blob, transcript]),
+      }),
+    );
+
+    act(() => {
+      handle.result.current.startPass();
+    });
+    // Let the async getUserMedia + setup settle.
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Enter line a's window → recorder.start().
+    tickAt(1500);
+    expect(handle.result.current.state).toBe('recording_line');
+    expect(recorderInstances[0].state).toBe('recording');
+
+    // Leave line a's window → stop() with a snapshotted as pending.
+    tickAt(2100);
+    expect(recorderInstances[0].state).toBe('inactive');
+
+    // Enter line b's window → start() again BEFORE a's chunk lands.
+    tickAt(3500);
+    expect(handle.result.current.state).toBe('recording_line');
+    expect(recorderInstances[0].state).toBe('recording');
+
+    // NOW the browser delivers line a's chunk (late) — must map to 'a'.
+    act(() => {
+      recorderInstances[0].fireChunkLate(new Blob(['chunk-a'], { type: 'audio/webm' }));
+    });
+    expect(captured.map((c) => c[0])).toEqual(['a']);
+    expect(handle.result.current.lineBlobs['a']).toBeInstanceOf(Blob);
+
+    // Finish line b; its chunk must map to 'b'.
+    tickAt(4100);
+    expect(recorderInstances[0].state).toBe('inactive');
+    act(() => {
+      recorderInstances[0].fireChunkLate(new Blob(['chunk-b'], { type: 'audio/webm' }));
+    });
+    expect(captured.map((c) => c[0])).toEqual(['a', 'b']);
+    expect(handle.result.current.lineBlobs['b']).toBeInstanceOf(Blob);
+
+    handle.unmount();
   });
 });
