@@ -1,7 +1,7 @@
 # Fix Plan G — Unitization (Books → Units)
 
 **Origin:** [`brainstorming/11_UNITIZATION_AND_CLASS_PLANS.md`](./brainstorming/11_UNITIZATION_AND_CLASS_PLANS.md) (all 8 owner decisions locked 2026-08-27). Phase F1 of the Book→Units→Series→Classes architecture.
-**Status:** DRAFTED 2026-08-27, awaiting owner approval. No implementation until approved.
+**Status:** APPROVED + IMPLEMENTED 2026-08-28 (`565b14a` + hotfix deploy). All E2E gates green; owner acceptance (re-split of the real 26-page unit) pending.
 **Risk:** 🟡 Medium — new post-scan step + unit reassignment; no schema migration required; existing units unaffected unless the teacher reorganizes them.
 
 ---
@@ -53,9 +53,9 @@ Output: `groups: [{ key, title, is_setup, pageIds[], fromPrinted, toPrinted }]`.
 
 ## Verification checklist (do not mark complete until green)
 
-- [ ] Proposal algorithm unit tests green (incl. lesson-labels-don't-split, welcome-before-first-opener, books without openers).
-- [ ] E2E on the real sample: 3 units + setup group proposed; apply creates 3 Draft units with opener titles; welcome pages stored book-level (unit_id NULL, visible in the setup section).
-- [ ] Enrich-on-open: opening each new unit's Review enriches from its baskets; nothing enriches before that.
-- [ ] No content lost: sum of pages across groups = source pages; structures follow their pages.
-- [ ] Re-edit path: splitting an existing enriched unit reassigns pages and warns about re-enrichment.
-- [ ] Existing single-unit flows (photo upload, one-unit PDF) unchanged apart from the one-click unitization confirm.
+- [x] Proposal algorithm unit tests green (incl. lesson-labels-don't-split, welcome-before-first-opener, books without openers).
+- [x] E2E on the real sample: 3 units + setup group proposed; apply creates 3 Draft units with opener titles; welcome pages stored book-level (unit_id NULL, visible in the setup section).
+- [x] Enrich-on-open: opening each new unit's Review enriches from its baskets; nothing enriches before that.
+- [x] No content lost: sum of pages across groups = source pages; structures follow their pages.
+- [x] Re-edit path: splitting an existing enriched unit reassigns pages and warns about re-enrichment.
+- [x] Existing single-unit flows (photo upload, one-unit PDF) unchanged apart from the one-click unitization confirm.
