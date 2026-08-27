@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { MediaService } from '../../services/MediaService';
-import { getVocabulary } from '../../services/manifest';
+import { getVocabulary, getCharacters } from '../../services/manifest';
 import { supabase } from '../../services/supabaseClient';
 import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
 import { completeStage, starsForAccuracy } from '../../services/stageProgressService';
@@ -273,6 +273,15 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     const vocabMap = new Map<string, any>();
     for (const v of vocab) if (v.word) vocabMap.set(v.word.toLowerCase(), v);
 
+    // Speaker portrait: resolve via the unit's live cast (relational bundle
+    // characters carry image_url from get_unit_bundle); frozen flow pages only
+    // carry speaker/avatar (emoji), so this is the portrait source.
+    const chars = getCharacters(state.activeUnit?.manifest);
+    const charByName = new Map<string, any>(chars.map((c: any) => [String(c.name || '').toLowerCase(), c]));
+    const speakerPortrait = page.speaker
+      ? (charByName.get(String(page.speaker).toLowerCase())?.image_url || page.portrait || null)
+      : null;
+
     const renderText = (text: string) =>
       (text || '').split(/(\s+)/).map((tok, i) => {
         const cleaned = tok.replace(/[^a-zA-Z']/g, '').toLowerCase();
@@ -303,9 +312,13 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
           </button>
           {page.speaker && (
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 bg-amber-200 rounded-full flex items-center justify-center font-bold text-amber-700">
-                {page.avatar || page.speaker.charAt(0)}
-              </div>
+              {speakerPortrait ? (
+                <img src={speakerPortrait} alt={page.speaker} className="w-9 h-9 rounded-full object-cover" />
+              ) : (
+                <div className="w-9 h-9 bg-amber-200 rounded-full flex items-center justify-center font-bold text-amber-700">
+                  {page.avatar || page.speaker.charAt(0)}
+                </div>
+              )}
               <span className="font-bold text-amber-700">{page.speaker}</span>
             </div>
           )}

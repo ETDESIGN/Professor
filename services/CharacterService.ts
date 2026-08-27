@@ -47,7 +47,16 @@ export const CharacterService = {
             .eq('book_id', bookId)
             .order('created_at', { ascending: true });
         if (error) throw error;
-        return (data || []) as Character[];
+        return this.attachPortraitUrls((data || []) as Character[]);
+    },
+
+    /** Resolve reference_image_asset_id → assets.public_url for a set of characters. */
+    async attachPortraitUrls(chars: Character[]): Promise<Character[]> {
+        const ids = chars.map(c => c.reference_image_asset_id).filter((v): v is string => Boolean(v));
+        if (ids.length === 0) return chars;
+        const { data: assets } = await supabase.from('assets').select('id, public_url').in('id', ids);
+        const byId = new Map((assets || []).map(a => [a.id, a.public_url] as [string, string]));
+        return chars.map(c => ({ ...c, image_url: c.reference_image_asset_id ? (byId.get(c.reference_image_asset_id) || null) : null }));
     },
 
     /** Get one character by id. */
@@ -127,7 +136,8 @@ export const CharacterService = {
             .select('character:characters(*)')
             .eq('unit_id', unitId);
         if (error) throw error;
-        return ((data || []).map((r: any) => r.character).filter(Boolean) as Character[]);
+        const chars = ((data || []).map((r: any) => r.character).filter(Boolean) as Character[]);
+        return this.attachPortraitUrls(chars);
     },
 };
 

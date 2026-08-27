@@ -107,7 +107,7 @@ const CharacterPickerModal: React.FC<CharacterPickerModalProps> = ({
     };
 
     const portrait = (c: Character) =>
-        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
+        c.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
 
     return (
         <AnimatePresence>
@@ -195,7 +195,7 @@ const CharacterPickerModal: React.FC<CharacterPickerModalProps> = ({
                                             className={`relative p-3 rounded-xl border-2 text-left transition-all hover:border-indigo-400 hover:shadow-md ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white'}`}
                                         >
                                             {isSelected && <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full" />}
-                                            <img src={portrait(c)} alt={c.name} className="w-12 h-12 rounded-full mx-auto mb-2 bg-slate-100" />
+                                            <img src={portrait(c)} alt={c.name} className="w-12 h-12 rounded-full mx-auto mb-2 bg-slate-100 object-cover" />
                                             <div className="text-center">
                                                 <div className="font-semibold text-sm text-slate-800 truncate">{c.name}</div>
                                                 {c.role && <div className="text-[11px] text-slate-500 capitalize">{c.role}</div>}

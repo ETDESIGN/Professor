@@ -870,7 +870,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                             <div className="space-y-2">
                               {linkedChars.map(c => (
                                 <div key={c.id} className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 bg-white">
-                                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
+                                  <img src={c.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0 object-cover" />
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium text-slate-800 truncate">{c.name}</div>
                                     <div className="text-[11px] text-slate-500 truncate">
