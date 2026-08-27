@@ -131,9 +131,9 @@ export const DubbingService = {
   /** Student: assigned clips of my classes (with lines). */
   async listMyClips(): Promise<(DubbingClip & { lines?: ClipLine[] })[]> {
     const uid = await currentUid();
-    // class_memberships/student enrollment via classes where I am a student
+    // class_enrollments/student enrollment via classes where I am a student
     const { data: classes, error: cErr } = await supabase
-      .from('class_memberships')
+      .from('class_enrollments')
       .select('class_id')
       .eq('student_id', uid);
     if (cErr) throw new Error(cErr.message);
@@ -341,7 +341,7 @@ export const DubbingService = {
     const uid = await currentUid();
     const { data, error } = await supabase
       .from('dubbings')
-      .select('*, student:students(name), dubbing_likes(dubbing_id, student_id)')
+      .select('*, student:profiles!dubbings_student_id_fkey(full_name), dubbing_likes(dubbing_id, student_id)')
       .eq('clip_id', clipId)
       .eq('is_published', true)
       .order('published_at', { ascending: false });
@@ -350,7 +350,7 @@ export const DubbingService = {
       const likes: any[] = r.dubbing_likes ?? [];
       return {
         ...mapDubbing(r),
-        studentName: r.student?.name ?? '',
+        studentName: r.student?.full_name ?? '',
         likeCount: likes.length,
         likedByMe: likes.some((l) => l.student_id === uid),
       };
@@ -448,13 +448,13 @@ export const DubbingService = {
   async listClassDubEntries(clipId: string): Promise<(Dubbing & { studentName: string })[]> {
     const { data, error } = await supabase
       .from('dubbings')
-      .select('*, student:students(name)')
+      .select('*, student:profiles!dubbings_student_id_fkey(full_name)')
       .eq('clip_id', clipId)
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return (data ?? []).map((r: any) => ({
       ...mapDubbing(r),
-      studentName: r.student?.name ?? '',
+      studentName: r.student?.full_name ?? '',
     }));
   },
 
