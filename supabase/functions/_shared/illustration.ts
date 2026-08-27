@@ -113,21 +113,44 @@ export async function generateIllustration(opts: {
     public_url: publicUrl,
   });
   let finalUrl = publicUrl;
-  if (conflict && !opts.regenerate) {
-    const cached = await findAssetByHash(cfg.rest, hash);
-    if (cached) { finalUrl = cached.public_url; }
+  let finalAssetId = assetId;
+  if (conflict) {
+    const existing = await findAssetByHash(cfg.rest, hash);
+    if (existing) {
+      // Same (model, prompt, refs) hash — the unique index rejects a second
+      // row. Repoint the existing row at the newly generated image so url + id
+      // stay a consistent pair for ALL callers (cover/portrait/story
+      // regenerations AND the concurrent-race case: newest image wins). This
+      // runs REGARDLESS of `regenerate` — with regenerate the old code skipped
+      // the re-fetch, returned assetId undefined, and every write-back gate
+      // (`if (r.assetId)`) silently dropped the new image (session-only).
+      const repointed = await fetch(`${cfg.rest.supabaseUrl}/rest/v1/assets?id=eq.${existing.id}`, {
+        method: 'PATCH',
+        headers: { apikey: cfg.rest.serviceKey, Authorization: `Bearer ${cfg.rest.serviceKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_url: publicUrl, storage_path: `images/${opts.unitId || 'default'}`, model: gen.model }),
+        signal: AbortSignal.timeout(10000),
+      }).then((r) => r.ok).catch(() => false);
+      // Adopt the repointed row only when the PATCH actually landed —
+      // otherwise url (new image) and the row (old image) would disagree.
+      if (repointed) {
+        finalUrl = publicUrl;
+        finalAssetId = existing.id;
+      }
+    }
   }
-  // unit_media link (best-effort, mirrors old imageGen behavior)
-  if (assetId && opts.unitId) {
+  // unit_media link (best-effort, mirrors old imageGen behavior). Uses the
+  // FINAL asset id so a repointed row is also linked to this unit (the
+  // merge-duplicates prefer makes the race case idempotent).
+  if (finalAssetId && opts.unitId) {
     try {
       await fetch(`${cfg.rest.supabaseUrl}/rest/v1/unit_media`, {
         method: 'POST',
         headers: { apikey: cfg.rest.serviceKey, Authorization: `Bearer ${cfg.rest.serviceKey}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates' },
-        body: JSON.stringify({ unit_id: opts.unitId, asset_id: assetId, role: 'generated', order_index: 0 }),
+        body: JSON.stringify({ unit_id: opts.unitId, asset_id: finalAssetId, role: 'generated', order_index: 0 }),
       });
     } catch { /* non-fatal */ }
   }
-  return { url: finalUrl, assetId: assetId || undefined };
+  return { url: finalUrl, assetId: finalAssetId || undefined };
 }
 
 // ── per-surface flows (used by generate-media's generate-illustrations) ──
