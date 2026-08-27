@@ -33,6 +33,8 @@ import {
   getSchoolMembers,
   setMembershipStatus,
   ProvisioningService,
+  PassportService,
+  getPassportsForClass,
   getClassAnnouncements,
   createClassAnnouncement,
   RosterPatch,
@@ -330,6 +332,51 @@ export function useArchiveRosterStudent() {
   return useMutation({
     mutationFn: ({ id, classId }: { id: string; classId: string }) => archiveRosterStudent(id),
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['roster', v.classId] }),
+  });
+}
+
+// ============================================
+// Student passports (teacher-minted login cards)
+// ============================================
+
+export function usePassportsForClass(classId: string | undefined) {
+  return useQuery({
+    queryKey: ['passports', classId],
+    queryFn: () => getPassportsForClass(classId!),
+    enabled: !!classId,
+    staleTime: 15_000,
+  });
+}
+
+export function useCreatePassport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ classId, opts }: {
+      classId: string;
+      opts: Parameters<typeof PassportService.create>[1];
+    }) => PassportService.create(classId, opts),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['roster', v.classId] });
+      qc.invalidateQueries({ queryKey: ['passports', v.classId] });
+    },
+  });
+}
+
+export function useResetPassport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rosterId, target }: { rosterId: string; target: 'student' | 'parent' | 'both'; classId: string }) =>
+      PassportService.reset(rosterId, target),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['passports', v.classId] }),
+  });
+}
+
+export function useDeactivatePassport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rosterId, classId }: { rosterId: string; classId: string }) =>
+      PassportService.deactivate(rosterId),
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['passports', v.classId] }),
   });
 }
 
