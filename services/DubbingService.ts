@@ -198,6 +198,24 @@ export const DubbingService = {
     return (data ?? []).map(mapClip);
   },
 
+  /**
+   * Upload with replace-on-duplicate semantics. NOTE: we deliberately do NOT
+   * use storage upsert — an upsert requires a storage UPDATE policy, and the
+   * dubbing-media bucket only has INSERT/SELECT/DELETE policies (an upsert
+   * 403s with "new row violates row-level security policy"). Instead: plain
+   * insert, and on a duplicate, delete the old object and insert again.
+   */
+  async uploadReplacing(path: string, body: Blob | File, contentType: string): Promise<void> {
+    const up = async () => supabase.storage.from(BUCKET).upload(path, body, { contentType });
+    let { error } = await up();
+    if (error && /exists|duplicate|409/i.test(error.message)) {
+      const { error: rmErr } = await supabase.storage.from(BUCKET).remove([path]);
+      if (rmErr) throw new Error(rmErr.message);
+      ({ error } = await up());
+    }
+    if (error) throw new Error(error.message);
+  },
+
   /** Creates a draft clip row; videoPath is generated here (source.<ext> from file ext is applied at upload). */
   async createClip(input: {
     classId: string;
@@ -205,6 +223,10 @@ export const DubbingService = {
     title: string;
     videoDurationMs: number;
   }): Promise<{ id: string; videoPath: string }> {
+    // created_by is NOT NULL with no DB default — stamp the signed-in teacher.
+    const { data: userData } = await supabase.auth.getUser();
+    const createdBy = userData.user?.id;
+    if (!createdBy) throw new Error('Not signed in');
     const { data, error } = await supabase
       .from('dubbing_clips')
       .insert({
@@ -212,6 +234,10 @@ export const DubbingService = {
         unit_id: input.unitId ?? null,
         title: input.title,
         video_duration_ms: input.videoDurationMs,
+        // video_path is NOT NULL — stamp a placeholder in the INSERT itself
+        // (the real path needs the generated id and is set in the update below).
+        video_path: 'pending',
+        created_by: createdBy,
         status: 'draft',
       })
       .select('id')
@@ -239,10 +265,7 @@ export const DubbingService = {
     }
     const ext = (file.name.split('.').pop() || 'webm').toLowerCase();
     const path = `clips/${clipId}/source.${ext}`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, file, { upsert: true });
-    if (error) throw new Error(error.message);
+    await DubbingService.uploadReplacing(path, file, file.type || 'video/webm');
     const { error: uErr } = await supabase
       .from('dubbing_clips')
       .update({ video_path: path })
@@ -292,10 +315,7 @@ export const DubbingService = {
   async uploadLineAudio(dubbingId: string, lineId: string, blob: Blob): Promise<string> {
     const uid = await currentUid();
     const path = `dubs/${uid}/${dubbingId}/${lineId}.webm`;
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(path, blob, { upsert: true, contentType: 'audio/webm' });
-    if (error) throw new Error(error.message);
+    await DubbingService.uploadReplacing(path, blob, 'audio/webm');
     return path;
   },
 
