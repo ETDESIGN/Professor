@@ -10,6 +10,8 @@
 // Default is DRY-RUN: prints the plan + estimated cost. --yes executes.
 // Idempotent: dedup is (model, prompt, refs) hash → assets.prompt_hash; rows
 // already pointing at a good image (or an asset) are never re-queued.
+// Units are planned NEWEST-first (order=created_at.desc), so the 500-unit cap
+// keeps the newest 500 — a WARNING names anything a fetch cap truncated.
 import {
   composePrompt,
   aspectRatioFor,
@@ -77,6 +79,20 @@ const ctxFor = (u: any): UnitArtContext => ({ title: u.title, topic: u.topic, ar
 
 interface Plan { jobs: Job[]; skipped: Record<string, number>; unitsFetched: number }
 
+// Review fix 1: PostgREST clamps every response to the project's max-rows
+// (Supabase default 1000) regardless of our limit=2000 — a clamped fetch would
+// silently under-plan, under-estimate cost, and print "Done. N ok, 0 failed"
+// while images remain bad. Warn whenever a fetch lands at/above its likely cap.
+const REMEDIATION = 'Re-run with --unit <id> batches, or raise max-rows in the Supabase dashboard (Project Settings → API → max-rows), then re-run.';
+const warnIfTruncated = (surface: string, rows: any[], requested: number, extra = '') => {
+  const cap = Math.min(requested, 1000); // whichever binds first: our limit or PostgREST max-rows
+  if (rows.length < cap) return;
+  console.error(
+    `WARNING: ${surface} fetch returned ${rows.length} row(s) — at/above the likely cap of ${cap} (requested limit ${requested}; Supabase PostgREST default max-rows is 1000), so the list is probably TRUNCATED and the plan under-counts.` +
+      `${extra ? ` ${extra}` : ''} ${REMEDIATION}`,
+  );
+};
+
 async function plan(): Promise<Plan> {
   const jobs: Job[] = [];
   // Correction 3: rows referencing units outside the fetched set are skipped —
@@ -84,8 +100,10 @@ async function plan(): Promise<Plan> {
   const skipped: Record<string, number> = {};
   const note = (s: string) => { skipped[s] = (skipped[s] || 0) + 1; };
 
-  const units: any[] = await api(`/rest/v1/units?select=id,title,topic,art_direction,cover_image,deleted_at&order=created_at&limit=500`);
-  if (units.length >= 500) console.error('WARNING: unit list capped at 500 (API limit) — older units were not planned; run again with --unit <id> batches to reach them.');
+  // Review fix 3: newest-first so the 500-cap keeps the NEWEST (active) units;
+  // the previous ascending order kept the oldest 500 while the warning claimed otherwise.
+  const units: any[] = await api(`/rest/v1/units?select=id,title,topic,art_direction,cover_image,deleted_at&order=created_at.desc&limit=500`);
+  warnIfTruncated('units', units, 500, 'Units are ordered newest-first, so the OLDER units beyond the newest 500 were NOT planned.');
   const live = units.filter((u) => !u.deleted_at && (!onlyUnit || u.id === onlyUnit));
   if (onlyUnit && live.length === 0) console.error(`NOTE: --unit ${onlyUnit} matched no live unit in the fetched set (not found, deleted, or beyond the 500 cap) — 0 jobs for it.`);
 
@@ -99,6 +117,7 @@ async function plan(): Promise<Plan> {
     const q = onlyUnit ? `/rest/v1/vocabulary_items?select=id,unit_id,word,image_prompt,image_url&unit_id=eq.${onlyUnit}&limit=2000`
                        : `/rest/v1/vocabulary_items?select=id,unit_id,word,image_prompt,image_url&limit=2000`;
     const items: any[] = await api(q);
+    warnIfTruncated('vocab', items, 2000);
     const unitById = new Map<string, any>(live.map((u) => [u.id as string, u] as [string, any]));
     for (const v of items) {
       const u = unitById.get(v.unit_id);
@@ -111,6 +130,7 @@ async function plan(): Promise<Plan> {
   // portraits (needs unit join)
   if (!onlySurface || onlySurface === 'portrait') {
     const rows: any[] = await api('/rest/v1/unit_characters?select=unit_id,characters(id,name,look_prompt,reference_image_asset_id)&limit=2000');
+    warnIfTruncated('portrait', rows, 2000);
     const unitById = new Map<string, any>(live.map((u) => [u.id as string, u] as [string, any]));
     const seen = new Set<string>();
     for (const r of rows) {
@@ -127,6 +147,7 @@ async function plan(): Promise<Plan> {
     const q = onlyUnit ? `/rest/v1/story_pages?select=id,unit_id,page_number,text,speaker,image_prompt,image_asset_id&unit_id=eq.${onlyUnit}&order=page_number&limit=2000`
                        : `/rest/v1/story_pages?select=id,unit_id,page_number,text,speaker,image_prompt,image_asset_id&order=page_number&limit=2000`;
     const pages: any[] = await api(q);
+    warnIfTruncated('story', pages, 2000);
     const unitById = new Map<string, any>(live.map((u) => [u.id as string, u] as [string, any]));
     for (const p of pages) {
       const u = unitById.get(p.unit_id);
@@ -187,7 +208,15 @@ async function main() {
   if (dryRun) { console.log('DRY RUN — re-run with --yes to execute.'); return; }
   let done = 0, failed = 0;
   for (const j of jobs) {
-    const r = await runJob(j);
+    let r: string;
+    try {
+      r = await runJob(j);
+    } catch (err: any) {
+      // Review fix 2: per-job REST isolation — one flaky PATCH / 5xx must not
+      // abort the remaining jobs via main().catch. Generation failures already
+      // continue; REST failures now do too, keeping the FAILED: tally convention.
+      r = `FAILED: ${String(err?.message || err).slice(0, 160)}`;
+    }
     if (r.startsWith('FAILED')) failed++;
     if (++done % 10 === 0 || r.startsWith('FAILED')) console.log(`[${done}/${jobs.length}] ${j.surface} ${j.id}: ${r}`);
   }
