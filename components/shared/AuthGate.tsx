@@ -14,10 +14,14 @@ interface AuthGateProps {
   children: React.ReactNode;
 }
 
-const PUBLIC_PATHS = ['/login', '/', '/claim'];
+// Exact matches only — a '/' entry with startsWith would make EVERY path
+// public (audit 2026-08-28 P0-1). Real prefixes are listed explicitly.
+const PUBLIC_EXACT = new Set(['/', '/login', '/claim']);
+const PUBLIC_PREFIXES = ['/claim/', '/onboarding/'];
 
-function isPublicPath(p: string): boolean {
-  return PUBLIC_PATHS.some(pp => p === pp || p.startsWith(pp));
+export function isPublicPath(p: string): boolean {
+  if (PUBLIC_EXACT.has(p)) return true;
+  return PUBLIC_PREFIXES.some(prefix => p.startsWith(prefix));
 }
 
 function homePathForRole(role: string | undefined): string {
