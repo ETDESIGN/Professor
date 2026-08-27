@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Gift, Lock, Zap, Check, BookOpen, Mic, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -29,13 +29,22 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
   const { data: quests = [], isLoading } = useDailyQuests();
   const claimQuest = useClaimQuest();
   const { t } = useTranslation();
+  const [claimingId, setClaimingId] = useState<string | null>(null);
 
   const handleClaim = async (questId: string) => {
-    const result = await claimQuest.mutateAsync(questId);
-    if (result) {
-      toast.success(t('student.claimReward', { defaultValue: '+{{xp}} XP, +{{gems}} Gems!', xp: result.xp, gems: result.gems }));
-    } else {
+    if (claimingId) return;
+    setClaimingId(questId);
+    try {
+      const result = await claimQuest.mutateAsync(questId);
+      if (result) {
+        toast.success(t('student.claimReward', { defaultValue: '+{{xp}} XP, +{{gems}} Gems!', xp: result.xp, gems: result.gems }));
+      } else {
+        toast.error(t('student.claimFailed', "Couldn't claim the reward — try again."));
+      }
+    } catch {
       toast.error(t('student.claimFailed', "Couldn't claim the reward — try again."));
+    } finally {
+      setClaimingId(null);
     }
   };
 
@@ -138,8 +147,8 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
                               <Check size={20} strokeWidth={4} />
                            </div>
                         ) : isComplete ? (
-                           <button onClick={() => handleClaim(quest.id)} className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-md hover:bg-yellow-300 transition-colors">
-                              <Gift size={18} />
+                           <button onClick={() => handleClaim(quest.id)} disabled={claimingId !== null} className={`w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-white shadow-md hover:bg-yellow-300 transition-colors ${claimingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                              {claimingId === quest.id ? <Loader2 size={18} className="animate-spin" /> : <Gift size={18} />}
                            </button>
                         ) : (
                            <div className="flex flex-col items-center justify-center w-10">

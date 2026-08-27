@@ -17,6 +17,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
    const buyItem = useBuyShopItem();
   const { t } = useTranslation();
    const [purchased, setPurchased] = useState<string[]>([]);
+   const [pendingId, setPendingId] = useState<string | null>(null);
 
    const purchasedIds = purchased.length > 0 ? purchased : inventory.map((i: any) => i.item_id);
 
@@ -32,28 +33,45 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
    ];
 
     const handleBuy = async (id: string, cost: number) => {
+       if (pendingId) return;
        if (purchasedIds.includes(id) && id !== 'hearts' && id !== 'freeze') return;
        if (gemCount < cost) {
           toast.error(t('student.notEnoughGems', 'Not enough gems yet — keep learning to earn more!'), { icon: '💎' });
           return;
        }
-       const result = await buyItem.mutateAsync({ itemId: id, cost });
-       if (result.success) {
-          setPurchased(prev => [...prev, id]);
-          toast.success(t('student.itemPurchased', 'Item purchased!'));
-       } else {
+       setPendingId(id);
+       try {
+          const result = await buyItem.mutateAsync({ itemId: id, cost });
+          if (result.success) {
+             setPurchased(prev => [...prev, id]);
+             toast.success(t('student.itemPurchased', 'Item purchased!'));
+          } else {
+             // Server-side verdict — gems were never debited on failure.
+             toast.error(t('student.purchaseFailed', "Purchase failed — your gems weren't spent. Try again."));
+          }
+       } catch {
           toast.error(t('student.purchaseFailed', "Purchase failed — your gems weren't spent. Try again."));
+       } finally {
+          setPendingId(null);
        }
     };
 
     const handleUseHeartRefill = async () => {
-       const result = await GamificationService.useHeartRefill();
-       if (result.success) {
-          toast.success(t('student.heartsRestored', { defaultValue: 'Hearts restored — {{n}}/5!', n: result.hearts }), { icon: '❤️' });
-       } else if (result.hearts >= 5) {
-          toast(t('student.heartsFull', 'Your hearts are already full!'), { icon: '❤️' });
-       } else {
+       if (pendingId) return;
+       setPendingId('hearts');
+       try {
+          const result = await GamificationService.useHeartRefill();
+          if (result.success) {
+             toast.success(t('student.heartsRestored', { defaultValue: 'Hearts restored — {{n}}/5!', n: result.hearts }), { icon: '❤️' });
+          } else if (result.hearts >= 5) {
+             toast(t('student.heartsFull', 'Your hearts are already full!'), { icon: '❤️' });
+          } else {
+             toast.error(t('student.refillFailed', "Couldn't use the refill — try again."));
+          }
+       } catch {
           toast.error(t('student.refillFailed', "Couldn't use the refill — try again."));
+       } finally {
+          setPendingId(null);
        }
     };
 
@@ -118,17 +136,19 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                            <div className="mt-3 flex items-center gap-2">
                               <button
                                  onClick={() => handleBuy(item.id, item.cost)}
-                                 className="flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm px-4 py-1.5 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50 active:translate-y-0.5 transition-all"
+                                 disabled={pendingId !== null}
+                                 className={`flex items-center gap-1.5 bg-white border border-slate-200 shadow-sm px-4 py-1.5 rounded-lg font-bold text-sm text-slate-700 hover:bg-slate-50 active:translate-y-0.5 transition-all ${pendingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
                               >
                                  <Gem size={14} className="text-blue-500 fill-blue-500" />
-                                 {item.cost}
+                                 {pendingId === item.id ? <Loader2 size={14} className="animate-spin" /> : item.cost}
                               </button>
                               {item.id === 'hearts' && ownedQty > 0 && (
                                  <button
                                     onClick={handleUseHeartRefill}
-                                    className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 px-4 py-1.5 rounded-lg font-bold text-sm hover:bg-red-100 active:translate-y-0.5 transition-all"
+                                    disabled={pendingId !== null}
+                                    className={`flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 px-4 py-1.5 rounded-lg font-bold text-sm hover:bg-red-100 active:translate-y-0.5 transition-all ${pendingId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
                                  >
-                                    <Heart size={14} className="fill-red-500 text-red-500" /> Use
+                                    {pendingId === 'hearts' ? <Loader2 size={14} className="animate-spin" /> : <><Heart size={14} className="fill-red-500 text-red-500" /> Use</>}
                                  </button>
                               )}
                            </div>
@@ -165,14 +185,14 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                            ) : (
                               <button
                                  onClick={() => handleBuy(item.id, item.cost)}
-                                  disabled={gemCount < item.cost}
-                                  className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${gemCount >= item.cost
+                                  disabled={gemCount < item.cost || pendingId !== null}
+                                  className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${gemCount >= item.cost && pendingId === null
                                         ? 'bg-duo-green text-white hover:bg-green-600 shadow-green-700'
                                         : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-slate-300'
                                      }`}
                                >
                                   <Gem size={14} className={gemCount >= item.cost ? 'text-white/80 fill-white/80' : 'text-slate-400'} />
-                                 {item.cost}
+                                 {pendingId === item.id ? <Loader2 size={14} className="animate-spin" /> : item.cost}
                               </button>
                            )}
                         </motion.div>
