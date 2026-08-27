@@ -94,11 +94,18 @@ export async function getLocalTier(): Promise<SubscriptionTier> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return 'free';
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('subscription_tier')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
+
+  // FIXPLAN H3: a failed tier read must throw, not silently downgrade the
+  // user to 'free' (which could gate paid features off behind a network
+  // blip). No profile row (PGRST116 / null data) is a genuine 'free'.
+  if (error) {
+    throw new Error(`Failed to read subscription tier: ${error.message}`);
+  }
 
   return (profile?.subscription_tier as SubscriptionTier) || 'free';
 }

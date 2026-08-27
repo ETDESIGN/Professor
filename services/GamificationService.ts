@@ -68,11 +68,18 @@ export const GamificationService = {
   async getStudentGems(): Promise<number> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 0;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('student_progress')
       .select('gems')
       .eq('student_id', user.id)
-      .single();
+      .maybeSingle();
+    // FIXPLAN H3: 0 rows = genuinely no progress row yet (0 gems); a transport
+    // error must throw so the react-query caller can render a retry state
+    // instead of a silently-empty balance.
+    if (error) {
+      log.error('get_student_gems_error', { error: error.message });
+      throw error;
+    }
     return data?.gems || 0;
   },
 
@@ -151,17 +158,31 @@ export const GamificationService = {
 
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('student_quests')
       .select('*')
       .eq('student_id', user.id)
       .eq('assigned_date', today);
 
+    // FIXPLAN H3: a failed read must not look like "no quests today" (which
+    // would trigger a spurious re-seed). Throw so the caller can retry.
+    if (existingError) {
+      log.error('get_daily_quests_read_error', { error: existingError.message });
+      throw existingError;
+    }
+
     if (existing && existing.length > 0) return existing;
 
-    const { data: dbTemplates } = await supabase
+    const { data: dbTemplates, error: templatesError } = await supabase
       .from('quest_templates')
       .select('*');
+
+    // Template-table read failure falls back to the built-in defaults (a
+    // missing/unreadable template table is a legitimate degraded mode), but
+    // the failure must be visible in logs at error level.
+    if (templatesError) {
+      log.error('quest_templates_read_error', { error: templatesError.message });
+    }
 
     const templates = (dbTemplates && dbTemplates.length > 0)
       ? dbTemplates.map((t: any) => ({
@@ -189,10 +210,17 @@ export const GamificationService = {
       assigned_date: today,
     }));
 
-    const { data } = await supabase
+    const { data, error: upsertError } = await supabase
       .from('student_quests')
       .upsert(quests, { onConflict: 'student_id,quest_type,assigned_date' })
       .select();
+
+    // FIXPLAN H3: seed failure must throw — returning [] here used to render
+    // "no quests" for a failure.
+    if (upsertError) {
+      log.error('daily_quests_seed_error', { error: upsertError.message });
+      throw upsertError;
+    }
 
     return data || [];
   },
@@ -274,10 +302,17 @@ export const GamificationService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('student_inventory')
       .select('*, shop_items(*)')
       .eq('student_id', user.id);
+
+    // FIXPLAN H3: a failed inventory read must throw, not render as an empty
+    // backpack.
+    if (error) {
+      log.error('get_inventory_error', { error: error.message });
+      throw error;
+    }
 
     return data || [];
   },
@@ -321,8 +356,9 @@ export const GamificationService = {
       .order('created_at', { ascending: true });
 
     if (error) {
-      log.warn('get_characters_error', { error: error.message });
-      return [];
+      // FIXPLAN H3: throw — a failed read must not look like "no characters".
+      log.error('get_characters_error', { error: error.message });
+      throw error;
     }
     return data || [];
   },
@@ -335,8 +371,10 @@ export const GamificationService = {
       .single();
 
     if (error) {
-      log.warn('add_character_error', { error: error.message });
-      return null;
+      // FIXPLAN H3: throw — the user initiated this write; a null return
+      // used to look like success-with-nothing.
+      log.error('add_character_error', { error: error.message });
+      throw error;
     }
     return data;
   },
@@ -348,8 +386,10 @@ export const GamificationService = {
       .eq('id', characterId);
 
     if (error) {
-      log.warn('update_character_error', { error: error.message });
-      return false;
+      // FIXPLAN H3: throw — a failed update used to return false, which
+      // callers treated the same as success.
+      log.error('update_character_error', { error: error.message });
+      throw error;
     }
     return true;
   },
@@ -361,8 +401,9 @@ export const GamificationService = {
       .eq('id', characterId);
 
     if (error) {
-      log.warn('delete_character_error', { error: error.message });
-      return false;
+      // FIXPLAN H3: throw — a failed delete used to look like success.
+      log.error('delete_character_error', { error: error.message });
+      throw error;
     }
     return true;
   },

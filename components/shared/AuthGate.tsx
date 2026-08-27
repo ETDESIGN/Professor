@@ -99,7 +99,11 @@ export const AuthGate: React.FC<AuthGateProps> = ({ portal, children }) => {
         clearUserProfile();
         window.location.href = '/login';
       } else if (event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
-        getCurrentUser().then(u => u ? setUserProfile(u) : clearUserProfile());
+        // FIXPLAN H3: getCurrentUser now throws on transport errors — catch
+        // so the auth-state subscription never leaks an unhandled rejection.
+        getCurrentUser()
+          .then(u => u ? setUserProfile(u) : clearUserProfile())
+          .catch(err => log.warn('auth_state_user_refresh_failed', { error: err instanceof Error ? err.message : String(err) }));
       }
     });
     return () => subscription.unsubscribe();

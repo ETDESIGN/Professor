@@ -59,12 +59,19 @@ export const MediaService = {
       : `Illustration of the word "${word}"`;
     const promptHash = await hashPrompt(prompt);
 
-    const { data: globalExisting } = await supabase
+    const { data: globalExisting, error: dedupError } = await supabase
       .from('assets')
       .select('public_url')
       .eq('type', 'image')
       .eq('prompt_hash', promptHash)
       .limit(1);
+
+    // FIXPLAN H3: a failed dedup read is logged at error level but we
+    // CONTINUE — generating is the correct behavior (worst case we pay for a
+    // duplicate generation, never show a broken image).
+    if (dedupError) {
+      log.error('image_dedup_lookup_error', { error: dedupError.message });
+    }
 
     if (globalExisting && globalExisting.length > 0 && globalExisting[0].public_url) {
       cache.images.set(cacheKey, globalExisting[0].public_url);
@@ -82,14 +89,21 @@ export const MediaService = {
     // directly from Pollinations (CSP-allowed). Reliable + cached after first load.
     if (!url) url = pollinationsImageUrl(prompt);
     cache.images.set(cacheKey, url);
-    supabase.from('assets').insert({
+    // FIXPLAN H3: the asset insert is now awaited and its failure THROWS —
+    // this is the double-cost path (we generated but couldn't persist the
+    // dedup record, so every future request regenerates).
+    const { error: insertError } = await supabase.from('assets').insert({
       unit_id: unitId,
       type: 'image',
       prompt: word,
       prompt_hash: promptHash,
       storage_path: 'external',
       public_url: url
-    }).then(({ error }) => error && log.warn('asset_insert_error', { error: error.message } as any));
+    });
+    if (insertError) {
+      log.error('asset_insert_error', { error: insertError.message } as any);
+      throw insertError;
+    }
     return url;
   },
 
@@ -102,12 +116,18 @@ export const MediaService = {
     // speech always hits the same cached asset, across units and sessions.
     const { hash: promptHash, lang } = await speechHashFor(text);
 
-    const { data: globalExisting } = await supabase
+    const { data: globalExisting, error: dedupError } = await supabase
       .from('assets')
       .select('public_url')
       .eq('type', 'audio')
       .eq('prompt_hash', promptHash)
       .limit(1);
+
+    // FIXPLAN H3: same as images — log at error level and continue to
+    // generation (correct for a dedup miss).
+    if (dedupError) {
+      log.error('audio_dedup_lookup_error', { error: dedupError.message });
+    }
 
     if (globalExisting && globalExisting.length > 0 && globalExisting[0].public_url) {
       cache.audios.set(cacheKey, globalExisting[0].public_url);

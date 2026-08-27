@@ -71,6 +71,7 @@ describe('GamificationService', () => {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({ data: { gems: 37 }, error: null }),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { gems: 37 }, error: null }),
           }),
         }),
       }));
@@ -85,6 +86,7 @@ describe('GamificationService', () => {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({ data: { gems: 10 }, error: null }),
+            maybeSingle: vi.fn().mockResolvedValue({ data: { gems: 10 }, error: null }),
           }),
         }),
       }));
