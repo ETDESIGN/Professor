@@ -57,8 +57,12 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
   const [lineScores, setLineScores] = useState<Record<string, LineScore | null>>({});
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [published, setPublished] = useState(false);
-  /** Snapshot of the take's blobs, taken when the pass is finished (hook state is cleared on reset). */
-  const [finalBlobs, setFinalBlobs] = useState<Record<string, Blob>>({});
+  /**
+   * Snapshot of the take's blobs, taken when the pass is finished (hook state
+   * is cleared on reset). Kept in a REF so saveTake can read it in the same
+   * event handler that produces it (see SNAPSHOT FLUSH INVARIANT below).
+   */
+  const finalBlobsRef = useRef<Record<string, Blob>>({});
   /** The saved take's dubbing row id — Share reuses this row instead of creating a duplicate take. */
   const savedDubbingIdRef = useRef<string | null>(null);
   /** XP already granted for this take (10 private, top-up 5 on publish → exactly 15 published / 10 private). */
@@ -137,7 +141,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
     setLineScores({});
     setSaveState('idle');
     setPublished(false);
-    setFinalBlobs({});
+    finalBlobsRef.current = {};
     savedDubbingIdRef.current = null;
     xpGivenRef.current = 0;
     setPhase('watch');
@@ -233,6 +237,11 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
   //     Share with class re-publishes the SAME row (never a duplicate take).
   //   - XP per take, exactly once per tier: 10 on private save, top-up +5 on
   //     publish → exactly 15 published / 10 private-only.
+  // SNAPSHOT FLUSH INVARIANT (review fix round 2): the take's blobs live in
+  // `finalBlobsRef` — a ref, NOT state — and saveTake() reads
+  // finalBlobsRef.current directly. A setState in the same event handler
+  // (goResult) is not visible to saveTake's closure (stale → empty
+  // lineAudio), so no consumer of this data may depend on state flushing.
   const saveTake = useCallback(async (): Promise<string | null> => {
     if (!clip) return null;
     if (savedDubbingIdRef.current) return savedDubbingIdRef.current; // already saved
@@ -244,7 +253,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
       const dubbingId = await DubbingService.createDubbing(clip.id, attemptNo);
       const lineAudio: Record<string, string> = {};
       for (const line of lines) {
-        const blob = finalBlobs[line.id];
+        const blob = finalBlobsRef.current[line.id];
         if (!blob) continue;
         lineAudio[line.id] = await DubbingService.uploadLineAudio(dubbingId, line.id, blob);
       }
@@ -278,15 +287,17 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
       setSaveState('idle');
       return null;
     }
-  }, [clip, lines, lineScores, finalBlobs, saveState]);
+  }, [clip, lines, lineScores, saveState]);
 
   const goResult = useCallback(() => {
     videoRef.current?.pause();
     // Snapshot the blobs BEFORE reset clears the hook state, then release the
     // mic/AnalyserNode/AudioContext so no recording indicator stays live.
+    // The snapshot goes into a REF and is what saveTake reads — setState here
+    // would not be visible to saveTake's closure in the same handler.
     const snapshot = { ...recorder.lineBlobs };
     recorder.reset();
-    setFinalBlobs(snapshot);
+    finalBlobsRef.current = snapshot;
     // Object URLs for DubPlayer playback.
     const urls: Record<string, string> = {};
     for (const [lineId, blob] of Object.entries(snapshot)) {
@@ -321,7 +332,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack }) => {
     setLineScores({});
     setSaveState('idle');
     setPublished(false);
-    setFinalBlobs({});
+    finalBlobsRef.current = {};
     savedDubbingIdRef.current = null;
     xpGivenRef.current = 0;
     recorder.reset();
