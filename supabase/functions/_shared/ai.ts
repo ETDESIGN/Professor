@@ -21,6 +21,14 @@ export interface ChatCompletionResult {
   usage?: any;
 }
 
+// AUDIT 2026-08-28: fetchChatCompletion hides per-model failure reasons in
+// console.warn (invisible via Management API). Expose the last chain failure
+// so callers can surface WHY (402 credits / 429 rate limit / 404 bad slug).
+let _lastChainError = '';
+export function lastChainError(): string {
+  return _lastChainError;
+}
+
 export function defaultModels(): string[] {
   return [
     Deno.env.get('AI_MODEL_NAME') || 'moonshotai/kimi-k2.6',
@@ -91,6 +99,7 @@ export async function fetchChatCompletion(
       lastError = `${modelName} threw: ${err?.name === 'TimeoutError' ? 'timeout' : (err?.message || String(err))}`;
     }
   }
+  _lastChainError = lastError;
   console.warn(`fetchChatCompletion: all models failed. lastError=${lastError}`);
   return null;
 }
