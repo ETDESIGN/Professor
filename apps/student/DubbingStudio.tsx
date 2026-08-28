@@ -15,6 +15,9 @@ interface DubbingResult {
   feedback: string;
   transcript: string;
   similarity: number;
+  /** True when scored from the client Web Speech transcript (no server STT)
+   *  — practice-only, never worth credit (FIXPLAN H1). */
+  client_graded?: boolean;
 }
 
 interface DubbingStudioProps {
@@ -137,7 +140,8 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, data }) => {
           score: eval_.score || 0,
           feedback: eval_.feedback || 'Evaluation complete.',
           transcript: eval_.transcript || '',
-          similarity: eval_.similarity || 0
+          similarity: eval_.similarity || 0,
+          client_graded: !!eval_.client_graded
         };
 
         try {

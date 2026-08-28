@@ -18,6 +18,8 @@
 
 **F status (2026-08-26):** P0–P4 implemented, deployed, and verified (`7f89dac`…`f883b4c` + fixture iterations). Power Up 2 golden fixture drives regression (`npm run test:fixtures`); basket + rebuild E2E scripts under `scripts/testing/`. Manual browser pass of the new upload → review flow still owed (PWA: hard-reload after deploy).
 
+**H status (2026-08-28):** implemented on branch `fixplan-h` (spec `docs/superpowers/specs/2026-08-28-audit-fix-batch-design.md`, plan `docs/superpowers/plans/2026-08-28-fixplan-h.md`, audit `docs/audit/DEEP_AUDIT_2026-08-28.md`). H1 security (AuthGate exact-match, edge authz, client-graded pronunciation) deployed; H2 economy RPCs (`20260828000001`, live on cloud); H3 error sweep; H4 dead flows + green CI. Owner follow-ups: run `scripts/testing/economy-race.ts` with fixture creds; commit the untracked passport backend on master.
+
 **Deferred** (not in scope yet — best after A/B/C stabilize):
 - **D** Architecture cleanup: discriminated action union, single `<Wheel>` component, Group Maker → `assignTeams` merge, remove decorative buttons. Tracked as a follow-up.
 

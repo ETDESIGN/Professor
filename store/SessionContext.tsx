@@ -5,6 +5,7 @@ import { getTeacherStudents, getSessionRoster, awardClassPoints, StudentWithProg
 import { mergePresence, filterPresent } from '../services/attendanceLogic';
 import { getOrCreateActiveOccurrence, endOccurrence, getAttendanceForOccurrence } from '../services/AttendanceService';
 import { createClientLogger } from '../services/logger';
+import { toast } from 'sonner';
 import {
   LiveTurnState,
   EMPTY_LIVE_TURN,
@@ -359,7 +360,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       await Promise.all(
         Object.entries(snapshot).map(([rosterId, amount]) =>
           awardClassPoints(rosterId, classId, amount, 'board_points')
-            .catch((err: any) => log.warn('ledger_flush_failed', { error: err instanceof Error ? err.message : String(err) }))
+            .catch((err: any) => {
+              // FIXPLAN H3: awardClassPoints now throws after one retry —
+              // tell the teacher the points were lost instead of failing
+              // silently (the award can be re-tapped).
+              log.error('ledger_flush_failed', { error: err instanceof Error ? err.message : String(err) });
+              toast.error('Points not saved — tap again');
+            })
         )
       );
     }, 1500)

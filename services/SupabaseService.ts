@@ -160,8 +160,15 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
 };
 
 const supabaseGetUnitById = async (id: string): Promise<LessonUnit | undefined> => {
-    const { data, error } = await supabase.from('units').select('*').eq('id', id).single();
-    if (error || !data) return undefined;
+    // FIXPLAN H3: .maybeSingle() — 0 rows (unit not found / not visible under
+    // RLS) is a legitimate "no such unit" (undefined). A transport error is
+    // logged at error level so it's distinguishable from a genuine miss.
+    const { data, error } = await supabase.from('units').select('*').eq('id', id).maybeSingle();
+    if (error) {
+        log.error('get_unit_by_id_error', { error: error.message });
+        return undefined;
+    }
+    if (!data) return undefined;
 
     return {
         id: data.id,
@@ -286,7 +293,7 @@ const supabaseGetStudentProgress = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         log.warn('no_authenticated_user', { metadata: { context: 'getStudentProgress' } });
-        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 };
+        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0, gems: 0 };
     }
 
     const { data, error } = await supabase
@@ -296,7 +303,7 @@ const supabaseGetStudentProgress = async () => {
         .single();
 
     if (error || !data) {
-        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0 };
+        return { completedUnitIds: [], currentUnitId: '', xp: 0, streak: 0, gems: 0 };
     }
 
     return {
@@ -304,6 +311,7 @@ const supabaseGetStudentProgress = async () => {
         currentUnitId: data.current_unit_id || '',
         xp: data.xp ?? 0,
         streak: data.streak ?? 0,
+        gems: data.gems ?? 0,
     };
 };
 
@@ -364,7 +372,16 @@ const supabaseFetchSRSItems = async (studentId?: string) => {
 };
 
 const supabaseUpdateSRSItem = async (id: string, quality: number) => {
-    const { data: item } = await supabase.from('srs_items').select('*').eq('id', id).single();
+    // FIXPLAN H3: the row is required — keep .single() but distinguish
+    // PGRST116 (item deleted mid-review → legitimate no-op) from transport
+    // errors, which are now logged at error level instead of silently
+    // skipping the review scheduling.
+    const { data: item, error } = await supabase.from('srs_items').select('*').eq('id', id).single();
+    if (error) {
+        if (error.code === 'PGRST116') return;
+        log.error('srs_item_read_error', { error: error.message });
+        return;
+    }
     if (!item) return;
 
     let { interval, repetition, efactor } = item;

@@ -27,6 +27,9 @@ interface PronunciationAttempt {
   similarity: number;
   isCorrect: boolean;
   feedback: string;
+  /** Practice-only score (client Web Speech, no server STT) — excluded from
+   *  XP-earning counts (FIXPLAN H1). */
+  client_graded?: boolean;
 }
 
 const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
@@ -155,7 +158,9 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
 
   const handleExit = () => {
     if (onSessionEnd) {
-      onSessionEnd({ correct: attempts.filter(a => a.isCorrect).length, total: attempts.length });
+      // Only server-verified corrects earn credit — client-graded (Web Speech)
+      // attempts are practice-only (FIXPLAN H1).
+      onSessionEnd({ correct: attempts.filter(a => a.isCorrect && !a.client_graded).length, total: attempts.length });
     } else {
       onBack();
     }

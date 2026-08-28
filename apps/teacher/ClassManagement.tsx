@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus, Search, Copy, Users, CheckCircle, School, Link2, Bell, Loader2,
-    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play, CalendarCheck,
+    Send, Archive, ChevronRight, GraduationCap, Building2, Clock, Play, CalendarCheck, QrCode,
 } from 'lucide-react';
+import PassportsView from './Passports';
 import AttendanceHistoryModal from './AttendanceHistoryModal';
 import { createClass, ClassData } from '../../services/DataService';
 import { buildClaimUrl, RosterStudent, getRosterClaimToken } from '../../services/ManagementService';
@@ -318,6 +319,7 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
     const archiveStudent = useArchiveRosterStudent();
     const [showAdd, setShowAdd] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
+    const [showPassports, setShowPassports] = useState(false);
     const [name, setName] = useState('');
 
     const claimedCount = roster.filter(r => !!r.claimed_profile_id).length;
@@ -356,6 +358,12 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
         toast.success('Claim link copied');
     };
 
+    if (showPassports) {
+        return (
+            <PassportsView cls={cls} onBack={() => setShowPassports(false)} />
+        );
+    }
+
     return (
         <div>
             <button onClick={onBack} className="text-sm text-slate-500 hover:text-slate-700 mb-3 flex items-center gap-1">
@@ -383,7 +391,11 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                         </button>
                         <button onClick={() => setShowHistory(true)}
                           className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
-                          <CalendarCheck size={15} /> Attendance
+                            <CalendarCheck size={15} /> Attendance
+                        </button>
+                        <button onClick={() => setShowPassports(true)}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
+                            <QrCode size={15} /> Login cards
                         </button>
                         <button onClick={onAnnounce} className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
                             <Send size={15} /> Announce

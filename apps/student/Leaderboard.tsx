@@ -12,18 +12,26 @@ interface LeaderboardProps {
 const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
    const [students, setStudents] = useState<any[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [loadError, setLoadError] = useState(false);
    const [myId, setMyId] = useState<string>('');
   const { t } = useTranslation();
 
-   useEffect(() => {
-      const load = async () => {
-         setIsLoading(true);
+   const load = async () => {
+      setIsLoading(true);
+      setLoadError(false);
+      try {
          const { data: { user } } = await supabase.auth.getUser();
          if (user) setMyId(user.id);
          const data = await GamificationService.getLeaderboard();
          setStudents(data);
+      } catch {
+         setLoadError(true);
+      } finally {
          setIsLoading(false);
-      };
+      }
+   };
+
+   useEffect(() => {
       load();
    }, []);
 
@@ -31,6 +39,26 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
       return (
          <div className="h-full bg-slate-50 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+         </div>
+      );
+   }
+
+   if (loadError) {
+      return (
+         <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6">
+            <p className="text-slate-600 font-bold mb-6 text-center">{t('student.leaderboardLoadFailed', "Couldn't load the leaderboard.")}</p>
+            <button onClick={load} className="bg-purple-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-600 transition-colors">
+               {t('student.retry', 'Retry')}
+            </button>
+         </div>
+      );
+   }
+
+   if (students.length === 0) {
+      return (
+         <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6">
+            <Shield size={48} className="text-purple-300 mb-4" />
+            <p className="text-slate-600 font-bold text-center">{t('student.noLeaderboard', 'No leaderboard yet — complete a lesson to appear!')}</p>
          </div>
       );
    }

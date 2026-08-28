@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Calendar, Clock, Users, CheckCircle, Bell, ArrowRight, Play, MessageSquare, Zap, Loader2 } from 'lucide-react';
+import { Calendar, Users, CheckCircle, Bell, ArrowRight, Play, MessageSquare, Zap, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { getClassAnalytics, getTeacherStudents } from '../../services/DataService';
 import { Engine } from '../../services/SupabaseService';
 import { useUnits, useTeacherClasses } from '../../hooks/useQueries';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('DashboardHome');
@@ -29,7 +30,10 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
     enabled: !!userProfile?.id,
   });
   const { data: classes = [] } = useTeacherClasses(userProfile?.id);
-  const nextClass = classes[0];
+  const navigate = useNavigate();
+  const greetingHour = new Date().getHours();
+  const greeting = greetingHour < 12 ? 'Good Morning' : greetingHour < 18 ? 'Good Afternoon' : 'Good Evening';
+  const greetingEmoji = greetingHour < 12 ? '☀️' : greetingHour < 18 ? '🌤️' : '🌙';
   // Real class mastery from the LearnerState (plan 4.5) — total skills the class
   // has acquired (familiar+) and how many have decayed (need review).
   const studentIds = students.map((s: any) => s.id).filter(Boolean);
@@ -62,7 +66,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
       {/* Header */}
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-800">Good Morning, {userProfile?.full_name || 'Teacher'}! ☀️</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-800">{greeting}, {userProfile?.full_name || 'Teacher'}! {greetingEmoji}</h1>
           <p className="text-slate-500 font-medium mt-1">Here's what's happening in your classrooms today.</p>
         </div>
         <div className="text-right">
@@ -88,13 +92,12 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
 
           <div className="relative z-10 flex justify-between items-start">
             <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest border border-white/20">
-              Up Next
+              Your Classes
             </div>
-            <Clock className="text-white/50" />
           </div>
 
           <div className="relative z-10 mt-4">
-            <h2 className="text-4xl font-bold mb-2">{nextClass ? nextClass.name : 'Set up your first class'}</h2>
+            <h2 className="text-4xl font-bold mb-2">{classes.length > 0 ? classes[0].name : 'Set up your first class'}</h2>
             <div className="flex items-center gap-4 text-indigo-100 mb-6">
               <span className="flex items-center gap-2"><Calendar size={18} /> {classes.length} {classes.length === 1 ? 'Class' : 'Classes'}</span>
               <span className="flex items-center gap-2"><Users size={18} /> {students.length} Students</span>
@@ -164,7 +167,7 @@ const DashboardHome: React.FC<DashboardHomeProps> = ({ onLaunchLive }) => {
       >
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <h3 className="font-bold text-lg text-slate-800">Recent Activity</h3>
-          <button className="text-indigo-600 text-sm font-bold hover:underline">View All</button>
+          <button onClick={() => navigate('/teacher/reports')} className="text-indigo-600 text-sm font-bold hover:underline">View All</button>
         </div>
         <div className="divide-y divide-slate-100">
           {students.length > 0 ? students.slice(0, 3).map((student, index) => (

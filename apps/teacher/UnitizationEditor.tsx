@@ -30,13 +30,15 @@ interface UnitizationEditorProps {
   sourceUnitId: string;
   onDone: (result: any) => void;
   onBack?: () => void;
+  /** Open one of the just-created units (falls back to onDone when not provided). */
+  onOpenUnit?: (unitId: string) => void;
 }
 
 const chipLabel = (p: PageInfo) => p.printed_page_number?.trim() || `#${p.upload_order + 1}`;
 const structSummary = (p: PageInfo) =>
   Object.entries(p.structureCounts).map(([t, n]) => `${t.replace(/_/g, ' ')} ×${n}`).join(', ') || 'no structures';
 
-export const UnitizationEditor: React.FC<UnitizationEditorProps> = ({ sourceUnitId, onDone, onBack }) => {
+export const UnitizationEditor: React.FC<UnitizationEditorProps> = ({ sourceUnitId, onDone, onBack, onOpenUnit }) => {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<EditorGroup[]>([]);
   const [pagesById, setPagesById] = useState<Record<string, PageInfo>>({});
@@ -166,7 +168,7 @@ export const UnitizationEditor: React.FC<UnitizationEditorProps> = ({ sourceUnit
                   <div className="text-xs text-slate-500">{u.pages} pages · ready to enrich (open the unit's review to enrich it)</div>
                 </div>
                 <button
-                  onClick={() => onDone(result)}
+                  onClick={() => (onOpenUnit ? onOpenUnit(u.id) : onDone(result))}
                   className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-sm font-bold hover:bg-indigo-100"
                 >
                   Open
@@ -284,6 +286,7 @@ export const UnitizePage: React.FC = () => {
         sourceUnitId={unitId}
         onBack={() => navigate('/teacher/units')}
         onDone={() => navigate('/teacher/units')}
+        onOpenUnit={(id) => navigate(`/teacher/unit/${id}`)}
       />
     </div>
   );

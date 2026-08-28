@@ -222,6 +222,9 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
     try {
       const r = await previewCrop(active.id, s.id, s.bbox, POOL_FOR_TYPE[s.structure_type] || 'snapshot');
       setCropResult({ id: s.id, ...r } as any);
+    } catch (e) {
+      // FIXPLAN H3: a failed preview must surface, not spin forever.
+      toast.error(e instanceof Error ? e.message : 'Something went wrong — try again');
     } finally {
       setCropping(null);
     }
@@ -269,6 +272,9 @@ const ExtractionReview: React.FC<ExtractionReviewProps> = ({ unitId, unitTitle, 
     try {
       const ok = await confirmBatch();
       if (ok) { toast.success('Extraction confirmed — enrichment will use these baskets.'); onConfirm(); }
+    } catch (e) {
+      // FIXPLAN H3: keep the confirm button usable after a failure.
+      toast.error(e instanceof Error ? e.message : 'Something went wrong — try again');
     } finally {
       setConfirming(false);
     }

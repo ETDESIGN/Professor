@@ -99,3 +99,38 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ── Passport login-card printing ──────────────────────────────────────
+   The print sheet is portal-rendered as a direct child of <body>. On
+   screen it stays hidden; when printing, it becomes the only visible
+   element. Two cards per A4 row with cut-friendly dashed borders. */
+.passport-print-portal {
+  display: none;
+}
+
+@media print {
+  body > *:not(.passport-print-portal) {
+    display: none !important;
+  }
+  .passport-print-portal {
+    display: block !important;
+  }
+  .passport-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6mm;
+    padding: 8mm;
+  }
+  .passport-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px dashed #94a3b8;
+    border-radius: 4mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .passport-qr {
+    width: 30mm;
+    height: 30mm;
+  }
+}

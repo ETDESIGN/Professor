@@ -138,6 +138,9 @@ const UnitStudio: React.FC = () => {
       } else {
         toast('Generation still running — check the unit list badge in a moment', { icon: '⏳' });
       }
+    } catch (e: any) {
+      // FIXPLAN H3: never let a network/RPC throw leave the button stuck.
+      toast.error(e?.message || 'Exercise generation failed — you can retry from the unit page');
     } finally {
       setGenerating(false);
     }
@@ -234,17 +237,26 @@ const UnitStudio: React.FC = () => {
             </button>
             <button
               onClick={async () => {
-                const ok = await storeSave();
-                if (!ok) return;
-                // Phase 3: never teach an empty pool — kick generation in the
-                // background (non-blocking) when the unit has no exercises yet.
-                if (unitId && (poolCount ?? 0) === 0) {
-                  invokeGenerateExercises(unitId).then(r => {
-                    if (!r.success) toast.warning(`Exercise generation could not start: ${r.error || 'unknown error'}`);
-                    else toast('Exercise generation started in the background', { icon: '⏳' });
-                  });
+                try {
+                  const ok = await storeSave();
+                  if (!ok) return;
+                  // Phase 3: never teach an empty pool — kick generation in the
+                  // background (non-blocking) when the unit has no exercises yet.
+                  if (unitId && (poolCount ?? 0) === 0) {
+                    invokeGenerateExercises(unitId).then(r => {
+                      if (!r.success) toast.warning(`Exercise generation could not start: ${r.error || 'unknown error'}`);
+                      else toast('Exercise generation started in the background', { icon: '⏳' });
+                    }).catch(() => {
+                      // FIXPLAN H3: unhandled rejection on this fire-and-forget
+                      // chain crashed nothing but told the teacher nothing either.
+                      toast.error('Exercise generation failed — you can retry from the unit page');
+                    });
+                  }
+                  navigate('/teacher/live');
+                } catch (e: any) {
+                  // FIXPLAN H3: a save/publish throw must surface, not vanish.
+                  toast.error(e?.message || 'Could not publish — try again');
                 }
-                navigate('/teacher/live');
               }}
               disabled={saving}
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 transition-colors"

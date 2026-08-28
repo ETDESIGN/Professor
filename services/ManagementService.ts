@@ -465,3 +465,126 @@ export const ProvisioningService = {
     deleteUser: (userId: string) =>
         invokeManageMembers('delete_user', { user_id: userId }),
 };
+
+// =====================================================================
+// Student passports — teacher-minted student/parent accounts with
+// printable login cards (username + password + QR). All minting/reset/
+// decryption happens in the student-passports edge function (service role);
+// the client only lists non-secret columns (RLS + column grants) and
+// displays/prints the card payloads the function returns.
+// =====================================================================
+
+export interface PassportCredential {
+    username: string;
+    password: string;
+}
+
+/** A printable card payload — credentials are returned only by the edge function. */
+export interface PassportCard {
+    roster_student_id: string;
+    display_name: string;
+    class_name?: string;
+    student: PassportCredential | null;
+    parent: PassportCredential | null;
+    status?: 'active' | 'revoked';
+    last_printed_at?: string | null;
+}
+
+/** Non-secret listing row used by the class passports grid. */
+export interface PassportRow {
+    id: string;
+    roster_student_id: string;
+    class_id: string;
+    student_user_id: string | null;
+    parent_user_id: string | null;
+    student_username: string | null;
+    parent_username: string | null;
+    status: 'active' | 'revoked';
+    created_at: string;
+    last_printed_at: string | null;
+}
+
+async function invokePassports(action: string, payload: Record<string, unknown>): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('student-passports', {
+        body: { action, ...payload },
+    });
+    if (error) {
+        const msg = (error as any)?.message || 'Request failed';
+        toast.error(msg);
+        throw error;
+    }
+    if (data?.error) {
+        toast.error(data.error);
+        throw new Error(data.error);
+    }
+    return data;
+}
+
+/** Non-secret passport rows for a class (RLS: class teacher/manager/admin). */
+export async function getPassportsForClass(classId: string): Promise<PassportRow[]> {
+    const { data, error } = await supabase
+        .from('student_passports')
+        .select(`
+            id, roster_student_id, class_id,
+            student_user_id, parent_user_id, student_username, parent_username,
+            status, created_at, last_printed_at
+        `)
+        .eq('class_id', classId)
+        .order('created_at', { ascending: true });
+    if (error) {
+        log.warn('passports_for_class_error', { error: error.message });
+        throw error;
+    }
+    return (data || []) as PassportRow[];
+}
+
+export const PassportService = {
+    /**
+     * Mint student and/or parent accounts for a roster student.
+     * `rosterId` omitted => a new roster row is created for `displayName`.
+     * `createParent` alone on a claimed row => parent-only add-on.
+     */
+    create: async (
+        classId: string,
+        opts: {
+            rosterId?: string;
+            displayName?: string;
+            avatar?: string;
+            team?: string;
+            createStudent?: boolean;
+            createParent?: boolean;
+        }
+    ): Promise<PassportCard> => {
+        const data = await invokePassports('create', {
+            class_id: classId,
+            roster_id: opts.rosterId ?? null,
+            display_name: opts.displayName ?? null,
+            avatar: opts.avatar ?? null,
+            team: opts.team ?? null,
+            create_student: opts.createStudent !== false,
+            create_parent: opts.createParent === true,
+        });
+        return data.card as PassportCard;
+    },
+
+    /** Decrypted card payloads for reprinting (whole class or one roster). */
+    getCards: async (classIdOrRosterId: { classId?: string; rosterId?: string }, markPrinted = false): Promise<PassportCard[]> => {
+        const data = await invokePassports('get_cards', {
+            class_id: classIdOrRosterId.classId ?? null,
+            roster_id: classIdOrRosterId.rosterId ?? null,
+            mark_printed: markPrinted,
+        });
+        return (data.cards || []) as PassportCard[];
+    },
+
+    /** New password(s) for a roster's accounts — invalidates the old printed cards. */
+    reset: async (rosterId: string, target: 'student' | 'parent' | 'both'): Promise<PassportCard> => {
+        const data = await invokePassports('reset', { roster_id: rosterId, target });
+        return data.card as PassportCard;
+    },
+
+    /** Ban the minted auth users (call right after archiveRosterStudent). */
+    deactivate: async (rosterId: string): Promise<void> => {
+        await invokePassports('deactivate', { roster_id: rosterId });
+    },
+};

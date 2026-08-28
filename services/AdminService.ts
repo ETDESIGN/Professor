@@ -7,11 +7,18 @@ const log = createClientLogger('AdminService');
 async function requireAdmin(): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .maybeSingle();
+  // FIXPLAN H3: a profile-fetch failure must DENY, not fall through to the
+  // app_metadata-only path — a transport error could otherwise let a
+  // non-admin through on a stale/missing profile read.
+  if (error) {
+    log.error('require_admin_profile_read_error', { error: error.message });
+    throw new Error('Unable to verify permissions. Please try again.');
+  }
   // Effective role mirrors the backend current_role_name(): app_metadata
   // (admin-provisioned) takes precedence over profiles.role.
   const effectiveRole = (user.app_metadata?.role as string) ?? profile?.role;

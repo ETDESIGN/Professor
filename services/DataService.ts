@@ -169,7 +169,10 @@ export async function getSessionRoster(classId: string): Promise<SessionRosterSt
     });
 }
 
-/** Insert a class-points ledger row (debounced by the caller). */
+/** Insert a class-points ledger row (debounced by the caller).
+ *  FIXPLAN H3: a swallowed failure here silently lost live-lesson points —
+ *  retry once (transient network/RLS blips), then throw so the caller
+ *  (SessionContext flush) can toast the teacher. */
 export async function awardClassPoints(
     rosterId: string,
     classId: string | null | undefined,
@@ -177,15 +180,22 @@ export async function awardClassPoints(
     source: string,
     profileId?: string | null,
 ): Promise<void> {
-    const { error } = await supabase.from('point_transactions').insert({
+    const insert = () => supabase.from('point_transactions').insert({
         roster_id: rosterId,
         class_id: classId ?? null,
         amount,
         source,
         profile_id: profileId ?? null,
     });
+
+    let { error } = await insert();
     if (error) {
-        log.warn('award_class_points_error', { error: error.message });
+        log.warn('award_class_points_error_retrying', { error: error.message });
+        ({ error } = await insert());
+    }
+    if (error) {
+        log.error('award_class_points_error', { error: error.message });
+        throw error;
     }
 }
 

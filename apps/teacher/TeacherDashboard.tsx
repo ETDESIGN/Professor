@@ -1,7 +1,7 @@
 
 import React, { useState, Suspense, lazy } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
@@ -100,9 +100,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <nav className="space-y-2 flex-1">
                 <button onClick={() => handleNav('/teacher')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <LayoutDashboard size={20} /> {t('nav.dashboard')}
-                </button>
-                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
-                  <Calendar size={20} /> {t('nav.planLesson')}
                 </button>
                 <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <BookOpen size={20} /> {t('nav.curriculum')}
@@ -251,7 +248,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="/teacher/settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
               <Route path="/teacher/mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
               <Route path="/teacher/library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
-              <Route path="/teacher/units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onNewUnit={() => navigate('/teacher/upload')} onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              <Route path="/teacher/units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
+              {/* FIXPLAN_H — unknown /teacher/* paths used to render a blank shell (the entry catch-all matched this dashboard but no inner Route matched). Redirect home instead. */}
+              <Route path="*" element={<Navigate to="/teacher" replace />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

@@ -271,11 +271,14 @@ export async function ensureStudentLearnerState(unitId: string, studentId: strin
 export async function getHearts(studentId?: string): Promise<HeartsState> {
   const sid = await resolveStudentId(studentId);
   if (!sid) return { current: HEARTS_MAX, max: HEARTS_MAX, stored: HEARTS_MAX, next_heart_ms: null };
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('student_progress')
     .select('hearts, hearts_updated_at')
     .eq('student_id', sid)
     .maybeSingle();
+  // Surface read failures instead of silently faking a full-hearts state
+  // (audit: wrong answers were decrementing a balance we never actually read).
+  if (error) throw new Error(`hearts_read_failed: ${error.message}`);
   const stored = Number(data?.hearts ?? HEARTS_MAX);
   const updatedAt = data?.hearts_updated_at ? new Date(data.hearts_updated_at).getTime() : Date.now();
   return computeHeartsState(stored, updatedAt, Date.now());

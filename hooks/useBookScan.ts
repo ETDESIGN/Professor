@@ -90,8 +90,12 @@ export function useBookScan(unitId: string | null) {
         const pending = prev.filter(p => String(p.id).startsWith('pending-'));
         return [...server, ...pending];
       });
+      // FIXPLAN H3 (stale-closure fix): return the server rows so callers
+      // awaiting this can read fresh data instead of a stale state snapshot.
+      return server;
     } catch (err: any) {
       log.warn('load_pages_failed', { error: err?.message });
+      return [];
     } finally {
       setLoading(false);
     }
@@ -243,7 +247,9 @@ export function useBookScan(unitId: string | null) {
       });
 
       const failed = results.filter(r => !r.ok);
-      await loadPages(unit);
+      // FIXPLAN H3: return the freshly-loaded pages so the caller's
+      // printed-title logic reads real data, not a stale state snapshot.
+      const freshPages = await loadPages(unit);
       // Drop any leftover placeholders (settled pages now carry the truth).
       setPages(prev => prev.filter(p => !String(p.id).startsWith('pending-')));
       if (failed.length === results.length && results.length > 0) {
@@ -253,6 +259,7 @@ export function useBookScan(unitId: string | null) {
       } else {
         toast.success(`${results.length} page${results.length === 1 ? '' : 's'} scanned.`);
       }
+      return freshPages || [];
     } finally {
       setScanning(false);
     }

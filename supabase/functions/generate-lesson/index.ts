@@ -23,7 +23,14 @@ serve(async (req) => {
         },
       },
     ],
-  }, async (body, _auth) => {
+  }, async (body, auth) => {
+    // FIXPLAN H1: paid AI generation must not be triggerable by student/parent
+    // accounts — previously the authenticated role was ignored entirely.
+    const role = auth?.role;
+    if (role !== 'teacher' && role !== 'admin' && role !== 'manager') {
+      return { error: 'This tool is for teacher accounts only.' };
+    }
+
     const aiBaseUrl = Deno.env.get('AI_BASE_URL') || 'https://openrouter.ai/api/v1';
     const aiApiKey = Deno.env.get('AI_API_KEY');
     const { topic, gradeLevel, documentContext, imageBase64, action, text, theme } = body;

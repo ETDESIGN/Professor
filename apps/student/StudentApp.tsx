@@ -86,6 +86,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       setUserStats(prev => ({
         ...prev,
         streak: progress.streak,
+        gems: progress.gems ?? 0,
         xp: progress.xp,
         level: Math.floor(progress.xp / 100) + 1
       }));
