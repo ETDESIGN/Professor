@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User, Users } from 'lucide-react';
+import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User, Users, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { Engine } from '../../services/SupabaseService';
@@ -86,6 +86,9 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
   const [genImages, setGenImages] = useState<Record<string, boolean>>({});
   const [genAudios, setGenAudios] = useState<Record<string, boolean>>({});
+  // Task 13: busy flag for the story-page ✨ AI scene generation (one in-flight
+  // generation at a time — the edge call takes ~10-30s).
+  const [genBusy, setGenBusy] = useState(false);
 
   useEffect(() => {
     loadUnit();
@@ -468,6 +471,69 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     setStoryPages(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
   };
 
+  // Task 13: AI-generate a story page scene (generate-illustrations, surface
+  // story_page). The edge fn persists story_pages.image_asset_id server-side;
+  // we mirror the returned URL into the local imageUrl field for immediate
+  // display (imageUrl itself is display-only — story_pages has no such
+  // column, the save flow preserves image_asset_id by page_number).
+  // The relational row is re-resolved by position at click time using the
+  // SAME ordering the store load uses (page_number ASC): the in-memory page
+  // ids go stale after a save (delete-then-insert assigns fresh uuids), so a
+  // fresh positional lookup is the robust resolution.
+  const generateStoryImage = async (pageIndex: number) => {
+    if (!unitId) return;
+    const { data: pages } = await supabase
+      .from('story_pages')
+      .select('id')
+      .eq('unit_id', unitId)
+      .order('page_number', { ascending: true });
+    const row = pages?.[pageIndex];
+    if (!row) { toast.error('Story page not found in DB yet (save first)'); return; }
+    setGenBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'generate-illustrations', surface: 'story_page', unitId, pageId: row.id, regenerate: true },
+      });
+      if (error) throw error;
+      // generateIllustration returns a dicebear placeholder url TOGETHER with
+      // an error on partial failure — success is url && !error (generateCover
+      // uses the same convention).
+      if (data?.url && !data.error) {
+        updateStoryPage(pageIndex, 'imageUrl', data.url);
+        toast.success('Scene generated');
+      } else {
+        toast.error(data?.error || 'Generation failed');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Generation failed');
+    } finally {
+      setGenBusy(false);
+    }
+  };
+
+  // Task 13: AI-generate a character portrait (generate-illustrations, surface
+  // portrait — requires the character to be linked to this unit, which
+  // listForUnit guarantees for every row rendered here). The edge fn writes
+  // characters.reference_image_asset_id; reload the linked list so the avatar
+  // updates (attachPortraitUrls resolves the asset URL for display).
+  const generatePortrait = async (characterId: string) => {
+    if (!unitId) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'generate-illustrations', surface: 'portrait', unitId, characterId, regenerate: true },
+      });
+      if (error) throw error;
+      if (data?.url && !data.error) {
+        toast.success('Portrait generated');
+        await loadLinkedCharacters();
+      } else {
+        toast.error(data?.error || 'Generation failed');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Generation failed');
+    }
+  };
+
   const tabs: { key: VaultTab; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'vocabulary', label: 'Vocabulary', icon: <BookOpen size={16} />, count: vocabulary.length },
     { key: 'questions', label: 'Questions', icon: <MessageSquare size={16} />, count: questions.length },
@@ -685,6 +751,10 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                               <button onClick={() => setStoryImgPickerFor(i)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium px-2 border border-emerald-200 rounded-lg hover:bg-emerald-50" title="Pick from library">
                                 <Image size={14} />
                               </button>
+                              {/* Task 13: AI scene generation from the page's image prompt */}
+                              <button onClick={() => generateStoryImage(i)} disabled={genBusy} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 flex items-center gap-1" title="Generate illustration from this page's image prompt">
+                                {genBusy ? <Loader2 size={12} className="animate-spin" /> : '✨ AI'}
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -870,7 +940,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                             <div className="space-y-2">
                               {linkedChars.map(c => (
                                 <div key={c.id} className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 bg-white">
-                                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0" />
+                                  <img src={c.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0 object-cover" />
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium text-slate-800 truncate">{c.name}</div>
                                     <div className="text-[11px] text-slate-500 truncate">
@@ -885,6 +955,14 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                                     title="Pick portrait from library"
                                   >
                                     <Image size={14} />
+                                  </button>
+                                  {/* Task 13: AI portrait generation from the look prompt */}
+                                  <button
+                                    onClick={() => generatePortrait(c.id)}
+                                    className="text-indigo-500 hover:text-indigo-700 p-1 rounded"
+                                    title="Generate portrait from look prompt"
+                                  >
+                                    <Wand2 size={14} />
                                   </button>
                                   <button
                                     onClick={async () => {

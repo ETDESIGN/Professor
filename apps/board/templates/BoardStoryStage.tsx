@@ -17,7 +17,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, BookOpen, Check } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
-import { getVocabulary, getStory } from '../../../services/manifest';
+import { getVocabulary, getStory, getCharacters } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { playCue } from './playCue';
@@ -103,6 +103,17 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
   const pages = (relPages.length > 0 ? relPages : data.pages) || [];
   const characters = data.characters || [];
+
+  // ── Character portraits (live bundle first, frozen plan fallback) ────
+  // getCharacters prefers the relational bundle (unit_characters rows with
+  // image_url resolved by get_unit_bundle); frozen plan entries gain
+  // image_url/imageUrl as plans are re-published.
+  const liveChars = useMemo(() => getCharacters(state.activeUnit?.manifest) || [], [state.activeUnit?.manifest]);
+  const charByName = useMemo(() => new Map(liveChars.map((c: any) => [String(c.name || '').toLowerCase(), c])), [liveChars]);
+  const portraitOf = (c: any, name?: string) => {
+    const live = charByName.get(String(name || c?.name || '').toLowerCase());
+    return live?.image_url || c?.imageUrl || c?.image_url || null;
+  };
 
   // ── Vocab for highlighting target words ──────────────────────────────
   const vocab = useMemo(() => getVocabulary(state.activeUnit?.manifest), [state.activeUnit?.manifest]);
@@ -379,6 +390,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   const isComprehension = activePanel > endCardPanel && !slideDone;
   const current = isPage ? pages[activePanel] : null;
   const currentSpeaker = current ? (characters.find((c: any) => c.name === current.speaker) || characters[0]) : null;
+  const speakerPortrait = currentSpeaker ? portraitOf(currentSpeaker, current.speaker || currentSpeaker.name) : null;
   const currentQuestion = isComprehension ? comprehensionItems[qIndex] : null;
 
   return (
@@ -400,15 +412,22 @@ const BoardStoryStage = ({ data }: { data: any }) => {
             </motion.div>
             {characters.length > 0 && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="flex gap-6">
-                {characters.map((c: any, i: number) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-1"
-                      style={{ border: `3px solid ${FALLBACK_COLORS[i % FALLBACK_COLORS.length]}`, background: `${FALLBACK_COLORS[i % FALLBACK_COLORS.length]}20` }}>
-                      {c.emoji || c.name?.charAt(0) || '👤'}
+                {characters.map((c: any, i: number) => {
+                  const portrait = portraitOf(c);
+                  return (
+                    <div key={i} className="flex flex-col items-center">
+                      {portrait ? (
+                        <img src={portrait} alt={c.name} className="w-16 h-16 rounded-full object-cover mb-1" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-1"
+                          style={{ border: `3px solid ${FALLBACK_COLORS[i % FALLBACK_COLORS.length]}`, background: `${FALLBACK_COLORS[i % FALLBACK_COLORS.length]}20` }}>
+                          {c.emoji || c.name?.charAt(0) || '👤'}
+                        </div>
+                      )}
+                      <span className="font-display text-sm font-bold text-slate-300">{c.name}</span>
                     </div>
-                    <span className="font-display text-sm font-bold text-slate-300">{c.name}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </motion.div>
             )}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-6">
@@ -433,10 +452,14 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               <div className="max-w-3xl mx-auto flex items-end gap-4">
                 {currentSpeaker && (
                   <div className="flex flex-col items-center shrink-0 -mb-2">
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-xl"
-                      style={{ background: `${getCharColor(current.speaker)}25`, border: `2px solid ${getCharColor(current.speaker)}` }}>
-                      {currentSpeaker.emoji || currentSpeaker.name?.charAt(0) || '👤'}
-                    </div>
+                    {speakerPortrait ? (
+                      <img src={speakerPortrait} alt={currentSpeaker.name} className="w-16 h-16 rounded-2xl object-cover shadow-xl" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-xl"
+                        style={{ background: `${getCharColor(current.speaker)}25`, border: `2px solid ${getCharColor(current.speaker)}` }}>
+                        {currentSpeaker.emoji || currentSpeaker.name?.charAt(0) || '👤'}
+                      </div>
+                    )}
                     <span className="font-display text-xs font-bold mt-1" style={{ color: getCharColor(current.speaker) }}>
                       {current.speaker || currentSpeaker.name}
                     </span>

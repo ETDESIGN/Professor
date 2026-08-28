@@ -176,6 +176,18 @@ export function getVocabulary(manifest: any): CanonicalVocab[] {
   return normalizeManifest(manifest).vocabulary;
 }
 
+/** The unit's cast. Prefers the relational bundle characters (linked via
+ *  unit_characters; get_unit_bundle resolves each entry's image_url portrait
+ *  from characters.reference_image_asset_id → assets.public_url), falling back
+ *  to the manifest cache for units whose cast isn't linked yet. */
+export function getCharacters(manifest: any): any[] {
+  const rel = manifest?._relational;
+  if (rel && Array.isArray(rel.characters) && rel.characters.length > 0) {
+    return rel.characters;
+  }
+  return normalizeManifest(manifest).characters;
+}
+
 export interface StoryPage {
   text?: string;
   speaker?: string;

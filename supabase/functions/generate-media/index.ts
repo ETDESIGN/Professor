@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
+import { generateCover, generatePortrait, generateStoryPageScene, generateIllustration, fetchUnitArtContext } from '../_shared/illustration.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import {
@@ -125,8 +126,26 @@ serve(async (req) => {
     }
 
     switch (action) {
-      case 'generate-image':
-        return generateImage(unitId, prompt);
+      case 'generate-image': {
+        // v2: surface-aware; server composes style + does dedup + records the asset.
+        const surface = ['vocab', 'cover', 'story_scene', 'portrait'].includes(body.surface) ? body.surface : 'vocab';
+        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
+        const ctx = await fetchUnitArtContext(sb, unitId);
+        if (surface !== 'vocab' || body.regenerate) {
+          // ownership check for non-vocab surfaces (vocab is world-deduped by prompt).
+          // Deny-unless-claimed: ownerless legacy units (teacher_id NULL) are
+          // admin-only — otherwise ANY authenticated user could spend money on them.
+          const ownerOk = ctx?.teacherId
+            ? (ctx.teacherId === _auth?.userId || _auth?.role === 'admin')
+            : (_auth?.role === 'admin');
+          if (!ownerOk) throw new Error('You do not own this unit');
+        }
+        return generateIllustration({
+          sb, unitId: unitId || 'default', surface, content: prompt || 'Educational item',
+          context: ctx || { title: 'Unit', topic: null, artDirection: null },
+          regenerate: Boolean(body.regenerate),
+        });
+      }
 
       case 'generate-audio':
         return generateAudio(unitId, text, body.lang, body.voice, body.promptHash || body.prompt_hash);
@@ -277,8 +296,41 @@ serve(async (req) => {
         return { url: urlData.publicUrl, asset_id: assetRow.id, pool, width: cropped.width, height: cropped.height };
       }
 
+      // Illustration v2 per-surface pipeline (spec 2026-08-28). One surface per
+      // call — a full unit pass (~15-18 images) cannot fit the ~150s edge limit;
+      // sequencing lives in the client orchestrator + backfill script.
+      case 'generate-illustrations': {
+        const surface = String(body.surface || '');
+        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
+        if (!unitId) throw new Error('unitId is required');
+        const ctx = await fetchUnitArtContext(sb, unitId);
+        if (!ctx) throw new Error('Unit not found');
+        // Deny-unless-claimed: ownerless legacy units (teacher_id NULL) are
+        // admin-only — otherwise ANY authenticated user could spend money on them.
+        const ownerOk = ctx.teacherId
+          ? (ctx.teacherId === _auth?.userId || _auth?.role === 'admin')
+          : (_auth?.role === 'admin');
+        if (!ownerOk) throw new Error('You do not own this unit');
+        const regenerate = Boolean(body.regenerate);
+        if (surface === 'cover') return generateCover(sb, unitId, regenerate);
+        if (surface === 'portrait') {
+          if (!body.characterId) throw new Error('characterId is required for portrait');
+          // portrait must be a character linked to this unit (ownership proxy)
+          const { data: link } = await sb.from('unit_characters').select('character_id').eq('unit_id', unitId).eq('character_id', body.characterId).maybeSingle();
+          if (!link) throw new Error('Character is not linked to this unit');
+          return generatePortrait(sb, unitId, String(body.characterId), regenerate);
+        }
+        if (surface === 'story_page') {
+          if (!body.pageId) throw new Error('pageId is required for story_page');
+          const { data: pg } = await sb.from('story_pages').select('unit_id').eq('id', body.pageId).maybeSingle();
+          if (!pg || pg.unit_id !== unitId) throw new Error('Story page not in this unit');
+          return generateStoryPageScene(sb, unitId, String(body.pageId), regenerate);
+        }
+        throw new Error(`Unknown surface: ${surface}. Valid: cover, portrait, story_page`);
+      }
+
       default:
-        throw new Error(`Unknown action: ${action}. Valid actions: generate-image, generate-audio, resolve-speech, resolve-speech-batch, batch, youtube-search, crop-book-image`);
+        throw new Error(`Unknown action: ${action}. Valid actions: generate-image, generate-audio, resolve-speech, resolve-speech-batch, batch, youtube-search, crop-book-image, generate-illustrations`);
     }
   });
 });
