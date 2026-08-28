@@ -3,25 +3,39 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Mirror the vercel.json portal rewrites ("/teacher/:path*" → /teacher, …)
+// for `vite dev` AND `vite preview`. Without this, deep portal paths like
+// /teacher/unit/<id> fall back to the hub entry (index.html); the hub's
+// <PortalRedirect> then full-page-replaces to the same URL to hand off to
+// the portal entry, gets the hub again, and reload-loops ~20×/s (the parked
+// "dev-server reload loop on direct portal goto" audit item). Production
+// (Vercel) is unaffected — its rewrites serve the portal entry directly.
+// NOTE: this used to live under `server.configureServer`, which is NOT a
+// config option (it's a plugin hook) — Vite silently ignored it and the
+// middleware never ran.
+const PORTALS = ['/student', '/teacher', '/parent', '/admin'];
+const portalRewriteMiddleware = (middlewares: any) => {
+  middlewares.use((req: any, _res: any, next: any) => {
+    const url = req.url?.split('?')[0] ?? '';
+    const portal = PORTALS.find(p => url === p || url.startsWith(p + '/'));
+    if (portal && !path.extname(url)) {
+      req.url = portal + '.html';
+    }
+    next();
+  });
+};
+const portalEntryRewrites = () => ({
+  name: 'portal-entry-rewrites',
+  configureServer(server: any) { portalRewriteMiddleware(server.middlewares); },
+  configurePreviewServer(server: any) { portalRewriteMiddleware(server.middlewares); },
+});
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     server: {
       port: 3000,
       host: '0.0.0.0',
-      // Mirror the vercel.json rewrites in dev so /student, /teacher, /parent,
-      // /admin serve their standalone entries (not the hub).
-      configureServer(server) {
-        const portals = ['/student', '/teacher', '/parent', '/admin'];
-        server.middlewares.use((req, _res, next) => {
-          const url = req.url?.split('?')[0];
-          const match = portals.find(p => url === p || url?.startsWith(p + '/'));
-          if (match && !path.extname(url)) {
-            req.url = match + '.html';
-          }
-          next();
-        });
-      },
     },
     build: {
       chunkSizeWarningLimit: 600,
@@ -46,6 +60,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     plugins: [
+      portalEntryRewrites(),
       react(),
       // PWA UPDATE BEHAVIOR — load-bearing config, do not change without
       // reading AGENTS.md §8.1 ("Deploy update behavior").

@@ -269,7 +269,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
         dubbingId,
         lineAudio,
         perLineScores,
-        overallBand: (overall ?? null) as unknown as string,
+        overallBand: overall ?? null,
       });
       savedDubbingIdRef.current = dubbingId;
       setSaveState('saved');

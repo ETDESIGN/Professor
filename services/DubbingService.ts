@@ -334,7 +334,7 @@ export const DubbingService = {
     dubbingId: string;
     lineAudio: Record<string, string>;
     perLineScores: Record<string, LineScore>;
-    overallBand: string;
+    overallBand: string | null;
   }): Promise<void> {
     const { error } = await supabase
       .from('dubbings')
@@ -539,7 +539,7 @@ export const DubbingService = {
   async evaluateTake(
     _clipId: string,
     lines: { lineId: string; text: string; transcript?: string; audioBase64?: string }[],
-  ): Promise<{ results: Record<string, LineScore>; overallBand: string }> {
+  ): Promise<{ results: Record<string, LineScore>; overallBand: string | null }> {
     const { data, error } = await supabase.functions.invoke('evaluate-dubbing', {
       body: { lines },
     });

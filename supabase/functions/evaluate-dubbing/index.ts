@@ -63,17 +63,22 @@ serve(async (req) =>
       // LLM pass: catch near-misses the bag-of-words misses (plurals,
       // contractions) + generate an encouraging, kid-friendly line. Never
       // throws; on failure the heuristic result above stands.
-      const judge = await fetchChatCompletion(
-        [
-          {
-            role: 'system',
-            content:
-              'You are a kind children\'s English teacher. Compare the student transcript to the reference line. Reply ONLY JSON, no markdown: {"wordMatch": <number 0-1>, "feedback": "<one short encouraging sentence, max 12 words>"}',
-          },
-          { role: 'user', content: JSON.stringify({ reference: line.text, transcript }) },
-        ],
-        { temperature: 0.2, maxTokens: 300, timeoutMs: 20_000 },
-      );
+      // Skipped on an empty transcript (no client transcript, no STT result):
+      // comparing silence to the reference can only hallucinate a score —
+      // "blank" must never be judged, let alone raised to 'great'.
+      const judge = transcript
+        ? await fetchChatCompletion(
+            [
+              {
+                role: 'system',
+                content:
+                  'You are a kind children\'s English teacher. Compare the student transcript to the reference line. Reply ONLY JSON, no markdown: {"wordMatch": <number 0-1>, "feedback": "<one short encouraging sentence, max 12 words>"}',
+              },
+              { role: 'user', content: JSON.stringify({ reference: line.text, transcript }) },
+            ],
+            { temperature: 0.2, maxTokens: 300, timeoutMs: 20_000 },
+          )
+        : null;
       if (judge) {
         const parsed = parseJudgeJson(judge.content);
         if (parsed) {
@@ -99,7 +104,11 @@ serve(async (req) =>
     }
 
     const bands = Object.values(results).map((r) => r.band);
-    const overallBand = bands.every((b) => b === 'great')
+    // Null when nothing was evaluated (empty lines array): [].every() is
+    // vacuously true and would hand back 'great' for a blank take — persist
+    // null instead (UI: "Score pending"; column is nullable).
+    const overallBand = bands.length === 0 ? null
+      : bands.every((b) => b === 'great')
       ? 'great'
       : bands.some((b) => b === 'try_again')
       ? 'try_again'
