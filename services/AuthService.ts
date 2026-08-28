@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
+import { resolveLoginIdentifier } from './passport';
 
 const log = createClientLogger('AuthService');
 
@@ -20,13 +21,16 @@ export interface LoginResult {
 }
 
 /**
- * Sign in with email and password using Supabase Auth
+ * Sign in with password using Supabase Auth.
+ * Accepts an email OR a passport username (resolved to the synthetic
+ * `<username>@passport.local` email the student-passports function registers).
  */
 export async function signInWithPassword(
-    email: string,
+    identifier: string,
     password: string
 ): Promise<LoginResult> {
     try {
+        const email = resolveLoginIdentifier(identifier);
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,

@@ -17,7 +17,7 @@
 |---|---|---|
 | D1 | **Multi-tenant** | New `schools` table + new `manager` role; teachers/managers scoped per school. |
 | D2 | **Teachers may be independent** | A teacher with no active `school_memberships` row operates solo. Affiliation is a **request** a manager approves; until approved the teacher stays independent. |
-| D3 | **Students = roster placeholders + later claim** | Teachers create **no-auth** roster records (matches the no-device classroom model). A home account later **claims** a roster entry via a one-time token. |
+| D3 | **Students = roster placeholders + later claim** | Teachers create **no-auth** roster records (matches the no-device classroom model). A home account later **claims** a roster entry via a one-time token. | *(Rescoped 2026-08-19: the claim-link flow stays the default; teachers MAY additionally mint real student+parent accounts with printable login cards — see the **student-passports** edge function and migration `20260819000001`. Minting runs server-side with the same authority matrix and never grants the teacher arbitrary account creation: accounts bind to a roster row they already manage.)* |
 | D4 | **Manager = full teacher CRUD + class assignment** | Manager creates/edits/disables teacher accounts and assigns them to classes **within their school**. |
 | D5 | **Approval-gated links** | Teacher↔school requests and parent↔student links both require human approval (manager / teacher-or-manager respectively). |
 | D6 | **Deliverable** | This analysis + implemented SQL/RLS + deploy. Phase-1 (additive, prod-safe) deployed now; Phase-2 (re-tenanting of *existing* broad policies) is documented and QA-gated. |
