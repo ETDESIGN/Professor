@@ -1,5 +1,16 @@
 -- =====================================================================
--- 20260819000001 — student passports: teacher-minted student/parent accounts
+-- 20260818214857 — student passports: teacher-minted student/parent accounts
+--
+-- Version provenance: this schema was applied directly on the CLOUD
+-- database (dashboard / Management API) on 2026-08-18 under version
+-- 20260818214857 and recorded there as name "student_passports". On disk
+-- it was initially codified as 20260819000001_student_passports.sql,
+-- which collided with 20260819000001_student_path_stages.sql (duplicate
+-- local version breaks `supabase db push`), and the 20260818214857 slot
+-- was wasted on a no-op reconcile marker. Renamed here 2026-08-28 so the
+-- disk file carries the exact version + name the cloud already records:
+-- cloud sees it as applied (never re-run), and fresh environments finally
+-- execute the real SQL instead of a no-op.
 --
 -- Adds the "passport" model on top of the roster placeholder model:
 --   * profiles.username        — login identifier for passport accounts
