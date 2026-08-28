@@ -18,7 +18,7 @@ describe('DubPlayer', () => {
   let playSpy: ReturnType<typeof vi.spyOn>;
   let pauseSpy: ReturnType<typeof vi.spyOn>;
   let rafCallbacks: FrameRequestCallback[];
-  let onLineChange: ReturnType<typeof vi.fn>;
+  let onLineChange: (lineIndex: number) => void;
   let handle: React.RefObject<DubPlayerHandle>;
 
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('DubPlayer', () => {
       return rafCallbacks.length;
     });
     vi.stubGlobal('cancelAnimationFrame', vi.fn());
-    onLineChange = vi.fn();
+    onLineChange = vi.fn<(lineIndex: number) => void>();
     handle = createRef<DubPlayerHandle>();
     render(
       <DubPlayer

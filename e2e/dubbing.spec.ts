@@ -79,10 +79,10 @@ test.describe.serial('Dubbing flow (teacher → student → peer → parent)', (
     await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState), { timeout: 15000 }).toBeGreaterThanOrEqual(1);
 
     const addLine = async (startSec: number, endSec: number, text: string) => {
-      await video.evaluate((v, t) => { v.currentTime = t; }, startSec);
+      await video.evaluate((v: HTMLVideoElement, t: number) => { v.currentTime = t; }, startSec);
       await page.waitForTimeout(300);
       await page.getByRole('button', { name: /^Mark in/ }).click();
-      await video.evaluate((v, t) => { v.currentTime = t; }, endSec);
+      await video.evaluate((v: HTMLVideoElement, t: number) => { v.currentTime = t; }, endSec);
       await page.waitForTimeout(300);
       await page.getByRole('button', { name: /^Mark out/ }).click();
       await page.locator('input[placeholder="Line text…"]').fill(text);
