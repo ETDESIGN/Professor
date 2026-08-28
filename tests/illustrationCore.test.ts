@@ -72,7 +72,9 @@ describe('callOpenRouterImages', () => {
     if (r.ok) { expect(r.b64).toBe('QUJD'); expect(r.cost).toBe(0.04); }
     expect(calls[0].model).toBe('bytedance-seed/seedream-4.5');
     expect(calls[0].aspect_ratio).toBe('16:9');
-    expect(calls[0].input_references).toEqual(['https://x/1.png']);
+    expect(calls[0].input_references).toEqual([
+      { type: 'image_url', image_url: { url: 'https://x/1.png' } },
+    ]);
   });
   it('returns ok:false on HTTP error with status', async () => {
     vi.stubGlobal('fetch', async () => new Response('{"error":"bad"}', { status: 402 }));

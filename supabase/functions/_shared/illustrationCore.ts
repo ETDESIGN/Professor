@@ -70,7 +70,11 @@ export async function callOpenRouterImages(
   const baseUrl = cfg.baseUrl || 'https://openrouter.ai/api/v1';
   const body: Record<string, unknown> = { model: req.model, prompt: req.prompt, n: 1 };
   if (req.aspectRatio) body.aspect_ratio = req.aspectRatio;
-  if (req.inputReferences && req.inputReferences.length > 0) body.input_references = req.inputReferences;
+  // Wire format per OpenRouter docs: each reference is
+  // { type: 'image_url', image_url: { url } } — plain strings get a 400 ZodError.
+  if (req.inputReferences && req.inputReferences.length > 0) {
+    body.input_references = req.inputReferences.map((url) => ({ type: 'image_url', image_url: { url } }));
+  }
   try {
     const resp = await fetch(`${baseUrl}/images`, {
       method: 'POST',
