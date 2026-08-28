@@ -1,6 +1,8 @@
 # Teacher Dashboard: Student Passports
 
-**Category**: Teacher Dashboard - Student Management  
+> **Status: IMPLEMENTED (2026-08-19)** — shipped as "Login cards" (`apps/teacher/Passports.tsx`, `PassportCards.tsx`) backed by the `student-passports` edge function. Deviations from this original visual spec: cards carry **username + word-password + login QR** (the QR logs in directly via `/login#p=…`); there is no 4-digit PIN; grid selection + bulk print + per-student reset implemented as specced.
+
+**Category**: Teacher Dashboard - Student Management
 **Purpose**: Generate and manage printable student login credentials with QR codes
 
 ## Description

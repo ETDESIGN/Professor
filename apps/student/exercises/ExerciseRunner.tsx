@@ -41,16 +41,32 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<'playing' | 'summary'>('playing');
   const [hearts, setHearts] = useState(HEARTS_MAX);
+  // True when the hearts balance could not be read from the DB — the counter
+  // renders disabled ("—") and wrong answers must NOT decrement an unknown
+  // balance (getHearts now throws instead of faking full hearts). Starts
+  // true so an early wrong answer can't decrement an unread balance.
+  const [heartsUnavailable, setHeartsUnavailable] = useState(true);
   const [outOfHearts, setOutOfHearts] = useState(false);
   const [results, setResults] = useState<RunnerResult['items']>([]);
   // Objectives that reached 'familiar'/'mastered' THIS session — used to advance
   // the mastery-tied quest (REACH_FAMILIAR) once per word per session (plan 4.3).
   const familiarSeen = useRef<Set<string>>(new Set());
   const retried = useRef<Set<string>>(new Set()); // P-D: one retry per objective
+  // Advance-after-feedback timer — tracked so cleanup can clear it and it
+  // can never setState after unmount.
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    Engine.getHearts(studentId).then((h) => { if (!cancelled) setHearts(h.current); });
+    Engine.getHearts(studentId)
+      .then((h) => { if (!cancelled) { setHearts(h.current); setHeartsUnavailable(false); } })
+      .catch(() => { if (!cancelled) setHeartsUnavailable(true); });
     return () => { cancelled = true; };
   }, [studentId]);
 
@@ -91,7 +107,9 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
         }
 
         // Hearts: productive errors cost 1; receptive errors warn only.
-        if (!result.success && modality === 'productive') {
+        // Skip entirely when the balance is unavailable — never decrement a
+        // hearts value we failed to read.
+        if (!result.success && modality === 'productive' && !heartsUnavailable) {
           try {
             const h = await Engine.loseHeart(studentId, true);
             setHearts(h.current);
@@ -130,13 +148,15 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
       }
 
       // Advance after a beat (the component already showed feedback).
-      setTimeout(() => {
+      if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
+      advanceTimer.current = setTimeout(() => {
+        advanceTimer.current = null;
         const newLen = queue.length + (requeued ? 1 : 0);
         if (index + 1 >= newLen) setPhase('summary');
         else setIndex(index + 1);
       }, 100);
     },
-    [current, results, index, queue.length, finish, studentId],
+    [current, results, index, queue.length, finish, studentId, heartsUnavailable],
   );
 
   if (queue.length === 0) {
@@ -215,9 +235,9 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
         <div className="flex-1 mx-4 h-3 bg-slate-200 rounded-full overflow-hidden">
           <div className="h-full bg-duo-green rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
-        <div className="flex items-center gap-1 text-duo-red font-bold w-12 justify-end">
+        <div className={`flex items-center gap-1 font-bold w-12 justify-end ${heartsUnavailable ? 'text-slate-300' : 'text-duo-red'}`}>
           <Heart fill="currentColor" size={20} />
-          <span className="text-sm">{hearts}</span>
+          <span className="text-sm">{heartsUnavailable ? '—' : hearts}</span>
         </div>
       </header>
 

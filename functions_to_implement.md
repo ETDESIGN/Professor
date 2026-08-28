@@ -25,7 +25,7 @@ Tools for teachers and admins to create and manage content.
 *   **Class & Roster Management**:
     *   **Class Creation**: A screen for teachers to create a new class (e.g., "3rd Grade English").
     *   **Student Onboarding**: A system to add students to a class and generate their login credentials.
-    *   **QR Code Passports**: Generate printable QR Code Passports for younger kids to log in instantly (bypassing email/password).
+    *   **QR Code Passports**: ~~Generate printable QR Code Passports for younger kids to log in instantly (bypassing email/password).~~ **DONE 2026-08-19** — `student-passports` edge function + teacher "Login cards" UI; cards print username + word-password + a QR that logs in straight from the phone camera.
 *   **Analytics & Reporting**:
     *   **Teacher Dashboard**: A high-level view showing which students are completing their at-home assignments, who is on a streak, and who is falling behind.
     *   **Struggle Areas**: An analytics view that aggregates SRS data to show the teacher which specific words or grammar rules the class is struggling with the most, so they can address it in the next live projector session.

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, User, Lock, ArrowRight, Loader2, AlertCircle, ArrowLeft, QrCode } from 'lucide-react';
 import { signInWithPassword, signUp, UserRole, AuthUser } from '../services/AuthService';
 import { useAppStore } from '../store/useAppStore';
 import { supabase } from '../services/supabaseClient';
 import { useTranslation } from 'react-i18next';
+import QrScanner from '../components/shared/QrScanner';
+import { parseQrText, LoginPayload } from '../services/passport';
 
 interface LoginProps {
   onLogin: (role: 'district_admin' | 'teacher' | 'student' | 'parent') => void;
@@ -19,7 +21,43 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const { setUserProfile } = useAppStore();
+
+  const isFamilyTab = role === 'student' || role === 'parent';
+
+  // Passport card QR login: username+password straight to Supabase auth.
+  const handleQrLogin = async (payload: LoginPayload) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await signInWithPassword(payload.username, payload.password);
+      if (!result.success || !result.user) {
+        setError(result.error || 'This card did not work — ask your teacher for a new one.');
+        setIsLoading(false);
+        return;
+      }
+      setUserProfile(result.user);
+      const r = result.user.role;
+      onLogin(r === 'parent' ? 'parent' : r === 'student' ? 'student' : r === 'teacher' ? 'teacher' : 'district_admin');
+    } catch {
+      setError('An unexpected error occurred');
+    }
+    setIsLoading(false);
+  };
+
+  // Native camera scan: the card QR opens /login#p=<payload>. Consume it once
+  // and immediately strip the fragment so the credentials never linger in the
+  // URL bar, history, or referrer.
+  useEffect(() => {
+    const m = window.location.hash.match(/[#&?]p=([^&#\s]+)/);
+    if (!m) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    const payload = parseQrText(m[1]);
+    if (payload) void handleQrLogin(payload);
+    else setError('This login link is not valid.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +66,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       if (isSignUp) {
+        if (isFamilyTab && !email.trim().includes('@')) {
+          setError('Enter a full email address to create an account — or sign in with the username from your login card.');
+          setIsLoading(false);
+          return;
+        }
         // Sign up new user
         const result = await signUp(email, password, role as UserRole);
         if (!result.success) {
@@ -90,6 +133,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Passport accounts have synthetic emails — a reset link would vanish.
+    // Their cards are managed by the teacher instead.
+    if (isFamilyTab && !email.trim().includes('@')) {
+      setError(null);
+      setSuccessMessage('Login cards are managed by your teacher — ask them to print you a new card.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -147,20 +197,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <form className="space-y-6" onSubmit={isResetMode ? handleResetPassword : handleSubmit}>
             <div>
                <label className="block text-sm font-medium text-slate-700">
-                 {t('auth.email')}
+                 {isFamilyTab && !isResetMode ? 'Username or email' : t('auth.email')}
                </label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
-                  type="email"
+                  type={isFamilyTab && !isResetMode ? 'text' : 'email'}
                   autoComplete="username"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-slate-300 rounded-md py-2 px-3 border"
-                  placeholder="you@example.com"
+                  placeholder={isFamilyTab && !isResetMode ? 'e.g. leo' : 'you@example.com'}
                 />
               </div>
             </div>
@@ -232,6 +282,24 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </button>
             </div>
 
+            {/* Passport card QR login (student/parent) */}
+            {isFamilyTab && !isResetMode && !isSignUp && (
+              <>
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400">or</span></div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  disabled={isLoading}
+                  className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  <QrCode size={18} /> Scan QR code
+                </button>
+              </>
+            )}
+
             <div className="text-center">
               {isResetMode ? (
                 <button
@@ -255,6 +323,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         </div>
       </div>
+
+      {showScanner && (
+        <QrScanner
+          onClose={() => setShowScanner(false)}
+          onResult={(text) => {
+            setShowScanner(false);
+            const payload = parseQrText(text);
+            if (payload) {
+              setEmail(payload.username);
+              setPassword('');
+              void handleQrLogin(payload);
+            } else {
+              setError('That is not a Professor login card QR code.');
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

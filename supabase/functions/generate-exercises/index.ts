@@ -962,8 +962,21 @@ serve(async (req) => {
     // Zero errors with zero persisted items is a legitimate outcome (e.g. a
     // unit whose only content got registry-gated) — treat it as a successful
     // run that produced nothing, not a failure (audit 2026-08-17, landmine 5).
-    const ok = errors.length === 0;
-    await markJob(ok ? 'succeeded' : 'failed', ok ? undefined : { error: errors.join('; ') || 'no pool items persisted' });
+    //
+    // AUDIT FIX (2026-08-28): audio-generation failures are NON-FATAL by
+    // design — the play-time resolver generates speech on demand — but they
+    // were still failing the WHOLE job, so the teacher saw "couldn't
+    // generate" over 100-600 successfully persisted pool items. Pools
+    // persisted ⇒ succeeded; audio degradation is a warning, never a failure.
+    const FATAL_ERROR = /pool persistence failed|pool_items insert failed|retire-old|objective reconciliation failed|manifest media update failed|srs objective backfill failed|speech backfill failed:/;
+    const fatal = errors.filter((e: string) => FATAL_ERROR.test(e));
+    const warnings = errors.filter((e: string) => !FATAL_ERROR.test(e));
+    const ok = fatal.length === 0;
+    await markJob(ok ? 'succeeded' : 'failed', {
+      error: ok
+        ? (warnings.length > 0 ? `completed with warnings: ${warnings.join('; ').slice(0, 300)}` : undefined)
+        : (fatal.join('; ') || 'no pool items persisted'),
+    });
 
     return {
       success: ok,
@@ -971,7 +984,8 @@ serve(async (req) => {
       objectives: objectiveIdFor.size,
       poolItems: persistedCount,
       typeCounts,
-      ...(errors.length > 0 ? { errors } : {}),
+      ...(warnings.length > 0 ? { warnings } : {}),
+      ...(fatal.length > 0 ? { errors: fatal } : {}),
     };
   });
 });

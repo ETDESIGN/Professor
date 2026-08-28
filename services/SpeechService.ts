@@ -40,6 +40,10 @@ interface PronunciationResult {
   similarity: number;
   isCorrect: boolean;
   feedback: string;
+  /** FIXPLAN H1: true when the score came from a client-supplied transcript
+   *  (browser Web Speech, no server STT verification) or was graded locally.
+   *  Practice-only — callers must not grant XP/gems/quest credit for it. */
+  client_graded: boolean;
 }
 
 function getSpeechRecognition(): (new () => SpeechRecognitionInstance) | null {
@@ -243,6 +247,7 @@ async function startServerSttCheck(
         similarity,
         isCorrect: similarity >= passThreshold,
         feedback: generateFeedback(similarity, targetText),
+        client_graded: !!ev.client_graded,
       });
     } catch (err: any) {
       log.warn('server_stt_failed', { error: err?.message || String(err) });
@@ -322,6 +327,9 @@ export function startPronunciationCheck(
         similarity,
         isCorrect,
         feedback: generateFeedback(similarity, targetText),
+        // Locally graded from a browser Web Speech transcript — untrusted,
+        // practice-only (FIXPLAN H1).
+        client_graded: true,
       });
     }
   };

@@ -102,14 +102,19 @@ describe('BoardFocusCards', () => {
     ],
   };
 
-  it('renders the title', () => {
+  // v2 is the Overview Grid ("Today's Words") — the old single-card flipper
+  // UI ('Vocabulary Cards' title, '1 / 2' counter, 'Flip for meaning') was
+  // replaced by the design-doc grid → 4-stage drill flow.
+  it('renders the grid header title', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText('Vocabulary Cards')).toBeInTheDocument();
+    expect(screen.getByText("Today's Words")).toBeInTheDocument();
+    expect(screen.getByText(/今天的单词/)).toBeInTheDocument();
   });
 
-  it('renders card counter showing 1 / 2', () => {
+  it('renders the word count badge', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('Words')).toBeInTheDocument();
   });
 
   it('renders the front face content of the first card', () => {
@@ -118,21 +123,21 @@ describe('BoardFocusCards', () => {
     expect(catElements.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders "Flip for meaning" hint', () => {
+  it('renders the tap-to-learn hint in the empty grid slot', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText('Flip for meaning')).toBeInTheDocument();
+    expect(screen.getByText('Tap a card to learn')).toBeInTheDocument();
   });
 
   it('renders gracefully with empty cards array', () => {
     render(<BoardFocusCards data={{ title: 'Empty', cards: [] }} />);
-    expect(screen.getByText('Empty')).toBeInTheDocument();
-    expect(screen.getByText('No cards available for this lesson.')).toBeInTheDocument();
+    expect(screen.getByText('Vocabulary Grid')).toBeInTheDocument();
+    expect(screen.getByText('No vocabulary for this unit.')).toBeInTheDocument();
   });
 
   it('renders gracefully with no data.cards property', () => {
     render(<BoardFocusCards data={{ title: 'No Cards' }} />);
-    expect(screen.getByText('No Cards')).toBeInTheDocument();
-    expect(screen.getByText('No cards available for this lesson.')).toBeInTheDocument();
+    expect(screen.getByText('Vocabulary Grid')).toBeInTheDocument();
+    expect(screen.getByText('No vocabulary for this unit.')).toBeInTheDocument();
   });
 });
 
@@ -257,14 +262,21 @@ describe('BoardStoryStage', () => {
     expect(screen.getByText('The Adventure')).toBeInTheDocument();
   });
 
-  it('renders the first page text', () => {
+  // v2 starts on a cover "story hook" panel (title + character strip +
+  // "tap Next" hint); page text only appears after the teacher sends
+  // NEXT_PANEL. (The post-NEXT_PANEL page swap runs through framer-motion
+  // AnimatePresence exit animations, which don't complete synchronously in
+  // jsdom, so we assert the teacher-gated cover state here.)
+  it('shows the cover panel first, gating the page text until the teacher advances', () => {
     render(<BoardStoryStage data={mockData} />);
-    expect(screen.getByText(/Once upon a time/)).toBeInTheDocument();
+    expect(screen.getByText(/Teacher: tap Next to begin/)).toBeInTheDocument();
+    expect(screen.queryByText(/Once upon a time/)).not.toBeInTheDocument();
   });
 
   it('shows empty state when no pages', () => {
     render(<BoardStoryStage data={{ pages: [], characters: [] }} />);
-    expect(screen.getByText('No story pages available for this lesson.')).toBeInTheDocument();
+    expect(screen.getByText('Story Stage')).toBeInTheDocument();
+    expect(screen.getByText('No story pages for this unit.')).toBeInTheDocument();
   });
 
   it('renders character strip with character names', () => {

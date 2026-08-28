@@ -6,7 +6,7 @@
 // failed attempts a line is marked attempted-and-moved-on so nobody gets
 // stuck; the exercise completes when every line has been attempted.
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic, MicOff, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +38,10 @@ const DialogueRoleplay: React.FC<BaseExerciseProps> = ({ data, onComplete, onErr
   const [listening, setListening] = useState(false);
   const [lineAttempts, setLineAttempts] = useState(0);
   const [totalAttempts, setTotalAttempts] = useState(0);
+  // FIXPLAN H1 (review round 1): a pass graded from a client Web Speech
+  // transcript is practice-only — if any passing line was client-graded, the
+  // final result is recorded without learner-state/hearts/XP credit.
+  const clientGradedPassRef = useRef(false);
 
   const line = lines[current];
   const isLastLine = current >= lines.length - 1;
@@ -53,7 +57,8 @@ const DialogueRoleplay: React.FC<BaseExerciseProps> = ({ data, onComplete, onErr
     if (isLastLine) {
       const passedTotal = passed.size + (justPassed ? 1 : 0);
       const ok = passedTotal >= Math.max(1, Math.ceil(lines.length / 2));
-      finish(ok, attemptsSoFar);
+      // Any client-graded pass makes the whole result practice-only (H1).
+      finish(ok, attemptsSoFar, !clientGradedPassRef.current);
     } else {
       setCurrent(current + 1);
       setLineAttempts(0);
@@ -70,7 +75,10 @@ const DialogueRoleplay: React.FC<BaseExerciseProps> = ({ data, onComplete, onErr
         const attempts = totalAttempts + 1;
         setTotalAttempts(attempts);
         if (result.isCorrect) {
-          // Pass (≥0.6, lenient for kids).
+          // Pass (≥0.6, lenient for kids). Client-graded (browser Web Speech,
+          // no server STT verification) passes are practice-only — green UX
+          // and advance still happen, but no recorded credit (FIXPLAN H1).
+          if (result.client_graded) clientGradedPassRef.current = true;
           toast.success(t('exercise.greatLine', 'Great line! 🎭'));
           advance(true, attempts);
         } else if (result.similarity >= 0.4 && lineAttempts + 1 < MAX_ATTEMPTS_PER_LINE) {

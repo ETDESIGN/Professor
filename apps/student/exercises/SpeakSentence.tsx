@@ -36,10 +36,18 @@ const SpeakSentence: React.FC<BaseExerciseProps> = ({ data, onComplete, onError 
         const sim = result.similarity;
         attemptsRef.current += 1;
         if (result.isCorrect) {
-          // Pass (≥0.6, lenient for kids).
+          // Pass (≥0.6, lenient for kids). Keep the green UX/advance, but a
+          // client-graded score (browser Web Speech transcript, no server STT
+          // verification) is practice-only — `record: false` makes the runner
+          // skip learner-state/hearts/XP (FIXPLAN H1: audit 2026-08-28).
           setFeedback('correct');
           toast.success(generateFeedback(sim, c.target_sentence));
-          setTimeout(() => onComplete({ success: true, time_taken_ms: elapsed(), attempts: attemptsRef.current }), 900);
+          setTimeout(() => onComplete({
+            success: true,
+            time_taken_ms: elapsed(),
+            attempts: attemptsRef.current,
+            record: !result.client_graded,
+          }), 900);
         } else if (sim >= 0.4) {
           // Almost — let them try again (no fail).
           setFeedback('wrong');

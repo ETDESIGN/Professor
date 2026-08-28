@@ -22,20 +22,7 @@ jobs:
         run: npm ci
 
       - name: Type check
-        shell: bash
-        run: |
-          set -uo pipefail
-          # Run tsc but don't let its non-zero exit abort the step yet; we decide
-          # pass/fail from the filtered error lines below.
-          output="$(npx tsc --noEmit --pretty false --project tsconfig.json 2>&1)" || true
-          # Keep only real error lines that are NOT in the Deno edge functions.
-          errors="$(printf '%s\n' "$output" | grep 'error TS' | grep -v 'supabase/functions/')" || true
-          if [ -n "$errors" ]; then
-            echo "Type errors found (excluding supabase/functions/):"
-            printf '%s\n' "$errors"
-            exit 1
-          fi
-          echo "Type check passed (supabase/functions/ excluded)."
+        run: npx tsc --noEmit
 
       - name: Run unit tests
         run: npm run test

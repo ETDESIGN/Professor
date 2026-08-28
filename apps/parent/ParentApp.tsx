@@ -15,6 +15,7 @@ const ParentReports = lazy(() => import('./ParentReports'));
 const ParentDashboard = lazy(() => import('./ParentDashboard'));
 const ParentSettings = lazy(() => import('./ParentSettings'));
 const ParentMessages = lazy(() => import('./ParentMessages'));
+const ParentConnect = lazy(() => import('./ParentConnect'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full">
@@ -65,6 +66,7 @@ const ParentApp: React.FC<ParentAppProps> = ({ onSignOut }) => {
           <Routes location={location} key={location.pathname}>
             <Route path="/parent" element={<RouteErrorBoundary name="parent-dashboard"><Suspense fallback={<PageLoader />}><ParentDashboard onNavigate={(path) => navigate(`/parent/${path}`)} /></Suspense></RouteErrorBoundary>} />
             <Route path="/parent/messages" element={<RouteErrorBoundary name="parent-messages"><Suspense fallback={<PageLoader />}><ParentMessages onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
+            <Route path="/parent/connect" element={<RouteErrorBoundary name="parent-connect"><Suspense fallback={<PageLoader />}><ParentConnect onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
             {dubbingEnabled && (
             <Route path="/parent/gallery" element={<RouteErrorBoundary name="parent-gallery"><Suspense fallback={<PageLoader />}><DubbingGallery onBack={() => navigate('/parent')} /></Suspense></RouteErrorBoundary>} />
             )}

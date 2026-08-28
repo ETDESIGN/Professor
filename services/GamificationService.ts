@@ -6,36 +6,19 @@ import { getHearts, refillHearts } from './learnerState';
 const log = createClientLogger('GamificationService');
 
 export const GamificationService = {
+  /** FIXPLAN H2: atomic server-side XP award. The RPC returns a TABLE
+   *  (xp, total_xp_earned); ZERO ROWS = no-op (unauthenticated or amount 0).
+   *  Level is derived client-side (100 XP per level), as before. */
   async awardXP(amount: number, reason: string): Promise<{ newXP: number; newLevel: number }> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { newXP: 0, newLevel: 1 };
-
-    const { data: progress, error: fetchError } = await supabase
-      .from('student_progress')
-      .select('xp, total_xp_earned')
-      .eq('student_id', user.id)
-      .single();
-
-    if (fetchError || !progress) {
-      log.warn('award_xp_no_progress', { error: fetchError?.message });
+    const { data, error } = await supabase.rpc('award_xp', { p_amount: amount });
+    if (error || !Array.isArray(data) || data.length === 0) {
+      log.warn('award_xp_failed', { metadata: { reason }, error: error?.message });
       return { newXP: 0, newLevel: 1 };
     }
-
-    const newXP = (progress.xp || 0) + amount;
-    const newTotal = (progress.total_xp_earned || 0) + amount;
+    const row = data[0];
+    const newXP = row.xp ?? 0;
     const newLevel = Math.floor(newXP / 100) + 1;
-
-    const { error: updateError } = await supabase
-      .from('student_progress')
-      .update({ xp: newXP, total_xp_earned: newTotal })
-      .eq('student_id', user.id);
-
-    if (updateError) {
-      log.warn('award_xp_write_failed', { error: updateError.message });
-      return { newXP: progress.xp || 0, newLevel: Math.floor((progress.xp || 0) / 100) + 1 };
-    }
-
-    log.info('xp_awarded', { metadata: { amount, reason, newXP, newLevel } });
+    log.info('xp_awarded', { metadata: { amount, reason, newXP, totalXpEarned: row.total_xp_earned } });
     return { newXP, newLevel };
   },
 
@@ -48,87 +31,55 @@ export const GamificationService = {
    */
   async awardXPToStudent(studentId: string, amount: number, reason = 'classroom_points'): Promise<number> {
     if (!studentId || amount === 0) return 0;
-    const { data: progress, error: fetchError } = await supabase
-      .from('student_progress')
-      .select('xp, total_xp_earned')
-      .eq('student_id', studentId)
-      .maybeSingle();
-    if (fetchError || !progress) {
-      log.warn('award_xp_student_no_progress', { metadata: { studentId, error: fetchError?.message } });
+    const { data, error } = await supabase.rpc('award_xp_to_student', { p_student: studentId, p_amount: amount });
+    if (error) {
+      log.warn('award_xp_student_failed', { metadata: { studentId, error: error.message } });
       return 0;
     }
-    const newXP = Math.max(0, (progress.xp || 0) + amount);
-    const newTotal = Math.max(0, (progress.total_xp_earned || 0) + Math.max(0, amount));
-    const { error: updateError } = await supabase
-      .from('student_progress')
-      .update({ xp: newXP, total_xp_earned: newTotal })
-      .eq('student_id', studentId);
-    if (updateError) log.warn('award_xp_student_write_failed', { metadata: { studentId, error: updateError.message } });
-    else log.info('xp_awarded_to_student', { metadata: { studentId, amount, reason, newXP } });
+    const newXP = data ?? 0;
+    log.info('xp_awarded_to_student', { metadata: { studentId, amount, reason, newXP } });
     return newXP;
   },
 
   async awardGems(amount: number, reason: string): Promise<number> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return 0;
-
-    const { data: progress } = await supabase
-      .from('student_progress')
-      .select('gems')
-      .eq('student_id', user.id)
-      .single();
-
-    if (!progress) return 0;
-
-    const newGems = (progress.gems || 0) + amount;
-    const { error: gemError } = await supabase
-      .from('student_progress')
-      .update({ gems: newGems })
-      .eq('student_id', user.id);
-
-    if (gemError) {
-      log.warn('award_gems_write_failed', { error: gemError.message });
-      return progress.gems || 0;
+    const { data, error } = await supabase.rpc('award_gems', { p_amount: amount });
+    if (error) {
+      log.warn('award_gems_failed', { metadata: { reason }, error: error.message });
+      return 0;
     }
-
-    return newGems;
+    return data ?? 0;
   },
 
   async spendGems(amount: number): Promise<{ success: boolean; newGems: number }> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, newGems: 0 };
-
-    const { data: progress } = await supabase
-      .from('student_progress')
-      .select('gems')
-      .eq('student_id', user.id)
-      .single();
-
-    if (!progress || (progress.gems || 0) < amount) {
-      return { success: false, newGems: progress?.gems || 0 };
+    const { data, error } = await supabase.rpc('spend_gems', { p_amount: amount });
+    if (error) {
+      log.warn('spend_gems_failed', { error: error.message });
+      return { success: false, newGems: 0 };
     }
-
-    const newGems = progress.gems - amount;
-    const { error: spendError } = await supabase
-      .from('student_progress')
-      .update({ gems: newGems })
-      .eq('student_id', user.id);
-
-    if (spendError) {
-      log.warn('spend_gems_write_failed', { error: spendError.message });
-      return { success: false, newGems: progress.gems };
+    // Re-read the balance for the UI; a failed read must not break the flow.
+    let newGems = 0;
+    try {
+      newGems = await GamificationService.getStudentGems();
+    } catch {
+      newGems = 0;
     }
-
-    return { success: true, newGems };
+    return { success: data === true, newGems };
   },
   async getStudentGems(): Promise<number> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 0;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('student_progress')
       .select('gems')
       .eq('student_id', user.id)
-      .single();
+      .maybeSingle();
+    // FIXPLAN H3: 0 rows = genuinely no progress row yet (0 gems); a transport
+    // error must throw so the react-query caller can render a retry state
+    // instead of a silently-empty balance.
+    if (error) {
+      log.error('get_student_gems_error', { error: error.message });
+      throw error;
+    }
     return data?.gems || 0;
   },
 
@@ -207,17 +158,31 @@ export const GamificationService = {
 
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('student_quests')
       .select('*')
       .eq('student_id', user.id)
       .eq('assigned_date', today);
 
+    // FIXPLAN H3: a failed read must not look like "no quests today" (which
+    // would trigger a spurious re-seed). Throw so the caller can retry.
+    if (existingError) {
+      log.error('get_daily_quests_read_error', { error: existingError.message });
+      throw existingError;
+    }
+
     if (existing && existing.length > 0) return existing;
 
-    const { data: dbTemplates } = await supabase
+    const { data: dbTemplates, error: templatesError } = await supabase
       .from('quest_templates')
       .select('*');
+
+    // Template-table read failure falls back to the built-in defaults (a
+    // missing/unreadable template table is a legitimate degraded mode), but
+    // the failure must be visible in logs at error level.
+    if (templatesError) {
+      log.error('quest_templates_read_error', { error: templatesError.message });
+    }
 
     const templates = (dbTemplates && dbTemplates.length > 0)
       ? dbTemplates.map((t: any) => ({
@@ -245,88 +210,48 @@ export const GamificationService = {
       assigned_date: today,
     }));
 
-    const { data } = await supabase
+    const { data, error: upsertError } = await supabase
       .from('student_quests')
       .upsert(quests, { onConflict: 'student_id,quest_type,assigned_date' })
       .select();
+
+    // FIXPLAN H3: seed failure must throw — returning [] here used to render
+    // "no quests" for a failure.
+    if (upsertError) {
+      log.error('daily_quests_seed_error', { error: upsertError.message });
+      throw upsertError;
+    }
 
     return data || [];
   },
 
   async updateQuestProgress(questType: string, increment: number = 1): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const today = new Date().toISOString().split('T')[0];
-
-    const { data: quest } = await supabase
-      .from('student_quests')
-      .select('*')
-      .eq('student_id', user.id)
-      .eq('quest_type', questType)
-      .eq('assigned_date', today)
-      .single();
-
-    if (!quest) return;
-
-    const newCurrent = Math.min((quest.current || 0) + increment, quest.target);
-    const { error: questError } = await supabase
-      .from('student_quests')
-      .update({ current: newCurrent })
-      .eq('id', quest.id);
-
-    if (questError) {
-      log.warn('quest_progress_update_failed', { error: questError.message });
+    const { error } = await supabase.rpc('update_quest_progress', { p_quest_type: questType, p_increment: increment });
+    if (error) {
+      log.warn('quest_progress_update_failed', { error: error.message });
     }
   },
 
   async claimQuestReward(questId: string): Promise<{ xp: number; gems: number } | null> {
-    const { data: quest } = await supabase
-      .from('student_quests')
-      .select('*')
-      .eq('id', questId)
-      .single();
-
-    if (!quest || quest.current < quest.target || quest.claimed) return null;
-
-    const { error: claimError } = await supabase
-      .from('student_quests')
-      .update({ claimed: true })
-      .eq('id', questId);
-
-    if (claimError) {
-      log.warn('quest_claim_failed', { error: claimError.message });
+    const { data, error } = await supabase.rpc('claim_quest_reward', { p_quest_id: questId });
+    if (error) {
+      log.warn('quest_claim_failed', { error: error.message });
       return null;
     }
-
-    await GamificationService.awardXP(quest.reward_xp, 'quest_complete');
-    await GamificationService.awardGems(quest.reward_gems, 'quest_complete');
-
-    return { xp: quest.reward_xp, gems: quest.reward_gems };
+    // ZERO ROWS = already claimed or not complete.
+    if (!Array.isArray(data) || data.length === 0) return null;
+    return { xp: data[0].reward_xp ?? 0, gems: data[0].reward_gems ?? 0 };
   },
 
-  async buyShopItem(itemId: string, cost: number): Promise<{ success: boolean }> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false };
-
-    const spent = await GamificationService.spendGems(cost);
-    if (!spent.success) return { success: false };
-
-    // Consumables stack: bump quantity on re-purchase (the old plain INSERT
-    // hit the UNIQUE(student_id, item_id) constraint on the second buy).
-    const { error: invError } = await supabase
-      .from('student_inventory')
-      .upsert(
-        { student_id: user.id, item_id: itemId, quantity: 1 },
-        { onConflict: 'student_id,item_id', ignoreDuplicates: false },
-      );
-
-    if (invError) {
-      log.warn('inventory_upsert_failed', { error: invError.message });
+  async buyShopItem(itemId: string, _cost: number): Promise<{ success: boolean }> {
+    // Server-side price + balance are authoritative; the cost param is kept
+    // for signature compatibility only.
+    const { data, error } = await supabase.rpc('buy_shop_item', { p_item_id: itemId });
+    if (error) {
+      log.warn('buy_shop_item_failed', { error: error.message });
       return { success: false };
     }
-
-    return { success: true };
+    return { success: data === 'ok' };
   },
 
   /** Atomically consume one unit of a power-up. Returns false when the
@@ -345,14 +270,31 @@ export const GamificationService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, hearts: 0 };
 
-    const current = await getHearts(user.id);
+    let current;
+    try {
+      current = await getHearts(user.id);
+    } catch (err) {
+      // Hearts balance unreadable — report honestly instead of guessing.
+      log.warn('heart_refill_read_failed', { error: err instanceof Error ? err.message : String(err) });
+      return { success: false, hearts: 0 };
+    }
     if (current.current >= current.max) {
       return { success: false, hearts: current.current };
     }
     const consumed = await GamificationService.consumeInventoryItem('hearts');
     if (!consumed) return { success: false, hearts: current.current };
 
-    const h = await refillHearts(user.id);
+    // refillHearts re-reads hearts internally (getHearts throws on read
+    // failure). If that read fails AFTER the item was consumed, we still
+    // report failure here — the item stays consumed; Task 8 adds Shop-side
+    // pending/toast handling for this edge.
+    let h;
+    try {
+      h = await refillHearts(user.id);
+    } catch (err) {
+      log.warn('heart_refill_write_failed', { error: err instanceof Error ? err.message : String(err) });
+      return { success: false, hearts: 0 };
+    }
     return { success: true, hearts: h.current };
   },
 
@@ -360,10 +302,17 @@ export const GamificationService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('student_inventory')
       .select('*, shop_items(*)')
       .eq('student_id', user.id);
+
+    // FIXPLAN H3: a failed inventory read must throw, not render as an empty
+    // backpack.
+    if (error) {
+      log.error('get_inventory_error', { error: error.message });
+      throw error;
+    }
 
     return data || [];
   },
@@ -407,8 +356,9 @@ export const GamificationService = {
       .order('created_at', { ascending: true });
 
     if (error) {
-      log.warn('get_characters_error', { error: error.message });
-      return [];
+      // FIXPLAN H3: throw — a failed read must not look like "no characters".
+      log.error('get_characters_error', { error: error.message });
+      throw error;
     }
     return data || [];
   },
@@ -421,8 +371,10 @@ export const GamificationService = {
       .single();
 
     if (error) {
-      log.warn('add_character_error', { error: error.message });
-      return null;
+      // FIXPLAN H3: throw — the user initiated this write; a null return
+      // used to look like success-with-nothing.
+      log.error('add_character_error', { error: error.message });
+      throw error;
     }
     return data;
   },
@@ -434,8 +386,10 @@ export const GamificationService = {
       .eq('id', characterId);
 
     if (error) {
-      log.warn('update_character_error', { error: error.message });
-      return false;
+      // FIXPLAN H3: throw — a failed update used to return false, which
+      // callers treated the same as success.
+      log.error('update_character_error', { error: error.message });
+      throw error;
     }
     return true;
   },
@@ -447,8 +401,9 @@ export const GamificationService = {
       .eq('id', characterId);
 
     if (error) {
-      log.warn('delete_character_error', { error: error.message });
-      return false;
+      // FIXPLAN H3: throw — a failed delete used to look like success.
+      log.error('delete_character_error', { error: error.message });
+      throw error;
     }
     return true;
   },

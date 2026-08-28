@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
+import { resolveLoginIdentifier } from './passport';
 
 const log = createClientLogger('AuthService');
 
@@ -20,13 +21,16 @@ export interface LoginResult {
 }
 
 /**
- * Sign in with email and password using Supabase Auth
+ * Sign in with password using Supabase Auth.
+ * Accepts an email OR a passport username (resolved to the synthetic
+ * `<username>@passport.local` email the student-passports function registers).
  */
 export async function signInWithPassword(
-    email: string,
+    identifier: string,
     password: string
 ): Promise<LoginResult> {
     try {
+        const email = resolveLoginIdentifier(identifier);
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -176,11 +180,21 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
         if (!user) return null;
 
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
             .from('profiles')
             .select('id, email, role, full_name, avatar_url')
             .eq('id', user.id)
             .maybeSingle();
+
+        // FIXPLAN H3: with maybeSingle, 0 rows → data null WITHOUT error
+        // (that's the genuine "no profile" case → null). A transport error
+        // must NOT be conflated with "not logged in" — it would silently
+        // route the user to /login mid-session. Throw so callers (AuthGate)
+        // can distinguish and log it.
+        if (error) {
+            log.warn('get_current_user_profile_read_error', { error: error.message });
+            throw error;
+        }
 
         if (!profile) return null;
 
@@ -191,8 +205,12 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
             full_name: profile.full_name || undefined,
             avatar_url: profile.avatar_url || undefined,
         };
-    } catch {
-        return null;
+    } catch (err) {
+        // FIXPLAN H3: rethrow instead of swallowing — returning null here
+        // made transport failures indistinguishable from "signed out" and
+        // silently bounced users to /login. Callers (AuthGate) catch this.
+        log.warn('get_current_user_error', { error: err instanceof Error ? err.message : String(err) });
+        throw err;
     }
 }
 

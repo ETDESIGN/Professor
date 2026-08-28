@@ -21,6 +21,7 @@ vi.mock('../services/supabaseClient', () => ({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({ data: { subscription_tier: 'free' } }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: { subscription_tier: 'free' }, error: null }),
         }),
       }),
     }),

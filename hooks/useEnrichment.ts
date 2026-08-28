@@ -324,7 +324,14 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
 
         setMediaProgress(prev => ({ ...prev, done: prev.done + 1 }));
 
-        supabase.from('units').select('manifest').eq('id', unitId).single().then(({ data: unit }) => {
+        // FIXPLAN H3: .maybeSingle() — the manifest merge is a background
+        // persist; 0 rows or a read error must skip silently-by-design but
+        // the error is now logged (it must not look like a completed merge).
+        supabase.from('units').select('manifest').eq('id', unitId).maybeSingle().then(({ data: unit, error: readError }) => {
+          if (readError) {
+            log.error('media_manifest_read_error', { error: readError.message });
+            return;
+          }
           if (unit?.manifest) {
             const newManifest = { ...unit.manifest };
             if (newManifest.enriched_content) {

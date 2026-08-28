@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { stripReasoning } from '../_shared/json.ts';
-import { fetchChatCompletion } from '../_shared/ai.ts';
+import { fetchChatCompletion, lastChainError } from '../_shared/ai.ts';
 import { resolveImageDataUrl } from '../_shared/imageInput.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import {
@@ -158,8 +158,20 @@ serve(async (req) => {
       Deno.env.get('FALLBACK_VISION_MODEL_NAME') || 'qwen/qwen2.5-vl-72b-instruct',
       'qwen/qwen3-vl-32b-instruct',
     ];
+    // AUDIT FIX (2026-08-28): a dashboard secret accidentally set the vision
+    // fallback to the STT omni model (nvidia/nemotron…:free) — a model that
+    // ANSWERS (HTTP 200) with reasoning prose instead of JSON, so it "won"
+    // the chain and starved the good models ("no JSON object in output").
+    // This hardcoded, env-independent net is tried whenever the configured
+    // chain's output fails to parse — a bad-but-responsive model can never
+    // poison extraction again.
+    const VERIFIED_VISION_MODELS = ['qwen/qwen2.5-vl-72b-instruct', 'qwen/qwen3-vl-32b-instruct'];
 
-    const visionCall = async (systemPrompt: string, userText: string, maxTokens: number, stage: string) => {
+    // AUDIT 2026-08-28: surface WHY models fail (credits/rate-limit/dead
+    // model) — fetchChatCompletion only console.warns, which is invisible
+    // from the Management API. Collected per call, included in failures.
+    let lastModelErrors: string[] = [];
+    const visionCall = async (systemPrompt: string, userText: string, maxTokens: number, stage: string, modelsOverride?: string[]) => {
       const result = await fetchChatCompletion(
         [
           { role: 'system', content: systemPrompt },
@@ -168,7 +180,7 @@ serve(async (req) => {
             { type: 'image_url', image_url: { url: image.finalUrl } },
           ] } as any,
         ],
-        { temperature: 0.1, maxTokens, timeoutMs: 45000, models },
+        { temperature: 0.1, maxTokens, timeoutMs: 45000, models: modelsOverride || models },
       );
       if (result?.usage) {
         await sb.from('llm_telemetry').insert({
@@ -180,16 +192,25 @@ serve(async (req) => {
           total_tokens: result.usage.total_tokens || 0,
         });
       }
-      return result?.content ? stripReasoning(result.content) : '';
+      if (result?.content) return stripReasoning(result.content);
+      lastModelErrors.push(`${stage}: ${lastChainError().slice(0, 300)}`);
+      return '';
     };
 
     // ── Stage 1: structure inventory ──────────────────────────────────────
     let inventoryRaw: any = null;
     try {
-      const invContent = await visionCall(INVENTORY_PROMPT.systemPrompt, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory');
-      inventoryRaw = parseFirstJsonObject(invContent);
+      let invContent = await visionCall(INVENTORY_PROMPT.systemPrompt, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory');
+      try {
+        inventoryRaw = parseFirstJsonObject(invContent);
+      } catch {
+        // Configured chain produced unparseable output — one retry on the
+        // verified vision net (audit 2026-08-28: misconfigured env model).
+        invContent = await visionCall(INVENTORY_PROMPT.systemPrompt, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory', VERIFIED_VISION_MODELS);
+        inventoryRaw = parseFirstJsonObject(invContent);
+      }
     } catch (e: any) {
-      return await failPage(`Structure inventory failed: ${e?.message || e}. Please retry this page.`);
+      return await failPage(`Structure inventory failed: ${e?.message || e}. ${lastModelErrors.join(' | ')}. Please retry this page.`);
     }
     if (!inventoryRaw || !Array.isArray(inventoryRaw.structures)) {
       return await failPage('Structure inventory returned an unexpected shape. Please retry this page.');
@@ -244,20 +265,45 @@ serve(async (req) => {
     // (the sequential version blew the edge limit on dense pages).
     const chunkResults = await Promise.all(chunks.map(async (chunk) => {
       const chunkInventory = JSON.stringify(chunk.map((c, i) => ({ structure_type: c.type, bbox: c.bbox, confidence: c.confidence, hint: c.hint, order_index: i })));
-      // One retry on a malformed response — concatenated objects and fence
-      // noise are transport-quality issues, not content ambiguity.
+      // Parse-aware retry with chain ROTATION: attempt 0 uses the configured
+      // chain; if its output doesn't parse (e.g. a misconfigured env model
+      // answers with reasoning prose — audit 2026-08-28), attempt 1 runs the
+      // verified vision net instead of repeating the same poisoned chain.
       let lastErr = 'unknown error';
-      for (let attempt = 0; attempt < 2; attempt++) {
+      const chains: (string[] | undefined)[] = [undefined, VERIFIED_VISION_MODELS];
+      for (const chainOverride of chains) {
         try {
           const content = await visionCall(
             extractionPrompt.systemPrompt,
             extractionPrompt.userPromptTemplate.replace('{{inventoryJson}}', chunkInventory),
             8000,
             'extract',
+            chainOverride,
           );
           return { ok: true as const, parsed: parseFirstJsonObject(content) };
         } catch (e: any) {
           lastErr = e?.message || String(e);
+        }
+      }
+      // Low-credits adaptation (audit 2026-08-28): OpenRouter rejects the
+      // WHOLE request with 402 when max_tokens exceeds the remaining balance
+      // ("can only afford N tokens"). Retry with the affordable cap — a
+      // smaller-budget extraction beats a dead one, and the balance recovers
+      // when the owner tops up.
+      const afford = /can only afford (\d+)/.exec(lastChainError());
+      if (afford) {
+        const budget = Math.max(500, parseInt(afford[1], 10) - 100);
+        try {
+          const content = await visionCall(
+            extractionPrompt.systemPrompt,
+            extractionPrompt.userPromptTemplate.replace('{{inventoryJson}}', chunkInventory),
+            budget,
+            'extract',
+            VERIFIED_VISION_MODELS,
+          );
+          return { ok: true as const, parsed: parseFirstJsonObject(content) };
+        } catch (e: any) {
+          lastErr = `low-credit retry (${budget} tokens) also failed: ${e?.message || String(e)}`;
         }
       }
       return { ok: false as const, error: lastErr };
@@ -266,7 +312,7 @@ serve(async (req) => {
     const rawStructures: RawStructure[] = [];
     for (const res of chunkResults) {
       if (!res.ok) {
-        return await failPage(`Verbatim extraction failed: ${res.error}. Please retry this page.`);
+        return await failPage(`Verbatim extraction failed: ${res.error}. ${lastModelErrors.join(' | ')}. Please retry this page.`);
       }
       const arr = Array.isArray(res.parsed?.structures) ? res.parsed.structures : [];
       for (const s of arr) {

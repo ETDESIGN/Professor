@@ -21,9 +21,10 @@ import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 //   preserve — manifest kept; natural-key idempotency (unit_id,word /
 //              unit_id,rule) preserves already-enriched content.
 //
-// NULL-owner legacy units are claimed by the calling teacher (Bug B1
-// remediation — the strict ownership guard would otherwise reject them
-// forever).
+// NULL-owner legacy units may be adopted-and-rebuilt only by an admin or
+// manager (audit 2026-08-28 P0-1 — the strict ownership guard would
+// otherwise reject them forever, but first-caller claiming let students
+// steal units).
 
 const PAGE_TIME_BUDGET_MS = 120_000; // per invocation, leave headroom for the chain
 
@@ -81,9 +82,15 @@ serve(async (req) => {
       .single();
     if (unitErr || !unit) return { success: false, error: 'Unit not found.' };
 
-    // Claim NULL-owner legacy units (the rebuild IS the teacher adopting it).
+    // NULL-owner legacy units: only admin/manager may adopt-and-rebuild.
+    // (Audit 2026-08-28 P0-1: previously ANY authenticated caller could claim
+    // the unit by being first to rebuild it — including student accounts.)
     let ownerId = unit.teacher_id;
     if (!ownerId) {
+      const role = auth?.role;
+      if (role !== 'admin' && role !== 'manager') {
+        return { success: false, error: 'This unit has no owner. Ask an admin to rebuild it so it can be re-assigned.' };
+      }
       if (!auth?.userId) return { success: false, error: 'Authentication required.' };
       const { error: claimErr } = await sb.from('units').update({ teacher_id: auth.userId }).eq('id', unitId).eq('teacher_id', null as any);
       if (claimErr) return { success: false, error: `Could not claim the unit: ${claimErr.message}` };

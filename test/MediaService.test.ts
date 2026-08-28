@@ -15,9 +15,9 @@ vi.mock('../services/supabaseClient', () => ({
           }),
         }),
       }),
-      insert: vi.fn().mockReturnValue({
-        then: vi.fn().mockResolvedValue({ error: null }),
-      }),
+      // FIXPLAN H3: the asset insert is now awaited in MediaService —
+      // mock it as a real resolved promise.
+      insert: vi.fn().mockResolvedValue({ error: null }),
     }),
   },
 }));
