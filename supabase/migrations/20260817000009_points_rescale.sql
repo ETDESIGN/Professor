@@ -1,6 +1,16 @@
 -- ============================================
 -- Points rescale (2026-08-17): move to a 1–5 per-question scale
 -- ============================================
+-- Re-versioned 2026-08-28 from 20260817000001 (duplicate version with
+-- student_progress_auto_create, which is the name cloud records for that
+-- slot). This one-shot data migration was NEVER applied to the live cloud
+-- (point_transactions still holds rows from 2026-08-16; the rescale's
+-- companion frontend shipped 2026-08-17 and the quest template was aligned
+-- manually, so the live DB already runs the new scale going forward). The
+-- cloud marker for 20260817000009 was backfilled as applied 2026-08-28 so
+-- `db push` never runs the destructive wipe against live data; fresh
+-- environments DO run it — now correctly AFTER 20260817000006's quest seed,
+-- whose reach_familiar template (reward_xp 15, old scale) this rescales.
 -- Owner decisions locked 2026-08-17:
 --   • Live board scoring: 1/2/3 points by difficulty, streak +1/+2, hard cap 5
 --     per question, wrong attempt −1 (was 30-base with ×1.4/×2.0 multipliers).
