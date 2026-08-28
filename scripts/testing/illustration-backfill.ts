@@ -70,12 +70,19 @@ async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
 
 const isBad = (url: string | null | undefined) => !url || /pollinations\.ai|dicebear\.com/i.test(url);
 
-interface Job { surface: Surface; unitId: string; id: string; content: string; ctx: UnitArtContext }
+interface Job { surface: Surface; unitId: string; id: string; content: string; ctx: UnitArtContext; derived?: boolean }
 
 // Correction 1 (task brief review): every job must carry its OWN UnitArtContext
 // built from its unit row — no shared/misattached context across the four
 // surface loops. All four loops below build it through this helper.
-const ctxFor = (u: any): UnitArtContext => ({ title: u.title, topic: u.topic, artDirection: u.art_direction });
+// Fix C (final review): legacy units have NULL art_direction — derive the
+// per-unit style line instead of passing NULL through, so backfilled images
+// carry the same art-direction context the edge function composes for new units.
+const ctxFor = (u: any): UnitArtContext => ({
+  title: u.title,
+  topic: u.topic,
+  artDirection: u.art_direction || `cheerful primary palette; motifs from ${u.topic || u.title}`,
+});
 
 interface Plan { jobs: Job[]; skipped: Record<string, number>; unitsFetched: number }
 
@@ -109,7 +116,9 @@ async function plan(): Promise<Plan> {
 
   for (const u of live) {
     if ((!onlySurface || onlySurface === 'cover') && isBad(u.cover_image)) {
-      jobs.push({ surface: 'cover', unitId: u.id, id: u.id, content: `cover illustration for the unit "${u.title}" about ${u.topic || u.title}`, ctx: ctxFor(u) });
+      // Fix C: mark cover jobs whose unit had NULL art_direction so runJob can
+      // persist the derived line onto units.art_direction before generating.
+      jobs.push({ surface: 'cover', unitId: u.id, id: u.id, content: `cover illustration for the unit "${u.title}" about ${u.topic || u.title}`, ctx: ctxFor(u), derived: !u.art_direction });
     }
   }
   // vocab (only if the unit was selected or no unit filter and no surface filter)
@@ -164,6 +173,14 @@ async function plan(): Promise<Plan> {
 }
 
 async function runJob(j: Job): Promise<string> {
+  // Fix C: when a COVER job's unit had NULL art_direction, persist the derived
+  // line BEFORE generating (also before the dedup lookup) so the DB gains the
+  // value and future edge-side generations compose the same style. Dry-run-safe:
+  // runJob only executes under --yes; the dry-run path returns in main() before
+  // any job runs, so this PATCH never fires in a dry run.
+  if (j.surface === 'cover' && j.derived && j.ctx.artDirection) {
+    await api(`/rest/v1/units?id=eq.${j.unitId}`, { method: 'PATCH', body: JSON.stringify({ art_direction: j.ctx.artDirection }) });
+  }
   const prompt = composePrompt(j.surface, j.ctx, j.content);
   const hash = await promptHashFor(MODEL, prompt, []);
   const cached = await findAssetByHash(rest, hash);

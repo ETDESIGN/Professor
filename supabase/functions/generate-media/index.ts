@@ -107,10 +107,13 @@ serve(async (req) => {
         const sb = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
         const ctx = await fetchUnitArtContext(sb, unitId);
         if (surface !== 'vocab' || body.regenerate) {
-          // ownership check for non-vocab surfaces (vocab is world-deduped by prompt)
-          if (ctx?.teacherId && ctx.teacherId !== _auth?.userId && _auth?.role !== 'admin') {
-            throw new Error('You do not own this unit');
-          }
+          // ownership check for non-vocab surfaces (vocab is world-deduped by prompt).
+          // Deny-unless-claimed: ownerless legacy units (teacher_id NULL) are
+          // admin-only — otherwise ANY authenticated user could spend money on them.
+          const ownerOk = ctx?.teacherId
+            ? (ctx.teacherId === _auth?.userId || _auth?.role === 'admin')
+            : (_auth?.role === 'admin');
+          if (!ownerOk) throw new Error('You do not own this unit');
         }
         return generateIllustration({
           sb, unitId: unitId || 'default', surface, content: prompt || 'Educational item',
@@ -277,9 +280,12 @@ serve(async (req) => {
         if (!unitId) throw new Error('unitId is required');
         const ctx = await fetchUnitArtContext(sb, unitId);
         if (!ctx) throw new Error('Unit not found');
-        if (ctx.teacherId && ctx.teacherId !== _auth?.userId && _auth?.role !== 'admin') {
-          throw new Error('You do not own this unit');
-        }
+        // Deny-unless-claimed: ownerless legacy units (teacher_id NULL) are
+        // admin-only — otherwise ANY authenticated user could spend money on them.
+        const ownerOk = ctx.teacherId
+          ? (ctx.teacherId === _auth?.userId || _auth?.role === 'admin')
+          : (_auth?.role === 'admin');
+        if (!ownerOk) throw new Error('You do not own this unit');
         const regenerate = Boolean(body.regenerate);
         if (surface === 'cover') return generateCover(sb, unitId, regenerate);
         if (surface === 'portrait') {

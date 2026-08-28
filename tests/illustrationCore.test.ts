@@ -78,7 +78,9 @@ describe('callOpenRouterImages', () => {
     vi.stubGlobal('fetch', async () => new Response('{"error":"bad"}', { status: 402 }));
     const r = await callOpenRouterImages({ openrouterKey: 'k' }, { model: 'm', prompt: 'p' });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain('402');
+    // `r.ok === false` (not `!r.ok`): this non-strict tsconfig does not narrow
+    // the ImageGenResult union inside a negated-truthiness branch.
+    if (r.ok === false) expect(r.error).toContain('402');
   });
   it('returns ok:false when b64_json missing', async () => {
     vi.stubGlobal('fetch', async () => new Response(JSON.stringify({ data: [{}] }), { status: 200 }));
