@@ -47,6 +47,10 @@ test.describe.serial('Dubbing flow (teacher → student → peer → parent)', (
   test.beforeAll(async () => {
     test.skip(!existsSync(CLIP_PATH), 'e2e/fixtures/clip.mp4 missing');
     test.skip(!SUPABASE_URL, 'Requires Supabase config (.env)');
+    test.skip(process.env.VITE_ENABLE_DUBBING !== 'true', 'Requires VITE_ENABLE_DUBBING=true (dubbing routes are flag-gated)');
+    // test.skip() marks the skip but does not halt this hook — bail before
+    // touching live fixtures, or CI fails instead of skipping.
+    if (!existsSync(CLIP_PATH) || !SUPABASE_URL || process.env.VITE_ENABLE_DUBBING !== 'true') return;
     fx = await setupFixtures();
   });
 
