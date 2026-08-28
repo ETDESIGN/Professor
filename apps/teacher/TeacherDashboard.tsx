@@ -1,7 +1,7 @@
 
 import React, { useState, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Folder, FileText, BarChart3, MessageCircle } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
@@ -20,6 +20,8 @@ const TeacherMessages = lazy(() => import('./TeacherMessages'));
 const UploadTextbook = lazy(() => import('./UploadTextbook'));
 const UnitizePage = lazy(() => import('./UnitizationEditor').then(m => ({ default: m.UnitizePage })));
 const UnitStudio = lazy(() => import('./UnitStudio'));
+const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
+const DubbingClips = dubbingEnabled ? lazy(() => import('./DubbingClips')) : null;
 const PageLoader = () => (
   <div className="flex items-center justify-center h-64">
     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600" />
@@ -119,6 +121,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 <button onClick={() => handleNav('/teacher/library')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/library') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <Folder size={20} /> {t('nav.library')}
                 </button>
+                {dubbingEnabled && (
+                  <button onClick={() => handleNav('/teacher/dubbing')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/dubbing') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                    <Video size={20} /> Dubbing
+                  </button>
+                )}
                 <button onClick={() => handleNav('/teacher/mobile-profile')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-profile') || isActive('/teacher/settings') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
                   <Settings size={20} /> {t('nav.settings')}
                 </button>
@@ -191,6 +198,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             >
               <Folder size={20} /> {t('nav.library')}
             </button>
+            {dubbingEnabled && DubbingClips && (
+              <button
+                onClick={() => handleNav('/teacher/dubbing')}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/dubbing') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <Video size={20} /> Dubbing
+              </button>
+            )}
             <button
               onClick={() => handleNav('/teacher/settings')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/settings') || isActive('/teacher/mobile-profile') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
@@ -248,6 +263,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
               <Route path="/teacher/settings" element={<RouteErrorBoundary name="settings"><Suspense fallback={<PageLoader />}><TeacherSettings /></Suspense></RouteErrorBoundary>} />
               <Route path="/teacher/mobile-profile" element={<RouteErrorBoundary name="profile"><Suspense fallback={<PageLoader />}><MobileProfileSettings onBack={() => navigate('/teacher')} /></Suspense></RouteErrorBoundary>} />
               <Route path="/teacher/library" element={<RouteErrorBoundary name="library"><Suspense fallback={<PageLoader />}><ResourceLibrary /></Suspense></RouteErrorBoundary>} />
+              {dubbingEnabled && DubbingClips && (
+                <Route path="/teacher/dubbing" element={<RouteErrorBoundary name="dubbing"><Suspense fallback={<PageLoader />}><DubbingClips /></Suspense></RouteErrorBoundary>} />
+              )}
               <Route path="/teacher/units" element={<RouteErrorBoundary name="units"><Suspense fallback={<PageLoader />}><UnitList onUploadMaterial={() => navigate('/teacher/upload')} onPlanLesson={handlePlanLesson} onEditUnit={(id: string) => navigate(`/teacher/unit/${id}`)} onLaunchLesson={() => navigate('/teacher/live')} /></Suspense></RouteErrorBoundary>} />
               {/* FIXPLAN_H — unknown /teacher/* paths used to render a blank shell (the entry catch-all matched this dashboard but no inner Route matched). Redirect home instead. */}
               <Route path="*" element={<Navigate to="/teacher" replace />} />

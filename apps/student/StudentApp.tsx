@@ -21,6 +21,7 @@ import { createClientLogger } from '../../services/logger';
 const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
 
 const DubbingStudio = lazy(() => import('./DubbingStudio'));
+const ClassDubs = lazy(() => import('./ClassDubs'));
 const Profile = lazy(() => import('./Profile'));
 const Settings = lazy(() => import('./Settings'));
 const HelpCenter = lazy(() => import('./HelpCenter'));
@@ -45,6 +46,25 @@ const PageLoader = () => (
 );
 
 const log = createClientLogger('StudentApp');
+
+/**
+ * Dubbing flow container (studio ↔ class gallery). State-based switch inside
+ * the single /student/dubbing mount — keeps the flag gate and onBack behavior
+ * unchanged (no sub-routes introduced).
+ */
+const DubbingFlow: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const [view, setView] = useState<'studio' | 'gallery'>('studio');
+  return (
+    <Suspense fallback={<PageLoader />}>
+      {view === 'studio' ? (
+        <DubbingStudio onBack={onBack} onOpenGallery={() => setView('gallery')} />
+      ) : (
+        <ClassDubs onBack={() => setView('studio')} onGoStudio={() => setView('studio')} />
+      )}
+    </Suspense>
+  );
+};
+
 
 interface StudentAppProps {
   onSignOut?: () => void;
@@ -211,8 +231,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student/solo-lesson');
   };
 
-
-
   // The Main Lesson Runner (live class mode)
   if (location.pathname === '/student/lesson') {
     return <LessonSession playlist={lessonPlaylist} onComplete={handleLessonComplete} onExit={() => navigate('/student')} />;
@@ -224,7 +242,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   }
 
   // Full screen standalone apps
-  if (dubbingEnabled && location.pathname === '/student/dubbing') return <Suspense fallback={<PageLoader />}><DubbingStudio onBack={() => handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })} /></Suspense>;
+  if (dubbingEnabled && location.pathname === '/student/dubbing') return <DubbingFlow onBack={() => handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })} />;
   // Real stats (Phase 4): the practice apps report their own attempts/quiz
   // results via onSessionEnd — the old hardcoded xp/accuracy values are gone.
   // Phonics + SRS run through ExerciseRunner, which already awards XP per
