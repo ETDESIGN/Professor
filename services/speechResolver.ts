@@ -30,9 +30,11 @@ const log = createClientLogger('speechResolver');
 // dashboard overrides those env vars the client fast path simply misses and
 // the edge remains the authoritative deduper (it computes + returns the
 // canonical prompt_hash on every response).
-const DEFAULT_OPENROUTER_TTS_MODEL = 'qwen/qwen-audio-3.0-tts-flash';
-const DEFAULT_OPENROUTER_VOICE_EN = 'Jennifer';
-const DEFAULT_OPENROUTER_VOICE_ZH = 'Cherry';
+// 2026-08-30: synced to the edge's kokoro defaults (qwen TTS voices were
+// rejected upstream; see _shared/tts.ts for the postmortem).
+const DEFAULT_OPENROUTER_TTS_MODEL = 'hexgrad/kokoro-82m';
+const DEFAULT_OPENROUTER_VOICE_EN = 'af_heart';
+const DEFAULT_OPENROUTER_VOICE_ZH = 'zf_xiaobei';
 
 export type SpeechStatus = 'cached' | 'generating' | 'failed';
 
