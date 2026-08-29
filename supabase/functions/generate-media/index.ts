@@ -3,6 +3,7 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
 import { generateCover, generatePortrait, generateStoryPageScene, generateIllustration, fetchUnitArtContext } from '../_shared/illustration.ts';
+import { serviceRoleKey } from '../_shared/serviceKey.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import {
@@ -129,15 +130,15 @@ serve(async (req) => {
       case 'generate-image': {
         // v2: surface-aware; server composes style + does dedup + records the asset.
         const surface = ['vocab', 'cover', 'story_scene', 'portrait'].includes(body.surface) ? body.surface : 'vocab';
-        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
+        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', serviceRoleKey());
         const ctx = await fetchUnitArtContext(sb, unitId);
         if (surface !== 'vocab' || body.regenerate) {
           // ownership check for non-vocab surfaces (vocab is world-deduped by prompt).
           // Deny-unless-claimed: ownerless legacy units (teacher_id NULL) are
           // admin-only — otherwise ANY authenticated user could spend money on them.
           const ownerOk = ctx?.teacherId
-            ? (ctx.teacherId === _auth?.userId || _auth?.role === 'admin')
-            : (_auth?.role === 'admin');
+            ? (ctx.teacherId === auth?.userId || auth?.role === 'admin')
+            : (auth?.role === 'admin');
           if (!ownerOk) throw new Error('You do not own this unit');
         }
         return generateIllustration({
@@ -224,7 +225,7 @@ serve(async (req) => {
           throw new Error('crop-book-image requires pageId and bbox [x,y,w,h] (normalized)');
         }
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+        const serviceKey = serviceRoleKey();
         if (!supabaseUrl || !serviceKey) throw new Error('Service credentials not configured');
         const sb = createClient(supabaseUrl, serviceKey);
 
@@ -301,15 +302,15 @@ serve(async (req) => {
       // sequencing lives in the client orchestrator + backfill script.
       case 'generate-illustrations': {
         const surface = String(body.surface || '');
-        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '');
+        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', serviceRoleKey());
         if (!unitId) throw new Error('unitId is required');
         const ctx = await fetchUnitArtContext(sb, unitId);
         if (!ctx) throw new Error('Unit not found');
         // Deny-unless-claimed: ownerless legacy units (teacher_id NULL) are
         // admin-only — otherwise ANY authenticated user could spend money on them.
         const ownerOk = ctx.teacherId
-          ? (ctx.teacherId === _auth?.userId || _auth?.role === 'admin')
-          : (_auth?.role === 'admin');
+          ? (ctx.teacherId === auth?.userId || auth?.role === 'admin')
+          : (auth?.role === 'admin');
         if (!ownerOk) throw new Error('You do not own this unit');
         const regenerate = Boolean(body.regenerate);
         if (surface === 'cover') return generateCover(sb, unitId, regenerate);

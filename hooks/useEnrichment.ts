@@ -271,11 +271,19 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
 
   // Background Media Orchestrator — generates AI images for pending vocab/
   // characters one at a time, updating state + persisting to the manifest.
+  // An item needs generation when its status is 'pending' OR its image is
+  // still a placeholder (dicebear/empty). The second condition heals items
+  // that a failed generation era marked 'ready'/'completed' with a fallback
+  // URL — status alone would hide them from regeneration forever. 'failed'
+  // items are excluded so the loop cannot spin on a persistently failing edge.
+  const isPlaceholderImage = (url?: string) => !url || /dicebear\.com/i.test(url);
+  const needsImage = (item: any) =>
+    item?.image_status === 'pending' || (isPlaceholderImage(item?.image_url) && item?.image_status !== 'failed');
   useEffect(() => {
     if (!enriched) return;
 
-    const pendingVocab = enriched.vocabulary.findIndex(v => v.image_status === 'pending');
-    const pendingChar = enriched.characters.findIndex(c => c.image_status === 'pending');
+    const pendingVocab = enriched.vocabulary.findIndex(needsImage);
+    const pendingChar = enriched.characters.findIndex(needsImage);
 
     if (pendingVocab === -1 && pendingChar === -1) {
       if (mediaProgress.generating) setMediaProgress(prev => ({ ...prev, generating: false }));
@@ -283,8 +291,8 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
     }
 
     if (!mediaProgress.generating) {
-      const total = enriched.vocabulary.filter(v => v.image_status === 'pending').length +
-                    enriched.characters.filter(c => c.image_status === 'pending').length;
+      const total = enriched.vocabulary.filter(needsImage).length +
+                    enriched.characters.filter(needsImage).length;
       setMediaProgress({ generating: true, total, done: 0 });
     }
 
@@ -312,7 +320,13 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
         });
 
         if (error) throw error;
-        const newUrl = data?.url || item.image_url;
+        // The edge returns {url: <dicebear>, error} when generation fails —
+        // a fallback URL must NOT be persisted as a completed image (that is
+        // how placeholder URLs got frozen into manifests as 'completed').
+        if (data?.error || !data?.url || isPlaceholderImage(data.url)) {
+          throw new Error(String(data?.error || 'no real image returned'));
+        }
+        const newUrl = data.url;
 
         setEnriched(prev => {
           if (!prev) return prev;
@@ -367,8 +381,8 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
   const [illusPass, setIllusPass] = useState<{ done: boolean; step?: string }>({ done: false });
   useEffect(() => {
     if (!enriched || !unitId || illusPass.done || loadingCategories.size > 0) return;
-    const vocabPending = enriched.vocabulary?.some((v: any) => v.image_status === 'pending') ?? false;
-    const charPending = enriched.characters?.some((c: any) => c.image_status === 'pending') ?? false;
+    const vocabPending = enriched.vocabulary?.some(needsImage) ?? false;
+    const charPending = enriched.characters?.some(needsImage) ?? false;
     if (vocabPending || charPending) return; // wait for the image loop above
     if (illusStarted.current) return; // already running this pass
     illusStarted.current = true;

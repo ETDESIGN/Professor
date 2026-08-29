@@ -92,14 +92,22 @@ describe('callOpenRouterImages', () => {
 });
 
 describe('uploadImageToStorage', () => {
-  it('resolves to null when fetch rejects — never throws (contract)', async () => {
+  it('throws with the transport error when fetch rejects — failures must be diagnosable', async () => {
     vi.stubGlobal('fetch', async () => { throw new Error('boom'); });
-    const url = await uploadImageToStorage(
+    await expect(uploadImageToStorage(
       { supabaseUrl: 'https://s.example', serviceKey: 'k' },
       'unit-1',
       new Uint8Array([1, 2, 3]),
       'image/png',
-    );
-    expect(url).toBeNull();
+    )).rejects.toThrow(/boom/);
+  });
+  it('throws with status and body when storage rejects the upload', async () => {
+    vi.stubGlobal('fetch', async () => new Response('{"error":"mimeType not allowed"}', { status: 400 }));
+    await expect(uploadImageToStorage(
+      { supabaseUrl: 'https://s.example', serviceKey: 'k' },
+      'unit-1',
+      new Uint8Array([1, 2, 3]),
+      'image/png',
+    )).rejects.toThrow(/400.*mimeType not allowed/);
   });
 });

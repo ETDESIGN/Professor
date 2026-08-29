@@ -98,19 +98,27 @@ export async function callOpenRouterImages(
 // ── Supabase REST helpers (service role) ─────────────────────────────
 export interface SupabaseRestConfig { supabaseUrl: string; serviceKey: string }
 
-export async function uploadImageToStorage(cfg: SupabaseRestConfig, unitId: string, bytes: Uint8Array, contentType: string): Promise<string | null> {
+export async function uploadImageToStorage(cfg: SupabaseRestConfig, unitId: string, bytes: Uint8Array, contentType: string): Promise<string> {
+  const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
+  const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
+  let resp: Response;
   try {
-    const ext = contentType.split('/')[1]?.split(';')[0] || 'png';
-    const uploadPath = `images/${unitId || 'default'}/${Date.now()}.${ext}`;
-    const resp = await fetch(`${cfg.supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`, {
+    resp = await fetch(`${cfg.supabaseUrl}/storage/v1/object/generated-media/${uploadPath}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${cfg.serviceKey}`, 'Content-Type': contentType },
       body: bytes,
       signal: AbortSignal.timeout(20000),
     });
-    if (!resp.ok) return null;
-    return `${cfg.supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
-  } catch { return null; }
+  } catch (err: any) {
+    // Surface transport failures (timeout/DNS/egress) — a bare null made every
+    // caller silently fall back to the dicebear placeholder with no diagnosis.
+    throw new Error(`storage upload request failed: ${err?.name || 'Error'} ${err?.message || ''}`.trim());
+  }
+  if (!resp.ok) {
+    const body = (await resp.text().catch(() => '')).slice(0, 200);
+    throw new Error(`storage upload ${resp.status}: ${body}`);
+  }
+  return `${cfg.supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
 }
 
 export async function findAssetByHash(cfg: SupabaseRestConfig, promptHash: string): Promise<{ id: string; public_url: string } | null> {

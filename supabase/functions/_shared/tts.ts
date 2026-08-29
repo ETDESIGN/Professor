@@ -162,7 +162,10 @@ async function storeAudio(
   promptHash: string | null,
 ): Promise<{ url: string; error?: string }> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  // Storage uploads need the legacy JWT (see serviceKey.ts) — the injected
+  // new-style key is rejected by /storage/v1 with "Invalid Compact JWS".
+  const { serviceRoleKey } = await import('./serviceKey.ts');
+  const supabaseKey = serviceRoleKey();
   if (!supabaseUrl || !supabaseKey) return { url: DUMMY, error: 'Supabase not configured' };
 
   const uploadPath = `audio/${unitId || 'default'}/${Date.now()}.mp3`;
@@ -171,7 +174,10 @@ async function storeAudio(
     headers: { Authorization: `Bearer ${supabaseKey}`, 'Content-Type': 'audio/mpeg' },
     body: audioBuffer,
   });
-  if (!uploadResponse.ok) return { url: DUMMY, error: 'Storage upload failed' };
+  if (!uploadResponse.ok) {
+    const detail = (await uploadResponse.text().catch(() => '')).slice(0, 150);
+    return { url: DUMMY, error: `Storage upload failed (${uploadResponse.status}): ${detail}` };
+  }
 
   const publicUrl = `${supabaseUrl}/storage/v1/object/public/generated-media/${uploadPath}`;
   // Record the audio as an asset (deduped by prompt_hash via the unique

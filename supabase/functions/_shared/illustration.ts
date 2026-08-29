@@ -8,13 +8,14 @@ import {
   IllustrationConfig, SupabaseRestConfig, ImageGenResult,
   callOpenRouterImages, uploadImageToStorage, findAssetByHash, insertAssetRow, promptHashFor,
 } from './illustrationCore.ts';
+import { serviceRoleKey } from './serviceKey.ts';
 
 const DICEBEAR = (seed: string) => `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed || 'item')}`;
 
 function envConfig(): { ill: IllustrationConfig; rest: SupabaseRestConfig; model: string; fallbackModel: string | null } | null {
   const openrouterKey = Deno.env.get('AI_API_KEY') || '';
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  const serviceKey = serviceRoleKey();
   if (!openrouterKey || !supabaseUrl || !serviceKey) return null;
   return {
     ill: { openrouterKey },
@@ -101,8 +102,14 @@ export async function generateIllustration(opts: {
   if (gen.ok === false) return { url: DICEBEAR(opts.content), error: gen.error };
 
   const bytes = Uint8Array.from(atob(gen.b64), (c) => c.charCodeAt(0));
-  const publicUrl = await uploadImageToStorage(cfg.rest, opts.unitId, bytes, gen.mediaType);
-  if (!publicUrl) return { url: DICEBEAR(opts.content), error: 'storage upload failed' };
+  let publicUrl: string | null = null;
+  let uploadErr = '';
+  try {
+    publicUrl = await uploadImageToStorage(cfg.rest, opts.unitId, bytes, gen.mediaType);
+  } catch (e: any) {
+    uploadErr = e?.message || String(e);
+  }
+  if (!publicUrl) return { url: DICEBEAR(opts.content), error: `storage upload failed: ${uploadErr}` };
 
   const { id: assetId, conflict } = await insertAssetRow(cfg.rest, {
     unit_id: opts.unitId || null,

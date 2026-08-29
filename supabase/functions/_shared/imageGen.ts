@@ -14,7 +14,12 @@ export async function generateAndStoreImage(prompt: string, unitId: string): Pro
     sb, unitId: unitId || 'default', surface: 'vocab', content: prompt,
     context: ctx || { title: 'Unit', topic: null, artDirection: null },
   });
-  return { url: r.url, provider: r.cached ? 'dedup' : 'openrouter', error: r.error };
+  // On failure generateIllustration returns a dicebear fallback WITH an error
+  // — machine consumers (generate-exercises) treat a truthy url as success and
+  // would persist the placeholder as image_status:'ready', permanently hiding
+  // the item from regeneration. Surface failure as an empty url.
+  if (r.error) return { url: '', provider: 'openrouter', error: r.error };
+  return { url: r.url, provider: r.cached ? 'dedup' : 'openrouter' };
 }
 
 export const dicebearPlaceholder = (seed: string) =>
