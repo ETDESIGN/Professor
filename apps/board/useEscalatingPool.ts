@@ -16,6 +16,7 @@ import { classWeakObjectives } from '../../services/boardLearner';
 import { supabase } from '../../services/supabaseClient';
 import {
   buildRound,
+  denseWeakRanks,
   nextRungForObjective,
   type ObjectiveType,
   type Phase,
@@ -70,7 +71,8 @@ export interface UseEscalatingPoolOutput {
 export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingPoolOutput {
   const { unitId, shellType, phase, roster, roundIndex, totalRounds, roundSize = 6 } = input;
   // FIXPLAN E1.3: seed buildRound's tie-break shuffle so every tab of one
-  // session builds the identical round (roundIndex keeps rounds varied).
+  // session builds the identical round (shellType + roundIndex keep games
+  // and rounds varied).
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
 
@@ -99,15 +101,15 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   // classWeakObjectives returns [{objective_id, retrievability, states: ObjectiveState[]}].
   // Each state carries mastery_state — that's what nextRungForObjective reads.
   const rosterKey = roster.join(',');
-  const [weakOrder, setWeakOrder] = useState<string[]>([]);
+  const [weakRanks, setWeakRanks] = useState<Record<string, number>>({});
   const [srsByObjective, setSrsByObjective] = useState<Record<string, RungSrsState | null>>({});
   useEffect(() => {
     let cancelled = false;
-    if (!unitId || roster.length === 0) { setWeakOrder([]); setSrsByObjective({}); return; }
+    if (!unitId || roster.length === 0) { setWeakRanks({}); setSrsByObjective({}); return; }
     (async () => {
       const weak = await classWeakObjectives(roster, unitId);
       if (cancelled) return;
-      setWeakOrder(weak.map((w) => w.objective_id));
+      setWeakRanks(denseWeakRanks(weak));
       // Aggregate per-objective mastery_state across the roster: take the WORST
       // (lowest) mastery the class has, so escalation respects the weakest
       // student who matters. States not present = null (unseen).
@@ -145,10 +147,6 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
 
   // ── 4. buildRound — the pure selection. Recomputed when any input changes. ──
   const round = useMemo(() => {
-    // TEMP (Task 4 replaces with denseWeakRanks of the classWeakObjectives
-    // output): positional ranks keep this compiling; behavior identical to
-    // the old weakOrder semantics.
-    const weakRanks: Record<string, number> = Object.fromEntries(weakOrder.map((id, i) => [id, i]));
     if (objectives.length === 0) {
       return { selectedObjectiveIds: [], rungByObjective: {}, exerciseTypes: [] as string[] };
     }
@@ -165,9 +163,9 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       phase,
       roundSize,
       servedObjectives: servedAtRoundStart,
-      rng: makeRng(sessionId, unitId, roundIndex),
+      rng: makeRng(sessionId, unitId, shellType, roundIndex),
     });
-  }, [objectives, srsByObjective, weakOrder, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart, sessionId, unitId]);
+  }, [objectives, srsByObjective, weakRanks, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart, sessionId, unitId]);
 
   // Record the round's objectives as dealt (advances the sequential deal for
   // the NEXT round / next slide's shell; idempotent within the same round).
