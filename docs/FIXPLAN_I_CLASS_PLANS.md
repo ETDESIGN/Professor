@@ -210,12 +210,12 @@ No AI call anywhere in class flow generation (cost-conscious, deterministic — 
 
 ## Verification checklist (do not mark complete until green)
 
-- [ ] vitest: proposal algorithm (set-change cuts, song/review ends, balanced n-partition, weak-label fallback, Power Up jumbled-order sample) green.
-- [ ] vitest: class flow derivation (scoped FOCUS_CARDS/STORY/DIALOGUE/GRAMMAR, drop-empty blocks, pool shells preserved, unknown blocks preserved, passes `validateAndNormalizeFlow`).
-- [ ] Migration applied cloud; `class_plans` / columns exist; `refresh_class_plan_scope`, `get_released_objectives` executable; `get_unit_bundle` output identical to pre-migration for a unit without plans (golden compare).
-- [ ] Functions live: `/functions/v1/{propose-class-plans,apply-class-plans,generate-class-flow}` + `apikey` → 401 (not 404).
-- [ ] E2E: propose → apply → `content_index` correct (page/structure/objective resolution, include/exclude honored); class flow scoped; unit flow untouched.
-- [ ] Release gate: unit with plans + none released → `get_released_objectives` = ∅, student bundle filtered to ∅ content; release class 1 → only class 1's objectives/vocab/story visible; unit without plans → all objectives (legacy).
-- [ ] LiveBoard: teach class 1 → board + commander show class flow; pool-driven games serve only class-1 objectives; board reload mid-session rehydrates the class (not the unit flow).
-- [ ] Existing production units keep working: teach, student lessons, practice, assignments — unchanged for plan-less units.
+- [x] vitest: proposal algorithm (set-change cuts, song/review ends, balanced n-partition, weak-label fallback, Power Up jumbled-order sample) green.
+- [x] vitest: class flow derivation (scoped FOCUS_CARDS/STORY/DIALOGUE/GRAMMAR, drop-empty blocks, pool shells preserved, unknown blocks preserved, passes `validateAndNormalizeFlow`).
+- [x] Migration applied cloud; `class_plans` / columns exist; `refresh_class_plan_scope`, `get_released_objectives` executable; `get_unit_bundle` output identical to pre-migration for a unit without plans (golden compare).
+- [x] Functions live: `/functions/v1/{propose-class-plans,apply-class-plans,generate-class-flow}` + `apikey` → 401 (not 404).
+- [x] E2E: propose → apply → `content_index` correct (page/structure/objective resolution, include/exclude honored); class flow scoped; unit flow untouched.
+- [x] Release gate: unit with plans + none released → `get_released_objectives` = ∅, student bundle filtered to ∅ content; release class 1 → only class 1's objectives/vocab/story visible; unit without plans → all objectives (legacy).
+- [ ] LiveBoard: teach class 1 (code-complete; owner classroom pass pending) → board + commander show class flow; pool-driven games serve only class-1 objectives; board reload mid-session rehydrates the class (not the unit flow).
+- [x] Existing production units keep working: teach, student lessons, practice, assignments — unchanged for plan-less units.
 - [ ] Owner acceptance: "A day on the farm" split into 3 classes; teach class 1 live; student app shows only class 1's series.
