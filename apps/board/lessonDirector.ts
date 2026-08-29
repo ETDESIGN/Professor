@@ -238,6 +238,30 @@ export function warnIfOutsideEnvelope(shellType: string, phase: Phase, rung: num
 // never forces a brand-new word into free production.
 // =====================================================================
 
+// =====================================================================
+// 6a. denseWeakRanks — the production-shape weak ranking (2026-08-30).
+//
+// classWeakObjectives returns ALL objectives sorted by retrievability; on a
+// fresh class every word ties at R = 0, so a POSITIONAL rank (index into
+// that list) is a total order that annihilates buildRound's tie-break
+// shuffle (the "first 4 words forever" bug). Dense ranks — equal R ⇒ equal
+// rank — restore the intended semantics: strict weak-first for genuinely
+// unequal R, seeded shuffle within ties.
+// =====================================================================
+
+export interface WeakObjectiveScore {
+  objective_id: string;
+  retrievability: number;
+}
+
+export function denseWeakRanks(weak: ReadonlyArray<WeakObjectiveScore>): Record<string, number> {
+  const levels = Array.from(new Set(weak.map((w) => w.retrievability))).sort((a, b) => a - b);
+  const levelIndex = new Map<number, number>(levels.map((r, i) => [r, i]));
+  const out: Record<string, number> = {};
+  for (const w of weak) out[w.objective_id] = levelIndex.get(w.retrievability) ?? levels.length;
+  return out;
+}
+
 export interface BuildRoundInput {
   /** 1-based round index within this slide. */
   roundIndex: number;

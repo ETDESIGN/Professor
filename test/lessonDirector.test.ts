@@ -7,7 +7,7 @@
 //   3. The rung-walk result is what lands in rungByObjective (the old second
 //      push block overwrote it with the pre-walk targetRung).
 import { describe, it, expect } from 'vitest';
-import { buildRound, type BuildRoundInput } from '../apps/board/lessonDirector';
+import { buildRound, denseWeakRanks, type BuildRoundInput } from '../apps/board/lessonDirector';
 import { buildQuizComposition } from '../apps/board/quizEngine';
 import { servedFor, markServed, resetUnit } from '../apps/board/coverageStore';
 
@@ -137,5 +137,27 @@ describe('coverageStore', () => {
     expect(servedFor(unit)).toHaveLength(3);
     resetUnit(unit);
     expect(servedFor(unit)).toEqual([]);
+  });
+});
+
+describe('denseWeakRanks', () => {
+  it('gives equal retrievability the SAME rank (the production fresh-class case)', () => {
+    const weak = IDS.map((id) => ({ objective_id: id, retrievability: 0 }));
+    const ranks = denseWeakRanks(weak);
+    for (const id of IDS) expect(ranks[id]).toBe(0);
+  });
+
+  it('dense-ranks distinct retrievability ascending', () => {
+    const weak = [
+      { objective_id: 'a', retrievability: 0.2 },
+      { objective_id: 'b', retrievability: 0.9 },
+      { objective_id: 'c', retrievability: 0.2 },
+      { objective_id: 'd', retrievability: 0.5 },
+    ];
+    expect(denseWeakRanks(weak)).toEqual({ a: 0, b: 2, c: 0, d: 1 });
+  });
+
+  it('returns {} for empty input', () => {
+    expect(denseWeakRanks([])).toEqual({});
   });
 });
