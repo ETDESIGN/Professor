@@ -75,7 +75,18 @@ export async function selectLessonItems(unitId: string, studentId: string, count
       .eq('unit_id', unitId);
     if (error || !rows || rows.length === 0) return [];
 
-    const objectives = Array.from(new Set(rows.map((r) => r.objective_id).filter(Boolean) as string[]));
+    // FIXPLAN I (#5): a lesson serves only RELEASED objectives (all of them
+    // when the unit has no class plans — the RPC handles that). Fail-open.
+    let candidateRows = rows;
+    const { getReleasedObjectiveIds } = await import('./learnerState');
+    const released = await getReleasedObjectiveIds(unitId);
+    if (released) {
+      const allowed = new Set(released);
+      candidateRows = rows.filter((r) => allowed.has(r.objective_id));
+      if (candidateRows.length === 0) return [];
+    }
+
+    const objectives = Array.from(new Set(candidateRows.map((r) => r.objective_id).filter(Boolean) as string[]));
     const states = await getLearnerState(studentId, objectives);
     const ranked = rankWeakestFirst(states);
     const unseen = objectives.filter((id) => !states.has(id));
@@ -83,7 +94,7 @@ export async function selectLessonItems(unitId: string, studentId: string, count
 
     // Determine the chosen (objective, type) pairs without loading content.
     const byObjectiveType = new Map<string, { id: string; exercise_type: string }[]>();
-    for (const r of rows) {
+    for (const r of candidateRows) {
       const arr = byObjectiveType.get(r.objective_id) || [];
       arr.push({ id: r.id, exercise_type: r.exercise_type });
       byObjectiveType.set(r.objective_id, arr);

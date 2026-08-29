@@ -653,6 +653,9 @@ export interface Assignment {
     id: string;
     class_id: string;
     unit_id: string | null;
+    /** FIXPLAN I — an assignment attaches to a class plan (the teachable
+     * class), not the whole unit, when the teacher chooses one. */
+    class_plan_id: string | null;
     title: string;
     description: string | null;
     due_date: string | null;
@@ -714,6 +717,7 @@ export async function createAssignment(
         .insert({
             class_id: assignmentData.class_id,
             unit_id: assignmentData.unit_id || null,
+            class_plan_id: (assignmentData as any).class_plan_id || null,
             title: assignmentData.title,
             description: assignmentData.description || null,
             due_date: assignmentData.due_date || null,
@@ -766,6 +770,7 @@ export async function getStudentAssignments(studentId: string): Promise<Assignme
                 id,
                 class_id,
                 unit_id,
+                class_plan_id,
                 title,
                 description,
                 due_date,
@@ -788,6 +793,7 @@ export async function getStudentAssignments(studentId: string): Promise<Assignme
         id: item.assignments.id,
         class_id: item.assignments.class_id,
         unit_id: item.assignments.unit_id,
+        class_plan_id: item.assignments.class_plan_id ?? null,
         title: item.assignments.title,
         description: item.assignments.description,
         due_date: item.assignments.due_date,

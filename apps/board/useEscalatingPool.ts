@@ -11,11 +11,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useBoardPool } from './useBoardPool';
-import { servedFor, markServed } from './coverageStore';
+import { servedFor } from './coverageStore';
+import { useCoverageLedger } from './useCoverageLedger';
 import { classWeakObjectives } from '../../services/boardLearner';
 import { supabase } from '../../services/supabaseClient';
 import {
   buildRound,
+  denseWeakRanks,
   nextRungForObjective,
   type ObjectiveType,
   type Phase,
@@ -70,9 +72,21 @@ export interface UseEscalatingPoolOutput {
 export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingPoolOutput {
   const { unitId, shellType, phase, roster, roundIndex, totalRounds, roundSize = 6 } = input;
   // FIXPLAN E1.3: seed buildRound's tie-break shuffle so every tab of one
-  // session builds the identical round (roundIndex keeps rounds varied).
+  // session builds the identical round (shellType + roundIndex keep games
+  // and rounds varied).
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
+  // Coverage ledger (Task 8): marks write to memory (coverageStore) AND the
+  // DB ledger (debounced RPC) so a refresh / late-joining tab rehydrates the
+  // deal history and keeps rotating words instead of restarting it.
+  const coverage = useCoverageLedger(sessionId, unitId);
+  // FIXPLAN I (#8): a class session drills ONLY the current class's
+  // objectives; a whole-unit session keeps the full objective set.
+  const scopeObjectiveIds: string[] | null = (() => {
+    const ids = state.activeClassPlan?.content_index?.objective_ids;
+    return Array.isArray(ids) && ids.length > 0 ? ids : null;
+  })();
+  const scopeKey = scopeObjectiveIds?.join(',') ?? '';
 
   // ── 1. Objectives for this unit (id + type), cached per unitId. ────────
   const [objectives, setObjectives] = useState<{ id: string; type: ObjectiveType }[]>([]);
@@ -80,10 +94,12 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
     let cancelled = false;
     if (!unitId) { setObjectives([]); return; }
     (async () => {
-      const { data, error } = await supabase
+      let objQuery = supabase
         .from('objectives')
         .select('id, type')
         .eq('unit_id', unitId);
+      if (scopeObjectiveIds) objQuery = objQuery.in('id', scopeObjectiveIds);
+      const { data, error } = await objQuery;
       if (cancelled) return;
       if (error || !data) { setObjectives([]); return; }
       // Narrow type to the ObjectiveType union; unknown types fall back to 'vocabulary'.
@@ -93,21 +109,21 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       })));
     })();
     return () => { cancelled = true; };
-  }, [unitId]);
+  }, [unitId, scopeKey]);
 
   // ── 2. Class-weak ordering + SRS state, cached per (unitId, roster). ───
   // classWeakObjectives returns [{objective_id, retrievability, states: ObjectiveState[]}].
   // Each state carries mastery_state — that's what nextRungForObjective reads.
   const rosterKey = roster.join(',');
-  const [weakOrder, setWeakOrder] = useState<string[]>([]);
+  const [weakRanks, setWeakRanks] = useState<Record<string, number>>({});
   const [srsByObjective, setSrsByObjective] = useState<Record<string, RungSrsState | null>>({});
   useEffect(() => {
     let cancelled = false;
-    if (!unitId || roster.length === 0) { setWeakOrder([]); setSrsByObjective({}); return; }
+    if (!unitId || roster.length === 0) { setWeakRanks({}); setSrsByObjective({}); return; }
     (async () => {
       const weak = await classWeakObjectives(roster, unitId);
       if (cancelled) return;
-      setWeakOrder(weak.map((w) => w.objective_id));
+      setWeakRanks(denseWeakRanks(weak));
       // Aggregate per-objective mastery_state across the roster: take the WORST
       // (lowest) mastery the class has, so escalation respects the weakest
       // student who matters. States not present = null (unseen).
@@ -140,8 +156,8 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   // and re-select for the SAME round (which would churn the board).
   const [servedAtRoundStart, setServedAtRoundStart] = useState<string[]>([]);
   useEffect(() => {
-    setServedAtRoundStart(servedFor(unitId));
-  }, [unitId, roundIndex]);
+    setServedAtRoundStart(servedFor(sessionId, unitId));
+  }, [sessionId, unitId, roundIndex]);
 
   // ── 4. buildRound — the pure selection. Recomputed when any input changes. ──
   const round = useMemo(() => {
@@ -156,22 +172,22 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       objectiveIds: objectives.map((o) => o.id),
       objectiveTypeById,
       srsByObjective,
-      weakOrder,
+      weakRanks,
       shellType,
       phase,
       roundSize,
       servedObjectives: servedAtRoundStart,
-      rng: makeRng(sessionId, unitId, roundIndex),
+      rng: makeRng(sessionId, unitId, shellType, roundIndex),
     });
-  }, [objectives, srsByObjective, weakOrder, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart, sessionId, unitId]);
+  }, [objectives, srsByObjective, weakRanks, roundIndex, totalRounds, shellType, phase, roundSize, servedAtRoundStart, sessionId, unitId]);
 
   // Record the round's objectives as dealt (advances the sequential deal for
   // the NEXT round / next slide's shell; idempotent within the same round).
   const selectedKey = round.selectedObjectiveIds.join(',');
   useEffect(() => {
-    if (!unitId || selectedKey === '') return;
-    markServed(unitId, round.selectedObjectiveIds);
-  }, [unitId, selectedKey]);
+    if (!sessionId || !unitId || selectedKey === '') return;
+    coverage.markServed(round.selectedObjectiveIds);
+  }, [sessionId, unitId, selectedKey]);
 
   // ── 5. useBoardPool — fetch items for the round's exercise types. ──────
   // Passing a new exerciseTypes array per round re-fetches (deps include join).

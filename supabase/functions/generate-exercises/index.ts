@@ -385,7 +385,7 @@ serve(async (req) => {
     let vocab: any[] = [];
     try {
       const { data: viRows } = await sb.from('vocabulary_items')
-        .select('word, definition, example_sentence, l1_translation, phonetic, part_of_speech, image_prompt, image_url, audio_url, example_audio_url, distractors, confusables')
+        .select('word, definition, example_sentence, l1_translation, phonetic, part_of_speech, image_prompt, image_url, audio_url, example_audio_url, distractors, confusables, source_structure_id')
         .eq('unit_id', unitId)
         .order('order_index', { ascending: true });
       if (viRows && viRows.length > 0) {
@@ -396,6 +396,7 @@ serve(async (req) => {
           audio_url: v.audio_url, example_audio_url: v.example_audio_url,
           distractors: Array.isArray(v.distractors) ? v.distractors : [],
           confusables: Array.isArray(v.confusables) ? v.confusables : [],
+          source_structure_id: v.source_structure_id ?? null,
         }));
       }
     } catch { /* fall back to manifest below */ }
@@ -554,21 +555,30 @@ serve(async (req) => {
     }
 
     // ── 2. Reconcile objectives (preserve ids -> keep srs_items links) ─────
-    const { data: existingObjectives } = await sb.from('objectives').select('id, type, target_value').eq('unit_id', unitId);
-    const existing = (existingObjectives || []) as { id: string; type: string; target_value: string }[];
+    const { data: existingObjectives } = await sb.from('objectives').select('id, type, target_value, source_structure_id').eq('unit_id', unitId);
+    const existing = (existingObjectives || []) as { id: string; type: string; target_value: string; source_structure_id?: string | null }[];
     const findObjective = (type: string, target: string) =>
       existing.find((o) => o.type === type && o.target_value.trim().toLowerCase() === target.trim().toLowerCase());
 
     const objectiveIdFor = new Map<string, string>();
-    const ensureObjective = async (type: 'vocabulary' | 'grammar' | 'phonics' | 'story' | 'dialogue', target: string): Promise<string> => {
+    // FIXPLAN I: provenance-stamped objectives — class plans link content to
+    // classes via objectives.source_structure_id. Optional param; found
+    // objectives keep their existing stamp.
+    const ensureObjective = async (type: 'vocabulary' | 'grammar' | 'phonics' | 'story' | 'dialogue', target: string, sourceStructureId?: string | null): Promise<string> => {
       const key = `${type}:${target.toLowerCase()}`;
       if (objectiveIdFor.has(key)) return objectiveIdFor.get(key)!;
       const found = findObjective(type, target);
       if (found) {
         objectiveIdFor.set(key, found.id);
+        // Backfill the stamp if this run finally knows the provenance.
+        if (sourceStructureId && !found.source_structure_id) {
+          try {
+            await sb.from('objectives').update({ source_structure_id: sourceStructureId }).eq('id', found.id);
+          } catch { /* best-effort stamp */ }
+        }
         return found.id;
       }
-      const { data: inserted, error } = await sb.from('objectives').insert({ unit_id: unitId, type, target_value: target }).select('id').single();
+      const { data: inserted, error } = await sb.from('objectives').insert({ unit_id: unitId, type, target_value: target, ...(sourceStructureId ? { source_structure_id: sourceStructureId } : {}) }).select('id').single();
       if (error || !inserted) throw new Error(`objective insert failed: ${error?.message || 'no row'}`);
       objectiveIdFor.set(key, inserted.id);
       existing.push({ id: inserted.id, type, target_value: target });
@@ -620,7 +630,7 @@ serve(async (req) => {
 
     try {
       for (const v of vocabWithImages) {
-        const oid = await ensureObjective('vocabulary', String(v.word));
+        const oid = await ensureObjective('vocabulary', String(v.word), (v as any).source_structure_id ?? undefined);
         allRows.push(...gate('vocabulary', buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word))));
       }
       // Phase 1.4: grammar from the relational table (grammar_rules is the
@@ -629,7 +639,7 @@ serve(async (req) => {
       let grammarRules: any[] = [];
       try {
         const { data: grRows } = await sb.from('grammar_rules')
-          .select('rule, explanation, examples, pattern_template, transformation_pairs, error_examples')
+          .select('rule, explanation, examples, pattern_template, transformation_pairs, error_examples, source_structure_id')
           .eq('unit_id', unitId)
           .order('order_index', { ascending: true });
         grammarRules = Array.isArray(grRows) ? grRows : [];
@@ -638,7 +648,7 @@ serve(async (req) => {
         grammarRules = grammar; // legacy manifest fallback
       }
       for (const g of grammarRules) {
-        const oid = await ensureObjective('grammar', String(g.rule));
+        const oid = await ensureObjective('grammar', String(g.rule), (g as any).source_structure_id ?? undefined);
         allRows.push(...gate('grammar', buildGrammarItems(unitId, oid, g, siblingWords)));
       }
 

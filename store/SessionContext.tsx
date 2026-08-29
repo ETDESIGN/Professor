@@ -72,6 +72,11 @@ interface SessionState {
   /** The class currently "live" — drives the roster-first student list. Null = legacy
    *  fallback (all teacher students). */
   activeClassId: string | null;
+  /** FIXPLAN I — the class plan currently being taught, when the session is a
+   *  CLASS session (doc 11 #8: the board is strictly the current class's
+   *  material). Null = whole-unit session (legacy behavior). The flow shown is
+   *  class_plans.flow; content_index.objective_ids scopes every pool pull. */
+  activeClassPlan: { id: string; unit_id: string; title: string; released_at: string | null; content_index: any; flow?: any[] } | null;
   /** The open attendance occurrence for this live session (null until go-live / ensure). */
   activeOccurrenceId: string | null;
   students: any[];
@@ -103,6 +108,9 @@ interface SessionState {
   totalCorrect?: number;
   totalAttempts?: number;
   sessionId?: string | null;
+  /** Coverage ledger (live board word rotation): dealt_objectives mirrored
+   *  from the session row, keyed by unitId — hydrates useCoverageLedger. */
+  dealtObjectives?: Record<string, string[]> | null;
   /** Same-session remediation queue (architecture §3.3): objectives missed
    *  by ≥1 student this session, prioritized by the next WRAPUP/REVIEW slide's
    *  round-builder. Deliberately separate from FSRS cross-lesson scheduling. */
@@ -193,7 +201,7 @@ export interface SessionContextType {
   setActiveClass: (classId: string | null) => Promise<void>;
   /** stageId is the student-path (solo) extension: scope the lesson to one
    *  node. The live teacher implementation ignores it. */
-  setActiveUnit: (unitId: string, stageId?: string) => Promise<void>;
+  setActiveUnit: (unitId: string, classPlanId?: string) => Promise<void>;
   /** Ensure an attendance occurrence exists for the live class (for opening the
    *  attendance modal before go-live). Returns the occurrence id or null. */
   ensureAttendanceOccurrence: () => Promise<{ id: string | null; error: string | null }>;
@@ -255,6 +263,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     activeSlideData: null,
     activeUnit: null,
     activeClassId: null,
+    activeClassPlan: null,
     activeOccurrenceId: null,
     students: [],
     pointsLog: [],
@@ -273,6 +282,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     noiseLevel: 0,
     units: [],
     sessionId: null,
+    dealtObjectives: null,
     remediationQueue: [],
     sessionStartedAt: null,
     recentActions: [],
@@ -333,6 +343,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const liveTurnRef = useRef<LiveTurnState>({ ...EMPTY_LIVE_TURN });
   /** Last applied classroom_sessions.seq — the live-state ordering guard. */
   const liveSeqRef = useRef(0);
+  /** Last applied dealt_objectives signature (coverage ledger) — dedupes
+   *  postgres_changes re-deliveries so slide moves don't churn renders. */
+  const dealtSigRef = useRef<string | null>(null);
   /** Last slide index whose arrival cleared the local live-turn mirror
    *  (dedupe so repeated same-index syncs don't re-clear). */
   const liveTurnSlideRef = useRef<number | null>(null);
@@ -347,6 +360,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const pendingPointsRef = useRef<Record<string, number>>({});
   const activeClassIdRef = useRef<string | null>(null);
   useEffect(() => { activeClassIdRef.current = state.activeClassId; }, [state.activeClassId]);
+  /** FIXPLAN I — cache-first class-plan loader (classroom_sessions rows carry
+   *  class_plan_id; every tab resolves the same plan through applySessionRow). */
+  const classPlanCacheRef = useRef<Map<string, any>>(new Map());
+  const fetchClassPlan = useCallback(async (id: string) => {
+    const cached = classPlanCacheRef.current.get(id);
+    if (cached) return cached;
+    const { data, error } = await supabase
+      .from('class_plans')
+      .select('id, unit_id, title, released_at, content_index, flow, flow_generated_at')
+      .eq('id', id)
+      .maybeSingle();
+    if (error || !data) return null;
+    classPlanCacheRef.current.set(id, data);
+    return data;
+  }, []);
   // Ref mirror of loadStudents so setActiveClass (a useCallback with [] deps,
   // defined below) can call the latest loadStudents without capturing a stale
   // closure from the first render.
@@ -622,7 +650,32 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       setState(prev => (prev.activeClassId === row.class_id ? prev : { ...prev, activeClassId: row.class_id }));
     }
 
-    if (!row.unit_id) return;
+    // FIXPLAN I — class-plan session: resolve the plan (cache-first) and use
+    // ITS flow. The plan must belong to the session's unit; a mismatched or
+    // missing plan falls back to the unit flow (never a blank board).
+    let classPlan: any = null;
+    if (row.class_plan_id) {
+      classPlan = await fetchClassPlan(row.class_plan_id);
+      if (classPlan && classPlan.unit_id !== row.unit_id) classPlan = null;
+    }
+
+    // Coverage ledger (live board word rotation, 2026-08-30): mirror the
+    // session row's dealt_objectives into state for useCoverageLedger.
+    // Sig-guarded: postgres_changes re-delivers the row on every update
+    // (slide moves etc.) and setState identity would churn renders.
+    const dealt = (row as any).dealt_objectives;
+    if (dealt && typeof dealt === 'object' && !Array.isArray(dealt)) {
+      const sig = JSON.stringify(dealt);
+      if (dealtSigRef.current !== sig) {
+        dealtSigRef.current = sig;
+        setState(prev => ({ ...prev, dealtObjectives: dealt }));
+      }
+    }
+
+    if (!row.unit_id) {
+      setState(prev => (prev.activeClassPlan?.id === (classPlan?.id ?? null) ? prev : { ...prev, activeClassPlan: classPlan }));
+      return;
+    }
 
     let unit = activeUnitRef.current;
     if (!unit || unit.id !== row.unit_id) {
@@ -632,7 +685,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       activeUnitRef.current = fresh;
     }
 
-    const flow = unit.flow || [];
+    const flow = (Array.isArray(classPlan?.flow) && classPlan.flow.length > 0 ? classPlan.flow : unit.flow) || [];
     const idx = Math.min(Math.max(0, row.current_index ?? 0), Math.max(0, flow.length - 1));
     // Slide-change side effects live OUTSIDE the setState updater (updaters
     // must stay pure — StrictMode double-invokes them): kill any in-flight
@@ -647,6 +700,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // behavior mirrored by construction (retires the 028d3ce bug class).
       ...computeSlideState(prev, flow, idx),
       activeUnit: unit!,
+      activeClassPlan: classPlan,
       sessionId: row.id,
       status: (row.status as SessionStatus) || prev.status,
     }));
@@ -663,7 +717,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         overlay: 'NONE',
       });
     }
-  }, [applyLiveTurnFields]);
+  }, [applyLiveTurnFields, fetchClassPlan]);
 
   // Best-effort current teacher id. Persistence is optional: if Supabase/auth
   // is unavailable (e.g. tests, misconfigured env), local state still updates and
@@ -765,7 +819,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const persistSessionStatus = useCallback(async (status: SessionStatus) => {
     const patch: any = { status, updated_at: new Date().toISOString() };
-    if (status === 'IDLE') patch.current_index = 0;
+    if (status === 'IDLE') { patch.current_index = 0; patch.class_plan_id = null; }
     await persistWithRetry(patch);
   }, [persistWithRetry]);
 
@@ -1041,7 +1095,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, [applySessionRow, getTeacherId]);
 
-  const setActiveUnit = async (unitId: string) => {
+  const setActiveUnit = async (unitId: string, classPlanId?: string) => {
     // Prefer the freshest copy from the DB — the cached list in state.units can
     // be stale after the teacher edits the unit in the Unit Studio (e.g. saves a
     // new lesson plan in the Plan composer). Without this, "Launch live" would
@@ -1053,6 +1107,14 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (fresh) unit = fresh;
     } catch {
       // keep the cached unit if the fresh fetch fails
+    }
+    // FIXPLAN I — optional class-plan session: the plan's flow replaces the
+    // unit flow and its content_index scopes every pool pull (#8).
+    let classPlan: any = null;
+    if (classPlanId) {
+      classPlan = await fetchClassPlan(classPlanId);
+      if (!classPlan) throw new Error('Class plan not found.');
+      if (classPlan.unit_id !== unitId) throw new Error('That class does not belong to this unit.');
     }
     if (unit) {
       // C.4: attach the relational bundle (get_unit_bundle) to the manifest so the
@@ -1070,10 +1132,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         // normalizers fall back to the manifest if the bundle is unavailable
       }
       activeUnitRef.current = unit;
-      const initialFlow = unit.flow && unit.flow.length > 0 ? unit.flow : [];
+      const initialFlow = (classPlan && Array.isArray(classPlan.flow) && classPlan.flow.length > 0
+        ? classPlan.flow
+        : (unit.flow && unit.flow.length > 0 ? unit.flow : []));
       setState(prev => ({
         ...prev,
         activeUnit: unit,
+        activeClassPlan: classPlan,
         activeSlideData: initialFlow[0],
         currentStepIndex: 0
       }));
@@ -1085,7 +1150,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           const { data: upserted } = await supabase
             .from('classroom_sessions')
             .upsert(
-              { teacher_id: userId, class_id: activeClassIdRef.current, unit_id: unitId, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
+              { teacher_id: userId, class_id: activeClassIdRef.current, unit_id: unitId, class_plan_id: classPlanId ?? null, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
               { onConflict: 'teacher_id' },
             )
             .select();
@@ -1150,6 +1215,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       activeOverlay: 'NONE',
       drawings: [],
       activeClassId: null,          // the originally-named bug
+      activeClassPlan: null,        // FIXPLAN I — class session ends with the session
       activeOccurrenceId: null,
       currentTurnId: null,          // turn lifecycle
       quickWheelWinner: null,
@@ -1188,6 +1254,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getFlow = () => {
+    // FIXPLAN I — a class session plays the class plan's flow (#8).
+    if (state.activeClassPlan && Array.isArray(state.activeClassPlan.flow) && state.activeClassPlan.flow.length > 0) {
+      return state.activeClassPlan.flow as any[];
+    }
     if (state.activeUnit && state.activeUnit.flow && state.activeUnit.flow.length > 0) {
       return state.activeUnit.flow;
     }

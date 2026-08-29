@@ -355,6 +355,27 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
   }, [tab, activeBookId]);
 
   // ── Existing actions ────────────────────────────────────────────────────
+  // FIXPLAN I — units with saved class plans teach per-class: the Teach
+  // button routes to the Classes tab (where each class has its own Teach
+  // action with its own scoped flow) instead of launching the whole unit.
+  const [unitsWithPlans, setUnitsWithPlans] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const unitIds = ((state.units || []) as any[]).map((u) => u.id);
+    if (unitIds.length === 0) { setUnitsWithPlans(new Set()); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('class_plans')
+          .select('unit_id')
+          .in('unit_id', unitIds);
+        if (!cancelled) setUnitsWithPlans(new Set((data || []).map((r: any) => r.unit_id)));
+      } catch { /* best-effort routing aid */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.units]);
+
   const handleLaunch = async (unit: any) => {
     if (actionLoadingId) return;
     setActionLoadingId(unit.id);
@@ -619,9 +640,11 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
               <span className="text-xs">Plan</span>
             </button>
             <button
-              onClick={() => handleLaunch(unit)}
+              onClick={() => unitsWithPlans.has(unit.id)
+                ? navigate(`/teacher/unit/${unit.id}?tab=classes`)
+                : handleLaunch(unit)}
               className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-emerald-500 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
-              title="Launch Class"
+              title={unitsWithPlans.has(unit.id) ? 'Choose a class to teach' : 'Launch Class'}
             >
               <Play size={20} />
               <span className="text-xs">Teach</span>

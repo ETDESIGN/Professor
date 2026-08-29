@@ -11,8 +11,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { classWeakObjectives } from '../../services/boardLearner';
-import { servedFor, markServed } from './coverageStore';
-import { nextRungForObjective, type ObjectiveType, type RungSrsState } from './lessonDirector';
+import { servedFor } from './coverageStore';
+import { useCoverageLedger } from './useCoverageLedger';
+import { denseWeakRanks, nextRungForObjective, type ObjectiveType, type RungSrsState } from './lessonDirector';
 import type { PoolItem, ExerciseType } from '../../types/exercise';
 import { useSession } from '../../store/SessionContext';
 import { makeRng } from '../../services/seededRandom';
@@ -55,7 +56,7 @@ interface Objective {
 export function buildQuizComposition(
   lessonObjectives: Objective[],
   totalQuestions: number,
-  weakOrder: string[],
+  weakRanks: Record<string, number>,
   srsByObjective: Record<string, RungSrsState | null>,
   servedObjectives: string[] = [],
   /** FIXPLAN E1.4 — seeded rng so both tabs compose the identical quiz.
@@ -98,10 +99,11 @@ export function buildQuizComposition(
   // quiz), then deal unserved objectives (weakest-first) before already-served
   // ones so repeated quizzes walk the whole pool before repeating a word.
   const result: { objectiveId: string; exerciseType: ExerciseType }[] = [];
-  const weakRank = (oid: string) => {
-    const i = weakOrder.indexOf(oid);
-    return i === -1 ? weakOrder.length : i;
-  };
+  // Dense weak ranks (same contract as lessonDirector.buildRound): equal
+  // rank = tied, ids missing from the map sink to the end.
+  const rankValues = Object.values(weakRanks);
+  const fallbackRank = rankValues.length > 0 ? Math.max(...rankValues) + 1 : 0;
+  const weakRank = (oid: string) => weakRanks[oid] ?? fallbackRank;
   const served = new Set(servedObjectives);
 
   for (const [type, slotCount] of Object.entries(slots)) {
@@ -179,8 +181,19 @@ export function useQuizComposition(
   // quiz instances and must compose the IDENTICAL question set.
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
+  // Coverage ledger (Task 8): quiz marks persist to the DB ledger so a
+  // refresh / late-joining tab rehydrates the deal history (memory-first
+  // reads stay in servedFor below).
+  const coverage = useCoverageLedger(sessionId, unitId);
+  // FIXPLAN I (#8): a class session assesses ONLY the current class's
+  // objectives; a whole-unit session keeps today's behavior.
+  const scopeObjectiveIds: string[] | null = (() => {
+    const ids = state.activeClassPlan?.content_index?.objective_ids;
+    return Array.isArray(ids) && ids.length > 0 ? ids : null;
+  })();
+  const scopeKey = scopeObjectiveIds?.join(',') ?? '';
   const [objectives, setObjectives] = useState<Objective[]>([]);
-  const [weakOrder, setWeakOrder] = useState<string[]>([]);
+  const [weakRanks, setWeakRanks] = useState<Record<string, number>>({});
   const [srsByObjective, setSrsByObjective] = useState<Record<string, RungSrsState | null>>({});
   const [poolItems, setPoolItems] = useState<PoolItem[]>([]);
   const [objectivesLoaded, setObjectivesLoaded] = useState(false);
@@ -192,10 +205,9 @@ export function useQuizComposition(
     setObjectivesLoaded(false);
     if (!unitId) { setObjectives([]); setObjectivesLoaded(true); return; }
     (async () => {
-      const { data, error } = await supabase
-        .from('objectives')
-        .select('id, type')
-        .eq('unit_id', unitId);
+      let objQuery = supabase.from('objectives').select('id, type').eq('unit_id', unitId);
+      if (scopeObjectiveIds) objQuery = objQuery.in('id', scopeObjectiveIds);
+      const { data, error } = await objQuery;
       if (cancelled) return;
       if (error || !data) { setObjectives([]); setObjectivesLoaded(true); return; }
       setObjectives(data.map((o: any) => ({
@@ -212,11 +224,11 @@ export function useQuizComposition(
   const rosterKey = roster.join(',');
   useEffect(() => {
     let cancelled = false;
-    if (!unitId || roster.length === 0) { setWeakOrder([]); setSrsByObjective({}); return; }
+    if (!unitId || roster.length === 0) { setWeakRanks({}); setSrsByObjective({}); return; }
     (async () => {
       const weak = await classWeakObjectives(roster, unitId);
       if (cancelled) return;
-      setWeakOrder(weak.map(w => w.objective_id));
+      setWeakRanks(denseWeakRanks(weak));
       const order = ['new','learning','familiar','mastered','decaying'] as const;
       const srsMap: Record<string, RungSrsState | null> = {};
       for (const w of weak) {
@@ -245,12 +257,14 @@ export function useQuizComposition(
       // word-by-word, so a DB-side limit truncated to the first words' items
       // and the objectives chosen weakest/unseen-first (whose items sit at the
       // END of insertion order) were silently skipped (pool-coverage fix).
-      const { data, error } = await supabase
+      let poolQuery = supabase
         .from('pool_items')
         .select('*')
         .eq('unit_id', unitId)
         .in('exercise_type', types)
         .limit(500);
+      if (scopeObjectiveIds) poolQuery = poolQuery.in('objective_id', scopeObjectiveIds);
+      const { data, error } = await poolQuery;
       if (cancelled) return;
       if (error || !data) { setPoolItems([]); setPoolLoaded(true); return; }
       const items = data.map((row: any) => {
@@ -278,14 +292,14 @@ export function useQuizComposition(
   // marking can never feed back into this game's own composition.
   const [servedAtMount, setServedAtMount] = useState<string[]>([]);
   useEffect(() => {
-    setServedAtMount(servedFor(unitId));
-  }, [unitId]);
+    setServedAtMount(servedFor(sessionId, unitId));
+  }, [sessionId, unitId]);
 
   // Build quiz composition
   const questions = useMemo(() => {
     if (objectives.length === 0 || poolItems.length === 0) return [];
     const rng = makeRng(sessionId, unitId);
-    const composition = buildQuizComposition(objectives, totalQuestions, weakOrder, srsByObjective, servedAtMount, rng);
+    const composition = buildQuizComposition(objectives, totalQuestions, weakRanks, srsByObjective, servedAtMount, rng);
     const out: QuizQuestion[] = [];
     for (const { objectiveId, exerciseType } of composition) {
       // Pick a random item among the objective's matching items (pool-coverage
@@ -311,14 +325,14 @@ export function useQuizComposition(
       [out[i], out[j]] = [out[j], out[i]];
     }
     return out;
-  }, [objectives, poolItems, totalQuestions, weakOrder, srsByObjective, servedAtMount, sessionId, unitId]);
+  }, [objectives, poolItems, totalQuestions, weakRanks, srsByObjective, servedAtMount, sessionId, unitId]);
 
   // Advance the sequential deal for the NEXT quiz game on this unit.
   const questionsKey = useMemo(() => questions.map((q) => q.objectiveId).join(','), [questions]);
   useEffect(() => {
-    if (!unitId || questionsKey === '') return;
-    markServed(unitId, questionsKey.split(','));
-  }, [unitId, questionsKey]);
+    if (!sessionId || !unitId || questionsKey === '') return;
+    coverage.markServed(questionsKey.split(','));
+  }, [sessionId, unitId, questionsKey]);
 
   const loading = !objectivesLoaded || !poolLoaded;
 
