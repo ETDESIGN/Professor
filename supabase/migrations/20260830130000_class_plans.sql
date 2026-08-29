@@ -198,7 +198,7 @@ REVOKE ALL ON FUNCTION public.class_plans_released_scope(uuid) FROM PUBLIC;
 -- refresh_class_plan_scope — resolve each plan's scope into content_index
 -- (owner/teacher-admin only; idempotent; re-runnable any time).
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.refresh_class_plan_scope(p_unit_id uuid, p_ids uuid[] DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.refresh_class_plan_scope(p_unit_id uuid, p_ids uuid[] DEFAULT NULL, p_caller uuid DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -206,6 +206,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_teacher uuid;
+  v_actor uuid;
   v_unit_pages uuid[];
   v_plan RECORD;
   v_scope JSONB;
@@ -234,7 +235,14 @@ BEGIN
   IF v_teacher IS NULL THEN
     RAISE EXCEPTION 'Unit not found';
   END IF;
-  IF NOT (v_teacher = auth.uid() OR public.is_teacher_or_admin()) THEN
+  -- Caller identity: the caller's JWT when present (client path); the
+  -- trusted edge functions run under the service key (auth.uid() NULL) and
+  -- pass p_caller — they have already asserted unit ownership themselves.
+  v_actor := auth.uid();
+  IF v_actor IS NULL THEN
+    v_actor := p_caller;
+  END IF;
+  IF NOT (v_teacher = v_actor OR (v_actor IS NOT NULL AND public.is_teacher_or_admin())) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
