@@ -278,8 +278,8 @@ export function useQuizComposition(
   // marking can never feed back into this game's own composition.
   const [servedAtMount, setServedAtMount] = useState<string[]>([]);
   useEffect(() => {
-    setServedAtMount(servedFor(unitId));
-  }, [unitId]);
+    setServedAtMount(servedFor(sessionId, unitId));
+  }, [sessionId, unitId]);
 
   // Build quiz composition
   const questions = useMemo(() => {
@@ -316,9 +316,9 @@ export function useQuizComposition(
   // Advance the sequential deal for the NEXT quiz game on this unit.
   const questionsKey = useMemo(() => questions.map((q) => q.objectiveId).join(','), [questions]);
   useEffect(() => {
-    if (!unitId || questionsKey === '') return;
-    markServed(unitId, questionsKey.split(','));
-  }, [unitId, questionsKey]);
+    if (!sessionId || !unitId || questionsKey === '') return;
+    markServed(sessionId, unitId, questionsKey.split(','));
+  }, [sessionId, unitId, questionsKey]);
 
   const loading = !objectivesLoaded || !poolLoaded;
 

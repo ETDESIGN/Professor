@@ -4,30 +4,41 @@
 // re-selected the same weakest-N words and most of the unit's vocabulary was
 // never shown).
 //
-// Scope: module-level, so it survives slide changes and template remounts
-// within one classroom session (the projector/teacher page is a single page
-// load). It resets on refresh — acceptable for v1; DB persistence is a
-// documented follow-up.
+// Scope: (sessionId, unitId) — session-scoped by the classroom_sessions row
+// id, so concurrent sessions on the same unit keep independent deal orders.
+// Module-level, so it survives slide changes and template remounts within one
+// classroom session (the projector/teacher page is a single page load). It is
+// memory-only: persistence is the DB ledger (Task 8), which hydrates back in
+// via hydrateUnit on refresh / late-join.
 
 const store = new Map<string, Set<string>>();
 
-/** Objective ids already dealt for this unit (in first-dealt order). */
-export function servedFor(unitId: string): string[] {
-  return Array.from(store.get(unitId) ?? []);
+const scopedKey = (sessionId: string, unitId: string) => `${sessionId}:${unitId}`;
+
+/** Objective ids already dealt for this (session, unit) (insertion order). */
+export function servedFor(sessionId: string, unitId: string): string[] {
+  return Array.from(store.get(scopedKey(sessionId, unitId)) ?? []);
 }
 
 /** Record objectives as dealt. Idempotent. */
-export function markServed(unitId: string, objectiveIds: string[]): void {
-  if (!unitId || objectiveIds.length === 0) return;
-  let set = store.get(unitId);
+export function markServed(sessionId: string, unitId: string, objectiveIds: string[]): void {
+  if (!sessionId || !unitId || objectiveIds.length === 0) return;
+  const key = scopedKey(sessionId, unitId);
+  let set = store.get(key);
   if (!set) {
     set = new Set<string>();
-    store.set(unitId, set);
+    store.set(key, set);
   }
   for (const id of objectiveIds) set.add(id);
 }
 
-/** Forget the unit's dealt history (e.g. the teacher explicitly restarts a unit). */
-export function resetUnit(unitId: string): void {
-  store.delete(unitId);
+/** Union-merge a DB ledger snapshot into memory (refresh/late-join
+ *  hydration; never discards optimistic local marks). Idempotent. */
+export function hydrateUnit(sessionId: string, unitId: string, objectiveIds: readonly string[]): void {
+  markServed(sessionId, unitId, objectiveIds as string[]);
+}
+
+/** Forget the (session, unit)'s dealt history (e.g. teacher restarts a unit). */
+export function resetUnit(sessionId: string, unitId: string): void {
+  store.delete(scopedKey(sessionId, unitId));
 }

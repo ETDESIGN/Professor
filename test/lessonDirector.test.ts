@@ -6,7 +6,7 @@
 //      before already-served ones, so rounds walk the whole pool.
 //   3. The rung-walk result is what lands in rungByObjective (the old second
 //      push block overwrote it with the pre-walk targetRung).
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { buildRound, denseWeakRanks, type BuildRoundInput } from '../apps/board/lessonDirector';
 import { buildQuizComposition } from '../apps/board/quizEngine';
 import { servedFor, markServed, resetUnit } from '../apps/board/coverageStore';
@@ -157,16 +157,21 @@ describe('buildQuizComposition — sequential deal', () => {
 });
 
 describe('coverageStore', () => {
-  it('records and resets served objectives per unit', () => {
-    const unit = 'test-unit-coverage';
-    resetUnit(unit);
-    expect(servedFor(unit)).toEqual([]);
-    markServed(unit, IDS.slice(0, 3));
-    expect(servedFor(unit)).toHaveLength(3);
-    markServed(unit, IDS.slice(0, 3)); // idempotent
-    expect(servedFor(unit)).toHaveLength(3);
-    resetUnit(unit);
-    expect(servedFor(unit)).toEqual([]);
+  const session = 'sess-test';
+  const unit = 'test-unit-coverage';
+
+  beforeEach(() => {
+    resetUnit(session, unit);
+  });
+
+  it('records and resets served objectives per (session, unit)', () => {
+    expect(servedFor(session, unit)).toEqual([]);
+    markServed(session, unit, IDS.slice(0, 3));
+    expect(servedFor(session, unit)).toHaveLength(3);
+    markServed(session, unit, IDS.slice(0, 3)); // idempotent
+    expect(servedFor(session, unit)).toHaveLength(3);
+    resetUnit(session, unit);
+    expect(servedFor(session, unit)).toEqual([]);
   });
 });
 

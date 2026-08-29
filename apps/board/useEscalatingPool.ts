@@ -142,8 +142,8 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   // and re-select for the SAME round (which would churn the board).
   const [servedAtRoundStart, setServedAtRoundStart] = useState<string[]>([]);
   useEffect(() => {
-    setServedAtRoundStart(servedFor(unitId));
-  }, [unitId, roundIndex]);
+    setServedAtRoundStart(servedFor(sessionId, unitId));
+  }, [sessionId, unitId, roundIndex]);
 
   // ── 4. buildRound — the pure selection. Recomputed when any input changes. ──
   const round = useMemo(() => {
@@ -171,9 +171,9 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   // the NEXT round / next slide's shell; idempotent within the same round).
   const selectedKey = round.selectedObjectiveIds.join(',');
   useEffect(() => {
-    if (!unitId || selectedKey === '') return;
-    markServed(unitId, round.selectedObjectiveIds);
-  }, [unitId, selectedKey]);
+    if (!sessionId || !unitId || selectedKey === '') return;
+    markServed(sessionId, unitId, round.selectedObjectiveIds);
+  }, [sessionId, unitId, selectedKey]);
 
   // ── 5. useBoardPool — fetch items for the round's exercise types. ──────
   // Passing a new exerciseTypes array per round re-fetches (deps include join).
