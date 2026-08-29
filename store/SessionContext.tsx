@@ -108,6 +108,9 @@ interface SessionState {
   totalCorrect?: number;
   totalAttempts?: number;
   sessionId?: string | null;
+  /** Coverage ledger (live board word rotation): dealt_objectives mirrored
+   *  from the session row, keyed by unitId — hydrates useCoverageLedger. */
+  dealtObjectives?: Record<string, string[]> | null;
   /** Same-session remediation queue (architecture §3.3): objectives missed
    *  by ≥1 student this session, prioritized by the next WRAPUP/REVIEW slide's
    *  round-builder. Deliberately separate from FSRS cross-lesson scheduling. */
@@ -279,6 +282,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     noiseLevel: 0,
     units: [],
     sessionId: null,
+    dealtObjectives: null,
     remediationQueue: [],
     sessionStartedAt: null,
     recentActions: [],
@@ -339,6 +343,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const liveTurnRef = useRef<LiveTurnState>({ ...EMPTY_LIVE_TURN });
   /** Last applied classroom_sessions.seq — the live-state ordering guard. */
   const liveSeqRef = useRef(0);
+  /** Last applied dealt_objectives signature (coverage ledger) — dedupes
+   *  postgres_changes re-deliveries so slide moves don't churn renders. */
+  const dealtSigRef = useRef<string | null>(null);
   /** Last slide index whose arrival cleared the local live-turn mirror
    *  (dedupe so repeated same-index syncs don't re-clear). */
   const liveTurnSlideRef = useRef<number | null>(null);
@@ -650,6 +657,19 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (row.class_plan_id) {
       classPlan = await fetchClassPlan(row.class_plan_id);
       if (classPlan && classPlan.unit_id !== row.unit_id) classPlan = null;
+    }
+
+    // Coverage ledger (live board word rotation, 2026-08-30): mirror the
+    // session row's dealt_objectives into state for useCoverageLedger.
+    // Sig-guarded: postgres_changes re-delivers the row on every update
+    // (slide moves etc.) and setState identity would churn renders.
+    const dealt = (row as any).dealt_objectives;
+    if (dealt && typeof dealt === 'object' && !Array.isArray(dealt)) {
+      const sig = JSON.stringify(dealt);
+      if (dealtSigRef.current !== sig) {
+        dealtSigRef.current = sig;
+        setState(prev => ({ ...prev, dealtObjectives: dealt }));
+      }
     }
 
     if (!row.unit_id) {

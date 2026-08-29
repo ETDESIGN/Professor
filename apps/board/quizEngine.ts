@@ -11,7 +11,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
 import { classWeakObjectives } from '../../services/boardLearner';
-import { servedFor, markServed } from './coverageStore';
+import { servedFor } from './coverageStore';
+import { useCoverageLedger } from './useCoverageLedger';
 import { denseWeakRanks, nextRungForObjective, type ObjectiveType, type RungSrsState } from './lessonDirector';
 import type { PoolItem, ExerciseType } from '../../types/exercise';
 import { useSession } from '../../store/SessionContext';
@@ -180,6 +181,10 @@ export function useQuizComposition(
   // quiz instances and must compose the IDENTICAL question set.
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
+  // Coverage ledger (Task 8): quiz marks persist to the DB ledger so a
+  // refresh / late-joining tab rehydrates the deal history (memory-first
+  // reads stay in servedFor below).
+  const coverage = useCoverageLedger(sessionId, unitId);
   // FIXPLAN I (#8): a class session assesses ONLY the current class's
   // objectives; a whole-unit session keeps today's behavior.
   const scopeObjectiveIds: string[] | null = (() => {
@@ -326,7 +331,7 @@ export function useQuizComposition(
   const questionsKey = useMemo(() => questions.map((q) => q.objectiveId).join(','), [questions]);
   useEffect(() => {
     if (!sessionId || !unitId || questionsKey === '') return;
-    markServed(sessionId, unitId, questionsKey.split(','));
+    coverage.markServed(questionsKey.split(','));
   }, [sessionId, unitId, questionsKey]);
 
   const loading = !objectivesLoaded || !poolLoaded;

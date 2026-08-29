@@ -11,7 +11,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useBoardPool } from './useBoardPool';
-import { servedFor, markServed } from './coverageStore';
+import { servedFor } from './coverageStore';
+import { useCoverageLedger } from './useCoverageLedger';
 import { classWeakObjectives } from '../../services/boardLearner';
 import { supabase } from '../../services/supabaseClient';
 import {
@@ -75,6 +76,10 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   // and rounds varied).
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
+  // Coverage ledger (Task 8): marks write to memory (coverageStore) AND the
+  // DB ledger (debounced RPC) so a refresh / late-joining tab rehydrates the
+  // deal history and keeps rotating words instead of restarting it.
+  const coverage = useCoverageLedger(sessionId, unitId);
   // FIXPLAN I (#8): a class session drills ONLY the current class's
   // objectives; a whole-unit session keeps the full objective set.
   const scopeObjectiveIds: string[] | null = (() => {
@@ -181,7 +186,7 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   const selectedKey = round.selectedObjectiveIds.join(',');
   useEffect(() => {
     if (!sessionId || !unitId || selectedKey === '') return;
-    markServed(sessionId, unitId, round.selectedObjectiveIds);
+    coverage.markServed(round.selectedObjectiveIds);
   }, [sessionId, unitId, selectedKey]);
 
   // ── 5. useBoardPool — fetch items for the round's exercise types. ──────
