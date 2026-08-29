@@ -139,7 +139,7 @@ describe('buildQuizComposition — sequential deal', () => {
   const srs: Record<string, null> = Object.fromEntries(IDS.map((id) => [id, null]));
 
   it('selects totalQuestions distinct objectives', () => {
-    const comp = buildQuizComposition(objectives, 8, [], srs);
+    const comp = buildQuizComposition(objectives, 8, {}, srs);
     expect(comp).toHaveLength(8);
     expect(new Set(comp.map((c) => c.objectiveId)).size).toBe(8);
   });
@@ -147,12 +147,30 @@ describe('buildQuizComposition — sequential deal', () => {
   it('deals unserved objectives before served ones', () => {
     // Two quizzes of 6 from a 12-word pool: the second must be exactly the 6
     // words the first did NOT serve.
-    const first = buildQuizComposition(objectives, 6, [], srs).map((c) => c.objectiveId);
+    const first = buildQuizComposition(objectives, 6, {}, srs).map((c) => c.objectiveId);
     expect(new Set(first).size).toBe(6);
-    const second = buildQuizComposition(objectives, 6, [], srs, first).map((c) => c.objectiveId);
+    const second = buildQuizComposition(objectives, 6, {}, srs, first).map((c) => c.objectiveId);
     for (const id of second) {
       expect(first).not.toContain(id);
     }
+  });
+
+  it('all-tied ranks do not collapse to the insertion-order prefix', () => {
+    // Production shape (same regression as buildRound): a fresh class ties
+    // every objective at R = 0. Dense ranks must leave the tie to the
+    // pre-sort shuffle instead of restoring a deterministic prefix.
+    const ranks = denseWeakRanks(IDS.map((id) => ({ objective_id: id, retrievability: 0 })));
+    const firsts = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      firsts.add(buildQuizComposition(objectives, 6, ranks, srs)[0].objectiveId);
+    }
+    expect(firsts.size).toBeGreaterThan(1);
+  });
+
+  it('strict ranks pick the weakest slots first', () => {
+    const ranks = strictRanks([...IDS]);
+    const comp = buildQuizComposition(objectives, 6, ranks, srs);
+    expect(new Set(comp.map((c) => c.objectiveId))).toEqual(new Set(IDS.slice(0, 6)));
   });
 });
 
