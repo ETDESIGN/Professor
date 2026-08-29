@@ -1,9 +1,10 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route, ScanSearch } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route, ScanSearch, CalendarRange } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../services/supabaseClient';
 import { invokeGenerateExercises, waitForGenerationJob, getPoolCount } from '../../services/ExercisePoolService';
+import { useSession } from '../../store/SessionContext';
 import UnitContentVault from './UnitContentVault';
 import PlanComposer from './PlanComposer';
 import StudentPathComposer from './StudentPathComposer';
@@ -20,6 +21,9 @@ const AssetWorkshop = lazy(() => import('./AssetWorkshop'));
 // confirming the batch would otherwise hit a dead end (empty Review, no path
 // back to the confirm step).
 const ExtractionReview = lazy(() => import('./ExtractionReview'));
+// FIXPLAN I-P3 — the Classes tab: slice the unit into N teachable classes
+// (doc 11 §4). Lazy like the other heavy surfaces.
+const ClassPlansEditor = lazy(() => import('./ClassPlansEditor'));
 
 // Phase 2 (F2, decided D3) — the Unified Unit Studio. One component, one route
 // (/teacher/unit/:unitId), two tabs:
@@ -31,7 +35,7 @@ const ExtractionReview = lazy(() => import('./ExtractionReview'));
 // (LessonTimelineBuilder mock, LessonStudio KG toggle, AssetWorkshop, and the
 // standalone UnitContentVault route) once validated.
 
-type StudioTab = 'content' | 'plan' | 'path';
+type StudioTab = 'content' | 'plan' | 'path' | 'classes';
 
 const UnitStudio: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
@@ -44,7 +48,7 @@ const UnitStudio: React.FC = () => {
   // Plan tab (the Content/"Review Content" action lands on Content by default).
   const [tab, setTab] = useState<StudioTab>(() => {
     const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
-    return q === 'plan' ? 'plan' : q === 'path' ? 'path' : 'content';
+    return q === 'plan' ? 'plan' : q === 'path' ? 'path' : q === 'classes' ? 'classes' : 'content';
   });
   const [unit, setUnit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -58,6 +62,16 @@ const UnitStudio: React.FC = () => {
   const [poolCount, setPoolCount] = useState<number | null>(null);
   // Phase 2.4: mobile gets a Content-only surface (no Plan tab) for v1.
   const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  // FIXPLAN I — teaching a CLASS goes live through the same session context
+  // the UnitList "Teach" path uses (the board follows via classroom_sessions).
+  const { setActiveUnit, startSession, goToSlide } = useSession();
+  const teachClass = async (classPlanId: string) => {
+    if (!unitId) return;
+    await setActiveUnit(unitId, classPlanId);
+    startSession();
+    goToSlide(0);
+    navigate('/teacher/live');
+  };
 
   // FIXPLAN_F audit fix: count unconfirmed extracted structures — the banner
   // makes the confirm step discoverable from the Studio (it was previously
@@ -85,9 +99,9 @@ const UnitStudio: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // If we shrink to mobile while on the Plan/Path tab, fall back to Content.
+  // If we shrink to mobile while on the Plan/Path/Classes tab, fall back to Content.
   useEffect(() => {
-    if (isMobile && (tab === 'plan' || tab === 'path')) setTab('content');
+    if (isMobile && (tab === 'plan' || tab === 'path' || tab === 'classes')) setTab('content');
   }, [isMobile, tab]);
 
   useEffect(() => {
@@ -295,6 +309,20 @@ const UnitStudio: React.FC = () => {
           )}
           {!isMobile && (
           <button
+            onClick={() => setTab('classes')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border-b-2 transition-colors ${
+              tab === 'classes'
+                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+            }`}
+            title="Split this unit into teachable classes — each with its own live flow and student release"
+          >
+            <CalendarRange size={16} />
+            Classes
+          </button>
+          )}
+          {!isMobile && (
+          <button
             onClick={() => setTab('path')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border-b-2 transition-colors ${
               tab === 'path'
@@ -323,6 +351,10 @@ const UnitStudio: React.FC = () => {
             unit={unit}
             onFlowSaved={(f) => setUnit((prev: any) => ({ ...prev, flow: f }))}
           />
+        ) : tab === 'classes' ? (
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600" /></div>}>
+            <ClassPlansEditor unitId={unit.id} onTeachClass={teachClass} />
+          </Suspense>
         ) : (
           <StudentPathComposer
             unitId={unit.id}

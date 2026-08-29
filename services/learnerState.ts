@@ -224,6 +224,25 @@ export async function recordAttempt(
 }
 
 /**
+ * FIXPLAN I (#5) — the student release gate. Returns the objective ids the
+ * student may see for this unit: ALL of them when the unit has no class
+ * plans (legacy behavior), else the union over RELEASED classes only.
+ * Returns null on failure (fail-open — a transient RPC fault must not brick
+ * lessons on plan-less legacy units).
+ */
+export async function getReleasedObjectiveIds(unitId: string): Promise<string[] | null> {
+  if (!unitId) return null;
+  try {
+    const { data, error } = await supabase.rpc('get_released_objectives', { p_unit_id: unitId });
+    if (error || !Array.isArray(data)) return null;
+    return data as string[];
+  } catch (err) {
+    log.warn('released_objectives_error', { error: err instanceof Error ? err.message : String(err) });
+    return null;
+  }
+}
+
+/**
  * Reconcile a student's deck against a unit's objective-linked templates: add
  * student-scoped srs_items for any objective the student is missing (non-
  * destructive; preserves existing progress). Evolves ensureStudentSRSItems to
@@ -238,14 +257,25 @@ export async function ensureStudentLearnerState(unitId: string, studentId: strin
       .eq('unit_id', unitId);
     if (oErr || !objectives || objectives.length === 0) return;
 
+    // FIXPLAN I (#5): materialize only RELEASED objectives — future classes'
+    // words never enter the student's deck (and spaced review therefore
+    // never reaches beyond released material, #8).
+    let inScope = objectives;
+    const released = await getReleasedObjectiveIds(unitId);
+    if (released) {
+      const allowed = new Set(released);
+      inScope = objectives.filter((o) => allowed.has(o.id));
+    }
+    if (inScope.length === 0) return;
+
     const { data: have } = await supabase
       .from('srs_items')
       .select('objective_id')
       .eq('student_id', studentId)
-      .in('objective_id', objectives.map((o) => o.id));
+      .in('objective_id', inScope.map((o) => o.id));
 
     const haveSet = new Set((have || []).map((r) => r.objective_id).filter(Boolean));
-    const missing = objectives.filter((o) => !haveSet.has(o.id));
+    const missing = inScope.filter((o) => !haveSet.has(o.id));
     if (missing.length === 0) return;
 
     const rows = missing.map((o) => ({
@@ -387,13 +417,20 @@ export async function getUnitMasterySummary(studentId: string, unitId: string): 
   };
   if (!studentId || !unitId) return empty;
   try {
-    const { data: objectives, error } = await supabase
-      .from('objectives')
-      .select('id')
-      .eq('unit_id', unitId);
-    if (error || !objectives || objectives.length === 0) return empty;
-
-    const ids = objectives.map((o) => o.id);
+    let objRows: { id: string }[] = [];
+    {
+      const { data: objectives, error } = await supabase
+        .from('objectives')
+        .select('id')
+        .eq('unit_id', unitId);
+      if (error || !objectives || objectives.length === 0) return empty;
+      objRows = objectives;
+    }
+    // FIXPLAN I (#5): mid-unit crowns count only RELEASED objectives —
+    // "3/12" must not include next week's words.
+    const released = await getReleasedObjectiveIds(unitId);
+    const ids = (released ? objRows.filter((o) => released.includes(o.id)) : objRows).map((o) => o.id);
+    if (ids.length === 0) return empty;
     const states = await getLearnerState(studentId, ids);
 
     const summary: UnitMasterySummary = { ...empty, total: ids.length };
