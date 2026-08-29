@@ -3,11 +3,14 @@
 // Supabase URL. Used by generate-media (on-demand + batch) — enrichment never
 // awaits TTS (decoupled 2026-07-30).
 //
-// ── 2026-08-08 voice quality upgrade ────────────────────────────────────────
+// ── 2026-08-08 voice quality upgrade (revised 2026-08-30) ───────────────────
 // TTS runs through a PROVIDER CHAIN (env-selectable, graceful fallback):
-//   1. openrouter  — Qwen TTS via the OpenAI-compatible /audio/speech endpoint
-//                    (bilingual: EN L2 + Simplified Chinese L1 voices, same
-//                    AI_API_KEY as all other AI calls — region-safe).
+//   1. openrouter  — kokoro-82m via the OpenAI-compatible /audio/speech
+//                    endpoint (bilingual: EN af_* + Mandarin zf_/zm_ voices,
+//                    same AI_API_KEY as all other AI calls — region-safe).
+//                    (Was qwen-audio-3.0-tts — its voice IDs are not exposed
+//                    and every documented name 400s upstream; see config
+//                    note below.)
 //   2. elevenlabs  — eleven_flash_v2_5 (kept for character voice_ids and as
 //                    fallback; NOT removed).
 // Deterministic caching: the asset is keyed by prompt_hash =
@@ -30,13 +33,25 @@ const ELEVENLABS_DEFAULT_VOICE = '21m00Tcm4TlvDq8ikWAM';
 const ELEVENLABS_MODEL = Deno.env.get('TTS_MODEL_ID') || 'eleven_flash_v2_5';
 const ELEVENLABS_TIMEOUT_MS = 30000;
 
-// ── OpenRouter TTS config (Qwen bilingual voices) ───────────────────────────
-const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_TTS_MODEL') || 'qwen/qwen-audio-3.0-tts-flash';
-// Per-language default voices. Every Qwen TTS voice speaks BOTH zh-CN and EN;
-// we still pick per-language voices for the most native rendering. An explicit
-// OPENROUTER_TTS_VOICE overrides both.
-const OPENROUTER_VOICE_EN = Deno.env.get('OPENROUTER_TTS_VOICE_EN') || 'Jennifer';
-const OPENROUTER_VOICE_ZH = Deno.env.get('OPENROUTER_TTS_VOICE_ZH') || 'Cherry';
+// ── OpenRouter TTS config ────────────────────────────────────────────────────
+// 2026-08-30: default switched qwen → kokoro. qwen/qwen-audio-3.0-tts-flash
+// exists on OpenRouter but its upstream rejects every documented/plausible
+// voice name ("Provider returned 400" — the valid voice IDs are not exposed
+// by the models API; verified live 2026-08-30), while hexgrad/kokoro-82m was
+// verified live end-to-end: bilingual (af_* / zf_* / zm_* voices), honors
+// response_format:'mp3', and costs $0.62/M chars vs qwen's $15/M. To switch
+// back once qwen's voice IDs are known (or to any other TTS model), set
+// OPENROUTER_TTS_MODEL + OPENROUTER_TTS_VOICE[_EN/_ZH] in the dashboard —
+// no code change needed (the canonical hash uses the resolved model, so the
+// cache re-keys itself; the client fast path tolerates the mismatch by
+// design — see services/speechResolver.ts).
+const OPENROUTER_MODEL = Deno.env.get('OPENROUTER_TTS_MODEL') || 'hexgrad/kokoro-82m';
+// Per-language default voices. Kokoro voices are language-tagged:
+//   af_/am_ = American English (female/male), zf_/zm_ = Mandarin Chinese.
+// Verified live 2026-08-30: af_heart (en), zf_xiaobei (zh), af_bella (en),
+// zf_xiaoni / zm_yunjian (zh). An explicit OPENROUTER_TTS_VOICE overrides both.
+const OPENROUTER_VOICE_EN = Deno.env.get('OPENROUTER_TTS_VOICE_EN') || 'af_heart';
+const OPENROUTER_VOICE_ZH = Deno.env.get('OPENROUTER_TTS_VOICE_ZH') || 'zf_xiaobei';
 const OPENROUTER_TIMEOUT_MS = 15000;
 
 export type TtsProvider = 'openrouter' | 'elevenlabs';
@@ -146,7 +161,16 @@ async function synthesizeElevenLabs(text: string, voiceId: string): Promise<{ bu
         voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     });
-    if (!response.ok) return { error: `ElevenLabs failed: ${response.status}` };
+    if (!response.ok) {
+      // Include the body — ElevenLabs puts the real reason here (e.g.
+      // invalid_api_key), and a bare status is how the 2026-08-29 broken-key
+      // failure stayed undiagnosed for months.
+      const body = await response.text().catch(() => '');
+      const hint = body.includes('API key ID used as API key')
+        ? ' (ELEVENLABS_API_KEY looks like a key ID — set the actual sk_… secret in the dashboard)'
+        : '';
+      return { error: `ElevenLabs failed: ${response.status} ${body.slice(0, 200)}${hint}` };
+    }
     return { buffer: await response.arrayBuffer() };
   } catch (err: any) {
     return { error: err?.message || 'ElevenLabs error' };
