@@ -21,6 +21,7 @@ import {
     restoreUnit,
     deleteUnitFull,
     listTrashedUnits,
+    emptyTrash,
     getUnitPipelineMeta,
 } from './BookService';
 import {
@@ -470,6 +471,7 @@ export const Engine = {
     restoreUnit: async (unitId: string) => { requireSupabase(); return restoreUnit(unitId); },
     deleteUnitForever: async (unitId: string) => { requireSupabase(); return deleteUnitFull(unitId); },
     listTrashedUnits: async () => { requireSupabase(); return listTrashedUnits(); },
+    emptyTrash: async () => { requireSupabase(); return emptyTrash(); },
     getUnitPipelineMeta: async (unitIds: string[]) => { requireSupabase(); return getUnitPipelineMeta(unitIds); },
 
     unlockNextUnit: async (currentId: string): Promise<void> => {

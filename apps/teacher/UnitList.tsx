@@ -135,6 +135,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
   const [renameValue, setRenameValue] = useState('');
   const [movingUnit, setMovingUnit] = useState<any | null>(null);
   const [foreverTarget, setForeverTarget] = useState<{ kind: 'unit' | 'book'; id: string; title: string } | null>(null);
+  const [emptyTrashConfirm, setEmptyTrashConfirm] = useState(false);
 
   // ── Library filters (bookshelf search + level) ───────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -534,6 +535,28 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
     } finally { setIsDeleting(false); }
   };
 
+  // Empty trash: one atomic RPC purges every own trashed unit + book. Books
+  // that still have live (non-trashed) units attached can't be deleted
+  // permanently — they are skipped and reported so the teacher knows why the
+  // trash isn't fully empty.
+  const handleEmptyTrash = async () => {
+    if (trashUnits.length + trashBooks.length === 0) return;
+    setIsDeleting(true);
+    try {
+      const r = await Engine.emptyTrash();
+      const total = r.units + r.books;
+      if (r.booksSkipped > 0) {
+        toast.warning(`Emptied: ${total} item${total === 1 ? '' : 's'} deleted forever — ${r.booksSkipped} book${r.booksSkipped === 1 ? '' : 's'} kept (still has live units)`);
+      } else {
+        toast.success(`Trash emptied — ${total} item${total === 1 ? '' : 's'} deleted forever`);
+      }
+      setEmptyTrashConfirm(false);
+      await Promise.all([refreshTrash(), loadUnits(), refreshBooks()]);
+    } catch (err: any) {
+      toast.error(`Empty trash failed: ${err?.message || err}`);
+    } finally { setIsDeleting(false); }
+  };
+
   // ── Unit card (book detail + unassigned) ────────────────────────────────
   const renderUnitCard = (unit: any, opts?: { inBook?: boolean; index?: number; total?: number }) => (
     <motion.div
@@ -845,6 +868,20 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
           {trashUnits.length === 0 && trashBooks.length === 0 && (
             <div className="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-400">
               Trash is empty
+            </div>
+          )}
+          {(trashUnits.length + trashBooks.length) > 0 && (
+            <div className="flex flex-wrap gap-3 items-center justify-between mb-6">
+              <p className="text-sm text-slate-500">
+                Items stay here until you restore them or delete them forever.
+              </p>
+              <button
+                onClick={() => setEmptyTrashConfirm(true)}
+                className="px-4 py-2 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 font-bold text-sm flex items-center gap-2 transition-all active:scale-95"
+                title="Permanently delete everything in the Trash"
+              >
+                <Trash2 size={15} /> Empty trash
+              </button>
             </div>
           )}
           {trashUnits.length > 0 && (
@@ -1388,6 +1425,49 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
                   className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
                   {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   {isDeleting ? 'Deleting…' : 'Delete forever'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Empty Trash Confirmation Modal */}
+      <AnimatePresence>
+        {emptyTrashConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => !isDeleting && setEmptyTrashConfirm(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-slate-800">Empty the Trash?</h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Everything in the Trash will be permanently deleted:
+                    {' '}{trashUnits.length} unit{trashUnits.length === 1 ? '' : 's'} and {trashBooks.length} book{trashBooks.length === 1 ? '' : 's'}
+                    {' '}with all their generated content (vocabulary, exercises, pool items, media references).
+                    This cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setEmptyTrashConfirm(null)} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={handleEmptyTrash} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {isDeleting ? 'Emptying…' : 'Empty trash'}
                 </button>
               </div>
             </motion.div>

@@ -236,6 +236,25 @@ export async function listTrashedUnits(): Promise<any[]> {
     return (data || []) as any[];
 }
 
+/** Result summary of the empty_trash RPC (books_skipped = live units still attached). */
+export interface EmptyTrashResult {
+    units: number;
+    books: number;
+    booksSkipped: number;
+}
+
+/** Permanently delete everything the teacher owns in the trash (atomic RPC). */
+export async function emptyTrash(): Promise<EmptyTrashResult> {
+    const { data, error } = await supabase.rpc('empty_trash');
+    if (error) throw new Error(error.message);
+    const r = (data || {}) as Record<string, unknown>;
+    return {
+        units: Number(r.units ?? 0),
+        books: Number(r.books ?? 0),
+        booksSkipped: Number(r.books_skipped ?? 0),
+    };
+}
+
 /** Pipeline meta for library badges: pool counts + generation job status. */
 export async function getUnitPipelineMeta(unitIds: string[]): Promise<Record<string, UnitPipelineMeta>> {
     const out: Record<string, UnitPipelineMeta> = {};
