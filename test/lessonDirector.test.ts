@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { buildRound, denseWeakRanks, type BuildRoundInput } from '../apps/board/lessonDirector';
 import { buildQuizComposition } from '../apps/board/quizEngine';
 import { servedFor, markServed, resetUnit } from '../apps/board/coverageStore';
+import { makeRng } from '../services/seededRandom';
 
 const IDS = Array.from({ length: 12 }, (_, i) => `obj-${i + 1}`);
 
@@ -20,13 +21,42 @@ function baseInput(overrides: Partial<BuildRoundInput> = {}): BuildRoundInput {
     objectiveIds: [...IDS],
     objectiveTypeById: Object.fromEntries(IDS.map((id) => [id, 'vocabulary' as const])),
     srsByObjective: {}, // all unseen → mastery rung 1
-    weakOrder: [],      // fresh class: every objective ties → random tie-break
+    weakRanks: {},      // fresh class: every objective ties → random tie-break
     shellType: 'FLASH_MATCH',
     phase: 'PRACTICE',
     roundSize: 6,
     ...overrides,
   };
 }
+
+// Helper: positional order → strict dense ranks (what the old tests meant).
+const strictRanks = (ids: string[]) => Object.fromEntries(ids.map((id, i) => [id, i]));
+
+describe('buildRound — dense-rank tie-break (the "first 4 words forever" regression, 2026-08-30)', () => {
+  it('full weak list with ALL-EQUAL retrievability does NOT collapse to the insertion-order prefix', () => {
+    // Production shape: classWeakObjectives returns every objective, fresh
+    // class ties at R = 0. Under the old positional ranking the subsequent
+    // stable sort restored DB insertion order and the shuffle was a no-op.
+    const ranks = denseWeakRanks(IDS.map((id) => ({ objective_id: id, retrievability: 0 })));
+    const firsts = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      firsts.add(buildRound(baseInput({ weakRanks: ranks })).selectedObjectiveIds[0]);
+    }
+    expect(firsts.size).toBeGreaterThan(1);
+  });
+
+  it('deterministic per (session seed, round): identical input → identical selection', () => {
+    const ranks = denseWeakRanks(IDS.map((id) => ({ objective_id: id, retrievability: 0 })));
+    const a = buildRound(baseInput({ weakRanks: ranks, rng: makeRng('sess-1', 'unit-1', 1) }));
+    const b = buildRound(baseInput({ weakRanks: ranks, rng: makeRng('sess-1', 'unit-1', 1) }));
+    expect(a.selectedObjectiveIds).toEqual(b.selectedObjectiveIds);
+  });
+
+  it('strict ranks preserve weak-first regardless of the shuffle', () => {
+    const r = buildRound(baseInput({ weakRanks: strictRanks([...IDS]) }));
+    expect(new Set(r.selectedObjectiveIds)).toEqual(new Set(IDS.slice(0, 6)));
+  });
+});
 
 describe('buildRound — distinct selection (halving-bug regression)', () => {
   it('selects roundSize DISTINCT objectives (no duplicated ids)', () => {
@@ -43,33 +73,33 @@ describe('buildRound — distinct selection (halving-bug regression)', () => {
 
 describe('buildRound — sequential deal, weakest-first rotation', () => {
   it('round 1 gets the weakest objectives when a weak order exists', () => {
-    // weakOrder is weakest-first: obj-1 weakest … obj-12 strongest.
-    const r = buildRound(baseInput({ weakOrder: [...IDS] }));
+    // strictRanks: obj-1 weakest (rank 0) … obj-12 strongest (rank 11).
+    const r = buildRound(baseInput({ weakRanks: strictRanks([...IDS]) }));
     expect(new Set(r.selectedObjectiveIds)).toEqual(new Set(IDS.slice(0, 6)));
   });
 
   it('deals unserved objectives before already-served ones', () => {
-    const weakOrder = [...IDS];
-    const r1 = buildRound(baseInput({ weakOrder }));
-    const r2 = buildRound(baseInput({ weakOrder, servedObjectives: r1.selectedObjectiveIds }));
+    const weakRanks = strictRanks([...IDS]);
+    const r1 = buildRound(baseInput({ weakRanks }));
+    const r2 = buildRound(baseInput({ weakRanks, servedObjectives: r1.selectedObjectiveIds }));
     // Round 2 must be the NEXT 6 weakest — none of round 1's words repeat.
     expect(new Set(r2.selectedObjectiveIds)).toEqual(new Set(IDS.slice(6, 12)));
     expect(r2.selectedObjectiveIds).toHaveLength(6);
   });
 
   it('covers the whole pool across rounds (12 words, 4 rounds x 6)', () => {
-    const weakOrder = [...IDS];
+    const weakRanks = strictRanks([...IDS]);
     const served: string[] = [];
     for (let round = 1; round <= 2; round++) {
-      const r = buildRound(baseInput({ roundIndex: round, weakOrder, servedObjectives: [...served] }));
+      const r = buildRound(baseInput({ roundIndex: round, weakRanks, servedObjectives: [...served] }));
       served.push(...r.selectedObjectiveIds);
     }
     expect(new Set(served).size).toBe(12); // full coverage, no repeats
   });
 
   it('wraps back to served objectives once the pool is exhausted', () => {
-    const weakOrder = [...IDS];
-    const r = buildRound(baseInput({ weakOrder, servedObjectives: [...IDS] }));
+    const weakRanks = strictRanks([...IDS]);
+    const r = buildRound(baseInput({ weakRanks, servedObjectives: [...IDS] }));
     // Everything served → back to the weakest 6.
     expect(new Set(r.selectedObjectiveIds)).toEqual(new Set(IDS.slice(0, 6)));
   });

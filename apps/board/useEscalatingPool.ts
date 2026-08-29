@@ -145,6 +145,10 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
 
   // ── 4. buildRound — the pure selection. Recomputed when any input changes. ──
   const round = useMemo(() => {
+    // TEMP (Task 4 replaces with denseWeakRanks of the classWeakObjectives
+    // output): positional ranks keep this compiling; behavior identical to
+    // the old weakOrder semantics.
+    const weakRanks: Record<string, number> = Object.fromEntries(weakOrder.map((id, i) => [id, i]));
     if (objectives.length === 0) {
       return { selectedObjectiveIds: [], rungByObjective: {}, exerciseTypes: [] as string[] };
     }
@@ -156,7 +160,7 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       objectiveIds: objectives.map((o) => o.id),
       objectiveTypeById,
       srsByObjective,
-      weakOrder,
+      weakRanks,
       shellType,
       phase,
       roundSize,

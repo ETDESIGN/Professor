@@ -273,9 +273,10 @@ export interface BuildRoundInput {
   objectiveTypeById: Record<string, ObjectiveType>;
   /** SRS state for each objective id (null = unseen/new). */
   srsByObjective: Record<string, RungSrsState | null>;
-  /** Objective IDs ordered weakest-first (from classWeakObjectives). Objectives
-   *  not in this list sink to the end in their natural order. */
-  weakOrder: string[];
+  /** Dense weak ranks by retrievability (denseWeakRanks of the
+   *  classWeakObjectives output). Equal rank = tied ⇒ seeded shuffle decides.
+   *  Objectives missing from the map sink to the end. */
+  weakRanks: Record<string, number>;
   /** The shell requesting the round (reads SHELL_CAPABILITIES + rungRange). */
   shellType: string;
   /** The current slide's phase (reads PHASE_ENVELOPE). */
@@ -317,7 +318,7 @@ export function roundBaselineRung(shellType: string, roundIndex: number, totalRo
 }
 
 export function buildRound(input: BuildRoundInput): BuildRoundOutput {
-  const { roundIndex, totalRounds, objectiveIds, objectiveTypeById, srsByObjective, weakOrder, shellType, phase, roundSize, servedObjectives } = input;
+  const { roundIndex, totalRounds, objectiveIds, objectiveTypeById, srsByObjective, weakRanks, shellType, phase, roundSize, servedObjectives } = input;
   const rng = input.rng ?? Math.random;
   const baseline = roundBaselineRung(shellType, roundIndex, totalRounds);
   const env = PHASE_ENVELOPE[phase];
@@ -325,19 +326,23 @@ export function buildRound(input: BuildRoundInput): BuildRoundOutput {
   const envCeiling = env ? env.rungRange[1] : baseline;
   const effectiveBaseline = Math.min(baseline, envCeiling);
 
-  // Rank objectives weakest-first (those not in weakOrder sink to the end).
   // Shuffle BEFORE the stable weak-rank sort: on a fresh class every objective
   // ties at R = 0, so without a random tie-break the sort falls back to DB
   // insertion order and the first-inserted word wins every round, forever.
-  const weakRank = (oid: string) => {
-    const i = weakOrder.indexOf(oid);
-    return i === -1 ? weakOrder.length : i;
-  };
   const shuffled = objectiveIds.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
+
+  // Rank objectives weakest-first (those not in weakRanks sink to the end).
+  // DENSE ranks (equal R ⇒ equal rank) mean ties survive this stable sort —
+  // the seeded shuffle above decides them. A positional rank here used to be
+  // a total order that restored DB insertion order and annulled the shuffle
+  // ("first 4 words forever", fixed 2026-08-30).
+  const rankValues = Object.values(weakRanks);
+  const fallbackRank = rankValues.length > 0 ? Math.max(...rankValues) + 1 : 0;
+  const weakRank = (oid: string) => weakRanks[oid] ?? fallbackRank;
   const ranked = shuffled.sort((a, b) => weakRank(a) - weakRank(b));
 
   // Sequential deal, weakest-first (pool-coverage fix): objectives not yet
