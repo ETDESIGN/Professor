@@ -9,6 +9,7 @@ import { supabase } from '../../services/supabaseClient';
 import { AIService } from '../../services/AIService';
 import { toast } from 'sonner';
 import { createClientLogger } from '../../services/logger';
+import FromTheBookPanel from './FromTheBookPanel';
 import { useEnrichment, contentIdFor, EnrichedManifest, EnrichedItem } from '../../hooks/useEnrichment';
 
 const log = createClientLogger('AssetWorkshop');
@@ -372,6 +373,9 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
           </button>
         </div>
       </div>
+
+      {/* From the book — verbatim baskets with no derived tab (FIXPLAN_F completion) */}
+      <FromTheBookPanel unitId={unitId} />
 
       {/* Category Tabs */}
       <div className="border-b border-slate-200 bg-slate-50 px-6 py-2 flex gap-1 overflow-x-auto shrink-0">
