@@ -204,6 +204,17 @@ export async function softDeleteUnit(unitId: string): Promise<void> {
     if (error) throw new Error(error.message);
 }
 
+/**
+ * Bulk soft-delete for the library multi-select. Atomic: the RPC verifies
+ * ownership of every id up front, so all units trash or none. Returns the
+ * number actually trashed (already-trashed ids are skipped, not failed).
+ */
+export async function trashUnits(unitIds: string[]): Promise<number> {
+    const { data, error } = await supabase.rpc('trash_units', { p_unit_ids: unitIds });
+    if (error) throw new Error(error.message);
+    return typeof data === 'number' ? data : unitIds.length;
+}
+
 export async function restoreUnit(unitId: string): Promise<void> {
     const { error } = await supabase.rpc('restore_unit', { p_unit_id: unitId });
     if (error) throw new Error(error.message);

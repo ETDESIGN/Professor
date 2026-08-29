@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors, Image as ImageIcon } from 'lucide-react';
+import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors, Image as ImageIcon, ListChecks, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import UnitPreviewModal from './UnitPreviewModal';
@@ -143,6 +143,11 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
   // ── Phase 3: bulk pool backfill ──────────────────────────────────────────
   const [backfillState, setBackfillState] = useState<{ running: boolean; done: number; total: number }>({ running: false, done: 0, total: 0 });
 
+  // ── Multi-select bulk trash (library tab) ────────────────────────────────
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedUnitIds, setSelectedUnitIds] = useState<Set<string>>(new Set());
+  const [bulkTrashConfirm, setBulkTrashConfirm] = useState(false);
+
   const userId = (state as any).userId ?? null;
 
   const refreshBooks = useCallback(async () => {
@@ -167,23 +172,28 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
     if (tab === 'trash') refreshTrash();
   }, [tab, refreshTrash]);
 
-  // Close the open kebab menu on outside click or Escape. Document-level
-  // listeners instead of a fixed overlay: the card's hover transform turns a
-  // `fixed` child into a card-relative element, which broke outside-click.
+  // Close the open kebab menu on outside click or Escape; Escape also leaves
+  // select mode. Document-level listeners instead of a fixed overlay: the
+  // card's hover transform turns a `fixed` child into a card-relative element,
+  // which broke outside-click.
   useEffect(() => {
-    if (!menuOpenFor) return;
+    if (!menuOpenFor && !selectMode) return;
     const onDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target?.closest?.('[data-kebab-menu]')) setMenuOpenFor(null);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpenFor(null); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setMenuOpenFor(null);
+      if (selectMode) { setSelectMode(false); setSelectedUnitIds(new Set()); setBulkTrashConfirm(false); }
+    };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [menuOpenFor]);
+  }, [menuOpenFor, selectMode]);
 
   // Pipeline meta for badges
   useEffect(() => {
@@ -300,6 +310,49 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
     : books;
   const visibleUnassigned = filtersActive ? unassigned.filter(unitMatches) : unassigned;
 
+  // ── Multi-select helpers (bulk trash) ────────────────────────────────────
+  // Only own units can be trashed — the trash_units RPC enforces this too, but
+  // the checkbox should not offer a click the server will reject. Legacy
+  // NULL-owner units are visible to every teacher but only admins can trash.
+  const canTrashUnit = (u: any) => (!u.teacher_id ? false : (!userId ? true : u.teacher_id === userId));
+
+  const toggleSelectedUnit = (unit: any) => {
+    setSelectedUnitIds(prev => {
+      const next = new Set(prev);
+      if (next.has(unit.id)) next.delete(unit.id); else next.add(unit.id);
+      return next;
+    });
+  };
+
+  // The "Select all" scope is whatever unit grid is on screen: the open book's
+  // units in book detail, else the (filtered) unassigned units on the bookshelf.
+  const selectableUnits: any[] = activeBook ? (unitsByBook[activeBook.id] || []) : visibleUnassigned;
+  const allVisibleSelected = selectableUnits.length > 0 && selectableUnits.every(u => selectedUnitIds.has(u.id));
+
+  const toggleSelectAllVisible = () => {
+    if (allVisibleSelected) { setSelectedUnitIds(new Set()); return; }
+    setSelectedUnitIds(prev => {
+      const next = new Set(prev);
+      for (const u of selectableUnits) if (canTrashUnit(u)) next.add(u.id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedUnitIds(new Set());
+    setBulkTrashConfirm(false);
+    setMenuOpenFor(null);
+  };
+
+  // Leaving the tab or switching books changes the visible selection scope.
+  useEffect(() => {
+    setSelectMode(false);
+    setSelectedUnitIds(new Set());
+    setBulkTrashConfirm(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, activeBookId]);
+
   // ── Existing actions ────────────────────────────────────────────────────
   const handleLaunch = async (unit: any) => {
     if (actionLoadingId) return;
@@ -363,6 +416,26 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
       setIsDeleting(false);
       setUnitToTrash(null);
       setMenuOpenFor(null);
+    }
+  };
+
+  // Multi-select: one atomic RPC — every selected unit trashes or none does.
+  // On failure the selection is kept (minus nothing) so the teacher can
+  // deselect the offender and retry.
+  const handleBulkTrash = async () => {
+    if (selectedUnitIds.size === 0) return;
+    setIsDeleting(true);
+    try {
+      const count = await Engine.trashUnits([...selectedUnitIds]);
+      toast.success(`Moved ${count} unit${count === 1 ? '' : 's'} to Trash`);
+      setSelectMode(false);
+      setSelectedUnitIds(new Set());
+      await Promise.all([loadUnits(), refreshTrash()]);
+    } catch (err: any) {
+      toast.error(`Bulk delete failed: ${err?.message || err}`);
+    } finally {
+      setIsDeleting(false);
+      setBulkTrashConfirm(false);
     }
   };
 
@@ -466,7 +539,14 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
     <motion.div
       key={unit.id}
       variants={itemVariants}
-      className="bg-white rounded-xl border border-slate-200 hover:shadow-lg transition-all group duration-300 hover:-translate-y-1"
+      onClick={() => { if (selectMode && canTrashUnit(unit)) toggleSelectedUnit(unit); }}
+      className={`bg-white rounded-xl border transition-all group duration-300 hover:-translate-y-1 ${
+        selectMode
+          ? selectedUnitIds.has(unit.id)
+            ? 'border-teacher-primary ring-2 ring-teacher-primary cursor-pointer'
+            : 'border-slate-200 cursor-pointer'
+          : 'border-slate-200 hover:shadow-lg'
+      }`}
     >
       {/* Thumbnail Area — own overflow-hidden + top rounding; the card wrapper
           must NOT clip so the kebab dropdown can extend past the card edge. */}
@@ -483,25 +563,48 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
 
+        {/* Select-mode checkbox — the whole card toggles it too */}
+        {selectMode && (
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={selectedUnitIds.has(unit.id)}
+            aria-label={`Select ${unit.title ?? 'unit'}`}
+            title={canTrashUnit(unit) ? 'Select for bulk actions' : 'Only the owner can trash this unit'}
+            onClick={(e) => { e.stopPropagation(); if (canTrashUnit(unit)) toggleSelectedUnit(unit); }}
+            className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 transition-all ${
+              canTrashUnit(unit) ? '' : 'opacity-40 cursor-not-allowed '
+            }${
+              selectedUnitIds.has(unit.id)
+                ? 'bg-teacher-primary border-teacher-primary'
+                : 'bg-white/90 border-slate-300'
+            }`}
+          >
+            {selectedUnitIds.has(unit.id) && <Check size={16} className="text-slate-900" strokeWidth={3.5} />}
+          </button>
+        )}
+
         {/* Hover Actions */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-sm gap-3">
-          <button
-            onClick={() => handlePlan(unit)}
-            className="bg-white text-slate-800 p-3 rounded-xl font-bold hover:bg-slate-50 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
-            title="Edit Lesson Plan"
-          >
-            {actionLoadingId === unit.id ? <Loader2 size={20} className="animate-spin" /> : <CalendarPlus size={20} />}
-            <span className="text-xs">Plan</span>
-          </button>
-          <button
-            onClick={() => handleLaunch(unit)}
-            className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-emerald-500 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
-            title="Launch Class"
-          >
-            <Play size={20} />
-            <span className="text-xs">Teach</span>
-          </button>
-        </div>
+        {!selectMode && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-sm gap-3">
+            <button
+              onClick={() => handlePlan(unit)}
+              className="bg-white text-slate-800 p-3 rounded-xl font-bold hover:bg-slate-50 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
+              title="Edit Lesson Plan"
+            >
+              {actionLoadingId === unit.id ? <Loader2 size={20} className="animate-spin" /> : <CalendarPlus size={20} />}
+              <span className="text-xs">Plan</span>
+            </button>
+            <button
+              onClick={() => handleLaunch(unit)}
+              className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-emerald-500 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
+              title="Launch Class"
+            >
+              <Play size={20} />
+              <span className="text-xs">Teach</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -514,7 +617,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
             <h3 className="text-xl font-display font-bold text-slate-800 leading-tight truncate">{unit.title}</h3>
           </div>
           <div className="flex items-center gap-1">
-            {opts?.inBook && (
+            {opts?.inBook && !selectMode && (
               <div className="flex flex-col">
                 <button onClick={() => handleReorder(unit, -1)} disabled={(opts.index ?? 0) === 0}
                   className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5" title="Move up"><ArrowUp size={14} /></button>
@@ -522,7 +625,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
                   className="text-slate-400 hover:text-slate-700 disabled:opacity-20 p-0.5" title="Move down"><ArrowDown size={14} /></button>
               </div>
             )}
-            <div className="relative" data-kebab-menu>
+            {!selectMode && (<div className="relative" data-kebab-menu>
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpenFor(menuOpenFor === unit.id ? null : unit.id); }}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100"
@@ -567,7 +670,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
                   </div>
                 </>
               )}
-            </div>
+            </div>)}
           </div>
         </div>
 
@@ -609,8 +712,10 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
       <motion.div
         key={book.id}
         variants={itemVariants}
-        className="bg-white rounded-xl border border-slate-200 hover:shadow-lg transition-all group duration-300 hover:-translate-y-1 cursor-pointer relative"
-        onClick={() => setActiveBookId(book.id)}
+        className={`bg-white rounded-xl border border-slate-200 transition-all group duration-300 hover:-translate-y-1 relative ${
+          selectMode ? '' : 'cursor-pointer hover:shadow-lg'
+        }`}
+        onClick={() => { if (!selectMode) setActiveBookId(book.id); }}
       >
         <div className="h-40 bg-gradient-to-br from-indigo-100 to-emerald-50 relative overflow-hidden rounded-t-xl">
           {cover ? (
@@ -667,6 +772,20 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
           <p className="text-slate-500">Books group your units — manage lessons and source material</p>
         </div>
         <div className="flex gap-3">
+          {tab === 'library' && (
+            <button
+              onClick={() => (selectMode ? exitSelectMode() : (setMenuOpenFor(null), setSelectMode(true)))}
+              className={`px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95 ${
+                selectMode
+                  ? 'bg-slate-800 text-white'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+              title={selectMode ? 'Leave selection mode' : 'Select units for bulk actions'}
+            >
+              <ListChecks size={18} />
+              {selectMode ? 'Done' : 'Select'}
+            </button>
+          )}
           {/* Phase 3: one-click backfill for Active units that never got a
               pool (their fire-and-forget trigger was dropped before the
               Aug-17 reliability fix). Admins can backfill all units. */}
@@ -857,6 +976,43 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
           )}
         </div>
       )}
+
+      {/* Multi-select bulk action bar */}
+      <AnimatePresence>
+        {selectMode && tab === 'library' && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-6 left-0 right-0 mx-auto w-fit max-w-[95vw] z-40 bg-white rounded-2xl shadow-2xl border border-slate-200 px-4 py-3 flex items-center gap-2"
+          >
+            <span className="text-sm font-bold text-slate-700 px-2 whitespace-nowrap">
+              {selectedUnitIds.size} selected
+            </span>
+            <button
+              onClick={toggleSelectAllVisible}
+              disabled={selectableUnits.length === 0}
+              className="px-3 py-1.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+            >
+              {allVisibleSelected ? 'Deselect all' : 'Select all'}
+            </button>
+            <button
+              onClick={() => setSelectedUnitIds(new Set())}
+              disabled={selectedUnitIds.size === 0}
+              className="px-3 py-1.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setBulkTrashConfirm(true)}
+              disabled={selectedUnitIds.size === 0}
+              className="px-4 py-1.5 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 flex items-center gap-2 whitespace-nowrap"
+            >
+              <Trash2 size={15} /> Move to Trash ({selectedUnitIds.size})
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Preview Modal */}
       {selectedUnit && (
@@ -1104,6 +1260,49 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
                   className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
                   {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   {isDeleting ? 'Moving…' : 'Move to Trash'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Move-to-Trash Confirmation Modal */}
+      <AnimatePresence>
+        {bulkTrashConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => !isDeleting && setBulkTrashConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-lg font-bold text-slate-800">
+                    Move {selectedUnitIds.size} unit{selectedUnitIds.size === 1 ? '' : 's'} to Trash?
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-1">
+                    The selected units will be moved to the Trash.
+                    You can restore them from the Trash tab, or delete them forever there.
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setBulkTrashConfirm(false)} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={handleBulkTrash} disabled={isDeleting}
+                  className="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  {isDeleting ? 'Moving…' : `Move ${selectedUnitIds.size} to Trash`}
                 </button>
               </div>
             </motion.div>

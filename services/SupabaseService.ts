@@ -8,6 +8,7 @@ import { createClientLogger } from './logger';
 import {
     getOrCreateDefaultBookForCurrentUser,
     softDeleteUnit,
+    trashUnits,
     listBooks,
     createBook,
     renameBook,
@@ -59,6 +60,8 @@ export interface LessonUnit {
     topic?: string;
     book_id?: string | null;
     order_index?: number;
+    /** Owning teacher (NULL on legacy units visible to everyone). */
+    teacher_id?: string | null;
 }
 
 const requireSupabase = (): void => {
@@ -99,6 +102,7 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
             topic: row.topic ?? undefined,
             book_id: row.book_id ?? null,
             order_index: row.order_index ?? 0,
+            teacher_id: row.teacher_id ?? null,
         }));
     } catch (err) {
         log.warn('unexpected_error_fetching_units', { error: err instanceof Error ? err.message : String(err) });
@@ -445,6 +449,12 @@ export const Engine = {
     deleteUnit: async (id: string): Promise<void> => {
         requireSupabase();
         return supabaseDeleteUnit(id);
+    },
+
+    /** Bulk soft-delete (library multi-select) — atomic, returns count trashed. */
+    trashUnits: async (unitIds: string[]): Promise<number> => {
+        requireSupabase();
+        return trashUnits(unitIds);
     },
 
     // ── Unit & Book Manager wrappers (delegate to BookService) ────────────
