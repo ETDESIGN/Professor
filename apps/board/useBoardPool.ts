@@ -10,6 +10,7 @@ import { PoolItem, toPoolItem } from '../../types/exercise';
 import { classWeakObjectives } from '../../services/boardLearner';
 import { useSession } from '../../store/SessionContext';
 import { makeRng, seededShuffle } from '../../services/seededRandom';
+import { denseWeakRanks } from './lessonDirector';
 
 interface Options {
   unitId: string;
@@ -54,11 +55,11 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       setLoading(true);
       setError(false);
 
-      let order: string[] = [];
+      let weakRankMap: Record<string, number> = {};
       if (classWeak && roster && roster.length > 0) {
         const weak = await classWeakObjectives(roster, unitId);
-        order = weak.map((w) => w.objective_id);
-        if (!cancelled) setWeakOrder(order);
+        weakRankMap = denseWeakRanks(weak);
+        if (!cancelled) setWeakOrder(Object.keys(weakRankMap));
       }
 
       // Fetch the whole unit pool for the requested types (bounded: ~15 words
@@ -85,12 +86,14 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       // FIXPLAN E1.3: the shuffle is SEEDED on (sessionId, unitId) — identical
       // on every tab of one session (cross-tab deal agreement), and the weak-rank
       // ordering still drives which objectives surface first.
+      // Dense ranks, not positional (2026-08-30): ties — equal retrievability —
+      // share a rank and keep the seeded shuffle order, so a fresh class (every
+      // word at R = 0) doesn't freeze the same first words forever.
       pool = seededShuffle(pool, makeRng(sessionId, unitId));
-      if (order.length > 0) {
-        const rank = (oid: string) => {
-          const i = order.indexOf(oid);
-          return i === -1 ? order.length : i;
-        };
+      if (Object.keys(weakRankMap).length > 0) {
+        const rankValues = Object.values(weakRankMap);
+        const fallbackRank = rankValues.length > 0 ? Math.max(...rankValues) + 1 : 0;
+        const rank = (oid: string) => weakRankMap[oid] ?? fallbackRank;
         pool = pool.slice().sort((a, b) => rank(a.objective_id) - rank(b.objective_id));
       }
 
