@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
+import { cropBookImage } from '../_shared/bookCrop.ts';
 import { buildPromptWithCharacter, fetchCharacterByName } from '../_shared/characterLook.ts';
 
 serve(async (req) => {
@@ -737,13 +738,28 @@ One output box per input box, same order. Keep every value concise so the respon
     const buildBasketStory = async (): Promise<any> => {
       const pages: any[] = [];
       let title = '';
-      // Reading passages verbatim → one page per passage.
+      // Reading passages verbatim → one page per passage. Illustrations:
+      // the BOOK'S OWN ARTWORK is the default (doc 10 §5) — crop the first
+      // scene of the passage when a bbox exists; the scan's exhaustive
+      // visual_description becomes image_prompt (the AI fallback) so an
+      // artist-faithful regeneration is always available alongside.
+      const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
       for (const p of basketPassages) {
         if (!title && p.title) title = String(p.title);
+        const scene = Array.isArray(p.scene_illustrations) && p.scene_illustrations[0];
+        let pageBbox: any = null;
+        if (scene?.bbox && p.page_id) {
+          try {
+            const crop = await cropBookImage({ sb, pageId: p.page_id, structureId: p.structure_id || null, bbox: scene.bbox, pool: 'scene' });
+            if (crop.ok && crop.asset_id) pageBbox = { asset_id: crop.asset_id, url: crop.url };
+          } catch { /* crop is best-effort; the text always lands */ }
+        }
         pages.push({
           text: String(p.passage_text || ''),
           speaker: null,
-          image_prompt: null,
+          image_prompt: scene?.visual_description ? String(scene.visual_description) : (scene?.caption ? String(scene.caption) : null),
+          image_asset_id: pageBbox?.asset_id || null,
+          image_url_book_crop: pageBbox?.url || null,
           source_structure_id: p.structure_id || null,
           needs_questions: true,
         });
@@ -1094,6 +1110,7 @@ ${categoryRules}
             text: String(p.text || ''), speaker: p.speaker ? String(p.speaker) : null,
             speaker_character_id: speakerCharId,
             image_prompt: p.image_prompt ? String(p.image_prompt) : null,
+            image_asset_id: p.image_asset_id || null, // story illustrations: book crop default
             source_structure_id: p.source_structure_id || null, // FIXPLAN_F P2.2 provenance
           });
         }

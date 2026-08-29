@@ -127,7 +127,7 @@ describe('verifyStructures', () => {
   });
 
   it('stamps the extractor version constant used by scan-page', () => {
-    expect(EXTRACTOR_VERSION).toBe('scan-v5');
+    expect(EXTRACTOR_VERSION).toBe('scan-v6');
   });
 });
 
