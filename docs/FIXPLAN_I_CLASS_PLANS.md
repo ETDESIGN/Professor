@@ -1,7 +1,7 @@
 # Fix Plan I — Class Plans (Unit → N classes)
 
 **Origin:** [`brainstorming/11_UNITIZATION_AND_CLASS_PLANS.md`](./brainstorming/11_UNITIZATION_AND_CLASS_PLANS.md) §4 (Design C) — all 8 owner decisions locked 2026-08-27. Phase F3, the final phase of doc 11.
-**Status:** DRAFT — awaiting owner approval before implementation.
+**Status:** APPROVED + IMPLEMENTED 2026-08-30 (migration `20260830130000` live; propose/apply/generate-class-flow functions deployed & 401-probe verified; 21 vitest + 23 e2e checks green via `npm run test:classplans` — throwaway fixture teacher `classplans-e2e@fixture.local`). Owner acceptance (split "A day on the farm" into 3 classes, teach class 1, student app shows only class 1) pending.
 **Risk:** 🟡 Medium — one additive migration + a new planning surface; every existing path degrades to today's behavior when a unit has no class plans.
 **Depends on:** G landed (2026-08-28) — units carry page-scoped content. F2 (series/set_label) may land in parallel; this plan only **reads** `set_label`, never redefines it.
 

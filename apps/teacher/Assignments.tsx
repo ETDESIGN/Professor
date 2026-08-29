@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Calendar, CheckCircle, Clock, MoreVertical, FileText, Mic, BarChart2, Search, Filter, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAllTeacherAssignments, useCreateAssignment } from '../../hooks/useQueries';
 import { useAppStore } from '../../store/useAppStore';
 import { createClientLogger } from '../../services/logger';
+import { supabase } from '../../services/supabaseClient';
 import { toast } from 'sonner';
 
 const log = createClientLogger('Assignments');
@@ -15,7 +16,9 @@ const Assignments: React.FC = () => {
       title: '',
       description: '',
       class_id: '',
-      due_date: ''
+      due_date: '',
+      unit_id: '',
+      class_plan_id: ''
    });
    const { userProfile } = useAppStore();
    const { data, isLoading: loading } = useAllTeacherAssignments(userProfile?.id);
@@ -23,6 +26,44 @@ const Assignments: React.FC = () => {
 
    const assignments = data?.assignments || [];
    const classes = data?.classes || [];
+
+   // FIXPLAN I — optional unit + class-plan attach: homework belongs to a
+   // teachable class when the teacher picks one.
+   const [unitOptions, setUnitOptions] = useState<{ id: string; title: string }[]>([]);
+   const [planOptions, setPlanOptions] = useState<{ id: string; title: string }[]>([]);
+   useEffect(() => {
+      if (!showCreateModal || !userProfile?.id) return;
+      let cancelled = false;
+      (async () => {
+         try {
+            const { data: units } = await supabase
+               .from('units')
+               .select('id, title')
+               .eq('teacher_id', userProfile.id)
+               .is('deleted_at', null)
+               .order('created_at', { ascending: false })
+               .limit(50);
+            if (!cancelled) setUnitOptions((units || []) as any[]);
+         } catch { /* optional picker — fail silently */ }
+      })();
+      return () => { cancelled = true; };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [showCreateModal, userProfile?.id]);
+   useEffect(() => {
+      if (!newAssignment.unit_id) { setPlanOptions([]); return; }
+      let cancelled = false;
+      (async () => {
+         try {
+            const { data: plans } = await supabase
+               .from('class_plans')
+               .select('id, title')
+               .eq('unit_id', newAssignment.unit_id)
+               .order('order_index');
+            if (!cancelled) setPlanOptions((plans || []) as any[]);
+         } catch { /* optional picker */ }
+      })();
+      return () => { cancelled = true; };
+   }, [newAssignment.unit_id]);
 
    const handleCreateAssignment = async () => {
       if (!newAssignment.title || !newAssignment.class_id || createAssignmentMut.isPending) return;
@@ -39,11 +80,13 @@ const Assignments: React.FC = () => {
             title: newAssignment.title,
             description: newAssignment.description || null,
             class_id: newAssignment.class_id,
-            due_date: newAssignment.due_date || null
-         });
+            due_date: newAssignment.due_date || null,
+            unit_id: newAssignment.unit_id || null,
+            class_plan_id: newAssignment.class_plan_id || null,
+         } as any);
 
          setShowCreateModal(false);
-         setNewAssignment({ title: '', description: '', class_id: '', due_date: '' });
+         setNewAssignment({ title: '', description: '', class_id: '', due_date: '', unit_id: '', class_plan_id: '' });
       } catch (error) {
          // FIXPLAN H3: keep the modal open with the error visible so the
          // teacher's typed work isn't lost — a silent log.warn looked like a
@@ -239,6 +282,36 @@ const Assignments: React.FC = () => {
                                  <option key={cls.id} value={cls.id}>{cls.name}</option>
                               ))}
                            </select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                           <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Unit <span className="text-slate-400 font-normal">(optional)</span></label>
+                              <select
+                                 value={newAssignment.unit_id}
+                                 onChange={(e) => setNewAssignment({ ...newAssignment, unit_id: e.target.value, class_plan_id: '' })}
+                                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              >
+                                 <option value="">Whole course</option>
+                                 {unitOptions.map((u) => (
+                                    <option key={u.id} value={u.id}>{u.title}</option>
+                                 ))}
+                              </select>
+                           </div>
+                           <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-1">Teaching class <span className="text-slate-400 font-normal">(optional)</span></label>
+                              <select
+                                 value={newAssignment.class_plan_id}
+                                 onChange={(e) => setNewAssignment({ ...newAssignment, class_plan_id: e.target.value })}
+                                 disabled={!newAssignment.unit_id || planOptions.length === 0}
+                                 className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-50 disabled:text-slate-400"
+                              >
+                                 <option value="">{planOptions.length > 0 ? 'Whole unit' : 'No classes planned'}</option>
+                                 {planOptions.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.title}</option>
+                                 ))}
+                              </select>
+                           </div>
                         </div>
 
                         <div>

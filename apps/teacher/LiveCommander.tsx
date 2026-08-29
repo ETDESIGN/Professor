@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../../store/SessionContext';
 import { useAppStore } from '../../store/useAppStore';
+import { supabase } from '../../services/supabaseClient';
 import { useTeacherClasses } from '../../hooks/useQueries';
 import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
    Monitor, Clock, LogOut, PenTool, Eraser,
    Star, Activity, LayoutGrid, Zap, Bell,
-   Plus, Minus, X, List, Sparkles, UserCheck, Users, ArrowRight
+   Plus, Minus, X, List, Sparkles, UserCheck, Users, ArrowRight, Check, Loader2
 } from 'lucide-react';
 import DrawingLayer from '../../components/shared/DrawingLayer';
 import AttendanceModal from './AttendanceModal';
@@ -66,8 +67,32 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const { data: myClasses = [] } = useTeacherClasses(userProfile?.id);
 
    const currentStep = state.activeSlideData;
-   const activeFlow = state.activeUnit?.flow || [];
+   // FIXPLAN I (#8): a class session's roadmap is the class plan's flow —
+   // strictly the current class's material, never the whole unit.
+   const activeFlow = (state.activeClassPlan?.flow?.length ? state.activeClassPlan.flow : state.activeUnit?.flow) || [];
    const nextStep = activeFlow[state.currentStepIndex + 1];
+   const activeClassPlan = state.activeClassPlan;
+   const [releasingClass, setReleasingClass] = useState(false);
+   const [classReleasedHere, setClassReleasedHere] = useState(false);
+   useEffect(() => { setClassReleasedHere(false); }, [activeClassPlan?.id]);
+   const classIsReleased = !!(activeClassPlan?.released_at || classReleasedHere);
+   const markClassTaught = async () => {
+      if (!activeClassPlan || releasingClass || classReleasedHere) return;
+      setReleasingClass(true);
+      try {
+         const { error } = await supabase
+            .from('class_plans')
+            .update({ released_at: new Date().toISOString() })
+            .eq('id', activeClassPlan.id);
+         if (error) throw error;
+         setClassReleasedHere(true);
+         toast.success(`"${activeClassPlan.title}" released — students can now practice this class's words.`);
+      } catch (e: any) {
+         toast.error(`Could not release the class: ${e?.message || e}`);
+      } finally {
+         setReleasingClass(false);
+      }
+   };
 
    // RULES OF HOOKS: all hooks must run unconditionally on every render. The
    // `currentStep` guard below used to sit ABOVE these hook calls, so when
@@ -127,6 +152,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   <h1 className="font-bold text-sm leading-tight text-slate-200">Live Commander</h1>
                   <div className="flex items-center gap-2 text-[10px] text-indigo-400 font-mono">
                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>ROOM-304
+                     {activeClassPlan && <span className="text-emerald-400 font-sans font-bold">{activeClassPlan.title}</span>}
                   </div>
                </div>
             </div>
@@ -144,6 +170,24 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   <Clock size={14} className="text-slate-400" />
                   <span className="font-mono font-bold text-sm text-slate-200">{formatTime(elapsedTime)}</span>
                </div>
+               {/* FIXPLAN I (#5) — the natural release moment: end of class. */}
+               {activeClassPlan && (
+                  <button
+                     onClick={markClassTaught}
+                     disabled={classIsReleased || releasingClass}
+                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold border transition-colors ${
+                        classIsReleased
+                           ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700'
+                           : 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
+                     }`}
+                     title={classIsReleased
+                        ? `This class is released to students`
+                        : `Mark "${activeClassPlan.title}" as taught — releases its content to students`}
+                  >
+                     {releasingClass ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                     {classIsReleased ? `Class released` : `Mark class taught`}
+                  </button>
+               )}
                <button
                   onClick={async () => {
                     const { id, error } = await ensureAttendanceOccurrence();

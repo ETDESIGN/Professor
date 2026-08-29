@@ -47,6 +47,13 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
   // on top via makeRng when they reshuffle per pick.
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
+  // FIXPLAN I (#8): a class session serves ONLY the current class's material.
+  // The active class plan's resolved objective ids scope the pull; a whole-
+  // unit session (no plan) keeps today's behavior.
+  const scopeObjectiveIds: string[] | null = (() => {
+    const ids = state.activeClassPlan?.content_index?.objective_ids;
+    return Array.isArray(ids) && ids.length > 0 ? ids : null;
+  })();
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +79,7 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       // client-side AFTER the shuffle below.
       let query = supabase.from('pool_items').select('*').eq('unit_id', unitId).limit(500);
       if (exerciseTypes && exerciseTypes.length > 0) query = query.in('exercise_type', exerciseTypes);
+      if (scopeObjectiveIds) query = query.in('objective_id', scopeObjectiveIds);
       const { data, error: queryError } = await query;
       if (cancelled) return;
       if (queryError || !data) { setItems([]); setError(true); setLoading(false); return; }
@@ -105,7 +113,7 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       if (!cancelled) { setItems(pool); setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [unitId, sessionId, exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
+  }, [unitId, sessionId, scopeObjectiveIds?.join(','), exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
 
   return { items, loading, error, weakOrder };
 }

@@ -75,6 +75,13 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
   // and rounds varied).
   const { state } = useSession();
   const sessionId = state.sessionId ?? 'local';
+  // FIXPLAN I (#8): a class session drills ONLY the current class's
+  // objectives; a whole-unit session keeps the full objective set.
+  const scopeObjectiveIds: string[] | null = (() => {
+    const ids = state.activeClassPlan?.content_index?.objective_ids;
+    return Array.isArray(ids) && ids.length > 0 ? ids : null;
+  })();
+  const scopeKey = scopeObjectiveIds?.join(',') ?? '';
 
   // ── 1. Objectives for this unit (id + type), cached per unitId. ────────
   const [objectives, setObjectives] = useState<{ id: string; type: ObjectiveType }[]>([]);
@@ -82,10 +89,12 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
     let cancelled = false;
     if (!unitId) { setObjectives([]); return; }
     (async () => {
-      const { data, error } = await supabase
+      let objQuery = supabase
         .from('objectives')
         .select('id, type')
         .eq('unit_id', unitId);
+      if (scopeObjectiveIds) objQuery = objQuery.in('id', scopeObjectiveIds);
+      const { data, error } = await objQuery;
       if (cancelled) return;
       if (error || !data) { setObjectives([]); return; }
       // Narrow type to the ObjectiveType union; unknown types fall back to 'vocabulary'.
@@ -95,7 +104,7 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       })));
     })();
     return () => { cancelled = true; };
-  }, [unitId]);
+  }, [unitId, scopeKey]);
 
   // ── 2. Class-weak ordering + SRS state, cached per (unitId, roster). ───
   // classWeakObjectives returns [{objective_id, retrievability, states: ObjectiveState[]}].

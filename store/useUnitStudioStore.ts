@@ -55,6 +55,8 @@ export interface VocabItem {
   distractors: string[];
   image_url?: string;
   audio_url?: string;
+  /** F2: the vocabulary series this word belongs to (vocabulary_items.set_label). */
+  set_label?: string | null;
 }
 
 export interface QuizQuestion {
