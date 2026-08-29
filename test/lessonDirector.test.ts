@@ -52,6 +52,13 @@ describe('buildRound — dense-rank tie-break (the "first 4 words forever" regre
     expect(a.selectedObjectiveIds).toEqual(b.selectedObjectiveIds);
   });
 
+  it('different session seeds deal different round-1 selections (per-session variety)', () => {
+    const ranks = denseWeakRanks(IDS.map((id) => ({ objective_id: id, retrievability: 0 })));
+    const a = buildRound(baseInput({ weakRanks: ranks, rng: makeRng('sess-a', 'unit-1', 'FLASH_MATCH', 1) }));
+    const b = buildRound(baseInput({ weakRanks: ranks, rng: makeRng('sess-b', 'unit-1', 'FLASH_MATCH', 1) }));
+    expect(a.selectedObjectiveIds).not.toEqual(b.selectedObjectiveIds);
+  });
+
   it('strict ranks preserve weak-first regardless of the shuffle', () => {
     const r = buildRound(baseInput({ weakRanks: strictRanks([...IDS]) }));
     expect(new Set(r.selectedObjectiveIds)).toEqual(new Set(IDS.slice(0, 6)));

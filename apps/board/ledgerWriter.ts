@@ -52,8 +52,9 @@ export async function flushLedgerNow(): Promise<void> {
         p_objective_ids: Array.from(e.ids),
       });
     } catch (err) {
-      // Fire-and-forget: the in-memory store remains the working state; the
-      // next realtime echo / next round's write re-converges the ledger.
+      // Fire-and-forget: the in-memory store remains the working state. A
+      // failed flush drops this batch's ids from the DB ledger — later
+      // rounds' own writes still land, but this batch is not re-sent.
       log.warn('ledger_merge_failed', { error: err instanceof Error ? err.message : String(err) });
     }
   }
