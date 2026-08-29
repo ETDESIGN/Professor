@@ -615,8 +615,33 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                       <Plus size={14} /> Add Word
                     </button>
                   </div>
-                  <div className="space-y-4">
-                    {vocabulary.map((v, i) => (
+                  {/* F2 (doc 11 §3): words are grouped BY SERIES (the unit of
+                      release). Renaming a series label updates every word in
+                      it — owner decision #3: rename only, no word-moving. */}
+                  {Object.entries(vocabulary.reduce((groups: Record<string, { v: any; i: number }[]>, v, i) => {
+                    const label = (v.set_label || '').trim() || 'Ungrouped';
+                    (groups[label] = groups[label] || []).push({ v, i });
+                    return groups;
+                  }, {})).map(([label, group]) => (
+                    <div key={label} className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span
+                          className="text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full cursor-pointer hover:bg-emerald-200"
+                          title="Rename this series"
+                          onClick={() => {
+                            const next = window.prompt('Rename this series (its words keep their grouping):', label === 'Ungrouped' ? '' : label);
+                            if (next === null) return;
+                            const trimmed = next.trim();
+                            setVocabulary(vocabulary.map((v, i) =>
+                              group.some(g => g.i === i) ? { ...v, set_label: trimmed || null } : v));
+                          }}
+                        >
+                          {label} ✎
+                        </span>
+                        <span className="text-xs text-slate-400">{group.length} words · series = unit of release · Save persists renames</span>
+                      </div>
+                      <div className="space-y-4">
+                        {group.map(({ v, i }) => (
                       <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2 text-sm text-slate-400 font-bold">
@@ -681,8 +706,10 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

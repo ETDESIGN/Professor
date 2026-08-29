@@ -93,7 +93,9 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
   const siblingImages = siblings.filter((s) => isRealImage(s?.image_url));
 
   const push = (type: ExerciseType, content: any) => {
-    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type } });
+    // F2 (doc 11 §3): every vocab pool item carries its SERIES label so
+    // consumers can filter/release by series (class plans gate what's NEW).
+    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type, ...(v.set_label ? { set_label: v.set_label } : {}) } });
   };
 
   // MEANING_MATCH — pick the correct Chinese meaning.
@@ -185,7 +187,9 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
   const rule = String(g?.rule || '');
 
   const push = (type: ExerciseType, content: any) => {
-    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type } });
+    // F2 (doc 11 §3): every vocab pool item carries its SERIES label so
+    // consumers can filter/release by series (class plans gate what's NEW).
+    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type, ...(v.set_label ? { set_label: v.set_label } : {}) } });
   };
 
   // ERROR_SPOT — one per error example.

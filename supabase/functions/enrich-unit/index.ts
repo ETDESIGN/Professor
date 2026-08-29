@@ -576,7 +576,14 @@ Rules:
         // order_index is derived from the batch's position, so parallel waves
         // never collide.
         if (batchWords.length > 0) {
-          batchWords.forEach((w, idx) => { w.order_index = existingCount + batchIdx * VOCAB_BATCH_SIZE + idx; });
+          batchWords.forEach((w, idx) => {
+            w.order_index = existingCount + batchIdx * VOCAB_BATCH_SIZE + idx;
+            // F2 (doc 11 §3): series identity travels with the word into the
+            // manifest/response so the review groups BY SERIES, and pools can
+            // be series-filtered downstream.
+            const prov = basketProvenance.get(String(w.word || '').trim().toLowerCase());
+            if (prov?.set_label) w.set_label = prov.set_label;
+          });
           try {
             const { error: incErr } = await sbClient
               .from('vocabulary_items')

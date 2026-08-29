@@ -268,6 +268,7 @@ export const useUnitStudioStore = create<UnitStudioState>()((set, get) => ({
               image_url: v.image_url || p.image_url || null, audio_url: v.audio_url || p.audio_url || null,
               example_audio_url: p.example_audio_url ?? null,
               distractors: v.distractors || [], confusables: p.confusables ?? [],
+              set_label: v.set_label ?? p.set_label ?? null, // F2: series identity must survive saves
             };
           });
           if (rows.length > 0) await supabase.from('vocabulary_items').insert(rows);

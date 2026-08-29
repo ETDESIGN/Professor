@@ -250,14 +250,36 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
     const c = colorClasses[cat.color];
 
     switch (activeCategory) {
-      case 'vocabulary':
+      case 'vocabulary': {
+        // F2 (doc 11 §3): vocabulary is reviewed BY SERIES — the unit of
+        // release — never as one flat pool of 35-60 words.
+        const bySet = new Map<string, { items: any[]; indexes: number[] }>();
+        enriched.vocabulary.forEach((v: any, i: number) => {
+          const label = (v.set_label || '').trim() || 'Ungrouped';
+          if (!bySet.has(label)) bySet.set(label, { items: [], indexes: [] });
+          bySet.get(label)!.items.push(v);
+          bySet.get(label)!.indexes.push(i);
+        });
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {enriched.vocabulary.map((v, i) => (
-              <VocabCard key={i} item={v} index={i} color={c} onToggle={() => toggleApproval('vocabulary', i)} />
+          <div className="space-y-6">
+            {[...bySet.entries()].map(([label, group]) => (
+              <div key={label}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                    {label}
+                  </span>
+                  <span className="text-xs text-slate-400">{group.items.length} words</span>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {group.items.map((v: any, k: number) => (
+                    <VocabCard key={k} item={v} index={group.indexes[k]} color={c} onToggle={() => toggleApproval('vocabulary', group.indexes[k])} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         );
+      }
 
       case 'grammar':
         return (
