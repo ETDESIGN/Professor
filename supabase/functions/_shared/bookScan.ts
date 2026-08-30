@@ -10,7 +10,11 @@
 //   * no quotas — nothing here imposes or implies counts
 //   * absence = absence — empty arrays are valid, complete answers
 
-export const EXTRACTOR_VERSION = 'scan-v6';
+// scan-v7: per-paragraph scene anchoring — every scene illustration records
+// which paragraph of passage_text it illustrates (paragraph_index +
+// anchor_text) so each story paragraph can carry its own book artwork
+// (doc 10 §5 image default; story fidelity).
+export const EXTRACTOR_VERSION = 'scan-v7';
 
 /** Normalized [x, y, w, h], origin top-left, each in [0, 1] of the full page. */
 export type Bbox = [number, number, number, number];
@@ -91,6 +95,23 @@ export interface ActivityRef {
 export interface SceneIllustration {
   bbox?: Bbox;
   caption?: string;
+  /**
+   * 0-based index of the passage paragraph this illustration depicts
+   * (paragraphs counted in reading order within passage_text). Optional —
+   * scan-v6 scenes predate anchoring.
+   */
+  paragraph_index?: number;
+  /**
+   * The opening words of the illustrated paragraph, copied word-for-word from
+   * passage_text. The robust scene→paragraph link (OCR-tolerant prefix match).
+   */
+  anchor_text?: string;
+  /**
+   * Exhaustive description of THIS illustration — written so an artist could
+   * redraw it without seeing the book. Powers the AI fallback when the book
+   * crop is unsuitable (doc 10 §5 image default).
+   */
+  visual_description?: string;
 }
 
 export interface ReadingPassageData {

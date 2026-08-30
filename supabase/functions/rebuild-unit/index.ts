@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
+import { EXTRACTOR_VERSION } from '../_shared/bookScan.ts';
 
 // FIXPLAN_F P4.2 — rebuild legacy units from their stored page images.
 //
@@ -14,6 +15,13 @@ import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 // (orchestrate-lesson's fire-and-forget pattern). Progress state IS the
 // database — pages already scanned are skipped, so a killed invocation just
 // continues on the next trigger.
+//
+// Version-aware resume (doc 10 §5 extractor versioning, story fidelity):
+// only pages scanned by the CURRENT extractor count as done. When the
+// extraction contract is upgraded (e.g. scan-v6 → scan-v7's per-paragraph
+// scene anchors), stale pages are deleted and re-scanned so their structures
+// carry the new fields — teacher-added structures are preserved by
+// re-parenting them onto the fresh page row after it settles.
 //
 // Modes (doc 10 §5):
 //   fresh    — old manifest archived to units.legacy_manifest, then nulled;
@@ -116,9 +124,24 @@ serve(async (req) => {
       }, { onConflict: 'unit_id,stage' }).then(() => undefined, () => undefined);
     };
 
-    // Already-scanned pages are the resume state.
-    const { data: donePages } = await sb.from('book_pages').select('public_url').eq('unit_id', unitId);
-    const doneUrls = new Set((donePages || []).map((p: any) => p.public_url));
+    // Already-scanned pages are the resume state — but only rows stamped with
+    // the CURRENT extractor version count as done (version-aware resume).
+    // Rows from older extractors are re-scanned: the upgraded contract (e.g.
+    // scan-v7's per-paragraph scene anchors) must reach the owner's existing
+    // units through the same "Rebuild from pages" button.
+    const { data: donePages } = await sb.from('book_pages')
+      .select('id, public_url, status, extractor_version')
+      .eq('unit_id', unitId);
+    const allPages = donePages || [];
+    const doneUrls = new Set(allPages
+      .filter((p: any) => p.extractor_version === EXTRACTOR_VERSION)
+      .map((p: any) => p.public_url));
+    const rowsByUrl = new Map<string, any[]>();
+    for (const p of allPages) {
+      const list = rowsByUrl.get(p.public_url) || [];
+      list.push(p);
+      rowsByUrl.set(p.public_url, list);
+    }
     const remaining = sources.filter((s) => !doneUrls.has(s.url));
 
     if (remaining.length > 0) {
@@ -130,6 +153,31 @@ serve(async (req) => {
       for (const src of remaining) {
         if (Date.now() - started > PAGE_TIME_BUDGET_MS) break;
         try {
+          // Stale page rows must go BEFORE the re-scan: scan-page always
+          // inserts a NEW row and the settle-poll keys on public_url, so a
+          // leftover settled row would fake "done" instantly. Teacher-added
+          // structures on a stale page are preserved and re-parented to the
+          // fresh row after it settles (a rebuild replaces extraction, never
+          // the teacher's own work).
+          const staleRows = rowsByUrl.get(src.url) || [];
+          let teacherStructures: any[] = [];
+          for (const stale of staleRows) {
+            try {
+              const { data: tRows } = await sb.from('page_structures')
+                .select('*').eq('page_id', stale.id).eq('source', 'teacher');
+              for (const t of tRows || []) {
+                teacherStructures.push({
+                  structure_type: t.structure_type, order_index: t.order_index, bbox: t.bbox,
+                  confidence: t.confidence, verification_flags: t.verification_flags, data: t.data,
+                  set_label: t.set_label, grammar_tier: t.grammar_tier,
+                  review_status: t.review_status, source: 'teacher',
+                  extractor_version: t.extractor_version || 'teacher',
+                });
+              }
+            } catch { /* preservation is best-effort */ }
+            await sb.from('book_pages').delete().eq('id', stale.id)
+              .then(() => undefined, () => undefined);
+          }
           // Fire the scan; then wait for the DB to settle the page (the fetch
           // itself may abort long before a slow multi-chunk scan finishes —
           // audit 2026-08-26).
@@ -137,12 +185,23 @@ serve(async (req) => {
             method: 'POST',
             headers: { Authorization: authHeader, 'Content-Type': 'application/json', apikey: serviceKey },
             body: JSON.stringify({ unitId, fileUrl: src.url, filename: `rebuild-${src.order}.jpg`, uploadOrder: src.order }),
-          }).catch((e) => console.warn('rebuild-unit: scan fetch failed:', e?.message || e));
+          }).catch((e: any) => console.warn('rebuild-unit: scan fetch failed:', e?.message || e));
           const settled = await waitForPageSettled(sb, src.url);
           if (settled === 'timeout') {
             lastError = 'page scan did not settle in time — it will be retried on the next pass';
           } else if (settled === 'failed') {
             lastError = 'scan-page reported failure for this page (continuing)';
+          }
+          if (settled !== 'timeout' && teacherStructures.length > 0) {
+            // Re-parent the teacher's structures onto the fresh page row.
+            const { data: fresh } = await sb.from('book_pages').select('id')
+              .eq('unit_id', unitId).eq('public_url', src.url)
+              .order('created_at', { ascending: false }).limit(1).maybeSingle();
+            if (fresh?.id) {
+              await sb.from('page_structures')
+                .insert(teacherStructures.map((t) => ({ ...t, page_id: fresh.id })))
+                .then(() => undefined, () => undefined);
+            }
           }
         } catch (e: any) {
           lastError = e?.message || String(e);

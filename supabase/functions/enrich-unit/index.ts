@@ -2,7 +2,9 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
-import { cropBookImage } from '../_shared/bookCrop.ts';
+import { cropBookImages } from '../_shared/bookCrop.ts';
+import { segmentPassageByScenes } from '../_shared/storySegments.ts';
+import { serviceRoleKey } from '../_shared/serviceKey.ts';
 import { buildPromptWithCharacter, fetchCharacterByName } from '../_shared/characterLook.ts';
 
 serve(async (req) => {
@@ -738,31 +740,60 @@ One output box per input box, same order. Keep every value concise so the respon
     const buildBasketStory = async (): Promise<any> => {
       const pages: any[] = [];
       let title = '';
-      // Reading passages verbatim → one page per passage. Illustrations:
-      // the BOOK'S OWN ARTWORK is the default (doc 10 §5) — crop the first
-      // scene of the passage when a bbox exists; the scan's exhaustive
-      // visual_description becomes image_prompt (the AI fallback) so an
-      // artist-faithful regeneration is always available alongside.
-      const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+      // Reading passages verbatim → one page per PARAGRAPH (story fidelity,
+      // doc 10 §5): each paragraph keeps its own scene illustration — the
+      // BOOK'S OWN ARTWORK is the default (a deterministic crop of the exact
+      // page region the scan captured), and the scene's exhaustive
+      // visual_description becomes image_prompt so an artist-faithful AI
+      // regeneration is always available alongside. Crops for a page image run
+      // as ONE batch (single fetch + decode) under a deadline; a failed,
+      // low-resolution, or expired crop falls back to the description — the
+      // verbatim text always lands.
+      const cropSb = createClient(supabaseUrl, serviceRoleKey(), { auth: { persistSession: false } });
+      const CROP_DEADLINE = Date.now() + 45_000;
       for (const p of basketPassages) {
         if (!title && p.title) title = String(p.title);
-        const scene = Array.isArray(p.scene_illustrations) && p.scene_illustrations[0];
-        let pageBbox: any = null;
-        if (scene?.bbox && p.page_id) {
-          try {
-            const crop = await cropBookImage({ sb, pageId: p.page_id, structureId: p.structure_id || null, bbox: scene.bbox, pool: 'scene' });
-            if (crop.ok && crop.asset_id) pageBbox = { asset_id: crop.asset_id, url: crop.url };
-          } catch { /* crop is best-effort; the text always lands */ }
+        const scenes: any[] = Array.isArray(p.scene_illustrations) ? p.scene_illustrations : [];
+        const segments = segmentPassageByScenes(String(p.passage_text || ''), scenes);
+
+        // All of this page image's scene crops in one batch (pool 'scene').
+        const croppable: number[] = []; // segment indexes whose scene has a bbox
+        const cropItems: { structureId: string | null; bbox: number[]; pool: string }[] = [];
+        for (let si = 0; si < segments.length; si++) {
+          const seg = segments[si];
+          const scene = seg && seg.sceneIndex !== null ? scenes[seg.sceneIndex] : undefined;
+          if (scene?.bbox && p.page_id) {
+            croppable.push(si);
+            cropItems.push({ structureId: p.structure_id || null, bbox: scene.bbox, pool: 'scene' });
+          }
         }
-        pages.push({
-          text: String(p.passage_text || ''),
-          speaker: null,
-          image_prompt: scene?.visual_description ? String(scene.visual_description) : (scene?.caption ? String(scene.caption) : null),
-          image_asset_id: pageBbox?.asset_id || null,
-          image_url_book_crop: pageBbox?.url || null,
-          source_structure_id: p.structure_id || null,
-          needs_questions: true,
-        });
+        const cropBySeg = new Map<number, any>();
+        if (cropItems.length > 0) {
+          try {
+            const results = await cropBookImages({
+              sb: cropSb,
+              pageId: String(p.page_id),
+              deadlineAt: CROP_DEADLINE,
+              items: cropItems,
+            });
+            croppable.forEach((si, k) => { if (results[k]) cropBySeg.set(si, results[k]); });
+          } catch { /* crops are best-effort; the text always lands */ }
+        }
+
+        for (let si = 0; si < segments.length; si++) {
+          const seg = segments[si];
+          const scene = seg && seg.sceneIndex !== null ? scenes[seg.sceneIndex] : undefined;
+          const crop = cropBySeg.get(si);
+          pages.push({
+            text: seg.text,
+            speaker: null,
+            image_prompt: scene?.visual_description ? String(scene.visual_description) : (scene?.caption ? String(scene.caption) : null),
+            image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
+            image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
+            source_structure_id: p.structure_id || null,
+            needs_questions: true,
+          });
+        }
       }
       // Comics → one page per panel (narration + bubbles as dialogue lines).
       for (const c of basketComics) {
@@ -1118,6 +1149,13 @@ ${categoryRules}
           .from('story_pages')
           .upsert(pageRows, { onConflict: 'unit_id,page_number' })
           .select('id, page_number');
+        // Paragraph-level pages change the page count between runs — the
+        // upsert only rewrites rows that still exist, so drop any stale tail
+        // beyond the current set (their questions cascade with the pages).
+        if (pages.length > 0) {
+          await sbClient.from('story_pages').delete().eq('unit_id', unitId).gte('page_number', pages.length)
+            .then(() => undefined, () => undefined);
+        }
         // Comprehension questions → linked to their page by order.
         const qRows: any[] = [];
         const pageIdByNum = new Map((upsertedPages || []).map((pg: any) => [pg.page_number, pg.id]));

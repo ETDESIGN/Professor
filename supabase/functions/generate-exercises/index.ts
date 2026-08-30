@@ -269,6 +269,13 @@ function buildStoryItems(unitId: string, objectiveId: string, questions: any[]):
     const opts = Array.isArray(q.options) ? q.options.map((o: any) => String(o)) : [];
     const answerIdx = Number.isInteger(q.answer_index) ? q.answer_index : 0;
     if (opts.length < 2 || answerIdx >= opts.length) continue; // skip malformed
+    // Book art alongside the question (story fidelity): the page's own
+    // illustration — by default a crop of the BOOK page the scan captured.
+    // Additive fields; board templates read content as a loose record, so
+    // absent art changes nothing for them.
+    const art = (q.image_asset_id || q.image_url)
+      ? { image_asset_id: q.image_asset_id || null, image_url: q.image_url || null }
+      : {};
     items.push({
       unit_id: unitId,
       objective_id: objectiveId,
@@ -280,6 +287,7 @@ function buildStoryItems(unitId: string, objectiveId: string, questions: any[]):
         options: opts,
         correct_index: answerIdx,
         story_page_id: q.story_page_id || null,
+        ...art,
       },
     });
   }
@@ -661,10 +669,14 @@ serve(async (req) => {
       let storyQuestions: any[] = [];
       try {
         const { data: sqRows } = await sb.from('story_comprehension_questions')
-          .select('question, options, answer_index, story_page_id')
+          .select('question, options, answer_index, story_page_id, story_pages(image_asset_id)')
           .eq('unit_id', unitId)
           .order('order_index', { ascending: true });
-        storyQuestions = Array.isArray(sqRows) ? sqRows : [];
+        storyQuestions = (Array.isArray(sqRows) ? sqRows : []).map((row: any) => ({
+          ...row,
+          image_asset_id: row.story_pages?.image_asset_id || null,
+          story_pages: undefined,
+        }));
       } catch { /* table read failed — fall back to manifest */ }
       if (storyQuestions.length === 0) {
         // Fallback: mine the manifest (legacy units not yet backfilled).
@@ -672,9 +684,25 @@ serve(async (req) => {
         const pages = story?.pages || [];
         for (const p of pages) {
           for (const q of (p.comprehension_questions || [])) {
-            storyQuestions.push({ question: q.question, options: q.options, answer_index: q.answer });
+            storyQuestions.push({
+              question: q.question, options: q.options, answer_index: q.answer,
+              image_asset_id: p.image_asset_id || null,
+              image_url: p.image_url_book_crop || null, // manifest carries the crop URL directly
+            });
           }
         }
+      }
+      // Resolve the pages' illustration assets to public URLs (book crops or
+      // AI-generated) so pool items embed a ready-to-render image_url.
+      const storyAssetIds = [...new Set(storyQuestions.map((q: any) => q.image_asset_id).filter(Boolean))] as string[];
+      if (storyAssetIds.length > 0) {
+        try {
+          const { data: saRows } = await sb.from('assets').select('id, public_url').in('id', storyAssetIds);
+          const urlById = new Map((saRows || []).filter((a: any) => a.public_url).map((a: any) => [a.id, a.public_url]));
+          for (const q of storyQuestions) {
+            if (q.image_asset_id && !q.image_url) q.image_url = urlById.get(q.image_asset_id) || null;
+          }
+        } catch { /* art is optional — the questions still generate */ }
       }
       if (storyQuestions.length > 0) {
         const oid = await ensureObjective('story', 'Story comprehension');

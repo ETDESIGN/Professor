@@ -73,6 +73,8 @@ export interface StoryPage {
   speaker?: string;
   speakerEmoji?: string;
   imageUrl?: string;
+  /** Display-only: asset kind behind image_asset_id ('book_extract' = the book's own artwork, 'generated' = AI). */
+  imageKind?: string;
 }
 
 export interface GrammarRule {
@@ -172,15 +174,18 @@ export const useUnitStudioStore = create<UnitStudioState>()((set, get) => ({
       // Falls back to a legacy manifest image_url for manifest-seeded pages.
       const sceneAssetIds = ((pageRows || []) as any[]).map((p) => p.image_asset_id).filter((v): v is string => Boolean(v));
       let sceneUrlByAssetId = new Map<string, string>();
+      let sceneKindByAssetId = new Map<string, string>();
       if (sceneAssetIds.length > 0) {
-        const { data: sceneAssets } = await supabase.from('assets').select('id, public_url').in('id', sceneAssetIds);
+        const { data: sceneAssets } = await supabase.from('assets').select('id, public_url, kind').in('id', sceneAssetIds);
         sceneUrlByAssetId = new Map(((sceneAssets || []) as any[]).map((a) => [a.id, a.public_url] as [string, string]));
+        sceneKindByAssetId = new Map(((sceneAssets || []) as any[]).map((a) => [a.id, a.kind] as [string, string]));
       }
       const storyPages: StoryPage[] = (pageRows && pageRows.length > 0 ? pageRows : (manifest?.enriched_content?.story?.pages || [])).map((p: any, i: number) => ({
         id: p.id || `p_${i}`,
         text: p.text || '',
         speaker: p.speaker || p.speaker_override_name,
         imageUrl: sceneUrlByAssetId.get(p.image_asset_id) || p.image_url,
+        imageKind: p.image_asset_id ? (sceneKindByAssetId.get(p.image_asset_id) || p.image_kind) : undefined,
       }));
 
       set({

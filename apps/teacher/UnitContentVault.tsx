@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User, Users, Wand2 } from 'lucide-react';
+import { ArrowLeft, Save, Play, BookOpen, MessageSquare, PenTool, Music, Image, Video, Plus, Trash2, RefreshCw, Search, ExternalLink, Check, X, Loader2, GripVertical, User, Users, Wand2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { Engine } from '../../services/SupabaseService';
@@ -511,6 +511,38 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     }
   };
 
+  // Story fidelity: point a story page back at the BOOK'S OWN ARTWORK after
+  // an AI regeneration replaced it. The crop asset is deterministic (same
+  // dedupe key → same asset), so the manifest's image_url_book_crop resolves
+  // it by public_url and re-points story_pages.image_asset_id.
+  const restoreBookArtwork = async (pageIndex: number) => {
+    if (!unitId) return;
+    const cropUrl = (manifest?.enriched_content?.story?.pages || [])[pageIndex]?.image_url_book_crop;
+    if (!cropUrl) { toast.error('No book crop recorded for this page'); return; }
+    const { data: pages } = await supabase
+      .from('story_pages')
+      .select('id')
+      .eq('unit_id', unitId)
+      .order('page_number', { ascending: true });
+    const row = pages?.[pageIndex];
+    if (!row) { toast.error('Story page not found in DB yet (save first)'); return; }
+    setGenBusy(true);
+    try {
+      const { data: asset } = await supabase.from('assets').select('id').eq('public_url', cropUrl).limit(1);
+      const assetId = (asset as any[])?.[0]?.id;
+      if (!assetId) throw new Error('Book crop asset not found');
+      const { error: updErr } = await supabase.from('story_pages').update({ image_asset_id: assetId }).eq('id', row.id);
+      if (updErr) throw updErr;
+      updateStoryPage(pageIndex, 'imageUrl', cropUrl);
+      updateStoryPage(pageIndex, 'imageKind', 'book_extract');
+      toast.success('Book artwork restored');
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not restore the book artwork');
+    } finally {
+      setGenBusy(false);
+    }
+  };
+
   // Task 13: AI-generate a character portrait (generate-illustrations, surface
   // portrait — requires the character to be linked to this unit, which
   // listForUnit guarantees for every row rendered here). The edge fn writes
@@ -762,6 +794,38 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                           <span className="text-sm font-bold text-slate-400">Page {i + 1}</span>
                           <button onClick={() => removeStoryPage(i)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={16} /></button>
                         </div>
+                        {/* Story fidelity: the BOOK'S OWN ARTWORK is the default
+                            page illustration; AI generation is the labeled
+                            alternative (restorable via the crop asset). */}
+                        <div className="mb-3">
+                          <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Illustration</label>
+                          <div className="flex items-start gap-3">
+                            <div className="w-32 h-24 rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+                              {p.imageUrl ? (
+                                <img src={p.imageUrl} alt={`Page ${i + 1} illustration`} className="w-full h-full object-cover" />
+                              ) : (
+                                <Image size={20} className="text-slate-300" />
+                              )}
+                            </div>
+                            <div className="flex flex-col items-start gap-1.5">
+                              {p.imageKind === 'book_extract' && (
+                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 inline-flex items-center gap-1">
+                                  <BookOpen size={11} /> Book artwork
+                                </span>
+                              )}
+                              {p.imageKind === 'generated' && (
+                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-700 inline-flex items-center gap-1">
+                                  <Sparkles size={11} /> AI-generated
+                                </span>
+                              )}
+                              {p.imageKind !== 'book_extract' && (
+                                <button onClick={() => restoreBookArtwork(i)} disabled={genBusy} className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 disabled:opacity-50 inline-flex items-center gap-1" title="Point this page back at the scanned book artwork">
+                                  <BookOpen size={12} /> Restore book artwork
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                         <div className="grid grid-cols-3 gap-3 mb-3">
                           <div>
                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Speaker Emoji</label>
@@ -772,15 +836,17 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                             <input value={p.speaker || ''} onChange={e => updateStoryPage(i, 'speaker', e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                           </div>
                           <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Image</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Image URL</label>
                             <div className="flex gap-1">
                               <input value={p.imageUrl || ''} onChange={e => updateStoryPage(i, 'imageUrl', e.target.value)} className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="URL or leave blank" />
                               <button onClick={() => setStoryImgPickerFor(i)} className="text-xs text-emerald-600 hover:text-emerald-800 font-medium px-2 border border-emerald-200 rounded-lg hover:bg-emerald-50" title="Pick from library">
                                 <Image size={14} />
                               </button>
-                              {/* Task 13: AI scene generation from the page's image prompt */}
-                              <button onClick={() => generateStoryImage(i)} disabled={genBusy} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 flex items-center gap-1" title="Generate illustration from this page's image prompt">
-                                {genBusy ? <Loader2 size={12} className="animate-spin" /> : '✨ AI'}
+                              {/* AI alternative, explicitly labeled: regenerates
+                                  from the scan's scene description and replaces
+                                  the book artwork on this page. */}
+                              <button onClick={() => generateStoryImage(i)} disabled={genBusy} className="text-xs text-purple-600 hover:text-purple-800 font-medium px-2 border border-purple-200 rounded-lg hover:bg-purple-50 disabled:opacity-50 flex items-center gap-1" title="AI regenerate from this page's scene description (replaces the book artwork)">
+                                {genBusy ? <Loader2 size={12} className="animate-spin" /> : <><Sparkles size={12} /> AI</>}
                               </button>
                             </div>
                           </div>

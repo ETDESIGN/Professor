@@ -92,6 +92,80 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
     persistReview(category, contentId, newApproved);
   }, [enriched, persistReview]);
 
+  // ── Story fidelity: live story-page artwork ─────────────────────────────
+  // The book's own illustration is the DEFAULT for every story page (doc 10
+  // §5): enrich-unit crops the scanned page region per paragraph and points
+  // story_pages.image_asset_id at it. The manifest is only a read cache (it
+  // lags AI regenerations), so the cards read the canonical story_pages +
+  // assets rows. asset.kind separates the book crop ('book_extract') from an
+  // AI-generated replacement ('generated').
+  const [storyArt, setStoryArt] = useState<Record<number, { pageId: string; url: string | null; kind: string | null }>>({});
+  const [storyArtBusy, setStoryArtBusy] = useState<number | null>(null);
+
+  const loadStoryArt = useCallback(async () => {
+    try {
+      const { data: rows } = await supabase.from('story_pages')
+        .select('id, page_number, image_asset_id').eq('unit_id', unitId).order('page_number');
+      const assetIds = ((rows as any[]) || []).map(r => r.image_asset_id).filter(Boolean);
+      const assetById = new Map<string, any>();
+      if (assetIds.length > 0) {
+        const { data: assets } = await supabase.from('assets').select('id, public_url, kind').in('id', assetIds);
+        for (const a of (assets as any[]) || []) assetById.set(a.id, a);
+      }
+      const next: Record<number, { pageId: string; url: string | null; kind: string | null }> = {};
+      for (const r of (rows as any[]) || []) {
+        const a = r.image_asset_id ? assetById.get(r.image_asset_id) : undefined;
+        next[r.page_number] = { pageId: r.id, url: a?.public_url || null, kind: a?.kind || null };
+      }
+      setStoryArt(next);
+    } catch { /* artwork is decorative — the cards still render */ }
+  }, [unitId]);
+
+  useEffect(() => {
+    if (activeCategory === 'story') void loadStoryArt();
+  }, [activeCategory, loadStoryArt, enriched?.story?.pages?.length]);
+
+  // The LABELED AI alternative: regenerates this page's illustration from the
+  // scan's visual_description (image_prompt) and replaces the book crop on
+  // the page row. "Restore book artwork" reverses it via the manifest's
+  // deterministic crop URL (same dedupe key → same asset).
+  const regenerateStoryArt = async (index: number) => {
+    const art = storyArt[index];
+    if (!art?.pageId) return;
+    setStoryArtBusy(index);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'generate-illustrations', surface: 'story_page', unitId, pageId: art.pageId, regenerate: true },
+      });
+      if (fnErr || (data && data.error)) throw new Error(data?.error || fnErr?.message || 'Generation failed');
+      await loadStoryArt();
+      toast.success('AI illustration generated from the scene description');
+    } catch (e: any) {
+      toast.error(e?.message || 'Generation failed');
+    } finally {
+      setStoryArtBusy(null);
+    }
+  };
+
+  const restoreBookArt = async (index: number) => {
+    const cropUrl = enriched?.story?.pages?.[index]?.image_url_book_crop;
+    const art = storyArt[index];
+    if (!cropUrl || !art?.pageId) return;
+    setStoryArtBusy(index);
+    try {
+      const { data: asset } = await supabase.from('assets').select('id').eq('public_url', cropUrl).limit(1);
+      const assetId = (asset as any[])?.[0]?.id;
+      if (!assetId) throw new Error('Book crop asset not found');
+      await supabase.from('story_pages').update({ image_asset_id: assetId }).eq('id', art.pageId);
+      await loadStoryArt();
+      toast.success('Book artwork restored');
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not restore the book artwork');
+    } finally {
+      setStoryArtBusy(null);
+    }
+  };
+
   const getCategoryArray = (manifest: EnrichedManifest, category: string): EnrichedItem[] | null => {
     switch (category) {
       case 'vocabulary': return manifest.vocabulary;
@@ -307,7 +381,19 @@ const AssetWorkshop: React.FC<AssetWorkshopProps> = ({ unitId, onBack, onOrchest
               <p className="text-slate-500 text-sm mt-1">Setting: {enriched.story.setting || 'Not specified'}</p>
             </div>
             {enriched.story.pages.map((p, i) => (
-              <StoryPageCard key={i} item={p} index={i} color={c} characters={enriched.characters} onToggle={() => toggleApproval('story', i)} />
+              <StoryPageCard
+                key={i}
+                item={p}
+                index={i}
+                color={c}
+                characters={enriched.characters}
+                art={storyArt[i]}
+                busy={storyArtBusy === i}
+                canRestoreBookArt={!!p.image_url_book_crop && storyArt[i]?.kind !== 'book_extract'}
+                onRegenerate={() => regenerateStoryArt(i)}
+                onRestoreBook={() => restoreBookArt(i)}
+                onToggle={() => toggleApproval('story', i)}
+              />
             ))}
           </div>
         );
@@ -562,22 +648,69 @@ const CharacterCard = ({ item, index, color, onToggle }: any) => (
   </div>
 );
 
-const StoryPageCard = ({ item, index, color, characters, onToggle }: any) => (
+const StoryPageCard = ({ item, index, color, characters, art, busy, canRestoreBookArt, onRegenerate, onRestoreBook, onToggle }: any) => (
   <div className={`rounded-xl border-2 p-5 transition-all ${item._approved !== false ? `${color.bg} ${color.border}` : 'bg-slate-100 border-slate-300 opacity-60'}`}>
     <div className="flex items-start justify-between gap-4">
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-2">
-          <span className={`text-xs font-bold px-2 py-0.5 rounded ${color.badge}`}>Page {index + 1}</span>
-          {item.speaker && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">{item.speaker}</span>
+      <div className="flex gap-4 flex-1 min-w-0">
+        {/* Story fidelity: the BOOK'S OWN ARTWORK is the default page
+            illustration; AI generation is the labeled alternative. */}
+        <div className="w-28 h-28 rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center shrink-0 relative">
+          {art?.url ? (
+            <img src={art.url} alt={`Page ${index + 1} illustration`} className="w-full h-full object-cover" />
+          ) : (
+            <Image size={24} className="text-slate-300" />
+          )}
+          {busy && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/60">
+              <Loader2 size={18} className="animate-spin text-blue-600" />
+            </div>
           )}
         </div>
-        <p className="text-sm text-slate-700 leading-relaxed">{item.text}</p>
-        {item.image_prompt && (
-          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <Image size={12} /> {item.image_prompt}
-          </p>
-        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className={`text-xs font-bold px-2 py-0.5 rounded ${color.badge}`}>Page {index + 1}</span>
+            {item.speaker && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">{item.speaker}</span>
+            )}
+            {art?.kind === 'book_extract' && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 flex items-center gap-1">
+                <BookOpen size={11} /> Book artwork
+              </span>
+            )}
+            {art?.kind === 'generated' && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-700 flex items-center gap-1">
+                <Sparkles size={11} /> AI-generated
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-700 leading-relaxed">{item.text}</p>
+          {item.image_prompt && (
+            <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+              <Image size={12} /> {item.image_prompt}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              onClick={onRegenerate}
+              disabled={busy || !art?.pageId}
+              title="Generate an AI illustration from this page's scene description (replaces the book artwork)"
+              className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {busy ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              AI regenerate from description
+            </button>
+            {canRestoreBookArt && (
+              <button
+                onClick={onRestoreBook}
+                disabled={busy}
+                title="Point this page back at the scanned book artwork"
+                className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <BookOpen size={12} /> Restore book artwork
+              </button>
+            )}
+          </div>
+        </div>
       </div>
       <ApprovalBadge approved={item._approved !== false} onToggle={onToggle} />
     </div>
