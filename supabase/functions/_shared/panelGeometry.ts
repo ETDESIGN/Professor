@@ -26,6 +26,14 @@ export interface InkGrid {
   h: number;
   /** 1 = content ink, 0 = background. Length w*h. */
   ink: Uint8Array;
+  /**
+   * Stricter "paper" grid for GUTTER detection (doc 12 §6, real-page lesson
+   * 2026-08-31): 1 = not paper-white. Children's-book panels often hold pale
+   * flat areas (sky, snow) that pass a loose background threshold — snapping
+   * edges onto those collapsed panels into slivers. The caller builds this
+   * with a tighter threshold; band tests prefer it when present.
+   */
+  paper?: Uint8Array;
 }
 
 /** [x, y, w, h] in grid cells. */
@@ -63,18 +71,23 @@ const DEFAULTS: Required<RefineOptions> = {
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+/** Band-detection layer: the stricter paper grid when the caller built one. */
+const bandLayer = (grid: InkGrid): Uint8Array => grid.paper ?? grid.ink;
+
 function rowClean(grid: InkGrid, y: number, x0: number, x1: number, cleanRatio: number): boolean {
   let bg = 0;
   const n = x1 - x0 + 1;
   const base = y * grid.w;
-  for (let x = x0; x <= x1; x++) if (!grid.ink[base + x]) bg++;
+  const layer = bandLayer(grid);
+  for (let x = x0; x <= x1; x++) if (!layer[base + x]) bg++;
   return bg / n >= cleanRatio;
 }
 
 function colClean(grid: InkGrid, x: number, y0: number, y1: number, cleanRatio: number): boolean {
   let bg = 0;
   const n = y1 - y0 + 1;
-  for (let y = y0; y <= y1; y++) if (!grid.ink[y * grid.w + x]) bg++;
+  const layer = bandLayer(grid);
+  for (let y = y0; y <= y1; y++) if (!layer[y * grid.w + x]) bg++;
   return bg / n >= cleanRatio;
 }
 
@@ -249,10 +262,15 @@ export function planPanelBoxes(
   // the scan's region bbox (inventory stage) bounds the comic and excludes
   // neighbouring content like the activity line below it (real-page lesson,
   // doc 12 §7: an over-tall box otherwise hugs the activity text's bottom).
+  // The x-limits WIDEN to the ink-derived content extent once computed below
+  // (real case 2026-08-31: no scan box covered the right column, so every
+  // bbox-based limit stopped at ~2/3 of the page).
+  let ex0 = sx0;
+  let ex1 = sx1;
   const clampToStructure = (b: Box): Box => {
-    const bx0 = clamp(b[0], sx0, sx1 - 2);
+    const bx0 = clamp(b[0], ex0, ex1 - 2);
     const by0 = clamp(b[1], sy0, sy1 - 2);
-    const bx1 = clamp(Math.max(b[0] + b[2] - 1, bx0 + 2), bx0 + 2, sx1);
+    const bx1 = clamp(Math.max(b[0] + b[2] - 1, bx0 + 2), bx0 + 2, ex1);
     const by1 = clamp(Math.max(b[1] + b[3] - 1, by0 + 2), by0 + 2, sy1);
     return [bx0, by0, bx1 - bx0 + 1, by1 - by0 + 1];
   };
@@ -288,20 +306,58 @@ export function planPanelBoxes(
     out.set(order, clampToStructure(refined));
   }
 
-  // Vertical center gutter of the comic region (2-column layout), scanned in
-  // the middle third of the structure box over the provided rows' y-range —
-  // CLAMPED to the structure box so content below the comic (activity lines)
-  // cannot poison the column-cleanliness test.
+  // ── Ink-derived comic extent (doc 12 §6, real-page lessons 2026-08-31) ──
+  // Scan boxes can miss entire columns and the inventory bbox can be plainly
+  // wrong; the page's own ink over the provided rows is the ground truth for
+  // WHERE the comic is. Rows: the provided boxes' y-range; columns: the
+  // outermost columns carrying sustained ink across those rows.
   const provRows = [...out.values()];
   const comicY0 = Math.max(sy0, Math.min(...provRows.map((b) => b[1])));
   const comicY1 = Math.min(sy1, Math.max(...provRows.map((b) => b[1] + b[3] - 1)));
-  let centerMid = -1;
-  const midThird0 = sx0 + Math.round((sx1 - sx0) * 0.33);
-  const midThird1 = sx0 + Math.round((sx1 - sx0) * 0.67);
-  for (let x = midThird0; x <= midThird1 && centerMid < 0; x++) {
-    const band = containingBand((i) => colClean(grid, i, comicY0, comicY1, o.cleanRatio), x, sx0, sx1);
-    if (band && band.b - band.a + 1 >= o.minBand) centerMid = Math.round((band.a + band.b) / 2);
+  const colInkFrac = (x: number): number => {
+    let d = 0;
+    for (let y = comicY0; y <= comicY1; y++) if (grid.ink[y * grid.w + x]) d++;
+    return d / (comicY1 - comicY0 + 1);
+  };
+  const inkThr = 0.04;
+  let cx0 = -1;
+  let cx1 = -1;
+  for (let x = 0; x < grid.w && cx0 < 0; x++) if (colInkFrac(x) > inkThr) cx0 = x;
+  for (let x = grid.w - 1; x >= 0 && cx1 < 0; x--) if (colInkFrac(x) > inkThr) cx1 = x;
+  if (cx0 >= 0 && cx1 - cx0 >= Math.round(grid.w * 0.2)) {
+    ex0 = clamp(cx0 - 1, 0, grid.w - 4); // ±1 cell of slack around the ink
+    ex1 = clamp(cx1 + 1, ex0 + 3, grid.w - 1);
   }
+
+  // Vertical center gutter (2-column layouts): a NARROW paper-clean band in
+  // the middle half of the comic's ink extent, with ink content within a few
+  // cells on BOTH sides — narrow + flanked rules out page margins and pale
+  // sky inside a panel (the immediate neighbour can itself be sky, so the
+  // flank looks up to 5 cells out). Found → mirrors and stacked-row splits
+  // use it.
+  let centerMid = -1;
+  const maxGutterW = Math.round(grid.w * 0.08);
+  const scanLo = ex0 + Math.round((ex1 - ex0) * 0.25);
+  const scanHi = ex0 + Math.round((ex1 - ex0) * 0.75);
+  const flankInk = (x: number, dir: number): boolean => {
+    for (let d = 1; d <= 5; d++) {
+      const c = x + dir * d;
+      if (c >= ex0 && c <= ex1 && colInkFrac(c) > inkThr) return true;
+    }
+    return false;
+  };
+  for (let x = scanLo; x <= scanHi && centerMid < 0; x++) {
+    const isClean = (i: number) => colClean(grid, i, comicY0, comicY1, o.cleanRatio);
+    const band = containingBand(isClean, x, ex0, ex1);
+    if (!band || band.b - band.a + 1 > maxGutterW || band.b - band.a + 1 < o.minBand) continue;
+    if (band.a - 1 < ex0 || band.b + 1 > ex1) continue;
+    if (!flankInk(band.a, -1) || !flankInk(band.b, +1)) continue;
+    centerMid = Math.round((band.a + band.b) / 2);
+  }
+
+  // Median provided row height — stacked rows adopt it so a too-deep
+  // structure box cannot drag them into content below the comic.
+  const medRowH = median([...out.values()].map((b) => b[3]));
 
   const gutterGuess = Math.max(2, Math.round(grid.h * 0.01));
   for (const p of panels) {
@@ -318,8 +374,8 @@ export function planPanelBoxes(
     if (sib && sibOnOneSide) {
       const sibX0 = sib[0];
       const sibX1 = sib[0] + sib[2] - 1;
-      const mx0 = clamp(2 * centerMid - sibX1 + 1, sx0, sx1 - 2);
-      const mx1 = clamp(2 * centerMid - sibX0 - 1, mx0 + 2, sx1);
+      const mx0 = clamp(2 * centerMid - sibX1 + 1, ex0, ex1 - 2);
+      const mx1 = clamp(2 * centerMid - sibX0 - 1, mx0 + 2, ex1);
       const seed: Box = [mx0, sib[1], mx1 - mx0 + 1, sib[3]];
       out.set(p.order, clampToStructure(snapBoxToGutters(grid, seed, o)));
       continue;
@@ -328,23 +384,33 @@ export function planPanelBoxes(
     // No credible sibling: stack a fresh ROW below the lowest known one; the
     // snap pulls the vertical edges to real gutters. With a known center
     // gutter the row is SPLIT into left/right halves (2-column comics)
-    // assigned to this order and its reading-order pair.
+    // assigned to this order and its reading-order pair, and its height
+    // adopts the median provided row height so a too-deep structure box
+    // cannot drag it into content below the comic.
     const lowest = Math.max(...[...out.values()].map((b) => b[1] + b[3] - 1));
     const ny0 = clamp(lowest + gutterGuess, sy0, sy1 - 2);
     if (ny0 > sy1 - Math.round(grid.h * 0.05)) continue; // no room for a row
     const halves: Array<[number, number]> = centerMid >= 0
-      ? [[sx0, clamp(centerMid - 1, sx0 + 2, sx1)], [clamp(centerMid + 1, sx0, sx1 - 2), sx1]]
-      : [[sx0, sx1]];
+      ? [[ex0, clamp(centerMid - 1, ex0 + 2, ex1)], [clamp(centerMid + 1, ex0, ex1 - 2), ex1]]
+      : [[ex0, ex1]];
     const orders = halves.length === 2 ? [p.order, p.order ^ 1] : [p.order];
     for (let k = 0; k < halves.length; k++) {
       const ord = orders[k];
       if (ord === undefined || out.has(ord)) continue;
       const [hx0, hx1] = halves[k];
       const seed: Box = [hx0, ny0, hx1 - hx0 + 1, Math.max(3, sy1 - ny0 + 1)];
-      const sn = snapBoxToGutters(grid, seed, o);
-      if (Math.abs(sn[1] - ny0) <= Math.round(grid.h * o.maxShift)) {
-        out.set(ord, clampToStructure(sn));
+      let sn = snapBoxToGutters(grid, seed, o);
+      if (Math.abs(sn[1] - ny0) > Math.round(grid.h * o.maxShift)) continue;
+      if (sn[3] < medRowH * 0.5) continue; // degenerate sliver — no credible row here
+      if (sn[3] > medRowH * 1.35) {
+        // Row-height prior for stacked rows: re-anchor the bottom.
+        const newBottom = localSnap(
+          (y) => rowClean(grid, y, sn[0], sn[0] + sn[2] - 1, o.cleanRatio),
+          sn[1] + medRowH - 1, 0, grid.h - 1, Math.round(grid.h * 0.08),
+        );
+        if (newBottom > sn[1] + 2) sn = [sn[0], sn[1], sn[2], newBottom - sn[1] + 1];
       }
+      out.set(ord, clampToStructure(sn));
     }
   }
   return out;

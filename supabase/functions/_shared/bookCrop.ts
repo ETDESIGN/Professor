@@ -137,19 +137,30 @@ export interface BatchCropItem {
 }
 
 /**
- * Downsample the decoded page into a binary ink grid for panelGeometry.
+ * Downsample the decoded page into ink + paper grids for panelGeometry.
  * Step 3 keeps gutter resolution ~3px (gutters are 20-40px on real scans)
- * while limiting pixel reads. The background threshold adapts to the page:
- * phone photos are rarely pure white, so the outer 2% frame margin (almost
- * always background) sets the level.
+ * while limiting pixel reads. ImageScript's getRGBAAt(x, y) returns
+ * [r, g, b, a] — getPixelAt returns a PACKED NUMBER (the v1.3 API trap that
+ * silently NaN'd the first refinement deploy).
+ *
+ * Two thresholds, both adaptive to the page (phone photos are rarely pure
+ * white): the outer 2% frame margin (almost always background) sets the level.
+ *   ink   = margin − 30 → general content detection;
+ *   paper = margin − 12 → GUTTER detection only. Children's-book panels often
+ *           hold pale flat skies that pass the loose threshold; the stricter
+ *           paper test keeps edges from snapping onto them (sliver collapse).
  */
 function buildInkGrid(image: any): InkGrid {
   const step = 3;
   const w = Math.max(4, Math.floor(image.width / step));
   const h = Math.max(4, Math.floor(image.height / step));
+  const rgbaAt = (gx: number, gy: number): [number, number, number] => {
+    const p = image.getRGBAAt(Math.min(image.width - 1, gx * step), Math.min(image.height - 1, gy * step));
+    return [p[0], p[1], p[2]]; // Uint8ClampedArray [r, g, b, a]
+  };
   const lumAt = (gx: number, gy: number): number => {
-    const p = image.getPixelAt(Math.min(image.width - 1, gx * step), Math.min(image.height - 1, gy * step));
-    return 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
+    const [r, g, b] = rgbaAt(gx, gy);
+    return 0.299 * r + 0.587 * g + 0.114 * b;
   };
   // Background level from the frame margin.
   const mx = Math.max(1, Math.round(w * 0.02));
@@ -162,14 +173,20 @@ function buildInkGrid(image: any): InkGrid {
   for (let y = my; y < h - my; y++) {
     for (const x of [0, mx, w - 1, w - 1 - mx]) { sum += lumAt(x, y); n++; }
   }
-  const threshold = Math.max(140, Math.min(245, sum / n - 30));
+  const margin = sum / n;
+  const inkThreshold = Math.max(140, Math.min(245, margin - 30));
+  const paperThreshold = Math.max(150, Math.min(250, margin - 12));
   const ink = new Uint8Array(w * h);
+  const paper = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      ink[y * w + x] = lumAt(x, y) < threshold ? 1 : 0;
+      const l = lumAt(x, y);
+      const i = y * w + x;
+      ink[i] = l < inkThreshold ? 1 : 0;
+      paper[i] = l < paperThreshold ? 1 : 0;
     }
   }
-  return { w, h, ink };
+  return { w, h, ink, paper };
 }
 
 const validBbox = (b: unknown): b is number[] =>
@@ -263,7 +280,11 @@ export async function cropBookImages(req: {
           refinedBox.set(i, [nx, ny, nw, nh]);
         }
       });
-    } catch { /* refinement is best-effort; raw boxes still crop */ }
+    } catch (e) {
+      // Refinement is best-effort (raw boxes still crop) — but NEVER silent:
+      // this exact path hid the getPixelAt NaN bug for a day.
+      console.error('panelGeometry refinement failed (raw boxes used):', e instanceof Error ? e.message : e);
+    }
   }
 
   const results: CropResult[] = [];

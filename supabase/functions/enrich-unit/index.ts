@@ -814,7 +814,27 @@ One output box per input box, same order. Keep every value concise so the respon
       } catch { /* refinement context is best-effort */ }
       for (const c of basketComics) {
         const panels = Array.isArray(c.panels) ? c.panels : [];
-        const structureBox = comicStructureBoxes.get(String(c.structure_id)) || null;
+        // Structure region for the geometry plan: the UNION of the inventory
+        // bbox and the scan's own panel boxes, padded 1.5%. The inventory box
+        // alone can be wrong (real case 2026-08-31: it covered only the top
+        // third of the comic) — but it can never be smaller than the panels
+        // the scan itself found. Clamped to the page.
+        const structureBox = (() => {
+          const boxes: number[][] = [];
+          const sb = comicStructureBoxes.get(String(c.structure_id));
+          if (Array.isArray(sb) && sb.length === 4 && sb.every((n: any) => typeof n === 'number' && Number.isFinite(n))) boxes.push(sb);
+          for (const p of panels) {
+            const b = p?.bbox;
+            if (Array.isArray(b) && b.length === 4 && b.every((n: any) => typeof n === 'number' && Number.isFinite(n))) boxes.push(b);
+          }
+          if (boxes.length === 0) return null;
+          const pad = 0.015;
+          const x0 = Math.max(0, Math.min(...boxes.map((b) => b[0])) - pad);
+          const y0 = Math.max(0, Math.min(...boxes.map((b) => b[1])) - pad);
+          const x1 = Math.min(1, Math.max(...boxes.map((b) => b[0] + b[2])) + pad);
+          const y1 = Math.min(1, Math.max(...boxes.map((b) => b[1] + b[3])) + pad);
+          return [x0, y0, Math.max(0.02, x1 - x0), Math.max(0.02, y1 - y0)];
+        })();
         const cropItems: { structureId: string | null; bbox: number[] | null; pool: string; panelIndex: number }[] = [];
         for (let pi = 0; pi < panels.length; pi++) {
           const bbox = panels[pi]?.bbox;

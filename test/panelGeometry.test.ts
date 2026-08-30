@@ -27,15 +27,16 @@ function comicGrid(w: number, h: number, panels: Array<[number, number, number, 
 const W = 500;
 const H = 707;
 const GUTTER = 10;
-// 2 columns: left 60..235, right 305..480 (center gutter 236..304).
+// 2 columns: left 60..235, right 252..480 (center gutter 236..251 — ~3% of
+// width, like real book scans; the gutter must stay NARROW for detection).
 // 3 rows: 106..199, 210..303, 314..425 (row heights vary like real comics).
 const PANELS: Array<[number, number, number, number]> = [
   [60, 106, 235, 199],   // 0 left row1
-  [305, 106, 480, 199],  // 1 right row1
+  [252, 106, 480, 199],  // 1 right row1
   [60, 210, 235, 303],   // 2 left row2
-  [305, 210, 480, 303],  // 3 right row2
+  [252, 210, 480, 303],  // 3 right row2
   [60, 314, 235, 425],   // 4 left row3
-  [305, 314, 480, 425],  // 5 right row3
+  [252, 314, 480, 425],  // 5 right row3
 ];
 const STRUCTURE: Box = [50, 100, 441, 332]; // comic region incl. outer gutters
 
@@ -87,6 +88,34 @@ describe('snapBoxToGutters', () => {
     const box: Box = [20, 20, 50, 50];
     expect(snapBoxToGutters(noise, box)).toEqual(box);
   });
+
+  it('does NOT snap onto pale flat areas inside a panel (paper grid, doc 12 §6)', () => {
+    // Panel 0's top half is a pale sky: light enough to pass the loose ink
+    // threshold (ink=0), not paper-white (paper=1). Without the paper layer
+    // the bottom edge snapped onto the sky and collapsed the panel to a
+    // sliver (real case 2026-08-31).
+    const w = 500, h = 707;
+    const ink = new Uint8Array(w * h);   // 0 everywhere except dense art
+    const paper = new Uint8Array(w * h);  // 1 = not paper-white
+    // Real gutter between rows 1 and 2 (y 204..213).
+    // Panel 0 art: y 106..199; sky occupies y 106..150 (pale), dense y 151..199.
+    for (let y = 106; y <= 199; y++) {
+      for (let x = 60; x <= 235; x++) {
+        if (y >= 151) ink[y * w + x] = 1;        // dense art
+        paper[y * w + x] = 1;                    // sky AND art are not paper
+      }
+    }
+    const grid = { w, h, ink, paper };
+    // Over-tall scan box whose bottom sits deep in the empty page below.
+    const snapped = snapBoxToGutters(grid, [60, 103, 176, 152] as Box);
+    // With no row-2 content in this synthetic, the correct bottom is the
+    // panel's own boundary (art ends at 199; the clean band starts at 200) —
+    // NOT the pale sky (which would have collapsed the box to y≈150).
+    expect(snapped[1] + snapped[3]).toBeGreaterThanOrEqual(199);
+    expect(snapped[1] + snapped[3]).toBeLessThanOrEqual(214);
+    expect(snapped[3]).toBeGreaterThan(80); // no sliver — the sky did not capture the edge
+    expect(snapped[1]).toBeLessThanOrEqual(110); // top stays at the panel top, not slid into the sky
+  });
 });
 
 describe('planPanelBoxes (missing panels)', () => {
@@ -103,8 +132,8 @@ describe('planPanelBoxes (missing panels)', () => {
     expect(plan.size).toBe(6);
 
     const p1 = plan.get(1)!;
-    expect(p1[0]).toBeGreaterThanOrEqual(301);        // right column
-    expect(p1[0]).toBeLessThanOrEqual(309);
+    expect(p1[0]).toBeGreaterThanOrEqual(247);        // right column
+    expect(p1[0]).toBeLessThanOrEqual(256);
     expect(p1[2]).toBeGreaterThan(150);
     expect(p1[1]).toBeGreaterThanOrEqual(104);        // same row band as p0
     expect(p1[1] + p1[3]).toBeLessThanOrEqual(211);
@@ -115,7 +144,7 @@ describe('planPanelBoxes (missing panels)', () => {
     expect(p2[1] + p2[3]).toBeLessThanOrEqual(311);
 
     const p3 = plan.get(3)!;
-    expect(p3[0]).toBeGreaterThanOrEqual(301);
+    expect(p3[0]).toBeGreaterThanOrEqual(247);
     expect(p3[1]).toBeGreaterThanOrEqual(204);
     expect(p3[1] + p3[3]).toBeLessThanOrEqual(311);
 
@@ -126,11 +155,11 @@ describe('planPanelBoxes (missing panels)', () => {
     expect(p4[1]).toBeLessThanOrEqual(320);
     expect(p4[1] + p4[3]).toBeGreaterThanOrEqual(420);
     expect(p4[1] + p4[3]).toBeLessThanOrEqual(435);
-    expect(p4[0] + p4[2]).toBeLessThanOrEqual(240);   // left half only
+    expect(p4[0] + p4[2]).toBeLessThanOrEqual(246);   // left half only
 
     const p5 = plan.get(5)!;
-    expect(p5[0]).toBeGreaterThanOrEqual(300);        // right half
-    expect(p5[0]).toBeLessThanOrEqual(310);
+    expect(p5[0]).toBeGreaterThanOrEqual(240);        // right half (mid-gutter ok)
+    expect(p5[0]).toBeLessThanOrEqual(258);
     expect(p5[1]).toBeGreaterThanOrEqual(308);
     expect(p5[1] + p5[3]).toBeLessThanOrEqual(435);
   });

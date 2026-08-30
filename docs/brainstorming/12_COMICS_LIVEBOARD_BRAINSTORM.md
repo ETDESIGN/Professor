@@ -279,11 +279,35 @@ pure + unit-tested; integrated into `bookCrop.cropBookImages`):
 from 2 imprecise boxes → all 6 panels land within ~1–2% of their true cells
 (rows 0.146–0.374 / 0.372–0.605 / 0.615–0.877; columns 0.06–0.50 /
 0.50–0.94 vs measured truth 0.15–0.37 / 0.37–0.60 / 0.60–0.86 and
-0.06–0.50 / 0.51–0.95). Tests: `test/panelGeometry.test.ts` (7).
+0.06–0.50 / 0.51–0.95). Tests: `test/panelGeometry.test.ts` (8).
+
+**Round 2 hardening (2026-08-31, after the owner's first real test):** three
+stacked issues surfaced on the "Countryside" unit:
+1. **generate-exercises crashed** ("objective reconciliation failed: v is not
+   defined" → toast "Generation rejected: unknown error", vocab-only pool):
+   a copy-pasted `v.set_label` clause in `buildGrammarItems`' push helper
+   referenced the VOCAB builder's parameter. Fixed (grammar items carry no
+   series label); a `tsc --noResolve` sweep across all edge functions found
+   no other undeclared identifiers — worth re-running after future function
+   edits (repo tsc does NOT cover supabase/functions).
+2. **Edge refinement silently no-op'd**: ImageScript 1.3's `getPixelAt`
+   returns a PACKED NUMBER, not `{r,g,b}` — luminance went NaN, the catch
+   swallowed it, raw boxes cropped. Fixed with `getRGBAAt` + a loud
+   console.error in the catch.
+3. **Sliver collapse + wrong structure box**: pale panel skies passed the
+   loose background threshold (edges snapped onto them → slivers), and this
+   unit's inventory bbox covered only ~⅔ of the comic. Fixes: a stricter
+   **paper grid** for gutter detection (margin−12 vs margin−30), the
+   **ink-derived comic extent** (outermost sustained-ink columns over the
+   provided rows — scan boxes can miss whole columns), a NARROW+flanked
+   center-gutter test, the union(inventory ∪ panel boxes) structure region,
+   and the median-row-height prior applied to stacked rows. Re-validated
+   offline on BOTH real pages: 6/6 panels within ~1–3% on each.
 
 **To heal an existing unit:** re-run the Story enrichment category (crops
 re-generate under the new refine keys; comprehension AI stays soft-failed
-while credits are down). Future uploads get precision automatically.
+while credits are down), then click Generate exercises again. New uploads
+get precision automatically.
 
 ---
 

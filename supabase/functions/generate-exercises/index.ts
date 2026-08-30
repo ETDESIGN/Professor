@@ -187,9 +187,10 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
   const rule = String(g?.rule || '');
 
   const push = (type: ExerciseType, content: any) => {
-    // F2 (doc 11 §3): every vocab pool item carries its SERIES label so
-    // consumers can filter/release by series (class plans gate what's NEW).
-    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type, ...(v.set_label ? { set_label: v.set_label } : {}) } });
+    // Grammar items carry no series label — the F2 set_label stamp is a
+    // vocabulary-pool concept (the `v` here crashed generation: "v is not
+    // defined", story/dialogue items never built; fixed 2026-08-31).
+    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type } });
   };
 
   // ERROR_SPOT — one per error example.
