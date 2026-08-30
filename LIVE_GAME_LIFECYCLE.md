@@ -113,7 +113,7 @@ emitted by SessionContext itself.**
 ### Game-control actions (games LISTEN via `state.lastAction`)
 | Action | Typical use |
 |---|---|
-| `RESET_GAME` | Teacher tapped Redo / Reset → rebuild a fresh board |
+| `RESET_GAME` | Teacher tapped Redo / Reset → rebuild a fresh board. Also bumps `state.resetCount`, which re-seeds every turn-aware deal (see §5①) — Reset re-deals a NEW arrangement, it does not replay the same one |
 | `REVEAL_ANSWER` / `REVEAL` | Teacher reveals the answer |
 | `NEXT` / `NEXT_ROUND` / `NEXT_CARD` | Advance to the next question/item |
 | `CHECK_ANSWER` | Teacher asks the board to grade the current attempt |
@@ -139,6 +139,19 @@ useEffect(() => {
 ```
 Without this, the game keeps the previous student's half-played state when the
 wheel picks a new kid.
+
+**Per-turn dealing (2026-08-30):** a new turn (or Reset) must also present a
+DIFFERENT arrangement, not the identical sequence — kids otherwise memorize
+positions. This is centralized: `useEscalatingPool` runs its round's items
+through `dealForTurn` seeded on `(sessionId, unitId, shellType, roundIndex,
+turnToken, resetCount)`, and `useQuizComposition` splits its rng streams the
+same way (word selection stays per-round/per-quiz; order + item variants
+rotate per turn). `useSeedBase()` already carries the turn+reset parts for
+per-template arrangement seeds (option order, distractor banks). If your
+template snapshots round content (e.g. a `setupSigRef`), include
+`state.currentTurnId` and `state.resetCount` in the signature so it
+re-snapshots per kid. Choral/practice mode (`turnId === null`) stays stable
+on purpose.
 
 ### ② Track mistakes with a `useRef` (not just state)
 ```tsx

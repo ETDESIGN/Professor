@@ -296,21 +296,29 @@ export function useQuizComposition(
   }, [sessionId, unitId]);
 
   // Build quiz composition
+  const turnToken = state.currentTurnId ?? 'practice';
+  const resetCount = state.resetCount ?? 0;
   const questions = useMemo(() => {
     if (objectives.length === 0 || poolItems.length === 0) return [];
+    // Split rng streams (per-turn variety, 2026-08-30): the COMPOSITION (which
+    // words the quiz covers) stays session-seeded — every student works the
+    // same words — while the per-objective ITEM choice (variant swap) and the
+    // question ORDER rotate per student / per Reset via the turn+reset parts.
     const rng = makeRng(sessionId, unitId);
+    const itemRng = makeRng(sessionId, unitId, 'items', turnToken, resetCount);
     const composition = buildQuizComposition(objectives, totalQuestions, weakRanks, srsByObjective, servedAtMount, rng);
     const out: QuizQuestion[] = [];
     for (const { objectiveId, exerciseType } of composition) {
-      // Pick a random item among the objective's matching items (pool-coverage
-      // fix): the previous first-match find() always represented an objective
-      // with the same DB-insertion-order row, so remakes served identical
-      // questions. Draws from the SEEDED rng (E1.4) — same objective resolves
-      // to the same item on every tab.
+      // Pick among the objective's matching items (pool-coverage fix): the
+      // previous first-match find() always represented an objective with the
+      // same DB-insertion-order row, so remakes served identical questions.
+      // The item stream is session-seeded (E1.4, same objective → same item
+      // on every tab); the turn-seeded itemRng now rotates WHICH variant each
+      // student meets (cloze vs image-select when both exist).
       const byType = poolItems.filter(p => p.objective_id === objectiveId && p.exercise_type === exerciseType);
       const byObjective = byType.length > 0 ? byType : poolItems.filter(p => p.objective_id === objectiveId);
       if (byObjective.length === 0) continue;
-      const item = byObjective[Math.floor(rng() * byObjective.length)];
+      const item = byObjective[Math.floor(itemRng() * byObjective.length)];
       out.push({
         objectiveId,
         exerciseType: item.exercise_type,
@@ -319,13 +327,16 @@ export function useQuizComposition(
         correctAnswer: correctAnswerFor(item),
       });
     }
-    // Shuffle for variety — seeded (E1.4): identical order on every tab.
+    // Question order: turn-seeded (each student faces a different sequence;
+    // Reset re-deals) while remaining deterministic per (turn, reset) on
+    // every tab — the seed parts are shared broadcast/live_state state.
+    const orderRng = makeRng(sessionId, unitId, 'order', turnToken, resetCount);
     for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
+      const j = Math.floor(orderRng() * (i + 1));
       [out[i], out[j]] = [out[j], out[i]];
     }
     return out;
-  }, [objectives, poolItems, totalQuestions, weakRanks, srsByObjective, servedAtMount, sessionId, unitId]);
+  }, [objectives, poolItems, totalQuestions, weakRanks, srsByObjective, servedAtMount, sessionId, unitId, turnToken, resetCount]);
 
   // Advance the sequential deal for the NEXT quiz game on this unit.
   const questionsKey = useMemo(() => questions.map((q) => q.objectiveId).join(','), [questions]);

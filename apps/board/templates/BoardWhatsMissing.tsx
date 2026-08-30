@@ -223,11 +223,16 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   }, [mode, roundIndex, testedEntry, rungByObjective]);
 
   // ── Round setup (snapshot items into the board once per round) ────────
+  // Per-turn variety (2026-08-30): the signature includes the turn token and
+  // reset count, so the grid re-snapshots (re-deals) when a new student is
+  // picked or the teacher hits Reset — the per-turn dealt order changes which
+  // variant leads and which word sits first — instead of replaying the exact
+  // same board for every kid.
   const setupSigRef = useRef('');
   useEffect(() => {
     const source = usingFrozen ? frozenEntries : poolEntries;
     if (source.length === 0) return;
-    const sig = `${mode}|${roundIndex}|${source.map((e) => e.objectiveId).join(',')}`;
+    const sig = `${mode}|${roundIndex}|${state.currentTurnId ?? 'practice'}|${state.resetCount ?? 0}|${source.map((e) => e.objectiveId).join(',')}`;
     if (setupSigRef.current === sig) return;
     setupSigRef.current = sig;
 
