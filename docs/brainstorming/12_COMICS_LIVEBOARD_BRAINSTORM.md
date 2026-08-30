@@ -247,7 +247,47 @@ orchestrate, verify end-to-end.
 
 ---
 
-## 6. Verification (owner's 26-page unit)
+## 6. Panel crop precision (owner report 2026-08-31: "cut in the middle of the image") — FIXED
+
+Diagnosed on the owner's scan-v8 test unit ("Countryside"): the scan's panel
+boxes have accurate x/y/width but **heights bleed into the next row** (e.g.
+panel 0's box covered rows 1–2, slicing mid-artwork), and **4 of 6 panels had
+no bbox at all**. The cropper took those boxes as-is → crops cut through
+panels.
+
+**Fix — deterministic gutter refinement, no AI** (`_shared/panelGeometry.ts`,
+pure + unit-tested; integrated into `bookCrop.cropBookImages`):
+
+1. The page is decoded once per comic (existing batch crop) and downsampled
+   into a binary ink grid (adaptive background threshold from the page frame).
+2. Every scan box is clamped to the comic's structure bbox, then each edge
+   **snaps to the whitespace gutter bands** around its panel: a dirty edge
+   (mid-artwork) contracts to the first gutter toward the box center; a clean
+   edge holds at its gutter's middle (or hugs the content side of a wide band).
+   A span guard stops any edge from collapsing the box below 40% of its span.
+3. A **same-column row-height prior** collapses boxes spanning 2+ rows to one
+   row (re-anchored at top + median height, locally snapped).
+4. **Missing panels are seeded**: mirrored across the detected center gutter
+   from their same-row sibling, or stacked below the last known row (split at
+   the center gutter for 2-column comics) — then snapped like any other box.
+5. Refined crops write `metadata.panel_index` + `refined` + `bbox_scan`, and
+   their dedupe key carries a refine version (`g2v1`) so they never collide
+   with pre-refinement crops. Consumers (orchestrate-lesson, PlanComposer,
+   FromTheBookPanel) match crops by `structure_id + panel_index`, newest wins.
+
+**Verified against the owner's actual page pixels** (offline harness):
+from 2 imprecise boxes → all 6 panels land within ~1–2% of their true cells
+(rows 0.146–0.374 / 0.372–0.605 / 0.615–0.877; columns 0.06–0.50 /
+0.50–0.94 vs measured truth 0.15–0.37 / 0.37–0.60 / 0.60–0.86 and
+0.06–0.50 / 0.51–0.95). Tests: `test/panelGeometry.test.ts` (7).
+
+**To heal an existing unit:** re-run the Story enrichment category (crops
+re-generate under the new refine keys; comprehension AI stays soft-failed
+while credits are down). Future uploads get precision automatically.
+
+---
+
+## 7. Verification (owner's 26-page unit)
 
 - [x] Audit table above (§1) — panel order/count/text verified against page images
 - [ ] Panels cropped with provenance: `assets` rows `kind='book_extract'`,

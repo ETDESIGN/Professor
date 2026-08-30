@@ -796,33 +796,47 @@ One output box per input box, same order. Keep every value concise so the respon
         }
       }
       // Comics → one page per panel (narration + bubbles as dialogue lines).
-      // Panels pool (doc 10 §8, brainstorm doc 12 §2): every panel with a bbox
-      // is cropped from the BOOK'S OWN ARTWORK — pool 'panel', one batch per
-      // comic page under the shared crop deadline — so the comics LiveBoard
-      // game and the review UI use the book's panels, never AI art. Crops are
-      // best-effort (textless panels still crop for the pool; the verbatim
-      // text always lands on the page).
+      // Panels pool (doc 10 §8, brainstorm doc 12 §2): every panel is cropped
+      // from the BOOK'S OWN ARTWORK — pool 'panel', one batch per comic page
+      // under the shared crop deadline — so the comics LiveBoard game and the
+      // review UI use the book's panels, never AI art. Crops pass the comic's
+      // structure bbox + panelIndex so bookCrop's panelGeometry plan can snap
+      // over-cut boxes to the page's gutters and seed scan-box-less panels
+      // (doc 12 §7 — the "cut in the middle of the image" fix). Crops are
+      // best-effort; the verbatim text always lands on the page.
+      const comicStructureBoxes = new Map<string, number[] | null>();
+      try {
+        const comicIds = basketComics.map((c: any) => String(c.structure_id)).filter(Boolean);
+        if (comicIds.length > 0) {
+          const { data: sbRows } = await sbClient.from('page_structures').select('id, bbox').in('id', comicIds);
+          for (const r of sbRows || []) comicStructureBoxes.set(String(r.id), Array.isArray(r.bbox) ? r.bbox : null);
+        }
+      } catch { /* refinement context is best-effort */ }
       for (const c of basketComics) {
         const panels = Array.isArray(c.panels) ? c.panels : [];
-        const panelCropByIndex = new Map<number, any>();
-        const cropItems: { structureId: string | null; bbox: number[]; pool: string }[] = [];
-        const croppable: number[] = []; // panel indexes whose bbox can crop
+        const structureBox = comicStructureBoxes.get(String(c.structure_id)) || null;
+        const cropItems: { structureId: string | null; bbox: number[] | null; pool: string; panelIndex: number }[] = [];
         for (let pi = 0; pi < panels.length; pi++) {
           const bbox = panels[pi]?.bbox;
-          if (Array.isArray(bbox) && bbox.length === 4 && bbox.every((n: any) => typeof n === 'number' && Number.isFinite(n)) && c.page_id) {
-            croppable.push(pi);
-            cropItems.push({ structureId: c.structure_id || null, bbox, pool: 'panel' });
-          }
+          const hasBox = Array.isArray(bbox) && bbox.length === 4 && bbox.every((n: any) => typeof n === 'number' && Number.isFinite(n));
+          cropItems.push({
+            structureId: c.structure_id || null,
+            bbox: hasBox ? bbox : null,
+            pool: 'panel',
+            panelIndex: pi,
+          });
         }
-        if (cropItems.length > 0) {
+        const panelCropByIndex = new Map<number, any>();
+        if (cropItems.length > 0 && c.page_id) {
           try {
             const results = await cropBookImages({
               sb: cropSb,
               pageId: String(c.page_id),
               deadlineAt: CROP_DEADLINE,
               items: cropItems,
+              panelLayout: structureBox ? { structureBox } : null,
             });
-            croppable.forEach((pi, k) => { if (results[k]) panelCropByIndex.set(pi, results[k]); });
+            cropItems.forEach((ci, k) => { if (results[k]) panelCropByIndex.set(ci.panelIndex, results[k]); });
           } catch { /* crops are best-effort; the text always lands */ }
         }
         for (let pi = 0; pi < panels.length; pi++) {

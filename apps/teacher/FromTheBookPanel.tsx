@@ -17,11 +17,13 @@ interface BasketItem {
 }
 
 // Panels-pool thumbnail (doc 12 §2): book-panel crops land as assets rows with
-// metadata { structure_id, bbox, pool:'panel' } at enrichment time.
+// metadata { structure_id, bbox, pool:'panel' [, panel_index, refined] } at
+// enrichment time (gutter-refined per doc 12 §7).
 interface PanelAsset {
   id: string;
+  created_at?: string;
   public_url: string;
-  metadata: { structure_id?: string | null; bbox?: number[] } | null;
+  metadata: { structure_id?: string | null; bbox?: number[]; panel_index?: number } | null;
 }
 
 interface BookBaskets {
@@ -53,18 +55,26 @@ const FromTheBookPanel: React.FC<{ unitId: string }> = ({ unitId }) => {
     try {
       const { data: assets } = await supabase
         .from('assets')
-        .select('id, public_url, metadata')
+        .select('id, created_at, public_url, metadata')
         .eq('unit_id', unitId)
         .eq('kind', 'book_extract')
-        .eq('metadata->>pool', 'panel');
+        .eq('metadata->>pool', 'panel')
+        .order('created_at', { ascending: false });
       const grouped: Record<string, PanelAsset[]> = {};
+      const seen = new Set<string>(); // (structure, panel_index|bbox) — newest wins
       for (const a of (assets || []) as PanelAsset[]) {
         if (!a?.public_url || !a.metadata?.structure_id) continue;
-        const key = String(a.metadata.structure_id);
-        (grouped[key] ||= []).push(a);
+        const key = `${a.metadata.structure_id}:${typeof a.metadata.panel_index === 'number' ? a.metadata.panel_index : JSON.stringify(a.metadata?.bbox || [])}`;
+        if (seen.has(key)) continue; // older crop of the same panel
+        seen.add(key);
+        const g = String(a.metadata.structure_id);
+        (grouped[g] ||= []).push(a);
       }
       for (const list of Object.values(grouped)) {
         list.sort((a, b) => {
+          const pa = typeof a.metadata?.panel_index === 'number' ? a.metadata.panel_index : 99;
+          const pb = typeof b.metadata?.panel_index === 'number' ? b.metadata.panel_index : 99;
+          if (pa !== pb) return pa - pb;
           const [ax, ay] = a.metadata?.bbox || [0, 0];
           const [bx, by] = b.metadata?.bbox || [0, 0];
           return (ay - by) || (ax - bx);

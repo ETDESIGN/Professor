@@ -248,16 +248,25 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
             .select('id, public_url, metadata')
             .eq('unit_id', unitId)
             .eq('kind', 'book_extract')
-            .eq('metadata->>pool', 'panel'),
+            .eq('metadata->>pool', 'panel')
+            .order('created_at', { ascending: true }),
         ]);
         if (cancelled) return;
-        const assetByKey = new Map<string, string>();
+        // Panel-crop matching (doc 12 §7): refined crops carry panel_index —
+        // newest wins (ascending order = later rows overwrite); legacy crops
+        // fall back to the structure+bbox key.
+        const panelUrl = new Map<string, string>();
+        const assetByBboxKey = new Map<string, string>();
         for (const a of (assets || []) as any[]) {
           const sid = a?.metadata?.structure_id;
-          const bbox = Array.isArray(a?.metadata?.bbox) ? a.metadata.bbox : null;
-          if (sid && bbox && a.public_url) {
-            assetByKey.set(`${sid}:${bbox.map((n: number) => Number(n).toFixed(4)).join(',')}`, a.public_url);
+          if (!sid || !a.public_url) continue;
+          const pi = a.metadata.panel_index;
+          if (typeof pi === 'number') {
+            panelUrl.set(`${sid}:${pi}`, a.public_url);
+            continue;
           }
+          const bbox = Array.isArray(a?.metadata?.bbox) ? a.metadata.bbox : null;
+          if (bbox) assetByBboxKey.set(`${sid}:${bbox.map((n: number) => Number(n).toFixed(4)).join(',')}`, a.public_url);
         }
         const comics: any[] = Array.isArray(baskets?.story?.comics) ? baskets.story.comics : [];
         const shaped = comics.map((c: any, ci: number) => {
@@ -270,7 +279,8 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
               return {
                 id: `${c?.structure_id || 'c'}:${pi}`,
                 order: typeof p?.order_index === 'number' ? p.order_index : pi,
-                image_url: bboxKey && c?.structure_id ? assetByKey.get(`${c.structure_id}:${bboxKey}`) : undefined,
+                image_url: (c?.structure_id && panelUrl.get(`${c.structure_id}:${pi}`)) ||
+                  (c?.structure_id && bboxKey ? assetByBboxKey.get(`${c.structure_id}:${bboxKey}`) : undefined),
                 narration: p?.narration ? String(p.narration) : undefined,
                 texts: (Array.isArray(p?.bubbles) ? p.bubbles : [])
                   .map((b: any) => String(b?.text || '').trim())
@@ -588,7 +598,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
 
           <button
             onClick={addAllToPlan}
-            className="mt-5 w-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 flex items-center justify-center gap-2 transition-colors"
+            className="mt-5 w-full bg-pink-50 text-pink-700 border border-pink-200 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 flex items-center justify-center gap-2 transition-colors"
           >
             <Plus size={14} />
             Add all to plan

@@ -434,18 +434,24 @@ serve(async (req) => {
           sbClient.from('assets')
             .select('id, public_url, metadata')
             .eq('unit_id', unitId)
-            .eq('metadata->>pool', 'panel'),
+            .eq('metadata->>pool', 'panel')
+            .order('created_at', { ascending: true }),
         ]);
-        // Match a panel to its crop with the SAME key enrich-unit's dedupe
-        // cache uses (structure + 4-decimal bbox) so re-enrichment and this
-        // read always agree on the asset.
-        const assetByKey = new Map<string, string>();
+        // Panel-crop matching (doc 12 §7): refined crops carry panel_index —
+        // match those (ascending created_at so the NEWEST crop per panel wins);
+        // legacy crops fall back to the structure+bbox dedupe key.
+        const panelUrl = new Map<string, string>();
+        const assetByBboxKey = new Map<string, string>();
         for (const a of (panelAssetRes.data || []) as any[]) {
           const sid = a?.metadata?.structure_id;
-          const bbox = Array.isArray(a?.metadata?.bbox) ? a.metadata.bbox : null;
-          if (sid && bbox && a.public_url) {
-            assetByKey.set(`${sid}:${bbox.map((n: number) => Number(n).toFixed(4)).join(',')}`, a.public_url);
+          if (!sid || !a.public_url) continue;
+          const pi = a.metadata.panel_index;
+          if (typeof pi === 'number') {
+            panelUrl.set(`${sid}:${pi}`, a.public_url);
+            continue;
           }
+          const bbox = Array.isArray(a?.metadata?.bbox) ? a.metadata.bbox : null;
+          if (bbox) assetByBboxKey.set(`${sid}:${bbox.map((n: number) => Number(n).toFixed(4)).join(',')}`, a.public_url);
         }
         const comics = (comicRes.data || []).map((row: any, ci: number) => {
           const panelsRaw = Array.isArray(row.data?.panels) ? row.data.panels : [];
@@ -455,10 +461,12 @@ serve(async (req) => {
             comic_label: printed ? `printed p${printed}` : `comic ${ci + 1}`,
             panels: panelsRaw.map((p: any, pi: number) => {
               const bboxKey = Array.isArray(p?.bbox) ? p.bbox.map((n: any) => Number(n).toFixed(4)).join(',') : null;
+              const image_url = panelUrl.get(`${row.id}:${pi}`) ||
+                (bboxKey ? assetByBboxKey.get(`${row.id}:${bboxKey}`) : undefined);
               return {
                 id: `${row.id}:${pi}`,
                 order: typeof p?.order_index === 'number' ? p.order_index : pi,
-                image_url: bboxKey ? assetByKey.get(`${row.id}:${bboxKey}`) : undefined,
+                image_url,
                 narration: p?.narration ? String(p.narration) : undefined,
                 texts: (Array.isArray(p?.bubbles) ? p.bubbles : [])
                   .map((b: any) => String(b?.text || '').trim())
