@@ -14,17 +14,17 @@ export default {
                 cn: ['Noto Sans SC', 'sans-serif'],
             },
             colors: {
-                // Classroom Board & Student App (Duo Green)
-                'duo-green': '#58cc02',
-                'duo-green-dark': '#46a302',
+                // Classroom Board & Student App (Duo Berry — rebranded from green 2026-08-31)
+                'duo-pink': '#e91e63',
+                'duo-pink-dark': '#be185d',
                 'duo-yellow': '#ffc800',
                 'duo-yellow-dark': '#e5b400',
                 'duo-blue': '#1cb0f6',
                 'duo-red': '#ff4b4b',
 
                 // Teacher Dashboard
-                'teacher-primary': '#0df26c',
-                'teacher-dark': '#102217',
+                'teacher-primary': '#e91e63',
+                'teacher-dark': '#20101d',
 
                 // Parent App
                 'parent-primary': '#0dccf2',

@@ -252,7 +252,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
                 setActiveQuizIndex(i => i + 1);
               }
             }}
-            className="w-full mt-4 bg-duo-green text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2"
+            className="w-full mt-4 bg-duo-pink text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2"
           >
             {isLastQuestion ? 'Complete Quiz' : 'Next Question'} <ArrowRight size={20} />
           </button>
@@ -408,7 +408,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200 }}
-          className="w-24 h-24 bg-duo-green rounded-3xl flex items-center justify-center mb-6 shadow-lg"
+          className="w-24 h-24 bg-duo-pink rounded-3xl flex items-center justify-center mb-6 shadow-lg"
         >
           <Star size={48} className="text-white" />
         </motion.div>
@@ -416,7 +416,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
         {subtitle && <p className="text-slate-500 text-lg">{subtitle}</p>}
         <button
           onClick={handleNext}
-          className="mt-8 bg-duo-green text-white font-bold px-8 py-4 rounded-2xl text-lg flex items-center gap-2 shadow-lg"
+          className="mt-8 bg-duo-pink text-white font-bold px-8 py-4 rounded-2xl text-lg flex items-center gap-2 shadow-lg"
         >
           Let's Go! <ArrowRight size={24} />
         </button>
@@ -527,7 +527,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
                 playerRef.current?.seekTo(pct);
               }}
             >
-              <div className="h-full bg-duo-green rounded-full transition-all duration-100" style={{ width: `${mediaProgress * 100}%` }} />
+              <div className="h-full bg-duo-pink rounded-full transition-all duration-100" style={{ width: `${mediaProgress * 100}%` }} />
             </div>
             <span>{formatTime(mediaDuration)}</span>
           </div>
@@ -673,7 +673,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
         <div className="flex-1 mx-4 h-3 bg-slate-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-duo-green rounded-full transition-all duration-500 ease-out"
+            className="h-full bg-duo-pink rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -711,7 +711,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
             </button>
             <button
               onClick={handleNext}
-              className="flex-1 bg-duo-green text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform"
+              className="flex-1 bg-duo-pink text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-transform"
             >
               {currentIndex >= totalSteps - 1 ? 'Finish Lesson' : 'Continue'}
               <ArrowRight size={18} />

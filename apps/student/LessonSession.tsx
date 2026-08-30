@@ -100,7 +100,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
         <p className="text-slate-400 max-w-sm mb-6">{t('student.noActivitiesHint', 'This lesson doesn\'t have any activities yet. Try again later or pick another lesson.')}</p>
         <button
           onClick={onExit}
-          className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
+          className="px-6 py-3 bg-duo-pink text-white font-bold rounded-2xl shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
         >
           {t('common.back', 'Go back')}
         </button>
@@ -131,7 +131,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
       <header className="px-4 py-4 flex items-center justify-between z-10 shrink-0 bg-white border-b border-slate-100">
         <button onClick={onExit} className="text-slate-400 hover:text-slate-600 p-2 -ml-2"><X size={24} /></button>
         <div className="flex-1 mx-4 h-4 bg-slate-200 rounded-full overflow-hidden relative">
-          <div className="h-full bg-duo-green rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }}>
+          <div className="h-full bg-duo-pink rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }}>
             <div className="absolute inset-0 bg-white/20 w-full h-full animate-shimmer"></div>
           </div>
         </div>
@@ -159,7 +159,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
             <button
               onClick={handleCheck}
               disabled={!isAnswerReady || lessonStatus === 'checking'}
-              className="w-full bg-duo-green hover:bg-duo-green-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-4 rounded-2xl text-lg shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
+              className="w-full bg-duo-pink hover:bg-duo-pink-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-4 rounded-2xl text-lg shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
             >
               {lessonStatus === 'checking' ? t('student.checking', 'Checking...') : t('student.check', 'Check')}
             </button>
@@ -180,7 +180,7 @@ const LessonSession: React.FC<LessonSessionProps> = ({ playlist, onComplete, onE
               </div>
               <button
                 onClick={handleContinue}
-                className={`w-full font-bold py-4 rounded-2xl text-lg shadow-lg active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide flex items-center justify-center gap-2 ${lessonStatus === 'correct' ? 'bg-duo-green text-white shadow-[0_4px_0_0_#46a302]' : 'bg-red-500 text-white shadow-[0_4px_0_0_#b91c1c]'}`}
+                className={`w-full font-bold py-4 rounded-2xl text-lg shadow-lg active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide flex items-center justify-center gap-2 ${lessonStatus === 'correct' ? 'bg-duo-pink text-white shadow-[0_4px_0_0_#be185d]' : 'bg-red-500 text-white shadow-[0_4px_0_0_#b91c1c]'}`}
               >
                 {t('student.continue', 'Continue')} <ArrowRight size={24} />
               </button>

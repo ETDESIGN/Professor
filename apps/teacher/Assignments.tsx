@@ -123,7 +123,7 @@ const Assignments: React.FC = () => {
             </div>
             <button
                onClick={() => setShowCreateModal(true)}
-               className="bg-teacher-primary hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all"
+               className="bg-teacher-primary hover:bg-pink-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-pink-200 transition-all"
             >
                <Plus size={20} /> Create Assignment
             </button>
@@ -211,7 +211,7 @@ const Assignments: React.FC = () => {
                layout
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
-               className="border-2 border-dashed border-slate-200 rounded-xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-teacher-primary hover:text-teacher-primary hover:bg-emerald-50 transition-all group min-h-[300px]"
+               className="border-2 border-dashed border-slate-200 rounded-xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-teacher-primary hover:text-teacher-primary hover:bg-pink-50 transition-all group min-h-[300px]"
             >
                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-white group-hover:shadow-sm transition-colors">
                   <Plus size={32} />

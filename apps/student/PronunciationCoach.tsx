@@ -220,7 +220,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
             {userBars.map((h, i) => (
               <div
                 key={i}
-                className={`w-2 rounded-full transition-all duration-75 ${isListening ? 'bg-duo-green' : 'bg-slate-700'}`}
+                className={`w-2 rounded-full transition-all duration-75 ${isListening ? 'bg-duo-pink' : 'bg-slate-700'}`}
                 style={{ height: `${h}%` }}
               />
             ))}
@@ -272,7 +272,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
         )}
 
         <div className={`absolute inset-0 transition-opacity duration-1000 ${isListening ? 'opacity-20' : 'opacity-0'} pointer-events-none`}>
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-duo-green rounded-full mix-blend-screen filter blur-[100px]"></div>
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-duo-pink rounded-full mix-blend-screen filter blur-[100px]"></div>
         </div>
       </div>
 
@@ -291,7 +291,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
           className={`w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all duration-300 ${
             isListening
               ? 'border-red-500 bg-red-500/20 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]'
-              : 'border-slate-700 bg-duo-green text-white shadow-[0_8px_0_#2f6f02] active:translate-y-2 active:shadow-none'
+              : 'border-slate-700 bg-duo-pink text-white shadow-[0_8px_0_#2f6f02] active:translate-y-2 active:shadow-none'
           }`}
         >
           {isListening ? <MicOff size={32} /> : <Mic size={32} />}

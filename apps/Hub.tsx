@@ -11,15 +11,15 @@ const Hub: React.FC<HubProps> = ({ onSelectApp }) => {
   const { t, i18n } = useTranslation();
 
   const apps = [
-    { id: 'onboarding-teacher', name: t('hub.teacher'), icon: Layout, desc: 'Setup School & Class', color: 'bg-emerald-600' },
-    { id: 'onboarding-student', name: t('hub.student'), icon: Users, desc: t('student.joinClass'), color: 'bg-lime-600' },
+    { id: 'onboarding-teacher', name: t('hub.teacher'), icon: Layout, desc: 'Setup School & Class', color: 'bg-pink-600' },
+    { id: 'onboarding-student', name: t('hub.student'), icon: Users, desc: t('student.joinClass'), color: 'bg-pink-600' },
     { id: 'onboarding-parent', name: t('hub.parent'), icon: Baby, desc: 'Link Child with Code', color: 'bg-rose-500' },
     { id: 'admin-portal', name: t('hub.admin'), icon: Layout, desc: 'School Management', color: 'bg-slate-700' },
-    { id: 'teacher-studio', name: t('teacher.lessonStudio'), icon: Layout, desc: 'Lesson Prep & Orchestration', color: 'bg-emerald-500' },
+    { id: 'teacher-studio', name: t('teacher.lessonStudio'), icon: Layout, desc: 'Lesson Prep & Orchestration', color: 'bg-pink-500' },
     { id: 'teacher-live-commander', name: t('teacher.liveCommander'), icon: Zap, desc: 'Web Live Control (Desktop)', color: 'bg-indigo-600' },
     { id: 'classroom-board', name: t('hub.board'), icon: Monitor, desc: 'Projector View', color: 'bg-blue-600' },
     { id: 'teacher-remote', name: t('hub.remote'), icon: Smartphone, desc: 'Mobile Remote', color: 'bg-indigo-500' },
-    { id: 'student-app', name: t('hub.student'), icon: Users, desc: 'Gamified Homework PWA', color: 'bg-lime-500' },
+    { id: 'student-app', name: t('hub.student'), icon: Users, desc: 'Gamified Homework PWA', color: 'bg-pink-500' },
     { id: 'parent-app', name: t('hub.parent'), icon: Baby, desc: t('parent.gallery'), color: 'bg-cyan-500' },
   ];
 

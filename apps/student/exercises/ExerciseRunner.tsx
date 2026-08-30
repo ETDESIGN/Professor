@@ -164,7 +164,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
       <div className="h-full flex flex-col items-center justify-center p-6 text-center">
         <p className="text-slate-400 font-bold mb-2">{t('exercise.noExercises', 'No exercises available')}</p>
         <p className="text-slate-300 text-sm mb-6">This unit has no practice content yet.</p>
-        <button onClick={() => onDone({ total: 0, correct: 0, items: [] })} className="bg-duo-green text-white font-bold px-6 py-3 rounded-xl">
+        <button onClick={() => onDone({ total: 0, correct: 0, items: [] })} className="bg-duo-pink text-white font-bold px-6 py-3 rounded-xl">
           Continue
         </button>
       </div>
@@ -178,8 +178,8 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
     const mastered = familiarSeen.current.size;
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-slate-50">
-        <div className="w-24 h-24 bg-duo-green/10 rounded-full flex items-center justify-center mb-5">
-          <Trophy size={48} className="text-duo-green" />
+        <div className="w-24 h-24 bg-duo-pink/10 rounded-full flex items-center justify-center mb-5">
+          <Trophy size={48} className="text-duo-pink" />
         </div>
         <h2 className="text-3xl font-black text-slate-800 mb-1">Round complete!</h2>
         <p className="text-slate-500 mb-6 font-bold">
@@ -195,7 +195,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
             <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wide">Accuracy</div>
           </div>
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-            <div className="text-2xl font-black text-duo-green">{mastered}</div>
+            <div className="text-2xl font-black text-duo-pink">{mastered}</div>
             <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wide">Mastered</div>
           </div>
         </div>
@@ -204,7 +204,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
             <RotateCw size={12} /> {retried.current.size} word(s) re-queued for another try
           </p>
         )}
-        <button onClick={() => finish(results)} className="bg-duo-green text-white font-bold px-10 py-4 rounded-2xl shadow-lg active:scale-95 flex items-center gap-2">
+        <button onClick={() => finish(results)} className="bg-duo-pink text-white font-bold px-10 py-4 rounded-2xl shadow-lg active:scale-95 flex items-center gap-2">
           <Check size={22} strokeWidth={3} /> Continue
         </button>
       </div>
@@ -217,7 +217,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
         <Heart size={56} className="text-duo-red mb-4" />
         <h2 className="text-2xl font-black text-slate-800 mb-2">Out of hearts!</h2>
         <p className="text-slate-400 mb-6">Hearts refill over time, or complete a review to restore one.</p>
-        <button onClick={() => finish(results)} className="bg-duo-green text-white font-bold px-6 py-3 rounded-xl">
+        <button onClick={() => finish(results)} className="bg-duo-pink text-white font-bold px-6 py-3 rounded-xl">
           Finish session
         </button>
       </div>
@@ -233,7 +233,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
           <button onClick={onExit} className="text-slate-400 hover:text-slate-600 p-1"><X size={24} /></button>
         ) : <div className="w-6" />}
         <div className="flex-1 mx-4 h-3 bg-slate-200 rounded-full overflow-hidden">
-          <div className="h-full bg-duo-green rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="h-full bg-duo-pink rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
         <div className={`flex items-center gap-1 font-bold w-12 justify-end ${heartsUnavailable ? 'text-slate-300' : 'text-duo-red'}`}>
           <Heart fill="currentColor" size={20} />

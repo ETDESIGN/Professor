@@ -149,7 +149,7 @@ const DubbingClips: React.FC = () => {
                 <button
                     onClick={() => setEditing({})}
                     disabled={!selectedClassId}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-teacher-dark font-bold disabled:opacity-40"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-white font-bold disabled:opacity-40"
                 >
                     <Plus size={16} /> New clip
                 </button>
@@ -167,7 +167,7 @@ const DubbingClips: React.FC = () => {
                     <button
                         onClick={() => setEditing({})}
                         disabled={!selectedClassId}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-teacher-dark font-bold disabled:opacity-40"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-white font-bold disabled:opacity-40"
                     >
                         <Plus size={16} /> New clip
                     </button>
@@ -203,7 +203,7 @@ const DubbingClips: React.FC = () => {
                                 {clip.status === 'draft' ? (
                                     <button
                                         onClick={() => assign(clip)}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teacher-primary text-teacher-dark text-sm font-bold"
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-teacher-primary text-white text-sm font-bold"
                                     >
                                         <Send size={14} /> Assign
                                     </button>

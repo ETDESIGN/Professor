@@ -46,7 +46,7 @@ const TypeTranslate: React.FC<BaseExerciseProps> = ({ data, onComplete }) => {
         <button
           onClick={submit}
           disabled={!value.trim()}
-          className="mt-4 w-full bg-duo-green text-white font-bold py-3 rounded-2xl shadow-lg active:scale-[0.98] disabled:opacity-40"
+          className="mt-4 w-full bg-duo-pink text-white font-bold py-3 rounded-2xl shadow-lg active:scale-[0.98] disabled:opacity-40"
         >
           Check
         </button>

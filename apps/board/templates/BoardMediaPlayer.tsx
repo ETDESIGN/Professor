@@ -198,7 +198,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
           className="w-full h-3 bg-white/20 rounded-full mb-6 cursor-pointer relative overflow-hidden"
           onClick={handleSeek}
         >
-          <div className="h-full bg-duo-green relative transition-all duration-100 ease-linear" style={{ width: `${progress * 100}%` }}>
+          <div className="h-full bg-duo-pink relative transition-all duration-100 ease-linear" style={{ width: `${progress * 100}%` }}>
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg scale-150"></div>
           </div>
         </div>
@@ -207,7 +207,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
         <div className="flex justify-between items-center text-white">
           <div className="flex items-center gap-6">
             <button
-              className="hover:text-duo-green transition-colors"
+              className="hover:text-duo-pink transition-colors"
               onClick={() => playerRef.current?.seekTo(0)}
             >
               <SkipBack size={32} />
@@ -222,7 +222,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
               {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} fill="black" className="ml-1" />}
             </button>
             <button
-              className="hover:text-duo-green transition-colors"
+              className="hover:text-duo-pink transition-colors"
               onClick={() => playerRef.current?.seekTo(progress + 0.1)}
             >
               <SkipForward size={32} />

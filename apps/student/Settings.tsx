@@ -95,7 +95,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                      <button
                         onClick={() => toggle('sound')}
                         aria-pressed={toggles.sound}
-                        className={`w-12 h-7 rounded-full transition-colors relative ${toggles.sound ? 'bg-duo-green' : 'bg-slate-200'}`}
+                        className={`w-12 h-7 rounded-full transition-colors relative ${toggles.sound ? 'bg-duo-pink' : 'bg-slate-200'}`}
                      >
                         <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-1 transition-all ${toggles.sound ? 'left-6' : 'left-1'}`}></div>
                      </button>
@@ -108,7 +108,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                      <button
                         onClick={() => toggle('speaking')}
                         aria-pressed={toggles.speaking}
-                        className={`w-12 h-7 rounded-full transition-colors relative ${toggles.speaking ? 'bg-duo-green' : 'bg-slate-200'}`}
+                        className={`w-12 h-7 rounded-full transition-colors relative ${toggles.speaking ? 'bg-duo-pink' : 'bg-slate-200'}`}
                      >
                         <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-1 transition-all ${toggles.speaking ? 'left-6' : 'left-1'}`}></div>
                      </button>
@@ -137,7 +137,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onSignOut }) => {
                   <button
                      onClick={() => toggle('notifications')}
                      aria-pressed={toggles.notifications}
-                     className={`w-12 h-7 rounded-full transition-colors relative ${toggles.notifications ? 'bg-duo-green' : 'bg-slate-200'}`}
+                     className={`w-12 h-7 rounded-full transition-colors relative ${toggles.notifications ? 'bg-duo-pink' : 'bg-slate-200'}`}
                   >
                      <div className={`w-5 h-5 bg-white rounded-full shadow-sm absolute top-1 transition-all ${toggles.notifications ? 'left-6' : 'left-1'}`}></div>
                   </button>

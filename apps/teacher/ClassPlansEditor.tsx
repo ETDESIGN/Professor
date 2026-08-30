@@ -362,7 +362,7 @@ export const ClassPlansEditor: React.FC<ClassPlansEditorProps> = ({ unitId, onTe
                   onClick={() => toggleReleased(i)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                     c.released
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                      ? 'bg-pink-50 text-pink-700 border-pink-300'
                       : 'bg-white text-slate-500 border-slate-200 hover:border-emerald-300 hover:text-emerald-600'
                   }`}
                   title="Released classes' content is what students see in the app"
@@ -426,7 +426,7 @@ export const ClassPlansEditor: React.FC<ClassPlansEditorProps> = ({ unitId, onTe
                   {counts.dialogue > 0 && <span className="px-2 py-1 rounded bg-slate-100">{counts.dialogue} dialogue lines</span>}
                   <span className="px-2 py-1 rounded bg-indigo-50 text-indigo-600">{counts.objectives} objectives</span>
                   {(c.contentIndex?.set_labels || []).map((l: string) => (
-                    <span key={l} className="px-2 py-1 rounded bg-emerald-50 text-emerald-700">{l}</span>
+                    <span key={l} className="px-2 py-1 rounded bg-pink-50 text-pink-700">{l}</span>
                   ))}
                 </div>
               )}

@@ -143,9 +143,9 @@ const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack, onSessionEnd }) =
             </motion.div>
           ) : questions.length === 0 ? (
             <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 flex flex-col h-full items-center justify-center text-center">
-              <div className="w-20 h-20 bg-green-100 text-duo-green rounded-full flex items-center justify-center mb-6"><CheckCircle size={40} /></div>
+              <div className="w-20 h-20 bg-pink-100 text-duo-pink rounded-full flex items-center justify-center mb-6"><CheckCircle size={40} /></div>
               <h2 className="text-2xl font-bold text-slate-800 mb-2">Story complete!</h2>
-              <button onClick={onBack} className="mt-4 bg-duo-green text-white font-bold px-6 py-3 rounded-xl shadow-lg">Finish</button>
+              <button onClick={onBack} className="mt-4 bg-duo-pink text-white font-bold px-6 py-3 rounded-xl shadow-lg">Finish</button>
             </motion.div>
           ) : (
             <motion.div key={`quiz-${quizIndex}`} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="p-6 flex flex-col h-full items-center justify-center">
@@ -174,7 +174,7 @@ const ReadingReader: React.FC<ReadingReaderProps> = ({ onBack, onSessionEnd }) =
                 })}
               </div>
               {quizPicked !== null && (
-                <button onClick={next} className="mt-8 w-full max-w-md bg-duo-green text-white font-bold py-4 rounded-xl shadow-lg animate-bounce-subtle">
+                <button onClick={next} className="mt-8 w-full max-w-md bg-duo-pink text-white font-bold py-4 rounded-xl shadow-lg animate-bounce-subtle">
                   {quizIndex < questions.length - 1 ? 'Next question' : 'Complete story'}
                 </button>
               )}

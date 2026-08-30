@@ -204,7 +204,7 @@ const ClassManagement: React.FC = () => {
                             toast.success('Claim link copied');
                             setCreatedClaim(null);
                         }}
-                        className="w-full py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 flex items-center justify-center gap-2"
                     >
                         <Copy size={18} /> Copy link &amp; close
                     </button>
@@ -400,7 +400,7 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                         <button onClick={onAnnounce} className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-1.5">
                             <Send size={15} /> Announce
                         </button>
-                        <button onClick={() => setShowAdd(true)} className="px-3 py-2 bg-teacher-primary text-white rounded-lg text-sm font-bold hover:bg-emerald-500 flex items-center gap-1.5">
+                        <button onClick={() => setShowAdd(true)} className="px-3 py-2 bg-teacher-primary text-white rounded-lg text-sm font-bold hover:bg-pink-700 flex items-center gap-1.5">
                             <Plus size={15} /> Add student
                         </button>
                     </div>
@@ -427,7 +427,7 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                                     </div>
                                     <h3 className="font-bold text-slate-800 mb-1">No students yet</h3>
                                     <p className="text-sm text-slate-500 mb-4">Add a student to generate a claim link they use at home.</p>
-                                    <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-teacher-primary text-white rounded-lg hover:bg-emerald-500 font-bold text-sm">
+                                    <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-teacher-primary text-white rounded-lg hover:bg-pink-700 font-bold text-sm">
                                         <Plus size={16} /> Add student
                                     </button>
                                 </td>
@@ -495,7 +495,7 @@ const ClassDetail: React.FC<{ cls: ClassData; teacherId: string; onBack: () => v
                 <button
                     onClick={handleAdd}
                     disabled={!name.trim() || createStudent.isPending}
-                    className="w-full mt-4 py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50"
+                    className="w-full mt-4 py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50"
                 >
                     {createStudent.isPending ? 'Adding…' : 'Add & generate claim link'}
                 </button>

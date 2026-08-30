@@ -100,33 +100,33 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 </button>
               </div>
               <nav className="space-y-2 flex-1">
-                <button onClick={() => handleNav('/teacher')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <LayoutDashboard size={20} /> {t('nav.dashboard')}
                 </button>
-                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/units')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/units') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <BookOpen size={20} /> {t('nav.curriculum')}
                 </button>
-                <button onClick={() => handleNav('/teacher/assignments')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/assignments')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/assignments') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <FileText size={20} /> {t('nav.assignments')}
                 </button>
-                <button onClick={() => handleNav('/teacher/messages')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/messages') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/messages')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/messages') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <MessageCircle size={20} /> {t('nav.messages')}
                 </button>
-                <button onClick={() => handleNav('/teacher/reports')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/reports') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/reports')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/reports') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <BarChart3 size={20} /> {t('nav.reports')}
                 </button>
-                <button onClick={() => handleNav('/teacher/students')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/students') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/students')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/students') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <Users size={20} /> {t('nav.students')}
                 </button>
-                <button onClick={() => handleNav('/teacher/library')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/library') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/library')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/library') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <Folder size={20} /> {t('nav.library')}
                 </button>
                 {dubbingEnabled && (
-                  <button onClick={() => handleNav('/teacher/dubbing')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/dubbing') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                  <button onClick={() => handleNav('/teacher/dubbing')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/dubbing') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                     <Video size={20} /> Dubbing
                   </button>
                 )}
-                <button onClick={() => handleNav('/teacher/mobile-profile')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-profile') || isActive('/teacher/settings') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600'}`}>
+                <button onClick={() => handleNav('/teacher/mobile-profile')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium ${isActive('/teacher/mobile-profile') || isActive('/teacher/settings') ? 'bg-pink-50 text-pink-700' : 'text-slate-600'}`}>
                   <Settings size={20} /> {t('nav.settings')}
                 </button>
               </nav>
@@ -149,7 +149,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
       <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col shrink-0">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 bg-teacher-primary rounded-lg flex items-center justify-center shadow-md shadow-emerald-200">
+            <div className="w-8 h-8 bg-teacher-primary rounded-lg flex items-center justify-center shadow-md shadow-pink-200">
               <BookOpen className="text-white" size={20} />
             </div>
             <span className="font-bold text-slate-800 text-lg tracking-tight">Orchestrator</span>
@@ -158,57 +158,57 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
           <nav className="space-y-1">
             <button
               onClick={() => handleNav('/teacher')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher') && location.pathname === '/teacher' ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <LayoutDashboard size={20} /> {t('nav.dashboard')}
             </button>
             <button
               onClick={() => handleNav('/teacher/units')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/units') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <BookOpen size={20} /> {t('nav.curriculum')}
             </button>
             <button
               onClick={() => handleNav('/teacher/assignments')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/assignments') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/assignments') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <FileText size={20} /> {t('nav.assignments')}
             </button>
             <button
               onClick={() => handleNav('/teacher/messages')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/messages') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/messages') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <MessageCircle size={20} /> {t('nav.messages')}
             </button>
             <button
               onClick={() => handleNav('/teacher/reports')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/reports') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/reports') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <BarChart3 size={20} /> {t('nav.reports')}
             </button>
             <button
               onClick={() => handleNav('/teacher/students')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/students') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/students') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <Users size={20} /> {t('nav.students')}
             </button>
             <button
               onClick={() => handleNav('/teacher/library')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/library') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/library') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <Folder size={20} /> {t('nav.library')}
             </button>
             {dubbingEnabled && DubbingClips && (
               <button
                 onClick={() => handleNav('/teacher/dubbing')}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/dubbing') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/dubbing') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 <Video size={20} /> Dubbing
               </button>
             )}
             <button
               onClick={() => handleNav('/teacher/settings')}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/settings') || isActive('/teacher/mobile-profile') ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/teacher/settings') || isActive('/teacher/mobile-profile') ? 'bg-pink-50 text-pink-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
               <Settings size={20} /> {t('nav.settings')}
             </button>

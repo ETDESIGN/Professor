@@ -201,7 +201,7 @@ const Shop: React.FC<ShopProps> = ({ onBack }) => {
                                  onClick={() => handleBuy(item.id, item.cost)}
                                   disabled={gems === null || gems < item.cost || pendingId !== null}
                                   className={`mt-auto w-full py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 ${gems !== null && gems >= item.cost && pendingId === null
-                                        ? 'bg-duo-green text-white hover:bg-green-600 shadow-green-700'
+                                        ? 'bg-duo-pink text-white hover:bg-pink-700 shadow-pink-800'
                                         : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-slate-300'
                                      }`}
                                >

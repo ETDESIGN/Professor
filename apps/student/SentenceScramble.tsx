@@ -95,7 +95,7 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
               <ChevronLeft size={28} />
            </button>
            <div className="flex-1 mx-4 h-4 bg-slate-200 rounded-full overflow-hidden">
-              <div className="h-full bg-duo-green w-2/3 rounded-full"></div>
+              <div className="h-full bg-duo-pink w-2/3 rounded-full"></div>
            </div>
            <div className="flex items-center gap-1 text-red-500 font-bold">
               <Heart fill="currentColor" size={24} /> 5
@@ -178,7 +178,7 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
               <button 
                  onClick={checkAnswer}
                  disabled={placedWords.length === 0}
-                 className="flex-1 bg-duo-green hover:bg-duo-green-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-3.5 rounded-xl text-lg shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
+                 className="flex-1 bg-duo-pink hover:bg-duo-pink-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-3.5 rounded-xl text-lg shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
               >
                  Check
               </button>
@@ -188,10 +188,10 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
 
       {/* Success Modal - Only in standalone mode */}
       {mode === 'standalone' && showSuccess && (
-         <div className="absolute inset-x-0 bottom-0 bg-duo-green-dark p-6 animate-slide-up z-50 rounded-t-3xl">
+         <div className="absolute inset-x-0 bottom-0 bg-duo-pink-dark p-6 animate-slide-up z-50 rounded-t-3xl">
             <div className="max-w-md mx-auto">
                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-duo-green shadow-lg">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-duo-pink shadow-lg">
                      <Check size={40} strokeWidth={4} />
                   </div>
                   <div>
@@ -201,7 +201,7 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
                </div>
                <button 
                   onClick={onBack}
-                  className="w-full bg-white text-duo-green font-bold py-3.5 rounded-xl text-lg shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
+                  className="w-full bg-white text-duo-pink font-bold py-3.5 rounded-xl text-lg shadow-[0_4px_0_0_rgba(0,0,0,0.1)] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
                >
                   Continue
                </button>

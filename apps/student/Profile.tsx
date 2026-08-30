@@ -48,7 +48,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                className="flex flex-col items-center"
             >
                <div className="relative mb-4 group cursor-pointer" onClick={onCustomize}>
-                  <div className="w-32 h-32 bg-white rounded-full border-4 border-white shadow-lg flex items-center justify-center text-7xl overflow-hidden hover:border-duo-green transition-colors">
+                  <div className="w-32 h-32 bg-white rounded-full border-4 border-white shadow-lg flex items-center justify-center text-7xl overflow-hidden hover:border-duo-pink transition-colors">
                      {/* Render Avatar based on config if exists, else default */}
                      {avatarConfig ? (
                         <div style={{ backgroundColor: avatarConfig.skinColor }} className="w-full h-full flex items-center justify-center">
@@ -58,13 +58,13 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                         '🦁'
                      )}
                   </div>
-                  <button className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full border border-slate-200 shadow-md flex items-center justify-center text-slate-600 group-hover:text-duo-green group-hover:scale-110 transition-all">
+                  <button className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full border border-slate-200 shadow-md flex items-center justify-center text-slate-600 group-hover:text-duo-pink group-hover:scale-110 transition-all">
                      <Camera size={20} />
                   </button>
                </div>
 
                <h1 className="text-2xl font-bold text-slate-800 mb-1">{displayName}</h1>
-               <div className="bg-duo-green/10 text-duo-green-dark px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-6">
+               <div className="bg-duo-pink/10 text-duo-pink-dark px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-6">
                   Level {stats.level}: {levelLabel}
                </div>
 
@@ -108,7 +108,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
             {/* Action Buttons */}
             <button
                onClick={onCustomize}
-               className="w-full bg-duo-green hover:bg-duo-green-dark text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all"
+               className="w-full bg-duo-pink hover:bg-duo-pink-dark text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all"
             >
                {t('student.customizeAvatar', 'Customize Avatar')}
             </button>

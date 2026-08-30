@@ -129,7 +129,7 @@ const ClaimStudent: React.FC = () => {
                             <button
                                 onClick={handleClaim}
                                 disabled={preview.is_claimed || claimMut.isPending}
-                                className="w-full py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {claimMut.isPending ? <Loader2 className="animate-spin" size={18} /> : <UserCheck size={18} />}
                                 Claim as my account

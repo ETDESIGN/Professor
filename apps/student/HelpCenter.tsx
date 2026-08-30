@@ -39,7 +39,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
          
          {/* Hero */}
          <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-duo-green/10 text-duo-green rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-duo-pink/10 text-duo-pink rounded-2xl flex items-center justify-center mx-auto mb-4">
                <HelpCircle size={32} />
             </div>
             <h1 className="text-2xl font-bold text-slate-800">{t('student.howCanWeHelp', 'How can we help?')}</h1>
@@ -54,7 +54,7 @@ const HelpCenter: React.FC<HelpCenterProps> = ({ onBack }) => {
                value={query}
                onChange={(e) => setQuery(e.target.value)}
                placeholder={t('student.searchHelp', 'Search help articles...')}
-               className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-duo-green focus:outline-none font-medium text-slate-700 placeholder:text-slate-400 transition-colors"
+               className="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:border-duo-pink focus:outline-none font-medium text-slate-700 placeholder:text-slate-400 transition-colors"
             />
          </div>
 

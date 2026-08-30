@@ -145,7 +145,7 @@ const MediaPickerModal: React.FC<MediaPickerModalProps> = ({ kind = 'image', tit
           <button
             onClick={() => selected && onSelect(selected)}
             disabled={!selected}
-            className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-pink-600 hover:bg-pink-700 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Select
           </button>

@@ -507,7 +507,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="bg-white/10 px-6 py-3 rounded-2xl flex items-center gap-4 border border-white/10">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl font-bold ${isTransform ? 'bg-purple-500' : 'bg-duo-green'}`}>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl font-bold ${isTransform ? 'bg-purple-500' : 'bg-duo-pink'}`}>
             {isTransform ? '↻' : 'Abc'}
           </div>
           <div>

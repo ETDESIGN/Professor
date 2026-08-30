@@ -395,35 +395,35 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       <nav className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-200 pb-safe grid grid-cols-5 z-50">
         <button
           onClick={() => navigate('/student')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <Home size={24} />
           <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.learn')}</span>
         </button>
         <button
           onClick={() => navigate('/student/leaderboard')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/leaderboard' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/leaderboard' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <Trophy size={24} />
           <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.rank')}</span>
         </button>
         <button
           onClick={() => navigate('/student/quests')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/quests' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/quests' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <BookOpen size={24} />
           <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.quests')}</span>
         </button>
         <button
           onClick={() => navigate('/student/shop')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/shop' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/shop' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <ShoppingBag size={24} />
           <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.shop')}</span>
         </button>
         <button
           onClick={() => navigate('/student/profile')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/profile' ? 'text-duo-green border-t-2 border-duo-green bg-green-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/profile' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <User size={24} />
           <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.profile')}</span>

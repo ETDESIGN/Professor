@@ -130,7 +130,7 @@ const UnitPreviewModal: React.FC<UnitPreviewModalProps> = ({ unit, onClose, onLa
                   </button>
                   <button
                      onClick={onLaunch}
-                     className="flex-[2] py-3 px-4 rounded-xl bg-teacher-primary text-white font-bold hover:bg-emerald-500 shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]"
+                     className="flex-[2] py-3 px-4 rounded-xl bg-teacher-primary text-white font-bold hover:bg-pink-700 shadow-lg shadow-pink-200 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]"
                   >
                      <Play size={20} fill="currentColor" /> Launch Live Session
                   </button>

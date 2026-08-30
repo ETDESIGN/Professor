@@ -587,7 +587,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
                     <div className="text-[11px] text-slate-400">{item.detail}</div>
                   </div>
                   {inPlan ? (
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">In plan</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded shrink-0">In plan</span>
                   ) : (
                     <Plus size={16} className="text-slate-300 group-hover:text-indigo-500 shrink-0" />
                   )}

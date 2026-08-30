@@ -136,7 +136,7 @@ const LessonComplete: React.FC<LessonCompleteProps> = ({ onContinue, stats = { x
          >
             <button
                onClick={onContinue}
-               className="w-full bg-duo-green hover:bg-duo-green-dark text-white font-bold text-lg py-4 rounded-xl shadow-[0_4px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wide flex items-center justify-center gap-2"
+               className="w-full bg-duo-pink hover:bg-duo-pink-dark text-white font-bold text-lg py-4 rounded-xl shadow-[0_4px_0_0_#be185d] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wide flex items-center justify-center gap-2"
             >
                {t('student.continue', 'Continue')} <ArrowRight size={24} />
             </button>

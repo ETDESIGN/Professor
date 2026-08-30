@@ -45,7 +45,7 @@ const ScoredShellControls: React.FC<{
 }> = ({ triggerAction, opts }) => (
   <div className="flex gap-2 flex-wrap items-center">
     {opts?.keepCheck && (
-      <button onClick={() => triggerAction('CHECK_ANSWER')} className="h-12 px-6 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all">
+      <button onClick={() => triggerAction('CHECK_ANSWER')} className="h-12 px-6 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all">
         <Check size={20} /> Check Answer
       </button>
     )}
@@ -81,7 +81,7 @@ export const renderContextualControls = (
     case 'MEDIA_PLAYER':
     case 'LIVE_WARMUP':
       return (
-        <button onClick={() => triggerAction('PLAY_PAUSE')} className="h-12 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+        <button onClick={() => triggerAction('PLAY_PAUSE')} className="h-12 px-6 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-pink-900/20 active:scale-95 transition-all">
           <Play size={20} /> Play / Pause
         </button>
       );
@@ -197,7 +197,7 @@ export const renderContextualControls = (
         <div className="flex gap-2">
           <button onClick={() => triggerAction('SKIP_ITEM')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><SkipForward size={18} /> Skip</button>
           <button onClick={() => triggerAction('REVEAL_HINT')} className="h-12 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Lightbulb size={18} /> Hint</button>
-          <button onClick={() => triggerAction('CHECK_ANSWER')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Check</button>
+          <button onClick={() => triggerAction('CHECK_ANSWER')} className="h-12 px-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Check</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-700 hover:bg-green-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Force ✓</button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={18} /> Redo</button>
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
@@ -260,7 +260,7 @@ export const renderContextualControls = (
       // without points; Play/Pause and +30s drive the round timer.
       return (
         <div className="flex gap-2 flex-wrap items-center">
-          <button onClick={() => triggerAction('PLAY_PAUSE')} className="h-12 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Pause / resume the round timer">
+          <button onClick={() => triggerAction('PLAY_PAUSE')} className="h-12 px-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Pause / resume the round timer">
             <Play size={18} /> Timer
           </button>
           <button onClick={() => triggerAction('ADD_TIME_30')} className="h-12 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Add 30 seconds">

@@ -52,7 +52,7 @@ export async function buildPrintableCards(cards: PassportCard[]): Promise<Printa
 
 export const PassportCardFace: React.FC<{ card: PrintableCard }> = ({ card }) => (
     <div className="passport-card bg-white border-2 border-slate-300 rounded-2xl overflow-hidden">
-        <div className={`flex justify-between items-center px-4 py-2 ${card.role === 'student' ? 'bg-duo-green' : 'bg-duo-blue'} text-white`}>
+        <div className={`flex justify-between items-center px-4 py-2 ${card.role === 'student' ? 'bg-duo-pink' : 'bg-duo-blue'} text-white`}>
             <span className="font-bold text-sm tracking-wide">
                 {card.role === 'student' ? 'STUDENT LOGIN' : 'PARENT LOGIN'}
             </span>
@@ -150,7 +150,7 @@ export const PassportCardsModal: React.FC<{
                     <button
                         onClick={() => printCards(cards)}
                         disabled={!items.length}
-                        className="flex-1 py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <Printer size={18} /> Print cards
                     </button>

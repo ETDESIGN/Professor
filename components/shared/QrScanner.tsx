@@ -135,7 +135,7 @@ const QrScanner: React.FC<QrScannerProps> = ({ onResult, onClose }) => {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div
             className={`w-64 h-64 max-w-[70vw] max-h-[70vw] rounded-3xl border-4 transition-colors ${
-              found ? 'border-duo-green' : 'border-white/80'
+              found ? 'border-duo-pink' : 'border-white/80'
             }`}
             style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)' }}
           />

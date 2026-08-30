@@ -18,7 +18,7 @@ const BoardIntroSplash = ({ data }: { data: any }) => {
   return (
     <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-black text-white relative overflow-hidden font-display">
       {/* Abstract Background Elements */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-duo-green opacity-10 blur-[150px] animate-pulse-slow"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-duo-pink opacity-10 blur-[150px] animate-pulse-slow"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-duo-blue opacity-10 blur-[150px] animate-pulse-slow delay-1000"></div>
       
       {/* Floating Particles (Simulated) */}

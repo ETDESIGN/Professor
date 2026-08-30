@@ -177,8 +177,8 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                      disabled={classIsReleased || releasingClass}
                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold border transition-colors ${
                         classIsReleased
-                           ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700'
-                           : 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
+                           ? 'bg-pink-900/40 text-pink-400 border-pink-700'
+                           : 'bg-pink-600 text-white border-pink-500 hover:bg-pink-500'
                      }`}
                      title={classIsReleased
                         ? `This class is released to students`
@@ -410,18 +410,18 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   {filterPresent(state.students).map((student: any) => (
                      <button key={student.id} onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setTooltipLeft(rect.left + rect.width / 2); setActivePointStudentId(activePointStudentId === student.id ? null : student.id); }}
                         className={`group flex flex-col items-center gap-1 min-w-[50px] md:min-w-[60px] p-1 md:p-2 rounded-xl transition-all active:scale-95 ${activePointStudentId === student.id ? 'bg-indigo-900/50 ring-2 ring-indigo-500' : 'hover:bg-slate-800'}`}>
-                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base md:text-lg shadow-sm group-hover:border-green-500/50 group-hover:shadow-[0_0_10px_rgba(34,197,94,0.2)] transition-all relative">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base md:text-lg shadow-sm group-hover:border-pink-500/50 group-hover:shadow-[0_0_10px_rgba(236,72,153,0.2)] transition-all relative">
                            {student.avatar}
                            <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-slate-700 rounded-full flex items-center justify-center text-[6px] md:text-[8px] font-bold text-slate-300 border border-slate-600">{student.points}</div>
                         </div>
-                        <span className={`text-[9px] md:text-[10px] font-bold truncate w-full text-center ${activePointStudentId === student.id ? 'text-indigo-300' : 'text-slate-500 group-hover:text-green-400'}`}>{student.name}</span>
+                        <span className={`text-[9px] md:text-[10px] font-bold truncate w-full text-center ${activePointStudentId === student.id ? 'text-indigo-300' : 'text-slate-500 group-hover:text-pink-400'}`}>{student.name}</span>
                      </button>
                   ))}
                </div>
             </div>
 
             <div className="flex items-center gap-2 md:gap-3 pl-0 md:pl-4 border-t md:border-t-0 md:border-l border-slate-800 w-full md:w-auto overflow-x-auto pt-2 md:pt-0 justify-between md:justify-start">
-               <button onClick={() => setActiveSidebarTab(activeSidebarTab === 'analytics' ? 'notes' : 'analytics')} className={`flex flex-col items-center justify-center w-12 h-10 md:w-16 md:h-14 rounded-xl border transition-all active:scale-95 shrink-0 ${activeSidebarTab === 'analytics' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700'}`}><Activity size={16} className="md:w-5 md:h-5" /><span className="text-[8px] md:text-[10px] font-bold mt-1">Stats</span></button>
+               <button onClick={() => setActiveSidebarTab(activeSidebarTab === 'analytics' ? 'notes' : 'analytics')} className={`flex flex-col items-center justify-center w-12 h-10 md:w-16 md:h-14 rounded-xl border transition-all active:scale-95 shrink-0 ${activeSidebarTab === 'analytics' ? 'bg-pink-600 border-pink-500 text-white' : 'bg-slate-800 border-slate-700 text-pink-400 hover:bg-slate-700'}`}><Activity size={16} className="md:w-5 md:h-5" /><span className="text-[8px] md:text-[10px] font-bold mt-1">Stats</span></button>
                <button onClick={() => setActiveSidebarTab(activeSidebarTab === 'sounds' ? 'notes' : 'sounds')} className={`flex flex-col items-center justify-center w-12 h-10 md:w-16 md:h-14 rounded-xl border transition-all active:scale-95 shrink-0 ${activeSidebarTab === 'sounds' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-blue-400 hover:bg-slate-700'}`}><Volume2 size={16} className="md:w-5 md:h-5" /><span className="text-[8px] md:text-[9px] font-bold uppercase mt-1">Sound</span></button>
                <button onClick={() => setActiveSidebarTab(activeSidebarTab === 'wheel' ? 'notes' : 'wheel')} className={`flex flex-col items-center justify-center w-12 h-10 md:w-16 md:h-14 rounded-xl border transition-all active:scale-95 shrink-0 ${activeSidebarTab === 'wheel' ? 'bg-yellow-500 border-yellow-400 text-black' : 'bg-slate-800 border-slate-700 text-yellow-400 hover:bg-slate-700'}`}><Zap size={16} className="md:w-5 md:h-5" /><span className="text-[8px] md:text-[9px] font-bold uppercase mt-1">Wheel</span></button>
                <button onClick={() => setActiveSidebarTab(activeSidebarTab === 'groups' ? 'notes' : 'groups')} className={`flex flex-col items-center justify-center w-12 h-10 md:w-16 md:h-14 rounded-xl border transition-all active:scale-95 shrink-0 ${activeSidebarTab === 'groups' ? 'bg-purple-600 border-purple-500 text-white' : 'bg-slate-800 border-slate-700 text-purple-400 hover:bg-slate-700'}`}><LayoutGrid size={16} className="md:w-5 md:h-5" /><span className="text-[8px] md:text-[9px] font-bold uppercase mt-1">Group</span></button>

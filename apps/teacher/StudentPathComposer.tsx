@@ -388,7 +388,7 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
                   title={available ? (inPath ? `${inPathCount} matching node${inPathCount === 1 ? '' : 's'} already on the path — click to add another` : undefined) : 'This unit has no matching content yet'}
                   className={`w-full bg-white p-3 rounded-xl border shadow-sm transition-all flex items-center gap-3 text-left group disabled:opacity-40 disabled:cursor-not-allowed ${
                     inPath
-                      ? 'border-emerald-300 bg-emerald-50/40'
+                      ? 'border-pink-300 bg-pink-50/40'
                       : 'border-slate-200 hover:border-emerald-300 hover:shadow'
                   }`}
                 >
@@ -414,7 +414,7 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
           <button
             onClick={autoBuild}
             disabled={building}
-            className="mt-5 w-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-100 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
+            className="mt-5 w-full bg-pink-50 text-pink-700 border border-pink-200 font-bold py-2.5 rounded-xl text-xs hover:bg-pink-100 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors"
           >
             {building ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
             Auto-build from lesson plan

@@ -175,7 +175,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
           <p className="text-sm text-slate-500 mb-5">{unitsError}</p>
           <button
             onClick={() => loadUnits()}
-            className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+            className="px-6 py-3 bg-duo-pink text-white font-bold rounded-2xl shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
           >
             {t('common.retry', 'Try again')}
           </button>
@@ -191,7 +191,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             {onJoinClass && (
               <button
                 onClick={onJoinClass}
-                className="px-6 py-3 bg-duo-green text-white font-bold rounded-2xl shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+                className="px-6 py-3 bg-duo-pink text-white font-bold rounded-2xl shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
               >
                 {t('student.joinClass', 'Join a class')}
               </button>
@@ -220,7 +220,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
         return (
           <div key={unit.id} className="relative z-10 pb-8">
             {/* Unit Header */}
-            <div className={`mx-4 mt-4 rounded-2xl p-5 text-white shadow-lg transform transition-transform border-b-4 ${unit.status === 'Locked' ? 'bg-slate-400 border-slate-500 grayscale' : 'bg-duo-green border-duo-green-dark'}`}>
+            <div className={`mx-4 mt-4 rounded-2xl p-5 text-white shadow-lg transform transition-transform border-b-4 ${unit.status === 'Locked' ? 'bg-slate-400 border-slate-500 grayscale' : 'bg-duo-pink border-duo-pink-dark'}`}>
               {unit.coverImage && !unit.coverImage.includes('dicebear') && (
                 <img src={unit.coverImage} alt={unit.title} className="w-full h-36 object-cover rounded-2xl shadow-md mb-4" />
               )}
@@ -300,7 +300,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                           ${isCompleted
                           ? 'bg-duo-yellow border-b-8 border-duo-yellow-dark shadow-xl'
                           : isActive
-                            ? 'bg-duo-green border-b-8 border-duo-green-dark scale-110 shadow-2xl animate-bounce-subtle ring-4 ring-green-200'
+                            ? 'bg-duo-pink border-b-8 border-duo-pink-dark scale-110 shadow-2xl animate-bounce-subtle ring-4 ring-pink-200'
                             : 'bg-slate-200 border-b-8 border-slate-300'
                         }
                         `}
@@ -329,7 +329,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
 
                       {/* Active Popover */}
                       {isActive && (
-                        <div className="absolute -top-12 bg-white px-4 py-2 rounded-xl shadow-lg border border-slate-100 text-duo-green font-bold text-sm whitespace-nowrap animate-bounce">
+                        <div className="absolute -top-12 bg-white px-4 py-2 rounded-xl shadow-lg border border-slate-100 text-duo-pink font-bold text-sm whitespace-nowrap animate-bounce">
                           START
                           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-white rotate-45 border-b border-r border-slate-100"></div>
                         </div>
@@ -368,7 +368,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
       <div className="fixed bottom-24 right-4 z-40 space-y-3">
         <button
           onClick={() => onNavigate('practice')}
-          className={`w-14 h-14 bg-white rounded-2xl shadow-xl border-2 border-slate-100 flex items-center justify-center text-slate-600 hover:text-duo-green hover:scale-110 transition-transform active:scale-95 ${units.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}
+          className={`w-14 h-14 bg-white rounded-2xl shadow-xl border-2 border-slate-100 flex items-center justify-center text-slate-600 hover:text-duo-pink hover:scale-110 transition-transform active:scale-95 ${units.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}
         >
           <LayoutGrid size={28} />
         </button>

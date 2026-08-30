@@ -746,7 +746,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       {/* ── Header ── */}
       <div className="flex justify-between items-center mb-3 shrink-0">
         <div className="bg-white/10 px-5 py-2.5 rounded-2xl flex items-center gap-4 border border-white/10">
-          <div className="w-11 h-11 rounded-xl bg-duo-green flex items-center justify-center text-white text-2xl font-black">W</div>
+          <div className="w-11 h-11 rounded-xl bg-duo-pink flex items-center justify-center text-white text-2xl font-black">W</div>
           <div>
             <h1 className="text-2xl font-bold text-white leading-tight">Word Search</h1>
             <p className="text-slate-400 text-sm">
@@ -755,7 +755,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
           </div>
           <div className="flex gap-1.5 ml-2">
             {Array.from({ length: TOTAL_ROUNDS }, (_, i) => (
-              <span key={i} className={`w-2.5 h-2.5 rounded-full ${i + 1 === roundIndex ? 'bg-duo-green' : i + 1 < roundIndex ? 'bg-duo-green/40' : 'bg-slate-600'}`} />
+              <span key={i} className={`w-2.5 h-2.5 rounded-full ${i + 1 === roundIndex ? 'bg-duo-pink' : i + 1 < roundIndex ? 'bg-duo-pink/40' : 'bg-slate-600'}`} />
             ))}
           </div>
         </div>
@@ -781,7 +781,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
             ))}
           </div>
           <button onClick={startRound}
-            className="px-12 py-4 bg-duo-green hover:brightness-110 text-white text-2xl font-bold rounded-2xl shadow-[0_6px_0_0_#47a325] active:translate-y-1 active:shadow-none transition-all flex items-center gap-3">
+            className="px-12 py-4 bg-duo-pink hover:brightness-110 text-white text-2xl font-bold rounded-2xl shadow-[0_6px_0_0_#be185d] active:translate-y-1 active:shadow-none transition-all flex items-center gap-3">
             <Play size={28} fill="currentColor" /> Start Round
           </button>
         </div>
@@ -957,7 +957,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
             ) : null}
 
             <button onClick={() => advanceRound(false)}
-              className="px-10 py-4 bg-duo-green hover:brightness-110 text-white text-xl font-bold rounded-2xl shadow-[0_6px_0_0_#47a325] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
+              className="px-10 py-4 bg-duo-pink hover:brightness-110 text-white text-xl font-bold rounded-2xl shadow-[0_6px_0_0_#be185d] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
               {isFinalRound ? 'See Results' : 'Next Round'} <ChevronRight size={22} />
             </button>
           </div>
@@ -989,7 +989,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
           </div>
           <div className="flex gap-3">
             <button onClick={resetGame}
-              className="px-8 py-3.5 bg-duo-green hover:brightness-110 text-white text-lg font-bold rounded-2xl shadow-[0_5px_0_0_#47a325] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
+              className="px-8 py-3.5 bg-duo-pink hover:brightness-110 text-white text-lg font-bold rounded-2xl shadow-[0_5px_0_0_#be185d] active:translate-y-1 active:shadow-none transition-all flex items-center gap-2">
               <RefreshCcw size={20} /> Play Again
             </button>
             <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}

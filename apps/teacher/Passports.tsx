@@ -109,7 +109,7 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
                     <button
                         onClick={handlePrintSelected}
                         disabled={!selected.size || printing}
-                        className="px-4 py-2 bg-teacher-primary text-white rounded-lg text-sm font-bold hover:bg-emerald-500 disabled:opacity-50 flex items-center gap-1.5"
+                        className="px-4 py-2 bg-teacher-primary text-white rounded-lg text-sm font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center gap-1.5"
                     >
                         <Printer size={15} /> {printing ? 'Preparing…' : `Print selected (${selected.size})`}
                     </button>
@@ -142,7 +142,7 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
                             return (
                                 <div
                                     key={p.id}
-                                    className={`rounded-xl border-2 p-4 transition-colors ${isSel ? 'border-teacher-primary bg-emerald-50/40' : 'border-slate-200'}`}
+                                    className={`rounded-xl border-2 p-4 transition-colors ${isSel ? 'border-teacher-primary bg-pink-50/40' : 'border-slate-200'}`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <button onClick={() => toggle(p.roster_student_id)} className="flex items-start gap-2 text-left min-w-0">
@@ -201,7 +201,7 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
                                 <button
                                     onClick={() => handleCreate(r.id, r.display_name, !!r.claimed_profile_id)}
                                     disabled={createPassport.isPending}
-                                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-teacher-primary text-white hover:bg-emerald-500 disabled:opacity-50 flex items-center gap-1 shrink-0"
+                                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-teacher-primary text-white hover:bg-pink-700 disabled:opacity-50 flex items-center gap-1 shrink-0"
                                 >
                                     <Plus size={13} /> {r.claimed_profile_id ? 'Parent login' : 'Create cards'}
                                 </button>

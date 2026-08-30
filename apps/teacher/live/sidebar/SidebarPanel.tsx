@@ -91,7 +91,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                 <div className="w-24 h-24 rounded-full border-4 border-yellow-400 shadow-xl flex items-center justify-center text-5xl bg-slate-800 mb-4">{winner.avatar}</div>
                 <h3 className="text-2xl font-bold text-white mb-6">{winner.name}</h3>
                 <div className="grid grid-cols-2 gap-3 w-full">
-                  <button onClick={() => addPoints(winner.id, 10)} className="bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Star size={16} fill="currentColor" /> +10</button>
+                  <button onClick={() => addPoints(winner.id, 10)} className="bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Star size={16} fill="currentColor" /> +10</button>
                   <button onClick={() => addPoints(winner.id, 50)} className="bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Zap size={16} fill="currentColor" /> +50</button>
                 </div>
               </div>
@@ -127,7 +127,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
           </div>
           <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
             <button onClick={() => triggerAction('CELEBRATE')} className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-400 hover:via-purple-400 hover:to-indigo-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Sparkles size={20} /> Trigger Celebration</button>
-            <button onClick={() => { presentStudents.forEach((s: any) => addPoints(s.id, 5)); triggerAction('CELEBRATE'); }} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Trophy size={20} /> +5 XP to Everyone</button>
+            <button onClick={() => { presentStudents.forEach((s: any) => addPoints(s.id, 5)); triggerAction('CELEBRATE'); }} className="w-full bg-pink-500 hover:bg-pink-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Trophy size={20} /> +5 XP to Everyone</button>
           </div>
         </div>
       );

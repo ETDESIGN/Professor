@@ -643,7 +643,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
               onClick={() => unitsWithPlans.has(unit.id)
                 ? navigate(`/teacher/unit/${unit.id}?tab=classes`)
                 : handleLaunch(unit)}
-              className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-emerald-500 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
+              className="bg-teacher-primary text-white p-3 rounded-xl font-bold hover:bg-pink-700 shadow-lg transform hover:scale-105 transition-transform flex items-center gap-2"
               title={unitsWithPlans.has(unit.id) ? 'Choose a class to teach' : 'Launch Class'}
             >
               <Play size={20} />
@@ -862,7 +862,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
           </button>
           <button
             onClick={() => setShowNewUnitModal(true)}
-            className="bg-teacher-primary hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+            className="bg-teacher-primary hover:bg-pink-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-pink-200 transition-all active:scale-95"
           >
             <span className="text-xl">+</span> New Unit
           </button>
@@ -1212,7 +1212,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
                   onClick={() => { setShowNewUnitModal(false); onUploadMaterial?.(); }}
                   className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 transition-all flex items-center gap-4 text-left group"
                 >
-                  <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                  <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center text-pink-600 group-hover:bg-pink-600 group-hover:text-white transition-all">
                     <Upload size={24} />
                   </div>
                   <div>

@@ -73,7 +73,7 @@ const ClassroomBoard: React.FC = () => {
   const PHASE_META: Record<string, { label: string; color: string }> = {
     WARMUP: { label: 'Warm-up', color: 'bg-amber-500' },
     INPUT: { label: 'Input', color: 'bg-sky-500' },
-    PRACTICE: { label: 'Practice', color: 'bg-duo-green' },
+    PRACTICE: { label: 'Practice', color: 'bg-green-500' },
     OUTPUT: { label: 'Output', color: 'bg-purple-500' },
     ASSESS: { label: 'Assess', color: 'bg-rose-500' },
     WRAPUP: { label: 'Wrap-up', color: 'bg-slate-500' },

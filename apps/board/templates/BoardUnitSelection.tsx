@@ -22,7 +22,7 @@ const BoardUnitSelection = () => {
       <div className="h-full bg-slate-50 flex flex-col font-sans p-12 overflow-hidden">
          <header className="flex justify-between items-start mb-12">
             <div className="flex items-center gap-6">
-               <div className="w-20 h-20 bg-duo-green rounded-3xl flex items-center justify-center shadow-xl shadow-green-200">
+               <div className="w-20 h-20 bg-duo-pink rounded-3xl flex items-center justify-center shadow-xl shadow-pink-200">
                   <BookOpen size={40} className="text-white" />
                </div>
                <div>
@@ -75,7 +75,7 @@ const BoardUnitSelection = () => {
                         }}
                         className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-bold text-xl flex items-center gap-3 shadow-lg hover:scale-105 transition-transform animate-pulse-slow"
                      >
-                        <PlayCircle size={28} className="text-duo-green" fill="currentColor" />
+                        <PlayCircle size={28} className="text-duo-pink" fill="currentColor" />
                         Launch Live Mode
                      </button>
                   </div>

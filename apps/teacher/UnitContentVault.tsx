@@ -948,7 +948,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                         <button onClick={applyCustomUrl} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center gap-1">
                           <ExternalLink size={14} /> Apply
                         </button>
-                        <button onClick={() => setVideoPickerOpen(true)} className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-100 flex items-center gap-1">
+                        <button onClick={() => setVideoPickerOpen(true)} className="bg-pink-50 text-pink-700 border border-pink-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-100 flex items-center gap-1">
                           <Video size={14} /> Library
                         </button>
                       </div>

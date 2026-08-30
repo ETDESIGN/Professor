@@ -72,7 +72,7 @@ const ManagerDashboard: React.FC = () => {
                     </div>
                     <button
                         onClick={() => setShowInvite(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-teacher-primary text-white rounded-lg hover:bg-emerald-500 font-bold shadow-md shadow-emerald-200 text-sm"
+                        className="flex items-center gap-2 px-4 py-2 bg-teacher-primary text-white rounded-lg hover:bg-pink-700 font-bold shadow-md shadow-pink-200 text-sm"
                     >
                         <UserPlus size={18} /> Invite Teacher
                     </button>
@@ -182,7 +182,7 @@ const ManagerDashboard: React.FC = () => {
                     <button
                         onClick={handleInvite}
                         disabled={!email.trim() || inviteMut.isPending}
-                        className="w-full py-2.5 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {inviteMut.isPending ? 'Inviting…' : <><UserPlus size={16} /> Create & invite</>}
                     </button>

@@ -181,7 +181,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                 </div>
                 <button
                     onClick={() => setShowNew(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teacher-primary text-white rounded-lg font-bold text-sm hover:bg-emerald-500 shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teacher-primary text-white rounded-lg font-bold text-sm hover:bg-pink-700 shadow-sm"
                 >
                     <Plus size={16} /> New
                 </button>
@@ -405,7 +405,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                     <button
                         onClick={handleStartConversation}
                         disabled={!recipientId || !newConvText.trim() || sending}
-                        className="w-full py-2.5 bg-teacher-primary text-white rounded-lg font-bold hover:bg-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <Send size={16} /> {sending ? 'Sending…' : 'Send'}
                     </button>

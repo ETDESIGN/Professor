@@ -324,7 +324,7 @@ const ClipScriptEditor: React.FC<ClipScriptEditorProps> = ({
                     <button
                         onClick={handleCreate}
                         disabled={!file || !title.trim() || !classId || creating}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-teacher-dark font-bold disabled:opacity-40"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-white font-bold disabled:opacity-40"
                     >
                         {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                         Create clip & start marking
@@ -368,7 +368,7 @@ const ClipScriptEditor: React.FC<ClipScriptEditorProps> = ({
                             </div>
                             <button
                                 onClick={addLine}
-                                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-teacher-primary text-teacher-dark font-bold"
+                                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-teacher-primary text-white font-bold"
                             >
                                 <Plus size={16} /> Add line
                             </button>
@@ -410,7 +410,7 @@ const ClipScriptEditor: React.FC<ClipScriptEditorProps> = ({
                             onClick={handleAssign}
                             disabled={busy || !canAssign}
                             title={canAssign ? undefined : 'Already assigned'}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-teacher-dark font-bold disabled:opacity-40"
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-white font-bold disabled:opacity-40"
                         >
                             <Send size={16} /> Assign to class
                         </button>

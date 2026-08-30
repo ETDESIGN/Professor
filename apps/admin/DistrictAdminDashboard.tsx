@@ -187,7 +187,7 @@ const DistrictAdminDashboard: React.FC = () => {
                         )}
                         <button
                             onClick={() => setShowCreateSchool(true)}
-                            className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 text-sm flex items-center gap-1.5"
+                            className="bg-pink-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-pink-700 text-sm flex items-center gap-1.5"
                         >
                             <Plus size={16} /> Create School
                         </button>
@@ -505,24 +505,24 @@ const DistrictAdminDashboard: React.FC = () => {
                 <div className="space-y-3">
                     <Field label="School name">
                         <input value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="e.g., Lincoln Primary"
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
                     </Field>
                     <Field label="Slug (optional)">
                         <input value={slug} onChange={e => setSlug(e.target.value)} placeholder="lincoln-primary"
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
                     </Field>
                     <Field label="Manager email">
                         <input value={mgrEmail} onChange={e => setMgrEmail(e.target.value)} type="email" placeholder="manager@school.edu"
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
                     </Field>
                     <Field label="Manager full name (optional)">
                         <input value={mgrName} onChange={e => setMgrName(e.target.value)} placeholder="Jordan Lee"
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm" />
                     </Field>
                     <button
                         onClick={handleCreateSchool}
                         disabled={!schoolName.trim() || !mgrEmail.trim() || creatingSchool}
-                        className="w-full py-2.5 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {creatingSchool ? 'Creating…' : <><Plus size={16} /> Create school & manager</>}
                     </button>

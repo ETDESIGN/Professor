@@ -229,7 +229,7 @@ const DubbingReview: React.FC<{ clip: DubbingClip; onBack: () => void }> = ({ cl
                                 />
                                 <button
                                     onClick={togglePlay}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-teacher-dark font-bold"
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teacher-primary text-white font-bold"
                                 >
                                     {playing ? <Pause size={16} /> : <Play size={16} />}
                                     {playing ? 'Pause' : 'Play take'}

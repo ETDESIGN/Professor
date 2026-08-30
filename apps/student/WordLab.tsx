@@ -70,7 +70,7 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
           return (
             <div key={i} className="relative">
               {isStudied && (
-                <div className="absolute -top-2 -right-2 z-20 w-7 h-7 bg-duo-green rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                <div className="absolute -top-2 -right-2 z-20 w-7 h-7 bg-duo-pink rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                   <Check size={16} className="text-white" strokeWidth={4} />
                 </div>
               )}
@@ -160,7 +160,7 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
         <button
           onClick={onReady}
           className={`w-full font-black py-4 rounded-2xl shadow-lg active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-lg ${
-            allStudied ? 'bg-duo-green text-white' : 'bg-white text-slate-500 border-2 border-slate-200'
+            allStudied ? 'bg-duo-pink text-white' : 'bg-white text-slate-500 border-2 border-slate-200'
           }`}
         >
           {allStudied ? "I'm ready — let's practice" : 'Continue'}

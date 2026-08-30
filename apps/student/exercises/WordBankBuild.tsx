@@ -77,7 +77,7 @@ const WordBankBuild: React.FC<BaseExerciseProps> = ({ data, onComplete, onError 
         <button
           onClick={check}
           disabled={placed.length === 0}
-          className="mt-4 w-full bg-duo-green text-white font-bold py-3 rounded-2xl shadow-lg active:scale-[0.98] disabled:opacity-40"
+          className="mt-4 w-full bg-duo-pink text-white font-bold py-3 rounded-2xl shadow-lg active:scale-[0.98] disabled:opacity-40"
         >
           Check
         </button>

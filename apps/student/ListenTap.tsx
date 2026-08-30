@@ -93,7 +93,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
             <X size={24} />
           </button>
           <div className="flex-1 mx-4 h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-            <div className="h-full bg-duo-green w-3/5 rounded-full relative overflow-hidden">
+            <div className="h-full bg-duo-pink w-3/5 rounded-full relative overflow-hidden">
                <div className="absolute inset-0 bg-white/20 w-full h-full animate-shimmer"></div>
             </div>
           </div>
@@ -149,7 +149,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
                     : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'
                  }
                  ${status === 'wrong' && selectedId === opt.id ? 'border-red-500 bg-red-50 animate-shake' : ''}
-                 ${status === 'correct' && selectedId === opt.id ? 'border-duo-green bg-green-50' : ''}
+                 ${status === 'correct' && selectedId === opt.id ? 'border-duo-pink bg-pink-50' : ''}
                  ${status !== 'idle' && selectedId !== opt.id ? 'opacity-50' : ''}
                `}
              >
@@ -165,7 +165,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
                  <motion.div 
                    initial={{ scale: 0 }}
                    animate={{ scale: 1 }}
-                   className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm ${status === 'correct' ? 'bg-duo-green' : 'bg-duo-blue'}`}
+                   className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm ${status === 'correct' ? 'bg-duo-pink' : 'bg-duo-blue'}`}
                  >
                     <Check size={18} strokeWidth={4} />
                  </motion.div>
@@ -188,7 +188,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
                        </div>
                        Correct!
                     </div>
-                    <button onClick={onBack} className="bg-duo-green text-white font-bold py-3 px-8 rounded-xl shadow-[0_4px_0_0_#46a302] active:translate-y-1 active:shadow-none">
+                    <button onClick={onBack} className="bg-duo-pink text-white font-bold py-3 px-8 rounded-xl shadow-[0_4px_0_0_#be185d] active:translate-y-1 active:shadow-none">
                        Continue
                     </button>
                  </div>
@@ -208,7 +208,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
                  <button 
                     onClick={checkAnswer}
                     disabled={!selectedId}
-                    className="w-full bg-duo-green hover:bg-duo-green-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-3.5 rounded-xl text-lg shadow-[0_4px_0_0_#46a302] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
+                    className="w-full bg-duo-pink hover:bg-duo-pink-dark disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold py-3.5 rounded-xl text-lg shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide"
                  >
                     Check
                  </button>

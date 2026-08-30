@@ -249,7 +249,7 @@ const TeacherRemote: React.FC = () => {
       case 'LIVE_WARMUP':
         return (
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('PLAY_PAUSE')} className="bg-green-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+            <button onClick={() => triggerAction('PLAY_PAUSE')} className="bg-pink-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
               <Play size={24} /> Play / Pause
             </button>
             <button onClick={() => triggerAction('RESTART')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
@@ -367,7 +367,7 @@ const TeacherRemote: React.FC = () => {
         // Check + Hint / Mark Correct / Skip / Next / End.
         return (
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <button onClick={() => triggerAction('CHECK_ANSWER')} className="col-span-3 bg-green-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
+            <button onClick={() => triggerAction('CHECK_ANSWER')} className="col-span-3 bg-pink-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
               <Check size={24} /> Check Answer
             </button>
             <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
@@ -558,7 +558,7 @@ const TeacherRemote: React.FC = () => {
       case 'SENTENCE_LAB':
         return (
           <div className="grid grid-cols-2 gap-2 mb-4">
-            <button onClick={() => triggerAction('CHECK_ANSWER')} className="bg-green-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+            <button onClick={() => triggerAction('CHECK_ANSWER')} className="bg-pink-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
               <Check size={18} /> Check
             </button>
             <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
@@ -618,7 +618,7 @@ const TeacherRemote: React.FC = () => {
         // Clue circles a first letter (halves that word's points).
         return (
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <button onClick={() => triggerAction('PLAY_PAUSE')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
+            <button onClick={() => triggerAction('PLAY_PAUSE')} className="bg-pink-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
               <Play size={18} /> Timer
             </button>
             <button onClick={() => triggerAction('ADD_TIME_30')} className="bg-sky-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
