@@ -361,7 +361,9 @@ const TeacherRemote: React.FC = () => {
       case 'UNSCRAMBLE':
       case 'SCRAMBLE':
       case 'STORY_SEQUENCING':
-        // BoardUnscramble v2 / BoardStorySequencing v2 control spec (A4/B4):
+      case 'COMIC_PANELS':
+        // BoardUnscramble v2 / BoardStorySequencing v2 / BoardComicPanels
+        // (slide-the-panels storytelling, doc 12 §4) control spec (A4/B4):
         // Check + Hint / Mark Correct / Skip / Next / End.
         return (
           <div className="grid grid-cols-3 gap-2 mb-4">

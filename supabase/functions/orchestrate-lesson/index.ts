@@ -288,6 +288,7 @@ function transformManifestToFlow(assets: any): any[] {
     FAST_VOCAB: 'PRACTICE',
     WORD_SEARCH: 'PRACTICE',
     SPELLING_BEE: 'PRACTICE',
+    COMIC_PANELS: 'PRACTICE',
   };
   const POOL_DRIVEN_TYPES = new Set([
     'LISTEN_TAP', 'FLASH_MATCH', 'SCRAMBLE', 'SPEAKING', 'TEAM_BATTLE',
@@ -417,6 +418,56 @@ serve(async (req) => {
           // dialogue_lines is flat; wrap as a single dialogue for the flow block.
           assetsForFlow.dialogues = [{ title: assetsForFlow?.dialogues?.[0]?.title || `${unit.title} — Dialogue`, lines: dialogueRes.data.map((l: any) => ({ speaker: l.speaker || l.speaker_override_name, text: l.text, translation: l.translation })) }];
         }
+
+        // Comics — slide-the-panels storytelling (doc 12 §4): confirmed comic
+        // structures joined with their panel-crop assets (enrich-unit writes
+        // pool 'panel' crops with metadata {structure_id, bbox}). Panel cards
+        // carry narration + verbatim bubble texts WITHOUT speaker names
+        // (audit doc 12 §1.2: ~60% mis-attributed) and the book's own panel
+        // art when a crop exists. Absence = absence downstream.
+        const [comicRes, panelAssetRes] = await Promise.all([
+          sbClient.from('page_structures')
+            .select('id, data, book_pages!inner(upload_order, printed_page_number)')
+            .eq('book_pages.unit_id', unitId)
+            .eq('structure_type', 'comic')
+            .in('review_status', ['confirmed', 'edited']),
+          sbClient.from('assets')
+            .select('id, public_url, metadata')
+            .eq('unit_id', unitId)
+            .eq('metadata->>pool', 'panel'),
+        ]);
+        // Match a panel to its crop with the SAME key enrich-unit's dedupe
+        // cache uses (structure + 4-decimal bbox) so re-enrichment and this
+        // read always agree on the asset.
+        const assetByKey = new Map<string, string>();
+        for (const a of (panelAssetRes.data || []) as any[]) {
+          const sid = a?.metadata?.structure_id;
+          const bbox = Array.isArray(a?.metadata?.bbox) ? a.metadata.bbox : null;
+          if (sid && bbox && a.public_url) {
+            assetByKey.set(`${sid}:${bbox.map((n: number) => Number(n).toFixed(4)).join(',')}`, a.public_url);
+          }
+        }
+        const comics = (comicRes.data || []).map((row: any, ci: number) => {
+          const panelsRaw = Array.isArray(row.data?.panels) ? row.data.panels : [];
+          const printed = row.book_pages?.printed_page_number;
+          return {
+            structure_id: row.id,
+            comic_label: printed ? `printed p${printed}` : `comic ${ci + 1}`,
+            panels: panelsRaw.map((p: any, pi: number) => {
+              const bboxKey = Array.isArray(p?.bbox) ? p.bbox.map((n: any) => Number(n).toFixed(4)).join(',') : null;
+              return {
+                id: `${row.id}:${pi}`,
+                order: typeof p?.order_index === 'number' ? p.order_index : pi,
+                image_url: bboxKey ? assetByKey.get(`${row.id}:${bboxKey}`) : undefined,
+                narration: p?.narration ? String(p.narration) : undefined,
+                texts: (Array.isArray(p?.bubbles) ? p.bubbles : [])
+                  .map((b: any) => String(b?.text || '').trim())
+                  .filter(Boolean),
+              };
+            }),
+          };
+        }).filter((c: any) => c.panels.length >= 3); // skips empty/false-positive husks (audit §1.1)
+        if (comics.length > 0) assetsForFlow.comics = comics;
       } catch (relErr: any) {
         console.error('orchestrate-lesson relational override failed (non-fatal, manifest used):', relErr?.message || relErr);
       }
@@ -537,6 +588,38 @@ serve(async (req) => {
       const normalized = validateAndNormalizeFlow(rawFlow, fallbackTitle);
       flow = normalized.flow;
       dropped = normalized.dropped;
+
+      // Comics — slide-the-panels storytelling (doc 12 §4): guarantee ONE
+      // COMIC_PANELS step on BOTH composer paths (the AI flow prompt predates
+      // the type; the deterministic transformer would need its own push), by
+      // injecting it post-normalization when a playable comic exists and the
+      // flow lacks one. Absence = absence: no playable comic (≥3 panels) → no
+      // step. Default = the RICHEST comic; the teacher selects which comic (or
+      // adds one per comic) in the PlanComposer, where each of the unit's
+      // comics is its own library item.
+      const playableComics = Array.isArray(assetsForFlow.comics)
+        ? assetsForFlow.comics.filter((c: any) => Array.isArray(c?.panels) && c.panels.length >= 3)
+        : [];
+      if (playableComics.length > 0 && !flow.some((b: any) => b.type === 'COMIC_PANELS')) {
+        const richest = playableComics.slice().sort((a: any, b: any) => b.panels.length - a.panels.length)[0];
+        const comicBlock = {
+          type: 'COMIC_PANELS',
+          title: 'Rebuild the Story',
+          data: {
+            title: `${fallbackTitle} — Rebuild the Story`,
+            comic_label: richest.comic_label,
+            panels: richest.panels,
+          },
+          phase: 'PRACTICE' as const,
+        };
+        const anchors = new Set(['STORY_STAGE', 'STORY_QUEST', 'DIALOGUE_STAGE']);
+        let insertAt = -1;
+        for (let i = flow.length - 1; i >= 0; i--) {
+          if (anchors.has(flow[i].type)) { insertAt = i + 1; break; }
+        }
+        if (insertAt < 0) insertAt = Math.max(flow.length - 1, 1); // before the closer, after the intro
+        flow.splice(insertAt, 0, comicBlock);
+      }
     } catch (flowErr: any) {
       // Defense-in-depth: flow generation must NEVER crash the invocation
       // (a throw here would surface as a 546). Fall back to a minimal valid

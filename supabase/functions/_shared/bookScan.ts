@@ -14,7 +14,11 @@
 // which paragraph of passage_text it illustrates (paragraph_index +
 // anchor_text) so each story paragraph can carry its own book artwork
 // (doc 10 §5 image default; story fidelity).
-export const EXTRACTOR_VERSION = 'scan-v7';
+// scan-v8: comic fidelity (OCR audit 2026-08-30, doc 12 §5) — speaker
+// discipline (the character WHO SPEAKS, never the addressee; null when
+// unsure), narration boxes routed to panel.narration, every panel carries a
+// bbox, empty comics return an empty panels array. Comic-block changes only.
+export const EXTRACTOR_VERSION = 'scan-v8';
 
 /** Normalized [x, y, w, h], origin top-left, each in [0, 1] of the full page. */
 export type Bbox = [number, number, number, number];

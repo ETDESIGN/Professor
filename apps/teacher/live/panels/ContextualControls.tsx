@@ -127,8 +127,10 @@ export const renderContextualControls = (
     case 'UNSCRAMBLE':
     case 'SCRAMBLE':
     case 'STORY_SEQUENCING':
+    case 'COMIC_PANELS':
       // BoardUnscramble v2 (LCS partial credit) + BoardStorySequencing v2
-      // (sequence → comprehend): Check stays, plus the full spec control set.
+      // (sequence → comprehend) + BoardComicPanels (slide-the-panels
+      // storytelling, doc 12 §4): Check stays, plus the full spec control set.
       return <ScoredShellControls triggerAction={triggerAction} opts={{ keepCheck: true }} />;
     case 'FLASH_MATCH':
       return (

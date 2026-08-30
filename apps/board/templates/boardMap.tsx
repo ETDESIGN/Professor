@@ -45,6 +45,7 @@ import BoardClassRally from './BoardClassRally';
 import BoardFastVocab from './BoardFastVocab';
 import BoardWordSearch from './BoardWordSearch';
 import BoardSpellingBee from './BoardSpellingBee';
+import BoardComicPanels from './BoardComicPanels';
 
 const BoardMagicEyesAlias: React.FC<any> = (props) => <BoardWhatsMissing {...props} mode="magic_eyes" />;
 const BoardWhatsMissingDefault: React.FC<any> = (props) => <BoardWhatsMissing {...props} mode="whats_missing" />;
@@ -83,5 +84,6 @@ export const BOARD_MAP: Record<string, React.FC<any>> = {
   FAST_VOCAB: BoardFastVocab,
   WORD_SEARCH: BoardWordSearch,
   SPELLING_BEE: BoardSpellingBee,
+  COMIC_PANELS: BoardComicPanels, // slide-the-panels storytelling (doc 12 §4)
   UNIT_SELECTION: BoardUnitSelection, // rendered WITHOUT data (drives slides itself)
 };

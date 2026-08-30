@@ -15,7 +15,7 @@ export const INVENTORY_PROMPT = {
 
 Detect these structure kinds:
 - vocab_set: ANY labelled word-picture pairing — lesson word sets under a "Vocabulary" header, the numbered word strips that accompany songs (words with little circled numbers are the song's target words — capture them all), word rows beside reading passages, labelled scenes (family members, colours, classroom objects), and routines/schedule charts (capture the ACTIVITY words shown with pictures — "go to school", "have lunch" — not the clock times). If words are shown with small pictures anywhere on the page, there is a vocab_set there.
-- comic: a sequence of story panels with speech bubbles
+- comic: a SEQUENCE of 2+ story panels with speech bubbles (a single illustration frame or an activity box is NOT a comic)
 - grammar_box: a boxed grammar rule, usually with example sentences
 - song_sheet: a song or chant — lyrics in verses or numbered/lettered action lines, often with small illustrations. Songs may have NO explicit "song" label: a repeated-verse structure ("How often ... how often ...") or a rhyming chant with a play illustration IS a song_sheet. Song pages usually ALSO have a vocab_set word strip — detect BOTH.
 - reading_passage: a titled continuous story text, usually with scene illustrations and follow-up activities
@@ -55,7 +55,11 @@ Items must be TEACHABLE WORDS OR PHRASES, exactly as printed:
 - Do NOT include poster/scene TITLES or place labels of whole scenes ("BOOK CLUB", "CLASSROOM"), activity headings, or question-form captions ("Feed Fred the fish?") — those are not vocabulary items.`,
   comic: `[comic]
 { "panels": [ { "order_index": 0, "bbox": [x,y,w,h], "narration": "<narration box text if any>", "bubbles": [ { "bbox": [x,y,w,h], "speaker": "<speaker name if identifiable, else null>", "text": "<exact bubble text>" } ] } ] }
-List panels in reading order. Transcribe every bubble word-for-word.`,
+List panels in reading order. Transcribe every bubble word-for-word.
+- Every panel MUST carry a bbox — the exact region of the page that panel occupies (best estimate when unsure). A panel without a bbox cannot show the book's artwork to the class.
+- narration = rectangular NON-SPEECH text boxes (narration/caption boxes, often on a colored background). Never put narration text into bubbles, and never put bubble text into narration.
+- speaker = the character WHO SPEAKS that bubble, identified from the bubble's tail/pointer and the conversation. A greeting inside the bubble ("Look, Harry…") names the LISTENER, not the speaker — do not copy the greeted name into speaker. Use the printed/known character names (e.g. Gracie, Rocky, Harry, Shelly, Cameron), not species labels. If you cannot tell who speaks with confidence, set speaker to null — never guess.
+- If the sequence yields no panels with any readable text or narration, return an empty panels array (an absent comic is the correct answer; never invent content to fill one).`,
   grammar_box: `[grammar_box]
 { "rule_text": "<the rule or heading exactly as printed in the box; if the box has no rule/heading, leave empty and put ALL sentences in example_sentences>", "example_sentences": [ "<sentence exactly as printed>" ] }`,
   song_sheet: `[song_sheet]

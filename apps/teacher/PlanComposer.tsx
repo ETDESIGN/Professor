@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
@@ -38,6 +38,9 @@ interface LibraryItem {
   type: string;
   icon: React.ReactNode;
   chip: string; // tailwind classes for the icon chip
+  /** COMIC_PANELS only: the basket comic this item plays (doc 12 §4 — the
+   *  teacher selects WHICH comic; each of the unit's comics is its own item). */
+  comic?: any;
 }
 
 // Visual metadata per block type (kept small + readable).
@@ -63,6 +66,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
   FAST_VOCAB: { icon: <Gauge size={16} />, chip: 'bg-amber-100 text-amber-600' },
   WORD_SEARCH: { icon: <LayoutGrid size={16} />, chip: 'bg-teal-100 text-teal-600' },
   SPELLING_BEE: { icon: <SpellCheck size={16} />, chip: 'bg-lime-100 text-lime-600' },
+  COMIC_PANELS: { icon: <BookOpen size={16} />, chip: 'bg-purple-100 text-purple-600' },
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
@@ -76,7 +80,8 @@ const realImage = (url: any, seed: string) =>
 // the board templates consume). This is what makes library blocks real steps,
 // not empty mockups: a FOCUS_CARDS block carries actual vocab cards, a
 // DIALOGUE_STAGE block carries the unit's dialogue lines, etc.
-const buildBlockData = (type: string, ec: any): any => {
+// `comic` (COMIC_PANELS only): the basket comic to freeze into the block.
+const buildBlockData = (type: string, ec: any, comic?: any): any => {
   const vocab: any[] = Array.isArray(ec.vocabulary) ? ec.vocabulary : [];
   switch (type) {
     case 'FOCUS_CARDS':
@@ -117,6 +122,32 @@ const buildBlockData = (type: string, ec: any): any => {
       return {
         title: dialogues[0]?.title || 'Dialogue',
         lines: lines.map((l: any) => ({ speaker: l.speaker, text: l.text, translation: l.translation })),
+      };
+    }
+    case 'COMIC_PANELS': {
+      // Slide-the-panels storytelling (doc 12 §4): freeze the selected comic's
+      // panels — book crop art + narration + verbatim bubble texts, NO speaker
+      // names (audit §1.2). `comic.panels` here are pre-shaped cards when the
+      // library item built them; raw basket panels are shaped defensively too.
+      const rawPanels: any[] = Array.isArray(comic?.panels) ? comic.panels : [];
+      const cards = rawPanels.map((p: any, i: number) =>
+        p && typeof p.id === 'string'
+          ? p
+          : {
+              id: `${comic?.structure_id || 'c'}:${i}`,
+              order: typeof p?.order_index === 'number' ? p.order_index : i,
+              image_url: typeof p?.image_url === 'string' ? p.image_url : undefined,
+              narration: p?.narration ? String(p.narration) : undefined,
+              texts: (Array.isArray(p?.bubbles) ? p.bubbles : [])
+                .map((b: any) => String(b?.text || '').trim())
+                .filter(Boolean),
+            },
+      );
+      return {
+        title: 'Rebuild the Story',
+        comic_label: comic?.comic_label,
+        structure_id: comic?.structure_id,
+        panels: cards,
       };
     }
     case 'TEAM_BATTLE': {
@@ -201,6 +232,60 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     return () => { cancelled = true; };
   }, [unitId]);
 
+  // Comics for the COMIC_PANELS library items (doc 12 §4, owner decision
+  // 2026-08-30: the teacher selects WHICH comic — each of the unit's comics is
+  // its own selectable item). Baskets give the panels (verbatim + bboxes);
+  // assets give the book's panel crops, matched by the same structure+bbox
+  // key enrich-unit's dedupe cache uses.
+  const [comicCards, setComicCards] = useState<any[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [{ data: baskets }, { data: assets }] = await Promise.all([
+          supabase.rpc('get_unit_baskets', { p_unit_id: unitId }),
+          supabase.from('assets')
+            .select('id, public_url, metadata')
+            .eq('unit_id', unitId)
+            .eq('kind', 'book_extract')
+            .eq('metadata->>pool', 'panel'),
+        ]);
+        if (cancelled) return;
+        const assetByKey = new Map<string, string>();
+        for (const a of (assets || []) as any[]) {
+          const sid = a?.metadata?.structure_id;
+          const bbox = Array.isArray(a?.metadata?.bbox) ? a.metadata.bbox : null;
+          if (sid && bbox && a.public_url) {
+            assetByKey.set(`${sid}:${bbox.map((n: number) => Number(n).toFixed(4)).join(',')}`, a.public_url);
+          }
+        }
+        const comics: any[] = Array.isArray(baskets?.story?.comics) ? baskets.story.comics : [];
+        const shaped = comics.map((c: any, ci: number) => {
+          const panels: any[] = Array.isArray(c?.panels) ? c.panels : [];
+          return {
+            structure_id: c?.structure_id,
+            comic_label: `comic ${ci + 1}`,
+            panels: panels.map((p: any, pi: number) => {
+              const bboxKey = Array.isArray(p?.bbox) ? p.bbox.map((n: any) => Number(n).toFixed(4)).join(',') : null;
+              return {
+                id: `${c?.structure_id || 'c'}:${pi}`,
+                order: typeof p?.order_index === 'number' ? p.order_index : pi,
+                image_url: bboxKey && c?.structure_id ? assetByKey.get(`${c.structure_id}:${bboxKey}`) : undefined,
+                narration: p?.narration ? String(p.narration) : undefined,
+                texts: (Array.isArray(p?.bubbles) ? p.bubbles : [])
+                  .map((b: any) => String(b?.text || '').trim())
+                  .filter(Boolean),
+              };
+            }),
+          };
+        }).filter((c: any) => c.panels.length >= 3); // playable only (audit §1.1 husks)
+        setComicCards(shaped);
+      } catch { /* comics are optional library content */ }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [unitId]);
+
   // enriched_content with relational content swapped in (per category, when
   // available). buildBlockData consumes this, so STORY_STAGE/DIALOGUE_STAGE
   // blocks are built from story_pages/dialogue_lines, not the manifest.
@@ -268,15 +353,35 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (vocabCount > 0) items.push({ key: 'word_search', label: 'Word Search', detail: 'hidden-word grid hunt', type: 'WORD_SEARCH', icon: <LayoutGrid size={16} />, chip: 'bg-teal-100 text-teal-600' });
     if (vocabCount > 0) items.push({ key: 'spelling_bee', label: 'Spelling Bee', detail: 'type the word, beat the clock', type: 'SPELLING_BEE', icon: <SpellCheck size={16} />, chip: 'bg-lime-100 text-lime-600' });
 
+    // ── Comics (doc 12 §4, owner decision 2026-08-30): one selectable item
+    // PER comic — the teacher picks which of the unit's comics the class
+    // rebuilds. Detail names the comic by its first bubble so multiple comics
+    // are distinguishable at a glance.
+    for (const comic of comicCards) {
+      const firstText = (comic.panels || []).flatMap((p: any) => p.texts || [])[0] as string | undefined;
+      const detail = `${comic.panels.length} panels${firstText ? ` · “${String(firstText).slice(0, 34)}…”` : ''}`;
+      items.push({ key: `comic-${comic.structure_id}`, label: 'Comic — Rebuild the Story', detail, type: 'COMIC_PANELS', icon: <BookOpen size={16} />, chip: 'bg-purple-100 text-purple-600', comic });
+    }
+
     return items;
-  }, [unit?.manifest, bundle]);
+  }, [unit?.manifest, bundle, comicCards]);
 
   const activeBlock = timeline.find((b) => b.id === activeBlockId) || null;
   const totalMinutes = timeline.reduce((acc, b) => acc + b.duration, 0);
-  // Which library items already have a block of their type in the plan — drives
-  // the "In plan" badge so the teacher can SEE at a glance what is missing
+  // Which library items already have a block in the plan — drives the
+  // "In plan" badge so the teacher can SEE at a glance what is missing
   // (the "I added everything but the live lesson shows fewer steps" trap).
+  // Comics are tracked PER COMIC (structure_id), not per type — a unit with
+  // three comics should show which ones are still missing.
   const typesInPlan = useMemo(() => new Set(timeline.map((b) => b.type)), [timeline]);
+  const comicInPlan = useCallback(
+    (comic: any) => timeline.some((b) => b.type === 'COMIC_PANELS' && b.data?.structure_id && b.data.structure_id === comic?.structure_id),
+    [timeline],
+  );
+  const itemInPlan = useCallback(
+    (item: LibraryItem) => (item.type === 'COMIC_PANELS' && item.comic ? comicInPlan(item.comic) : typesInPlan.has(item.type)),
+    [typesInPlan, comicInPlan],
+  );
 
   const addFromLibrary = (item: LibraryItem) => {
     const ec = enrichedForBlocks();
@@ -285,7 +390,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
       type: item.type,
       title: item.label,
       duration: 5,
-      data: buildBlockData(item.type, ec), // real content, board-renderable
+      data: buildBlockData(item.type, ec, item.comic), // real content, board-renderable
     };
     setTimeline((prev) => [...prev, block]);
     setActiveBlockId(block.id);
@@ -297,7 +402,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const addAllToPlan = () => {
     const ec = enrichedForBlocks();
     const stamp = Date.now();
-    const missing = library.filter((item) => !typesInPlan.has(item.type));
+    const missing = library.filter((item) => !itemInPlan(item));
     if (missing.length === 0) {
       toast.info('Everything from the library is already in the plan');
       return;
@@ -307,7 +412,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
       type: item.type,
       title: item.label,
       duration: 5,
-      data: buildBlockData(item.type, ec),
+      data: buildBlockData(item.type, ec, item.comic),
     }));
     setTimeline((prev) => [...prev, ...blocks]);
     setActiveBlockId(blocks[0].id);
@@ -459,7 +564,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
               <p className="text-xs text-slate-400 italic">No content yet — generate some in the Content tab.</p>
             )}
             {library.map((item) => {
-              const inPlan = typesInPlan.has(item.type);
+              const inPlan = itemInPlan(item);
               return (
                 <button
                   key={item.key}

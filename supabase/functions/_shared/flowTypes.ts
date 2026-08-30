@@ -73,6 +73,10 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   // Spelling Bee — letter-by-letter spelling on the QWERTY keyboard with
   // adaptive key elimination (shared engine with the student solo app), 2026-08-18.
   'SPELLING_BEE',
+  // Comic Panels — slide-the-panels storytelling: the class rebuilds a book
+  // comic in reading order from the BOOK'S OWN panel crops (doc 12 §4;
+  // deterministic frozen data, never pool-driven). 2026-08-30.
+  'COMIC_PANELS',
 ]);
 
 export interface FlowBlock {

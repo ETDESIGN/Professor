@@ -127,8 +127,8 @@ describe('verifyStructures', () => {
   });
 
   it('stamps the extractor version constant used by scan-page', () => {
-    // v7 = per-paragraph scene anchoring (story fidelity)
-    expect(EXTRACTOR_VERSION).toBe('scan-v7');
+    // v8 = comic fidelity: speaker discipline, narration routing, panel bboxes
+    expect(EXTRACTOR_VERSION).toBe('scan-v8');
   });
 });
 

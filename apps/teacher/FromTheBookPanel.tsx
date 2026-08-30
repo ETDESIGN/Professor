@@ -16,6 +16,14 @@ interface BasketItem {
   [k: string]: any;
 }
 
+// Panels-pool thumbnail (doc 12 §2): book-panel crops land as assets rows with
+// metadata { structure_id, bbox, pool:'panel' } at enrichment time.
+interface PanelAsset {
+  id: string;
+  public_url: string;
+  metadata: { structure_id?: string | null; bbox?: number[] } | null;
+}
+
 interface BookBaskets {
   comics?: BasketItem[];
   activities?: BasketItem[];
@@ -33,12 +41,37 @@ const FromTheBookPanel: React.FC<{ unitId: string }> = ({ unitId }) => {
   const [baskets, setBaskets] = useState<BookBaskets | null>(null);
   const [openType, setOpenType] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
+  // Book-panel crops for the comics section, grouped by comic structure id and
+  // sorted in reading order (top-to-bottom, then left-to-right).
+  const [panelsByStructure, setPanelsByStructure] = useState<Record<string, PanelAsset[]>>({});
 
   const load = async () => {
     try {
       const { data, error } = await supabase.rpc('get_unit_baskets', { p_unit_id: unitId });
       if (!error && data) setBaskets(data);
     } catch { /* the panel is best-effort */ }
+    try {
+      const { data: assets } = await supabase
+        .from('assets')
+        .select('id, public_url, metadata')
+        .eq('unit_id', unitId)
+        .eq('kind', 'book_extract')
+        .eq('metadata->>pool', 'panel');
+      const grouped: Record<string, PanelAsset[]> = {};
+      for (const a of (assets || []) as PanelAsset[]) {
+        if (!a?.public_url || !a.metadata?.structure_id) continue;
+        const key = String(a.metadata.structure_id);
+        (grouped[key] ||= []).push(a);
+      }
+      for (const list of Object.values(grouped)) {
+        list.sort((a, b) => {
+          const [ax, ay] = a.metadata?.bbox || [0, 0];
+          const [bx, by] = b.metadata?.bbox || [0, 0];
+          return (ay - by) || (ax - bx);
+        });
+      }
+      setPanelsByStructure(grouped);
+    } catch { /* thumbnails are best-effort */ }
   };
   useEffect(() => { load(); }, [unitId]);
 
@@ -69,14 +102,24 @@ const FromTheBookPanel: React.FC<{ unitId: string }> = ({ unitId }) => {
   const sections: { id: string; label: string; icon: React.ReactNode; count: number; note?: string; render: () => React.ReactNode }[] = [
     {
       id: 'comics', label: 'Comics', icon: <Scissors size={14} />, count: counts.comics,
-      note: 'feed the Dialogues/Story tabs today; the comics LiveBoard game is coming',
+      note: 'the book\'s own panel art feeds Story pages; the comics LiveBoard game is next',
       render: () => (baskets?.comics || []).map((c, i) => {
         const panels = c.panels || [];
         const firstBubble = panels.flatMap((p: any) => p.bubbles || [])[0]?.text;
+        const thumbs = panelsByStructure[String(c.structure_id)] || [];
         return (
           <PanelRow key={c.structure_id || i} onRemove={c.structure_id ? () => removeStructure(c.structure_id) : null} removing={removing === c.structure_id}>
             <div className="text-sm font-bold text-slate-800">{panels.length} panels</div>
             {firstBubble && <div className="text-xs text-slate-500 italic">“{excerpt(firstBubble, 90)}”</div>}
+            {thumbs.length > 0 && (
+              <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                {thumbs.slice(0, 8).map((t) => (
+                  <a key={t.id} href={t.public_url} target="_blank" rel="noreferrer" title="Open the book panel crop">
+                    <img src={t.public_url} alt="Book panel" className="h-14 rounded-md border border-slate-200 object-cover hover:border-slate-400" />
+                  </a>
+                ))}
+              </div>
+            )}
           </PanelRow>
         );
       }),

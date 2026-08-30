@@ -796,20 +796,51 @@ One output box per input box, same order. Keep every value concise so the respon
         }
       }
       // Comics → one page per panel (narration + bubbles as dialogue lines).
+      // Panels pool (doc 10 §8, brainstorm doc 12 §2): every panel with a bbox
+      // is cropped from the BOOK'S OWN ARTWORK — pool 'panel', one batch per
+      // comic page under the shared crop deadline — so the comics LiveBoard
+      // game and the review UI use the book's panels, never AI art. Crops are
+      // best-effort (textless panels still crop for the pool; the verbatim
+      // text always lands on the page).
       for (const c of basketComics) {
         const panels = Array.isArray(c.panels) ? c.panels : [];
-        for (const panel of panels) {
+        const panelCropByIndex = new Map<number, any>();
+        const cropItems: { structureId: string | null; bbox: number[]; pool: string }[] = [];
+        const croppable: number[] = []; // panel indexes whose bbox can crop
+        for (let pi = 0; pi < panels.length; pi++) {
+          const bbox = panels[pi]?.bbox;
+          if (Array.isArray(bbox) && bbox.length === 4 && bbox.every((n: any) => typeof n === 'number' && Number.isFinite(n)) && c.page_id) {
+            croppable.push(pi);
+            cropItems.push({ structureId: c.structure_id || null, bbox, pool: 'panel' });
+          }
+        }
+        if (cropItems.length > 0) {
+          try {
+            const results = await cropBookImages({
+              sb: cropSb,
+              pageId: String(c.page_id),
+              deadlineAt: CROP_DEADLINE,
+              items: cropItems,
+            });
+            croppable.forEach((pi, k) => { if (results[k]) panelCropByIndex.set(pi, results[k]); });
+          } catch { /* crops are best-effort; the text always lands */ }
+        }
+        for (let pi = 0; pi < panels.length; pi++) {
+          const panel = panels[pi];
           const bits: string[] = [];
           if (panel?.narration) bits.push(String(panel.narration));
           for (const b of (Array.isArray(panel?.bubbles) ? panel.bubbles : [])) {
             const speaker = b?.speaker ? `${b.speaker}: ` : '';
             if (b?.text) bits.push(speaker + String(b.text));
           }
+          const crop = panelCropByIndex.get(pi);
           if (bits.length > 0) {
             pages.push({
               text: bits.join('\n'),
               speaker: null,
               image_prompt: null,
+              image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
+              image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
               source_structure_id: c.structure_id || null,
               needs_questions: panels.length >= 3, // panel slides are for telling, not quizzing
             });
