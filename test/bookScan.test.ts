@@ -152,3 +152,60 @@ describe('vocab item quality flags (owner audit 2026-08-26)', () => {
     expect(out[0].verification_flags).toContain('duplicate_item');
   });
 });
+
+// ── Pixel-box rescue (scan-v6/v7 null-bbox regression, found 2026-08-30) ───
+// Qwen-VL grounds in absolute pixels; every box >1.0 was pruned by
+// sanitizeBbox. normalizeRawBboxes converts declared-pixel-space boxes into
+// fractions so the scan keeps its geometry.
+import { normalizeRawBboxes, pixelBoxToUnit } from '../supabase/functions/_shared/bookScan';
+
+describe('normalizeRawBboxes', () => {
+  const dims = { width: 1500, height: 2122 };
+
+  it('converts pixel size-form boxes to fractions (top-level and nested)', () => {
+    const input = {
+      structures: [
+        { type: 'reading_passage', bbox: [150, 424, 1327, 1038], data: { scene_illustrations: [{ bbox: [150, 424, 700, 500] }] } },
+      ],
+    };
+    const out: any = normalizeRawBboxes(input, dims);
+    // precise, readable assertions:
+    const [x, y, w, h] = out.structures[0].bbox;
+    expect(x).toBeCloseTo(0.1, 3);
+    expect(y).toBeCloseTo(0.2, 3);
+    expect(w).toBeCloseTo(1327 / 1500, 3);
+    expect(h).toBeCloseTo(1038 / 2122, 3);
+    const [sx, sy, sw, sh] = out.structures[0].data.scene_illustrations[0].bbox;
+    expect(sx).toBeCloseTo(0.1, 3);
+    expect(sw).toBeCloseTo(700 / 1500, 3);
+  });
+
+  it('falls back to corner-form when size-form would leave the page', () => {
+    // [90, 217, 885, 863] on 1500×2122 as sizes lands on-page too — corner
+    // fallback is only exercised when the size reading overflows:
+    const corner = pixelBoxToUnit([1200, 1900, 1400, 2050], dims)!;
+    expect(corner[0]).toBeCloseTo(0.8, 3);
+    expect(corner[2]).toBeCloseTo(200 / 1500, 3);
+  });
+
+  it('leaves already-fractional boxes untouched', () => {
+    const input = { bbox: [0.1, 0.2, 0.3, 0.4] };
+    expect(normalizeRawBboxes(input, dims)).toEqual(input);
+  });
+
+  it('keeps hopeless boxes for the verifier to flag', () => {
+    const input = { bbox: [5000, 5000, 9999, 9999] };
+    expect((normalizeRawBboxes(input, dims) as any).bbox).toEqual([5000, 5000, 9999, 9999]);
+  });
+
+  it('is a no-op without dimensions', () => {
+    const input = { bbox: [150, 424, 700, 500] };
+    expect(normalizeRawBboxes(input, null)).toEqual(input);
+  });
+
+  it('rescued boxes pass sanitizeBbox', () => {
+    const out: any = normalizeRawBboxes({ structures: [{ bbox: [150, 424, 1327, 1038] }] }, dims);
+    const rescued = out.structures[0].bbox;
+    expect(sanitizeBbox(rescued).bbox).not.toBeNull();
+  });
+});

@@ -214,6 +214,77 @@ export const VERIFICATION_FLAG = {
   EMPTY_TEXT: 'empty_text',
 } as const;
 
+// ── Pixel-box rescue (scan-v6/v7 null-bbox regression, found 2026-08-30) ───
+// Qwen-VL models ground in ABSOLUTE PIXEL coordinates of the image they are
+// shown (often a provider-resized copy), so every box with a value above 1
+// was rejected by sanitizeBbox — project-wide, scan-v6 lost 28/28 structure
+// bboxes and with them every scene crop. The scan prompts now declare the
+// true pixel dimensions and demand 0-1 fractions; this normalizer is the
+// safety net for residual pixel output, converting boxes expressed in the
+// DECLARED original pixel space into fractions.
+
+export interface ImageDims {
+  width: number;
+  height: number;
+}
+
+const isNumArray = (v: unknown): v is number[] =>
+  Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === 'number' && Number.isFinite(n));
+
+/** In-page after normalization? Same tolerance sanitizeBbox applies. */
+function plausibleUnitBox(x: number, y: number, w: number, h: number): boolean {
+  return x >= -0.02 && y >= -0.02 && w > 0 && h > 0 && x + w <= 1.05 && y + h <= 1.05;
+}
+
+/**
+ * Convert one raw box that lives in declared-pixel space into a 0-1 fraction.
+ * Prefers the schema's [x,y,w,h] size form; falls back to the [x1,y1,x2,y2]
+ * corner form Qwen grounding natively emits. Returns null when neither
+ * interpretation lands on the page (the caller keeps the raw box and the
+ * existing sanitizer flags it).
+ */
+export function pixelBoxToUnit(raw: number[], dims: ImageDims): number[] | null {
+  const [a, b, c, d] = raw;
+  const { width: W, height: H } = dims;
+  // Size form: [x, y, w, h] in pixels.
+  const size = [a / W, b / H, c / W, d / H];
+  if (plausibleUnitBox(size[0], size[1], size[2], size[3])) return size;
+  // Corner form: [x1, y1, x2, y2] in pixels.
+  if (c > a && d > b) {
+    const corner = [a / W, b / H, (c - a) / W, (d - b) / H];
+    if (plausibleUnitBox(corner[0], corner[1], corner[2], corner[3])) return corner;
+  }
+  return null;
+}
+
+/**
+ * Walk a parsed scan payload (inventory object or stage-2 structures) and
+ * normalize every bbox-shaped 4-number array whose values exceed the unit
+ * range, using the image's true pixel dimensions. Already-fractional boxes
+ * pass through untouched; non-numeric or hopeless boxes are left for the
+ * existing verifier to flag. Pure — no Deno imports.
+ */
+export function normalizeRawBboxes<T>(node: T, dims: ImageDims | null | undefined): T {
+  if (!dims || !Number.isFinite(dims.width) || !Number.isFinite(dims.height) || dims.width <= 0 || dims.height <= 0) {
+    return node;
+  }
+  const walk = (value: any): any => {
+    if (isNumArray(value)) {
+      if (value.every((n) => n >= -0.02 && n <= 1.05)) return value; // already unit space
+      if (value.some((n) => n > 1.05)) return pixelBoxToUnit(value, dims) ?? value;
+      return value;
+    }
+    if (Array.isArray(value)) return value.map(walk);
+    if (value && typeof value === 'object') {
+      const out: Record<string, any> = {};
+      for (const [k, v] of Object.entries(value)) out[k] = walk(v);
+      return out;
+    }
+    return value;
+  };
+  return walk(node) as T;
+}
+
 const CONFIDENCE_FLOOR = 0.6;
 const MIN_SIDE = 0.01;
 /** Two same-type boxes overlapping more than this fraction of the smaller one. */

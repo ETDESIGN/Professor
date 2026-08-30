@@ -8,7 +8,9 @@ import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import {
   EXTRACTOR_VERSION,
   STRUCTURE_TYPES,
+  normalizeRawBboxes,
   verifyStructures,
+  type ImageDims,
   type RawStructure,
   type StructureType,
 } from '../_shared/bookScan.ts';
@@ -152,6 +154,20 @@ serve(async (req) => {
         const image = await resolveImageDataUrl({ imageBase64, url: fileUrl });
         if (!image.finalUrl) throw new Error('No readable image was provided.');
 
+        // COORDINATE CONTRACT (scan-v6/v7 null-bbox regression, found
+        // 2026-08-30): Qwen-VL grounds in absolute pixels of the (often
+        // provider-resized) image it sees, so every box above 1.0 was pruned
+        // by the sanitizer — 28/28 structure bboxes lost project-wide under
+        // v6, and with them every scene crop. Declare the TRUE pixel
+        // dimensions in both stages so boxes come back as 0-1 fractions of
+        // the real page; a deterministic rescue pass below converts any
+        // residual pixel boxes.
+        const dims: ImageDims | undefined =
+          image.width && image.height ? { width: image.width, height: image.height } : undefined;
+        const coordRule = dims
+          ? `\n\nCoordinate rule: this exact page image is ${dims.width} pixels wide and ${dims.height} pixels tall. Every bbox — top-level AND nested inside data (scene_illustrations, panels, bubbles, item picture boxes) — must be [x, y, w, h] with each number a fraction between 0 and 1 of the FULL image (divide horizontal pixel values by ${dims.width} and vertical pixel values by ${dims.height}). Never output raw pixel coordinates.`
+          : '';
+
     // ── REGION-SAFE vision chain (same as extract-page) ───────────────────
     const models = [
       Deno.env.get('VISION_MODEL_NAME') || 'qwen/qwen3-vl-235b-a22b-instruct',
@@ -200,15 +216,17 @@ serve(async (req) => {
     // ── Stage 1: structure inventory ──────────────────────────────────────
     let inventoryRaw: any = null;
     try {
-      let invContent = await visionCall(INVENTORY_PROMPT.systemPrompt, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory');
+      let invContent = await visionCall(INVENTORY_PROMPT.systemPrompt + coordRule, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory');
       try {
         inventoryRaw = parseFirstJsonObject(invContent);
       } catch {
         // Configured chain produced unparseable output — one retry on the
         // verified vision net (audit 2026-08-28: misconfigured env model).
-        invContent = await visionCall(INVENTORY_PROMPT.systemPrompt, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory', VERIFIED_VISION_MODELS);
+        invContent = await visionCall(INVENTORY_PROMPT.systemPrompt + coordRule, INVENTORY_PROMPT.userPromptTemplate, 2500, 'inventory', VERIFIED_VISION_MODELS);
         inventoryRaw = parseFirstJsonObject(invContent);
       }
+      // Rescue residual pixel boxes before they reach stage 2 / persistence.
+      inventoryRaw = normalizeRawBboxes(inventoryRaw, dims);
     } catch (e: any) {
       return await failPage(`Structure inventory failed: ${e?.message || e}. ${lastModelErrors.join(' | ')}. Please retry this page.`);
     }
@@ -241,6 +259,7 @@ serve(async (req) => {
         printed_page_number: inventoryRaw.page_labels?.printed_page_number || null,
         printed_unit_label: inventoryRaw.page_labels?.printed_unit_label || null,
         printed_title: inventoryRaw.page_labels?.printed_title || null,
+        ...(dims ? { width: dims.width, height: dims.height } : {}),
       }).eq('id', pageId);
       if (updErr) return await failPage(`Could not save the scan: ${updErr.message}`);
       return {
@@ -274,7 +293,7 @@ serve(async (req) => {
       for (const chainOverride of chains) {
         try {
           const content = await visionCall(
-            extractionPrompt.systemPrompt,
+            extractionPrompt.systemPrompt + coordRule,
             extractionPrompt.userPromptTemplate.replace('{{inventoryJson}}', chunkInventory),
             8000,
             'extract',
@@ -295,7 +314,7 @@ serve(async (req) => {
         const budget = Math.max(500, parseInt(afford[1], 10) - 100);
         try {
           const content = await visionCall(
-            extractionPrompt.systemPrompt,
+            extractionPrompt.systemPrompt + coordRule,
             extractionPrompt.userPromptTemplate.replace('{{inventoryJson}}', chunkInventory),
             budget,
             'extract',
@@ -314,7 +333,7 @@ serve(async (req) => {
       if (!res.ok) {
         return await failPage(`Verbatim extraction failed: ${res.error}. ${lastModelErrors.join(' | ')}. Please retry this page.`);
       }
-      const arr = Array.isArray(res.parsed?.structures) ? res.parsed.structures : [];
+      const arr = normalizeRawBboxes(Array.isArray(res.parsed?.structures) ? res.parsed.structures : [], dims);
       for (const s of arr) {
         rawStructures.push({
           structure_type: s?.structure_type ?? s?.type,
@@ -337,6 +356,7 @@ serve(async (req) => {
       printed_page_number: inventoryRaw.page_labels?.printed_page_number || null,
       printed_unit_label: inventoryRaw.page_labels?.printed_unit_label || null,
       printed_title: inventoryRaw.page_labels?.printed_title || null,
+      ...(dims ? { width: dims.width, height: dims.height } : {}),
     }).eq('id', pageId);
     if (updErr) return await failPage(`Could not save the scan: ${updErr.message}`);
 
