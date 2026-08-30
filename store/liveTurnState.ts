@@ -23,6 +23,10 @@ export interface LiveTurnState {
   /** Turn-related overlay only. LEADERBOARD is a transient flash and stays
    *  broadcast-only so a refresh can't resurrect it. */
   overlay: 'NONE' | 'QUICK_WHEEL';
+  /** Deal-reset nonce (per-turn variety, 2026-08-30): bumped on every
+   *  RESET_GAME and persisted here so every tab — including one mounting
+   *  mid-lesson — seeds the same deal arrangement. */
+  resetCount: number;
   quietMode: boolean;
   selectionMode: 'ROUND_ROBIN' | 'RANDOM' | 'FAIR' | null;
   /** studentId → team color (Phase A.3 team assignment). */
@@ -35,6 +39,7 @@ export const EMPTY_LIVE_TURN: LiveTurnState = {
   turnStartedAt: null,
   revealAt: null,
   overlay: 'NONE',
+  resetCount: 0,
   quietMode: false,
   selectionMode: null,
   teams: null,

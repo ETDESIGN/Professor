@@ -111,6 +111,9 @@ interface SessionState {
   /** Coverage ledger (live board word rotation): dealt_objectives mirrored
    *  from the session row, keyed by unitId — hydrates useCoverageLedger. */
   dealtObjectives?: Record<string, string[]> | null;
+  /** Bumped on every RESET_GAME action — joins the deal seeds so Reset
+   *  re-deals (per-turn variety, 2026-08-30). */
+  resetCount?: number;
   /** Same-session remediation queue (architecture §3.3): objectives missed
    *  by ≥1 student this session, prioritized by the next WRAPUP/REVIEW slide's
    *  round-builder. Deliberately separate from FSRS cross-lesson scheduling. */
@@ -283,6 +286,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     units: [],
     sessionId: null,
     dealtObjectives: null,
+    resetCount: 0,
     remediationQueue: [],
     sessionStartedAt: null,
     recentActions: [],
@@ -484,6 +488,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           } else if (action.type === 'QUIET_MODE_CHANGED') {
             // Workstream B5: keep quiet-mode + noise level in sync across tabs.
             newState.quietModeActive = action.payload?.active ?? newState.quietModeActive;
+          } else if (action.type === 'RESET_GAME') {
+            // Per-turn variety (2026-08-30): count resets so every seeded
+            // deal (turnDeal / useSeedBase consumers) re-deals a different
+            // arrangement when the teacher hits Reset, instead of replaying
+            // the identical sequence. Broadcast-carried → all tabs agree.
+            newState.resetCount = (newState.resetCount ?? 0) + 1;
           } else if (action.type === 'END_SESSION') {
             newState.status = 'IDLE';
             newState.currentStepIndex = 0;
@@ -598,6 +608,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       turnRevealAt: live.revealAt,
       pendingTurnToken: live.turnToken,
       activeOverlay: live.overlay,
+      // Deal-reset nonce rides the same snapshot (per-turn variety,
+      // 2026-08-30). Forward-only: never let an older snapshot roll it back.
+      resetCount: Math.max(prev.resetCount ?? 0, live.resetCount ?? 0),
       quietModeActive: live.quietMode,
       selectionMode: live.selectionMode ?? prev.selectionMode,
       students: live.teams
@@ -949,6 +962,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
     }
   }, [applyLiveTurnFields, getTeacherId]);
+
+  // Persist the deal-reset nonce with the live turn so a tab mounting
+  // mid-lesson (projector refresh) hydrates the same resetCount and seeds
+  // the identical deal arrangement (per-turn variety, 2026-08-30). The first
+  // tab to observe a new count writes it; concurrent writes carry the same
+  // value, and CAS + the forward-only merge in applyLiveTurnFields make it
+  // monotonic.
+  const persistedResetCountRef = useRef(0);
+  useEffect(() => {
+    const rc = state.resetCount ?? 0;
+    if (rc === persistedResetCountRef.current) return;
+    persistedResetCountRef.current = rc;
+    void updateLiveTurn({ resetCount: rc });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.resetCount]);
 
   const loadUnits = async () => {
     const units = await Engine.fetchUnits();
@@ -1720,5 +1748,10 @@ export const useSession = () => {
 export function useSeedBase(): string {
   const { state } = useSession();
   const session = state.sessionId ?? (state.sessionStartedAt ? `t${state.sessionStartedAt}` : 'local');
-  return `${session}|${state.activeUnit?.id ?? 'unit'}|${state.currentStepIndex}`;
+  // Turn + reset parts (per-turn variety, 2026-08-30): every wheel pick and
+  // every Reset re-seed the consumers' arrangements, so each student faces a
+  // different order/variants while all tabs stay deterministic (turnToken is
+  // broadcast + live_state-hydrated; resetCount rides LiveTurnState).
+  const turnToken = state.currentTurnId ?? 'practice';
+  return `${session}|${state.activeUnit?.id ?? 'unit'}|${state.currentStepIndex}|${turnToken}|${state.resetCount ?? 0}`;
 }

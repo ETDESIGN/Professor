@@ -23,6 +23,7 @@ import {
   type Phase,
   type RungSrsState,
 } from './lessonDirector';
+import { dealForTurn } from './turnDeal';
 import type { PoolItem } from '../../types/exercise';
 import { useSession } from '../../store/SessionContext';
 import { makeRng } from '../../services/seededRandom';
@@ -208,8 +209,26 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
     [items, selectedSet],
   );
 
+  // ── 7. Per-turn arrangement (per-turn variety, 2026-08-30). ────────────
+  // The round's WORD SELECTION is untouched (same words for the whole class);
+  // dealForTurn only re-arranges the items per student: turn-seeded question
+  // order, variant rotation within a word, round-robin interleave. The seed
+  // parts are shared state (turnToken broadcasts + hydrates via live_state,
+  // resetCount rides it) so commander / projector / remote compute the
+  // identical arrangement; 'practice' keeps the choral board stable.
+  const turnToken = state.currentTurnId ?? 'practice';
+  const resetCount = state.resetCount ?? 0;
+  const dealtItems = useMemo(
+    () => dealForTurn(
+      filteredItems,
+      [sessionId, unitId, shellType, roundIndex, turnToken, resetCount],
+      (it) => it.objective_id,
+    ),
+    [filteredItems, sessionId, unitId, shellType, roundIndex, turnToken, resetCount],
+  );
+
   return {
-    items: filteredItems,
+    items: dealtItems,
     loading: loading && filteredItems.length === 0,
     rungByObjective: round.rungByObjective,
     selectedObjectiveIds: round.selectedObjectiveIds,

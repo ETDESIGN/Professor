@@ -131,8 +131,27 @@ const BoardWordDetective = ({ data }: { data: any }) => {
         });
       }
     }
+
+    // Per-turn option order (per-turn variety, 2026-08-30): without this the
+    // correct answer sits in the same slot for every student (options render
+    // in stored order) and kids pattern-match the position. Seeded on shared
+    // state (turnToken broadcast/live_state, resetCount) → identical on every
+    // tab, different per wheel pick / Reset.
+    const resetCount = state.resetCount ?? 0;
+    const optsRng = makeRng('wd-options', unitId, turnId ?? 'practice', resetCount);
+    for (const it of items) {
+      if (!it.options || it.options.length < 2) continue;
+      const idx = it.options.map((_: string, i: number) => i);
+      for (let i = idx.length - 1; i > 0; i--) {
+        const j = Math.floor(optsRng() * (i + 1));
+        [idx[i], idx[j]] = [idx[j], idx[i]];
+      }
+      const newCorrect = idx.indexOf(it.correctIndex);
+      it.options = idx.map((i) => it.options[i]);
+      it.correctIndex = newCorrect;
+    }
     return items;
-  }, [poolItems]);
+  }, [poolItems, unitId, turnId, state.resetCount]);
 
   const currentItem = vocabItems[currentItemIdx];
 
