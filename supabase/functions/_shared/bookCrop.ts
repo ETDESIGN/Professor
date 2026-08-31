@@ -90,7 +90,10 @@ export async function cropBookImage(req: CropRequest): Promise<CropResult> {
     return { ok: false, flagged: 'low_resolution', message: 'Crop is below the 200px usability floor; consider AI generation for this item.' };
   }
 
-  const cropped = image.crop(x, y, w, h);
+// ImageScript v1.3 crop() MUTATES the receiver and returns it — cropping
+  // item 2 from the page that item 1 already cropped sliced the wrong
+  // pixels (the "only one good panel per comic" bug). Clone per crop.
+  const cropped = image.clone().crop(x, y, w, h);
   const jpeg = await cropped.encodeJPEG(85);
   const storagePath = `crops/${pageId}/${pool}-${structureId || 'manual'}-${Date.now()}.jpg`;
   const { error: upErr } = await sb.storage.from('materials').upload(storagePath, new Uint8Array(jpeg), { contentType: 'image/jpeg' });
@@ -339,7 +342,10 @@ export async function cropBookImages(req: {
       continue;
     }
 
-    const cropped = image.crop(x, y, w, h);
+// ImageScript v1.3 crop() MUTATES the receiver and returns it — cropping
+    // item 2 from the page that item 1 already cropped sliced the wrong
+    // pixels (the "only one good panel per comic" bug). Clone per crop.
+    const cropped = image.clone().crop(x, y, w, h);
     const jpeg = await cropped.encodeJPEG(85);
     const storagePath = `crops/${pageId}/${it.pool}-${it.structureId || 'manual'}-${Date.now()}-${i}.jpg`;
     const { error: upErr } = await sb.storage.from('materials').upload(storagePath, new Uint8Array(jpeg), { contentType: 'image/jpeg' });
