@@ -11,8 +11,14 @@
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { planPanelBoxes, type InkGrid, type Box as GBox } from './panelGeometry.ts';
 
-/** Bump when the panel refinement algorithm changes (part of the cache key). */
-const PANEL_REFINE_VERSION = 'g2v1';
+/**
+ * Bump whenever the panel refinement ALGORITHM changes — the tag is part of
+ * the crop dedupe key, so a bump forces regeneration instead of serving
+ * crops produced by the previous (possibly broken) refinement as cache hits
+ * (the 2026-08-31 lesson: round-2 fixes cache-hit round-1's NaN-era crops
+ * because the tag stayed `g2v1`).
+ */
+const PANEL_REFINE_VERSION = 'g2v2';
 
 export interface CropRequest {
   sb: any; // service-role supabase client

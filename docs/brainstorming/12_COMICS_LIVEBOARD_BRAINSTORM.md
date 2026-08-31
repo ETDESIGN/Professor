@@ -293,7 +293,12 @@ stacked issues surfaced on the "Countryside" unit:
 2. **Edge refinement silently no-op'd**: ImageScript 1.3's `getPixelAt`
    returns a PACKED NUMBER, not `{r,g,b}` — luminance went NaN, the catch
    swallowed it, raw boxes cropped. Fixed with `getRGBAAt` + a loud
-   console.error in the catch.
+   console.error in the catch. **Cache trap (owner's next test): the round-2
+   fixes CACHE-HIT the round-1 NaN-era crops** because the refine version
+   tag stayed `g2v1` — the bad crops kept being served and the bbox-less
+   panels 4/5 stayed uncropped ("stories without media" = the comic's panel
+   pages). `PANEL_REFINE_VERSION` is now `g2v2`; bump it EVERY time the
+   refinement algorithm changes.
 3. **Sliver collapse + wrong structure box**: pale panel skies passed the
    loose background threshold (edges snapped onto them → slivers), and this
    unit's inventory bbox covered only ~⅔ of the comic. Fixes: a stricter
