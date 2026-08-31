@@ -161,7 +161,12 @@ function buildInkGrid(image: any): InkGrid {
   const w = Math.max(4, Math.floor(image.width / step));
   const h = Math.max(4, Math.floor(image.height / step));
   const rgbaAt = (gx: number, gy: number): [number, number, number] => {
-    const p = image.getRGBAAt(Math.min(image.width - 1, gx * step), Math.min(image.height - 1, gy * step));
+    // ImageScript pixel access is 1-INDEXED — (0, y) throws "outside
+    // boundaries" (the trap that silently killed every edge refinement run
+    // while the offline pngjs harness, 0-indexed, kept passing).
+    const px = Math.max(1, Math.min(image.width, gx * step + 1));
+    const py = Math.max(1, Math.min(image.height, gy * step + 1));
+    const p = image.getRGBAAt(px, py);
     return [p[0], p[1], p[2]]; // Uint8ClampedArray [r, g, b, a]
   };
   const lumAt = (gx: number, gy: number): number => {

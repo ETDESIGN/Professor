@@ -790,6 +790,7 @@ One output box per input box, same order. Keep every value concise so the respon
             image_prompt: scene?.visual_description ? String(scene.visual_description) : (scene?.caption ? String(scene.caption) : null),
             image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
             image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
+            image_url: crop?.ok && crop.url ? crop.url : null, // the key every consumer reads
             source_structure_id: p.structure_id || null,
             needs_questions: true,
           });
@@ -875,6 +876,7 @@ One output box per input box, same order. Keep every value concise so the respon
               image_prompt: null,
               image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
               image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
+              image_url: crop?.ok && crop.url ? crop.url : null, // the key every consumer reads
               source_structure_id: c.structure_id || null,
               needs_questions: panels.length >= 3, // panel slides are for telling, not quizzing
             });

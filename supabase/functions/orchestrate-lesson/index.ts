@@ -208,6 +208,8 @@ function transformManifestToFlow(assets: any): any[] {
             text: p.text,
             speaker: speakerName,
             avatar: matched?.emoji || chars[0]?.emoji || '👤',
+            // Book crop / AI scene art resolved from image_asset_id above.
+            imageUrl: p.imageUrl || p.image_url || undefined,
           };
         }),
       },
@@ -404,12 +406,22 @@ serve(async (req) => {
       // empty table → keep manifest). Best-effort, non-fatal.
       try {
         const [storyRes, grammarRes, dialogueRes] = await Promise.all([
-          sbClient.from('story_pages').select('page_number,text,speaker,speaker_override_name,image_prompt').eq('unit_id', unitId).order('page_number', { ascending: true }),
+          sbClient.from('story_pages').select('page_number,text,speaker,speaker_override_name,image_prompt,image_asset_id').eq('unit_id', unitId).order('page_number', { ascending: true }),
           sbClient.from('grammar_rules').select('rule,explanation,examples').eq('unit_id', unitId).order('order_index', { ascending: true }),
           sbClient.from('dialogue_lines').select('order_index,speaker,speaker_override_name,text,translation').eq('unit_id', unitId).order('order_index', { ascending: true }),
         ]);
         if (storyRes.data && storyRes.data.length > 0) {
-          assetsForFlow.story = { ...assetsForFlow.story, pages: storyRes.data.map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name, image_prompt: p.image_prompt })) };
+          // Resolve each page's image_asset_id → public URL so the frozen
+          // STORY_STAGE slide carries renderable art (the relational table
+          // stores only the FK; the board's live read also resolves, but the
+          // frozen data must stand alone — the "story media empty" report).
+          const pageAssetIds = [...new Set(storyRes.data.map((p: any) => p.image_asset_id).filter(Boolean))];
+          const storyUrlById = new Map<string, string>();
+          if (pageAssetIds.length > 0) {
+            const { data: saRows } = await sbClient.from('assets').select('id, public_url').in('id', pageAssetIds);
+            for (const a of saRows || []) if (a.public_url) storyUrlById.set(a.id, a.public_url);
+          }
+          assetsForFlow.story = { ...assetsForFlow.story, pages: storyRes.data.map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name, image_prompt: p.image_prompt, imageUrl: storyUrlById.get(p.image_asset_id) || undefined })) };
         }
         if (grammarRes.data && grammarRes.data.length > 0) {
           assetsForFlow.grammar = grammarRes.data.map((g: any) => ({ rule: g.rule, explanation: g.explanation, examples: g.examples || [] }));

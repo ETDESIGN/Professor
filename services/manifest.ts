@@ -136,7 +136,13 @@ export function normalizeManifest(raw: any): CanonicalManifest {
   const story = {
     title: storyRaw?.title,
     setting: storyRaw?.setting,
-    pages: asArray(storyRaw?.pages),
+    // Story-fidelity pages carry the book-crop URL as `image_url_book_crop`;
+    // surface it under the `image_url` key every consumer reads (the mismatch
+    // left manifest-fallback surfaces showing media-less story pages).
+    pages: asArray(storyRaw?.pages).map((p: any) => ({
+      ...p,
+      image_url: p?.image_url || p?.image_url_book_crop || undefined,
+    })),
   };
 
   return {
