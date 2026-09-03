@@ -245,12 +245,19 @@ async function resolveArtModel(): Promise<string> {
   const key = Deno.env.get('AI_API_KEY') || '';
   // Owner decision 2026-09-04: geo-lock lifted. Prefer nano-banana-class
   // models for character consistency; seedream/flux as fallbacks.
+  // 2026-09-04 finding: the OpenRouter account is RESTRICTED from
+  // closed-weight providers (Google/OpenAI/Anthropic — dashboard banner),
+  // AND OpenRouter's image catalog now contains ONLY Google/OpenAI image
+  // models (seedream/flux image models were delisted after 2026-08-28).
+  // → image generation via OpenRouter is impossible until the account
+  //   appeal lands. Operating mode: AVATAR_ART_MODEL=pollinations (secret)
+  //   skips OpenRouter entirely. After the appeal: unset that secret and
+  //   gemini (nano-banana) resolves first.
   const candidates = [
     'google/gemini-3-pro-image-preview',
     'google/gemini-2.5-flash-image',
     'google/gemini-2.5-flash-image-preview',
     'bytedance-seed/seedream-4.5',
-    'black-forest-labs/flux-1.1-pro',
   ];
   try {
     const resp = await fetch('https://openrouter.ai/api/v1/models', {
@@ -328,6 +335,19 @@ async function chatImageFallback(
   return { ok: false, model, error: `chat returned no image: ${contentText.slice(0, 160) || raw.slice(0, 160)}` };
 }
 
+async function finalizeWithNote(
+  params: { kind: string; id: string; outPath?: string },
+  b64: string,
+  mediaType: string,
+  usedModel: string,
+  note: string,
+): Promise<{ ok: boolean; url?: string; model?: string; note?: string; error?: string }> {
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const outPath = params.outPath || `avatars/artifacts/${params.kind}/${params.id}/${Date.now()}.png`;
+  const url = await uploadBytes(outPath, bytes, mediaType || 'image/png');
+  return { ok: true, url, model: usedModel, note };
+}
+
 export async function generateAvatarArt(params: {
   kind: 'base' | 'item' | 'default' | 'misc';
   id: string;
@@ -340,6 +360,15 @@ export async function generateAvatarArt(params: {
   const openrouterKey = Deno.env.get('AI_API_KEY') || '';
   if (!openrouterKey) return { ok: false, error: 'AI_API_KEY not configured' };
   if (!params.prompt || !params.id) return { ok: false, error: 'prompt and id required' };
+
+  // Operating-mode shortcut (see resolveArtModel note): while the OpenRouter
+  // account is restricted from all current image models, go straight to the
+  // keyless fallback instead of burning two 403 round-trips per asset.
+  if ((Deno.env.get('AVATAR_ART_MODEL') || '').toLowerCase() === 'pollinations') {
+    const direct = await pollinationsImage(params.prompt, params.references, params.seed);
+    if (direct.ok) return await finalizeWithNote(params, direct.b64, 'image/jpeg', `pollinations:${direct.model}`, 'pollinations operating mode (openrouter restricted)');
+    return { ok: false, error: `pollinations: ${direct.error}` };
+  }
 
   const model = await resolveArtModel();
   let b64 = '';
@@ -375,6 +404,7 @@ export async function generateAvatarArt(params: {
         b64 = poll.b64;
         mediaType = 'image/jpeg';
         usedModel = `pollinations:${poll.model}`;
+        return await finalizeWithNote(params, b64, mediaType, usedModel, `openrouter blocked: ${lastError}`);
       } else {
         return { ok: false, error: `${lastError} | pollinations: ${poll.error}` };
       }
