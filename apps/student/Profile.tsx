@@ -5,11 +5,12 @@ import { ChevronLeft, Settings, Camera, Flame, Zap, Gem } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import { XP_LEVELS } from '../../constants/gamification';
+import { useMyAvatar } from '../../hooks/useQueries';
+import Avatar from '../../components/shared/Avatar';
 
 interface ProfileProps {
    onBack: () => void;
    onCustomize?: () => void;
-   avatarConfig?: any;
    stats?: {
       streak: number;
       gems: number;
@@ -18,14 +19,15 @@ interface ProfileProps {
    };
 }
 
-const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
+const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
    const { userProfile } = useAppStore();
   const { t } = useTranslation();
-   const displayName = userProfile?.full_name || userProfile?.email || 'Student';
+  const { data: myAvatar } = useMyAvatar();
+  const displayName = userProfile?.full_name || userProfile?.email || 'Student';
 
-   const levelLabel = XP_LEVELS.getTitleForLevel(stats.level);
+  const levelLabel = XP_LEVELS.getTitleForLevel(stats.level);
 
-   return (
+  return (
       <div className="h-full bg-slate-50 flex flex-col font-sans">
          {/* Header */}
          <header className="px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-20 flex justify-between items-center">
@@ -48,15 +50,9 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, avatarConfig, st
                className="flex flex-col items-center"
             >
                <div className="relative mb-4 group cursor-pointer" onClick={onCustomize}>
-                  <div className="w-32 h-32 bg-white rounded-full border-4 border-white shadow-lg flex items-center justify-center text-7xl overflow-hidden hover:border-duo-pink transition-colors">
-                     {/* Render Avatar based on config if exists, else default */}
-                     {avatarConfig ? (
-                        <div style={{ backgroundColor: avatarConfig.skinColor }} className="w-full h-full flex items-center justify-center">
-                           <span className="text-4xl">😎</span>
-                        </div>
-                     ) : (
-                        '🦁'
-                     )}
+                  <div className="rounded-full border-4 border-white shadow-lg overflow-hidden hover:border-duo-pink transition-colors">
+                     {/* Rendered composite (config is the source of truth on the server) */}
+                     <Avatar src={myAvatar?.url || null} name={displayName} size={128} idle />
                   </div>
                   <button className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full border border-slate-200 shadow-md flex items-center justify-center text-slate-600 group-hover:text-duo-pink group-hover:scale-110 transition-all">
                      <Camera size={20} />

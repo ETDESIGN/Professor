@@ -133,11 +133,14 @@ export async function getSessionRoster(classId: string): Promise<SessionRosterSt
     const ids = roster.map(r => r.id);
     const claimedIds = roster.map(r => r.claimed_profile_id).filter(Boolean) as string[];
 
-    // 2) class-points ledger sums per roster.
-    const [sumsRes, xpRes] = await Promise.all([
+    // 2) class-points ledger sums per roster + claimed-profile avatar renders.
+    const [sumsRes, xpRes, avatarRes] = await Promise.all([
         supabase.from('point_transactions').select('roster_id, amount').in('roster_id', ids),
         claimedIds.length
             ? supabase.from('student_progress').select('student_id, xp').in('student_id', claimedIds)
+            : Promise.resolve({ data: [], error: null } as any),
+        claimedIds.length
+            ? supabase.from('profiles').select('id, avatar_url').in('id', claimedIds)
             : Promise.resolve({ data: [], error: null } as any),
     ]);
     if (sumsRes.error) log.warn('session_roster_sums_error', { error: sumsRes.error.message });
@@ -150,6 +153,13 @@ export async function getSessionRoster(classId: string): Promise<SessionRosterSt
     for (const row of (xpRes.data || [])) {
         xpByProfile.set(row.student_id, row.xp || 0);
     }
+    // Avatar v2: claimed kids get their rendered composite URL; unclaimed kids
+    // resolve a deterministic default client-side (Avatar component rosterId).
+    const avatarByProfile = new Map<string, string>();
+    for (const row of ((avatarRes as any).data || [])) {
+        const url = row.avatar_url;
+        if (typeof url === 'string' && url.startsWith('http')) avatarByProfile.set(row.id, url);
+    }
 
     return roster.map(r => {
         const claimed = !!r.claimed_profile_id;
@@ -158,7 +168,7 @@ export async function getSessionRoster(classId: string): Promise<SessionRosterSt
         return {
             id: r.id,
             name: r.display_name || 'Student',
-            avatar: '',
+            avatar: claimed ? (avatarByProfile.get(r.claimed_profile_id as string) || '') : '',
             points: ledger + homeXp,
             team: r.team || undefined,
             xp: homeXp,

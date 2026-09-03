@@ -17,6 +17,8 @@ import {
 import {
   GamificationService,
 } from '../services/GamificationService';
+import { AvatarService } from '../services/AvatarService';
+import type { AvatarBody, AvatarSlot } from '../services/avatarCore';
 import {
   getSchoolDirectory,
   getMyMemberships,
@@ -517,5 +519,67 @@ export function useCreateClassAnnouncement() {
       body: string;
     }) => createClassAnnouncement(classId, authorId, title, body),
     onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['classAnnouncements', v.classId] }),
+  });
+}
+
+// ============================================
+// Avatar system v2 (spec 2026-09-03)
+// ============================================
+
+export function useAvatarCatalog() {
+  return useQuery({
+    queryKey: ['avatarCatalog'],
+    queryFn: () => AvatarService.getCatalog(),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useMyAvatar() {
+  return useQuery({
+    queryKey: ['myAvatar'],
+    queryFn: () => AvatarService.getMyAvatar(),
+    staleTime: 30_000,
+  });
+}
+
+function useInvalidateAvatar() {
+  const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: ['myAvatar'] });
+    qc.invalidateQueries({ queryKey: ['inventory'] });
+  };
+}
+
+export function useEquipItem() {
+  const invalidate = useInvalidateAvatar();
+  return useMutation({
+    mutationFn: ({ itemId, slot }: { itemId: string | null; slot: AvatarSlot }) =>
+      AvatarService.equip(itemId, slot),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSetAvatarBody() {
+  const invalidate = useInvalidateAvatar();
+  return useMutation({
+    mutationFn: (body: AvatarBody) => AvatarService.setBody(body),
+    onSuccess: invalidate,
+  });
+}
+
+export function useSetAvatarSkin() {
+  const invalidate = useInvalidateAvatar();
+  return useMutation({
+    mutationFn: (skin: number) => AvatarService.setSkin(skin),
+    onSuccess: invalidate,
+  });
+}
+
+/** Server-side composite of the persisted config (cached by config hash). */
+export function useComposeAvatar() {
+  const invalidate = useInvalidateAvatar();
+  return useMutation({
+    mutationFn: () => AvatarService.compose(),
+    onSuccess: invalidate,
   });
 }

@@ -6,6 +6,7 @@
 import React from 'react';
 import { Trophy, Medal, X } from 'lucide-react';
 import { useSession } from '../../store/SessionContext';
+import Avatar from '../../components/shared/Avatar';
 
 const ClassLeaderboard: React.FC = () => {
   const { state, triggerAction } = useSession();
@@ -50,9 +51,7 @@ const ClassLeaderboard: React.FC = () => {
               >
                 {top3 ? <Medal size={24} /> : i + 1}
               </div>
-              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-xl shrink-0">
-                {s.avatar || s.name?.[0] || '?'}
-              </div>
+              <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={40} />
               <span className={`flex-1 font-bold truncate ${i === 0 ? 'text-yellow-300 text-2xl' : 'text-white text-xl'}`}>
                 {s.name}
               </span>

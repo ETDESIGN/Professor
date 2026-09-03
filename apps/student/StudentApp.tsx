@@ -11,7 +11,7 @@ import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { joinClassByCode } from '../../services/DataService';
-import { useStudentClasses, useStudentAssignments, useSubmitAssignment } from '../../hooks/useQueries';
+import { useStudentClasses, useStudentAssignments, useSubmitAssignment, useMyAvatar } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { GamificationService } from '../../services/GamificationService';
 import { GEM_REWARDS, XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
@@ -88,6 +88,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const { data: enrolledClasses = [] } = useStudentClasses(userId);
   const { data: assignments = [], isLoading: loadingAssignments } = useStudentAssignments(userId);
   const submitAssignment = useSubmitAssignment();
+  // Avatar v2: config + rendered URL come from the server (source of truth).
+  const { data: myAvatar } = useMyAvatar();
 
   // Gamification State
   const [userStats, setUserStats] = useState({
@@ -110,24 +112,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
         xp: progress.xp,
         level: Math.floor(progress.xp / 100) + 1
       }));
-
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('id', user.id)
-            .single();
-          if (profile?.avatar_url) {
-            try {
-              setAvatarConfig(JSON.parse(profile.avatar_url));
-            } catch { /* avatar_url might not be JSON */ }
-          }
-        }
-      } catch (error) {
-        log.warn('error_loading_avatar', { error: error instanceof Error ? error.message : String(error) });
-      }
     };
     fetchProgress();
     GamificationService.checkAndUpdateStreak().then(({ streak }) => {
@@ -148,9 +132,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       toast.error(t('student.failedSubmit'));
     }
   };
-
-  // Local state for avatar customization
-  const [avatarConfig, setAvatarConfig] = useState<any>(null);
 
   // Temp storage for lesson results to pass to the Complete screen
   const [sessionResults, setSessionResults] = useState({ xp: 0, accuracy: 0, time: '0:00', stars: 3 });
@@ -178,19 +159,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
   const lessonPlaylist = getLessonPlaylist();
 
-  const handleAvatarSave = async (config: any) => {
-    setAvatarConfig(config);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('profiles')
-          .update({ avatar_url: JSON.stringify(config) })
-          .eq('id', user.id);
-      }
-    } catch (error) {
-      log.warn('error_saving_avatar', { error: error instanceof Error ? error.message : String(error) });
-    }
+  // Avatar v2: the Builder persists via equip RPCs + compose-avatar itself;
+  // the react-query cache (invalidated by those mutations) is the live state.
+  const handleAvatarSave = (_config: unknown, _url: string | null) => {
     navigate('/student/profile');
   };
 
@@ -204,10 +175,12 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       sessionResults.xp || XP_REWARDS.LESSON_COMPLETE,
       'lesson_complete'
     );
-    const newGems = await GamificationService.awardGems(
-      GEM_REWARDS.PERFECT_LESSON,
-      'lesson_complete'
-    );
+    // Perfect-lesson gems are gated on 5 stars (the mini-games already gate
+    // this way — the unconditional award here made every lesson "perfect").
+    const perfect = (sessionResults.stars ?? 0) === 5;
+    const newGems = perfect
+      ? await GamificationService.awardGems(GEM_REWARDS.PERFECT_LESSON, 'lesson_complete')
+      : userStats.gems;
 
     await GamificationService.updateQuestProgress(QUEST_TYPES.COMPLETE_LESSONS, 1);
     await GamificationService.updateQuestProgress(QUEST_TYPES.EARN_XP, sessionResults.xp || XP_REWARDS.LESSON_COMPLETE);
@@ -247,8 +220,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   // results via onSessionEnd — the old hardcoded xp/accuracy values are gone.
   // Phonics + SRS run through ExerciseRunner, which already awards XP per
   // correct answer — their exits no longer re-award a second time.
-  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => navigate('/student')} onSessionEnd={(s) => handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0, time: '—' })} /></Suspense>;
-  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => navigate('/student')} onSessionEnd={(s) => handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 100, time: '—' })} /></Suspense>;
+  if (location.pathname === '/student/pronounce') return <Suspense fallback={<PageLoader />}><PronunciationCoach onBack={() => navigate('/student')} onSessionEnd={(s) => { if (s.total > 0 && s.correct === s.total) GamificationService.updateQuestProgress(QUEST_TYPES.PERFECT_SPEAKING, 1); handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0, time: '—' }); }} /></Suspense>;
+  if (location.pathname === '/student/reading') return <Suspense fallback={<PageLoader />}><ReadingReader onBack={() => navigate('/student')} onSessionEnd={(s) => { if (s.total > 0 && s.correct === s.total) GamificationService.updateQuestProgress(QUEST_TYPES.PERFECT_SPEAKING, 1); handleLessonComplete({ xp: Math.max(1, s.correct * XP_REWARDS.CORRECT_ANSWER), accuracy: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 100, time: '—' }); }} /></Suspense>;
   if (location.pathname === '/student/phonics') return <Suspense fallback={<PageLoader />}><PhonicsPhlyer onBack={() => navigate('/student')} /></Suspense>;
   if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={() => navigate('/student')} /></Suspense>;
   if (location.pathname === '/student/fast-vocab') return <Suspense fallback={<PageLoader />}><FastVocabGame onBack={() => navigate('/student/practice')} /></Suspense>;
@@ -258,7 +231,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   if (location.pathname === '/student/lesson-complete') return <Suspense fallback={<PageLoader />}><LessonComplete onContinue={finalizeLesson} stats={sessionResults} /></Suspense>;
 
   // Secondary Screens that don't show the bottom nav
-  if (location.pathname === '/student/avatar') return <Suspense fallback={<PageLoader />}><AvatarBuilder onBack={() => navigate('/student/profile')} onSave={handleAvatarSave} initialConfig={avatarConfig} /></Suspense>;
+  if (location.pathname === '/student/avatar') return <Suspense fallback={<PageLoader />}><AvatarBuilder onBack={() => navigate('/student/profile')} onSave={handleAvatarSave} initialConfig={myAvatar?.config || null} /></Suspense>;
   if (location.pathname === '/student/settings') return <Suspense fallback={<PageLoader />}><Settings onBack={() => navigate('/student/profile')} onSignOut={onSignOut} /></Suspense>;
   if (location.pathname === '/student/help') return <Suspense fallback={<PageLoader />}><HelpCenter onBack={() => navigate('/student/settings')} /></Suspense>;
   if (location.pathname === '/student/practice') return <Suspense fallback={<PageLoader />}><PracticeMenu onBack={() => navigate('/student')} onNavigate={(view) => navigate(`/student/${view}`)} /></Suspense>;
@@ -383,8 +356,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               } />
               <Route path="/student/leaderboard" element={<RouteErrorBoundary name="leaderboard"><Leaderboard onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
               <Route path="/student/quests" element={<RouteErrorBoundary name="quests"><Quests onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
-              <Route path="/student/shop" element={<RouteErrorBoundary name="shop"><Shop onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
-              <Route path="/student/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} avatarConfig={avatarConfig} stats={userStats} /></RouteErrorBoundary>} />
+              <Route path="/student/shop" element={<RouteErrorBoundary name="shop"><Shop onBack={() => navigate('/student')} onOpenStudio={() => navigate('/student/avatar')} /></RouteErrorBoundary>} />
+              <Route path="/student/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} stats={userStats} /></RouteErrorBoundary>} />
               <Route path="*" element={<Navigate to="/student" replace />} />
             </Routes>
           </motion.div>

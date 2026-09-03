@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Star, Shield, Sword, RotateCw } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { filterPresent } from '../../../services/attendanceLogic';
+import Avatar from '../../../components/shared/Avatar';
 
 const BoardGameArena = ({ data }: { data: any }) => {
   const { state, triggerAction } = useSession();
@@ -123,7 +124,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
           <div className="space-y-4">
              {state.students.filter(s => s.team === 'red').map(s => (
                <div key={s.id} className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-                  <div className="text-2xl">{s.avatar}</div>
+                  <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={28} />
                   <div className="text-white font-bold text-lg">{s.name}</div>
                   <div className="ml-auto text-red-400 font-mono font-bold">{s.points}</div>
                </div>
@@ -218,7 +219,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
           <div className="space-y-4">
              {state.students.filter(s => s.team === 'blue').map(s => (
                <div key={s.id} className="flex flex-row-reverse items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/5">
-                  <div className="text-2xl">{s.avatar}</div>
+                  <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={28} />
                   <div className="text-white font-bold text-lg">{s.name}</div>
                   <div className="mr-auto text-blue-400 font-mono font-bold">{s.points}</div>
                </div>
@@ -235,7 +236,7 @@ const BoardGameArena = ({ data }: { data: any }) => {
                <div className="bg-slate-900 rounded-[2.8rem] p-16 flex flex-col items-center text-center border-4 border-white/20">
                   <div className="text-yellow-400 text-3xl font-bold uppercase tracking-[0.5em] mb-8">Winner!</div>
                   <div className="w-64 h-64 bg-white rounded-full mb-8 flex items-center justify-center text-9xl border-8 border-white/20 shadow-[0_0_60px_rgba(255,255,255,0.3)]">
-                     {winner.avatar}
+                     <Avatar src={winner.avatar} rosterId={winner.id} name={winner.name} size={200} celebrate />
                   </div>
                   <h2 className="text-9xl font-fun text-white mb-4">{winner.name}</h2>
                   <div className="text-4xl text-white/60 font-mono">+5 XP Bonus</div>

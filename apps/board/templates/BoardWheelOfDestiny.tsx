@@ -17,6 +17,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../../store/SessionContext';
 import { filterPresent } from '../../../services/attendanceLogic';
+import Avatar from '../../../components/shared/Avatar';
 
 const COLORS = ['#FBBF24','#F97316','#EF4444','#EC4899','#A855F7','#8B5CF6','#3B82F6','#06B6D4','#14B8A6','#22C55E','#84CC16','#EAB308'];
 const LED_COUNT = 16;
@@ -158,7 +159,7 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
               {students.map((s: any, i: number) => (
                 <div key={s.id} className="absolute font-display text-base font-bold text-white whitespace-nowrap"
                   style={{ left: '50%', top: '50%', transform: `translate(-50%,-50%) rotate(${i*segAngle+segAngle/2}deg) translateY(-${radius-35}px)`, textShadow: '0 2px 4px rgba(0,0,0,.6)' }}>
-                  {s.avatar || '👤'} {s.name?.split(' ')[0]}
+                  <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={22} /> {s.name?.split(' ')[0]}
                 </div>
               ))}
               {/* Center hub */}
@@ -190,7 +191,7 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
               className="w-28 h-28 rounded-full flex items-center justify-center text-6xl shadow-2xl mb-3"
               style={{ background: `radial-gradient(circle, ${COLORS[winnerIdx % COLORS.length]}40, transparent)` }}
             >
-              {winner.avatar || '👤'}
+              <Avatar src={winner.avatar} rosterId={winner.id} name={winner.name} size={104} celebrate />
             </motion.div>
             <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
               className="font-display text-6xl font-black text-amber-300 text-center" style={{ textShadow: '0 4px 20px rgba(251,191,36,.4)' }}>

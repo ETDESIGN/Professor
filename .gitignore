@@ -38,3 +38,6 @@ supabase/.temp/
 
 # SDD scratch reports (session artifacts — never commit)
 .superpowers/
+
+# avatar art pipeline local artifacts (generated + storage copies)
+scripts/avatars/out/

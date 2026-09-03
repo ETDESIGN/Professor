@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { filterPresent } from '../../../../services/attendanceLogic';
 import { classAccuracySince, studentAccuracySince, type ClassAccuracy, type StudentAccuracy } from '../../../../services/attemptsLog';
+import Avatar from '../../../../components/shared/Avatar';
 
 type SidebarTab = 'notes' | 'wheel' | 'sounds' | 'groups' | 'analytics';
 
@@ -88,11 +89,11 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
           <div className="flex-1 flex flex-col items-center justify-center mb-6">
             {winner && !isSpinning ? (
               <div className="flex flex-col items-center animate-slide-up">
-                <div className="w-24 h-24 rounded-full border-4 border-yellow-400 shadow-xl flex items-center justify-center text-5xl bg-slate-800 mb-4">{winner.avatar}</div>
+                <div className="mb-4"><Avatar src={winner.avatar} rosterId={winner.id} name={winner.name} size={88} celebrate /></div>
                 <h3 className="text-2xl font-bold text-white mb-6">{winner.name}</h3>
                 <div className="grid grid-cols-2 gap-3 w-full">
-                  <button onClick={() => addPoints(winner.id, 10)} className="bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Star size={16} fill="currentColor" /> +10</button>
-                  <button onClick={() => addPoints(winner.id, 50)} className="bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Zap size={16} fill="currentColor" /> +50</button>
+                  <button onClick={() => addPoints(winner.id, 2)} className="bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Star size={16} fill="currentColor" /> +2</button>
+                  <button onClick={() => addPoints(winner.id, 5)} className="bg-yellow-600 hover:bg-yellow-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-1 active:scale-95 transition-all"><Zap size={16} fill="currentColor" /> +5</button>
                 </div>
               </div>
             ) : (
@@ -127,7 +128,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
           </div>
           <div className="mt-8 pt-6 border-t border-slate-800 space-y-3">
             <button onClick={() => triggerAction('CELEBRATE')} className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-400 hover:via-purple-400 hover:to-indigo-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Sparkles size={20} /> Trigger Celebration</button>
-            <button onClick={() => { presentStudents.forEach((s: any) => addPoints(s.id, 5)); triggerAction('CELEBRATE'); }} className="w-full bg-pink-500 hover:bg-pink-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Trophy size={20} /> +5 XP to Everyone</button>
+            <button onClick={() => { presentStudents.forEach((s: any) => addPoints(s.id, 1)); triggerAction('CELEBRATE'); }} className="w-full bg-pink-500 hover:bg-pink-400 text-white font-bold py-4 rounded-xl shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"><Trophy size={20} /> +1 XP to Everyone</button>
           </div>
         </div>
       );
@@ -156,7 +157,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
               <div key={i} className="bg-slate-800 rounded-xl p-3 border border-slate-700">
                 <div className="text-xs font-bold text-slate-500 uppercase mb-2 flex justify-between"><span>Group {i + 1}</span><span className="bg-slate-700 px-1.5 rounded text-white">{group.length}</span></div>
                 <div className="flex flex-wrap gap-2">
-                  {group.map((s: any) => <span key={s.id} className="text-sm text-slate-300 bg-slate-700/50 px-2 py-1 rounded">{s.avatar} {s.name}</span>)}
+                  {group.map((s: any) => <span key={s.id} className="text-sm text-slate-300 bg-slate-700/50 px-2 py-1 rounded"><Avatar src={s.avatar} rosterId={s.id} name={s.name} size={18} /> {s.name}</span>)}
                 </div>
               </div>
             ))}
@@ -198,7 +199,7 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                     const student = presentStudents.find((s: any) => s.id === sa.rosterId) as any;
                     return (
                       <div key={sa.rosterId} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2"><span>{student?.avatar || '👤'}</span><span className="text-slate-300">{student?.name || 'Unknown'}</span></div>
+                        <div className="flex items-center gap-2"><Avatar src={student?.avatar} rosterId={sa.rosterId} name={student?.name} size={20} /><span className="text-slate-300">{student?.name || 'Unknown'}</span></div>
                         <span className="text-red-400 font-bold">{Math.round(sa.accuracy * 100)}% ({sa.correct}/{sa.total})</span>
                       </div>
                     );

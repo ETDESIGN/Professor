@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, RotateCw, Users, RefreshCw, Check, Star, SkipForward, Scale, Minus, Plus } from 'lucide-react';
 import { useSession } from '../../store/SessionContext';
+import Avatar from '../../components/shared/Avatar';
 
 interface QuickSpinModalProps {
   onClose: () => void;
@@ -123,7 +124,7 @@ const QuickSpinModal: React.FC<QuickSpinModalProps> = ({ onClose }) => {
            {view === 'result' && winner && (
               <div className="flex flex-col items-center animate-scale-in">
                  <div className="w-32 h-32 rounded-full border-4 border-yellow-400 shadow-xl flex items-center justify-center text-6xl bg-slate-50 mb-4">
-                    {winner.avatar}
+                    <Avatar src={winner.avatar} rosterId={winner.id} name={winner.name} size={112} celebrate />
                  </div>
                  <h3 className="text-3xl font-black text-slate-800 mb-1">{winner.name}</h3>
                  <p className="text-slate-500 font-bold mb-6">Selected Student</p>

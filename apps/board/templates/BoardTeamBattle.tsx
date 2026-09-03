@@ -22,6 +22,7 @@ import { recordAttempt } from '../../../services/attemptsLog';
 import { gradeObjective } from '../../../services/boardLearner';
 import { playAudioUrl } from '../../../services/SpeechService';
 import type { PoolItem } from '../../../types/exercise';
+import Avatar from '../../../components/shared/Avatar';
 
 type Phase = 'pregame' | 'question' | 'choose_cell' | 'steal' | 'race' | 'victory';
 type Team = 'red' | 'blue';
@@ -662,7 +663,7 @@ const TeamRosterColumn: React.FC<{ team: Team; members: any[]; score: number; ac
       <div className="flex flex-col gap-1 overflow-y-auto">
         {members.map((s: any, i: number) => (
           <div key={s.id} className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2 py-1">
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0" style={{ background: GRADIENTS[i % GRADIENTS.length] }}>{s.avatar || '👤'}</div>
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0" style={{ background: GRADIENTS[i % GRADIENTS.length] }}><Avatar src={s.avatar} rosterId={s.id} name={s.name} size={24} /></div>
             <span className="font-display text-xs font-bold truncate">{s.name?.split(' ')[0]}</span>
           </div>
         ))}

@@ -3,6 +3,8 @@ import { X, RotateCcw, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
 import { selectPracticeItems } from '../../services/poolService';
+import { GamificationService } from '../../services/GamificationService';
+import { QUEST_TYPES } from '../../constants/gamification';
 import ExerciseRunner, { RunnerResult } from './exercises/ExerciseRunner';
 
 interface SpacedRepetitionProps {
@@ -112,7 +114,13 @@ const SpacedRepetition: React.FC<SpacedRepetitionProps> = ({ onBack, onComplete 
 
   const handleDone = (result: RunnerResult) => {
     const accuracy = result.total > 0 ? Math.round((result.correct / result.total) * 100) : 100;
-    onComplete({ xp: Math.max(10, result.correct * 5), accuracy, time: '2:00' });
+    // Rescaled 2026-09-04: 1 XP per correct review, capped at 5 (PERFECT_LESSON
+    // ceiling) — the old 10-50 range over-fulfilled every daily quest.
+    const xp = Math.min(5, Math.max(1, result.correct));
+    if (result.correct > 0) {
+      GamificationService.updateQuestProgress(QUEST_TYPES.REVIEW_WORDS, result.correct).catch(() => {});
+    }
+    onComplete({ xp, accuracy, time: '2:00' });
   };
 
   return (

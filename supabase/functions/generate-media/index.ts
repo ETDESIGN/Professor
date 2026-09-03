@@ -6,6 +6,7 @@ import { generateCover, generatePortrait, generateStoryPageScene, generateIllust
 import { serviceRoleKey } from '../_shared/serviceKey.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { composeAvatar, generateAvatarArt } from '../_shared/avatarCompose.ts';
 import {
   canonicalSpeechHash,
   detectLang,
@@ -122,7 +123,9 @@ serve(async (req) => {
       const { data: unit } = await adminSb.from('units').select('teacher_id').eq('id', unitId).single();
       const ownership = assertUnitOwnership(unit?.teacher_id ?? null, { callerId: auth?.userId, callerRole: role });
       if (!ownership.ok) return { error: ownership.reason || 'Not authorized' };
-    } else if (!isStaff) {
+    } else if (!isStaff && action !== 'compose-avatar') {
+      // compose-avatar is the one student self-service action: it operates
+      // strictly on auth.uid()'s own profile (verified inside avatarCompose).
       return { error: 'Teachers only' };
     }
 
@@ -330,8 +333,28 @@ serve(async (req) => {
         throw new Error(`Unknown surface: ${surface}. Valid: cover, portrait, story_page`);
       }
 
+      case 'compose-avatar': {
+        // Avatar v2: flatten the caller's OWN persisted config into a cached
+        // multi-res render and write profiles.avatar_url (spec 2026-09-03).
+        return await composeAvatar(auth?.userId || '');
+      }
+
+      case 'avatar-art-generate': {
+        // Avatar v2 art pipeline (staff only — gate above). Generates base
+        // masters / item candidates via OpenRouter; curation happens offline.
+        return await generateAvatarArt({
+          kind: body.kind || 'misc',
+          id: String(body.id || ''),
+          prompt: String(body.prompt || ''),
+          references: Array.isArray(body.references) ? body.references : undefined,
+          outPath: body.outPath || undefined,
+          aspectRatio: body.aspectRatio || '1:1',
+          seed: typeof body.seed === 'number' ? body.seed : undefined,
+        });
+      }
+
       default:
-        throw new Error(`Unknown action: ${action}. Valid actions: generate-image, generate-audio, resolve-speech, resolve-speech-batch, batch, youtube-search, crop-book-image, generate-illustrations`);
+        throw new Error(`Unknown action: ${action}. Valid actions: generate-image, generate-audio, resolve-speech, resolve-speech-batch, batch, youtube-search, crop-book-image, generate-illustrations, compose-avatar, avatar-art-generate`);
     }
   });
 });

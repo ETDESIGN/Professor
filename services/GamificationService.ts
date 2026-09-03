@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
 import { XP_REWARDS, GEM_REWARDS } from '../constants/gamification';
 import { getHearts, refillHearts } from './learnerState';
+import { rosterDefaultUrl } from './avatarCore';
 
 const log = createClientLogger('GamificationService');
 
@@ -337,7 +338,11 @@ export const GamificationService = {
       // their roster id.
       id: row.profile_id || row.roster_student_id,
       name: row.student_name || 'Student',
-      avatar: row.avatar_url || '',
+      // Avatar v2: claimed → rendered composite; unclaimed → deterministic
+      // roster default (pre-baked composite) so the podium is never blank.
+      avatar: (typeof row.avatar_url === 'string' && row.avatar_url.startsWith('http')
+        ? row.avatar_url
+        : rosterDefaultUrl(String(row.roster_student_id || row.profile_id || 'x'))),
       // Surface the unified total as `xp` (the field existing UI consumers
       // read) AND as `points` for newer consumers.
       xp: row.total_points || 0,

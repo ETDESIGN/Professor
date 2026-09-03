@@ -13,6 +13,7 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession, TEAM_COLORS } from '../../store/SessionContext';
 import BoardSoundLayer from './templates/BoardSoundLayer';
+import Avatar from '../../components/shared/Avatar';
 
 // ── Phase configuration (label, Chinese, icon, colors) ──────────────────
 const PHASE_CONFIG: Record<string, { label: string; cn: string; icon: string; dot: string; text: string; glow: string }> = {
@@ -261,9 +262,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
             {leaderboard.map((s, i) => (
               <div key={s.id} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${i === 0 ? 'bg-amber-400/10' : ''} ${s.isPresent === false ? 'opacity-40 grayscale' : ''}`}>
                 <span className="font-display text-base font-bold text-amber-400 w-6 text-center">{i + 1}</span>
-                <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[17px] shrink-0" style={{ background: LEADERBOARD_GRADIENTS[i % LEADERBOARD_GRADIENTS.length] }}>
-                  {s.avatar || '👤'}
-                </div>
+                <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={34} />
                 <span className="font-display text-lg font-semibold flex-1 truncate">{s.name}</span>
                 <span className="font-display text-xl font-bold text-blue-400 tabular-nums">{s.points || 0}</span>
               </div>
@@ -294,7 +293,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
               animate={{ boxShadow: ['0 0 16px rgba(239,68,68,.4)', '0 0 24px rgba(239,68,68,.6)', '0 0 16px rgba(239,68,68,.4)'] }}
               transition={{ duration: 3, repeat: Infinity }}
             >
-              {turnStudent.avatar || '👤'}
+              <Avatar src={turnStudent.avatar} rosterId={turnStudent.id} name={turnStudent.name} size={56} idle />
             </motion.div>
             <div className="flex flex-col">
               <span className="font-display text-base text-slate-300/65 font-medium">Now up</span>

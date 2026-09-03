@@ -52,6 +52,7 @@ import {
   type Cell,
   type SearchGrid,
 } from './wordSearch/gridEngine';
+import Avatar from '../../../components/shared/Avatar';
 import {
   detectClueMode,
   frozenToWords,
@@ -1013,7 +1014,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
               {presentStudents.map((s: any) => (
                 <button key={s.id} onClick={() => resolveCredit(s.id)}
                   className="flex items-center gap-2 bg-slate-100 hover:bg-emerald-100 border-2 border-transparent hover:border-emerald-400 px-4 py-2.5 rounded-2xl font-bold text-slate-700 transition-all active:scale-95">
-                  {s.avatar ? <img src={s.avatar} alt="" className="w-7 h-7 rounded-full" /> : <span className="w-7 h-7 rounded-full bg-sky-200 text-sky-700 flex items-center justify-center text-sm">{(s.name || '?').slice(0, 1)}</span>}
+                  <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={28} />
                   {s.name || 'Student'}
                 </button>
               ))}

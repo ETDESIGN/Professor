@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { X, Check, Users, User, Star, Zap, RotateCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Avatar from '../../components/shared/Avatar';
 
 interface Student {
    id: string;
@@ -115,7 +116,7 @@ const StudentSelectorModal: React.FC<StudentSelectorModalProps> = ({ students = 
                              w-16 h-16 rounded-full flex items-center justify-center text-3xl border-4 transition-all
                              ${isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-slate-50 group-hover:border-slate-200'}
                           `}>
-                                    {student.avatar}
+                                    <Avatar src={student.avatar} rosterId={student.id} name={student.name} size={56} />
                                     {isSelected && (
                                        <div className="absolute top-0 right-0 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center border-2 border-white">
                                           <Check size={12} className="text-white" strokeWidth={3} />
@@ -178,7 +179,7 @@ const StudentSelectorModal: React.FC<StudentSelectorModalProps> = ({ students = 
                               const s = (students || []).find(st => st?.id === id);
                               return (
                                  <div key={id} className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-sm">
-                                    {s?.avatar}
+                                    <Avatar src={s?.avatar} rosterId={s?.id} name={s?.name} size={28} />
                                  </div>
                               );
                            })}

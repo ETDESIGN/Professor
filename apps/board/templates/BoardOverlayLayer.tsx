@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { RotateCw, Star, AlertTriangle, MicOff, VolumeX, ThumbsUp, Zap, Sparkles } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { filterPresent } from '../../../services/attendanceLogic';
+import Avatar from '../../../components/shared/Avatar';
 
 const BoardOverlayLayer = () => {
   const { state, triggerConfetti } = useSession();
@@ -114,7 +115,7 @@ const BoardOverlayLayer = () => {
                    w-40 h-40 rounded-full border-8 shadow-2xl flex items-center justify-center bg-white text-8xl relative z-10 mb-4
                    ${pointPopup.amount > 0 ? 'border-green-400' : 'border-red-400'}
                 `}>
-                   {getStudent(pointPopup.studentId)?.avatar}
+                   <Avatar src={getStudent(pointPopup.studentId)?.avatar} rosterId={pointPopup.studentId} name={getStudent(pointPopup.studentId)?.name} size={128} celebrate />
                    <div className={`
                       absolute -bottom-4 bg-white px-6 py-1 rounded-full font-bold text-lg text-slate-800 shadow-md border-2
                       ${pointPopup.amount > 0 ? 'border-green-400' : 'border-red-400'}
@@ -217,7 +218,7 @@ const BoardOverlayLayer = () => {
                 {winner ? (
                    <div className="flex items-center gap-8 px-8 py-4 animate-scale-in">
                       <div className="w-48 h-48 bg-yellow-100 rounded-full border-8 border-yellow-400 shadow-lg flex items-center justify-center text-8xl animate-bounce-subtle">
-                         {winner.avatar}
+                         <Avatar src={winner.avatar} rosterId={winner.id} name={winner.name} size={176} celebrate />
                       </div>
                       <div>
                          <div className="text-slate-400 font-bold uppercase tracking-widest text-lg mb-2">Selected Student</div>

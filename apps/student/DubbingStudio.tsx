@@ -9,6 +9,7 @@ import {
   type LineScore,
 } from '../../services/DubbingService';
 import { GamificationService } from '../../services/GamificationService';
+import { XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import { useDubRecorder, buildLineWindows } from './dubbing/useDubRecorder';
 import DubPlayer from '../../components/shared/DubPlayer';
 import { createClientLogger } from '../../services/logger';
@@ -273,11 +274,13 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       });
       savedDubbingIdRef.current = dubbingId;
       setSaveState('saved');
-      // Private-save XP: 10, exactly once per take.
-      if (xpGivenRef.current < 10) {
+      // Private-save XP (rescaled 2026-09-04 to the 1-5 economy): exactly
+      // once per take. Also progresses the daily dubbing quest.
+      if (xpGivenRef.current < XP_REWARDS.DUBBING_COMPLETE) {
         try {
-          await GamificationService.awardXP(10, 'dubbing_complete_private');
-          xpGivenRef.current = 10;
+          await GamificationService.awardXP(XP_REWARDS.DUBBING_COMPLETE, 'dubbing_complete_private');
+          await GamificationService.updateQuestProgress(QUEST_TYPES.DUBBING_TAKE, 1);
+          xpGivenRef.current = XP_REWARDS.DUBBING_COMPLETE;
         } catch (err) {
           log.warn('xp_failed', { error: err instanceof Error ? err.message : String(err) });
         }
@@ -316,10 +319,11 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
     try {
       await DubbingService.publishDubbing(dubbingId); // publish the SAME take
       setPublished(true);
-      // Top-up so the published total is exactly 15 (10 already granted).
-      if (xpGivenRef.current < 15) {
-        await GamificationService.awardXP(15 - xpGivenRef.current, 'dubbing_complete');
-        xpGivenRef.current = 15;
+      // Top-up so the published total is exactly DUBBING_PERFECT
+      // (DUBBING_COMPLETE already granted).
+      if (xpGivenRef.current < XP_REWARDS.DUBBING_PERFECT) {
+        await GamificationService.awardXP(XP_REWARDS.DUBBING_PERFECT - xpGivenRef.current, 'dubbing_complete');
+        xpGivenRef.current = XP_REWARDS.DUBBING_PERFECT;
       }
       toast.success('Shared with your class!');
     } catch (err) {

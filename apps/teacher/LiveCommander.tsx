@@ -21,6 +21,7 @@ import { SidebarPanel } from './live/sidebar/SidebarPanel';
 import { useTimer } from './live/hooks/useTimer';
 import { useNoiseDetection } from './live/hooks/useNoiseDetection';
 import { useAISuggestion } from './live/hooks/useAISuggestion';
+import Avatar from '../../components/shared/Avatar';
 
 interface LiveCommanderProps {
    onExit?: () => void;
@@ -250,7 +251,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
             return (
                <div className="bg-indigo-600/15 border-b border-indigo-500/30 px-4 py-2.5 flex items-center gap-3 shrink-0 z-20">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shrink-0">
-                     {picked?.avatar || (picked?.name?.[0]?.toUpperCase() || '?')}
+                     <Avatar src={picked?.avatar} rosterId={picked?.id} name={picked?.name} size={34} />
                   </div>
                   <div className="flex flex-col min-w-0">
                      <span className="text-[10px] uppercase tracking-widest text-indigo-300 font-bold">Now answering</span>
@@ -371,17 +372,17 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   <div className="bg-white rounded-2xl shadow-2xl p-4 flex flex-col items-center gap-3 w-64 border-4 border-indigo-500/20 relative">
                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45"></div>
                      <div className="flex items-center justify-between w-full pb-2 border-b border-slate-100">
-                        <div className="flex items-center gap-2"><div className="text-2xl">{activePointStudent.avatar}</div><span className="font-bold text-slate-800">{activePointStudent.name}</span></div>
+                        <div className="flex items-center gap-2"><Avatar src={activePointStudent.avatar} rosterId={activePointStudent.id} name={activePointStudent.name} size={32} /><span className="font-bold text-slate-800">{activePointStudent.name}</span></div>
                         <button onClick={() => setActivePointStudentId(null)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
                      </div>
                      <div className="flex items-center gap-2 w-full justify-between">
-                        <button onClick={() => addPoints(activePointStudent.id, -5)} className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold hover:bg-red-200 active:scale-95 transition-all">-5</button>
+                        <button onClick={() => addPoints(activePointStudent.id, -2)} className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold hover:bg-red-200 active:scale-95 transition-all">-2</button>
                         <button onClick={() => addPoints(activePointStudent.id, -1)} className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold hover:bg-slate-200 active:scale-95 transition-all">-1</button>
                         <div className="w-px h-8 bg-slate-200"></div>
                         <button onClick={() => addPoints(activePointStudent.id, 1)} className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold hover:bg-blue-200 active:scale-95 transition-all">+1</button>
-                        <button onClick={() => addPoints(activePointStudent.id, 5)} className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center font-bold hover:bg-green-200 active:scale-95 transition-all">+5</button>
+                        <button onClick={() => addPoints(activePointStudent.id, 2)} className="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center font-bold hover:bg-green-200 active:scale-95 transition-all">+2</button>
                      </div>
-                     <button onClick={() => addPoints(activePointStudent.id, 10)} className="w-full py-2 bg-yellow-400 text-yellow-900 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-yellow-300 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2"><Star size={14} fill="currentColor" /> Super Star (+10)</button>
+                     <button onClick={() => addPoints(activePointStudent.id, 5)} className="w-full py-2 bg-yellow-400 text-yellow-900 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-yellow-300 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2"><Star size={14} fill="currentColor" /> Super Star (+5)</button>
                   </div>
                </div>
             </div>
@@ -411,7 +412,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                      <button key={student.id} onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setTooltipLeft(rect.left + rect.width / 2); setActivePointStudentId(activePointStudentId === student.id ? null : student.id); }}
                         className={`group flex flex-col items-center gap-1 min-w-[50px] md:min-w-[60px] p-1 md:p-2 rounded-xl transition-all active:scale-95 ${activePointStudentId === student.id ? 'bg-indigo-900/50 ring-2 ring-indigo-500' : 'hover:bg-slate-800'}`}>
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base md:text-lg shadow-sm group-hover:border-pink-500/50 group-hover:shadow-[0_0_10px_rgba(236,72,153,0.2)] transition-all relative">
-                           {student.avatar}
+                           <Avatar src={student.avatar} rosterId={student.id} name={student.name} size={28} />
                            <div className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-slate-700 rounded-full flex items-center justify-center text-[6px] md:text-[8px] font-bold text-slate-300 border border-slate-600">{student.points}</div>
                         </div>
                         <span className={`text-[9px] md:text-[10px] font-bold truncate w-full text-center ${activePointStudentId === student.id ? 'text-indigo-300' : 'text-slate-500 group-hover:text-pink-400'}`}>{student.name}</span>
