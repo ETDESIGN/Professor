@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Image as ImageIcon, Music, Video, Loader2, Inbox } from 'lucide-react';
+import { Search, Image as ImageIcon, Music, Video, Loader2, Inbox, Volume2, RefreshCw, LayoutGrid, Rows3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
+import { MediaService } from '../../services/MediaService';
 import { deriveAssetCategory, ASSET_CATEGORIES, AssetCategory } from '../../services/assetCategory';
+
+interface WordImageRow {
+  word_key: string;
+  updated_at: string;
+  assets: { id: string; public_url: string; created_at: string } | null;
+}
 
 // Phase 3.1 — Resource Library (the vault). Wired to the real `assets` table
 // (advisor §6.4: "ResourceLibrary wired to assets instead of its hardcoded 6
@@ -77,11 +84,91 @@ const AssetCard: React.FC<{ asset: AssetRow; index: number }> = ({ asset, index 
   );
 };
 
+// Word-library flashcard (spec 2026-09-05 §3.3): front = canonical image,
+// tap flips to the word + audio (TTS is globally deduped → cache hit) +
+// regenerate (replaces the teacher's image for this word everywhere).
+const Flashcard: React.FC<{
+  wordKey: string; url: string; onRegenerated: (wordKey: string, url: string) => void;
+}> = ({ wordKey, url, onRegenerated }) => {
+  const [flipped, setFlipped] = useState(false);
+  const [busy, setBusy] = useState<'' | 'audio' | 'regen'>('');
+
+  const playAudio = async () => {
+    setBusy('audio');
+    try {
+      // Empty unitId keeps the edge call unitId-less (staff-gated) while the
+      // global TTS cache makes published words instant.
+      const audioUrl = await MediaService.getVocabAudio('', wordKey);
+      if (audioUrl) void new Audio(audioUrl).play().catch(() => undefined);
+    } finally { setBusy(''); }
+  };
+
+  const regenerate = async () => {
+    setBusy('regen');
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'generate-image', word: wordKey, regenerate: true },
+      });
+      if (!error && data?.url && !String(data.url).includes('dicebear')) onRegenerated(wordKey, data.url);
+    } finally { setBusy(''); }
+  };
+
+  return (
+    <div
+      onClick={() => setFlipped((f) => !f)}
+      className="cursor-pointer select-none aspect-square rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all relative"
+    >
+      {!flipped ? (
+        <img src={url} alt={wordKey} className="w-full h-full object-cover" loading="lazy" />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 bg-emerald-50">
+          <span className="text-2xl font-extrabold text-slate-800 capitalize text-center break-words">{wordKey}</span>
+          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={playAudio}
+              disabled={busy !== ''}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+            >
+              <Volume2 size={16} /> {busy === 'audio' ? '…' : 'Audio'}
+            </button>
+            <button
+              onClick={regenerate}
+              disabled={busy !== ''}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={busy === 'regen' ? 'animate-spin' : ''} /> New image
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-400">tap the card to flip back</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ResourceLibrary: React.FC = () => {
   const [filter, setFilter] = useState<AssetCategory | 'all'>('all');
   const [search, setSearch] = useState('');
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'flashcards'>('grid');
+  const [wordImages, setWordImages] = useState<WordImageRow[]>([]);
+
+  useEffect(() => {
+    if (viewMode !== 'flashcards' || wordImages.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('word_images')
+        .select('word_key, updated_at, assets(id, public_url, created_at)')
+        .order('updated_at', { ascending: false });
+      // Generated types model the assets embed as an array; PostgREST returns
+      // a single object for this many-to-one embed — normalize through any.
+      const rows = (Array.isArray(data) ? data : []) as any[];
+      if (!cancelled) setWordImages(rows.filter((r) => r?.assets?.public_url));
+    })();
+    return () => { cancelled = true; };
+  }, [viewMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -157,10 +244,46 @@ const ResourceLibrary: React.FC = () => {
             </button>
           ))}
         </div>
+        {filter === 'vocabulary' && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold ${viewMode === 'grid' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}
+            ><Rows3 size={16} /> Grid</button>
+            <button
+              onClick={() => setViewMode('flashcards')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold ${viewMode === 'flashcards' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'}`}
+            ><LayoutGrid size={16} /> Flashcards</button>
+          </div>
+        )}
       </div>
 
-      {/* Grid / states */}
-      {loading ? (
+      {/* Flashcards / grid / states */}
+      {viewMode === 'flashcards' && filter === 'vocabulary' ? (
+        wordImages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+            <LayoutGrid size={48} className="mb-3 opacity-40" />
+            <p className="font-medium text-slate-500">No word images yet</p>
+            <p className="text-sm mt-1">They appear as units generate vocabulary media.</p>
+          </div>
+        ) : (
+          <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {wordImages
+              .filter((w) => !search.trim() || w.word_key.includes(search.trim().toLowerCase()))
+              .map((w) => (
+                <Flashcard
+                  key={w.word_key}
+                  wordKey={w.word_key}
+                  url={w.assets!.public_url}
+                  onRegenerated={(wordKey, newUrl) =>
+                    setWordImages((prev) => prev.map((r) => r.word_key === wordKey
+                      ? { ...r, assets: r.assets ? { ...r.assets, public_url: newUrl } : r.assets, updated_at: new Date().toISOString() }
+                      : r))}
+                />
+              ))}
+          </motion.div>
+        )
+      ) : loading ? (
         <div className="flex items-center justify-center py-24 text-slate-400">
           <Loader2 size={28} className="animate-spin" />
         </div>
