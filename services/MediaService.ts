@@ -46,6 +46,7 @@ export const MediaService = {
       unitId,
       prompt,
       surface: 'vocab',
+      word,
     });
     const url = result?.url || '';
     if (url && !url.includes('dicebear')) cache.images.set(cacheKey, url);
@@ -92,9 +93,13 @@ export const MediaService = {
 
   async generateBatch(
     unitId: string,
-    items: { key: string; imagePrompt?: string; audioText?: string }[]
+    items: { key: string; word?: string; imageUrl?: string; imagePrompt?: string; audioText?: string }[]
   ): Promise<{ images: Record<string, string>; audios: Record<string, string> }> {
-    const images = items.filter(i => i.imagePrompt).map(i => ({ key: i.key, prompt: i.imagePrompt }));
+    // Words that already point at a real image are never re-queued (spec
+    // 2026-09-05 §3.2: the student preload used to re-batch every word on
+    // every lesson open).
+    const needsImage = (i: { imageUrl?: string }) => !i.imageUrl || /dicebear\.com|pollinations\.ai/i.test(i.imageUrl);
+    const images = items.filter(i => i.imagePrompt && needsImage(i)).map(i => ({ key: i.key, word: i.word || i.key, prompt: i.imagePrompt }));
     const audios = items.filter(i => i.audioText).map(i => ({ key: i.key, text: i.audioText }));
 
     if (images.length === 0 && audios.length === 0) {
@@ -123,7 +128,7 @@ export const MediaService = {
     return results;
   },
 
-  async preloadUnitAssets(unitId: string, vocabulary: { word: string; context_sentence?: string }[]): Promise<void> {
+  async preloadUnitAssets(unitId: string, vocabulary: { word: string; context_sentence?: string; image_url?: string }[]): Promise<void> {
     const key = `${unitId}:preload`;
     if (preloadQueue.has(key)) return;
     preloadQueue.add(key);
@@ -134,6 +139,8 @@ export const MediaService = {
     try {
       const items = vocabulary.map(v => ({
         key: v.word,
+        word: v.word,
+        imageUrl: v.image_url,
         imagePrompt: `Illustration of "${v.word}" for children's English lesson`,
         audioText: v.context_sentence || v.word,
       }));

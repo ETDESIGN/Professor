@@ -316,7 +316,12 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
 
       try {
         const { data, error } = await supabase.functions.invoke('generate-media', {
-          body: { action: 'generate-image', unitId, prompt }
+          body: {
+            action: 'generate-image', unitId, prompt,
+            // Word library (spec 2026-09-05): vocabulary dedups per (owner,
+            // word) across units; characters stay unit-scoped via prompt.
+            ...(category === 'vocabulary' && item.word ? { word: item.word } : {}),
+          }
         });
 
         if (error) throw error;

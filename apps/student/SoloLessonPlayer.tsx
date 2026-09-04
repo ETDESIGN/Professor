@@ -105,6 +105,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       const vocab = getVocabulary(unit.manifest).map(v => ({
         word: v.word,
         context_sentence: v.example_sentence,
+        image_url: (v as any).image_url,
       }));
       if (vocab.length > 0) {
         MediaService.preloadUnitAssets(unit.id, vocab);
