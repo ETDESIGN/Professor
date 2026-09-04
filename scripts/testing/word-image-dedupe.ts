@@ -123,9 +123,11 @@ async function main() {
       });
     }
     for (const r of p.repoint) {
+      // vocabulary_items has no image_status column (that's a manifest field)
+      // — only the URL is repointed here.
       await api(`/rest/v1/vocabulary_items?id=eq.${r.rowId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ image_url: p.winnerUrl, image_status: 'ready' }),
+        body: JSON.stringify({ image_url: p.winnerUrl }),
       });
     }
     for (const assetId of p.retireAssetIds) {

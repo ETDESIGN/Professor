@@ -1,0 +1,107 @@
+{
+ "date": "2026-09-05",
+ "retiring_assets": [
+  {
+   "id": "09e9b59f-76a8-401a-be04-843646dee9d4",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997607393.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "b8bc1790-6ac8-437c-83fa-a21e14e75e66",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997620038.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "a2aada10-39aa-4827-9853-23b4ee995f2c",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997635540.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "c3fe5920-9ff5-4c19-b1db-6ff507e6a322",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997647917.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "8a1cad80-7e71-4a0c-9991-86b05e2a1582",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997659399.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "e5217791-9f24-4fa4-8c33-bf62d93a0189",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997671696.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "2f87f089-5e4b-4891-a54b-09d7be8df9d3",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997684239.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "8e0969d3-d45f-48f4-bcaa-a5d411107f39",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997698131.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "ffdd86d6-c35a-439f-8e5a-2f6105ccaee1",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997710952.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "b8ec1883-6e6e-43c5-b9c2-e2ec0b2c234c",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997724161.jpeg",
+   "owner_id": null
+  },
+  {
+   "id": "3bb0920f-764a-40ff-a460-4a98dca48a7b",
+   "public_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997738912.jpeg",
+   "owner_id": null
+  }
+ ],
+ "repoint_pairs": [
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997738912.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112455493.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997659399.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112473161.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997710952.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112450216.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997724161.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112453104.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997647917.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112467047.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997620038.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112461661.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997684239.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112442049.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997698131.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112441069.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997607393.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112440012.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997635540.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112463288.jpeg"
+  },
+  {
+   "old_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/c6acde58-be39-4524-bbf3-d71d8ae9b3a6/1787997671696.jpeg",
+   "new_url": "https://xsdnzijketjnzhakqtit.supabase.co/storage/v1/object/public/generated-media/images/1205a3d4-f892-4a59-9c1b-204d9fa6c3d6/1788112474876.jpeg"
+  }
+ ],
+ "reverse_instructions": "1) update assets set is_deleted=false where id in (retiring_assets[].id); 2) reverse each repoint_pairs old<->new on vocabulary_items.image_url + pool_items.content; 3) delete word_images rows for the affected word_keys."
+}
