@@ -5,10 +5,11 @@
 // clean master (alignment by construction — spec §2.4).
 
 export const AVATAR_HOUSE_STYLE = [
-  'cute chibi cartoon character mascot, full body standing facing the camera',
-  'extremely large round head that is 45% of total height, big expressive eyes, tiny body',
-  'completely flat cel shading with soft simple shadows, no hatching, no sketch lines, no texture, thick clean uniform outlines, sticker-like vector art',
+  '2D flat vector sticker art, mobile game avatar for kids, cute chibi character mascot',
+  'full body standing facing the camera, extremely large round head that is 45% of total height, big expressive eyes, tiny body',
+  'completely flat colors with simple cel shadows, thick clean uniform outlines',
   'bright cheerful children\'s video game palette',
+  'STRICTLY flat cartoon style: NO watercolor, NO ink wash, NO painting texture, NO airbrush, NO realistic shading, NO paper texture',
   'character fills 70% of canvas height, perfectly centered',
   'plain pure white background, no text, no watermark, no ground shadow',
 ].join(', ');

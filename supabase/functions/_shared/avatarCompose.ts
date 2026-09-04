@@ -126,9 +126,11 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
   if (!profiles || profiles.length === 0) return { ok: false, error: 'profile_not_found' };
   const config = normalizeConfig(profiles[0].avatar_config);
 
-  // 2) Deterministic cache key (canonical: sorted "slot:id" pairs).
+  // 2) Deterministic cache key (canonical: sorted "slot:id" pairs). ART_VERSION
+  //    invalidates render caches when the underlying layer art is regenerated
+  //    (the config alone can't see art changes). Bump on wholesale art refresh.
   const itemParts = SLOTS.filter((s) => config.items[s]).map((s) => `${s}:${config.items[s]}`).sort();
-  const canonical = JSON.stringify({ version: 1, body: config.body, skin: config.skin, items: itemParts });
+  const canonical = JSON.stringify({ version: 1, art: 3, body: config.body, skin: config.skin, items: itemParts });
   const hash = await sha256Hex16(canonical);
 
   const basePath = `avatars/renders/${userId}/${hash}`;

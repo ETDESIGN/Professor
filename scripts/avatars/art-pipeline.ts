@@ -220,20 +220,27 @@ async function phaseMasters(ctx: Ctx, only?: string[]) {
   void skinPrompt;
 }
 
-async function phaseItems(ctx: Ctx, only?: string[], limit?: number) {
-  // Standalone (product-style) renders: white bg, no character. Placement
-  // happens locally at fixed anchor rects (phase: process).
+async function phaseItems(ctx: Ctx, only?: string[], limit?: number, mode: 'standalone' | 'i2i' = 'standalone') {
   let n = 0;
   for (const item of ITEMS) {
     if (only && !only.includes(item.id)) continue;
     if (limit && n >= limit) break;
+    if (mode === 'i2i' && item.slot === 'background') continue; // backgrounds stay full-canvas art
     const existing = fs.readdirSync(DIRS.raw).some((f) => f.startsWith(`${item.id}.`) || f === `${item.id}.png`);
     if (existing) { console.log(`· ${item.id}: raw exists, skipping`); continue; }
     const outPath = `avatars/artifacts/item/${item.id}/${Date.now()}.png`;
-    await genAndSave(ctx, standaloneItemPrompt(item), [], outPath, DIRS.raw, item.id, idSeed(item.id));
+    if (mode === 'i2i') {
+      // Full-character render wearing the item against the FLAT master —
+      // the layer is then isolated by diffing (alignment by construction).
+      const masterBody = item.onBody || 'human_boy';
+      const refUrl = publicUrl(`avatars/bases/${masterBody}_skin1_ref.png`);
+      await genAndSave(ctx, itemPrompt(item), [refUrl], outPath, DIRS.raw, item.id, idSeed(item.id));
+    } else {
+      await genAndSave(ctx, standaloneItemPrompt(item), [], outPath, DIRS.raw, item.id, idSeed(item.id));
+    }
     n++;
   }
-  void itemPrompt;
+  void standaloneItemPrompt;
 }
 
 function idSeed(id: string): number {
@@ -311,7 +318,9 @@ function despeckle(mask: Uint8Array, w: number, h: number, passes = 2): Uint8Arr
 
 async function diffExtract(item: { id: string; slot: string; onBody?: string }): Promise<{ ok: boolean; coverage: number; reason?: string }> {
   const masterBody = item.onBody || 'human_boy';
-  const masterBuf = fs.readFileSync(path.join(DIRS.masters, `${masterBody}_skin1.png`));
+  const refPath = path.join(DIRS.masters, `${masterBody}_skin1_ref.png`);
+  const plainPath = path.join(DIRS.masters, `${masterBody}_skin1.png`);
+  const masterBuf = fs.readFileSync(fs.existsSync(refPath) ? refPath : plainPath);
   const rawFiles = fs.readdirSync(DIRS.raw).filter((f) => f.startsWith(`${item.id}.`) || f === `${item.id}.png`).sort();
   if (rawFiles.length === 0) return { ok: false, coverage: 0, reason: 'no_raw' };
   const dressedBuf = fs.readFileSync(path.join(DIRS.raw, rawFiles[rawFiles.length - 1]));
@@ -406,6 +415,10 @@ async function processMaster(name: string): Promise<{ ok: boolean; reason?: stri
   const layer = await sharp({ create: { width: W, height: W, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
     .composite([{ input: sprite, left, top }]).png().toBuffer();
   fs.writeFileSync(src, layer); // replace the local master with the processed one
+  // White-flattened reference for i2i generation (seedream paints alpha as a
+  // checkerboard — references must be opaque).
+  const flat = await sharp(layer).flatten({ background: '#ffffff' }).png().toBuffer();
+  fs.writeFileSync(src.replace('.png', '_ref.png'), flat);
   return { ok: true };
 }
 
@@ -419,7 +432,9 @@ async function phaseProcessMasters(ctx: Ctx, only?: string[]) {
         const r = await processMaster(name);
         if (!r.ok) { console.log(`✗ ${name} ${r.reason}`); continue; }
         await upload(ctx, `avatars/bases/${name}`, fs.readFileSync(path.join(DIRS.masters, name)), 'image/png');
-        console.log(`✓ ${name}`);
+        const refName = name.replace('.png', '_ref.png');
+        await upload(ctx, `avatars/bases/${refName}`, fs.readFileSync(path.join(DIRS.masters, refName)), 'image/png');
+        console.log(`✓ ${name} (+ref)`);
       } catch (e: any) {
         console.log(`✗ ${name} — ${e.message.slice(0, 100)}`);
       }
@@ -767,7 +782,7 @@ async function main() {
   console.log(`bootstrap ok (service keys: ${ctx.serviceKeys.length})`);
 
   if (phase === 'masters') await phaseMasters(ctx, only);
-  else if (phase === 'items') await phaseItems(ctx, only, Number(flag('limit') || 0) || undefined);
+  else if (phase === 'items') await phaseItems(ctx, only, Number(flag('limit') || 0) || undefined, (flag('mode') as 'standalone' | 'i2i') || 'standalone');
   else if (phase === 'extract') await phaseExtract(only);
   else if (phase === 'process') await phaseProcess(only);
   else if (phase === 'process-masters') await phaseProcessMasters(ctx, only);
