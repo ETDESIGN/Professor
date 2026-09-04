@@ -467,7 +467,7 @@ serve(async (req) => {
     const needImage = vocabWithImages.filter((v) => v.word && !isRealImage(v.image_url));
     if (needImage.length > 0) {
       const imgResults = await mapWithConcurrency(needImage, 3, (v) =>
-        generateAndStoreImage(v.image_prompt || `Illustration of ${v.word} for children`, unitId).then((r) => ({ word: v.word, url: r.url })),
+        generateAndStoreImage(v.image_prompt || `Illustration of ${v.word} for children`, unitId, v.word).then((r) => ({ word: v.word, url: r.url })),
       );
       const imgMap = new Map(imgResults.filter((r) => r.url && isRealImage(r.url)).map((r) => [r.word, r.url]));
       vocabWithImages.forEach((v) => {

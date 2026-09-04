@@ -3,6 +3,7 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { generateAndStoreImage } from '../_shared/imageGen.ts';
 import { generateCover, generatePortrait, generateStoryPageScene, generateIllustration, fetchUnitArtContext } from '../_shared/illustration.ts';
+import { ensureWordImage } from '../_shared/wordImage.ts';
 import { serviceRoleKey } from '../_shared/serviceKey.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -27,8 +28,8 @@ import { normalizeManifest } from '../_shared/manifest.ts';
 
 // --- single-item generators (shared by their action and by `batch`) ---
 
-async function generateImage(unitId: string, prompt: string): Promise<{ url: string; provider?: string; error?: string }> {
-  return generateAndStoreImage(prompt, unitId);
+async function generateImage(unitId: string, prompt: string, word?: string): Promise<{ url: string; provider?: string; error?: string }> {
+  return generateAndStoreImage(prompt, unitId, word);
 }
 
 async function generateAudio(
@@ -154,6 +155,16 @@ serve(async (req) => {
             : (auth?.role === 'admin');
           if (!ownerOk) throw new Error('You do not own this unit');
         }
+        // Word library (spec 2026-09-05): vocab + word → per-teacher canonical
+        // image, reused across units. Owner = unit's teacher (admins backfill
+        // the unit owner's library); unitId-less staff calls own their own.
+        if (surface === 'vocab' && body.word && (ctx?.teacherId || auth?.userId)) {
+          return ensureWordImage({
+            sb, unitId: unitId || 'default', word: String(body.word),
+            ownerId: String(ctx?.teacherId || auth?.userId),
+            regenerate: Boolean(body.regenerate),
+          });
+        }
         return generateIllustration({
           sb, unitId: unitId || 'default', surface, content: prompt || 'Educational item',
           context: ctx || { title: 'Unit', topic: null, artDirection: null },
@@ -196,7 +207,7 @@ serve(async (req) => {
         const results: { images: Record<string, string>; audios: Record<string, string> } = { images: {}, audios: {} };
 
         if (Array.isArray(images)) {
-          const imgOut = await mapWithConcurrency(images, 4, (img) => generateImage(unitId, img.prompt));
+          const imgOut = await mapWithConcurrency(images, 4, (img) => generateImage(unitId, img.prompt, img.word || img.key));
           images.forEach((img: any, i: number) => {
             if (imgOut[i]?.url) results.images[img.key] = imgOut[i].url;
           });
