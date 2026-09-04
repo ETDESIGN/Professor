@@ -93,10 +93,13 @@ RETURNS JSONB
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
+    -- NOTE (fixed 2026-09-05): jsonb || is a RIGHT-wins merge — defaults
+    -- MUST come FIRST or they clobber the stored body/skin on every RPC read
+    -- (equipping any item silently reset species/body to human_boy).
     SELECT COALESCE(
-        NULLIF(p.avatar_config::text, '')::jsonb
-            || '{"version":1,"body":"human_boy","skin":1}'::jsonb
-            || jsonb_build_object('items', COALESCE(NULLIF(p.avatar_config::text,'')::jsonb -> 'items', '{}'::jsonb)),
+        ('{"version":1,"body":"human_boy","skin":1}'::jsonb
+            || NULLIF(p.avatar_config::text, '')::jsonb)
+        || jsonb_build_object('items', COALESCE(NULLIF(p.avatar_config::text, '')::jsonb -> 'items', '{}'::jsonb)),
         '{"version":1,"body":"human_boy","skin":1,"items":{}}'::jsonb
     )
     FROM public.profiles p

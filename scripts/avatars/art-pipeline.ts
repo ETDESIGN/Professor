@@ -496,6 +496,37 @@ function largestComponent(alpha: Buffer): { alpha: Buffer; keptPct: number } {
   return { alpha: out, keptPct: best.length / (W * W) };
 }
 
+
+/** Skin-key: item layers generated on the BOY master carry face-skin pixels
+ *  around the item — invisible on the boy, a face-ghost overlay on every
+ *  other body. Key the human-skin band (hue 6-40deg, sat 0.12-0.6, val
+ *  0.35-0.95 — orange beanies at sat ~1.0 and dark outlines survive). */
+function skinKeyAlpha(rgba: Buffer, alpha: Buffer): { removedPct: number } {
+  let removed = 0;
+  let content = 0;
+  for (let i = 0, p = 0; i < W * W; i++, p += 4) {
+    if (alpha[i] === 0) continue;
+    content++;
+    const r = rgba[p] / 255, g = rgba[p + 1] / 255, b = rgba[p + 2] / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const v = max;
+    const d = max - min;
+    if (v < 0.35 || v > 0.98 || d === 0) continue;
+    const sat = d / max;
+    if (sat < 0.12 || sat > 0.60) continue;
+    let h = 0;
+    if (max === r) h = 60 * (((g - b) / d) % 6);
+    else if (max === g) h = 60 * ((b - r) / d + 2);
+    else h = 60 * ((r - g) / d + 4);
+    if (h < 0) h += 360;
+    if (h >= 6 && h <= 40) {
+      alpha[i] = 0;
+      removed++;
+    }
+  }
+  return { removedPct: content ? removed / content : 0 };
+}
+
 /** Feather a binary alpha mask. sharp returns blurred 1-ch input as 3-ch
  *  interleaved raw — index accordingly (this bug corrupted every asset on
  *  2026-09-04: streaked semi-transparent layers). */
@@ -618,9 +649,12 @@ async function processItem(item: { id: string; slot: string; onBody?: string }):
     }
     if (removedPct < 0.12) return { ok: false, reason: `bg_removal_only_${(removedPct * 100).toFixed(0)}%` };
   }
-  // Drop disconnected scene fragments.
+  // Drop disconnected scene fragments, then key out carried skin pixels
+  // (items render with the boy's face skin around them).
   const cc = largestComponent(alpha);
   if (cc.keptPct > 0.003) alpha = cc.alpha;
+  const sk = skinKeyAlpha(rgba, alpha);
+  if (sk.removedPct > 0.65) return { ok: false, reason: `skinkey_ate_${(sk.removedPct * 100).toFixed(0)}% (item is skin-toned?)` };
 
   // Feather the alpha edge by 1px, then extract color+alpha into one RGBA png.
   const soft = await featherAlpha(alpha);
