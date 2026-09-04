@@ -130,7 +130,7 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
   //    invalidates render caches when the underlying layer art is regenerated
   //    (the config alone can't see art changes). Bump on wholesale art refresh.
   const itemParts = SLOTS.filter((s) => config.items[s]).map((s) => `${s}:${config.items[s]}`).sort();
-  const canonical = JSON.stringify({ version: 1, art: 3, body: config.body, skin: config.skin, items: itemParts });
+  const canonical = JSON.stringify({ version: 1, art: 4, body: config.body, skin: config.skin, items: itemParts });
   const hash = await sha256Hex16(canonical);
 
   const basePath = `avatars/renders/${userId}/${hash}`;

@@ -278,11 +278,12 @@ async function genAndSave(ctx: Ctx, prompt: string, refs: string[], outPath: str
   }
   if (!res.ok) throw new Error(`generate ${localName}: ${res.error}`);
   let buf = await download(res.url);
-  // flux returns 768² — normalize EVERYTHING to the 1024 sacred canvas and
-  // re-upload so storage and local artifacts always agree.
+  // Normalize EVERYTHING to the pipeline contract: 1024 sacred canvas, NO
+  // alpha (flatten over white — seedream sometimes returns sticker-style
+  // die-cuts with native alpha, which the extraction path doesn't expect).
   const meta = await sharp(buf).metadata();
-  if ((meta.width || 0) !== 1024 || (meta.height || 0) !== 1024) {
-    buf = await sharp(buf).resize(1024, 1024, { fit: 'fill' }).png().toBuffer();
+  if ((meta.width || 0) !== 1024 || (meta.height || 0) !== 1024 || meta.hasAlpha) {
+    buf = await sharp(buf).flatten({ background: '#ffffff' }).resize(1024, 1024, { fit: 'fill' }).png().toBuffer();
     await upload(ctx, outPath, buf, 'image/png');
   }
   fs.writeFileSync(path.join(localDir, `${localName}.png`), buf);
@@ -391,10 +392,19 @@ async function processMaster(name: string): Promise<{ ok: boolean; reason?: stri
   const src = path.join(DIRS.masters, name);
   if (!fs.existsSync(src)) return { ok: false, reason: 'missing' };
   const rgba = await sharp(src).ensureAlpha().resize(W, W, { fit: 'fill' }).raw().toBuffer();
+  // Guard against double-processing: an already-transparent master (from a
+  // previous run) must not be flooded again — that eats its dark pixels.
+  let alreadyOpaque = 0;
+  for (let i = 3; i < rgba.length; i += 4) if (rgba[i] > 200) alreadyOpaque++;
+  const isRawWhiteBg = alreadyOpaque / (W * W) > 0.85;
+  if (!isRawWhiteBg) {
+    const refName = name.replace('.png', '_ref.png');
+    if (fs.existsSync(path.join(DIRS.masters, refName))) return { ok: true, reason: 'already processed' };
+    return { ok: false, reason: 'not a raw white-bg master' };
+  }
   const { alpha, removedPct } = floodBackgroundAlpha(rgba);
   if (removedPct < 0.20) return { ok: false, reason: `bg_removal_only_${(removedPct * 100).toFixed(0)}%` };
-  const soft = await sharp(Buffer.from(alpha), { raw: { width: W, height: W, channels: 1 } })
-    .blur(0.8).raw().toBuffer();
+  const soft = await featherAlpha(alpha);
   const out = Buffer.allocUnsafe(W * W * 4);
   for (let i = 0, p = 0; i < W * W; i++, p += 4) {
     out[p] = rgba[p]; out[p + 1] = rgba[p + 1]; out[p + 2] = rgba[p + 2];
@@ -451,6 +461,19 @@ const W = 1024;
  * the borders accepting pixels close to the global bg OR a small step from
  * the neighbor they were reached from (follows gradients/vignettes).
  */
+
+/** Feather a binary alpha mask. sharp returns blurred 1-ch input as 3-ch
+ *  interleaved raw — index accordingly (this bug corrupted every asset on
+ *  2026-09-04: streaked semi-transparent layers). */
+async function featherAlpha(alpha: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(Buffer.from(alpha), { raw: { width: W, height: W, channels: 1 } })
+    .blur(0.8).raw().toBuffer({ resolveWithObject: true });
+  const ch = info.channels;
+  const out = Buffer.allocUnsafe(W * W);
+  for (let i = 0; i < W * W; i++) out[i] = data[i * ch];
+  return out;
+}
+
 /** Chroma-key: if the border mode color is green-dominant, key every
  *  green-dominant pixel (g > r+40 && g > b+40), with despill on edges. */
 function chromaKeyGreen(rgba: Buffer): { alpha: Buffer; removedPct: number } | null {
@@ -555,8 +578,7 @@ async function processItem(item: { id: string; slot: string; onBody?: string }):
   if (removedPct < 0.12) return { ok: false, reason: `bg_removal_only_${(removedPct * 100).toFixed(0)}%` };
 
   // Feather the alpha edge by 1px, then extract color+alpha into one RGBA png.
-  const soft = await sharp(Buffer.from(alpha), { raw: { width: W, height: W, channels: 1 } })
-    .blur(0.8).raw().toBuffer();
+  const soft = await featherAlpha(alpha);
   const out = Buffer.allocUnsafe(W * W * 4);
   for (let i = 0, p = 0; i < W * W; i++, p += 4) {
     out[p] = rgba[p]; out[p + 1] = rgba[p + 1]; out[p + 2] = rgba[p + 2];
