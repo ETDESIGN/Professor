@@ -134,6 +134,7 @@ export async function findAssetByHash(cfg: SupabaseRestConfig, promptHash: strin
 }
 
 export interface AssetRowInput {
+  owner_id?: string | null;
   unit_id?: string | null;
   type?: string;
   kind?: string;

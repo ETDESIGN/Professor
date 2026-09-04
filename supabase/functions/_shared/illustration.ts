@@ -83,13 +83,18 @@ async function runOneImage(cfg: { ill: IllustrationConfig; model: string }, prom
 export async function generateIllustration(opts: {
   sb: SupabaseClient; unitId: string; surface: Surface; content: string;
   context: UnitArtContext; inputReferences?: string[]; regenerate?: boolean;
+  ownerId?: string | null; metadata?: Record<string, unknown>;
 }): Promise<{ url: string; assetId?: string; cached?: boolean; error?: string }> {
   const cfg = envConfig();
   if (!cfg) return { url: DICEBEAR(opts.content), error: 'Illustration not configured (AI_API_KEY/SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)' };
 
   const finalPrompt = composePrompt(opts.surface, opts.context, opts.content);
   const refs = (opts.inputReferences || []).filter(Boolean);
-  const hash = await promptHashFor(cfg.model, finalPrompt, refs);
+  // Word-library safety: the owner lives in the hash input (refs slot). Vocab
+  // prompts are unit-context-free and identical cross-teacher — without this
+  // the unique (prompt_hash, type) index would 409 across owners and the
+  // repoint path would overwrite another teacher's image.
+  const hash = await promptHashFor(cfg.model, finalPrompt, opts.ownerId ? [opts.ownerId, ...refs] : refs);
 
   if (!opts.regenerate) {
     const cached = await findAssetByHash(cfg.rest, hash);
@@ -113,11 +118,13 @@ export async function generateIllustration(opts: {
 
   const { id: assetId, conflict } = await insertAssetRow(cfg.rest, {
     unit_id: opts.unitId || null,
+    owner_id: opts.ownerId || null,
     prompt: finalPrompt,
     prompt_hash: hash,
     model: gen.model,
     storage_path: `images/${opts.unitId || 'default'}`,
     public_url: publicUrl,
+    metadata: opts.metadata,
   });
   let finalUrl = publicUrl;
   let finalAssetId = assetId;
