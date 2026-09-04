@@ -23,6 +23,7 @@ import {
   syncClassPlanFlows,
   upsertMediaAsset,
 } from '../_shared/mediaResolver.ts';
+import { normalizeManifest } from '../_shared/manifest.ts';
 
 // --- single-item generators (shared by their action and by `batch`) ---
 
@@ -240,7 +241,12 @@ serve(async (req) => {
 
         // Age context: the live class's teacher-declared grade when a class is
         // bound (and owned by the caller), else the manifest's CEFR guess.
-        let ageBand = ageBandFromManifest(unit.manifest);
+        // normalizeManifest reads the REAL manifest shapes (enriched_content /
+        // knowledge_graph / flat) — reading manifest.vocabulary directly was
+        // the owner-reported bug: real manifests carry content under
+        // enriched_content, so the flat reads produced EMPTY scoring inputs.
+        const canonical = normalizeManifest(unit.manifest);
+        let ageBand = ageBandFromGrade(canonical.meta?.difficulty_cefr) || ageBandFromManifest(unit.manifest);
         let ageSource = ageBand ? 'manifest' : 'none';
         const classId = String(body.classId || '');
         if (classId) {
@@ -258,20 +264,23 @@ serve(async (req) => {
         const before = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl).length;
         if (before === 0) return { success: true, resolvedCount: 0, message: 'No unresolved MEDIA_PLAYER blocks.', ageBand, ageSource };
 
-        const vocab = Array.isArray(unit.manifest?.vocabulary)
-          ? unit.manifest.vocabulary.map((v: any) => v?.word).filter(Boolean).slice(0, 20)
-          : [];
+        const vocab = canonical.vocabulary.map((v: any) => v?.word).filter(Boolean).slice(0, 20);
         const suggestions = [
-          ...(Array.isArray(unit.manifest?.song_suggestions) ? unit.manifest.song_suggestions : []),
-          ...(Array.isArray(unit.manifest?.video_suggestions) ? unit.manifest.video_suggestions : []),
+          ...(Array.isArray(canonical.song_suggestions) ? canonical.song_suggestions : []),
+          ...(Array.isArray(canonical.video_suggestions) ? canonical.video_suggestions : []),
         ];
 
         // Hard budget: the ladder must never approach the edge wall-clock limit.
+        // Topic precedence: the enriched content's topic is the SPECIFIC lesson
+        // topic ("A Day at the Zoo"); the unit column / meta.theme are coarser
+        // ("Animals and nature") — specific first, coarse as fallback.
+        const rawEc = unit.manifest?.enriched_content;
+        const resolveTopic = rawEc?.topic || unit.topic || canonical.meta?.theme || null;
         const deadlineMs = Date.now() + 45000;
         const { resolved, rungs } = await resolveMediaForFlow(sb, flow, {
           unitId: unit.id,
           teacherId: unit.teacher_id || null,
-          topic: unit.topic || unit.manifest?.topic || null,
+          topic: resolveTopic,
           vocab,
           ageBand,
           suggestions,

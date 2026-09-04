@@ -6,7 +6,7 @@ import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 import { validateAndNormalizeFlow } from '../_shared/flowTypes.ts';
 import { normalizeManifest, CanonicalManifest } from '../_shared/manifest.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
-import { ageBandFromManifest, resolveMediaForFlow } from '../_shared/mediaResolver.ts';
+import { ageBandFromGrade, resolveMediaForFlow } from '../_shared/mediaResolver.ts';
 
 interface VocabItem {
   word: string;
@@ -668,12 +668,15 @@ serve(async (req) => {
       // MEDIA_PLAYER block BEFORE the flow is persisted, so the saved flow
       // carries a playable videoUrl from the start. Deadline-bounded and
       // never fatal — on failure the block keeps its honest suggestion state.
+      // Age band comes from the CANONICAL manifest (toFlowAssets drops
+      // gradeLevel/meta — passing assetsForFlow here lost the age point and
+      // stranded topic-only matches below the threshold; owner-reported bug).
       try {
         const mediaOut = await resolveMediaForFlow(sbClient, flow, {
           unitId,
           topic: assetsForFlow?.topic || null,
           vocab: (assetsForFlow?.vocabulary || []).map((v: any) => v?.word).filter(Boolean).slice(0, 20),
-          ageBand: ageBandFromManifest(assetsForFlow),
+          ageBand: ageBandFromGrade(canonical?.meta?.difficulty_cefr),
           suggestions: [
             ...(Array.isArray(assetsForFlow?.song_suggestions) ? assetsForFlow.song_suggestions : []),
             ...(Array.isArray(assetsForFlow?.video_suggestions) ? assetsForFlow.video_suggestions : []),

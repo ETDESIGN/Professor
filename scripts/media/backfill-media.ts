@@ -19,7 +19,7 @@
 // Idempotent: only touches MEDIA_PLAYER blocks without videoUrl/audioUrl.
 
 import {
-  ageBandFromManifest,
+  ageBandFromGrade,
   scoreCatalogEntry,
   autoApplyAllowed,
   type AgeBand,
@@ -117,11 +117,15 @@ for (const unit of units) {
   const unresolved = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl);
   if (unresolved.length === 0) { alreadyResolved++; continue; }
 
-  const vocab = Array.isArray(unit.manifest?.vocabulary)
-    ? unit.manifest.vocabulary.map((v: any) => v?.word).filter(Boolean).slice(0, 20)
+  // Real manifests carry content under enriched_content (flat keys are the
+  // legacy shape) — same normalization lesson as the resolve-media fix.
+  const mf = unit.manifest || {};
+  const ec = mf.enriched_content && typeof mf.enriched_content === 'object' ? mf.enriched_content : {};
+  const vocab = Array.isArray(ec.vocabulary)
+    ? ec.vocabulary.map((v: any) => v?.word).filter(Boolean).slice(0, 20)
     : [];
-  const ageBand = ageBandFromManifest(unit.manifest);
-  const topic = unit.topic || unit.manifest?.topic || null;
+  const ageBand = ageBandFromGrade(mf.meta?.difficulty_cefr || ec.gradeLevel);
+  const topic = ec.topic || unit.topic || null;
   let changed = false;
   // A unit with several unresolved media steps should get DISTINCT videos —
   // without this, one topic match repeats across every block.

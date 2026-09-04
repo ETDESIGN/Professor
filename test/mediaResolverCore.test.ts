@@ -16,6 +16,7 @@ import {
   scoreCatalogEntry,
   autoApplyAllowed,
   type MediaCandidate,
+  type AgeBand,
 } from '../supabase/functions/_shared/mediaResolverCore';
 
 describe('ageBandFromGrade — teacher-declared grades map to bands', () => {
@@ -148,8 +149,8 @@ describe('rankCandidates — deterministic preference order', () => {
 });
 
 describe('scoreCatalogEntry — catalog match scoring (ladder rungs 1-3)', () => {
-  const entry = (over: Partial<Parameters<typeof scoreCatalogEntry>[0]>) =>
-    ({ title: 'One Little Finger | Kids Song', topics: ['body'], ageBands: ['toddler', 'early_primary'], ...over });
+  const entry = (over: Partial<{ title: string; topics: string[]; ageBands: AgeBand[] }> = {}) =>
+    ({ title: 'One Little Finger | Kids Song', topics: ['body'], ageBands: ['toddler', 'early_primary'] as AgeBand[], ...over });
 
   it('exact-ish suggestion title match dominates (rung 2)', () => {
     const s = scoreCatalogEntry(entry({}), {
@@ -171,6 +172,17 @@ describe('scoreCatalogEntry — catalog match scoring (ladder rungs 1-3)', () =>
     const none = scoreCatalogEntry(entry({}), { kind: 'song', topic: 'body', vocab: [] });
     const withVocab = scoreCatalogEntry(entry({}), { kind: 'song', topic: 'body', vocab: ['finger', 'head', 'arm'] });
     expect(withVocab).toBeGreaterThan(none);
+  });
+  it('topic tokens hitting the entry TITLE add +1 — the best topic match is deterministic and auto-applies', () => {
+    // Real regression (owner report 2026-09-05, "A Day at the Zoo"): topic
+    // "Animals and nature" tag-matches several animals entries at 2 (<3) and
+    // the pick among ties was arbitrary — nothing resolved. The entry whose
+    // TITLE also shares a topic token must outrank the rest and reach 3.
+    const farm = scoreCatalogEntry(entry({ title: 'The Animals On The Farm', topics: ['animals_farm'] }), { kind: 'song', topic: 'Animals and nature', vocab: [] });
+    const jungle = scoreCatalogEntry(entry({ title: 'Walking In The Jungle', topics: ['animals_zoo'] }), { kind: 'song', topic: 'Animals and nature', vocab: [] });
+    expect(farm).toBe(3);
+    expect(jungle).toBe(2);
+    expect(farm).toBeGreaterThan(jungle);
   });
 });
 

@@ -204,9 +204,14 @@ export function scoreCatalogEntry(
   // the 'body' topic tag).
   const entryTopics = topicTokens(entry.topics);
   const entryTitleTokens = new Set(normalizeTitle(entry.title));
-  if (input.topic && entryTopics.size > 0) {
+  if (input.topic) {
     const topicWords = normalizeTitle(input.topic);
-    if (topicWords.some((w) => entryTopics.has(w))) score += 2;
+    if (entryTopics.size > 0 && topicWords.some((w) => entryTopics.has(w))) score += 2;
+    // Title corroboration (+1): among equally-tagged entries, the one whose
+    // TITLE also names the topic is the better, deterministic pick — and a
+    // topic match + title hit reaches the auto-apply threshold on its own
+    // (real regression: "Animals and nature" stranded at 2 with no tiebreak).
+    if (topicWords.some((w) => entryTitleTokens.has(w))) score += 1;
   }
   if (input.vocab?.length) {
     const hits = input.vocab.filter((v) => {

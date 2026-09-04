@@ -372,7 +372,19 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       const resolved = Number(data?.resolvedCount ?? 0);
       if (resolved > 0) {
         await loadUnit();
-        toast.success(`Video found for ${resolved} media step${resolved > 1 ? 's' : ''} — remember to Save`);
+        toast.success(`Video found for ${resolved} media step${resolved > 1 ? 's' : ''}`);
+        // An open board/commander must converge too: send the same
+        // MEDIA_RESOLVED broadcast SessionContext listens for (same room —
+        // 'classroom_live'). Short-lived channel, removed after the send.
+        try {
+          const ch = supabase.channel('classroom_live', { config: { broadcast: { self: false } } });
+          ch.subscribe((status: string) => {
+            if (status === 'SUBSCRIBED') {
+              ch.send({ type: 'broadcast', event: 'classroom_action', payload: { type: 'MEDIA_RESOLVED', timestamp: Date.now() } });
+              setTimeout(() => { try { supabase.removeChannel(ch); } catch { /* already gone */ } }, 3000);
+            }
+          });
+        } catch { /* best effort — the board can still be reloaded */ }
       } else {
         toast.message('No automatic match', { description: 'Paste a YouTube link below, or open the search to pick one.' });
       }
