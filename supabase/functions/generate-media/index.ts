@@ -14,6 +14,11 @@ import {
   mapWithConcurrency,
   primarySpeechSignature,
 } from '../_shared/tts.ts';
+import {
+  ageBandFromGrade,
+  ageBandFromManifest,
+  resolveMediaForFlow,
+} from '../_shared/mediaResolver.ts';
 
 // --- single-item generators (shared by their action and by `batch`) ---
 
@@ -210,6 +215,81 @@ serve(async (req) => {
           searchQuery,
           searchUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`,
           message: 'YouTube Data API is unavailable in your region. Use searchUrl to open the result directly.',
+        };
+      }
+
+      // Media resolution (design 2026-09-04 §4.2, on-demand entry): resolve
+      // a unit's unresolved MEDIA_PLAYER blocks via the catalog-first ladder
+      // and persist the result into units.flow. Heals already-generated units
+      // WITHOUT re-orchestration. Ownership is gated centrally above
+      // (unitId present → caller must own the unit).
+      //   { action:'resolve-media', unitId, classId?, dryRun?, skipAi? }
+      case 'resolve-media': {
+        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', serviceRoleKey(), { auth: { persistSession: false } });
+
+        const { data: unit, error: unitErr } = await sb
+          .from('units')
+          .select('id, teacher_id, title, topic, manifest, flow')
+          .eq('id', unitId)
+          .single();
+        if (unitErr || !unit) return { error: `Unit not found: ${unitErr?.message || unitId}` };
+
+        // Age context: the live class's teacher-declared grade when a class is
+        // bound (and owned by the caller), else the manifest's CEFR guess.
+        let ageBand = ageBandFromManifest(unit.manifest);
+        let ageSource = ageBand ? 'manifest' : 'none';
+        const classId = String(body.classId || '');
+        if (classId) {
+          const { data: cls } = await sb
+            .from('classes')
+            .select('grade_level, teacher_id')
+            .eq('id', classId)
+            .maybeSingle();
+          const owned = cls && (cls.teacher_id === auth?.userId || auth?.role === 'admin');
+          const band = owned ? ageBandFromGrade(cls?.grade_level) : null;
+          if (band) { ageBand = band; ageSource = 'class'; }
+        }
+
+        const flow = Array.isArray(unit.flow) ? unit.flow : [];
+        const before = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl).length;
+        if (before === 0) return { success: true, resolvedCount: 0, message: 'No unresolved MEDIA_PLAYER blocks.', ageBand, ageSource };
+
+        const vocab = Array.isArray(unit.manifest?.vocabulary)
+          ? unit.manifest.vocabulary.map((v: any) => v?.word).filter(Boolean).slice(0, 20)
+          : [];
+        const suggestions = [
+          ...(Array.isArray(unit.manifest?.song_suggestions) ? unit.manifest.song_suggestions : []),
+          ...(Array.isArray(unit.manifest?.video_suggestions) ? unit.manifest.video_suggestions : []),
+        ];
+
+        // Hard budget: the ladder must never approach the edge wall-clock limit.
+        const deadlineMs = Date.now() + 45000;
+        const { resolved, rungs } = await resolveMediaForFlow(sb, flow, {
+          unitId: unit.id,
+          teacherId: unit.teacher_id || null,
+          topic: unit.topic || unit.manifest?.topic || null,
+          vocab,
+          ageBand,
+          suggestions,
+          deadlineMs,
+        });
+
+        let persisted = 0;
+        if (!body.dryRun && resolved > 0) {
+          const { error: updErr } = await sb.from('units').update({ flow }).eq('id', unitId);
+          if (updErr) return { error: `Resolution succeeded but the flow save failed: ${updErr.message}`, resolvedCount: resolved, rungs };
+          persisted = resolved;
+        }
+
+        return {
+          success: true,
+          unresolvedBefore: before,
+          resolvedCount: resolved,
+          persisted,
+          dryRun: Boolean(body.dryRun),
+          rungs,
+          ageBand,
+          ageSource,
         };
       }
 

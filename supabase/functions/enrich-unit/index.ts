@@ -658,8 +658,8 @@ Rules:
         categoryRules += "\n- image_prompt MUST start with the name(s) of the character(s) visible in that scene (matching the story's character names exactly) so illustrations can reuse their established look";
         break;
       case 'media':
-        expectedOutputFormat = `{ "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this song" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this video" } ] }`;
-        categoryRules = "- Suggest exactly 2-3 REAL existing children's songs on YouTube with search queries\n- Suggest exactly 2-3 REAL existing educational videos on YouTube with search queries\n- Songs and videos must be age-appropriate and related to the lesson topic.";
+        expectedOutputFormat = `{ "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this song", "channel": "the YouTube channel that publishes it (e.g. Super Simple Songs)", "video_id": "11-character YouTube video id — include ONLY if you are CERTAIN it exists, otherwise omit" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits this lesson", "search_query": "YouTube search query to find this video", "channel": "the YouTube channel name", "video_id": "11-character YouTube video id — include ONLY if you are CERTAIN it exists, otherwise omit" } ] }`;
+        categoryRules = "- Suggest exactly 2-3 REAL existing children's songs on YouTube with search queries\n- Suggest exactly 2-3 REAL existing educational videos on YouTube with search queries\n- Songs and videos must be age-appropriate and related to the lesson topic\n- Prefer famous kids-ESL channels (Super Simple Songs, The Singing Walrus, Dream English Kids, Steve and Maggie, Maple Leaf Learning, ELF Kids Videos) and name the channel for each suggestion\n- Only include a video_id when you are CERTAIN of the exact video; a wrong id is worse than no id (every id is validated before use — bad ids are simply dropped)";
         break;
       case 'dialogues':
         expectedOutputFormat = `{ "dialogues": [ { "title": "dialogue title", "lines": [ {"speaker": "character name", "text": "what they say"} ] } ] }`;
@@ -953,7 +953,8 @@ Return ONLY a valid JSON object.`;
 Confirmed words: ${basketVocab.slice(0, 30).map((v) => v.word).join(', ')}
 
 Suggest ONE song and ONE video that fit this lesson.
-Return ONLY: { "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits", "search_query": "YouTube search query" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits", "search_query": "YouTube search query" } ] }
+Prefer famous kids-ESL channels (Super Simple Songs, The Singing Walrus, Dream English Kids, Steve and Maggie, Maple Leaf Learning) and name the channel. Only include a video_id when you are CERTAIN of the exact video — a wrong id is worse than no id.
+Return ONLY: { "song_suggestions": [ { "title": "real song title", "topic_relevance": "why it fits", "search_query": "YouTube search query", "channel": "channel name", "video_id": "11-char id ONLY if certain, else omit" } ], "video_suggestions": [ { "title": "real video title", "topic_relevance": "why it fits", "search_query": "YouTube search query", "channel": "channel name", "video_id": "11-char id ONLY if certain, else omit" } ] }
 Exactly one entry in each array.`;
       const res = await callAI(sys, usr, 0.5);
       const songs = Array.isArray(res?.song_suggestions) ? res.song_suggestions.slice(0, 1) : [];

@@ -6,6 +6,7 @@ import { stripReasoning, extractJsonObject } from '../_shared/json.ts';
 import { validateAndNormalizeFlow } from '../_shared/flowTypes.ts';
 import { normalizeManifest, CanonicalManifest } from '../_shared/manifest.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
+import { ageBandFromManifest, resolveMediaForFlow } from '../_shared/mediaResolver.ts';
 
 interface VocabItem {
   word: string;
@@ -73,7 +74,10 @@ function transformManifestToFlow(assets: any): any[] {
         search_query: sq,
         topic_relevance: m?.topic_relevance || '',
         youtubeUrl: youtubeSearchUrl(sq),
-        lyrics: [],
+        // Book songs (scanned textbooks) carry their exact title + verbatim
+        // lyrics — the strongest resolution key (media resolver rung 1).
+        ...(m?.source === 'book' ? { source: 'book', structure_id: m.structure_id ?? null } : {}),
+        lyrics: Array.isArray(m?.lyrics) ? m.lyrics : [],
       },
     });
   }
@@ -659,6 +663,32 @@ serve(async (req) => {
       // "sbClient is not defined" — caught silently, which is why no
       // generation_jobs row ever appeared.
       const sbClient = createClient(supabaseUrl, supabaseKey);
+
+      // Media resolution (design 2026-09-04 §4.2): resolve the warm-up
+      // MEDIA_PLAYER block BEFORE the flow is persisted, so the saved flow
+      // carries a playable videoUrl from the start. Deadline-bounded and
+      // never fatal — on failure the block keeps its honest suggestion state.
+      try {
+        const mediaOut = await resolveMediaForFlow(sbClient, flow, {
+          unitId,
+          topic: assetsForFlow?.topic || null,
+          vocab: (assetsForFlow?.vocabulary || []).map((v: any) => v?.word).filter(Boolean).slice(0, 20),
+          ageBand: ageBandFromManifest(assetsForFlow),
+          suggestions: [
+            ...(Array.isArray(assetsForFlow?.song_suggestions) ? assetsForFlow.song_suggestions : []),
+            ...(Array.isArray(assetsForFlow?.video_suggestions) ? assetsForFlow.video_suggestions : []),
+          ],
+          deadlineMs: Date.now() + 30000,
+        });
+        if (mediaOut.resolved > 0) {
+          console.log(`media_resolution: ${mediaOut.resolved} block(s) via ${mediaOut.rungs.join(',')}`);
+        }
+      } catch (mediaErr: any) {
+        // Never let resolution break publishing — the unresolved suggestion
+        // card is a valid state the teacher can fix live.
+        console.warn(`media_resolution_failed: ${mediaErr?.message || mediaErr}`);
+      }
+
       try {
         const { error: updateError } = await sbClient
           .from('units')
