@@ -18,7 +18,7 @@ import crypto from 'node:crypto';
 import sharp from 'sharp';
 import {
   BASES, ITEMS, SKIN_TONES, ROSTER_DEFAULTS, ITEM_ANCHORS,
-  masterPrompt, skinPrompt, itemPrompt, standaloneItemPrompt,
+  masterPrompt, skinPrompt, itemPrompt, standaloneItemPrompt, variantBodies,
 } from './manifest.ts';
 
 // ---------------------------------------------------------------- config
@@ -226,15 +226,24 @@ async function phaseItems(ctx: Ctx, only?: string[], limit?: number, mode: 'stan
     if (only && !only.includes(item.id)) continue;
     if (limit && n >= limit) break;
     if (mode === 'i2i' && item.slot === 'background') continue; // backgrounds stay full-canvas art
-    const existing = fs.readdirSync(DIRS.raw).some((f) => f.startsWith(`${item.id}.`) || f === `${item.id}.png`);
-    if (existing) { console.log(`· ${item.id}: raw exists, skipping`); continue; }
+    if (mode !== 'i2i') {
+      const existing = fs.readdirSync(DIRS.raw).some((f) => f.startsWith(`${item.id}.`) || f === `${item.id}.png`);
+      if (existing) { console.log(`· ${item.id}: raw exists, skipping`); continue; }
+    }
     const outPath = `avatars/artifacts/item/${item.id}/${Date.now()}.png`;
     if (mode === 'i2i') {
-      // Full-character render wearing the item against the FLAT master —
-      // the layer is then isolated by diffing (alignment by construction).
-      const masterBody = item.onBody || 'human_boy';
-      const refUrl = publicUrl(`avatars/bases/${masterBody}_skin1_ref.png`);
-      await genAndSave(ctx, itemPrompt(item), [refUrl], outPath, DIRS.raw, item.id, idSeed(item.id));
+      // Per-body variants (ChatGPT audit 2026-09-05): generate the wearable
+      // ON every body it can be worn on — correct anatomy, skin, and pose by
+      // construction. Raws are named {id}__{body}; extraction saves
+      // layers/{body}/{id}.png (+ the first body also as the default
+      // layers/{id}.png fallback).
+      for (const body of variantBodies(item)) {
+        const vName = `${item.id}__${body}`;
+        const vExisting = fs.readdirSync(DIRS.raw).some((f) => f.startsWith(`${vName}.`) || f === `${vName}.png`);
+        if (vExisting) { console.log(`· ${vName}: exists`); continue; }
+        const refUrl = publicUrl(`avatars/bases/${body}_skin1_ref.png`);
+        await genAndSave(ctx, itemPrompt(item), [refUrl], `avatars/artifacts/item/${vName}/${Date.now()}.png`, DIRS.raw, vName, idSeed(vName));
+      }
     } else {
       await genAndSave(ctx, standaloneItemPrompt(item), [], outPath, DIRS.raw, item.id, idSeed(item.id));
     }
@@ -286,7 +295,14 @@ async function genAndSave(ctx: Ctx, prompt: string, refs: string[], outPath: str
   const meta = await sharp(buf).metadata();
   if ((meta.width || 0) !== 1024 || (meta.height || 0) !== 1024 || meta.hasAlpha) {
     buf = await sharp(buf).flatten({ background: '#ffffff' }).resize(1024, 1024, { fit: 'fill' }).png().toBuffer();
-    await upload(ctx, outPath, buf, 'image/png');
+    for (let up = 1; up <= 3; up++) {
+      try { await upload(ctx, outPath, buf, 'image/png'); break; }
+      catch (upErr) {
+        if (up === 3) throw upErr;
+        console.log(`· upload retry ${up} for ${localName} (transient storage error)`);
+        await new Promise((r) => setTimeout(r, 6000 * up));
+      }
+    }
   }
   fs.writeFileSync(path.join(localDir, `${localName}.png`), buf);
   console.log(`✓ ${localName} via ${res.model} (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
@@ -701,16 +717,42 @@ function floodBackgroundAlpha(rgba: Buffer, globalOnly = false): { alpha: Buffer
 }
 
 async function processItem(item: { id: string; slot: string; onBody?: string }): Promise<{ ok: boolean; reason?: string }> {
+  // Variants first ({id}__{body}), else legacy single raw ({id}).
+  const variantFiles = fs.readdirSync(DIRS.raw).filter((f) => f.startsWith(`${item.id}__`)).sort();
+  if (variantFiles.length > 0) {
+    let first = true;
+    for (const vf of variantFiles) {
+      const body = vf.replace(/\.png$/, '').split('__')[1];
+      const r = await processItemFromRaw(path.join(DIRS.raw, vf), item, first ? null : body);
+      console.log(`${r.ok ? '✓' : '✗'} ${item.id}__${body} ${r.reason || ''}`);
+      first = false;
+    }
+    return { ok: true };
+  }
   const rawFiles = fs.readdirSync(DIRS.raw).filter((f) => f.startsWith(`${item.id}.`) || f === `${item.id}.png`).sort();
   if (rawFiles.length === 0) return { ok: false, reason: 'no_raw' };
-  const rawBuf = fs.readFileSync(path.join(DIRS.raw, rawFiles[rawFiles.length - 1]));
+  return processItemFromRaw(path.join(DIRS.raw, rawFiles[rawFiles.length - 1]), item);
+}
+
+/** Extract one raw render into a layer. bodyOut null → default layer
+ *  (extracted/{id}.png + preview); bodyOut set → extracted/{body}/{id}.png. */
+async function processItemFromRaw(
+  rawPath: string,
+  item: { id: string; slot: string; onBody?: string },
+  bodyOut: string | null = null,
+): Promise<{ ok: boolean; reason?: string }> {
+  const layerPath = bodyOut
+    ? path.join(DIRS.extracted, bodyOut, `${item.id}.png`)
+    : path.join(DIRS.extracted, `${item.id}.png`);
+  if (bodyOut) fs.mkdirSync(path.dirname(layerPath), { recursive: true });
 
   if (item.slot === 'background') {
-    const fixed = await sharp(rawBuf).resize(W, W, { fit: 'cover' }).png().toBuffer();
-    fs.writeFileSync(path.join(DIRS.extracted, `${item.id}.png`), fixed);
+    const fixed = await sharp(rawPath).resize(W, W, { fit: 'cover' }).png().toBuffer();
+    fs.writeFileSync(layerPath, fixed);
     return { ok: true };
   }
 
+  const rawBuf = fs.readFileSync(rawPath);
   const rgba = await sharp(rawBuf).ensureAlpha().resize(W, W, { fit: 'fill' }).raw().toBuffer();
   const keyed = chromaKeyGreen(rgba);
   let { alpha, removedPct } = keyed ? keyed : floodBackgroundAlpha(rgba);
@@ -741,10 +783,9 @@ async function processItem(item: { id: string; slot: string; onBody?: string }):
   } else {
     layer = await buildAnchoredLayer(rgba, alpha, item.slot);
   }
-  fs.writeFileSync(path.join(DIRS.extracted, `${item.id}.png`), layer);
-  await writePreview(item, layer);
+  fs.writeFileSync(layerPath, layer);
+  if (!bodyOut) await writePreview(item, layer);
   return { ok: true };
-
 }
 
 /** Standalone-object path: feather → trim → scale into the anchor rect. */
@@ -817,6 +858,13 @@ async function phaseApprove(ctx: Ctx, ids: string[] | 'all') {
     }
     const layerBuf = fs.readFileSync(path.join(DIRS.extracted, `${id}.png`));
     await upload(ctx, `avatars/layers/${id}.png`, layerBuf, 'image/png');
+    // Body-variant layers (extracted/{body}/{id}.png → layers/{body}/{id}.png)
+    for (const base of BASES) {
+      const vp = path.join(DIRS.extracted, base.id, `${id}.png`);
+      if (fs.existsSync(vp)) {
+        await upload(ctx, `avatars/layers/${base.id}/${id}.png`, fs.readFileSync(vp), 'image/png');
+      }
+    }
     // Grid thumbnail: trimmed content fitted to a 256 canvas — full-canvas
     // layers render nearly invisible in 60px shop/builder cells.
     try {
@@ -835,14 +883,20 @@ async function phaseApprove(ctx: Ctx, ids: string[] | 'all') {
 }
 
 // ---- defaults ---------------------------------------------------------------
-const RENDER_ORDER = ['background', 'back', 'body', 'outfit', 'hair', 'eyes', 'face', 'headwear', 'handheld'];
+const RENDER_ORDER = ['background', 'back', 'body', 'outfit', 'eyes', 'face', 'hair', 'headwear', 'handheld'];
 
 async function phaseDefaults(ctx: Ctx) {
   for (let i = 0; i < ROSTER_DEFAULTS.length; i++) {
     const def = ROSTER_DEFAULTS[i];
     const baseBuf = await layerBytes(ctx, `avatars/bases/${def.body}_skin1.png`, path.join(DIRS.masters, `${def.body}_skin1.png`));
     const comps: { input: Buffer; top: number; left: number }[] = [];
-    const layerFor = async (id: string) => {
+    const layerFor = async (id: string, body?: string) => {
+      if (body) {
+        const bp = path.join(DIRS.extracted, body, `${id}.png`);
+        if (fs.existsSync(bp)) return await sharp(bp).resize(S, S).png().toBuffer();
+        const br = `avatars/layers/${body}/${id}.png`;
+        if (await storageExists(ctx, br)) return await sharp(await download(publicUrl(br))).resize(S, S).png().toBuffer();
+      }
       const p = path.join(DIRS.extracted, `${id}.png`);
       if (fs.existsSync(p)) return await sharp(p).resize(S, S).png().toBuffer();
       const remote = `avatars/layers/${id}.png`;

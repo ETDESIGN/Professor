@@ -41,7 +41,7 @@ export const AVATAR_SLOTS: readonly AvatarSlot[] = ['hair', 'eyes', 'outfit', 'h
 export const HUMAN_ONLY_SLOTS: ReadonlySet<AvatarSlot> = new Set(['hair', 'eyes', 'outfit']);
 
 /** Composite layer order; 'body' is the base render itself. */
-export const RENDER_ORDER: readonly (AvatarSlot | 'body')[] = ['background', 'back', 'body', 'outfit', 'hair', 'eyes', 'face', 'headwear', 'handheld'] as const;
+export const RENDER_ORDER: readonly (AvatarSlot | 'body')[] = ['background', 'back', 'body', 'outfit', 'eyes', 'face', 'hair', 'headwear', 'handheld'] as const;
 
 export const DEFAULT_BODY: AvatarBody = 'human_boy';
 export const SKIN_COUNT = 6;

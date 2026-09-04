@@ -21,18 +21,28 @@ interface AvatarBuilderProps {
 
 const SKIN_SWATCHES = ['#FFE0BD', '#F1C27D', '#E0AC69', '#C68642', '#8D5524', '#5C3A21'];
 
-/** Ordered layer stack for the LIVE client preview (no server round-trips). */
-function previewLayers(config: AvatarConfig, byId: Map<string, AvatarItem>): { url: string; order: number }[] {
-  const layers: { url: string; order: number }[] = [];
+/** Ordered layer stack for the LIVE client preview (no server round-trips).
+ *  Body-variant layer first, default layer as onError fallback (the <LayerImg>
+ *  component performs the swap). */
+function previewLayers(config: AvatarConfig, byId: Map<string, AvatarItem>): { url: string; fallback: string; order: number }[] {
+  const layers: { url: string; fallback: string; order: number }[] = [];
   for (const slot of AVATAR_SLOTS) {
     const id = config.items[slot];
     if (!id) continue;
     const item = byId.get(id);
     if (!item?.layer_asset_path) continue;
     if (!slotAvailableForBody(slot, config.body)) continue;
-    layers.push({ url: GENERATED_MEDIA_PUBLIC(item.layer_asset_path), order: RENDER_ORDER.indexOf(slot) });
+    layers.push({
+      url: GENERATED_MEDIA_PUBLIC(`avatars/layers/${config.body}/${id}.png`),
+      fallback: GENERATED_MEDIA_PUBLIC(item.layer_asset_path),
+      order: RENDER_ORDER.indexOf(slot),
+    });
   }
-  layers.push({ url: GENERATED_MEDIA_PUBLIC(`avatars/bases/${config.body}_skin${config.body.startsWith('human') ? config.skin : 1}.png`), order: RENDER_ORDER.indexOf('body') });
+  layers.push({
+    url: GENERATED_MEDIA_PUBLIC(`avatars/bases/${config.body}_skin${config.body.startsWith('human') ? config.skin : 1}.png`),
+    fallback: GENERATED_MEDIA_PUBLIC(`avatars/bases/${config.body}_skin1.png`),
+    order: RENDER_ORDER.indexOf('body'),
+  });
   return layers.sort((a, b) => a.order - b.order);
 }
 
@@ -170,7 +180,7 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
           className="w-60 h-60 relative animate-bounce-subtle"
         >
           {layers.map((l, idx) => (
-            <img key={`${l.order}-${idx}`} src={l.url} alt="" className="absolute inset-0 w-full h-full object-contain" draggable={false} />
+            <LayerImg key={`${l.order}-${idx}`} url={l.url} fallback={l.fallback} />
           ))}
         </motion.div>
       </div>
@@ -275,6 +285,21 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
         </div>
       </div>
     </div>
+  );
+};
+
+/** Preview layer image with body-variant → default fallback swap. */
+const LayerImg = ({ url, fallback }: { url: string; fallback: string }) => {
+  const [src, setSrc] = useState(url);
+  React.useEffect(() => setSrc(url), [url]);
+  return (
+    <img
+      src={src}
+      onError={() => { if (src !== fallback) setSrc(fallback); }}
+      alt=""
+      className="absolute inset-0 w-full h-full object-contain"
+      draggable={false}
+    />
   );
 };
 

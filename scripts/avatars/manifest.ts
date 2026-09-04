@@ -166,6 +166,18 @@ export const ITEMS: ItemSpec[] = [
   { id: 'sig_alien_crown',   slot: 'headwear', wear: 'a small translucent cosmic tiara', onBody: 'alien' },
 ];
 
+
+/** Bodies a wearable must be generated ON (ChatGPT audit 2026-09-05):
+ *  species signatures stay on their native body; human-only slots get both
+ *  humans; universal slots get all five. */
+export function variantBodies(item: ItemSpec): string[] {
+  if (item.onBody) return [item.onBody];
+  if (item.slot === 'hair' || item.slot === 'eyes' || item.slot === 'outfit') {
+    return ['human_boy', 'human_girl'];
+  }
+  return ['human_boy', 'human_girl', 'robot', 'alien', 'monster'];
+}
+
 export function masterPrompt(base: BaseSpec, tone?: string): string {
   return `${base.describe}${tone ? `, ${tone}` : ''}, ${NEUTRAL_OUTFIT}, ${AVATAR_HOUSE_STYLE}`;
 }

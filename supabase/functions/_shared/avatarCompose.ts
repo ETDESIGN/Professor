@@ -19,7 +19,7 @@ const BODIES = ['human_boy', 'human_girl', 'robot', 'alien', 'monster'] as const
 const SLOTS = ['hair', 'eyes', 'outfit', 'headwear', 'face', 'handheld', 'back', 'background'] as const;
 const HUMAN_ONLY = new Set(['hair', 'eyes', 'outfit']);
 // Composite order; 'body' is the base render.
-const RENDER_ORDER = ['background', 'back', 'body', 'outfit', 'hair', 'eyes', 'face', 'headwear', 'handheld'];
+const RENDER_ORDER = ['background', 'back', 'body', 'outfit', 'eyes', 'face', 'hair', 'headwear', 'handheld'];
 const SIZES = [768, 512, 256, 128];
 const CANVAS = 1024;
 
@@ -130,7 +130,7 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
   //    invalidates render caches when the underlying layer art is regenerated
   //    (the config alone can't see art changes). Bump on wholesale art refresh.
   const itemParts = SLOTS.filter((s) => config.items[s]).map((s) => `${s}:${config.items[s]}`).sort();
-  const canonical = JSON.stringify({ version: 1, art: 7, body: config.body, skin: config.skin, items: itemParts });
+  const canonical = JSON.stringify({ version: 1, art: 8, body: config.body, skin: config.skin, items: itemParts });
   const hash = await sha256Hex16(canonical);
 
   const basePath = `avatars/renders/${userId}/${hash}`;
@@ -160,7 +160,7 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
     : [];
   const byId = new Map(itemRows.map((r) => [r.id, r]));
 
-  const layers: { order: number; url: string }[] = [];
+  const layers: { order: number; url: string; fallbackUrl?: string }[] = [];
   for (const slot of SLOTS) {
     const id = config.items[slot];
     if (!id) continue;
@@ -169,7 +169,9 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
     if (HUMAN_ONLY.has(item.slot as Slot) && !isHuman(config.body)) continue;
     if (item.compatible_bodies && item.compatible_bodies.length > 0 && !item.compatible_bodies.includes(config.body)) continue;
     if (!item.layer_asset_path) continue;
-    layers.push({ order: RENDER_ORDER.indexOf(item.slot), url: publicUrl(item.layer_asset_path) });
+    // Per-body variant first (ChatGPT audit), default layer as fallback.
+    const bodyPath = `avatars/layers/${config.body}/${id}.png`;
+    layers.push({ order: RENDER_ORDER.indexOf(item.slot), url: publicUrl(bodyPath), fallbackUrl: publicUrl(item.layer_asset_path) });
   }
   const bgLayer = layers.find((l) => l.order === RENDER_ORDER.indexOf('background'));
 
@@ -197,12 +199,10 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
     out = new Image(CANVAS, CANVAS, [255, 255, 255, 255] as unknown as number);
   }
 
-  for (const url of [...backLayers.map((l) => l.url), '__BODY__', ...frontLayers.map((l) => l.url)]) {
-    if (url === '__BODY__') {
-      out.composite(baseImg, 0, 0);
-      continue;
-    }
-    const img = await fetchPngImage(url);
+  for (const l of [...backLayers, ...frontLayers]) {
+    if (l.order === RENDER_ORDER.indexOf('background')) continue;
+    let img = await fetchPngImage(l.url);
+    if (!img && l.fallbackUrl) img = await fetchPngImage(l.fallbackUrl);
     if (img) out.composite(img, 0, 0);
   }
 
@@ -368,8 +368,10 @@ export async function generateAvatarArt(params: {
   // keyless fallback instead of burning two 403 round-trips per asset.
   if ((Deno.env.get('AVATAR_ART_MODEL') || '').toLowerCase() === 'pollinations') {
     const direct = await pollinationsImage(params.prompt, params.references, params.seed);
-    if (direct.ok) return await finalizeWithNote(params, direct.b64, 'image/jpeg', `pollinations:${direct.model}`, 'pollinations operating mode (openrouter restricted)');
-    return { ok: false, error: `pollinations: ${direct.error}` };
+    if (direct.ok) {
+      return await finalizeWithNote(params, direct.b64, 'image/jpeg', `pollinations:${direct.model}`, 'pollinations operating mode (openrouter restricted)');
+    }
+    return { ok: false, error: `pollinations: ${(direct as { error: string }).error}` };
   }
 
   const model = await resolveArtModel();
