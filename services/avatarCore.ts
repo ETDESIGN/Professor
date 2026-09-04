@@ -162,6 +162,12 @@ export function layerUrlFor(item: Pick<AvatarItem, 'layer_asset_path' | 'preview
   return null;
 }
 
+/** Trimmed-content thumbnail (256 canvas) — full-canvas layers render
+ *  nearly invisible in small shop/builder grid cells. */
+export function thumbUrlFor(itemId: string): string {
+  return GENERATED_MEDIA_PUBLIC(`avatars/thumbs/${itemId}.png`);
+}
+
 export function nearestRenderSize(size: number): number {
   let best: number = RENDER_SIZES[0];
   for (const s of RENDER_SIZES) {

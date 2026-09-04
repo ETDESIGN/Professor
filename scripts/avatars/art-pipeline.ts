@@ -243,8 +243,10 @@ async function phaseItems(ctx: Ctx, only?: string[], limit?: number, mode: 'stan
   void standaloneItemPrompt;
 }
 
+const SALT = (Number(process.argv.find((a, i) => process.argv[i - 1] === '--salt') || 0) || 0) * 7919;
+
 function idSeed(id: string): number {
-  let h = 0;
+  let h = SALT;
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 1_000_000;
   return h;
 }
@@ -462,6 +464,38 @@ const W = 1024;
  * the neighbor they were reached from (follows gradients/vignettes).
  */
 
+
+/** Keep only the largest connected opaque component — drops disconnected
+ *  scene fragments that survive the flood (robot master remnant bug). */
+function largestComponent(alpha: Buffer): { alpha: Buffer; keptPct: number } {
+  const seen = new Uint8Array(W * W);
+  let best: number[] | null = null;
+  for (let i = 0; i < W * W; i++) {
+    if (seen[i] || alpha[i] <= 40) continue;
+    const comp: number[] = [];
+    const stack = [i];
+    seen[i] = 1;
+    while (stack.length) {
+      const idx = stack.pop()!;
+      comp.push(idx);
+      const x = idx % W, y = (idx - x) / W;
+      const push = (nx: number, ny: number) => {
+        const n = ny * W + nx;
+        if (!seen[n] && alpha[n] > 40) { seen[n] = 1; stack.push(n); }
+      };
+      if (x > 0) push(x - 1, y);
+      if (x < W - 1) push(x + 1, y);
+      if (y > 0) push(x, y - 1);
+      if (y < W - 1) push(x, y + 1);
+    }
+    if (!best || comp.length > best.length) best = comp;
+  }
+  if (!best) return { alpha, keptPct: 0 };
+  const out = Buffer.alloc(W * W, 0);
+  for (const idx of best) out[idx] = alpha[idx];
+  return { alpha: out, keptPct: best.length / (W * W) };
+}
+
 /** Feather a binary alpha mask. sharp returns blurred 1-ch input as 3-ch
  *  interleaved raw — index accordingly (this bug corrupted every asset on
  *  2026-09-04: streaked semi-transparent layers). */
@@ -503,7 +537,7 @@ function chromaKeyGreen(rgba: Buffer): { alpha: Buffer; removedPct: number } | n
   return { alpha, removedPct: removed / (W * W) };
 }
 
-function floodBackgroundAlpha(rgba: Buffer): { alpha: Buffer; removedPct: number } {
+function floodBackgroundAlpha(rgba: Buffer, globalOnly = false): { alpha: Buffer; removedPct: number } {
   const alpha = Buffer.alloc(W * W, 255);
   // 1) mode (most common) border color — robust to thin decorative frames.
   const buckets = new Map<string, { n: number; rgb: [number, number, number] }>();
@@ -551,7 +585,7 @@ function floodBackgroundAlpha(rgba: Buffer): { alpha: Buffer; removedPct: number
     const spread = (nidx: number) => {
       const np = nidx * 4;
       if (distBg(np) <= 85) push(nidx, 0);
-      else if (myGd < 60 && distPx(p, np) <= 28) push(nidx, myGd + 1);
+      else if (!globalOnly && myGd < 60 && distPx(p, np) <= 28) push(nidx, myGd + 1);
     };
     if (x > 0) spread(idx - 1);
     if (x < W - 1) spread(idx + 1);
@@ -574,8 +608,19 @@ async function processItem(item: { id: string; slot: string; onBody?: string }):
 
   const rgba = await sharp(rawBuf).ensureAlpha().resize(W, W, { fit: 'fill' }).raw().toBuffer();
   const keyed = chromaKeyGreen(rgba);
-  const { alpha, removedPct } = keyed ? keyed : floodBackgroundAlpha(rgba);
-  if (removedPct < 0.12) return { ok: false, reason: `bg_removal_only_${(removedPct * 100).toFixed(0)}%` };
+  let { alpha, removedPct } = keyed ? keyed : floodBackgroundAlpha(rgba);
+  if (removedPct < 0.12) {
+    if (item.slot === 'eyes') {
+      // Thin/soft eyes renders: retry with the conservative global-only
+      // flood (gradient-following eats soft art).
+      const g = floodBackgroundAlpha(rgba, true);
+      if (g.removedPct > 0.10) { alpha = g.alpha; removedPct = g.removedPct; }
+    }
+    if (removedPct < 0.12) return { ok: false, reason: `bg_removal_only_${(removedPct * 100).toFixed(0)}%` };
+  }
+  // Drop disconnected scene fragments.
+  const cc = largestComponent(alpha);
+  if (cc.keptPct > 0.003) alpha = cc.alpha;
 
   // Feather the alpha edge by 1px, then extract color+alpha into one RGBA png.
   const soft = await featherAlpha(alpha);
@@ -659,7 +704,20 @@ async function phaseApprove(ctx: Ctx, ids: string[] | 'all') {
     }
     const layerBuf = fs.readFileSync(path.join(DIRS.extracted, `${id}.png`));
     await upload(ctx, `avatars/layers/${id}.png`, layerBuf, 'image/png');
-    console.log(`✓ approved ${id} → avatars/layers/${id}.png`);
+    // Grid thumbnail: trimmed content fitted to a 256 canvas — full-canvas
+    // layers render nearly invisible in 60px shop/builder cells.
+    try {
+      const trimmed = await sharp(layerBuf).trim({ threshold: 12 }).png().toBuffer();
+      const tm = await sharp(trimmed).metadata();
+      const tw = tm.width || 1, th = tm.height || 1;
+      const sc = Math.min(224 / tw, 224 / th);
+      const dw = Math.max(1, Math.round(tw * sc)), dh = Math.max(1, Math.round(th * sc));
+      const sprite = await sharp(trimmed).resize(dw, dh, { fit: 'fill' }).png().toBuffer();
+      const thumb = await sharp({ create: { width: 256, height: 256, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+        .composite([{ input: sprite, left: Math.round((256 - dw) / 2), top: Math.round((256 - dh) / 2) }]).png().toBuffer();
+      await upload(ctx, `avatars/thumbs/${id}.png`, thumb, 'image/png');
+    } catch { /* thumb best-effort */ }
+    console.log(`✓ approved ${id} → avatars/layers/${id}.png (+thumb)`);
   }
 }
 
@@ -749,6 +807,37 @@ function placeholderSvg(kind: 'base' | string, id: string, opts: { skin?: string
 
 const SKIN_HEX = ['#FFE0BD', '#F1C27D', '#E0AC69', '#C68642', '#8D5524', '#5C3A21'];
 
+async function phaseCleanMasters(ctx: Ctx) {
+  // Remove disconnected scene remnants from already-processed masters
+  // (robot/alien/monster came back with wide scene fragments).
+  for (const base of BASES) {
+    const skins = base.id.startsWith('human') ? SKIN_TONES.length : 1;
+    for (let sk = 1; sk <= skins; sk++) {
+      const name = `${base.id}_skin${sk}.png`;
+      const src = path.join(DIRS.masters, name);
+      if (!fs.existsSync(src)) continue;
+      const { data, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const alpha = Buffer.alloc(W * W);
+      for (let i2 = 0; i2 < W * W; i2++) alpha[i2] = data[i2 * 4 + 3];
+      const before = (() => { let n = 0; for (let i2 = 0; i2 < alpha.length; i2++) if (alpha[i2] > 40) n++; return n / (W * W); })();
+      const cc = largestComponent(alpha);
+      if (cc.keptPct < before * 0.6) {
+        console.log(`· ${name}: CC filter would drop too much (${(before * 100).toFixed(1)}% → ${(cc.keptPct * 100).toFixed(1)}%), skipping`);
+        continue;
+      }
+      const out = Buffer.from(data);
+      for (let i2 = 0; i2 < W * W; i2++) out[i2 * 4 + 3] = cc.alpha[i2];
+      const cleaned = await sharp(Buffer.from(out), { raw: { width: W, height: W, channels: 4 } }).png().toBuffer();
+      fs.writeFileSync(src, cleaned);
+      const flat = await sharp(cleaned).flatten({ background: '#ffffff' }).png().toBuffer();
+      fs.writeFileSync(src.replace('.png', '_ref.png'), flat);
+      await upload(ctx, `avatars/bases/${name}`, cleaned, 'image/png');
+      await upload(ctx, `avatars/bases/${name.replace('.png', '_ref.png')}`, flat, 'image/png');
+      console.log(`✓ cleaned ${name} (${(before * 100).toFixed(1)}% → ${(cc.keptPct * 100).toFixed(1)}%)`);
+    }
+  }
+}
+
 async function phasePlaceholders(ctx: Ctx) {
   // Bases (5 bodies × skins for humans)
   for (const base of BASES) {
@@ -808,6 +897,7 @@ async function main() {
   else if (phase === 'extract') await phaseExtract(only);
   else if (phase === 'process') await phaseProcess(only);
   else if (phase === 'process-masters') await phaseProcessMasters(ctx, only);
+  else if (phase === 'clean-masters') await phaseCleanMasters(ctx);
   else if (phase === 'defaults') await phaseDefaults(ctx);
   else if (phase === 'placeholders') await phasePlaceholders(ctx);
   else if (args.includes('--approve')) {

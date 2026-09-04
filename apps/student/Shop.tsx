@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useInventory, useStudentGems, useBuyShopItem, useAvatarCatalog, useMyAvatar, useEquipItem, useSetAvatarBody } from '../../hooks/useQueries';
 import { GamificationService } from '../../services/GamificationService';
-import { AvatarItem, AVATAR_SLOTS, GENERATED_MEDIA_PUBLIC, RARITY_META, SLOT_LABELS, slotAvailableForBody, AvatarConfig } from '../../services/avatarCore';
+import { AvatarItem, AVATAR_SLOTS, GENERATED_MEDIA_PUBLIC, RARITY_META, SLOT_LABELS, slotAvailableForBody, AvatarConfig, thumbUrlFor } from '../../services/avatarCore';
 import Avatar from '../../components/shared/Avatar';
 
 interface ShopProps {
@@ -222,7 +222,7 @@ const Shop: React.FC<ShopProps> = ({ onBack, onOpenStudio }) => {
                       title={item.name}
                     >
                       {item.layer_asset_path && (
-                        <img src={GENERATED_MEDIA_PUBLIC(item.layer_asset_path)} alt={item.name} className="w-full h-4/5 object-contain" draggable={false} />
+                        <img src={thumbUrlFor(item.id)} alt={item.name} className="w-full h-4/5 object-contain" draggable={false} />
                       )}
                       {equipped ? (
                         <Check size={13} className="text-duo-pink" />

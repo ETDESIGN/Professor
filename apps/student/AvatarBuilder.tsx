@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   AvatarConfig, AvatarItem, AvatarSlot, AVATAR_SLOTS, AVATAR_BODIES, SKIN_COUNT,
   GENERATED_MEDIA_PUBLIC, RARITY_META, RENDER_ORDER, SLOT_LABELS,
-  configWithItem, slotAvailableForBody,
+  configWithItem, slotAvailableForBody, thumbUrlFor,
 } from '../../services/avatarCore';
 import {
   useAvatarCatalog, useInventory, useBuyShopItem, useEquipItem,
@@ -256,7 +256,7 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
                       title={item.name}
                     >
                       {item.layer_asset_path && (
-                        <img src={GENERATED_MEDIA_PUBLIC(item.layer_asset_path)} alt={item.name} className="w-full h-4/5 object-contain" draggable={false} />
+                        <img src={thumbUrlFor(item.id)} alt={item.name} className="w-full h-4/5 object-contain" draggable={false} />
                       )}
                       {usable ? (
                         equipped ? <Check size={13} className="text-duo-pink" /> : <span className="text-[9px] font-bold text-slate-400 truncate w-full text-center px-0.5">{item.name}</span>
