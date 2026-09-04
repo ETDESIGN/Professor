@@ -17,7 +17,11 @@ import {
 import {
   ageBandFromGrade,
   ageBandFromManifest,
+  oembedValidate,
+  parseYouTubeVideoId,
   resolveMediaForFlow,
+  syncClassPlanFlows,
+  upsertMediaAsset,
 } from '../_shared/mediaResolver.ts';
 
 // --- single-item generators (shared by their action and by `batch`) ---
@@ -275,10 +279,23 @@ serve(async (req) => {
         });
 
         let persisted = 0;
+        let plansSynced = 0;
         if (!body.dryRun && resolved > 0) {
           const { error: updErr } = await sb.from('units').update({ flow }).eq('id', unitId);
           if (updErr) return { error: `Resolution succeeded but the flow save failed: ${updErr.message}`, resolvedCount: resolved, rungs };
           persisted = resolved;
+          // The live session may run from a class plan — heal those flows too.
+          try {
+            const resolvedBlocks = flow
+              .filter((b: any) => b?.type === 'MEDIA_PLAYER' && b?.data?.videoUrl)
+              .map((b: any) => ({
+                searchQuery: b.data.search_query || null,
+                title: b.data.title || null,
+                data: (({ videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand }) =>
+                  ({ videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand }))(b.data),
+              }));
+            plansSynced = await syncClassPlanFlows(sb, unitId, resolvedBlocks);
+          } catch { /* best-effort: units.flow is already saved */ }
         }
 
         return {
@@ -286,11 +303,81 @@ serve(async (req) => {
           unresolvedBefore: before,
           resolvedCount: resolved,
           persisted,
+          plansSynced,
           dryRun: Boolean(body.dryRun),
           rungs,
           ageBand,
           ageSource,
         };
+      }
+
+      // Teacher override (design §4.4 "teacher supremacy"): apply an explicit
+      // video URL to the unit's unresolved MEDIA_PLAYER block. Server-side
+      // oEmbed validation blocks typos/hallucinated ids; patches BOTH
+      // units.flow and the unit's class_plans.flow copies; records the pick as
+      // a reusable asset (source 'teacher' — the flywheel's strongest signal).
+      //   { action:'apply-media', unitId, url, title?, blockSearchQuery? }
+      case 'apply-media': {
+        const sb = createClient(Deno.env.get('SUPABASE_URL') || '', serviceRoleKey(), { auth: { persistSession: false } });
+
+        const videoId = parseYouTubeVideoId(String(body.url || ''));
+        if (!videoId) return { error: 'That does not look like a YouTube video URL.' };
+        const oe = await oembedValidate(videoId);
+        if (!oe.ok || !oe.title) {
+          return { error: 'Video not found on YouTube — it may be private, deleted, or mis-pasted.' };
+        }
+
+        const { data: unit, error: unitErr } = await sb
+          .from('units')
+          .select('id, teacher_id, title, flow')
+          .eq('id', unitId)
+          .single();
+        if (unitErr || !unit) return { error: `Unit not found: ${unitErr?.message || unitId}` };
+
+        const flow = Array.isArray(unit.flow) ? unit.flow : [];
+        const wantedQuery = body.blockSearchQuery ? String(body.blockSearchQuery).trim().toLowerCase() : null;
+        const targets = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl);
+        const target = (wantedQuery
+          ? targets.find((b: any) => String(b.data?.search_query || '').trim().toLowerCase() === wantedQuery)
+          : null) ?? targets[0];
+        if (!target) return { error: 'No unresolved media step found — it may already have a video.' };
+
+        const merged = {
+          videoUrl: oe.url,
+          videoTitle: oe.title,
+          videoChannel: oe.channel || '',
+          ...(oe.thumbnailUrl ? { videoThumbnailUrl: oe.thumbnailUrl } : {}),
+          resolvedVia: 'teacher',
+          resolvedAt: new Date().toISOString(),
+        };
+        target.data = { ...(target.data || {}), ...merged };
+
+        const { error: updErr } = await sb.from('units').update({ flow }).eq('id', unitId);
+        if (updErr) return { error: `Save failed: ${updErr.message}` };
+
+        let plansSynced = 0;
+        try {
+          plansSynced = await syncClassPlanFlows(sb, unitId, [{
+            searchQuery: target.data.search_query || null,
+            title: target.data.title || null,
+            data: merged,
+          }]);
+        } catch { /* best-effort */ }
+
+        const assetId = await upsertMediaAsset(sb, {
+          videoId,
+          url: oe.url,
+          title: oe.title,
+          channel: oe.channel,
+          thumbnailUrl: oe.thumbnailUrl,
+        }, {
+          unitId: unit.id,
+          role: target.data.kind === 'video' ? 'video' : 'song',
+          teacherId: unit.teacher_id || null,
+          source: 'teacher',
+        });
+
+        return { success: true, videoUrl: oe.url, videoTitle: oe.title, videoChannel: oe.channel, assetId, plansSynced };
       }
 
       case 'crop-book-image': {

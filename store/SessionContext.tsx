@@ -205,6 +205,19 @@ export interface SessionContextType {
   /** stageId is the student-path (solo) extension: scope the lesson to one
    *  node. The live teacher implementation ignores it. */
   setActiveUnit: (unitId: string, classPlanId?: string) => Promise<void>;
+  /** Media resolution (media design 2026-09-04 §2.3): re-fetch the ACTIVE unit
+   *  (and its class-plan flow when one drives the session) and swap the flow in
+   *  place WITHOUT resetting the current step — how every tab converges after a
+   *  media step is resolved mid-lesson. */
+  refreshActiveFlow: () => Promise<void>;
+  /** Run the catalog-first auto-resolution ladder on the active unit's
+   *  unresolved media steps (edge persists units.flow + class_plans.flow),
+   *  then refresh + broadcast so all tabs converge. */
+  resolveMediaForActiveUnit: () => Promise<{ ok: boolean; error?: string; resolvedCount?: number }>;
+  /** Apply a teacher-picked YouTube URL to the active unit's unresolved media
+   *  step (server oEmbed-validates; persists both flow stores), then refresh +
+   *  broadcast. The teacher's pick always wins (media design §4.4). */
+  applyMediaToStep: (url: string, meta?: { title?: string; blockSearchQuery?: string }) => Promise<{ ok: boolean; error?: string }>;
   /** Ensure an attendance occurrence exists for the live class (for opening the
    *  attendance modal before go-live). Returns the occurrence id or null. */
   ensureAttendanceOccurrence: () => Promise<{ id: string | null; error: string | null }>;
@@ -364,6 +377,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const pendingPointsRef = useRef<Record<string, number>>({});
   const activeClassIdRef = useRef<string | null>(null);
   useEffect(() => { activeClassIdRef.current = state.activeClassId; }, [state.activeClassId]);
+  /** Media resolution: which class plan drives the session (for flow refresh). */
+  const classPlanIdRef = useRef<string | null>(null);
+  useEffect(() => { classPlanIdRef.current = state.activeClassPlan?.id ?? null; }, [state.activeClassPlan?.id]);
   /** FIXPLAN I — cache-first class-plan loader (classroom_sessions rows carry
    *  class_plan_id; every tab resolves the same plan through applySessionRow). */
   const classPlanCacheRef = useRef<Map<string, any>>(new Map());
@@ -463,6 +479,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
             applyLiveTurnFields(action.payload.state as LiveTurnState, seq);
             setState(prev => ({ ...prev, recentActions: [...prev.recentActions.slice(-19), action] }));
           }
+          return;
+        }
+        // Media resolution convergence (media design §2.3): another tab
+        // resolved/applied a media step — re-hydrate the active flow so the
+        // current slide picks up the new videoUrl. Never fed to game guards.
+        if (action?.type === 'MEDIA_RESOLVED') {
+          refreshActiveFlowRef.current();
           return;
         }
         setState(prev => {
@@ -1218,6 +1241,84 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
+  // ── Media resolution (media design 2026-09-04 §2.3) ────────────────────
+  // After the edge resolves/applies a media step, the flow in DB changes but
+  // every open tab still holds its hydrated copy. refreshActiveFlow re-fetches
+  // the ACTIVE source (class-plan flow when one drives the session, else the
+  // unit flow) and swaps it in place — current step preserved. All tabs
+  // converge via the MEDIA_RESOLVED broadcast (the broadcast handler is bound
+  // once at channel creation, so it routes through this ref).
+  const refreshActiveFlowRef = useRef<() => void>(() => {});
+
+  const refreshActiveFlow = useCallback(async () => {
+    const unitId = activeUnitRef.current?.id;
+    if (!unitId) return;
+    try {
+      // Bypass the class-plan cache: a plan flow just changed server-side.
+      const fresh = await Engine.getUnitById(unitId);
+      if (!fresh) return;
+      activeUnitRef.current = fresh;
+      let flow: any[] | null = null;
+      const planId = classPlanIdRef.current;
+      if (planId) {
+        classPlanCacheRef.current.delete(planId);
+        const plan = await fetchClassPlan(planId);
+        if (plan && Array.isArray(plan.flow) && plan.flow.length > 0) flow = plan.flow;
+      }
+      if (!flow || flow.length === 0) flow = Array.isArray(fresh.flow) ? fresh.flow : [];
+      if (flow.length === 0) return;
+      setState(prev => {
+        const idx = Math.min(Math.max(prev.currentStepIndex, 0), flow!.length - 1);
+        return {
+          ...prev,
+          activeUnit: fresh,
+          activeSlideData: flow![idx] ?? prev.activeSlideData,
+        };
+      });
+    } catch {
+      // Keep the current in-memory flow on fetch failure.
+    }
+  }, [fetchClassPlan]);
+  useEffect(() => { refreshActiveFlowRef.current = refreshActiveFlow; }, [refreshActiveFlow]);
+
+  const resolveMediaForActiveUnit = useCallback(async () => {
+    const unitId = activeUnitRef.current?.id;
+    if (!unitId) return { ok: false, error: 'No active unit' };
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'resolve-media', unitId, classId: activeClassIdRef.current || undefined },
+      });
+      if (error) return { ok: false, error: error.message };
+      if (data?.error) return { ok: false, error: String(data.error) };
+      const resolvedCount = Number(data?.resolvedCount ?? 0);
+      if (resolvedCount > 0) {
+        await refreshActiveFlow();
+        broadcastAction({ type: 'MEDIA_RESOLVED', payload: { resolvedCount }, timestamp: Date.now() });
+      }
+      return { ok: true, resolvedCount };
+    } catch (err: any) {
+      return { ok: false, error: err?.message || String(err) };
+    }
+    // broadcastAction only touches stable refs/setState — safe to capture.
+  }, [refreshActiveFlow]);
+
+  const applyMediaToStep = useCallback(async (url: string, meta?: { title?: string; blockSearchQuery?: string }) => {
+    const unitId = activeUnitRef.current?.id;
+    if (!unitId) return { ok: false, error: 'No active unit' };
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-media', {
+        body: { action: 'apply-media', unitId, url, ...(meta?.title ? { title: meta.title } : {}), ...(meta?.blockSearchQuery ? { blockSearchQuery: meta.blockSearchQuery } : {}) },
+      });
+      if (error) return { ok: false, error: error.message };
+      if (data?.error) return { ok: false, error: String(data.error) };
+      await refreshActiveFlow();
+      broadcastAction({ type: 'MEDIA_RESOLVED', payload: { teacher: true }, timestamp: Date.now() });
+      return { ok: true };
+    } catch (err: any) {
+      return { ok: false, error: err?.message || String(err) };
+    }
+  }, [refreshActiveFlow]);
+
   const unlockNextLevel = async (currentUnitId: string) => {
     await Engine.unlockNextUnit(currentUnitId);
     await loadUnits();
@@ -1715,6 +1816,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   return (
     <SessionContext.Provider value={{
       state, loadUnits, loadStudents, setActiveClass, setActiveUnit, ensureAttendanceOccurrence, saveUnit, unlockNextLevel,
+      refreshActiveFlow, resolveMediaForActiveUnit, applyMediaToStep,
       startSession, endSession, retrySync, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, dismissWheel, cancelTurn, nextStudent,

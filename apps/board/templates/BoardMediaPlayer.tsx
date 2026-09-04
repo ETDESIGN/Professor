@@ -1,17 +1,19 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Volume2, Maximize, VolumeX } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, Maximize, VolumeX, Wand2 } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { youtubeSearchUrl } from '../../../services/youtubeUrl';
 import ReactPlayer from 'react-player/lazy';
 
 const BoardMediaPlayer = ({ data }: { data: any }) => {
-  const { state, triggerAction } = useSession();
+  const { state, triggerAction, applyMediaToStep } = useSession();
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0); // 0 to 1
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [applying, setApplying] = useState<string | null>(null); // candidate url being applied
   const playerRef = useRef<any>(null);
 
   // Mock Lyrics synced to time (in seconds)
@@ -61,14 +63,26 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
   const hasLyrics = lyrics.length > 0;
   const hasContent = hasVideo || hasAudio || hasLyrics;
 
-  // Phase 4 (P2-6): when there is no directly playable URL, surface the
-  // recommended song/video suggestion with an "open on YouTube" action. The
-  // YouTube Data API is region-blocked, so we cannot auto-resolve a video id;
-  // a search link is the region-safe fallback.
+  // Media resolution (design 2026-09-04 §4.5): with nothing playable this is
+  // an UNRESOLVED SUGGESTION, not a broken player. The transport/progress
+  // chrome is hidden (the old fake-player UX), the suggestion card stays, and
+  // one-click candidate chips let the teacher resolve straight from the board.
   const youtubeUrl =
     data.youtubeUrl ||
-    (data.search_query ? `https://www.youtube.com/results?search_query=${encodeURIComponent(data.search_query)}` : '');
+    (data.search_query ? youtubeSearchUrl(data.search_query) : '');
   const hasSuggestion = !hasContent && Boolean(youtubeUrl);
+  const candidates: Array<{ videoId?: string; url?: string; title?: string; channel?: string; thumbnailUrl?: string }> =
+    Array.isArray(data.candidates) ? data.candidates : [];
+
+  const applyCandidate = async (c: { url?: string }) => {
+    if (!c.url || applying) return;
+    setApplying(c.url);
+    try {
+      await applyMediaToStep(c.url, { blockSearchQuery: data.search_query });
+    } finally {
+      setApplying(null);
+    }
+  };
 
   return (
     <div className="h-full bg-black relative flex flex-col group overflow-hidden">
@@ -138,9 +152,11 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
             <h1 className="text-5xl font-display font-bold text-white drop-shadow-lg">{data.title || "Media Player"}</h1>
           </div>
         </div>
-        <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-full text-white/80 font-mono text-xl border border-white/10">
-          {Math.floor(progress * 100)}%
-        </div>
+        {hasContent && (
+          <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-full text-white/80 font-mono text-xl border border-white/10">
+            {Math.floor(progress * 100)}%
+          </div>
+        )}
       </div>
 
       {/* Karaoke Lyrics Area */}
@@ -165,23 +181,47 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
             </p>
           </div>
         ) : hasSuggestion ? (
-          <div className="text-center max-w-3xl">
+          <div className="text-center max-w-4xl">
             <div className="inline-flex items-center gap-2 bg-red-600/20 text-red-300 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider mb-6 border border-red-500/30">
               <Volume2 size={16} /> Recommended {data.kind === 'song' ? 'Song' : 'Video'}
             </div>
             <h2 className="text-5xl font-display font-bold text-white mb-4 drop-shadow-lg">{data.title || 'Media'}</h2>
             {data.topic_relevance && (
-              <p className="text-2xl text-white/60 font-fun mb-8">{data.topic_relevance}</p>
+              <p className="text-2xl text-white/60 font-fun mb-6">{data.topic_relevance}</p>
+            )}
+            {data.videoChannel && (
+              <p className="text-lg text-white/40 font-fun mb-6">matched from {data.videoChannel}</p>
+            )}
+            {candidates.length > 0 && (
+              <div className="flex justify-center gap-4 mb-8 flex-wrap">
+                {candidates.map((c, i) => (
+                  <button
+                    key={c.videoId || c.url || i}
+                    onClick={() => applyCandidate(c)}
+                    disabled={Boolean(applying)}
+                    className="group/c w-56 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/50 rounded-2xl p-3 text-left transition-colors disabled:opacity-50"
+                  >
+                    {c.thumbnailUrl && (
+                      <img src={c.thumbnailUrl} alt={c.title || ''} className="w-full h-24 object-cover rounded-xl mb-2" />
+                    )}
+                    <p className="text-sm text-white font-fun line-clamp-2">{c.title}</p>
+                    {c.channel && <p className="text-xs text-white/50 mt-1">{c.channel}</p>}
+                    <span className="mt-2 inline-flex items-center gap-1 text-xs text-yellow-400 font-bold">
+                      <Wand2 size={12} /> {applying === c.url ? 'Playing on click…' : 'Tap to use this video'}
+                    </span>
+                  </button>
+                ))}
+              </div>
             )}
             <a
               href={youtubeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 bg-red-600 hover:bg-red-500 text-white px-8 py-4 rounded-2xl text-xl font-bold transition-colors shadow-lg shadow-red-900/40"
+              className="inline-flex items-center gap-3 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-2xl text-lg font-bold transition-colors border border-white/20"
             >
-              <Play size={24} fill="white" /> Play on YouTube
+              <Play size={20} fill="white" /> Open YouTube search
             </a>
-            <p className="text-sm text-white/30 mt-6 font-mono">Opens in a new tab (YouTube API is region-restricted)</p>
+            <p className="text-sm text-white/30 mt-6 font-mono">No video attached yet — pick one here or from the Commander</p>
           </div>
         ) : (
           <div className="text-center">
@@ -191,8 +231,11 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
         )}
       </div>
 
-      {/* Progress Bar & Controls */}
-      <div className="absolute bottom-0 left-0 w-full z-30 bg-gradient-to-t from-black to-transparent pt-20 pb-8 px-8 transition-transform duration-300 translate-y-full group-hover:translate-y-0">
+      {/* Progress Bar & Controls — only when something is actually playable.
+          The unresolved state above is an honest suggestion card, not a
+          fake player (media design §4.5). */}
+      {hasContent && (
+        <div className="absolute bottom-0 left-0 w-full z-30 bg-gradient-to-t from-black to-transparent pt-20 pb-8 px-8 transition-transform duration-300 translate-y-full group-hover:translate-y-0">
         {/* Timeline */}
         <div
           className="w-full h-3 bg-white/20 rounded-full mb-6 cursor-pointer relative overflow-hidden"
@@ -213,10 +256,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
               <SkipBack size={32} />
             </button>
             <button
-              onClick={() => {
-                if (hasContent) setIsPlaying(!isPlaying);
-                else if (youtubeUrl) window.open(youtubeUrl, '_blank', 'noopener');
-              }}
+              onClick={() => setIsPlaying(!isPlaying)}
               className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center hover:scale-110 transition-transform"
             >
               {isPlaying ? <Pause size={32} fill="black" /> : <Play size={32} fill="black" className="ml-1" />}
@@ -246,6 +286,7 @@ const BoardMediaPlayer = ({ data }: { data: any }) => {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

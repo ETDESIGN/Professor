@@ -41,6 +41,9 @@ const ClassManagement: React.FC = () => {
     // create-class form
     const [newClassName, setNewClassName] = useState('');
     const [newClassSubject, setNewClassSubject] = useState('');
+    // Age options shared with TeacherOnboarding's (previously dead) picker.
+    const GRADE_OPTIONS = ['Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade', '6th Grade', 'ESL Beginner'];
+    const [newClassGrade, setNewClassGrade] = useState('3rd Grade');
     // School to scope the new class to. '' = independent (school_id NULL).
     // Only active memberships are eligible; the teacher picks per class.
     const activeMemberships = memberships.filter(m => m.status === 'active');
@@ -57,12 +60,14 @@ const ClassManagement: React.FC = () => {
             await createClass(teacherId, {
                 name: newClassName,
                 subject: newClassSubject,
+                grade_level: newClassGrade,
                 is_active: true,
                 school_id: newClassSchoolId || null,
             });
             queryClient.invalidateQueries({ queryKey: ['teacherClasses', teacherId] });
             setNewClassName('');
             setNewClassSubject('');
+            setNewClassGrade('3rd Grade');
             setNewClassSchoolId('');
             setShowCreateClass(false);
             toast.success('Class created');
@@ -152,6 +157,21 @@ const ClassManagement: React.FC = () => {
                             placeholder="e.g., English, Math"
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-duo-blue"
                         />
+                    </Field>
+                    {/* Media resolution (media design §1.3/W3.5): the teacher-declared
+                        age of the class — drives age-aware song/video matching
+                        (classes.grade_level existed in the schema but nothing wrote it). */}
+                    <Field label="Grade / Age group">
+                        <select
+                            value={newClassGrade}
+                            onChange={e => setNewClassGrade(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-duo-blue"
+                        >
+                            {GRADE_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Used to pick age-appropriate warm-up songs and videos automatically.
+                        </p>
                     </Field>
                     {activeMemberships.length > 0 && (
                         <Field label="School (optional)">

@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { ErrorBoundary } from '../../components/shared/ErrorBoundary';
 import { BoardRenderer } from './live/panels/BoardRenderer';
 import { renderContextualControls } from './live/panels/ContextualControls';
+import MediaResolvePanel from './live/panels/MediaResolvePanel';
 import { SidebarPanel } from './live/sidebar/SidebarPanel';
 import { useTimer } from './live/hooks/useTimer';
 import { useNoiseDetection } from './live/hooks/useNoiseDetection';
@@ -350,6 +351,16 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   <div className="mt-6 flex items-center gap-4 bg-slate-800/80 p-2 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
                      {renderContextualControls(currentStep, triggerAction, selectNextStudent)}
                   </div>
+
+                  {/* Media resolution (media design W3.4): the current step is an
+                      unresolved MEDIA_PLAYER — quick-resolve panel: Find video
+                      (catalog ladder) or paste a link; the edge persists both flow
+                      stores and every tab converges via MEDIA_RESOLVED. */}
+                  {currentStep?.type === 'MEDIA_PLAYER' && !currentStep?.data?.videoUrl && !currentStep?.data?.audioUrl && (
+                    <div className="mt-3">
+                      <MediaResolvePanel />
+                    </div>
+                  )}
                </div>
             </div>
 

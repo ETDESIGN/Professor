@@ -19,7 +19,7 @@ import {
   type MediaCandidate,
 } from './mediaResolverCore.ts';
 import { fetchChatCompletion } from './ai.ts';
-import { extractJsonObject, stripReasoning } from './json.ts';
+import { parseJsonLenient } from './json.ts';
 
 export type { AgeBand, MediaCandidate } from './mediaResolverCore.ts';
 export { ageBandFromGrade, ageBandFromManifest } from './mediaResolverCore.ts';
@@ -177,7 +177,9 @@ Quality over quantity: zero entries is a valid answer.`;
   );
   if (!res?.content) return [];
   try {
-    const parsed = extractJsonObject(stripReasoning(res.content));
+    // parseJsonLenient tolerates trailing prose / reasoning prefixes ({} on
+    // no JSON at all — the candidates check below handles that).
+    const parsed = parseJsonLenient<any>(res.content);
     const list = parsed?.candidates;
     if (!Array.isArray(list)) return [];
     return list
@@ -405,6 +407,74 @@ export async function upsertMediaAsset(
 }
 
 // ── orchestrate-lesson integration helper ────────────────────────────────
+
+/** Edge-side parse of a pasted YouTube URL → 11-char video id (client twin:
+ *  services/youtubeUrl.ts — kept separate so functions never import app code). */
+export function parseYouTubeVideoId(input: string): string | null {
+  const raw = String(input || '').trim();
+  if (!raw) return null;
+  let url: URL;
+  try {
+    url = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.replace(/^(www\.|m\.|music\.)/, '');
+  let id: string | null = null;
+  if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+    id = url.searchParams.get('v');
+    if (!id) {
+      const m = url.pathname.match(/^\/(?:shorts|embed|live)\/([A-Za-z0-9_-]+)\/?$/);
+      id = m ? m[1] : null;
+    }
+  } else if (host === 'youtu.be') {
+    const m = url.pathname.match(/^\/([A-Za-z0-9_-]+)\/?$/);
+    id = m ? m[1] : null;
+  }
+  return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+}
+
+/**
+ * Propagate resolutions from units.flow into the unit's class_plans.flow rows
+ * (the live session may be driven by a class plan — its flow is a materialized
+ * copy, so it must be healed too or the board keeps the stale suggestion).
+ * Matches blocks by normalized search_query, then title, then the
+ * single-unresolved-block fallback. Returns the number of plans updated.
+ */
+export async function syncClassPlanFlows(
+  sb: any,
+  unitId: string,
+  resolvedBlocks: Array<{ searchQuery?: string | null; title?: string | null; data: Record<string, any> }>,
+): Promise<number> {
+  if (resolvedBlocks.length === 0) return 0;
+  const norm = (s: any) => String(s || '').trim().toLowerCase();
+  const { data: plans } = await sb
+    .from('class_plans')
+    .select('id, flow')
+    .eq('unit_id', unitId)
+    .not('flow', 'is', null);
+  let updated = 0;
+  for (const plan of plans || []) {
+    const flow = Array.isArray(plan.flow) ? plan.flow : [];
+    let changed = false;
+    const unresolved = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl);
+    for (const block of unresolved) {
+      const match = resolvedBlocks.find((rb) =>
+        (rb.searchQuery && norm(rb.searchQuery) === norm(block.data?.search_query)) ||
+        (rb.title && norm(rb.title) === norm(block.data?.title)),
+      ) ?? (resolvedBlocks.length === 1 && unresolved.length === 1 ? resolvedBlocks[0] : undefined);
+      if (match) {
+        block.data = { ...(block.data || {}), ...match.data };
+        changed = true;
+      }
+    }
+    if (changed) {
+      const { error } = await sb.from('class_plans').update({ flow }).eq('id', plan.id);
+      if (!error) updated++;
+    }
+  }
+  return updated;
+}
 
 export interface FlowResolveContext {
   unitId: string;

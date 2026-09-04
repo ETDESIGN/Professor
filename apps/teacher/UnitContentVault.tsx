@@ -12,6 +12,7 @@ import MediaPickerModal from './MediaPickerModal';
 import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
 import { useUnitStudioStore, VocabItem, GrammarRule, StoryPage, QuizQuestion } from '../../store/useUnitStudioStore';
+import { parseYouTubeUrl, oembedLookup, youtubeSearchUrl } from '../../services/youtubeUrl';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
 
@@ -79,10 +80,27 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
   useEffect(() => { if (unitId) loadLinkedCharacters(); }, [unitId, loadLinkedCharacters]);
 
-  const [ytSearch, setYtSearch] = useState('');
-  const [ytResults, setYtResults] = useState<any[]>([]);
   const [ytSearching, setYtSearching] = useState(false);
   const [ytCustomUrl, setYtCustomUrl] = useState('');
+  // W3.3: keyless oEmbed preview of the pasted link (title/channel/thumbnail;
+  // undefined = not yet checked, null = invalid link).
+  const [ytPreview, setYtPreview] = useState<{ title?: string; channel?: string; thumbnailUrl?: string; offline?: boolean } | null | undefined>(undefined);
+  const [ytChecking, setYtChecking] = useState(false);
+
+  const checkCustomUrl = async (value: string) => {
+    setYtCustomUrl(value);
+    const parsed = parseYouTubeUrl(value);
+    if (!parsed) { setYtPreview(value.trim() ? null : undefined); return; }
+    setYtChecking(true);
+    try {
+      const r = await oembedLookup(parsed.videoId);
+      setYtPreview(r.ok ? r : { offline: true, title: value });
+    } catch {
+      setYtPreview({ offline: true });
+    } finally {
+      setYtChecking(false);
+    }
+  };
 
   const [genImages, setGenImages] = useState<Record<string, boolean>>({});
   const [genAudios, setGenAudios] = useState<Record<string, boolean>>({});
@@ -337,26 +355,29 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     }
   };
 
-  const searchYouTube = async () => {
-    if (!ytSearch.trim()) return;
+  // Media resolution (media design W3.3): the old searchYouTube expected the
+  // YouTube Data API response shape and silently returned zero results (the
+  // edge is keyless and only builds search URLs). Replaced by the real
+  // resolver — the catalog-first ladder runs server-side, persists the flow,
+  // and loadUnit() re-hydrates mediaStep from the saved flow.
+  const findVideo = async () => {
+    if (!unitId) return;
     setYtSearching(true);
-    setYtResults([]);
     try {
-      const query = `${manifest?.meta?.theme || ytSearch} English lesson kids song`;
       const { data, error } = await supabase.functions.invoke('generate-media', {
-        body: { action: 'youtube-search', query }
+        body: { action: 'resolve-media', unitId }
       });
       if (error) throw error;
-      if (data?.items) {
-        setYtResults(data.items.map((item: any) => ({
-          videoId: item.id.videoId,
-          title: item.snippet.title,
-          thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
-          channel: item.snippet.channelTitle,
-        })));
+      if (data?.error) throw new Error(String(data.error));
+      const resolved = Number(data?.resolvedCount ?? 0);
+      if (resolved > 0) {
+        await loadUnit();
+        toast.success(`Video found for ${resolved} media step${resolved > 1 ? 's' : ''} — remember to Save`);
+      } else {
+        toast.message('No automatic match', { description: 'Paste a YouTube link below, or open the search to pick one.' });
       }
-    } catch {
-      toast.error('YouTube search failed. Check your API key.');
+    } catch (err: any) {
+      toast.error('Media resolution failed: ' + (err?.message || 'unknown error'));
     } finally {
       setYtSearching(false);
     }
@@ -381,19 +402,23 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
     }
   };
 
-  const selectYouTubeVideo = (videoId: string, title: string) => {
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    setMediaStep({ ...(mediaStep || {}), videoUrl: url, title });
-    setYtCustomUrl(url);
-    recordVideoAsset(url, title);
-    toast.success(`Selected: ${title}`);
-  };
-
   const applyCustomUrl = () => {
-    if (!ytCustomUrl) return;
-    setMediaStep({ ...(mediaStep || {}), videoUrl: ytCustomUrl });
-    recordVideoAsset(ytCustomUrl);
-    toast.success('Video URL updated');
+    const parsed = parseYouTubeUrl(ytCustomUrl);
+    if (ytCustomUrl && !parsed) {
+      toast.error('That does not look like a YouTube link');
+      return;
+    }
+    if (!parsed) return;
+    setMediaStep({
+      ...(mediaStep || {}),
+      videoUrl: parsed.canonicalUrl,
+      ...(ytPreview?.title ? { videoTitle: ytPreview.title } : {}),
+      ...(ytPreview?.channel ? { videoChannel: ytPreview.channel } : {}),
+      resolvedVia: 'teacher',
+      resolvedAt: new Date().toISOString(),
+    });
+    recordVideoAsset(parsed.canonicalUrl, ytPreview?.title);
+    toast.success('Video attached — remember to Save');
   };
 
   const regenerateImage = async (word: string, index: number) => {
@@ -918,48 +943,86 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                   <h2 className="text-lg font-bold text-slate-800 mb-4">Warm Up Media</h2>
 
                   <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm mb-6">
-                    <h3 className="text-sm font-bold text-slate-700 mb-3">YouTube Video Search</h3>
-                    <div className="flex gap-2 mb-4">
-                      <input value={ytSearch} onChange={e => setYtSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchYouTube()} placeholder="Search for lesson songs or videos..." className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                      <button onClick={searchYouTube} disabled={ytSearching} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-1">
-                        {ytSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-                        Search
-                      </button>
-                    </div>
+                    <h3 className="text-sm font-bold text-slate-700 mb-3">Attach a video</h3>
 
-                    {ytResults.length > 0 && (
-                      <div className="grid grid-cols-2 gap-3 mb-4">
-                        {ytResults.map(r => (
-                          <button key={r.videoId} onClick={() => selectYouTubeVideo(r.videoId, r.title)} className={`flex gap-3 p-3 rounded-xl border-2 text-left transition-colors ${mediaStep?.videoUrl?.includes(r.videoId) ? 'border-green-400 bg-green-50' : 'border-slate-100 hover:border-indigo-200'}`}>
-                            <img src={r.thumbnail} alt={r.title} className="w-28 h-20 rounded-lg object-cover shrink-0" />
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-slate-800 line-clamp-2">{r.title}</p>
-                              <p className="text-xs text-slate-400 mt-1">{r.channel}</p>
-                            </div>
-                          </button>
-                        ))}
+                    {/* Provenance of the current resolution (media design §4.4). */}
+                    {mediaStep?.videoUrl ? (
+                      <div className="mb-4 p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-3">
+                        <Check size={16} className="text-green-600 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm text-green-700 font-medium truncate">
+                            {mediaStep.videoTitle || mediaStep.videoUrl}
+                          </p>
+                          <p className="text-xs text-green-600/80">
+                            {mediaStep.videoChannel ? `${mediaStep.videoChannel} · ` : ''}
+                            {mediaStep.resolvedVia === 'teacher' ? 'picked by you' : mediaStep.resolvedVia ? `auto-matched (${mediaStep.resolvedVia})` : 'attached'}
+                          </p>
+                        </div>
                       </div>
+                    ) : (
+                      <button onClick={findVideo} disabled={ytSearching} className="mb-4 w-full bg-indigo-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                        {ytSearching ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                        {ytSearching ? 'Finding the best match…' : 'Find video automatically'}
+                      </button>
                     )}
+
+                    {/* The AI's suggestions: real titles + search links (the
+                        catalog matcher keys off these titles). */}
+                    <div className="border-t border-slate-100 pt-4 mb-4">
+                      <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Suggestions for this lesson</label>
+                      <div className="space-y-2">
+                        {[
+                          ...(Array.isArray(manifest?.song_suggestions) ? manifest.song_suggestions : []),
+                          ...(Array.isArray(manifest?.video_suggestions) ? manifest.video_suggestions : []),
+                        ].slice(0, 6).map((s: any, i: number) => (
+                          <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50">
+                            <Music size={14} className="text-slate-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-slate-700 truncate">{s?.title || 'Untitled suggestion'}</p>
+                              {s?.topic_relevance && <p className="text-xs text-slate-400 truncate">{s.topic_relevance}</p>}
+                            </div>
+                            {s?.search_query && (
+                              <a href={youtubeSearchUrl(s.search_query)} target="_blank" rel="noopener noreferrer"
+                                className="shrink-0 inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                <Search size={12} /> Open search
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                        {!(manifest?.song_suggestions?.length || manifest?.video_suggestions?.length) && (
+                          <p className="text-xs text-slate-400">No suggestions yet — run enrichment on the Content tab first.</p>
+                        )}
+                      </div>
+                    </div>
 
                     <div className="border-t border-slate-100 pt-4">
                       <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Or paste a YouTube URL</label>
                       <div className="flex gap-2">
-                        <input value={ytCustomUrl} onChange={e => setYtCustomUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                        <button onClick={applyCustomUrl} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center gap-1">
-                          <ExternalLink size={14} /> Apply
+                        <input value={ytCustomUrl} onChange={e => checkCustomUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                        <button onClick={applyCustomUrl} disabled={!parseYouTubeUrl(ytCustomUrl)} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 disabled:opacity-40 flex items-center gap-1">
+                          {ytChecking ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />} Apply
                         </button>
                         <button onClick={() => setVideoPickerOpen(true)} className="bg-pink-50 text-pink-700 border border-pink-200 px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-100 flex items-center gap-1">
                           <Video size={14} /> Library
                         </button>
                       </div>
-                    </div>
 
-                    {mediaStep?.videoUrl && (
-                      <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-200 flex items-center gap-2">
-                        <Check size={16} className="text-green-600" />
-                        <span className="text-sm text-green-700 font-medium">Video selected: {mediaStep.videoUrl}</span>
-                      </div>
-                    )}
+                      {ytPreview === null && ytCustomUrl.trim() && (
+                        <p className="text-xs text-red-500 mt-2">That does not look like a YouTube link.</p>
+                      )}
+                      {ytPreview && ytPreview.title && (
+                        <div className="mt-3 flex items-center gap-3 p-2.5 rounded-lg border border-slate-100 bg-slate-50/50">
+                          {ytPreview.thumbnailUrl && <img src={ytPreview.thumbnailUrl} alt="" className="w-28 h-16 rounded-lg object-cover shrink-0" />}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-700 line-clamp-2">{ytPreview.title}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {ytPreview.channel || 'unknown channel'}
+                              {ytPreview.offline ? ' · not verified (offline)' : ' · verified'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
