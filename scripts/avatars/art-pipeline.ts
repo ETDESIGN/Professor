@@ -497,6 +497,80 @@ function largestComponent(alpha: Buffer): { alpha: Buffer; keptPct: number } {
 }
 
 
+
+/** Slot crop regions on the 1024 skeleton (content top y=62, height 900;
+ *  head y62-480, face center ~y270, torso y480-790, legs below). Outfits are
+ *  TORSO-ONLY — outfit layers must never contain legs (the "bottom body
+ *  overlay" bug: outfit-rendered legs misalign with the base's legs). */
+const SLOT_REGIONS: Record<string, { x: number; y: number; w: number; h: number }> = {
+  headwear: { x: 300, y: 20, w: 424, h: 290 },
+  hair:     { x: 290, y: 15, w: 444, h: 330 },
+  eyes:     { x: 380, y: 175, w: 264, h: 180 },
+  face:     { x: 370, y: 165, w: 284, h: 215 },
+  outfit:   { x: 315, y: 445, w: 394, h: 350 },
+  handheld: { x: 640, y: 390, w: 384, h: 490 },
+  back:     { x: 250, y: 395, w: 524, h: 430 },
+};
+
+/** Alpha bbox (of pixels > threshold). */
+function alphaBBox(alpha: Buffer): { x: number; y: number; w: number; h: number } | null {
+  let minX = 1e9, maxX = -1, minY = 1e9, maxY = -1;
+  for (let y = 0; y < W; y++) {
+    for (let x = 0; x < W; x++) {
+      if (alpha[y * W + x] > 40) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+/** Build a full-canvas RGBA buffer from rgba + alpha. */
+function rgbaWithAlpha(rgba: Buffer, alpha: Buffer): Buffer {
+  const out = Buffer.allocUnsafe(W * W * 4);
+  for (let i = 0, p = 0; i < W * W; i++, p += 4) {
+    out[p] = rgba[p]; out[p + 1] = rgba[p + 1]; out[p + 2] = rgba[p + 2];
+    out[p + 3] = alpha[i];
+  }
+  return out;
+}
+
+/** Skeleton-align a cutout (trim → scale h900 → top62 → centered). */
+async function alignToSkeleton(cutoutPng: Buffer): Promise<Buffer> {
+  const trimmed = await sharp(cutoutPng).trim({ threshold: 12 }).png().toBuffer();
+  const meta = await sharp(trimmed).metadata();
+  const iw = meta.width || 1, ih = meta.height || 1;
+  const scale = 900 / ih;
+  const dw = Math.min(W, Math.round(iw * scale));
+  const sprite = await sharp(trimmed).resize(dw, 900, { fit: 'fill' }).png().toBuffer();
+  return sharp({ create: { width: W, height: W, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: sprite, left: Math.max(0, Math.round((W - dw) / 2)), top: 62 }]).png().toBuffer();
+}
+
+/** Zero alpha outside the slot region, feathered at the boundary (14px). */
+async function applyRegionMask(canvasPng: Buffer, slot: string): Promise<Buffer> {
+  const region = SLOT_REGIONS[slot];
+  if (!region) return canvasPng;
+  const { data, info } = await sharp(canvasPng).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const F = 14;
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      const i = y * info.width + x;
+      const p = i * 4;
+      let m = 1;
+      const dx = Math.max(region.x - x, x - (region.x + region.w));
+      const dy = Math.max(region.y - y, y - (region.y + region.h));
+      const d = Math.max(dx, dy);
+      if (d > 0) m = 0;
+      else if (d > -F) m = (dx > dy ? dx : dy) === d ? (d + F) / F : 1; // inside within F of edge → ramp
+      if (m < 1) data[p + 3] = Math.round(data[p + 3] * m);
+    }
+  }
+  return sharp(Buffer.from(data), { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
+}
+
 /** Skin-key: item layers generated on the BOY master carry face-skin pixels
  *  around the item — invisible on the boy, a face-ghost overlay on every
  *  other body. Key the human-skin band (hue 6-40deg, sat 0.12-0.6, val
@@ -656,7 +730,25 @@ async function processItem(item: { id: string; slot: string; onBody?: string }):
   const sk = skinKeyAlpha(rgba, alpha);
   if (sk.removedPct > 0.65) return { ok: false, reason: `skinkey_ate_${(sk.removedPct * 100).toFixed(0)}% (item is skin-toned?)` };
 
-  // Feather the alpha edge by 1px, then extract color+alpha into one RGBA png.
+  // Classify: full-character i2i render → region-crop (as-worn, skeleton
+  // aligned, limb-free by construction). Isolated object render → anchor.
+  const bbox = alphaBBox(alpha);
+  let layer: Buffer;
+  if (bbox && bbox.h > W * 0.5 && bbox.w > W * 0.35) {
+    const cutout = await sharp(Buffer.from(rgbaWithAlpha(rgba, alpha)), { raw: { width: W, height: W, channels: 4 } }).png().toBuffer();
+    const aligned = await alignToSkeleton(cutout);
+    layer = await applyRegionMask(aligned, item.slot);
+  } else {
+    layer = await buildAnchoredLayer(rgba, alpha, item.slot);
+  }
+  fs.writeFileSync(path.join(DIRS.extracted, `${item.id}.png`), layer);
+  await writePreview(item, layer);
+  return { ok: true };
+
+}
+
+/** Standalone-object path: feather → trim → scale into the anchor rect. */
+async function buildAnchoredLayer(rgba: Buffer, alpha: Buffer, slot: string): Promise<Buffer> {
   const soft = await featherAlpha(alpha);
   const out = Buffer.allocUnsafe(W * W * 4);
   for (let i = 0, p = 0; i < W * W; i++, p += 4) {
@@ -664,46 +756,33 @@ async function processItem(item: { id: string; slot: string; onBody?: string }):
     out[p + 3] = soft[i];
   }
   const cutoutPng = await sharp(Buffer.from(out), { raw: { width: W, height: W, channels: 4 } }).png().toBuffer();
-
-  // Trim to content bbox, then place onto the slot anchor rect.
   const trimmed = await sharp(cutoutPng).trim({ threshold: 12 }).png().toBuffer();
   const meta = await sharp(trimmed).metadata();
   const iw = meta.width || 1, ih = meta.height || 1;
-  const anchor = ITEM_ANCHORS[item.slot] || ITEM_ANCHORS.handheld;
-  const scale = Math.min(anchor.w / iw, anchor.h / ih, 1); // never upscale past the anchor
+  const anchor = ITEM_ANCHORS[slot] || ITEM_ANCHORS.handheld;
+  const scale = Math.min(anchor.w / iw, anchor.h / ih, 1);
   const dw = Math.min(W, Math.max(1, Math.round(iw * scale)));
   const dh = Math.min(W, Math.max(1, Math.round(ih * scale)));
   const left = Math.max(0, Math.min(W - dw, Math.round(anchor.x + (anchor.w - dw) / 2)));
   const top = Math.max(0, Math.min(W - dh, anchor.topAnchor ? anchor.y : Math.round(anchor.y + (anchor.h - dh) / 2)));
   const sprite = await sharp(trimmed).resize(dw, dh, { fit: 'fill' }).png().toBuffer();
-  const layer = await sharp({ create: { width: W, height: W, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+  return sharp({ create: { width: W, height: W, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
     .composite([{ input: sprite, left, top }]).png().toBuffer();
-  fs.writeFileSync(path.join(DIRS.extracted, `${item.id}.png`), layer);
+}
 
-  // Curation preview: the layer over its species master.
+/** Curation preview: the layer over its species master (512). */
+async function writePreview(item: { id: string; onBody?: string }, layer: Buffer): Promise<void> {
   const masterBody = item.onBody || 'human_boy';
   const masterLocal = path.join(DIRS.masters, `${masterBody}_skin1.png`);
-  if (fs.existsSync(masterLocal)) {
-    if (process.env.AV_DEBUG) {
-      const lm = await sharp(layer).metadata();
-      const mm = await sharp(masterLocal).metadata();
-      console.error('DEBUG', item.id, 'layer', lm.width, lm.height, 'pages', lm.pages, '| master', mm.width, mm.height, 'pages', mm.pages);
-    }
-    try {
-      // sharp 0.35 bug: composite+resize in ONE pipeline misvalidates sizes —
-      // always composite to a buffer first, then resize.
-      const flatPrev = await sharp(masterLocal)
-        .composite([{ input: layer, top: 0, left: 0 }]).png().toBuffer();
-      const prev = await sharp(flatPrev).resize(512, 512).png().toBuffer();
-      fs.writeFileSync(path.join(DIRS.previews, `${item.id}.png`), prev);
-    } catch (prevErr) {
-      // Preview is curation-only — never fail the whole item for it.
-      fs.writeFileSync('/tmp/fail_layer.png', layer);
-      fs.copyFileSync(masterLocal, '/tmp/fail_master.png');
-      console.error('PREVIEW_FAIL', item.id, prevErr.message);
-    }
+  if (!fs.existsSync(masterLocal)) return;
+  try {
+    const flatPrev = await sharp(masterLocal)
+      .composite([{ input: layer, top: 0, left: 0 }]).png().toBuffer();
+    const prev = await sharp(flatPrev).resize(512, 512).png().toBuffer();
+    fs.writeFileSync(path.join(DIRS.previews, `${item.id}.png`), prev);
+  } catch (prevErr) {
+    console.error('PREVIEW_FAIL', item.id, prevErr.message);
   }
-  return { ok: true };
 }
 
 async function phaseProcess(only?: string[]) {
@@ -872,6 +951,43 @@ async function phaseCleanMasters(ctx: Ctx) {
   }
 }
 
+
+// ---- audit: composite every item × every body → contact sheets -----------
+async function phaseAudit() {
+  const auditDir = path.join(OUT, 'audit');
+  fs.mkdirSync(auditDir, { recursive: true });
+  const bodies = ['human_boy', 'human_girl', 'robot'];
+  const CELL = 256, COLS = 8;
+  const items = ITEMS.filter((i) => i.slot !== 'background');
+  const rows = Math.ceil(items.length / COLS);
+  for (const body of bodies) {
+    const base = path.join(DIRS.masters, `${body}_skin1.png`);
+    if (!fs.existsSync(base)) { console.log(`no master for ${body}`); continue; }
+    const basePng = await sharp(base).resize(CELL, CELL, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+    const comps: { input: Buffer; left: number; top: number }[] = [];
+    for (let idx = 0; idx < items.length; idx++) {
+      const item = items[idx];
+      const layerPath = path.join(DIRS.extracted, `${item.id}.png`);
+      let cell: Buffer;
+      if (fs.existsSync(layerPath)) {
+        const dressed = await sharp(base).composite([{ input: layerPath, top: 0, left: 0 }]).png().toBuffer();
+        cell = await sharp(dressed).resize(CELL, CELL, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
+      } else {
+        cell = basePng;
+      }
+      comps.push({ input: cell, left: (idx % COLS) * CELL, top: Math.floor(idx / COLS) * CELL });
+    }
+    const sheet = await sharp({ create: { width: COLS * CELL, height: rows * CELL, channels: 4, background: { r: 245, g: 245, b: 245, alpha: 1 } } })
+      .composite(comps).png().toBuffer();
+    fs.writeFileSync(path.join(auditDir, `sheet_${body}.png`), sheet);
+    console.log(`✓ sheet_${body}.png (${items.length} items)`);
+  }
+  // legend
+  const legend = items.map((i, idx) => `${idx} ${i.id} [${i.slot}]`).join('\n');
+  fs.writeFileSync(path.join(auditDir, 'legend.txt'), legend);
+  console.log('✓ legend.txt');
+}
+
 async function phasePlaceholders(ctx: Ctx) {
   // Bases (5 bodies × skins for humans)
   for (const base of BASES) {
@@ -932,6 +1048,7 @@ async function main() {
   else if (phase === 'process') await phaseProcess(only);
   else if (phase === 'process-masters') await phaseProcessMasters(ctx, only);
   else if (phase === 'clean-masters') await phaseCleanMasters(ctx);
+  else if (phase === 'audit') await phaseAudit();
   else if (phase === 'defaults') await phaseDefaults(ctx);
   else if (phase === 'placeholders') await phasePlaceholders(ctx);
   else if (args.includes('--approve')) {
