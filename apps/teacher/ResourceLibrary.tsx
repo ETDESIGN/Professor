@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Image as ImageIcon, Music, Video, Loader2, Inbox } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../services/supabaseClient';
+import { deriveAssetCategory, ASSET_CATEGORIES, AssetCategory } from '../../services/assetCategory';
 
 // Phase 3.1 — Resource Library (the vault). Wired to the real `assets` table
 // (advisor §6.4: "ResourceLibrary wired to assets instead of its hardcoded 6
@@ -18,6 +19,7 @@ interface AssetRow {
   source_url: string | null;
   tags: string[] | null;
   created_at: string | null;
+  metadata: Record<string, any> | null;
 }
 
 const KIND_LABEL: Record<string, string> = { generated: 'AI', uploaded: 'Upload', external_url: 'Link' };
@@ -58,7 +60,9 @@ const AssetCard: React.FC<{ asset: AssetRow; index: number }> = ({ asset, index 
       <div className="p-4">
         <h3 className="font-bold text-slate-800 truncate" title={title}>{title}</h3>
         <div className="flex items-center justify-between text-xs text-slate-500 mt-1">
-          <span className="uppercase font-bold tracking-wider">{asset.type}</span>
+          <span className="uppercase font-bold tracking-wider">
+            {ASSET_CATEGORIES.find((c) => c.id === deriveAssetCategory(asset))?.label || asset.type}
+          </span>
           {asset.created_at && <span>{new Date(asset.created_at).toLocaleDateString()}</span>}
         </div>
         {asset.tags && asset.tags.length > 0 && (
@@ -74,7 +78,7 @@ const AssetCard: React.FC<{ asset: AssetRow; index: number }> = ({ asset, index 
 };
 
 const ResourceLibrary: React.FC = () => {
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState<AssetCategory | 'all'>('all');
   const [search, setSearch] = useState('');
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +90,7 @@ const ResourceLibrary: React.FC = () => {
       try {
         const { data } = await supabase
           .from('assets')
-          .select('id, type, kind, prompt, public_url, source_url, tags, created_at')
+          .select('id, type, kind, prompt, public_url, source_url, tags, created_at, metadata')
           .eq('is_deleted', false)
           .order('created_at', { ascending: false })
           .limit(500);
@@ -103,11 +107,12 @@ const ResourceLibrary: React.FC = () => {
 
   const filtered = useMemo(() => {
     let list = assets;
-    if (filter !== 'all') list = list.filter((a) => a.type === filter);
+    if (filter !== 'all') list = list.filter((a) => deriveAssetCategory(a) === filter);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter((a) =>
         (a.prompt || '').toLowerCase().includes(q) ||
+        String(a.metadata?.word_key || '').toLowerCase().includes(q) ||
         (a.tags || []).some((t) => t.toLowerCase().includes(q)),
       );
     }
@@ -135,14 +140,20 @@ const ResourceLibrary: React.FC = () => {
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
-        <div className="flex gap-2">
-          {['all', 'image', 'audio', 'video'].map((type) => (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          >
+            All
+          </button>
+          {ASSET_CATEGORIES.map((c) => (
             <button
-              key={type}
-              onClick={() => setFilter(type)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold capitalize transition-colors ${filter === type ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              key={c.id}
+              onClick={() => setFilter(c.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filter === c.id ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              {type}
+              {c.label}
             </button>
           ))}
         </div>
