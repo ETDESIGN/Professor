@@ -1,6 +1,6 @@
 # Live-class media resolution + unit intro screen — design & implementation plan
 
-Date: 2026-09-04 · Owner-reported issues, audited from source · Status: **DRAFT — awaiting owner approval**
+Date: 2026-09-04 · Owner-reported issues, audited from source · Status: **Workstream A SHIPPED (commit `7e6d175`, Vercel + generate-class-flow/orchestrate-lesson deployed 2026-09-04, incl. approved task A4 Team-Splash block). Workstream B (media resolution) DEFERRED to a dedicated brainstorm session — owner wants an age/lesson-aware YouTube search architecture explored before implementing; the teacher-paste baseline (§2.1 Option A) remains the fallback floor.**
 
 ---
 
