@@ -77,6 +77,10 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   // comic in reading order from the BOOK'S OWN panel crops (doc 12 §4;
   // deterministic frozen data, never pool-driven). 2026-08-30.
   'COMIC_PANELS',
+  // Team Splash — the Red/VS/Blue rally screen (owner decision 2026-09-04:
+  // reserved for team-game starts). TEACHER-INSERTED ONLY via PlanComposer —
+  // deliberately absent from the AI flow prompt so models never emit it.
+  'TEAM_SPLASH',
 ]);
 
 export interface FlowBlock {

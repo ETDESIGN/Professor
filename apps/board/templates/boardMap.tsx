@@ -22,6 +22,7 @@ import BoardGrammarSandbox from './BoardGrammarSandbox';
 import BoardGrammarForge from './BoardGrammarForge';
 import BoardTeamBattle from './BoardTeamBattle';
 import BoardIntroSplash from './BoardIntroSplash';
+import BoardUnitIntro from './BoardUnitIntro';
 import BoardUnscramble from './BoardUnscramble';
 import BoardWhatsMissing from './BoardWhatsMissing';
 import BoardSpeedQuiz from './BoardSpeedQuiz';
@@ -51,7 +52,12 @@ const BoardMagicEyesAlias: React.FC<any> = (props) => <BoardWhatsMissing {...pro
 const BoardWhatsMissingDefault: React.FC<any> = (props) => <BoardWhatsMissing {...props} mode="whats_missing" />;
 
 export const BOARD_MAP: Record<string, React.FC<any>> = {
-  INTRO_SPLASH: BoardIntroSplash,
+  // Unit intro (owner decision 2026-09-04): slide 0 shows the unit's generated
+  // cover + title. The former INTRO_SPLASH renderer (team Red/VS/Blue splash)
+  // moved to TEAM_SPLASH — kept verbatim for team-game starts; insertable from
+  // PlanComposer, never AI-generated.
+  INTRO_SPLASH: BoardUnitIntro,
+  TEAM_SPLASH: BoardIntroSplash,
   MEDIA_PLAYER: BoardMediaPlayer,
   LIVE_WARMUP: BoardLiveClassWarmup,
   FOCUS_CARDS: BoardFocusCards,

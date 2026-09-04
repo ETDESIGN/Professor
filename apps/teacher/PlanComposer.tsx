@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import {
   Plus, Trash2, Save, Play, Loader2, Wand2, Clock, BookOpen, MessageSquare,
   PenTool, Music, Image as ImageIcon, Gamepad2, Layers, RefreshCw,
-  Search, Volume2, Mic, Zap, Brain, Users, Puzzle, Gauge, LayoutGrid, SpellCheck
+  Search, Volume2, Mic, Zap, Brain, Users, Puzzle, Gauge, LayoutGrid, SpellCheck, Trophy
 } from 'lucide-react';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
@@ -67,6 +67,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
   WORD_SEARCH: { icon: <LayoutGrid size={16} />, chip: 'bg-teal-100 text-teal-600' },
   SPELLING_BEE: { icon: <SpellCheck size={16} />, chip: 'bg-lime-100 text-lime-600' },
   COMIC_PANELS: { icon: <BookOpen size={16} />, chip: 'bg-purple-100 text-purple-600' },
+  TEAM_SPLASH: { icon: <Trophy size={16} />, chip: 'bg-red-100 text-red-600' },
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
@@ -81,9 +82,14 @@ const realImage = (url: any, seed: string) =>
 // not empty mockups: a FOCUS_CARDS block carries actual vocab cards, a
 // DIALOGUE_STAGE block carries the unit's dialogue lines, etc.
 // `comic` (COMIC_PANELS only): the basket comic to freeze into the block.
-const buildBlockData = (type: string, ec: any, comic?: any): any => {
+// `meta` (TEAM_SPLASH only): the unit manifest meta, for the theme word.
+const buildBlockData = (type: string, ec: any, comic?: any, meta?: any): any => {
   const vocab: any[] = Array.isArray(ec.vocabulary) ? ec.vocabulary : [];
   switch (type) {
+    case 'TEAM_SPLASH':
+      // The Red/VS/Blue rally screen reads team scores live from the session;
+      // the block only carries the big theme word so it is never blank.
+      return { theme: meta?.theme || ec.topic || '' };
     case 'FOCUS_CARDS':
       return {
         title: 'New Vocabulary',
@@ -349,6 +355,13 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     if (dialogueCount > 0) items.push({ key: 'dialogue', label: 'Dialogue', detail: `${dialogueCount} dialogue${dialogueCount === 1 ? '' : 's'}`, type: 'DIALOGUE_STAGE', icon: <MessageSquare size={16} />, chip: 'bg-sky-100 text-sky-600' });
     if (vocabCount >= 2) items.push({ key: 'quiz', label: 'Team Battle Quiz', detail: `up to ${Math.min(vocabCount, 6)} questions`, type: 'TEAM_BATTLE', icon: <Gamepad2 size={16} />, chip: 'bg-rose-100 text-rose-600' });
 
+    // Team rally screen (owner decision 2026-09-04): the old unit-intro splash,
+    // kept verbatim under TEAM_SPLASH for team-game starts. Always available —
+    // it is a presentation step, not unit content. Deliberately excluded from
+    // addAllToPlan: inserting it is a deliberate team-mode choice, not bulk
+    // content stuffing.
+    items.push({ key: 'team_splash', label: 'Team Splash', detail: 'Red vs Blue rally screen', type: 'TEAM_SPLASH', icon: <Trophy size={16} />, chip: 'bg-red-100 text-red-600' });
+
     // ── New-gen games (pool-driven; appear when the unit has the matching content).
     if (grammarCount > 0) items.push({ key: 'grammar_lab', label: 'Grammar Lab', detail: `${grammarCount} rule${grammarCount === 1 ? '' : 's'} · 3-rung practice`, type: 'GRAMMAR_LAB', icon: <Puzzle size={16} />, chip: 'bg-indigo-100 text-indigo-600' });
     if (vocabCount > 0) items.push({ key: 'word_detective', label: 'Word Detective', detail: 'vocab in context', type: 'WORD_DETECTIVE', icon: <Search size={16} />, chip: 'bg-cyan-100 text-cyan-600' });
@@ -399,8 +412,8 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
       id: `${item.key}-${Date.now()}-${idSeq.current++}`,
       type: item.type,
       title: item.label,
-      duration: 5,
-      data: buildBlockData(item.type, ec, item.comic), // real content, board-renderable
+      duration: item.type === 'TEAM_SPLASH' ? 1 : 5,
+      data: buildBlockData(item.type, ec, item.comic, unit?.manifest?.meta), // real content, board-renderable
     };
     setTimeline((prev) => [...prev, block]);
     setActiveBlockId(block.id);
@@ -408,11 +421,12 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
 
   // One click adds every library block not yet present in the plan. Prevents
   // the missed-click outcome where a few library items silently never make it
-  // into the live lesson.
+  // into the live lesson. TEAM_SPLASH is excluded — a team rally screen is a
+  // deliberate team-mode insertion, never bulk content.
   const addAllToPlan = () => {
     const ec = enrichedForBlocks();
     const stamp = Date.now();
-    const missing = library.filter((item) => !itemInPlan(item));
+    const missing = library.filter((item) => !itemInPlan(item) && item.type !== 'TEAM_SPLASH');
     if (missing.length === 0) {
       toast.info('Everything from the library is already in the plan');
       return;
@@ -422,7 +436,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
       type: item.type,
       title: item.label,
       duration: 5,
-      data: buildBlockData(item.type, ec, item.comic),
+      data: buildBlockData(item.type, ec, item.comic, unit?.manifest?.meta),
     }));
     setTimeline((prev) => [...prev, ...blocks]);
     setActiveBlockId(blocks[0].id);
@@ -511,7 +525,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   // pedagogical phase so the board timeline + ClassWeakBanner treat manually
   // composed blocks the same way orchestrate-lesson tags AI-generated ones.
   const PHASE_FOR_BLOCK: Record<string, string> = {
-    INTRO_SPLASH: 'WARMUP', MEDIA_PLAYER: 'WARMUP',
+    INTRO_SPLASH: 'WARMUP', MEDIA_PLAYER: 'WARMUP', TEAM_SPLASH: 'WARMUP',
     FOCUS_CARDS: 'INPUT', GRAMMAR_SANDBOX: 'INPUT',
     STORY_STAGE: 'OUTPUT', DIALOGUE_STAGE: 'OUTPUT',
     TEAM_BATTLE: 'ASSESS', SPEED_QUIZ: 'ASSESS', VOCAB_BLITZ: 'ASSESS',

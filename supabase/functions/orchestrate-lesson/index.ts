@@ -291,6 +291,9 @@ function transformManifestToFlow(assets: any): any[] {
     WORD_SEARCH: 'PRACTICE',
     SPELLING_BEE: 'PRACTICE',
     COMIC_PANELS: 'PRACTICE',
+    // Teacher-inserted only (PlanComposer) — defensive: orchestration itself
+    // never emits TEAM_SPLASH.
+    TEAM_SPLASH: 'WARMUP',
   };
   const POOL_DRIVEN_TYPES = new Set([
     'LISTEN_TAP', 'FLASH_MATCH', 'SCRAMBLE', 'SPEAKING', 'TEAM_BATTLE',
