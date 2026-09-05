@@ -92,9 +92,10 @@ async function loadCatalog(): Promise<CatalogRow[]> {
 async function loadUnits(): Promise<any[]> {
   // Only units that plausibly have unresolved media steps: fetch flows for
   // recent units and filter client-side (REST cannot query inside flow[]).
+  const select = 'id,teacher_id,title,topic,manifest,flow,student_path';
   const url = onlyUnit
-    ? `${SUPABASE_URL}/rest/v1/units?select=id,teacher_id,title,topic,manifest,flow&id=eq.${onlyUnit}`
-    : `${SUPABASE_URL}/rest/v1/units?select=id,teacher_id,title,topic,manifest,flow&order=created_at.desc&limit=${limit}`;
+    ? `${SUPABASE_URL}/rest/v1/units?select=${select}&id=eq.${onlyUnit}`
+    : `${SUPABASE_URL}/rest/v1/units?select=${select}&order=created_at.desc&limit=${limit}`;
   const res = await fetch(url, { headers: restHeaders });
   const rows = await res.json();
   return Array.isArray(rows) ? rows : [];
@@ -108,13 +109,50 @@ console.log(`catalog: ${catalog.length} entries`);
 const units = await loadUnits();
 console.log(`units scanned: ${units.length}\n`);
 
-let patchedUnits = 0, patchedBlocks = 0, noMatch = 0, alreadyResolved = 0;
+let patchedUnits = 0, patchedBlocks = 0, noMatch = 0, alreadyResolved = 0, studentPathsHealed = 0;
 const rungTally: Record<string, number> = {};
 
 for (const unit of units) {
   const flow = Array.isArray(unit.flow) ? unit.flow : null;
   if (!flow) continue;
   const unresolved = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl);
+
+  // ── student_path heal (external audit 2026-09-05, finding #3) ──
+  // Runs even when the unit's OWN flow is already resolved (the common case:
+  // flow healed first, path composed earlier). Saved student paths carry
+  // their OWN media lead-in blocks; paths composed before resolution hold a
+  // stale suggestion-only copy (or a blank {}), and the saved path supersedes
+  // the derived units.flow for students. Copy the canonical resolved media
+  // block's data into any unresolved path block.
+  {
+    const sp = Array.isArray(unit.student_path) ? unit.student_path : null;
+    const canonical = flow.find((b: any) => b?.type === 'MEDIA_PLAYER' && (b?.data?.videoUrl || b?.data?.audioUrl));
+    if (sp && canonical?.data) {
+      let spChanged = false;
+      for (const node of sp) {
+        for (const b of node?.blocks || []) {
+          if (b?.type === 'MEDIA_PLAYER' && !b?.data?.videoUrl && !b?.data?.audioUrl) {
+            b.data = { ...(b.data || {}), ...canonical.data };
+            spChanged = true;
+          }
+        }
+      }
+      if (spChanged) {
+        studentPathsHealed++;
+        console.log(`  ✓ [student-path] ${unit.title?.slice(0, 40)} → ${canonical.data.videoTitle?.slice(0, 50) || canonical.data.videoUrl}`);
+        if (apply) {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/units?id=eq.${unit.id}`, {
+            method: 'PATCH',
+            headers: { ...restHeaders, Prefer: 'return=minimal' },
+            body: JSON.stringify({ student_path: sp }),
+          });
+          if (!res.ok) console.log(`  ✗ STUDENT-PATH PATCH FAILED ${unit.id}: ${res.status}`);
+          await sleep(120);
+        }
+      }
+    }
+  }
+
   if (unresolved.length === 0) { alreadyResolved++; continue; }
 
   // Real manifests carry content under enriched_content (flat keys are the
@@ -181,6 +219,6 @@ for (const unit of units) {
   }
 }
 
-console.log(`\n${apply ? 'APPLIED' : 'DRY-RUN'}: ${patchedUnits}/${units.length} units patched (${patchedBlocks} blocks), ${noMatch} blocks unmatched, ${alreadyResolved} units already resolved.`);
+console.log(`\n${apply ? 'APPLIED' : 'DRY-RUN'}: ${patchedUnits}/${units.length} units patched (${patchedBlocks} blocks), ${noMatch} blocks unmatched, ${alreadyResolved} units already resolved, ${studentPathsHealed} student paths healed.`);
 console.log('rungs:', JSON.stringify(rungTally));
 if (!apply) console.log('Re-run with --yes to patch.');

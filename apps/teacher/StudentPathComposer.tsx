@@ -304,9 +304,17 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
     setActiveStageId((cur) => (cur === id ? null : cur));
   };
 
+  // Media lead-ins seed from the unit's canonical warm-up block (external
+  // audit 2026-09-05, finding #3): a blank {} MEDIA_PLAYER saved into
+  // student_path supersedes the resolved units.flow copy for students —
+  // they saw "empty media" forever even after resolution healed the flow.
+  const canonicalMediaData = (): any =>
+    (Array.isArray(unit?.flow) ? unit.flow : []).find((b: any) => b?.type === 'MEDIA_PLAYER')?.data || {};
+
   const addLeadIn = (type: string, label: string) => {
     if (!activeStage) return;
-    const block = leadIn(type, label);
+    const seed = type === 'MEDIA_PLAYER' ? canonicalMediaData() : {};
+    const block = leadIn(type, label, seed);
     updateStage(activeStage.id, { blocks: [block, ...activeStage.blocks] });
   };
 
@@ -358,8 +366,22 @@ const StudentPathComposer: React.FC<PathComposerProps> = ({ unitId, unit, onPath
     }
     setSaving(true);
     try {
-      await Engine.updateUnit(unitId, { studentPath: stages } as any);
-      onPathSaved?.(stages);
+      // Sync media lead-ins with the canonical warm-up block at save time too
+      // (audit finding #3): a path saved before resolution would otherwise
+      // keep its stale suggestion-only copy forever.
+      const media = canonicalMediaData();
+      const stagesToSave = media.videoUrl || media.audioUrl
+        ? stages.map((s: any) => ({
+            ...s,
+            blocks: s.blocks.map((b: any) => (
+              b.type === 'MEDIA_PLAYER' && !b.data?.videoUrl && !b.data?.audioUrl
+                ? { ...b, data: { ...b.data, ...media } }
+                : b
+            )),
+          }))
+        : stages;
+      await Engine.updateUnit(unitId, { studentPath: stagesToSave } as any);
+      onPathSaved?.(stagesToSave);
       toast.success('Student path saved');
     } catch (err: any) {
       toast.error(`Save failed: ${err?.message || 'Unknown error'}`);

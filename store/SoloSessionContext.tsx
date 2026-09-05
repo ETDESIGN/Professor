@@ -106,9 +106,16 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
   };
 
   const setActiveUnit = async (unitId: string, stageId?: string) => {
+    // Prefer the FRESHEST copy from the DB — the boot-time state.units list
+    // can be a stale snapshot from before a unit's media/flow was healed
+    // (external audit 2026-09-05, finding #4; mirrors the teacher GO-LIVE
+    // path). Fall back to the cached list entry when the fetch fails.
     let unit = state.units.find(u => u.id === unitId);
-    if (!unit) {
-      unit = await Engine.getUnitById(unitId);
+    try {
+      const fresh = await Engine.getUnitById(unitId);
+      if (fresh) unit = fresh;
+    } catch {
+      // keep the cached unit if the fresh fetch fails (offline resilience)
     }
     if (unit) {
       // C.4: attach the relational bundle (get_unit_bundle) to the manifest so the
