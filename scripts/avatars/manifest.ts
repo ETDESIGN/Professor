@@ -66,7 +66,7 @@ export function standaloneItemPrompt(item: ItemSpec): string {
 }
 
 export interface BaseSpec {
-  id: 'human_boy' | 'human_girl' | 'robot' | 'alien' | 'monster';
+  id: 'human_boy' | 'human_girl' | 'robot' | 'robot_bender' | 'alien' | 'monster';
   describe: string;
 }
 
@@ -74,6 +74,7 @@ export const BASES: BaseSpec[] = [
   { id: 'human_boy', describe: 'a cheerful cartoon kid character with short neat brown hair' },
   { id: 'human_girl', describe: 'a cheerful cartoon kid character with long straight black hair and bangs' },
   { id: 'robot', describe: 'a friendly rounded toy robot character with a screen face showing two happy digital eyes, small antenna' },
+  { id: 'robot_bender', describe: 'a cheeky cartoon robot kid character with a rounded metallic silver head, two big round cartoon eyes on a dark visor, one short straight antenna, a wide cheeky grin with a line mouth, rounded chrome body and stubby legs' },
   { id: 'alien', describe: 'a friendly small green alien character with a big oval head, three eyes and a tiny smile' },
   { id: 'monster', describe: 'a friendly fluffy purple monster kid character with two small round horns and a big happy grin' },
 ];
@@ -140,6 +141,8 @@ export const ITEMS: ItemSpec[] = [
   { id: 'headwear_wizard_hat',   slot: 'headwear', wear: 'a tall pointed purple wizard hat with stars' },
   { id: 'hat_crown',             slot: 'headwear', wear: 'a shiny golden crown with small red gems' },
   // face
+  { id: 'face_shades_classic', slot: 'face', wear: 'a pair of classic black wayfarer sunglasses' },
+  { id: 'headwear_cowboy_hat', slot: 'headwear', wear: 'a brown cowboy hat with a curved brim and band' },
   { id: 'face_round_glasses', slot: 'face', wear: 'big round black-frame glasses' },
   { id: 'glass_cool',         slot: 'face', wear: 'cool black sunglasses' },
   { id: 'face_monocle',       slot: 'face', wear: 'a golden monocle' },

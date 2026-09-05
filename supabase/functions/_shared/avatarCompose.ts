@@ -15,7 +15,7 @@ import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { callOpenRouterImages } from './illustrationCore.ts';
 import { serviceRoleKey } from './serviceKey.ts';
 
-const BODIES = ['human_boy', 'human_girl', 'robot', 'alien', 'monster'] as const;
+const BODIES = ['human_boy', 'human_girl', 'robot', 'robot_bender', 'alien', 'monster'] as const;
 const SLOTS = ['hair', 'eyes', 'outfit', 'headwear', 'face', 'handheld', 'back', 'background'] as const;
 const HUMAN_ONLY = new Set(['hair', 'eyes', 'outfit']);
 // Composite order; 'body' is the base render.

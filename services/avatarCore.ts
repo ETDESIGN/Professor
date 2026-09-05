@@ -5,7 +5,7 @@
 // URL (never JSON) — that invariant is what makes the 20+ existing <img>
 // consumers correct without touching them.
 
-export type AvatarBody = 'human_boy' | 'human_girl' | 'robot' | 'alien' | 'monster';
+export type AvatarBody = 'human_boy' | 'human_girl' | 'robot' | 'robot_bender' | 'alien' | 'monster';
 export type AvatarSlot = 'hair' | 'eyes' | 'outfit' | 'headwear' | 'face' | 'handheld' | 'back' | 'background';
 export type AvatarItemKind = 'item' | 'base' | 'emote' | 'powerup';
 export type AvatarRarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -34,7 +34,7 @@ export interface AvatarConfig {
   items: Partial<Record<AvatarSlot, string | null>>;
 }
 
-export const AVATAR_BODIES: readonly AvatarBody[] = ['human_boy', 'human_girl', 'robot', 'alien', 'monster'] as const;
+export const AVATAR_BODIES: readonly AvatarBody[] = ['human_boy', 'human_girl', 'robot', 'robot_bender', 'alien', 'monster'] as const;
 export const AVATAR_SLOTS: readonly AvatarSlot[] = ['hair', 'eyes', 'outfit', 'headwear', 'face', 'handheld', 'back', 'background'] as const;
 
 /** Slots that require body-fit art — human bodies only in v1 (spec §2.1). */

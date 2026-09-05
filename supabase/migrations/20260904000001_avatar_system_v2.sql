@@ -380,3 +380,20 @@ ON CONFLICT (id) DO UPDATE SET
     sort_order = EXCLUDED.sort_order,
     active = EXCLUDED.active,
     unlock_type = EXCLUDED.unlock_type;
+
+
+-- 2026-09-05: 6th base (Bender-style robot) + two FREE universal test
+-- accessories (single-cutout method — one image fits every body).
+INSERT INTO public.shop_items
+    (id, name, category, cost, description, icon, slot, rarity, kind,
+     compatible_bodies, layer_asset_path, sort_order, active, unlock_type)
+VALUES
+    ('robot_bender', 'Bender Bot', 'avatar', 150, 'Cheeky chrome unit.', 'Bot', NULL, 'epic', 'base', '{}', 'avatars/bases/robot_bender_skin1.png', 4, TRUE, 'gems'),
+    ('face_shades_classic', 'Classic Shades', 'avatar', 0, 'One pair, every character.', NULL, 'face', 'common', 'item', '{}', 'avatars/layers/face_shades_classic.png', 65, TRUE, 'default'),
+    ('headwear_cowboy_hat', 'Cowboy Hat', 'avatar', 0, 'Yeehaw. Fits everyone.', NULL, 'headwear', 'rare', 'item', '{}', 'avatars/layers/headwear_cowboy_hat.png', 58, TRUE, 'default')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name, cost = EXCLUDED.cost, slot = EXCLUDED.slot, rarity = EXCLUDED.rarity,
+    kind = EXCLUDED.kind, layer_asset_path = EXCLUDED.layer_asset_path,
+    sort_order = EXCLUDED.sort_order, active = EXCLUDED.active, unlock_type = EXCLUDED.unlock_type;
+UPDATE public.shop_items SET sort_order = 5 WHERE id = 'alien';
+UPDATE public.shop_items SET sort_order = 6 WHERE id = 'monster';
