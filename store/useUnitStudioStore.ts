@@ -249,7 +249,12 @@ export const useUnitStudioStore = create<UnitStudioState>()((set, get) => ({
           return { ...step, data: { ...step.data, rule: grammarRules[0]?.rule || '', explanation: grammarRules[0]?.explanation || '', examples: grammarRules[0]?.world_examples || [] } };
         }
         if (step.type === 'MEDIA_PLAYER' && dirty.has('media')) {
-          return { ...step, data: { ...(mediaStep || {}), title: `${manifest?.meta?.theme || 'Lesson'} Warm Up` } };
+          // MERGE into the existing block data — never replace. mediaStep can
+          // be null after a store reload (load() resets it) while the block
+          // still carries server-side resolution fields; the replace form
+          // wiped warm-up blocks down to a bare title (owner-reported data
+          // loss 2026-09-05).
+          return { ...step, data: { ...(step.data || {}), ...(mediaStep || {}), title: `${manifest?.meta?.theme || 'Lesson'} Warm Up` } };
         }
         return step;
       });

@@ -218,7 +218,11 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
           return { ...step, data: { ...step.data, rule: grammarRules[0]?.rule || '', explanation: grammarRules[0]?.explanation || '', examples: grammarRules[0]?.world_examples || [] } };
         }
         if (step.type === 'MEDIA_PLAYER') {
-          return { ...step, data: { ...(mediaStep || {}), title: `${manifest?.meta?.theme || 'Lesson'} Warm Up` } };
+          // MERGE into the existing block data — never replace (mediaStep can
+          // be null after a store reload while the block carries server-side
+          // resolution fields; the replace form wiped warm-up blocks down to
+          // a bare title — owner-reported data loss 2026-09-05).
+          return { ...step, data: { ...(step.data || {}), ...(mediaStep || {}), title: `${manifest?.meta?.theme || 'Lesson'} Warm Up` } };
         }
         return step;
       });
@@ -227,6 +231,10 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
         manifest: updatedManifest,
         flow: updatedFlow,
       } as any);
+
+      // If this save carried a playable media step, an open board converges
+      // via the same MEDIA_RESOLVED broadcast Find-video uses.
+      if (mediaStep?.videoUrl) notifyMediaResolved();
 
       // C.3 vocab: write vocab edits to the relational vocabulary_items table
       // (canonical). Preserve fields the editor doesn't expose (l1_translation /
@@ -360,6 +368,21 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   // edge is keyless and only builds search URLs). Replaced by the real
   // resolver — the catalog-first ladder runs server-side, persists the flow,
   // and loadUnit() re-hydrates mediaStep from the saved flow.
+  // An open board/commander must converge after ANY vault-side media change:
+  // send the MEDIA_RESOLVED broadcast SessionContext listens for (same room —
+  // 'classroom_live'). Short-lived channel, removed after the send.
+  const notifyMediaResolved = () => {
+    try {
+      const ch = supabase.channel('classroom_live', { config: { broadcast: { self: false } } });
+      ch.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          ch.send({ type: 'broadcast', event: 'classroom_action', payload: { type: 'MEDIA_RESOLVED', timestamp: Date.now() } });
+          setTimeout(() => { try { supabase.removeChannel(ch); } catch { /* already gone */ } }, 3000);
+        }
+      });
+    } catch { /* best effort — the board can still be reloaded */ }
+  };
+
   const findVideo = async () => {
     if (!unitId) return;
     setYtSearching(true);
@@ -373,18 +396,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
       if (resolved > 0) {
         await loadUnit();
         toast.success(`Video found for ${resolved} media step${resolved > 1 ? 's' : ''}`);
-        // An open board/commander must converge too: send the same
-        // MEDIA_RESOLVED broadcast SessionContext listens for (same room —
-        // 'classroom_live'). Short-lived channel, removed after the send.
-        try {
-          const ch = supabase.channel('classroom_live', { config: { broadcast: { self: false } } });
-          ch.subscribe((status: string) => {
-            if (status === 'SUBSCRIBED') {
-              ch.send({ type: 'broadcast', event: 'classroom_action', payload: { type: 'MEDIA_RESOLVED', timestamp: Date.now() } });
-              setTimeout(() => { try { supabase.removeChannel(ch); } catch { /* already gone */ } }, 3000);
-            }
-          });
-        } catch { /* best effort — the board can still be reloaded */ }
+        notifyMediaResolved();
       } else {
         toast.message('No automatic match', { description: 'Paste a YouTube link below, or open the search to pick one.' });
       }
