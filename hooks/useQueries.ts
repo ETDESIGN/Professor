@@ -567,13 +567,6 @@ export function useSetAvatarBody() {
   });
 }
 
-export function useSetAvatarSkin() {
-  const invalidate = useInvalidateAvatar();
-  return useMutation({
-    mutationFn: (skin: number) => AvatarService.setSkin(skin),
-    onSuccess: invalidate,
-  });
-}
 
 /** Server-side composite of the persisted config (cached by config hash). */
 export function useComposeAvatar() {

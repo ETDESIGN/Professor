@@ -5,7 +5,7 @@
 // URL (never JSON) — that invariant is what makes the 20+ existing <img>
 // consumers correct without touching them.
 
-export type AvatarBody = 'human_boy' | 'human_girl' | 'robot' | 'robot_bender' | 'alien' | 'monster';
+export type AvatarBody = 'human_boy' | 'human_girl' | 'robot' | 'alien' | 'monster' | 'dragon';
 export type AvatarSlot = 'hair' | 'eyes' | 'outfit' | 'headwear' | 'face' | 'handheld' | 'back' | 'background';
 export type AvatarItemKind = 'item' | 'base' | 'emote' | 'powerup';
 export type AvatarRarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -30,21 +30,20 @@ export interface AvatarItem {
 export interface AvatarConfig {
   version: 1;
   body: AvatarBody;
-  skin: number;
   items: Partial<Record<AvatarSlot, string | null>>;
 }
 
-export const AVATAR_BODIES: readonly AvatarBody[] = ['human_boy', 'human_girl', 'robot', 'robot_bender', 'alien', 'monster'] as const;
+export const AVATAR_BODIES: readonly AvatarBody[] = ['human_boy', 'human_girl', 'robot', 'alien', 'monster', 'dragon'] as const;
 export const AVATAR_SLOTS: readonly AvatarSlot[] = ['hair', 'eyes', 'outfit', 'headwear', 'face', 'handheld', 'back', 'background'] as const;
 
-/** Slots that require body-fit art — human bodies only in v1 (spec §2.1). */
-export const HUMAN_ONLY_SLOTS: ReadonlySet<AvatarSlot> = new Set(['hair', 'eyes', 'outfit']);
+// Skin tones were retired 2026-09-07 (Stitch single-skin characters); slot
+// gating is per-item via compatible_bodies (dragon has a hair crest, robots
+// wear outfit tops), so every slot is available on every body now.
 
 /** Composite layer order; 'body' is the base render itself. */
 export const RENDER_ORDER: readonly (AvatarSlot | 'body')[] = ['background', 'back', 'body', 'outfit', 'eyes', 'face', 'hair', 'headwear', 'handheld'] as const;
 
 export const DEFAULT_BODY: AvatarBody = 'human_boy';
-export const SKIN_COUNT = 6;
 export const ROSTER_DEFAULT_COUNT = 12;
 export const RENDER_SIZES = [128, 256, 512, 768] as const;
 /** Canonical avatar_url size (what profiles.avatar_url points at). */
@@ -54,12 +53,8 @@ const SUPABASE_URL: string = ((import.meta as unknown as { env?: Record<string, 
 export const GENERATED_MEDIA_PUBLIC = (path: string): string =>
   `${SUPABASE_URL}/storage/v1/object/public/generated-media/${path}`;
 
-export function isHumanBody(body: AvatarBody): boolean {
-  return body === 'human_boy' || body === 'human_girl';
-}
-
-export function slotAvailableForBody(slot: AvatarSlot, body: AvatarBody): boolean {
-  return !HUMAN_ONLY_SLOTS.has(slot) || isHumanBody(body);
+export function slotAvailableForBody(_slot: AvatarSlot, _body: AvatarBody): boolean {
+  return true;
 }
 
 export function itemAvailableForBody(
@@ -75,19 +70,20 @@ export function isAvatarBody(v: unknown): v is AvatarBody {
   return typeof v === 'string' && (AVATAR_BODIES as readonly string[]).includes(v);
 }
 
-/** Tolerant parse of a stored avatar_config into a canonical AvatarConfig. */
+/** Tolerant parse of a stored avatar_config into a canonical AvatarConfig.
+ *  Retired bodies map forward (robot_bender → robot); legacy `skin` keys and
+ *  unknown slots are dropped. */
 export function normalizeConfig(raw: unknown): AvatarConfig {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
-  const body = isAvatarBody(obj.body) ? obj.body : DEFAULT_BODY;
-  const skinRaw = Number(obj.skin);
-  const skin = Number.isFinite(skinRaw) ? Math.min(Math.max(Math.round(skinRaw), 1), SKIN_COUNT) : 1;
+  const rawBody = obj.body === 'robot_bender' ? 'robot' : obj.body;
+  const body = isAvatarBody(rawBody) ? rawBody : DEFAULT_BODY;
   const items: AvatarConfig['items'] = {};
   const rawItems = (obj.items && typeof obj.items === 'object' ? obj.items : {}) as Record<string, unknown>;
   for (const slot of AVATAR_SLOTS) {
     const v = rawItems[slot];
     items[slot] = typeof v === 'string' && v ? v : null;
   }
-  return { version: 1, body, skin, items };
+  return { version: 1, body, items };
 }
 
 export function configWithItem(config: AvatarConfig, slot: AvatarSlot, itemId: string | null): AvatarConfig {
@@ -121,14 +117,14 @@ export function configWithBody(
 }
 
 /** Canonical string for hashing — MUST match the edge compositor's
- *  canonicalization (sorted slots, nulls dropped, skin included). */
+ *  canonicalization (sorted slots, nulls dropped). */
 export function canonicalConfigString(config: AvatarConfig): string {
   const parts: string[] = [];
   for (const slot of AVATAR_SLOTS) {
     const id = config.items[slot];
     if (id) parts.push(`${slot}:${id}`);
   }
-  return JSON.stringify({ version: 1, body: config.body, skin: config.skin, items: parts.sort() });
+  return JSON.stringify({ version: 1, body: config.body, items: parts.sort() });
 }
 
 /** djb2 — deterministic roster-default assignment (client + scripts). */
@@ -150,10 +146,9 @@ export function rosterDefaultUrl(rosterId: string, size: number = CANONICAL_SIZE
   return GENERATED_MEDIA_PUBLIC(`avatars/defaults/def${rosterDefaultIndex(rosterId)}_${s}.png`);
 }
 
-/** Storage path of the base body render (species have one fixed skin). */
-export function baseAssetPath(body: AvatarBody, skin: number): string {
-  const s = isHumanBody(body) ? Math.min(Math.max(Math.round(skin), 1), SKIN_COUNT) : 1;
-  return `avatars/bases/${body}_skin${s}.png`;
+/** Storage path of the base body render (single-skin Stitch art). */
+export function baseAssetPath(body: AvatarBody): string {
+  return `avatars/bases/${body}.png`;
 }
 
 export function layerUrlFor(item: Pick<AvatarItem, 'layer_asset_path' | 'preview_url'>): string | null {

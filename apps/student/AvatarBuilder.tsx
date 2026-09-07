@@ -4,13 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
-  AvatarConfig, AvatarItem, AvatarSlot, AVATAR_SLOTS, AVATAR_BODIES, SKIN_COUNT,
+  AvatarConfig, AvatarItem, AvatarSlot, AVATAR_SLOTS, AVATAR_BODIES,
   GENERATED_MEDIA_PUBLIC, RARITY_META, RENDER_ORDER, SLOT_LABELS,
-  configWithItem, slotAvailableForBody, thumbUrlFor,
+  configWithItem, thumbUrlFor,
 } from '../../services/avatarCore';
 import {
   useAvatarCatalog, useInventory, useBuyShopItem, useEquipItem,
-  useSetAvatarBody, useSetAvatarSkin, useComposeAvatar,
+  useSetAvatarBody, useComposeAvatar,
 } from '../../hooks/useQueries';
 
 interface AvatarBuilderProps {
@@ -18,8 +18,6 @@ interface AvatarBuilderProps {
   onSave: (config: AvatarConfig, url: string | null) => void;
   initialConfig?: AvatarConfig | null;
 }
-
-const SKIN_SWATCHES = ['#FFE0BD', '#F1C27D', '#E0AC69', '#C68642', '#8D5524', '#5C3A21'];
 
 /** Ordered layer stack for the LIVE client preview (no server round-trips).
  *  Body-variant layer first, default layer as onError fallback (the <LayerImg>
@@ -31,16 +29,15 @@ function previewLayers(config: AvatarConfig, byId: Map<string, AvatarItem>): { u
     if (!id) continue;
     const item = byId.get(id);
     if (!item?.layer_asset_path) continue;
-    if (!slotAvailableForBody(slot, config.body)) continue;
     layers.push({
-      url: GENERATED_MEDIA_PUBLIC(`avatars/layers/${config.body}/${id}.png`),
+      url: GENERATED_MEDIA_PUBLIC(item.layer_asset_path),
       fallback: GENERATED_MEDIA_PUBLIC(item.layer_asset_path),
       order: RENDER_ORDER.indexOf(slot),
     });
   }
   layers.push({
-    url: GENERATED_MEDIA_PUBLIC(`avatars/bases/${config.body}_skin${config.body.startsWith('human') ? config.skin : 1}.png`),
-    fallback: GENERATED_MEDIA_PUBLIC(`avatars/bases/${config.body}_skin1.png`),
+    url: GENERATED_MEDIA_PUBLIC(`avatars/bases/${config.body}.png`),
+    fallback: GENERATED_MEDIA_PUBLIC('avatars/bases/human_boy.png'),
     order: RENDER_ORDER.indexOf('body'),
   });
   return layers.sort((a, b) => a.order - b.order);
@@ -53,11 +50,10 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
   const buyItem = useBuyShopItem();
   const equipItem = useEquipItem();
   const setBody = useSetAvatarBody();
-  const setSkin = useSetAvatarSkin();
   const composeAvatar = useComposeAvatar();
 
   const [config, setConfig] = useState<AvatarConfig>(
-    initialConfig || { version: 1, body: 'human_boy', skin: 1, items: {} },
+    initialConfig || { version: 1, body: 'human_boy', items: {} },
   );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -68,10 +64,7 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
   const bases = useMemo(() => catalog.filter((i) => i.kind === 'base'), [catalog]);
   const layers = useMemo(() => previewLayers(config, byId), [config, byId]);
 
-  const availableSlots = useMemo(
-    () => AVATAR_SLOTS.filter((slot) => slotAvailableForBody(slot, config.body)),
-    [config.body],
-  );
+  const availableSlots = useMemo(() => [...AVATAR_SLOTS], []);
 
   const isUsable = (item: AvatarItem): boolean =>
     item.unlock_type === 'default' || ownedIds.has(item.id);
@@ -97,16 +90,6 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
         }
       }
       applyResult(await setBody.mutateAsync(base.id as AvatarConfig['body']));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handleSkin = async (skin: number) => {
-    if (busyId || skin === config.skin) return;
-    setBusyId(`skin${skin}`);
-    try {
-      applyResult(await setSkin.mutateAsync(skin));
     } finally {
       setBusyId(null);
     }
@@ -211,7 +194,7 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
                         disabled={busyId !== null}
                         className={`shrink-0 w-20 flex flex-col items-center gap-1 p-2 rounded-2xl border-2 transition-all ${active ? 'border-duo-pink bg-pink-50' : 'border-slate-200 hover:border-slate-300'} ${busyId === base.id ? 'opacity-60' : ''}`}
                       >
-                        <img src={GENERATED_MEDIA_PUBLIC(`avatars/bases/${base.id}_skin1.png`)} alt={base.name} className="w-14 h-14 object-contain" />
+                        <img src={GENERATED_MEDIA_PUBLIC(`avatars/bases/${base.id}.png`)} alt={base.name} className="w-14 h-14 object-contain" />
                         <span className="text-[11px] font-bold text-slate-700 capitalize">{base.id.replace('human_', '')}</span>
                         {usable ? (
                           active && <Check size={14} className="text-duo-pink" />
@@ -222,23 +205,6 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
                     );
                   })}
                 </div>
-                {/* Skin (humans only) */}
-                {config.body.startsWith('human') && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase mb-2">{t('student.avatarSkin', 'Skin tone')}</p>
-                    <div className="flex gap-3 flex-wrap">
-                      {Array.from({ length: SKIN_COUNT }, (_, i) => i + 1).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => handleSkin(s)}
-                          disabled={busyId !== null}
-                          className={`w-11 h-11 rounded-full border-4 transition-transform hover:scale-110 ${config.skin === s ? 'border-duo-pink scale-110' : 'border-white shadow-sm'}`}
-                          style={{ backgroundColor: SKIN_SWATCHES[s - 1] }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </motion.div>
             )}
 

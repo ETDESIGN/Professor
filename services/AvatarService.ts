@@ -95,16 +95,6 @@ export const AvatarService = {
     return { ok: !!res.ok, config: res.config ? normalizeConfig(res.config) : undefined, error: res.error };
   },
 
-  async setSkin(skin: number): Promise<{ ok: boolean; config?: AvatarConfig; error?: string }> {
-    const { data, error } = await supabase.rpc('set_avatar_skin', { p_skin: skin });
-    if (error) {
-      log.warn('set_avatar_skin_failed', { error: error.message });
-      return { ok: false, error: error.message };
-    }
-    const res = (data || {}) as RpcResult;
-    return { ok: !!res.ok, config: res.config ? normalizeConfig(res.config) : undefined, error: res.error };
-  },
-
   /** Equip an owned/free item in its slot; itemId null unequips p_slot. */
   async equip(itemId: string | null, slot: AvatarSlot): Promise<{ ok: boolean; config?: AvatarConfig; error?: string }> {
     const { data, error } = await supabase.rpc('equip_item', { p_item_id: itemId, p_slot: slot });

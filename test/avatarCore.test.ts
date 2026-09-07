@@ -15,39 +15,41 @@ import {
 } from '../services/avatarCore';
 
 describe('avatarCore — normalizeConfig', () => {
-  it('defaults a null/legacy config to human_boy skin 1 with empty slots', () => {
+  it('defaults a null/legacy config to human_boy with empty slots', () => {
     const c = normalizeConfig(null);
-    expect(c).toEqual({ version: 1, body: 'human_boy', skin: 1, items: {
+    expect(c).toEqual({ version: 1, body: 'human_boy', items: {
       hair: null, eyes: null, outfit: null, headwear: null, face: null, handheld: null, back: null, background: null,
     }});
   });
 
-  it('accepts a valid config unchanged and clamps skin', () => {
-    const c = normalizeConfig({ version: 1, body: 'robot', skin: 99, items: { headwear: 'hat_crown', hair: 'junk-hair-id' } });
+  it('accepts a valid config unchanged and drops the retired skin key', () => {
+    const c = normalizeConfig({ version: 1, body: 'robot', skin: 99, items: { headwear: 'headwear_cap_red', hair: 'junk-hair-id' } });
     expect(c.body).toBe('robot');
-    expect(c.skin).toBe(6);
-    expect(c.items.headwear).toBe('hat_crown');
+    expect((c as unknown as { skin?: number }).skin).toBeUndefined();
+    expect(c.items.headwear).toBe('headwear_cap_red');
     expect(c.items.hair).toBe('junk-hair-id'); // unknown ids kept; compat enforced elsewhere
   });
 
-  it('rejects an unknown body', () => {
-    expect(normalizeConfig({ body: 'dragon' }).body).toBe('human_boy');
+  it('migrates robot_bender → robot and accepts dragon', () => {
+    expect(normalizeConfig({ body: 'robot_bender' }).body).toBe('robot');
+    expect(isAvatarBody('dragon')).toBe(true);
+    expect(normalizeConfig({ body: 'unicorn' }).body).toBe('human_boy');
     expect(isAvatarBody('alien')).toBe(true);
     expect(isAvatarBody('unicorn')).toBe(false);
   });
 });
 
 describe('avatarCore — compatibility', () => {
-  it('human-only slots are unavailable on species bodies', () => {
+  it('all slots are available on all bodies (per-item compat is the gate)', () => {
     expect(slotAvailableForBody('hair', 'human_girl')).toBe(true);
-    expect(slotAvailableForBody('outfit', 'robot')).toBe(false);
+    expect(slotAvailableForBody('outfit', 'robot')).toBe(true);
     expect(slotAvailableForBody('headwear', 'monster')).toBe(true);
   });
 
-  it('item compatibility = slot rule + explicit list', () => {
+  it('item compatibility = explicit list only', () => {
     expect(itemAvailableForBody({ slot: 'headwear', compatible_bodies: [] }, 'alien')).toBe(true);
     expect(itemAvailableForBody({ slot: 'headwear', compatible_bodies: ['robot'] }, 'alien')).toBe(false);
-    expect(itemAvailableForBody({ slot: 'hair', compatible_bodies: [] }, 'robot')).toBe(false);
+    expect(itemAvailableForBody({ slot: 'hair', compatible_bodies: ['dragon'] }, 'dragon')).toBe(true);
   });
 });
 
@@ -59,32 +61,32 @@ describe('avatarCore — config transforms', () => {
     expect(configWithItem(withHat, 'headwear', null).items.headwear).toBeNull();
   });
 
-  it('configWithBody strips human-only items when switching to a species', () => {
-    const base = normalizeConfig({ body: 'human_boy', items: { hair: 'hair_afro_dark', outfit: 'outfit_hoodie_blue', headwear: 'headwear_cap_red' } });
+  it('configWithBody keeps universal items and strips explicit incompatibles', () => {
+    const base = normalizeConfig({ body: 'human_boy', items: { hair: 'hair_spiky_brown', outfit: 'outfit_hoodie_red', headwear: 'headwear_cap_red' } });
     const lookup = (id: string) =>
-      id === 'headwear_cap_red' ? { slot: 'headwear' as const, compatible_bodies: [] as never[] } : undefined;
+      id === 'hair_spiky_brown' ? { slot: 'hair' as const, compatible_bodies: ['human_boy' as const] } : undefined;
     const robot = configWithBody(base, 'robot', lookup);
     expect(robot.body).toBe('robot');
-    expect(robot.items.hair).toBeNull();
-    expect(robot.items.outfit).toBeNull();
-    expect(robot.items.headwear).toBe('headwear_cap_red'); // universal slot survives
+    expect(robot.items.hair).toBeNull(); // boy-only wig stripped
+    expect(robot.items.outfit).toBe('outfit_hoodie_red'); // universal top survives
+    expect(robot.items.headwear).toBe('headwear_cap_red');
   });
 
   it('configWithBody strips items with explicit incompatible lists', () => {
-    const base = normalizeConfig({ body: 'robot', items: { headwear: 'sig_robot_antenna' } });
+    const base = normalizeConfig({ body: 'robot', items: { headwear: 'headwear_antenna_bolt' } });
     const lookup = (id: string) =>
-      id === 'sig_robot_antenna' ? { slot: 'headwear' as const, compatible_bodies: ['robot' as const] } : undefined;
+      id === 'headwear_antenna_bolt' ? { slot: 'headwear' as const, compatible_bodies: ['robot' as const] } : undefined;
     expect(configWithBody(base, 'alien', lookup).items.headwear).toBeNull();
   });
 });
 
 describe('avatarCore — hashing & URLs', () => {
   it('canonicalConfigString is order-independent across slot insertion order', () => {
-    const a = normalizeConfig({ body: 'robot', skin: 1, items: { headwear: 'h1', face: 'f1' } });
-    const b = normalizeConfig({ body: 'robot', skin: 1, items: { face: 'f1', headwear: 'h1' } });
+    const a = normalizeConfig({ body: 'robot', items: { headwear: 'h1', face: 'f1' } });
+    const b = normalizeConfig({ body: 'robot', items: { face: 'f1', headwear: 'h1' } });
     expect(canonicalConfigString(a)).toBe(canonicalConfigString(b));
-    // nulls dropped, skin matters
-    const c = normalizeConfig({ body: 'robot', skin: 2, items: {} });
+    // nulls dropped, body matters
+    const c = normalizeConfig({ body: 'alien', items: {} });
     expect(canonicalConfigString(c)).not.toBe(canonicalConfigString(a));
   });
 
@@ -108,9 +110,8 @@ describe('avatarCore — hashing & URLs', () => {
     expect(nearestRenderSize(600)).toBe(512);
   });
 
-  it('baseAssetPath clamps human skins and pins species to skin 1', () => {
-    expect(baseAssetPath('human_boy', 9)).toBe('avatars/bases/human_boy_skin6.png');
-    expect(baseAssetPath('human_girl', 3)).toBe('avatars/bases/human_girl_skin3.png');
-    expect(baseAssetPath('robot', 5)).toBe('avatars/bases/robot_skin1.png');
+  it('baseAssetPath is the single-skin Stitch path', () => {
+    expect(baseAssetPath('human_boy')).toBe('avatars/bases/human_boy.png');
+    expect(baseAssetPath('dragon')).toBe('avatars/bases/dragon.png');
   });
 });

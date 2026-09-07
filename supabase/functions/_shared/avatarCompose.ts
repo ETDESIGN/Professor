@@ -15,9 +15,8 @@ import { Image } from 'https://deno.land/x/imagescript@1.3.0/mod.ts';
 import { callOpenRouterImages } from './illustrationCore.ts';
 import { serviceRoleKey } from './serviceKey.ts';
 
-const BODIES = ['human_boy', 'human_girl', 'robot', 'robot_bender', 'alien', 'monster'] as const;
+const BODIES = ['human_boy', 'human_girl', 'robot', 'alien', 'monster', 'dragon'] as const;
 const SLOTS = ['hair', 'eyes', 'outfit', 'headwear', 'face', 'handheld', 'back', 'background'] as const;
-const HUMAN_ONLY = new Set(['hair', 'eyes', 'outfit']);
 // Composite order; 'body' is the base render.
 const RENDER_ORDER = ['background', 'back', 'body', 'outfit', 'eyes', 'face', 'hair', 'headwear', 'handheld'];
 const SIZES = [768, 512, 256, 128];
@@ -28,25 +27,21 @@ type Slot = (typeof SLOTS)[number];
 
 interface NormalizedConfig {
   body: Body;
-  skin: number;
   items: Partial<Record<Slot, string | null>>;
 }
 
-function isHuman(b: Body): boolean {
-  return b === 'human_boy' || b === 'human_girl';
-}
-
-/** Mirrors services/avatarCore.ts normalizeConfig — keep in sync. */
+/** Mirrors services/avatarCore.ts normalizeConfig — keep in sync.
+ *  Skin tones retired + robot_bender → robot (2026-09-07 Stitch swap). */
 function normalizeConfig(raw: unknown): NormalizedConfig {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, any>;
-  const body = (BODIES as readonly string[]).includes(obj?.body) ? (obj.body as Body) : 'human_boy';
-  const skin = Number.isFinite(Number(obj?.skin)) ? Math.min(Math.max(Math.round(Number(obj.skin)), 1), 6) : 1;
+  const rawBody = obj?.body === 'robot_bender' ? 'robot' : obj?.body;
+  const body = (BODIES as readonly string[]).includes(rawBody) ? (rawBody as Body) : 'human_boy';
   const items: NormalizedConfig['items'] = {};
   const rawItems = (obj?.items && typeof obj.items === 'object' ? obj.items : {}) as Record<string, unknown>;
   for (const slot of SLOTS) {
     items[slot] = typeof rawItems[slot] === 'string' && rawItems[slot] ? rawItems[slot] : null;
   }
-  return { body, skin, items };
+  return { body, items };
 }
 
 async function sha256Hex16(s: string): Promise<string> {
@@ -130,7 +125,7 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
   //    invalidates render caches when the underlying layer art is regenerated
   //    (the config alone can't see art changes). Bump on wholesale art refresh.
   const itemParts = SLOTS.filter((s) => config.items[s]).map((s) => `${s}:${config.items[s]}`).sort();
-  const canonical = JSON.stringify({ version: 1, art: 9, body: config.body, skin: config.skin, items: itemParts });
+  const canonical = JSON.stringify({ version: 1, art: 10, body: config.body, items: itemParts });
   const hash = await sha256Hex16(canonical);
 
   const basePath = `avatars/renders/${userId}/${hash}`;
@@ -166,7 +161,6 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
     if (!id) continue;
     const item = byId.get(id);
     if (!item || item.kind !== 'item' || item.active === false || !item.slot) continue;
-    if (HUMAN_ONLY.has(item.slot as Slot) && !isHuman(config.body)) continue;
     if (item.compatible_bodies && item.compatible_bodies.length > 0 && !item.compatible_bodies.includes(config.body)) continue;
     if (!item.layer_asset_path) continue;
     // Per-body variant first (ChatGPT audit), default layer as fallback.
@@ -175,9 +169,7 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
   }
   const bgLayer = layers.find((l) => l.order === RENDER_ORDER.indexOf('background'));
 
-  const skin = isHuman(config.body) ? config.skin : 1;
-  let baseImg = await fetchPngImage(publicUrl(`avatars/bases/${config.body}_skin${skin}.png`));
-  if (!baseImg) baseImg = await fetchPngImage(publicUrl(`avatars/bases/${config.body}_skin1.png`));
+  let baseImg = await fetchPngImage(publicUrl(`avatars/bases/${config.body}.png`));
   if (!baseImg) return { ok: false, error: 'base_art_missing' };
 
   // 4) Flatten in strict RENDER_ORDER: background → back items → BODY →
@@ -400,7 +392,7 @@ export async function generateAvatarArt(params: {
       mediaType = fb.mediaType;
       usedModel = `${fb.model} (chat)`;
     } else {
-      lastError = `${lastError} | chat fallback: ${fb.error}`;
+      lastError = `${lastError} | chat fallback: ${'error' in fb ? fb.error : 'unknown'}`;
       // Last resort: keyless Pollinations (Flux) — the legacy pipeline's
       // region-safe default. kontext supports i2i via &image=; flux is t2i.
       const poll = await pollinationsImage(params.prompt, params.references, params.seed);
@@ -410,7 +402,7 @@ export async function generateAvatarArt(params: {
         usedModel = `pollinations:${poll.model}`;
         return await finalizeWithNote(params, b64, mediaType, usedModel, `openrouter blocked: ${lastError}`);
       } else {
-        return { ok: false, error: `${lastError} | pollinations: ${poll.error}` };
+        return { ok: false, error: `${lastError} | pollinations: ${'error' in poll ? poll.error : 'unknown'}` };
       }
     }
   }

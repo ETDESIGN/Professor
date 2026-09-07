@@ -180,7 +180,7 @@ const Shop: React.FC<ShopProps> = ({ onBack, onOpenStudio }) => {
                   disabled={pendingId !== null}
                   className={`bg-white p-3 rounded-2xl border-2 flex flex-col items-center text-center transition-all relative ${active ? 'border-duo-pink bg-pink-50' : base.rarity ? RARITY_META[base.rarity].ring : 'border-slate-200'} ${base.rarity ? RARITY_META[base.rarity].glow : ''}`}
                 >
-                  <img src={GENERATED_MEDIA_PUBLIC(`avatars/bases/${base.id}_skin1.png`)} alt={base.name} className="w-16 h-16 object-contain" />
+                  <img src={GENERATED_MEDIA_PUBLIC(`avatars/bases/${base.id}.png`)} alt={base.name} className="w-16 h-16 object-contain" />
                   <span className="font-bold text-slate-800 text-xs mt-1 capitalize">{base.id.replace('human_', '')}</span>
                   {active ? (
                     <span className="mt-1 flex items-center gap-1 text-green-600 font-bold text-xs"><Check size={12} /> {t('student.inUse', 'In use')}</span>
