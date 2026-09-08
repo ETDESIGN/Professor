@@ -33,7 +33,7 @@ type SidebarTab = 'notes' | 'wheel' | 'sounds' | 'groups' | 'analytics';
 const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const {
       state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction, deductAllPoints,
-      clearDrawings, selectNextStudent, setSelectionMode, closeOverlay, cancelTurn,
+      clearDrawings, selectNextStudent, setSelectionMode, setRotationMode, closeOverlay, cancelTurn,
       setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence, nextStudent,
       retrySync
    } = useSession();
@@ -126,7 +126,31 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const activePointStudent = state.students.find((s: any) => s.id === activePointStudentId);
 
    // Now safe to bail — every hook above has already been called this render.
-   if (!currentStep) return <div className="text-white p-8 bg-slate-900 h-screen flex items-center justify-center">Loading Session...</div>;
+   if (!currentStep) {
+      // WS #3: a unit whose flow is empty everywhere (unit.flow AND any class
+      // plan flow) can never produce a first slide — "Loading Session…" used
+      // to spin forever in exactly that case. Say what's wrong instead.
+      const unitFlowLen = Array.isArray(state.activeUnit?.flow) ? state.activeUnit.flow.length : 0;
+      const planFlowLen = Array.isArray(state.activeClassPlan?.flow) ? state.activeClassPlan.flow.length : 0;
+      if (state.activeUnit && unitFlowLen === 0 && planFlowLen === 0) {
+         return (
+            <div className="text-white bg-slate-900 h-screen flex flex-col items-center justify-center gap-4 p-8 text-center">
+               <div className="text-2xl font-bold">This unit has no lesson flow yet</div>
+               <p className="text-slate-400 max-w-md text-sm leading-relaxed">
+                  Open this unit in the Unit Studio and generate its lesson flow first —
+                  then start the live session again.
+               </p>
+               <button
+                  onClick={() => { endSession(); if (onExit) onExit(); }}
+                  className="mt-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm px-5 py-2 rounded-lg transition-colors"
+               >
+                  Back to Curriculum
+               </button>
+            </div>
+         );
+      }
+      return <div className="text-white p-8 bg-slate-900 h-screen flex items-center justify-center">Loading Session...</div>;
+   }
 
    return (
       <div className="h-screen bg-slate-950 text-white flex flex-col font-sans overflow-hidden">
@@ -190,6 +214,12 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                      {classIsReleased ? `Class released` : `Mark class taught`}
                   </button>
                )}
+               <button
+                  onClick={() => window.open('/board', '_blank', 'popup=yes,width=1280,height=720')}
+                  className="flex items-center gap-1.5 bg-indigo-600/90 text-white px-3 py-1.5 rounded-full border border-indigo-500 hover:bg-indigo-500 text-sm font-bold"
+                  title="Open the projector live screen in a presentation window">
+                  <Monitor size={14} /> Live Screen
+               </button>
                <button
                   onClick={async () => {
                     const { id, error } = await ensureAttendanceOccurrence();
@@ -370,7 +400,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   activeTab={activeSidebarTab} state={state} currentStep={currentStep}
                   isSpinning={isSpinning} groupCount={groupCount} generatedGroups={generatedGroups}
                   handleSpin={handleSpin} addPoints={addPoints} triggerAction={triggerAction}
-                  closeOverlay={closeOverlay} setSelectionMode={setSelectionMode}
+                  closeOverlay={closeOverlay} setSelectionMode={setSelectionMode} setRotationMode={setRotationMode}
                   setGroupCount={setGroupCount} setGeneratedGroups={setGeneratedGroups}
                />
             </div>

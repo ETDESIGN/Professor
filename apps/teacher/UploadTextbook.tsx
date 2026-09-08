@@ -4,6 +4,7 @@ import { supabase } from '../../services/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getOrCreateDefaultBookForCurrentUser, listBooks, createBook, Book } from '../../services/BookService';
+import { sanitizeUnitTitle } from '../../services/unitTitle';
 import { useBookScan } from '../../hooks/useBookScan';
 import ExtractionReview from './ExtractionReview';
 import UnitizationEditor from './UnitizationEditor';
@@ -31,6 +32,13 @@ interface UploadTextbookProps {
 const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => {
    const [draftUnitId, setDraftUnitId] = useState<string | null>(null);
    const [unitTitle, setUnitTitle] = useState<string>('');
+   // WS3 junk-title fallback: remember where the draft landed (book title +
+   // position) so a junk printed_title degrades to "<Book> – Unit <n>".
+   // REFS, not state — handleFileSelect reads them after awaiting the scan,
+   // and the closure snapshot of a setState would still hold the pre-draft
+   // values (same stale-closure trap as the `pages` note below, FIXPLAN H3).
+   const draftBookTitleRef = useRef<string | null>(null);
+   const draftOrderIndexRef = useRef<number>(0);
    const [creatingUnit, setCreatingUnit] = useState(false);
    const [showUnitization, setShowUnitization] = useState(false);
    const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +91,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
             throw new Error('Your session expired — please sign in again before uploading.');
          }
          const targetBook = selectedBookId
-            ? { id: selectedBookId }
+            ? { id: selectedBookId, title: books.find((b) => b.id === selectedBookId)?.title }
             : await getOrCreateDefaultBookForCurrentUser();
          let nextOrderIndex = 0;
          if (targetBook?.id) {
@@ -109,6 +117,8 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          if (createError) throw createError;
          setDraftUnitId(newUnit.id);
          setUnitTitle(title);
+         draftBookTitleRef.current = targetBook?.title ?? null;
+         draftOrderIndexRef.current = newUnit.order_index ?? nextOrderIndex;
          return newUnit.id;
       } catch (err: any) {
          toast.error(err?.message || 'Could not create the draft unit.');
@@ -131,10 +141,15 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       const scannedPages = (await scanFiles(unitId, newFiles)) || [];
 
       // Default the unit title to the opener's printed title when the book
-      // provides one (doc 10 §5; teacher can rename anytime).
+      // provides one (doc 10 §5; teacher can rename anytime). WS3: the printed
+      // title must pass the junk filter — an OCR'd section header ("NRISH") is
+      // NEVER copied verbatim; junk degrades to "<Book> – Unit <n>".
       const titled = scannedPages.find((p: any) => p.printed_title?.trim());
       if (titled?.printed_title) {
-         const t = titled.printed_title.trim();
+         const t = sanitizeUnitTitle(titled.printed_title)
+            ?? (draftBookTitleRef.current
+               ? `${draftBookTitleRef.current} – Unit ${draftOrderIndexRef.current + 1}`
+               : `Unit ${draftOrderIndexRef.current + 1}`);
          setUnitTitle(t);
          supabase.from('units').update({ title: t }).eq('id', unitId).then(() => undefined, () => undefined);
       }

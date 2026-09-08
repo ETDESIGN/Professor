@@ -7,6 +7,7 @@ import { validateAndNormalizeFlow } from '../_shared/flowTypes.ts';
 import { normalizeManifest, CanonicalManifest } from '../_shared/manifest.ts';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { ageBandFromGrade, resolveMediaForFlow } from '../_shared/mediaResolver.ts';
+import { fetchWordImageMap, resolveVocabImage } from '../_shared/classFlow.ts';
 
 interface VocabItem {
   word: string;
@@ -34,7 +35,7 @@ const grammarExamplesOf = (g: GrammarRule): string[] => g.examples || g.world_ex
 const youtubeSearchUrl = (q: string): string =>
   `https://www.youtube.com/results?search_query=${encodeURIComponent(q || '')}`;
 
-function transformManifestToFlow(assets: any): any[] {
+function transformManifestToFlow(assets: any, wordImages?: Map<string, string>): any[] {
   // `let` (not `const`): the function reassigns `flow` at the pedagogical-
   // ordering step (flow = flow.map(...).sort(...)). A prior `const flow`
   // declaration threw "Assignment to constant variable" there, which was
@@ -48,8 +49,8 @@ function transformManifestToFlow(assets: any): any[] {
   const title = assets?.title || 'Lesson';
   const topic = assets?.topic || '';
 
-  const getImg = (v: VocabItem) =>
-    v.image_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(v.word || 'vocab')}`;
+  // WS4 freeze order: real v.image_url → word_images library → dicebear.
+  const getImg = (v: VocabItem) => resolveVocabImage(v.word, v.image_url, wordImages).image;
 
   flow.push({
     type: 'INTRO_SPLASH',
@@ -106,13 +107,19 @@ function transformManifestToFlow(assets: any): any[] {
       type: 'FOCUS_CARDS',
       data: {
         title: `${title} — Vocabulary`,
-        cards: vocab.map((v) => ({
-          front: v.word,
-          back: v.definition || '',
-          context_sentence: exampleSentenceOf(v),
-          phonetic: (v as any)?.phonetic,
-          image: getImg(v),
-        })),
+        cards: vocab.map((v) => {
+          const img = resolveVocabImage(v.word, v.image_url, wordImages);
+          return {
+            front: v.word,
+            back: v.definition || '',
+            context_sentence: exampleSentenceOf(v),
+            phonetic: (v as any)?.phonetic,
+            image: img.image,
+            // WS4: honest placeholder marker so the board can prefer the
+            // manifest/word-library image at render time.
+            ...(img.image_placeholder ? { image_placeholder: true } : {}),
+          };
+        }),
       },
     });
 
@@ -395,6 +402,10 @@ serve(async (req) => {
     let canonical = normalizeManifest(approvedAssets);
     let assetsForFlow = toFlowAssets(canonical);
 
+    // WS4: canonical word_key → real asset URL from the teacher's word_images
+    // library (populated below once the unit owner is known).
+    let wordImages = new Map<string, string>();
+
     let rawFlow: any[] = [];
     let aiSource = 'fallback';
 
@@ -420,6 +431,28 @@ serve(async (req) => {
       if (canonical.vocabulary.length === 0 && unit.manifest) {
         canonical = normalizeManifest(unit.manifest);
         assetsForFlow = toFlowAssets(canonical, unit.title);
+      }
+
+      // WS4 freeze-time vocab-image resolution: the manifest's image_url can
+      // be NULL/placeholder while the per-teacher word_images library already
+      // holds a real asset for the word (ensureWordImage writes there FIRST
+      // and only mirrors into the manifest). Resolve BEFORE the flow is built
+      // so the frozen FOCUS_CARDS/TEAM_BATTLE cards — and the AI prompt's
+      // vocabulary view — carry the real URL at publish time instead of
+      // baking a dicebear placeholder.
+      try {
+        const vocabWords = (assetsForFlow.vocabulary || []).map((v: any) => String(v?.word || '')).filter(Boolean);
+        wordImages = await fetchWordImageMap(sbClient, unit.teacher_id, vocabWords);
+        if (wordImages.size > 0) {
+          assetsForFlow.vocabulary = (assetsForFlow.vocabulary || []).map((v: any) => {
+            const r = resolveVocabImage(String(v?.word || ''), v?.image_url, wordImages);
+            // Only patch when a real URL won; keep placeholders for the
+            // transformer's own flagged fallback.
+            return r.image_placeholder ? v : { ...v, image_url: r.image };
+          });
+        }
+      } catch (wordImgErr: any) {
+        console.error('word_images freeze resolution failed (non-fatal, dicebear stands):', wordImgErr?.message || wordImgErr);
       }
 
       // B-ORCH-DRIFT fix: the relational tables are the canonical source for
@@ -625,7 +658,7 @@ serve(async (req) => {
 
     try {
       if (rawFlow.length === 0) {
-        rawFlow = transformManifestToFlow(assetsForFlow);
+        rawFlow = transformManifestToFlow(assetsForFlow, wordImages);
         aiSource = rawFlow.length > 1 ? 'transformer' : 'empty';
       }
 

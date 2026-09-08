@@ -8,6 +8,7 @@ import { createClientLogger } from '../services/logger';
 import { toast } from 'sonner';
 import {
   LiveTurnState,
+  RotationMode,
   EMPTY_LIVE_TURN,
   mergeLiveTurn,
   rowToLiveTurn,
@@ -24,6 +25,20 @@ function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T {
     if (t) clearTimeout(t);
     t = setTimeout(() => fn(...args), wait);
   }) as T;
+}
+
+/** Bounded await (WS #3): a hung fetch in the go-live path used to freeze the
+ *  commander on "Loading Session…" forever — supabase-js has no default
+ *  timeout/abort. Race the fetch against a timer and resolve `fallback` when
+ *  it loses, so the session starts degraded instead of never. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string, fallback?: T): Promise<T | undefined> {
+  return Promise.race([
+    p,
+    new Promise<T | undefined>((resolve) => setTimeout(() => {
+      log.warn('session_start_timeout', { metadata: { label, ms } });
+      resolve(fallback);
+    }, ms)),
+  ]);
 }
 
 type SessionStatus = 'IDLE' | 'LIVE' | 'PAUSED';
@@ -83,6 +98,9 @@ interface SessionState {
   pointsLog: any[];
   selectionHistory: string[];
   selectionMode: SelectionMode;
+  /** Auto-rotate cadence (WS #7) — mirrors the live_state field of the same
+   *  name; OFF until a teacher enables it in the picker control center. */
+  rotationMode: RotationMode;
   /** Strict round-robin: students who have already had a turn THIS exercise.
    *  Reset when the step/exercise changes. Guarantees every kid goes once before
    *  anyone repeats (locked decision 0.1.1). */
@@ -247,6 +265,9 @@ export interface SessionContextType {
   cancelTurn: () => void;
   /** Clear the current responder and immediately spin for the next one. */
   nextStudent: () => void;
+  /** Auto-rotate cadence for the picker (WS #7). Persisted in live_state so
+   *  commander / remote / board agree and rehydrate. */
+  setRotationMode: (mode: RotationMode) => void;
   startDrawing: (x: number, y: number, color?: string) => void;
   addDrawingPoint: (x: number, y: number) => void;
   endDrawing: () => void;
@@ -285,6 +306,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     pointsLog: [],
     selectionHistory: [],
     selectionMode: 'ROUND_ROBIN',
+    rotationMode: 'OFF',
     turnsThisExercise: [],
     isConnected: false,
     liveSnapImage: null,
@@ -638,6 +660,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       resetCount: Math.max(prev.resetCount ?? 0, live.resetCount ?? 0),
       quietModeActive: live.quietMode,
       selectionMode: live.selectionMode ?? prev.selectionMode,
+      rotationMode: live.rotationMode ?? prev.rotationMode,
       students: live.teams
         ? prev.students.map(s =>
             live.teams && live.teams[s.id] ? { ...s, team: live.teams[s.id] } : s)
@@ -747,7 +770,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         if ((mediaProbeAtRef.current.get(probeKey) ?? 0) < now - 15000) {
           mediaProbeAtRef.current.set(probeKey, now);
           try {
-            const fresh = await Engine.getUnitById(row.unit_id);
+            const fresh = await withTimeout(Engine.getUnitById(row.unit_id), 15000, 'media_probe');
             const freshFlow = Array.isArray(fresh?.flow) ? fresh.flow : [];
             const freshBlock = freshFlow[idx] ?? freshFlow.find((b: any) => b?.type === 'MEDIA_PLAYER');
             if (freshBlock?.data?.videoUrl || freshBlock?.data?.audioUrl) {
@@ -947,6 +970,16 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         // without this write the row's overlay would stay QUICK_WHEEL).
         void updateLiveTurn({ overlay: 'NONE' });
       }
+      // WS #7 root-cause fix: release the pick guard HERE, not in the
+      // release effect below. The dismissal write above re-applies the SAME
+      // turnToken + (now past) revealAt onto the state, so the committed
+      // render's [turnRevealAt, pendingTurnToken] deps are identical to the
+      // pre-reveal render — React re-runs neither effect, and the release
+      // effect never fires. spinInFlightRef then stays true forever, silently
+      // dead-ening every later pick (Next Student, roster magic-pick, re-spin)
+      // while a responder is live. The timer completing IS the chain
+      // completing — release unconditionally.
+      spinInFlightRef.current = false;
     }, Math.max(0, revealAt - Date.now()));
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1192,7 +1225,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     // to the cache on fetch failure for offline resilience.
     let unit = state.units.find(u => u.id === unitId);
     try {
-      const fresh = await Engine.getUnitById(unitId);
+      const fresh = await withTimeout(Engine.getUnitById(unitId), 20000, 'unit_fetch');
       if (fresh) unit = fresh;
     } catch {
       // keep the cached unit if the fresh fetch fails
@@ -1201,8 +1234,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     // unit flow and its content_index scopes every pool pull (#8).
     let classPlan: any = null;
     if (classPlanId) {
-      classPlan = await fetchClassPlan(classPlanId);
-      if (!classPlan) throw new Error('Class plan not found.');
+      classPlan = await withTimeout(fetchClassPlan(classPlanId), 15000, 'class_plan_fetch');
+      if (!classPlan) throw new Error('Class plan could not be loaded. Try again.');
       if (classPlan.unit_id !== unitId) throw new Error('That class does not belong to this unit.');
     }
     if (unit) {
@@ -1213,7 +1246,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // — it lives only on this in-memory snapshot, which is exactly the
       // edit-then-republish snapshot the live session should hold.
       try {
-        const { data: bundle } = await supabase.rpc('get_unit_bundle', { p_unit_id: unitId });
+        const res: any = await withTimeout(
+          supabase.rpc('get_unit_bundle', { p_unit_id: unitId }) as unknown as Promise<any>,
+          20000,
+          'unit_bundle',
+          { data: null },
+        );
+        const bundle = res?.data;
         if (bundle && unit.manifest && typeof unit.manifest === 'object') {
           Object.defineProperty(unit.manifest, '_relational', { value: bundle, enumerable: false, configurable: true });
         }
@@ -1256,7 +1295,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Open (or reuse) the attendance occurrence for this live session, then
       // reload the roster so presence overlays via mergePresence.
       if (userId && activeClassIdRef.current) {
-        const { id: occId, error: occErr } = await getOrCreateActiveOccurrence(activeClassIdRef.current, userId, unitId);
+        const occ: any = await withTimeout(
+          getOrCreateActiveOccurrence(activeClassIdRef.current, userId, unitId),
+          10000,
+          'attendance_occurrence',
+          { id: null, error: 'timeout' },
+        );
+        const { id: occId, error: occErr } = occ ?? { id: null, error: 'unavailable' };
         if (occErr || !occId) {
           log.warn('go_live_occurrence_failed', { error: occErr });
         } else {
@@ -1450,6 +1495,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           revealAt: null,
           overlay: 'NONE',
         });
+        // WS #7 auto-rotate FULL_STEP: one game step per student — when a new
+        // exercise starts, the next student is picked for it automatically.
+        if (rotationModeRef.current === 'FULL_STEP' && rotationResponderRef.current) {
+          nextStudentRef.current();
+        }
       }
     }
   };
@@ -1477,6 +1527,24 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Debounced so rapid Baton taps / game captures batch into one write.
       pendingPointsRef.current[studentId] = (pendingPointsRef.current[studentId] || 0) + amount;
       flushClassPoints();
+    }
+
+    // WS #7 auto-rotate: a scored award TO THE CURRENT RESPONDER counts as one
+    // answered question. When the cadence threshold is reached, advance the
+    // loop (clear + next pick via the picker's own selection mode). Only the
+    // awarding tab counts — the rotation broadcast converges every other tab.
+    const cadence = rotationModeRef.current;
+    if (
+      amount > 0
+      && (cadence === 'EVERY_1' || cadence === 'EVERY_3')
+      && studentId === rotationResponderRef.current
+    ) {
+      rotationAwardCountRef.current += 1;
+      const needed = cadence === 'EVERY_1' ? 1 : 3;
+      if (rotationAwardCountRef.current >= needed && !spinInFlightRef.current) {
+        rotationAwardCountRef.current = 0;
+        nextStudentRef.current();
+      }
     }
   }, [broadcastAction, state.activeClassId]);
 
@@ -1534,6 +1602,29 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     syncRemediation();
     return ids;
   }, []);
+
+  // ── Auto-rotate (WS #7) ──────────────────────────────────────────────────
+  // Mirror refs so addPoints (a useCallback with narrow deps) sees the live
+  // rotation mode + responder without capturing stale state; the counter
+  // resets on every new turn. Counting happens ONLY on the tab that awards
+  // the points, so exactly one tab triggers the rotation (its SPIN_WHEEL /
+  // LIVE_STATE broadcasts converge the others).
+  const rotationModeRef = useRef<RotationMode>('OFF');
+  const rotationResponderRef = useRef<string | null>(null);
+  const rotationAwardCountRef = useRef(0);
+  const nextStudentRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    rotationModeRef.current = state.rotationMode;
+    rotationResponderRef.current = state.quickWheelWinner;
+  }, [state.rotationMode, state.quickWheelWinner]);
+
+  const setRotationMode = (mode: RotationMode) => {
+    rotationModeRef.current = mode;
+    rotationAwardCountRef.current = 0;
+    setState(prev => (prev.rotationMode === mode ? prev : { ...prev, rotationMode: mode }));
+    // Persist + broadcast so commander / remote / board agree and rehydrate.
+    void updateLiveTurn({ rotationMode: mode });
+  };
 
   const deductAllPoints = (amount: number) => {
     const action = { type: 'MASS_PENALTY', payload: { amount }, timestamp: Date.now() };
@@ -1669,6 +1760,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Compat broadcast first (game guards key on SPIN_WHEEL via lastAction),
     // then the optimistic local apply — same ordering as every other sender.
     broadcastAction(spinAction as SessionAction);
+    // WS #7: fresh turn → fresh auto-rotate question counter.
+    rotationAwardCountRef.current = 0;
     setState(prev => ({
       ...prev,
       selectionHistory: prev.selectionHistory.includes(studentId)
@@ -1772,8 +1865,18 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     triggerAction('CLEAR_RESPONDER');
     // Tiny delay so the clear renders before the spin overlay opens; otherwise
     // the overlay's winner card flickers with the old student's data.
-    setTimeout(() => selectNextStudent(), 50);
+    setTimeout(() => {
+      // WS #7: a dead pick must say WHY — the empty-pool bail inside
+      // selectNextStudent only logs to the console, which reads on the
+      // teacher's screen as a broken button.
+      if (filterPresent(state.students).length === 0) {
+        toast.error('No students present — bind a class or mark attendance first.');
+        return;
+      }
+      selectNextStudent();
+    }, 50);
   };
+  nextStudentRef.current = nextStudent;
 
   // --- Drawing Logic ---
   const startDrawing = (x: number, y: number, color: string = '#ef4444') => {
@@ -1858,6 +1961,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       startSession, endSession, retrySync, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
       selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, dismissWheel, cancelTurn, nextStudent,
+      setRotationMode,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
       triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent,
       pushToRemediation, getRemediationQueue, drainRemediation

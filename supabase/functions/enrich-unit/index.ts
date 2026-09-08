@@ -6,6 +6,7 @@ import { cropBookImages } from '../_shared/bookCrop.ts';
 import { segmentPassageByScenes } from '../_shared/storySegments.ts';
 import { serviceRoleKey } from '../_shared/serviceKey.ts';
 import { buildPromptWithCharacter, fetchCharacterByName } from '../_shared/characterLook.ts';
+import { sanitizeUnitTitle, isOverwritableAutoTitle } from '../_shared/unitTitle.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -1143,7 +1144,11 @@ ${categoryRules}
     const mergedManifest = { ...currentManifest };
 
     // Update metadata if the AI returned it
-    if (enriched.title && enriched.title !== 'Unit title') mergedManifest.title = enriched.title;
+    // WS3: the title must pass the junk filter — the old guard only rejected
+    // the exact 'Unit title' placeholder echo, so OCR junk ("NRISH") or bare
+    // "Unit" from the model still landed on the unit.
+    const aiTitle = sanitizeUnitTitle(String(enriched.title ?? ''));
+    if (aiTitle) mergedManifest.title = aiTitle;
     if (enriched.topic && enriched.topic !== 'Main topic') mergedManifest.topic = enriched.topic;
     if (enriched.gradeLevel) mergedManifest.gradeLevel = enriched.gradeLevel;
     if (enriched.description) mergedManifest.description = enriched.description;
@@ -1412,20 +1417,31 @@ ${categoryRules}
       mergedKeys: Object.entries(mergedManifest).map(([k, v]) => `${k}:${Array.isArray(v) ? v.length : typeof v}`),
     }));
 
+    // WS3 junk-title guard: the merged manifest title is written onto the UNIT
+    // (units.title + manifest.meta.unit_title) only when it passes the junk
+    // filter AND the current title is itself an overwritable auto placeholder
+    // (junk, "Unit 3", "Draft Unit <date>"). A good/manual existing title is
+    // never overwritten by the AI echo — and a junk manifest echo (stale from
+    // a pre-fix run) is never re-written either.
+    const manifestTitleOk = sanitizeUnitTitle(String(mergedManifest.title ?? ''));
+    const finalTitle = manifestTitleOk && isOverwritableAutoTitle(String(unit.title ?? ''))
+      ? manifestTitleOk
+      : String(unit.title ?? '');
+
     // Write to DB
     const { error: updateError } = await sbClient
       .from('units')
       .update({
         manifest: {
           meta: {
-            unit_title: mergedManifest.title || unit.title,
+            unit_title: finalTitle,
             theme: mergedManifest.topic || topic,
             difficulty_cefr: mergedManifest.gradeLevel
           },
           enriched_content: mergedManifest
         },
         topic: mergedManifest.topic || unit.topic || topic,
-        title: mergedManifest.title || unit.title,
+        title: finalTitle,
       })
       .eq('id', unitId);
 

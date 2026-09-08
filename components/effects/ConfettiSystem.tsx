@@ -27,6 +27,16 @@ const ConfettiSystem: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // WS #8 mount-order guard: the spawn effect is declared BEFORE the sizing
+    // effect, and confettiTrigger is often already >0 when the board mounts
+    // mid-lesson (points/GAME_WIN arrived during the connection gate). Without
+    // this, the first burst spawns into the default 300×150 bitmap and lands
+    // as a clipped corner burst once the real resize runs.
+    if (canvas.width < window.innerWidth * 0.5 || canvas.height < window.innerHeight * 0.5) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
     for (let i = 0; i < 150; i++) {
       particles.current.push({
         x: canvas.width / 2,
@@ -67,9 +77,9 @@ const ConfettiSystem: React.FC = () => {
 
     // Animation Loop
     const loop = () => {
-      if (particles.current.length > 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
+      // Clear every frame (WS #8): clearing only while particles exist left
+      // the final faded frame stuck on the canvas after a burst ended.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.current = particles.current.filter(p => {
         // Physics

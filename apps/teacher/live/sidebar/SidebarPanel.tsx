@@ -22,13 +22,14 @@ interface SidebarPanelProps {
   triggerAction: (type: string, payload?: any) => void;
   closeOverlay: () => void;
   setSelectionMode: (mode: any) => void;
+  setRotationMode: (mode: 'OFF' | 'EVERY_1' | 'EVERY_3' | 'FULL_STEP') => void;
   setGroupCount: (count: number) => void;
   setGeneratedGroups: (groups: any[][]) => void;
 }
 
 export const SidebarPanel: React.FC<SidebarPanelProps> = ({
   activeTab, state, currentStep, isSpinning, groupCount, generatedGroups,
-  handleSpin, addPoints, triggerAction, closeOverlay, setSelectionMode,
+  handleSpin, addPoints, triggerAction, closeOverlay, setSelectionMode, setRotationMode,
   setGroupCount, setGeneratedGroups,
 }) => {
   const guide = currentStep?.teacherGuide;
@@ -85,6 +86,32 @@ export const SidebarPanel: React.FC<SidebarPanelProps> = ({
                 <span>{label}</span>
               </button>
             ))}
+          </div>
+          {/* WS #7 auto-rotate cadence — the picker control center decides when
+              the NEXT student is picked automatically. The pick itself follows
+              the mode selected above (Everyone / Random / Cold-Call). */}
+          <div className="mb-6">
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1.5">Auto-rotate next student</div>
+            <div className="flex bg-slate-800 p-1 rounded-xl gap-1">
+              {([
+                { mode: 'OFF', label: 'Off' },
+                { mode: 'EVERY_1', label: '1 Q' },
+                { mode: 'EVERY_3', label: '3 Q' },
+                { mode: 'FULL_STEP', label: 'Game' },
+              ] as const).map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  onClick={() => setRotationMode(mode)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${(state.rotationMode || 'OFF') === mode ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                  title={mode === 'OFF' ? 'Keep the same student until you pick again (previous behavior)'
+                    : mode === 'EVERY_1' ? 'One question per student — the next student is picked automatically after each scored answer'
+                    : mode === 'EVERY_3' ? 'Three questions per student, then the next student is picked automatically'
+                    : 'One full game/exercise per student — the next student is picked when a new exercise starts'}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center mb-6">
             {winner && !isSpinning ? (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildClassFlow, type ClassContent } from '../supabase/functions/_shared/classFlow';
+import { buildClassFlow, resolveVocabImage, type ClassContent } from '../supabase/functions/_shared/classFlow';
 
 const content: ClassContent = {
   title: 'Class 1 — Countryside',
@@ -98,5 +98,44 @@ describe('buildClassFlow', () => {
         expect(typeof b.phase).toBe('string');
       }
     }
+  });
+});
+
+describe('WS4 freeze-time vocab-image resolution', () => {
+  const lib = new Map([['leaf', 'https://x/leaf.png']]);
+
+  it('resolveVocabImage prefers a real image_url over the library', () => {
+    expect(resolveVocabImage('leaf', 'https://x/own.png', lib))
+      .toEqual({ image: 'https://x/own.png', image_placeholder: false });
+  });
+
+  it('falls back to the word_images library when image_url is missing or a placeholder', () => {
+    // canonical word_key: lowercase / trim / collapse whitespace
+    expect(resolveVocabImage(' Leaf ', undefined, lib).image).toBe('https://x/leaf.png');
+    expect(resolveVocabImage('leaf', 'https://api.dicebear.com/7.x/shapes/svg?seed=x', lib).image).toBe('https://x/leaf.png');
+    expect(resolveVocabImage('leaf', 'https://pollinations.ai/p/x.png', lib).image).toBe('https://x/leaf.png');
+  });
+
+  it('flags the dicebear fallback and never returns an empty image', () => {
+    const r = resolveVocabImage('rock', null, lib);
+    expect(r.image_placeholder).toBe(true);
+    expect(r.image).toContain('dicebear');
+  });
+
+  it('buildClassFlow heals class cards through the library and flags true placeholders', () => {
+    const healed = buildClassFlow(unitFlow, {
+      ...content,
+      vocab: [
+        { word: 'LEAF', definition: 'd' }, // library hit via canonical key
+        { word: 'tractor', definition: 'd', image_url: 'https://x/tractor.png' },
+        { word: 'rock', definition: 'd' }, // no library hit → flagged dicebear
+      ],
+    }, lib);
+    const cards = healed.find((b: any) => b.type === 'FOCUS_CARDS').data.cards;
+    expect(cards[0].image).toBe('https://x/leaf.png');
+    expect(cards[0].image_placeholder).toBeUndefined();
+    expect(cards[1].image).toBe('https://x/tractor.png');
+    expect(cards[2].image_placeholder).toBe(true);
+    expect(cards[2].image).toContain('dicebear');
   });
 });

@@ -26,6 +26,14 @@ import { playAudioUrl } from '../../../services/SpeechService';
 type View = 'grid' | 'drill';
 type RevealStage = 0 | 1 | 2 | 3 | 4; // 0 = nothing revealed in drill; 4 = fully studied
 
+// WS4 runtime heal: a card image frozen at orchestrate time may be a
+// placeholder (dicebear / dead pollinations) when vocabulary_items.image_url
+// was still NULL while the manifest enrichment already had the real
+// word-library image. Treat placeholder images as missing so the rich vocab
+// URL wins at render time; a placeholder still beats an empty <img>.
+const isRealImage = (u?: string) =>
+  !!u && !u.includes('dicebear') && !u.startsWith('https://pollinations.ai');
+
 const BoardFocusCards = ({ data }: { data: any }) => {
   const { state } = useSession();
   const [view, setView] = useState<View>('grid');
@@ -44,7 +52,11 @@ const BoardFocusCards = ({ data }: { data: any }) => {
       const rich = byWord.get(String(c.front || c.back || '').toLowerCase()) || {};
       return {
         word: c.front || rich.word || '',
-        image: c.image || rich.image_url || '',
+        // Placeholder flow image (dicebear/pollinations, or flagged
+        // image_placeholder) loses to the manifest's real word-library URL.
+        image: (isRealImage(c.image) ? c.image : '') ||
+          (isRealImage(rich.image_url) ? rich.image_url : '') ||
+          c.image || '',
         phonetic: c.phonetic || rich.phonetic || '',
         l1: rich.l1_translation || c.translation || '',
         definition: c.definition || rich.definition || '',

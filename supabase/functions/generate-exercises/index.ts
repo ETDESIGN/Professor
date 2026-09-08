@@ -41,7 +41,9 @@ interface PoolItemRow {
 }
 
 function isRealImage(url: string | undefined): boolean {
-  return !!url && !/dicebear\.com/i.test(url);
+  // WS4: pollinations placeholders are dead URLs (same as dicebear) — a real
+  // image is neither.
+  return !!url && !/dicebear\.com|pollinations\.ai/i.test(url);
 }
 const meaningOf = (v: any): string => v?.l1_translation || v?.definition || '';
 const blankOut = (sentence: string, word: string): string => {
@@ -476,6 +478,22 @@ serve(async (req) => {
           v.image_status = 'ready';
         }
       });
+      // WS4: persist the upgraded images back onto vocabulary_items (the
+      // canonical content row), mirroring the audio write-back below. The
+      // word library (word_images) + manifest must not be the ONLY homes of
+      // the real URL — freeze-time consumers (orchestrate-lesson, generate-
+      // class-flow) and the client's relational getVocabulary read
+      // vocabulary_items.image_url FIRST, so NULL there froze dicebear onto
+      // the board while the enrichment screen showed the real image.
+      // Idempotent: only words UPGRADED this run are written (rows already
+      // carrying a real URL are untouched; placeholder URLs are never
+      // written). Manifest-only units match 0 rows — the manifest persist
+      // below covers them.
+      for (const [word, url] of imgMap) {
+        try {
+          await sb.from('vocabulary_items').update({ image_url: url }).eq('unit_id', unitId).eq('word', word);
+        } catch { /* best-effort per word */ }
+      }
     }
 
     // ── 1.5 Ensure one spoken-word audio per word (cache-first, ONE generation) ──

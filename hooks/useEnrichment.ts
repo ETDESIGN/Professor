@@ -359,6 +359,27 @@ export function useEnrichment(unitId: string, options?: { autoLoad?: boolean }) 
             }
           }
         });
+
+        // WS4: mirror the persist onto the canonical vocabulary row
+        // (lower(word) case-insensitive match) so freeze-time consumers
+        // (orchestrate/class-flow card images) and the relational
+        // getVocabulary read see the real URL without waiting for the next
+        // generate-exercises pass. Best-effort fire-and-forget, same
+        // contract as the manifest persist above. Characters stay
+        // unit-scoped (no word key) and skip this.
+        if (category === 'vocabulary' && item.word) {
+          supabase
+            .from('vocabulary_items')
+            .update({ image_url: newUrl })
+            .eq('unit_id', unitId)
+            .ilike('word', String(item.word).trim())
+            .then(
+              ({ error: wbError }: any) => {
+                if (wbError) log.warn('vocab_image_writeback_failed', { error: wbError.message });
+              },
+              () => { /* best-effort */ },
+            );
+        }
       } catch (err) {
         log.warn('media_gen_failed', { error: err });
         setEnriched(prev => {

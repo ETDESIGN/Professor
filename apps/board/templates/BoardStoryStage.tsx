@@ -447,6 +447,9 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 <div className="w-full h-full" style={{ background: 'linear-gradient(160deg, #3A2A16, #1F1408)' }} />
               )}
               <div className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: 'linear-gradient(to top, rgba(20,14,8,.92), rgba(20,14,8,.5) 60%, transparent)' }} />
+              {/* Right-edge vignette: the neighbouring-bubble sliver of the
+                  full-bleed scene crop reads as a deliberate fade. */}
+              <div className="absolute inset-y-0 right-0 w-[12%] bg-gradient-to-l from-[rgba(20,14,8,0.55)] to-transparent pointer-events-none" />
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-6 pb-8">
               <div className="max-w-3xl mx-auto flex items-end gap-4">

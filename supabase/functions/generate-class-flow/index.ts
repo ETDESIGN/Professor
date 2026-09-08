@@ -3,7 +3,7 @@ import { serveEdgeFunction } from '../_shared/edgeHandler.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { assertUnitOwnership } from '../_shared/assertOwnership.ts';
 import { validateAndNormalizeFlow } from '../_shared/flowTypes.ts';
-import { buildClassFlow } from '../_shared/classFlow.ts';
+import { buildClassFlow, fetchWordImageMap } from '../_shared/classFlow.ts';
 
 // FIXPLAN I-P4 — derive a class plan's flow from the unit flow template +
 // the class's scoped content (doc 11 §4). Deterministic, no AI. Teacher-
@@ -78,6 +78,15 @@ serve(async (req) => {
     };
 
     const theme = unit.manifest?.meta?.theme || unit.topic || '';
+    // WS4 freeze-time vocab-image resolution: vocabulary_items.image_url can
+    // be NULL/placeholder while the teacher's word_images library already has
+    // a real asset for the word — resolve so the class flow never freezes a
+    // dicebear placeholder over an existing image.
+    const wordImages = await fetchWordImageMap(
+      sb,
+      unit.teacher_id,
+      (vocabRes.data || []).map((v: any) => String(v?.word || '')),
+    );
     const rawFlow = buildClassFlow(unit.flow || [], {
       title: plan.title,
       theme,
@@ -87,7 +96,7 @@ serve(async (req) => {
         .map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name })),
       dialogue: byIdOrder(dialogueRes.data as any[], dialogueIds)
         .map((l: any) => ({ speaker: l.speaker || l.speaker_override_name, text: l.text, translation: l.translation })),
-    });
+    }, wordImages);
 
     if (rawFlow.length === 0) {
       return { success: false, error: 'The unit flow is empty — publish the unit first, then generate the class flow.' };

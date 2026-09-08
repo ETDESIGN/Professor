@@ -25,7 +25,6 @@ const PageLoader = () => (
 const TeacherRouter = () => {
     const navigate = useNavigate();
     const { state } = useSession();
-    const unitId = state.activeUnit?.id;
 
     useEffect(() => {
         initErrorReporting({
@@ -37,13 +36,28 @@ const TeacherRouter = () => {
         return () => stopMetricsCollection();
     }, []);
 
+    // Prefetch the live-session chunk after first paint so entering / exiting
+    // a session never falls back to the full-screen loader. Vite dedupes
+    // dynamic imports — this primes the same module the lazy() uses.
+    useEffect(() => {
+        const prefetch = () => { void import('./apps/teacher/LiveCommander'); };
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(prefetch);
+        else window.setTimeout(prefetch, 150);
+    }, []);
+
     return (
         <Routes>
             <Route path="/*" element={
                 <Suspense fallback={<PageLoader />}><TeacherDashboard /></Suspense>
             } />
             <Route path="/teacher/live" element={
-                <Suspense fallback={<PageLoader />}><LiveCommander onExit={() => navigate(unitId ? `/teacher/unit/${unitId}` : '/teacher/units')} /></Suspense>
+                <Suspense fallback={<PageLoader />}><LiveCommander onExit={() => {
+                    // Exit lands on the taught unit's BOOK page (the units list
+                    // of its book) — not the studio and not a bare shelf that
+                    // then redirects. endSession() has run but keeps activeUnit.
+                    const bookId = state.activeUnit?.book_id;
+                    navigate(bookId ? `/teacher/units?book=${bookId}` : '/teacher/units');
+                }} /></Suspense>
             } />
         </Routes>
     );

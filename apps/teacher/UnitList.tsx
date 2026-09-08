@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors, Image as ImageIcon, ListChecks, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
 import { Engine } from '../../services/SupabaseService';
@@ -27,6 +27,12 @@ const itemVariants: any = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
+
+// Stale-while-revalidate book cache: module-scoped so remounting the
+// Curriculum view (route hops, live-session exit) renders the shelf / book
+// detail instantly from the last fetch instead of empty-grid → data pop.
+// refreshBooks() still re-fetches and updates both cache and state.
+let booksCache: Book[] | null = null;
 
 // ── Pipeline-aware status badge (Draft · Enriching · Ready · Active) ─────
 const PipelineBadge: React.FC<{ unit: any; meta?: UnitPipelineMeta }> = ({ unit, meta }) => {
@@ -105,7 +111,7 @@ const BookSetupMaterial: React.FC<{ bookId: string }> = ({ bookId }) => {
 };
 
 const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPlanLesson, onLaunchLesson }) => {
-  const { state, loadUnits, setActiveUnit, startSession, goToSlide } = useSession();
+  const { state, loadUnits, setActiveUnit, startSession, goToSlide, saveUnit } = useSession();
   const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,14 +130,24 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
 
   // ── Book manager state ───────────────────────────────────────────────────
   const [tab, setTab] = useState<'library' | 'trash'>('library');
-  const [activeBookId, setActiveBookId] = useState<string | null>(null); // null = bookshelf
-  const [books, setBooks] = useState<Book[]>([]);
+  // The open book is URL-persisted (?book=<id>) so deep links, browser
+  // back/forward and the live-session exit land on the book detail instead
+  // of flashing the bookshelf first.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeBookId, setActiveBookId] = useState<string | null>(() => searchParams.get('book')); // null = bookshelf
+  const [books, setBooks] = useState<Book[]>(() => booksCache || []);
+  // True once books have data (from cache or the first fetch) — gates the
+  // ?book= deep link so it never renders the shelf while still loading.
+  const [booksLoaded, setBooksLoaded] = useState(booksCache !== null);
   const [pipelineMeta, setPipelineMeta] = useState<Record<string, UnitPipelineMeta>>({});
   const [trashUnits, setTrashUnits] = useState<any[]>([]);
   const [trashBooks, setTrashBooks] = useState<Book[]>([]);
   const [showNewBookModal, setShowNewBookModal] = useState(false);
   const [newBookTitle, setNewBookTitle] = useState('');
   const [renamingBook, setRenamingBook] = useState<Book | null>(null);
+  // WS3: unit rename mirrors the book-rename modal pattern (renamingUnit +
+  // shared renameValue — only one rename modal can be open at a time).
+  const [renamingUnit, setRenamingUnit] = useState<any | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [movingUnit, setMovingUnit] = useState<any | null>(null);
   const [foreverTarget, setForeverTarget] = useState<{ kind: 'unit' | 'book'; id: string; title: string } | null>(null);
@@ -151,9 +167,36 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
 
   const userId = (state as any).userId ?? null;
 
+  // First-paint-only grid stagger: flip after mount so book ↔ bookshelf
+  // switches (which remount the grid motion.divs) never replay the animation.
+  const hasAnimatedRef = useRef(false);
+  useEffect(() => { hasAnimatedRef.current = true; }, []);
+
   const refreshBooks = useCallback(async () => {
-    try { setBooks(await Engine.listBooks()); } catch (e: any) { toast.error(`Could not load books: ${e?.message || e}`); }
+    try {
+      const fetched = await Engine.listBooks();
+      booksCache = fetched; // stale-while-revalidate: feed the next remount
+      setBooks(fetched);
+    } catch (e: any) {
+      toast.error(`Could not load books: ${e?.message || e}`);
+    } finally {
+      setBooksLoaded(true); // release the ?book= loading gate even on error
+    }
   }, []);
+
+  // Open/close a book: keep local state and the ?book= URL param in sync
+  // (replace — browsing a book's units shouldn't spam history entries).
+  const openBook = (id: string | null) => {
+    setActiveBookId(id);
+    const next = new URLSearchParams(searchParams);
+    if (id) next.set('book', id); else next.delete('book');
+    setSearchParams(next, { replace: true });
+  };
+
+  // Browser back/forward only moves the URL — mirror the param into state.
+  useEffect(() => {
+    setActiveBookId(searchParams.get('book'));
+  }, [searchParams]);
 
   const refreshTrash = useCallback(async () => {
     try {
@@ -283,6 +326,10 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
   }, [state.units, books]);
 
   const activeBook = books.find(b => b.id === activeBookId) || null;
+  // A ?book= param while books are still loading would render the shelf for
+  // one frame and then jump to the detail — hold a spinner instead. Once
+  // loaded, an id that matches nothing simply falls back to the shelf.
+  const pendingBook = !!searchParams.get('book') && !booksLoaded;
   const isOwner = (b: Book) => !!b.owner_id && (!userId || b.owner_id === userId);
 
   // ── Bookshelf filtering (search + level) ─────────────────────────────────
@@ -378,6 +425,15 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
 
   const handleLaunch = async (unit: any) => {
     if (actionLoadingId) return;
+    // WS #3: a unit with no lesson flow (and no class plan to supply one) can
+    // never produce a first slide — the live commander used to hang on
+    // "Loading Session…" forever in that case. Route the teacher to the Studio
+    // to generate the flow instead of launching a dead session.
+    if (!Array.isArray(unit.flow) || unit.flow.length === 0) {
+      toast.error(`"${unit?.title || 'This unit'}" has no lesson flow yet — opening the Unit Studio so you can generate it.`);
+      onEditUnit?.(unit.id);
+      return;
+    }
     setActionLoadingId(unit.id);
     try {
       await setActiveUnit(unit.id);
@@ -481,13 +537,37 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
     } catch (err: any) { toast.error(`Rename failed: ${err?.message || err}`); }
   };
 
+  // WS3: manual unit rename — the escape hatch for junk auto-titles
+  // ("NRISH", bare "Unit"). Patches units.title AND manifest.meta.unit_title
+  // (the library header prefers the meta echo, so a title-only write would be
+  // masked after reload) and passes flow explicitly so Engine.updateUnit
+  // never regenerates it from the manifest.
+  const handleRenameUnit = async () => {
+    if (!renamingUnit || !renameValue.trim()) return;
+    const title = renameValue.trim();
+    if (title === (renamingUnit.title ?? '')) { setRenamingUnit(null); setRenameValue(''); return; }
+    try {
+      const patchedManifest = {
+        ...(renamingUnit.manifest ?? {}),
+        meta: { ...(renamingUnit.manifest?.meta ?? {}), unit_title: title },
+      };
+      await saveUnit(renamingUnit.id, {
+        title,
+        manifest: patchedManifest,
+        flow: Array.isArray(renamingUnit.flow) ? renamingUnit.flow : [],
+      } as any);
+      toast.success('Unit renamed');
+      setRenamingUnit(null); setRenameValue('');
+    } catch (err: any) { toast.error(`Rename failed: ${err?.message || err}`); }
+  };
+
   const handleTrashBook = async () => {
     if (!bookToTrash) return;
     setIsDeleting(true);
     try {
       await Engine.softDeleteBook(bookToTrash.id);
       toast.success(`Moved "${bookToTrash.title}" to Trash`);
-      if (activeBookId === bookToTrash.id) setActiveBookId(null);
+      if (activeBookId === bookToTrash.id) openBook(null);
       await Promise.all([refreshBooks(), loadUnits()]);
     } catch (err: any) {
       toast.error(`Could not trash book: ${err?.message || err}`);
@@ -689,6 +769,10 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                       <Edit2 size={14} /> Plan / Edit
                     </button>
+                    <button onClick={(e) => { e.stopPropagation(); setRenamingUnit(unit); setRenameValue(unit.title || ''); setMenuOpenFor(null); }}
+                      className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                      <Edit2 size={14} /> Rename
+                    </button>
                     <button onClick={(e) => { e.stopPropagation(); setMenuOpenFor(null); handleEditEnrichment(unit); }}
                       className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                       <BookOpen size={14} /> Review Content
@@ -761,7 +845,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
         className={`bg-white rounded-xl border border-slate-200 transition-all group duration-300 hover:-translate-y-1 relative ${
           selectMode ? '' : 'cursor-pointer hover:shadow-lg'
         }`}
-        onClick={() => { if (!selectMode) setActiveBookId(book.id); }}
+        onClick={() => { if (!selectMode) openBook(book.id); }}
       >
         <div className="h-40 bg-gradient-to-br from-indigo-100 to-emerald-50 relative overflow-hidden rounded-t-xl">
           {cover ? (
@@ -952,11 +1036,16 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
             </>
           )}
         </div>
+      ) : pendingBook ? (
+        /* ── BOOK DEEP-LINK LOADING ────────────────────────────────── */
+        <div className="flex items-center justify-center py-32">
+          <Loader2 size={28} className="animate-spin text-slate-400" />
+        </div>
       ) : activeBook ? (
         /* ── BOOK DETAIL VIEW ───────────────────────────────────────── */
         <div>
           <div className="flex items-center gap-3 mb-6">
-            <button onClick={() => setActiveBookId(null)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600">
+            <button onClick={() => openBook(null)} className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-600">
               <ChevronLeft size={20} />
             </button>
             <div>
@@ -969,7 +1058,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
               No units in this book yet. Use a unit's kebab menu → “Move to book…” to add some.
             </div>
           ) : (
-            <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <motion.div variants={containerVariants} initial={hasAnimatedRef.current ? false : 'hidden'} animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {(unitsByBook[activeBook.id] || []).map((unit, i) => renderUnitCard(unit, { inBook: true, index: i, total: (unitsByBook[activeBook.id] || []).length }))}
             </motion.div>
           )}
@@ -1007,7 +1096,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
 
           {/* Books grid */}
           {visibleBooks.length > 0 && (
-            <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            <motion.div variants={containerVariants} initial={hasAnimatedRef.current ? false : 'hidden'} animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
               {visibleBooks.map(renderBookCard)}
             </motion.div>
           )}
@@ -1016,7 +1105,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
           {visibleUnassigned.length > 0 && (
             <>
               <h3 className="text-sm font-bold uppercase text-slate-400 mb-3">Unassigned units</h3>
-              <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <motion.div variants={containerVariants} initial={hasAnimatedRef.current ? false : 'hidden'} animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {visibleUnassigned.map((unit) => renderUnitCard(unit))}
               </motion.div>
             </>
@@ -1149,6 +1238,32 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
               <div className="flex justify-end gap-3">
                 <button onClick={() => setRenamingBook(null)} className="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100">Cancel</button>
                 <button onClick={handleRenameBook} disabled={!renameValue.trim()} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold disabled:opacity-40 hover:bg-indigo-700">Save</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rename Unit Modal (WS3 — mirrors the book-rename modal above) */}
+      <AnimatePresence>
+        {renamingUnit && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+            onClick={() => setRenamingUnit(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Rename unit</h2>
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRenameUnit(); }}
+                maxLength={120}
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+              />
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setRenamingUnit(null)} className="px-4 py-2 rounded-lg text-slate-600 font-medium hover:bg-slate-100">Cancel</button>
+                <button onClick={handleRenameUnit} disabled={!renameValue.trim()} className="px-5 py-2 rounded-lg bg-indigo-600 text-white font-bold disabled:opacity-40 hover:bg-indigo-700">Save</button>
               </div>
             </motion.div>
           </motion.div>

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route, ScanSearch, CalendarRange } from 'lucide-react';
+import { ArrowLeft, BookOpen, CalendarClock, Loader2, Wand2, Save, Play, X, Dices, Route, ScanSearch, CalendarRange, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../services/supabaseClient';
 import { invokeGenerateExercises, waitForGenerationJob, getPoolCount } from '../../services/ExercisePoolService';
@@ -64,7 +64,43 @@ const UnitStudio: React.FC = () => {
   const [isMobile, setIsMobile] = useState<boolean>(() => typeof window !== 'undefined' && window.innerWidth < 768);
   // FIXPLAN I — teaching a CLASS goes live through the same session context
   // the UnitList "Teach" path uses (the board follows via classroom_sessions).
-  const { setActiveUnit, startSession, goToSlide } = useSession();
+  // WS3: saveUnit also powers the inline title rename.
+  const { setActiveUnit, startSession, goToSlide, saveUnit } = useSession();
+  // WS3 — inline title rename state (pencil in the header).
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  // Guards the Enter/blur double-commit path (Enter unmounts the input, which
+  // can fire onBlur once more).
+  const titleEditOpenRef = useRef(false);
+  const displayedTitle = unit?.manifest?.meta?.unit_title || unit?.title || '';
+  const beginTitleEdit = () => {
+    titleEditOpenRef.current = true;
+    setTitleDraft(displayedTitle);
+    setEditingTitle(true);
+  };
+  const cancelTitleEdit = () => {
+    titleEditOpenRef.current = false;
+    setEditingTitle(false);
+  };
+  const commitTitle = async () => {
+    if (!titleEditOpenRef.current) return; // already committed/cancelled
+    titleEditOpenRef.current = false;
+    const title = titleDraft.trim();
+    setEditingTitle(false);
+    if (!unitId || !unit || !title || title === displayedTitle) return;
+    try {
+      // Patch units.title AND manifest.meta.unit_title — the Studio header and
+      // the unit list prefer the meta echo, so a title-only write would be
+      // masked by the stale echo after reload. flow is passed explicitly so
+      // Engine.updateUnit never regenerates it from the manifest.
+      const patchedManifest = { ...(unit.manifest ?? {}), meta: { ...(unit.manifest?.meta ?? {}), unit_title: title } };
+      await saveUnit(unitId, { title, manifest: patchedManifest, flow: Array.isArray(unit.flow) ? unit.flow : [] } as any);
+      setUnit((prev: any) => (prev ? { ...prev, title, manifest: patchedManifest } : prev));
+      toast.success('Unit renamed');
+    } catch (e: any) {
+      toast.error(`Rename failed: ${e?.message || e}`);
+    }
+  };
   const teachClass = async (classPlanId: string) => {
     if (!unitId) return;
     await setActiveUnit(unitId, classPlanId);
@@ -191,14 +227,46 @@ const UnitStudio: React.FC = () => {
       <header className="bg-white border-b border-slate-200 px-6 pt-4 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/teacher/units')} className="p-2 hover:bg-slate-100 rounded-lg" title="Back to units">
+            {/* Back lands on the unit's BOOK page when the unit belongs to one
+                (UnitList reads ?book= and opens that book directly). */}
+            <button onClick={() => navigate(unit.book_id ? `/teacher/units?book=${unit.book_id}` : '/teacher/units')} className="p-2 hover:bg-slate-100 rounded-lg" title="Back to units">
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
-                {unit.manifest?.meta?.unit_title || unit.title || 'Unit Studio'}
-                {dirty.size > 0 && <span className="ml-2 inline-block w-2 h-2 rounded-full bg-amber-400" title="Unsaved edits" />}
-              </h1>
+              <div className="flex items-center gap-1.5">
+                {/* WS3: inline rename — pencil swaps the title for an input
+                    (Enter/blur saves, Esc cancels). */}
+                {editingTitle ? (
+                  <input
+                    autoFocus
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitTitle();
+                      else if (e.key === 'Escape') cancelTitleEdit();
+                    }}
+                    onBlur={commitTitle}
+                    maxLength={120}
+                    className="text-xl font-bold text-slate-800 bg-white border border-indigo-300 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 w-[300px] max-w-[50vw]"
+                    aria-label="Unit title"
+                  />
+                ) : (
+                  <>
+                    <h1 className="text-xl font-bold text-slate-800">
+                      {unit.manifest?.meta?.unit_title || unit.title || 'Unit Studio'}
+                      {dirty.size > 0 && <span className="ml-2 inline-block w-2 h-2 rounded-full bg-amber-400" title="Unsaved edits" />}
+                    </h1>
+                    <button
+                      onClick={beginTitleEdit}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg shrink-0"
+                      title="Rename unit"
+                      aria-label="Rename unit"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
               <p className="text-sm text-slate-500">{theme}{theme && cefr ? ' \u2022 ' : ''}{cefr}</p>
             </div>
           </div>

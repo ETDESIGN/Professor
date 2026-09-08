@@ -374,7 +374,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
               {slot ? (
                 <div className="w-full h-full p-1.5 flex flex-col min-h-0">
                   {slot.image_url ? (
-                    <img src={slot.image_url} alt="" className="w-full flex-1 min-h-0 object-cover rounded-xl" />
+                    <img src={slot.image_url} alt="" className="w-full flex-1 min-h-0 object-contain rounded-xl bg-slate-50" />
                   ) : (
                     <div className="w-full flex-1 min-h-0 rounded-xl bg-purple-50 flex items-center justify-center text-3xl">📖</div>
                   )}
@@ -398,13 +398,13 @@ const BoardComicPanels = ({ data }: { data: any }) => {
             <button
               key={panel.id}
               onClick={() => handleTrayClick(panel)}
-              className="w-40 h-28 bg-white rounded-xl shadow-md border border-slate-200 p-1 hover:-translate-y-2 transition-transform hover:shadow-xl group text-left overflow-hidden"
+              className="h-28 w-auto min-w-16 max-w-40 bg-white rounded-xl shadow-md border border-slate-200 p-1 hover:-translate-y-2 transition-transform hover:shadow-xl group text-left overflow-hidden"
               title="Place this panel in the next slot"
             >
               {panel.image_url ? (
-                <img src={panel.image_url} alt="" className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform" />
+                <img src={panel.image_url} alt="" className="h-full w-auto object-contain rounded-lg group-hover:scale-105 transition-transform" />
               ) : (
-                <div className="w-full h-full bg-purple-50 rounded-lg flex items-center justify-center text-2xl">📖</div>
+                <div className="w-20 h-full bg-purple-50 rounded-lg flex items-center justify-center text-2xl">📖</div>
               )}
             </button>
           ))}

@@ -1,7 +1,7 @@
 
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle, Video } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, Settings, LogOut, Menu, X, Calendar, Folder, FileText, BarChart3, MessageCircle, Video, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
@@ -59,6 +59,21 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
     // itself falls back to Content-only on mobile (Phase 2.4).
     navigate(`/teacher/unit/${unitId}?tab=plan`);
   };
+
+  // Prefetch the heavy lazy route chunks after first paint so common hops
+  // (dashboard ↔ curriculum ↔ unit studio, upload) never show the full-page
+  // loader. Vite dedupes dynamic imports — each import() here primes the same
+  // chunk the lazy() declarations above consume.
+  useEffect(() => {
+    const prefetch = () => {
+      void import('./UnitList');
+      void import('./UnitStudio');
+      void import('./UploadTextbook');
+      void import('./DashboardHome');
+    };
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(prefetch);
+    else window.setTimeout(prefetch, 150);
+  }, []);
 
   return (
     <div className="h-screen bg-slate-50 flex font-sans overflow-hidden">
@@ -131,6 +146,13 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
                 </button>
               </nav>
               <button
+                onClick={() => window.open('/board', '_blank', 'popup=yes,width=1280,height=720')}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium bg-indigo-600 text-white mb-2"
+                title="Open the projector live screen in a presentation window"
+              >
+                <Monitor size={20} /> Live Screen
+              </button>
+              <button
                 onClick={async () => {
                   await supabase.auth.signOut();
                   useAppStore.getState().clearUserProfile();
@@ -154,6 +176,17 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
             </div>
             <span className="font-bold text-slate-800 text-lg tracking-tight">Orchestrator</span>
           </div>
+
+          {/* WS #8: one-click projector live screen — opens /board in a
+              presentation popup. Always available; until a live session runs,
+              the board shows its existing NO SIGNAL state. */}
+          <button
+            onClick={() => window.open('/board', '_blank', 'popup=yes,width=1280,height=720')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 mb-4 rounded-lg bg-indigo-600 text-white font-semibold shadow-md shadow-indigo-200 hover:bg-indigo-500 transition-colors"
+            title="Open the projector live screen in a presentation window"
+          >
+            <Monitor size={18} /> Live Screen
+          </button>
 
           <nav className="space-y-1">
             <button
@@ -240,13 +273,16 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden pt-16 md:pt-0 bg-slate-50 relative">
-        <AnimatePresence mode="wait">
+        {/* popLayout: the exiting page is popped out of flow (absolute) so the
+            incoming one renders immediately underneath — a short opacity-only
+            crossfade, no blank gap (mode="wait" cleared the screen first). */}
+        <AnimatePresence mode="popLayout">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="w-full h-full flex flex-col"
           >
             <Routes location={location}>

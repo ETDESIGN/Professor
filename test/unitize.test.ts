@@ -141,4 +141,24 @@ describe('proposeGroups — synthetic edge cases', () => {
   it('returns empty for empty input', () => {
     expect(proposeGroups([])).toEqual([]);
   });
+
+  it('WS3: junk printed titles (OCR section headers) degrade to "Unit <n>", never verbatim', () => {
+    const pages: UnitizePageInput[] = [
+      { id: 'a', upload_order: 0, printed_page_number: '6', printed_title: 'NRISH', openers: [{ printed_unit_number: '1', printed_title: 'NRISH' }] },
+      { id: 'b', upload_order: 1, printed_page_number: '7', openers: [{ printed_unit_number: '2', printed_title: '' }], printed_title: '' },
+    ];
+    const groups = proposeGroups(pages);
+    expect(groups).toHaveLength(2);
+    expect(groups[0].title).toBe('Unit 1'); // junk opener + page titles rejected
+    expect(groups[1].title).toBe('Unit 2'); // no usable title anywhere
+  });
+
+  it('WS3: no-boundary fallback also sanitizes the first page title', () => {
+    const pages: UnitizePageInput[] = [
+      { id: 'a', upload_order: 0, printed_page_number: '10', printed_title: 'Unit title', openers: [] },
+    ];
+    const groups = proposeGroups(pages);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].title).toBe('Unit 1'); // placeholder echo rejected
+  });
 });

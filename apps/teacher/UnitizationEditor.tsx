@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, ChevronRight, Loader2, Scissors, BookOpen, ArrowUp } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
+import { isJunkUnitTitle } from '../../services/unitTitle';
 import { toast } from 'sonner';
 
 // FIXPLAN_G G3 — the unitization boundary editor (doc 11 §2). The
@@ -73,7 +74,20 @@ export const UnitizationEditor: React.FC<UnitizationEditorProps> = ({ sourceUnit
     setGroups(prev => prev.map((g, i) => i === gi ? { ...g, title } : g));
 
   const toggleSetup = (gi: number) =>
-    setGroups(prev => prev.map((g, i) => i === gi ? { ...g, is_setup: !g.is_setup, title: !g.is_setup ? 'Welcome & class setup' : (g.title === 'Welcome & class setup' ? 'Unit' : g.title) } : g));
+    setGroups(prev => {
+      // WS3: switching a setup group back to a unit needs a real default —
+      // never a bare "Unit". Number it by its position among the unit groups.
+      let unitPos = 0;
+      return prev.map((g, i) => {
+        if (i === gi) {
+          if (!g.is_setup) return { ...g, is_setup: true, title: 'Welcome & class setup' };
+          unitPos += 1; // this group rejoins the unit groups at this position
+          return { ...g, is_setup: false, title: g.title === 'Welcome & class setup' ? `Unit ${unitPos}` : g.title };
+        }
+        if (!g.is_setup) unitPos += 1;
+        return g;
+      });
+    });
 
   const mergeWithPrev = (gi: number) => {
     if (gi === 0) return;
@@ -127,6 +141,14 @@ export const UnitizationEditor: React.FC<UnitizationEditorProps> = ({ sourceUnit
   const confirm = async () => {
     if (groups.some(g => !g.is_setup && !g.title.trim())) {
       toast.error('Every unit group needs a title.');
+      return;
+    }
+    // WS3: block junk titles (bare "Unit", OCR'd section headers like "NRISH",
+    // digits-heavy fragments) at the last line of defense before units are
+    // created — the proposal already sanitizes, but the teacher can type too.
+    const junk = groups.find(g => !g.is_setup && isJunkUnitTitle(g.title));
+    if (junk) {
+      toast.error(`"${junk.title.trim()}" doesn't look like a real unit title — rename it to the unit's topic (e.g. "A day on the farm") or a numbered "Unit 3".`);
       return;
     }
     setApplying(true);

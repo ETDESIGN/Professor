@@ -31,7 +31,15 @@ export interface LiveTurnState {
   selectionMode: 'ROUND_ROBIN' | 'RANDOM' | 'FAIR' | null;
   /** studentId → team color (Phase A.3 team assignment). */
   teams: Record<string, string> | null;
+  /** Auto-rotate (WS #7): pick the next student automatically after the
+   *  current responder has answered N scored questions (or at each new
+   *  game step for FULL_STEP). The pick itself follows selectionMode.
+   *  Null on legacy rows = OFF. */
+  rotationMode: RotationMode | null;
 }
+
+/** Auto-rotate cadence for the student picker (WS #7, owner-confirmed). */
+export type RotationMode = 'OFF' | 'EVERY_1' | 'EVERY_3' | 'FULL_STEP';
 
 export const EMPTY_LIVE_TURN: LiveTurnState = {
   responderId: null,
@@ -43,6 +51,7 @@ export const EMPTY_LIVE_TURN: LiveTurnState = {
   quietMode: false,
   selectionMode: null,
   teams: null,
+  rotationMode: null,
 };
 
 /** Key-wise merge where the PATCH always wins, including explicit nulls

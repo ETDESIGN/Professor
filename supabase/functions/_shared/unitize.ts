@@ -11,6 +11,11 @@
 //   changes, only for unit-ish labels (/unit/i), for books without openers.
 // Pages before the first boundary become the book-level setup group
 // (welcome material — recorded, never feeds units/pools; doc 10 §5).
+//
+// WS3: printed titles pass the junk filter (OCR'd section headers like
+// "NRISH" never become unit titles); junk degrades to "Unit <n>".
+
+import { sanitizeUnitTitle } from './unitTitle.ts';
 
 export interface UnitizeOpener {
   printed_unit_number?: string | null;
@@ -82,9 +87,10 @@ export function proposeGroups(pages: UnitizePageInput[]): UnitGroup[] {
         const n = isUnitNumber(opener.printed_unit_number);
         if (n != null) {
           if (!current || current.unitNumber !== n) {
-            const title = String(opener.printed_title ?? '').trim()
-              || String(page.printed_title ?? '').trim()
-              || `Unit ${n}`;
+            // WS3: sanitize every printed-title rung; junk → numbered fallback.
+            const title = sanitizeUnitTitle(String(opener.printed_title ?? ''))
+              ?? sanitizeUnitTitle(String(page.printed_title ?? ''))
+              ?? `Unit ${n}`;
             boundary = { n, title };
           }
           break; // first valid opener on the page decides
@@ -96,7 +102,10 @@ export function proposeGroups(pages: UnitizePageInput[]): UnitGroup[] {
         const n = isUnitNumber(label);
         boundary = {
           n,
-          title: String(page.printed_title ?? '').trim() || String(page.printed_unit_label ?? '').trim(),
+          // WS3: junk printed titles fall through to the unit label (the label
+          // already proved unit-ish by matching /unit/i, e.g. "Unit 2").
+          title: sanitizeUnitTitle(String(page.printed_title ?? ''))
+            || String(page.printed_unit_label ?? '').trim(),
         };
         currentLabel = label;
       }
@@ -124,7 +133,7 @@ export function proposeGroups(pages: UnitizePageInput[]): UnitGroup[] {
   if (groups.length === 0 && setupPages.length > 0) {
     const first = setupPages[0];
     const g = newGroup(
-      String(first.printed_title ?? '').trim() || 'Unit 1',
+      sanitizeUnitTitle(String(first.printed_title ?? '')) ?? 'Unit 1',
       null,
     );
     g.pageIds = setupPages.map((p) => p.id);
