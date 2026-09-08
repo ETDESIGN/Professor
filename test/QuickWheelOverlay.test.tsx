@@ -64,6 +64,13 @@ describe('QuickWheelOverlay', () => {
     expect(screen.getByText('⭐ Mia ⭐')).toBeTruthy();
     expect(screen.getByText('Your Turn!')).toBeTruthy();
     expect(screen.getByText('轮到你了！')).toBeTruthy();
+    // REGRESSION (live bug 2026-09-09): the winner modal must be an ABSOLUTE
+    // overlay. As an in-flow flex sibling of the wheel card it widened the
+    // centered row past the viewport — badge clipped right, wheel pushed left.
+    const overlay = screen.getByText('The Carnival Wheel has spoken!').closest('div[class*="z-30"]');
+    expect(overlay).toBeTruthy();
+    expect(overlay!.className).toContain('absolute');
+    expect(overlay!.className).toContain('inset-0');
   });
 
   it('tap-to-skip routes to the context method', async () => {

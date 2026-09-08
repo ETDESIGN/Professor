@@ -366,18 +366,23 @@ const QuickWheelOverlay: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* ── Winner reveal modal (at landAt) ── */}
+      {/* ── Winner reveal modal (at landAt) ──
+          ABSOLUTE overlay, never an in-flow flex sibling of the wheel card:
+          two in-flow children made the row twice the viewport's width (modal
+          clipped on the right, wheel shoved left — found live 2026-09-09). */}
       {landed && (
         <>
           {/* Vignette for foreground dominance */}
           <div className="absolute inset-0 z-20 bg-[#0a1030]/60 backdrop-blur-[2px] pointer-events-none" />
 
-          <motion.div
-            initial={{ scale: 0.3, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 240, damping: 18 }}
-            className="relative z-30 flex flex-col items-center max-w-[92vw]"
-          >
+          {/* pointer-events-none: taps fall through to the root skip handler */}
+          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
+            <motion.div
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 18 }}
+              className="relative flex flex-col items-center"
+            >
             {/* Modal card with radiating sunburst */}
             <div
               className="relative w-[min(92vw,720px)] rounded-3xl px-6 py-7 md:p-9 flex flex-col items-center overflow-hidden"
@@ -453,7 +458,8 @@ const QuickWheelOverlay: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* Name slam */}
+              {/* Name slam — size steps down for long names so the nowrap
+                  slam never clips past the card edge on the projector. */}
               <motion.div
                 initial={{ opacity: 0, y: 30, scale: 0.6 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -462,7 +468,13 @@ const QuickWheelOverlay: React.FC = () => {
               >
                 <div style={{ transform: 'rotate(-2.5deg)' }}>
                   <h2
-                    className="font-rubik text-4xl md:text-6xl font-black tracking-tight uppercase whitespace-nowrap"
+                    className={`font-rubik font-black tracking-tight uppercase whitespace-nowrap ${
+                      (winner.name?.split(' ')[0] ?? '').length <= 7
+                        ? 'text-4xl md:text-6xl'
+                        : (winner.name?.split(' ')[0] ?? '').length <= 11
+                          ? 'text-3xl md:text-5xl'
+                          : 'text-2xl md:text-4xl'
+                    }`}
                     style={{
                       color: '#ffffff',
                       WebkitTextStroke: '3px #ea9f00',
@@ -496,7 +508,8 @@ const QuickWheelOverlay: React.FC = () => {
             >
               tap anywhere to continue
             </motion.p>
-          </motion.div>
+            </motion.div>
+          </div>
         </>
       )}
 
