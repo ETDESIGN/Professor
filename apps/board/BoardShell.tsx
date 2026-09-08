@@ -1,9 +1,9 @@
 // BoardShell — the persistent projector-screen frame for the Live Board.
-// Built from the Hermes prototype (01-shell.html). Contains:
-//   • Phase Arc Rail (top): visual timeline of the lesson phases.
-//   • Team Score Rail (left): Red vs Blue live scores + round info.
-//   • Center Stage: {children} — the current game/template renders here.
-//   • Leaderboard Rail (right): top 5 students by unified points.
+// Layout (2026-09-09 owner round — top phase arc + left step rail removed):
+//   • Center Stage (enlarged): {children} — the current game/template renders here.
+//   • Leaderboard Rail (right): ALL students by unified points (scrolls when the
+//     class is long), with a compact Red/Blue team score card pinned below it
+//     (rendered only when teams are assigned).
 //   • Whose-Turn Banner (bottom): the picked student + round-mode badge.
 //
 // The Shell is DISPLAY-ONLY (no teacher controls). The teacher operates from
@@ -11,7 +11,7 @@
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession, TEAM_COLORS } from '../../store/SessionContext';
+import { useSession } from '../../store/SessionContext';
 import BoardSoundLayer from './templates/BoardSoundLayer';
 import Avatar from '../../components/shared/Avatar';
 
@@ -24,14 +24,6 @@ const PHASE_CONFIG: Record<string, { label: string; cn: string; icon: string; do
   ASSESS: { label: 'Assess', cn: '评估', icon: '🏆', dot: 'bg-red-500 border-red-400', text: 'text-red-400', glow: 'shadow-red-500/35' },
   WRAPUP: { label: 'Wrap', cn: '总结', icon: '🎉', dot: 'bg-purple-500 border-purple-400', text: 'text-purple-300', glow: 'shadow-purple-500/35' },
 };
-
-const LEADERBOARD_GRADIENTS = [
-  'linear-gradient(135deg,#F472B6,#A855F7)',
-  'linear-gradient(135deg,#F97316,#EF4444)',
-  'linear-gradient(135deg,#3B82F6,#6366F1)',
-  'linear-gradient(135deg,#22C55E,#14B8A6)',
-  'linear-gradient(135deg,#FBBF24,#F97316)',
-];
 
 // ── Phase background washes (B2 from Claude's design doc) ──────────────
 // Each phase owns a dark background gradient — color-blind-safe (differs in
@@ -59,22 +51,6 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
   const currentPhase = (currentStep as any)?.phase || 'WARMUP';
   const currentType = (currentStep as any)?.type || '';
   const fullBleed = FULL_BLEED_TYPES.has(currentType);
-
-  // ── Phase Arc: unique phases in order + completed/active/future ────────
-  const phases = useMemo(() => {
-    const seen: string[] = [];
-    for (const step of flow) {
-      const ph = (step as any)?.phase;
-      if (ph && !seen.includes(ph)) seen.push(ph);
-    }
-    if (seen.length === 0) seen.push('WARMUP', 'INPUT', 'PRACTICE', 'ASSESS', 'WRAPUP');
-    const currentIdx = seen.indexOf(currentPhase);
-    return seen.map((ph, i) => ({
-      phase: ph,
-      cfg: PHASE_CONFIG[ph] || PHASE_CONFIG.WARMUP,
-      status: i < currentIdx ? 'completed' : i === currentIdx ? 'active' : 'future',
-    }));
-  }, [flow, currentPhase]);
 
   // ── Team scores (with bounce on change) ────────────────────────────────
   const teamsAssigned = state.students.some(s => s.team);
@@ -109,9 +85,9 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
     }
   }, [blueScore]);
 
-  // ── Leaderboard (top 5) ───────────────────────────────────────────────
+  // ── Leaderboard (all students, sorted by points) ─────────────────────
   const leaderboard = useMemo(
-    () => [...state.students].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 5),
+    () => [...state.students].sort((a, b) => (b.points || 0) - (a.points || 0)),
     [state.students],
   );
 
@@ -129,121 +105,12 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
     >
       {/* B3.1: board-side audio receiver for the teacher Sound Board. */}
       <BoardSoundLayer />
-      {/* ═══ PHASE ARC RAIL (header) ═══ */}
-      <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-center px-24 z-10">
-        <div className="flex items-center">
-          {phases.map((p, i) => (
-            <React.Fragment key={p.phase}>
-              <div className="flex flex-col items-center z-10 shrink-0">
-                {p.status === 'active' ? (
-                  <>
-                    <motion.div
-                      className={`w-[34px] h-[34px] rounded-full ${p.cfg.dot} border-2 flex items-center justify-center mb-1.5 text-sm`}
-                      animate={{ scale: [1, 1.06, 1] }}
-                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                    >
-                      {p.cfg.icon}
-                    </motion.div>
-                    <span className={`font-display text-[17px] font-semibold ${p.cfg.text}`}>{p.cfg.label}</span>
-                    <span className="font-cn text-[12px] text-slate-300/65">{p.cfg.cn}</span>
-                  </>
-                ) : p.status === 'completed' ? (
-                  <>
-                    <div className={`w-[22px] h-[22px] rounded-full border-[2.5px] ${p.cfg.dot} opacity-70 flex items-center justify-center mb-1.5`}>
-                      <span className="text-slate-900 font-bold text-[11px]">✓</span>
-                    </div>
-                    <span className="font-display text-[13px] font-semibold text-slate-300/65">{p.cfg.label}</span>
-                    <span className="font-cn text-[10px] text-slate-400/40">{p.cfg.cn}</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-[22px] h-[22px] rounded-full border-[2.5px] border-slate-500/40 opacity-40 mb-1.5" />
-                    <span className="font-display text-[13px] font-semibold text-slate-300/65">{p.cfg.label}</span>
-                    <span className="font-cn text-[10px] text-slate-400/40">{p.cfg.cn}</span>
-                  </>
-                )}
-              </div>
-              {i < phases.length - 1 && (
-                <div
-                  className={`w-[70px] h-[3px] rounded-full self-start mt-[30px] ${
-                    p.status === 'completed' ? `${p.cfg.dot} opacity-55` :
-                    p.status === 'active' ? `bg-gradient-to-r from-${p.cfg.text.replace('text-','')} to-slate-600` :
-                    'bg-white/8'
-                  }`}
-                />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-        <div className="absolute top-4 right-8 font-body text-[15px] text-slate-400/40 tabular-nums">
-          {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
-        </div>
-      </header>
 
-      {/* ═══ MAIN GRID (3 columns) ═══ */}
+      {/* ═══ MAIN GRID (stage + leaderboard rail) ═══ */}
       <main
-        className="absolute top-20 left-0 right-0 bottom-0 grid gap-4 px-6 pb-[108px] pt-4 transition-all duration-500"
-        style={{ gridTemplateColumns: fullBleed ? '0px 1fr 0px' : '260px 1fr 240px' }}
+        className="absolute top-0 left-0 right-0 bottom-0 grid gap-4 px-6 pb-[108px] pt-6 transition-all duration-500"
+        style={{ gridTemplateColumns: fullBleed ? '1fr 0px' : '1fr 240px' }}
       >
-        {/* ── LEFT: Team Scores (auto-retracts during full-bleed content) ── */}
-        <aside className={`flex flex-col gap-4 pt-3 overflow-hidden transition-all duration-500 ${fullBleed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          {teamsAssigned && (
-            <>
-              {/* Team Red */}
-              <div className="relative overflow-hidden rounded-[20px] border border-red-500/25 bg-white/[.06] p-5 backdrop-blur-sm">
-                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 20%,rgba(239,68,68,.3),transparent 70%)' }} />
-                <div className="relative flex items-center gap-2.5 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,.3)]" />
-                  <span className="font-display text-[17px] font-semibold">Team Red</span>
-                </div>
-                <motion.div
-                  animate={redBounce ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.25 }}
-                  className="relative font-display text-[56px] font-bold tabular-nums leading-none text-red-300"
-                >
-                  {redScore}
-                  <AnimatePresence>
-                    {redDelta !== null && (
-                      <motion.span initial={{ opacity: 0.9, y: 0 }} animate={{ opacity: 0, y: -30 }} exit={{ opacity: 0 }}
-                        transition={{ duration: 2 }} className="absolute top-0 right-0 font-display text-xl font-bold text-amber-400">
-                        {redDelta > 0 ? `+${redDelta}` : redDelta}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              </div>
-              {/* Team Blue */}
-              <div className="relative overflow-hidden rounded-[20px] border border-blue-500/25 bg-white/[.06] p-5 backdrop-blur-sm">
-                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 20% 20%,rgba(59,130,246,.3),transparent 70%)' }} />
-                <div className="relative flex items-center gap-2.5 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,.3)]" />
-                  <span className="font-display text-[17px] font-semibold">Team Blue</span>
-                </div>
-                <motion.div
-                  animate={blueBounce ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.25 }}
-                  className="relative font-display text-[56px] font-bold tabular-nums leading-none text-blue-300"
-                >
-                  {blueScore}
-                  <AnimatePresence>
-                    {blueDelta !== null && (
-                      <motion.span initial={{ opacity: 0.9, y: 0 }} animate={{ opacity: 0, y: -30 }} exit={{ opacity: 0 }}
-                        transition={{ duration: 2 }} className="absolute top-0 right-0 font-display text-xl font-bold text-amber-400">
-                        {blueDelta > 0 ? `+${blueDelta}` : blueDelta}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              </div>
-            </>
-          )}
-          {/* Round info */}
-          <div className="bg-white/[.06] border border-white/8 rounded-2xl px-[18px] py-4 text-center mt-auto">
-            <div className="text-[11px] text-slate-400/40 uppercase tracking-widest mb-1.5">Step</div>
-            <div className="font-display text-[28px] font-bold text-amber-400">
-              {state.currentStepIndex + 1} / {flow.length || 1}
-            </div>
-          </div>
-        </aside>
-
         {/* ── CENTER: Content Stage (children) ── */}
         <section className={`relative overflow-hidden rounded-[28px] border-2 ${activeCfg.dot.split(' ')[0]} bg-white/[.06] flex flex-col shadow-[0_0_30px_rgba(59,130,246,.15)]`}>
           {/* Phase badge (corner) */}
@@ -255,27 +122,71 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
           <div className="flex-1 overflow-hidden">{children}</div>
         </section>
 
-        {/* ── RIGHT: Leaderboard (auto-retracts during full-bleed content) ── */}
-        <aside className={`overflow-hidden transition-all duration-500 ${fullBleed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-          <div className="bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-5 flex flex-col gap-1.5 backdrop-blur-sm">
-            <div className="font-display text-[15px] font-semibold text-slate-300/65 mb-2 uppercase tracking-wider">🏆 Leaderboard</div>
-            {leaderboard.map((s, i) => (
-              <div key={s.id} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl ${i === 0 ? 'bg-amber-400/10' : ''} ${s.isPresent === false ? 'opacity-40 grayscale' : ''}`}>
-                <span className="font-display text-base font-bold text-amber-400 w-6 text-center">{i + 1}</span>
-                <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={34} />
-                <span className="font-display text-lg font-semibold flex-1 truncate">{s.name}</span>
-                <span className="font-display text-xl font-bold text-blue-400 tabular-nums">{s.points || 0}</span>
-              </div>
-            ))}
-            {leaderboard.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No students yet</p>}
+        {/* ── RIGHT: Leaderboard (ALL students, scrolls) + Team scores (auto-retract during full-bleed content) ── */}
+        <aside className={`flex flex-col gap-4 overflow-hidden transition-all duration-500 ${fullBleed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <div className="flex-1 min-h-0 bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-5 flex flex-col backdrop-blur-sm">
+            <div className="font-display text-[15px] font-semibold text-slate-300/65 mb-2 uppercase tracking-wider shrink-0">🏆 Leaderboard</div>
+            <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-1
+              [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
+              {leaderboard.map((s, i) => (
+                <div key={s.id} className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl ${i === 0 ? 'bg-amber-400/10' : ''} ${s.isPresent === false ? 'opacity-40 grayscale' : ''}`}>
+                  <span className="font-display text-base font-bold text-amber-400 w-6 text-center">{i + 1}</span>
+                  <Avatar src={s.avatar} rosterId={s.id} name={s.name} size={32} />
+                  <span className="font-display text-lg font-semibold flex-1 truncate">{s.name}</span>
+                  <span className="font-display text-xl font-bold text-blue-400 tabular-nums">{s.points || 0}</span>
+                </div>
+              ))}
+              {leaderboard.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No students yet</p>}
+            </div>
           </div>
+          {teamsAssigned && (
+            <div className="shrink-0 bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-4 flex flex-col gap-3 backdrop-blur-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,.3)]" />
+                <span className="font-display text-[15px] font-semibold flex-1">Team Red</span>
+                <motion.div
+                  animate={redBounce ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.25 }}
+                  className="relative font-display text-[30px] font-bold tabular-nums leading-none text-red-300"
+                >
+                  {redScore}
+                  <AnimatePresence>
+                    {redDelta !== null && (
+                      <motion.span initial={{ opacity: 0.9, y: 0 }} animate={{ opacity: 0, y: -24 }} exit={{ opacity: 0 }}
+                        transition={{ duration: 2 }} className="absolute top-0 right-0 font-display text-base font-bold text-amber-400">
+                        {redDelta > 0 ? `+${redDelta}` : redDelta}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+              <div className="h-px bg-white/8" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-3.5 h-3.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,.3)]" />
+                <span className="font-display text-[15px] font-semibold flex-1">Team Blue</span>
+                <motion.div
+                  animate={blueBounce ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 0.25 }}
+                  className="relative font-display text-[30px] font-bold tabular-nums leading-none text-blue-300"
+                >
+                  {blueScore}
+                  <AnimatePresence>
+                    {blueDelta !== null && (
+                      <motion.span initial={{ opacity: 0.9, y: 0 }} animate={{ opacity: 0, y: -24 }} exit={{ opacity: 0 }}
+                        transition={{ duration: 2 }} className="absolute top-0 right-0 font-display text-base font-bold text-amber-400">
+                        {blueDelta > 0 ? `+${blueDelta}` : blueDelta}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+            </div>
+          )}
         </aside>
       </main>
 
       {/* ═══ WHOSE-TURN BANNER (footer) ═══ */}
-      <footer className="absolute bottom-0 left-0 right-0 h-[100px] flex items-center justify-center px-[270px] pb-[18px] z-10">
+      <footer className={`absolute bottom-0 left-0 right-0 h-[100px] flex items-center justify-center pb-[18px] z-10 ${fullBleed ? 'px-6' : 'pl-6 pr-[280px]'}`}>
         {/* Round-mode badge */}
-        <div className="absolute left-[274px] flex items-center gap-2 bg-white/[.06] border border-white/8 rounded-full px-5 py-2 backdrop-blur-sm">
+        <div className="absolute left-6 flex items-center gap-2 bg-white/[.06] border border-white/8 rounded-full px-5 py-2 backdrop-blur-sm">
           <span className="text-xl">{roundMode === 'INDIVIDUAL' ? '🙋' : roundMode === 'TEAM' ? '👥' : '📣'}</span>
           <span className="font-display text-lg font-bold tracking-wide">{roundMode}</span>
         </div>
