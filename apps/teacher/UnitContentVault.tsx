@@ -159,10 +159,13 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   // (orchestrate-lesson owns story_pages).
   const reEnrich = async () => {
     if (!unitId) return;
-    if (!window.confirm('Regenerate vocabulary and grammar with AI? The fresh content replaces what is currently shown.')) return;
+    if (!window.confirm('Regenerate vocabulary, grammar and media suggestions with AI? The fresh content replaces what is currently shown.')) return;
     setReEnriching(true);
     try {
-      await handleEnrichCategories(['vocabulary', 'grammar']);
+      // 'media' included (owner report 2026-09-07): re-enrich previously
+      // refreshed only vocab+grammar, so re-enriching never refreshed the
+      // song/video suggestions — new units stayed suggestion-less.
+      await handleEnrichCategories(['vocabulary', 'grammar', 'media']);
       const { data: u } = await supabase.from('units').select('manifest').eq('id', unitId).single();
       const freshVocab = u?.manifest?.enriched_content?.vocabulary || [];
       if (freshVocab.length > 0) {

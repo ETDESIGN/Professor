@@ -80,6 +80,25 @@ function transformManifestToFlow(assets: any): any[] {
         lyrics: Array.isArray(m?.lyrics) ? m.lyrics : [],
       },
     });
+  } else if (topic || title) {
+    // Owner report 2026-09-07 ("new unit got no song"): when enrichment
+    // returned no suggestions, the lesson had NO warm-up step at all —
+    // nothing for the resolver to attach to and no honest card to resolve
+    // from. Emit a topic-based warm-up instead; the resolver's topic rung
+    // can still match it to the catalog, and the teacher keeps the
+    // suggestion card + paste override either way.
+    const sq = `${topic || title} kids song`;
+    flow.push({
+      type: 'MEDIA_PLAYER',
+      data: {
+        title: `${title} — Warm-up Song`,
+        kind: 'song',
+        search_query: sq,
+        topic_relevance: `A warm-up song about ${topic || title}`,
+        youtubeUrl: youtubeSearchUrl(sq),
+        lyrics: [],
+      },
+    });
   }
 
   if (vocab.length > 0) {
