@@ -22,6 +22,7 @@ import { SidebarPanel } from './live/sidebar/SidebarPanel';
 import { useTimer } from './live/hooks/useTimer';
 import { useNoiseDetection } from './live/hooks/useNoiseDetection';
 import { useAISuggestion } from './live/hooks/useAISuggestion';
+import { SPIN_MS } from '../../services/wheelChoreography';
 import Avatar from '../../components/shared/Avatar';
 
 interface LiveCommanderProps {
@@ -120,7 +121,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
    const handleSpin = () => {
       setIsSpinning(true);
       selectNextStudent(undefined, true);
-      setTimeout(() => setIsSpinning(false), 2000);
+      setTimeout(() => setIsSpinning(false), SPIN_MS);
    };
 
    const activePointStudent = state.students.find((s: any) => s.id === activePointStudentId);

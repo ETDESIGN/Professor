@@ -16,6 +16,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 import React from 'react';
+import { SPIN_MS, SPIN_REVEAL_MS } from '../services/wheelChoreography';
 
 // ── Module mocks (hoisted; supabase swapped per-test via the getter) ───────
 const mockSupabase = vi.hoisted(() => ({ current: null as any }));
@@ -230,7 +231,7 @@ describe('two-tab live sync convergence (FIXPLAN E2)', () => {
     expect(a.currentTurnId).toBeNull();                             // turn NOT started yet
     expect(b.currentTurnId).toBeNull();
     expect(b.turnRevealAt).toBe(a.turnRevealAt);                    // shared reveal deadline
-    expect(a.turnRevealAt! - Date.now()).toBeLessThanOrEqual(2500); // ~SPIN_REVEAL_MS
+    expect(a.turnRevealAt! - Date.now()).toBeLessThanOrEqual(SPIN_REVEAL_MS); // ~SPIN_REVEAL_MS (spin + reveal hold)
 
     // 2. The authoritative row carries live_state + a CAS-bumped seq.
     const row = fake.rows.classroom_sessions[0];
@@ -238,8 +239,18 @@ describe('two-tab live sync convergence (FIXPLAN E2)', () => {
     expect(row.live_state.responderId).toBe(a.quickWheelWinner);
     expect(row.seq).toBeGreaterThanOrEqual(1);
 
-    // 3. Reveal derives on BOTH tabs at revealAt — no cross-tab chain needed.
-    await settle(2600);
+    // 3a. LAND milestone (carnival wheel): confetti fires at revealAt −
+    //     REVEAL_HOLD_MS — while the wheel is still open and the turn has NOT
+    //     started (previously it fired at dismissal, exactly as the card died).
+    await settle(SPIN_MS + 100);
+    await flush();
+    expect(latest.A.state.confettiTrigger).toBeGreaterThan(0);
+    expect(latest.B.state.confettiTrigger).toBeGreaterThan(0);
+    expect(latest.A.state.activeOverlay).toBe('QUICK_WHEEL');
+    expect(latest.A.state.currentTurnId).toBeNull();
+
+    // 3b. Reveal derives on BOTH tabs at revealAt — no cross-tab chain needed.
+    await settle(SPIN_REVEAL_MS + 200);
     await flush();
     expect(latest.A.state.currentTurnId).toBe(row.live_state.turnToken);
     expect(latest.B.state.currentTurnId).toBe(row.live_state.turnToken);
@@ -277,7 +288,7 @@ describe('two-tab live sync convergence (FIXPLAN E2)', () => {
     // Cancel mid-spin (before reveal).
     await act(async () => { latest.A.cancelTurn(); });
     await flush();
-    await settle(2600);
+    await settle(SPIN_REVEAL_MS + 200);
     await flush();
 
     expect(latest.A.state.currentTurnId).toBeNull();
@@ -310,7 +321,7 @@ describe('two-tab live sync convergence (FIXPLAN E2)', () => {
     // Advance a slide MID-SPIN (before reveal).
     await act(async () => { latest.A.goToSlide(1); });
     await flush();
-    await settle(2600);
+    await settle(SPIN_REVEAL_MS + 200);
     await flush();
 
     // No stray NEW_TURN fired on either tab, and the row is clean.

@@ -1,15 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
-import { RotateCw, Star, AlertTriangle, MicOff, VolumeX, ThumbsUp, Zap, Sparkles } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Star, AlertTriangle, MicOff, VolumeX, ThumbsUp, Zap, Sparkles } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { filterPresent } from '../../../services/attendanceLogic';
 import Avatar from '../../../components/shared/Avatar';
+import QuickWheelOverlay from './QuickWheelOverlay';
 
 const BoardOverlayLayer = () => {
   const { state, triggerConfetti } = useSession();
-  const [rotation, setRotation] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const [winner, setWinner] = useState<any>(null);
 
   // Point Popup State
   const [pointPopup, setPointPopup] = useState<{ id: string; amount: number; studentId: string; sticker: string } | null>(null);
@@ -21,7 +20,6 @@ const BoardOverlayLayer = () => {
   // this overlay was the gap. Points/penalty popups still address a specific
   // studentId from the action payload, so they aren't affected.
   const students = filterPresent(state.students || []);
-  const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
   const positiveStickers = ["Awesome!", "Great Job!", "On Fire!", "Super!", "Amazing!", "Wow!"];
   const negativeStickers = ["Oops!", "Focus!", "Try Again", "Careful"];
@@ -31,66 +29,31 @@ const BoardOverlayLayer = () => {
      return list[Math.floor(Math.random() * list.length)];
   };
 
-  // Handle Wheel Logic
-  useEffect(() => {
-    if (state.activeOverlay === 'QUICK_WHEEL') {
-       setIsVisible(true);
-       if (state.quickWheelWinner) {
-          handleSpin(state.quickWheelWinner);
-       }
-    } else {
-       setIsVisible(false);
-       setWinner(null);
-       setRotation(0);
-    }
-  }, [state.activeOverlay, state.quickWheelWinner]);
-
   // Handle Point Awards Logic
   useEffect(() => {
      if (state.lastAction?.type === 'POINTS_AWARDED') {
         const { studentId, amount } = state.lastAction.payload;
         // Show point popup
-        setPointPopup({ 
-           id: Date.now().toString(), 
-           amount, 
+        setPointPopup({
+           id: Date.now().toString(),
+           amount,
            studentId,
            sticker: getRandomSticker(amount > 0)
         });
-        
+
         if (amount > 0) triggerConfetti();
-        
+
         // Auto hide after animation
         setTimeout(() => setPointPopup(null), 3000);
      } else if (state.lastAction?.type === 'MASS_PENALTY') {
         const { amount } = state.lastAction.payload;
         setPenaltyPopup({ id: Date.now().toString(), amount });
-        
-        // Shake screen logic handled by CSS class on root usually, 
+
+        // Shake screen logic handled by CSS class on root usually,
         // but here we just show the popup.
         setTimeout(() => setPenaltyPopup(null), 1500);
      }
   }, [state.lastAction]);
-
-  const handleSpin = (winnerId: string) => {
-    const winnerIndex = students.findIndex(s => s.id === winnerId);
-    if (winnerIndex === -1) return;
-
-    const segmentAngle = 360 / students.length;
-    const randomOffset = Math.floor(Math.random() * (segmentAngle - 2)) - (segmentAngle / 2) + 1;
-    const targetRotation = rotation + (360 * 5) + (360 - (winnerIndex * segmentAngle)) + randomOffset;
-
-    setRotation(targetRotation);
-
-    setTimeout(() => {
-       setWinner(students[winnerIndex]);
-    }, 2000); 
-  };
-
-  const getCoordinatesForPercent = (percent: number) => {
-    const x = Math.cos(2 * Math.PI * percent);
-    const y = Math.sin(2 * Math.PI * percent);
-    return [x, y];
-  };
 
   const getStudent = (id: string) => students.find(s => s.id === id);
 
@@ -210,73 +173,12 @@ const BoardOverlayLayer = () => {
           </div>
        )}
 
-       {/* 4. Wheel Overlay Layer */}
-       {isVisible && (
-          <div className="absolute inset-0 flex items-end justify-center pb-12 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300">
-             <div className="relative z-80 bg-white p-6 rounded-[3rem] shadow-2xl border-4 border-white/50 animate-slide-up flex gap-8 items-center max-w-4xl mx-auto">
-                
-                {winner ? (
-                   <div className="flex items-center gap-8 px-8 py-4 animate-scale-in">
-                      <div className="w-48 h-48 bg-yellow-100 rounded-full border-8 border-yellow-400 shadow-lg flex items-center justify-center text-8xl animate-bounce-subtle">
-                         <Avatar src={winner.avatar} rosterId={winner.id} name={winner.name} size={176} celebrate />
-                      </div>
-                      <div>
-                         <div className="text-slate-400 font-bold uppercase tracking-widest text-lg mb-2">Selected Student</div>
-                         <h2 className="text-7xl font-black text-slate-800 leading-none">{winner.name}</h2>
-                      </div>
-                      <div className="h-32 w-px bg-slate-200 mx-4"></div>
-                      <div className="flex flex-col items-center gap-2">
-                         {/* Phase 1g: the real +N award happens inside the game after this
-                             turn resolves (via scoreForAttempt), so a fake "+? XP" teaser
-                             here is misleading — it never resolves. Replace with a neutral
-                             encouragement; the actual +N appears via the existing
-                             POINTS_AWARDED overlay once the student plays. */}
-                         <div className="text-4xl font-black text-sky-500 animate-pulse">⭐</div>
-                         <div className="text-slate-400 font-bold uppercase tracking-wider text-sm">Let's see how you do!</div>
-                      </div>
-                   </div>
-                ) : (
-                   <div className="flex items-center gap-8">
-                      <div className="relative w-48 h-48">
-                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 filter drop-shadow-md">
-                            <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[20px] border-t-slate-800"></div>
-                         </div>
-                         <div 
-                            className="w-full h-full rounded-full border-4 border-white shadow-lg overflow-hidden transition-transform cubic-bezier(0.2, 0.8, 0.2, 1)"
-                            style={{ 
-                               transform: `rotate(${rotation}deg)`,
-                               transitionDuration: '2000ms'
-                            }}
-                         >
-                            <svg viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
-                              {students.map((student, i) => {
-                                const sliceSize = 1 / students.length;
-                                const startAngle = i * sliceSize;
-                                const endAngle = (i + 1) * sliceSize;
-                                const [startX, startY] = getCoordinatesForPercent(startAngle);
-                                const [endX, endY] = getCoordinatesForPercent(endAngle);
-                                const largeArcFlag = sliceSize > 0.5 ? 1 : 0;
-                                const pathData = `M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY} L 0 0`;
-                                return <path key={student.id} d={pathData} fill={colors[i % colors.length]} stroke="white" strokeWidth="0.05" />;
-                              })}
-                            </svg>
-                         </div>
-                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md z-10 border-2 border-slate-100">
-                            <RotateCw size={20} className="text-slate-400 animate-spin" />
-                         </div>
-                      </div>
-                      
-                      <div className="px-4">
-                         <h3 className="text-4xl font-bold text-slate-800 mb-2">Picking...</h3>
-                         <div className="h-3 w-48 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-indigo-500 w-full animate-shimmer"></div>
-                         </div>
-                      </div>
-                   </div>
-                )}
-             </div>
-          </div>
-       )}
+       {/* 4. Wheel Overlay Layer — the full-screen carnival picker spectacle
+           (Stitch art, rAF spin, land → hold → reveal choreography; tap-to-skip).
+           AnimatePresence gives it an animated exit instead of a hard cut. */}
+       <AnimatePresence>
+          {state.activeOverlay === 'QUICK_WHEEL' && <QuickWheelOverlay key="quick-wheel" />}
+       </AnimatePresence>
 
        <style>{`
           @keyframes float-up {

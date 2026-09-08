@@ -17,18 +17,23 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../../store/SessionContext';
 import { filterPresent } from '../../../services/attendanceLogic';
+import { SPIN_MS } from '../../../services/wheelChoreography';
 import Avatar from '../../../components/shared/Avatar';
 
 const COLORS = ['#FBBF24','#F97316','#EF4444','#EC4899','#A855F7','#8B5CF6','#3B82F6','#06B6D4','#14B8A6','#22C55E','#84CC16','#EAB308'];
 const LED_COUNT = 16;
 
 const BoardWheelOfDestiny = ({ data }: { data: any }) => {
-  const { state, triggerConfetti } = useSession();
+  const { state } = useSession();
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [landed, setLanded] = useState(false);
   const [winner, setWinner] = useState<any>(null);
   const idleAngle = useRef(0);
+  // Between the spin tween completing and GAME_WIN arriving (the REVEAL_HOLD_MS
+  // window), the wheel must sit still — the idle-rotation loop used to restart
+  // the moment the tween ended, creeping the landed wheel while the class waited.
+  const awaitingRevealRef = useRef(false);
 
   const students = useMemo(() => filterPresent(state.students || []), [state.students]);
   const segAngle = 360 / Math.max(1, students.length);
@@ -51,16 +56,18 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
     } else if (a.type === 'GAME_WIN') {
       const wid = a.payload?.winnerId || a.payload?.studentId;
       const sel = students.find(s => s.id === wid);
-      if (sel) { setSpinning(false); setLanded(true); setWinner(sel); triggerConfetti(); }
+      // Confetti now fires at the shared LAND milestone (SessionContext land
+      // effect) — not here, where it would double-fire per turn.
+      if (sel) { setSpinning(false); setLanded(true); setWinner(sel); awaitingRevealRef.current = false; }
     } else if (a.type === 'RESET_WHEEL' || a.type === 'RESET_GAME') {
-      setWinner(null); setLanded(false); setRotation(0);
+      setWinner(null); setLanded(false); setRotation(0); awaitingRevealRef.current = false;
     }
     // eslint-disable-next-line
   }, [state.lastAction]);
 
   // ── Idle slow rotation ──
   useEffect(() => {
-    if (spinning || landed) return;
+    if (spinning || landed || awaitingRevealRef.current) return;
     const interval = setInterval(() => {
       idleAngle.current += 0.3;
       setRotation(idleAngle.current);
@@ -75,6 +82,7 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
 
   function spinTo(targetId: string) {
     setWinner(null); setLanded(false); setSpinning(true);
+    awaitingRevealRef.current = true;
     const idx = Math.max(0, students.findIndex(s => s.id === targetId));
     const targetCenter = idx * segAngle + segAngle / 2;
     const finalRotation = rotation + 360 * 5 + (360 - targetCenter);
@@ -143,7 +151,7 @@ const BoardWheelOfDestiny = ({ data }: { data: any }) => {
               className="absolute rounded-full"
               style={{ width: wheelSize, height: wheelSize, left: 15, top: 15, background: `conic-gradient(${conic})`, filter: 'drop-shadow(0 0 30px rgba(251,191,36,.25))' }}
               animate={{ rotate: rotation }}
-              transition={spinning ? { duration: 4, ease: [0.15, 0, 0.2, 1] } : { duration: 0.05, ease: 'linear' }}
+              transition={spinning ? { duration: SPIN_MS / 1000, ease: [0.15, 0, 0.2, 1] } : { duration: 0.05, ease: 'linear' }}
               onAnimationComplete={() => { if (spinning) setSpinning(false); }}
             >
               {/* Divider lines */}

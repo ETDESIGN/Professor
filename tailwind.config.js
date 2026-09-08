@@ -77,6 +77,9 @@ export default {
                 sans: ['Inter', 'Noto Sans', 'system-ui', 'sans-serif'],
                 display: ['Lexend', 'system-ui', 'sans-serif'],
                 fun: ['Fredoka One', 'cursive'],
+                // Carnival Quest Stage (Stitch, 2026-09-09) — picker wheel & celebrations
+                rubik: ['Rubik', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+                nunito: ['Nunito Sans', 'Inter', 'system-ui', 'sans-serif'],
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',

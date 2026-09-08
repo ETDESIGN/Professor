@@ -15,6 +15,7 @@ import {
   turnTokenFor,
 } from './liveTurnState';
 import type { SessionActionType } from './sessionActionTypes';
+import { SPIN_REVEAL_MS, REVEAL_HOLD_MS } from '../services/wheelChoreography';
 
 const log = createClientLogger('SessionContext');
 
@@ -73,11 +74,12 @@ export interface DrawingStroke {
   isComplete: boolean;
 }
 
-/** Wheel-reveal choreography constant (FIXPLAN E2.4): the picked student is
- *  revealed (overlay dismissed, turn started, games reset) this many ms after
- *  the pick. Every tab derives it from live_state.revealAt — no mid-chain
- *  broadcast from a single tab that could die mid-spin. */
-const SPIN_REVEAL_MS = 2500;
+/** Wheel-reveal choreography (FIXPLAN E2.4 + carnival wheel 2026-09-09): the
+ *  picked student's turn is STARTED (overlay dismissed, games reset) this many
+ *  ms after the pick — every tab derives it from live_state.revealAt, so no
+ *  mid-chain broadcast from a single tab that could die mid-spin. The wheel
+ *  itself stops and the winner card celebrates at revealAt − REVEAL_HOLD_MS
+ *  (see the land-milestone effect below + services/wheelChoreography.ts). */
 
 interface SessionState {
   status: SessionStatus;
@@ -265,6 +267,10 @@ export interface SessionContextType {
   cancelTurn: () => void;
   /** Clear the current responder and immediately spin for the next one. */
   nextStudent: () => void;
+  /** Carnival wheel: pull the in-flight reveal deadline to now (tap-to-skip on
+   *  the board). No-op when no spin is pending. Converges every tab via the
+   *  live_state CAS write — see the impl note above. */
+  skipWheelReveal: () => void;
   /** Auto-rotate cadence for the picker (WS #7). Persisted in live_state so
    *  commander / remote / board agree and rehydrate. */
   setRotationMode: (mode: RotationMode) => void;
@@ -957,7 +963,6 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           pendingTurnToken: null,
           turnRevealAt: null,
           activeOverlay: prev.activeOverlay === 'QUICK_WHEEL' ? 'NONE' : prev.activeOverlay,
-          confettiTrigger: Date.now(),
         };
       });
       if (turnWriterIsLocalRef.current) {
@@ -981,6 +986,34 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       // completing — release unconditionally.
       spinInFlightRef.current = false;
     }, Math.max(0, revealAt - Date.now()));
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.turnRevealAt, state.pendingTurnToken]);
+
+  // ---- Derived wheel LAND milestone (carnival wheel 2026-09-09) ----
+  // The celebration fires when the wheel STOPS (revealAt − REVEAL_HOLD_MS),
+  // not when the overlay is dismissed — previously confetti started exactly as
+  // the winner card died. Same derived-deadline pattern as the reveal above:
+  // every tab fires it locally from live_state.revealAt, once per turn token
+  // (a ref Set guards double-fires across effect re-runs / skip re-schedules).
+  const celebratedTurnsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const revealAt = state.turnRevealAt;
+    const token = state.pendingTurnToken;
+    if (revealAt === null || token === null) return;
+    if (celebratedTurnsRef.current.has(token)) return;
+    const landAt = revealAt - REVEAL_HOLD_MS;
+    // A tab mounting inside the hold window still celebrates (board refreshed
+    // mid-celebration); one mounting after the reveal deadline stays quiet.
+    if (landAt - Date.now() < -1500) return;
+    const timer = setTimeout(() => {
+      if (celebratedTurnsRef.current.has(token)) return;
+      if (celebratedTurnsRef.current.size > 40) {
+        celebratedTurnsRef.current = new Set([...celebratedTurnsRef.current].slice(-20));
+      }
+      celebratedTurnsRef.current.add(token);
+      setState(prev => (prev.pendingTurnToken === token ? { ...prev, confettiTrigger: Date.now() } : prev));
+    }, Math.max(0, landAt - Date.now()));
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.turnRevealAt, state.pendingTurnToken]);
@@ -1785,6 +1818,19 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
+  /**
+   * Carnival wheel (2026-09-09): tap-anywhere-to-skip on the board overlay.
+   * Pulls the authoritative reveal deadline to NOW via the CAS writer — every
+   * tab's E2.4 derived-reveal effect re-schedules against the new revealAt and
+   * fires within milliseconds (realtime row sync), and the original turn-writer
+   * tab still emits the GAME_WIN/NEW_TURN/DISMISS_WHEEL compat broadcasts. No
+   * new dismissal path exists — the whole chain reuses the derived machinery.
+   */
+  const skipWheelReveal = () => {
+    if (state.turnRevealAt === null || state.pendingTurnToken === null) return;
+    void updateLiveTurn({ revealAt: Date.now() });
+  };
+
   const magicSelectStudent = (studentId: string) => {
     // B4.1: guard against an invalid/empty selection. Previously a magic pick
     // with a falsy id (e.g. caller bug) would broadcast SPIN_WHEEL with an
@@ -1960,7 +2006,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       refreshActiveFlow, resolveMediaForActiveUnit, applyMediaToStep,
       startSession, endSession, retrySync, nextSlide, prevSlide, goToSlide, addPoints, deductAllPoints,
       toggleConnection, setLiveSnap, triggerAction,
-      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, dismissWheel, cancelTurn, nextStudent,
+      selectNextStudent, magicSelectStudent, setSelectionMode, assignTeams, closeOverlay, dismissWheel, cancelTurn, nextStudent, skipWheelReveal,
       setRotationMode,
       startDrawing, addDrawingPoint, endDrawing, clearDrawings,
       triggerConfetti, setQuietMode, updateNoiseLevel, gradeStudent,

@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, RotateCw, Users, RefreshCw, Check, Star, SkipForward, Scale, Minus, Plus } from 'lucide-react';
 import { useSession } from '../../store/SessionContext';
+import { SPIN_MS } from '../../services/wheelChoreography';
 import Avatar from '../../components/shared/Avatar';
 
 interface QuickSpinModalProps {
@@ -30,11 +30,12 @@ const QuickSpinModal: React.FC<QuickSpinModalProps> = ({ onClose }) => {
     // Default: useOverlay=true for Quick Spin Modal
     selectNextStudent(undefined, true);
     
-    // Simulate spin time before showing result UI on remote
+    // Simulate spin time before showing result UI on remote — matches the
+    // projector's actual wheel-stop moment (services/wheelChoreography.ts).
     setTimeout(() => {
        setIsSpinning(false);
        setView('result');
-    }, 2000);
+    }, SPIN_MS);
   };
 
   const handleGrade = (amount: number) => {
