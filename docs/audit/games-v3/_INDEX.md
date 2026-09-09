@@ -2,7 +2,23 @@
 
 Round 3 of the game redesign loop. Predecessors: `docs/audit/GAMES_AUDIT.md` + `docs/audit/PER_GAME_PROMPTS.md` (August wave, produced the current "v2" games). This round adds the owner's fresh comments, a **ChatGPT Co-Work** quality audit, and a **Google Stitch** UI redesign step.
 
-## The loop (per game)
+## The loop (per game) — v3.1 process (2026-09-10)
+
+```
+ZCode: §0–§3 of NN-<game>.md (code audit + owner comments + screenshots)   status: file-ready
+  ↓
+Google ANTI-GRAVITY (replaces ChatGPT Co-Work): fills §4 (UI / workflow /
+  pedagogy / interaction audit) — owner pastes prompts/antigravity-master-prompt.md
+  ↓                                                                        status: cowork-done
+ZCode: reconciles §4, then drives STITCH DIRECTLY (MCP reads + CLI generation,
+  key in the ZCode config) — designs, iterates, exports to stitch/<NN>-<game>/
+  ↓                                                                        status: stitch-returned
+ZCode: implements + fidelity log + gauntlet + deploy                      status: implemented
+```
+
+**Stitch tooling status (2026-09-10):** MCP read path (list/get/download) works; generation via the MCP tool times out at the 30s layer — the working path is the CLI (`STITCH_API_KEY=… npx -y @_davideast/stitch-mcp tool generate_screen_from_text -d '{…}'`, minutes-long, returns a design narrative + suggestions). One CLI generation submitted 2026-09-10 (Focus Cards presentation concept) had not persisted to the project's screen list within ~15 min — VERIFY in the Stitch UI / re-check before relying on it. A dedicated batch project exists (`projects/2027598662287239005`) but generation into the pilot project (`projects/17415096891547227013`, TEXT_TO_UI_PRO) is the proven target type.
+
+## The loop (v3.0 — historical)
 
 ```
 ZCode: §0–§3 of NN-<game>.md (code audit + owner comments + screenshots)   status: file-ready
@@ -39,7 +55,7 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 02 | `02-team-splash.md` | Team Splash | `TEAM_SPLASH` | BoardIntroSplash.tsx | WARMUP | pending |
 | 03 | `03-media-player.md` | Media Player (song/video) | `MEDIA_PLAYER` | BoardMediaPlayer.tsx | WARMUP | §2 comments in — code audit pending |
 | 04 | `04-live-warmup.md` | Live Class Warmup | `LIVE_WARMUP` | BoardLiveClassWarmup.tsx | WARMUP | pending |
-| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | §2 comments in — code audit pending |
+| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **file-ready — first Anti-Gravity target** |
 | 06 | `06-grammar-sandbox.md` | Grammar Sandbox | `GRAMMAR_SANDBOX` | BoardGrammarSandbox.tsx | INPUT | pending |
 | 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | §2 comments in — code audit pending |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |
@@ -84,3 +100,5 @@ Registry facts (for reference): `BOARD_MAP` in `apps/board/templates/boardMap.ts
 - 2026-09-10 — **PILOT COMPLETE: Word Search v3 implemented + deployed.** Full loop validated end-to-end: 26 comments → per-game files → Co-Work §4 → Stitch §5 (owner ran 6 prompts) → implementation (4 files, 16 findings fixed incl. F0 grid 0–13 px → 775 px @1080p, gate-verified at 4 sizes) → tsc/vitest/build green → pushed to master. The loop is ready for the batch (18 remaining commented games + cross-cutting). Owner note: BoardShell leaderboard rail is the next responsive blocker (phone floor).
 
 - 2026-09-10 — **Owner design review → preview-screen fidelity fix + process upgrade.** The owner caught the round-preview shipping small cards instead of the Stitch big-portrait-card design (my silent engineering shortcut). Fixed to Stitch fidelity (big photo cards, huge title, difficulty chip — `26-v3-preview.png`), and a **design-fidelity log is now mandatory in every §6** (per Stitch screen: Followed / Adapted / Deviated + why). Principle recorded: Stitch is the design source of truth; deviations are owner-reviewable decisions, never silent.
+
+- 2026-09-10 — **Process v3.1: Anti-Gravity replaces Co-Work (§4 audits); ZCode drives Stitch directly** (MCP + CLI, per owner). Anti-Gravity master prompt written (`prompts/antigravity-master-prompt.md` — same rules/quality bar as Co-Work, first-game vs batch run modes). `05-focus-cards.md` is **file-ready** (§0–§3 + prelude + 2 screenshots) — the first Anti-Gravity target. Stitch: batch project created; MCP reads proven; generation works via CLI but persistence pending verification (see tooling status above).
