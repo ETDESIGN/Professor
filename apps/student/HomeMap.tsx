@@ -146,7 +146,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               </div>
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm font-bold text-slate-700">{t('student.questKeepStreak', 'Keep your streak!')}</span>
+                  <span className="text-sm font-bold text-wa-ink">{t('student.questKeepStreak', 'Keep your streak!')}</span>
                   <span className="text-sm font-bold text-wa-teal">{t('student.streakDays', { defaultValue: '{{n}} days', n: studentStreak })}</span>
                 </div>
               </div>

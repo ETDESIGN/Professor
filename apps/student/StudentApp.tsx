@@ -444,7 +444,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
               {enrolledClasses.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs font-bold text-slate-400 uppercase mb-2">{t('student.yourClasses')}</p>
+                  <p className="text-xs font-bold text-wa-muted uppercase mb-2">{t('student.yourClasses')}</p>
                   <div className="flex flex-wrap gap-2">
                     {enrolledClasses.map((cls) => (
                       <span key={cls.id} className="bg-wa-teal/10 text-wa-teal px-3 py-1 rounded-full text-sm font-medium">
