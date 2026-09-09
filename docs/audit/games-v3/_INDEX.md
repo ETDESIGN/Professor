@@ -55,7 +55,7 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 02 | `02-team-splash.md` | Team Splash | `TEAM_SPLASH` | BoardIntroSplash.tsx | WARMUP | pending |
 | 03 | `03-media-player.md` | Media Player (song/video) | `MEDIA_PLAYER` | BoardMediaPlayer.tsx | WARMUP | §2 comments in — code audit pending |
 | 04 | `04-live-warmup.md` | Live Class Warmup | `LIVE_WARMUP` | BoardLiveClassWarmup.tsx | WARMUP | pending |
-| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **cowork-done** |
+| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **stitch-in-flight — §4 validated, 4 designs submitted** |
 | 06 | `06-grammar-sandbox.md` | Grammar Sandbox | `GRAMMAR_SANDBOX` | BoardGrammarSandbox.tsx | INPUT | pending |
 | 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | §2 comments in — code audit pending |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |

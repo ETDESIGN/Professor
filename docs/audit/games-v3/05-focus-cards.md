@@ -1,6 +1,6 @@
 # Focus Cards (vocab presentation) — v3 Quality Audit (`FOCUS_CARDS`)
 
-> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
+> **Status:** **stitch-in-flight** — §4 validated; §5 design pass submitted to Stitch (4 screens, landing ~10–20 min).
 > **Screenshots:** `screenshots/05-*.png` (grid + drill views; staged reveals beyond stage 1 need the commander — see F5).
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -174,10 +174,24 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What to KEEP from current design.** Retain the dual-coding pedagogy (pairing clear visual imagery with spoken sound and orthography), the target-word highlighting in example sentences, the runtime image heal prioritizing rich manifest word-library assets over generic placeholders, and the underlying FSRS exposure tracking (refactored to trigger on card reveal). Keep the choral repeat cue concept, refining it into a teacher-paced visual rhythm.
 
-## §5 ⬜ Google Stitch prompt
+**ZCode reconciliation of §4 (2026-09-10): audit VALIDATED — all findings accepted.** Line references spot-verified against the code (header collision :188, back-button under the phase badge :248, leaderboard rail + FULL_BLEED_TYPES gap, 80px image caps, wasted 6th slot, stage-4 exposure gate). Implementation notes:
+- The FULL_BLEED_TYPES change is a BoardShell-level edit (retracts the leaderboard rail for presentation phases) — safe and small; the phase-badge collision still needs the game-header safe-zone fix regardless (same pattern as the Word Search v3.2 fix).
+- recordExposure fires on FIRST FLIP of each card (grid), not at drill stage 4 — kills the 48-click barrier and matches the new interaction.
+- 4.f's palette folds into the v3 system: warm-cream fronts + royal-indigo backs sit fine on the night stage; hot pink stays the single primary (Start Practice); all cards LANDSCAPE ~4:3 per the owner's 2026-09-10 rule.
+- The 3-beat loop (prompt → check/flip → advance) is adopted as the interaction spec.
 
-*(ZCode writes this AFTER §4 is filled.)*
+## §5 Google Stitch design pass (submitted)
 
-## §6 ⬜ Stitch output & implementation notes
+> **ZCode drives Stitch directly (v3.1 process).** Four screens submitted 2026-09-10 via the Stitch CLI into the pilot project (`projects/17415096891547227013`); results land in ~10–20 min, then verified against the QA list and exported to `stitch/05-focus-cards/`.
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**Shared design brief (baked into every generation):** 16:9 projector board, night-expedition stage #070C18 with subtle radial washes, surfaces #0B132B, rounded-2xl/3xl, soft dark shadows + 1px white/8 edges; hot pink #FF2E79 reserved for the ONE primary action (soft glow); sky #38BDF8 audio buttons; emerald #10B981 studied; amber #F59E0B the "+" deep-dive trigger; warm-cream (#FFF8EC) card fronts with rich imagery; royal-indigo (#2C3E8F) card backs with luminous white type. ALL CARDS LANDSCAPE ~4:3 (owner rule 2026-09-10). No Chinese on challenge faces (grid + fronts); Chinese lives only inside the deep-dive modal. Header clears the top-left phase-pill zone (~180px).
+
+**Screen 1 — Grid overview, all fronts (challenge):** full-bleed 16:9, 3×2 grid of six LANDSCAPE cards, image-only fronts filling the warm-cream frames, one card wearing a sky-blue active halo ("the class shouts this one"), header "Focus Cards · Words 1–6 of 12", slim bottom rail: 12 tactile progress pills (6 filled) + one hot-pink "Next 6 words →" primary.
+
+**Screen 2 — Grid overview, flipped & studied (mixed state):** same layout; two cards flipped to indigo backs (huge white word + sky speaker glyph + amber "+" button), one card emerald-bordered with ✓ "Studied", three still image-only fronts, active halo on the next card.
+
+**Screen 3 — Deep-dive modal (the plus drill):** centered large modal over a dimmed grid: high-res landscape illustration, huge word + phonetics + sky audio buttons (word / sentence), L1 translation line (Chinese allowed here — instruction/detail context), example sentence with the target word highlighted, close button; one hot-pink "Back to cards" primary.
+
+**Screen 4 — Completion & transition:** celebration: "All 12 words explored!", the word tokens as a wrap of small emerald chips, confetti energy, and one pulsing hot-pink "Start Practice Phase →" primary button.
+
+**QA checklist (ZCode, on export):** landscape cards everywhere; image-only fronts on screens 1–2; zero Chinese outside the modal; single pink primary per screen; header clear of the phase-pill zone; progress rail ≥28px tokens; no scrolling at 16:9.
