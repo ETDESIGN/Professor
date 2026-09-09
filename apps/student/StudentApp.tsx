@@ -18,6 +18,7 @@ import { GamificationService } from '../../services/GamificationService';
 import { GEM_REWARDS, XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import { createClientLogger } from '../../services/logger';
 import Avatar from '../../components/shared/Avatar';
+import { useMainScrollRestore } from './useMainScrollRestore';
 
 // Feature flag: dubbing is a mock (audit P1-5). Default OFF.
 const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
@@ -77,6 +78,11 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, setActiveUnit } = useSoloSession();
+
+  // The main layout (incl. its scroll container) unmounts for lessons and
+  // other full-screen routes — save the map's scroll and restore it on return.
+  const isMainScreen = location.pathname === '/student';
+  const { containerRef: mainScrollRef, handleContainerScroll } = useMainScrollRestore(isMainScreen);
 
   const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -273,7 +279,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto relative">
+      <div ref={mainScrollRef} onScroll={handleContainerScroll} className="flex-1 overflow-y-auto relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
