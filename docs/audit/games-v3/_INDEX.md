@@ -16,7 +16,7 @@ ZCode: reconciles §4, then drives STITCH DIRECTLY (MCP reads + CLI generation,
 ZCode: implements + fidelity log + gauntlet + deploy                      status: implemented
 ```
 
-**Stitch tooling status (2026-09-10):** MCP read path (list/get/download) works; generation via the MCP tool times out at the 30s layer — the working path is the CLI (`STITCH_API_KEY=… npx -y @_davideast/stitch-mcp tool generate_screen_from_text -d '{…}'`, minutes-long, returns a design narrative + suggestions). One CLI generation submitted 2026-09-10 (Focus Cards presentation concept) had not persisted to the project's screen list within ~15 min — VERIFY in the Stitch UI / re-check before relying on it. A dedicated batch project exists (`projects/2027598662287239005`) but generation into the pilot project (`projects/17415096891547227013`, TEXT_TO_UI_PRO) is the proven target type.
+**Stitch tooling status (2026-09-10):** MCP read path (list/get/download) works; generation via the MCP tool times out at the 30s layer — the working path is the CLI (`STITCH_API_KEY=… npx -y @_davideast/stitch-mcp tool generate_screen_from_text -d '{…}'`, minutes-long, returns a design narrative + suggestions). **Persistence CONFIRMED (owner, 2026-09-10):** generations DO land in the Stitch project — they simply take ~10–20 min to appear in the API/UI. All three parallel Focus Cards attempts persisted (2 screens + auto-generated card photos). `edit_screens` also works via the same CLI path (landscape-cards correction submitted). Workflow: submit → expect the result on a ~15-min delay → verify via list_screens before exporting. **New design rule (owner): cards on the horizontal stage are LANDSCAPE (~4:3), grids 3×2 — applies to every game.** A dedicated batch project exists (`projects/2027598662287239005`) but generation into the pilot project (`projects/17415096891547227013`, TEXT_TO_UI_PRO) is the proven target type.
 
 ## The loop (v3.0 — historical)
 
@@ -55,7 +55,7 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 02 | `02-team-splash.md` | Team Splash | `TEAM_SPLASH` | BoardIntroSplash.tsx | WARMUP | pending |
 | 03 | `03-media-player.md` | Media Player (song/video) | `MEDIA_PLAYER` | BoardMediaPlayer.tsx | WARMUP | §2 comments in — code audit pending |
 | 04 | `04-live-warmup.md` | Live Class Warmup | `LIVE_WARMUP` | BoardLiveClassWarmup.tsx | WARMUP | pending |
-| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **file-ready — first Anti-Gravity target** |
+| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **cowork-done** |
 | 06 | `06-grammar-sandbox.md` | Grammar Sandbox | `GRAMMAR_SANDBOX` | BoardGrammarSandbox.tsx | INPUT | pending |
 | 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | §2 comments in — code audit pending |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |
@@ -102,3 +102,6 @@ Registry facts (for reference): `BOARD_MAP` in `apps/board/templates/boardMap.ts
 - 2026-09-10 — **Owner design review → preview-screen fidelity fix + process upgrade.** The owner caught the round-preview shipping small cards instead of the Stitch big-portrait-card design (my silent engineering shortcut). Fixed to Stitch fidelity (big photo cards, huge title, difficulty chip — `26-v3-preview.png`), and a **design-fidelity log is now mandatory in every §6** (per Stitch screen: Followed / Adapted / Deviated + why). Principle recorded: Stitch is the design source of truth; deviations are owner-reviewable decisions, never silent.
 
 - 2026-09-10 — **Process v3.1: Anti-Gravity replaces Co-Work (§4 audits); ZCode drives Stitch directly** (MCP + CLI, per owner). Anti-Gravity master prompt written (`prompts/antigravity-master-prompt.md` — same rules/quality bar as Co-Work, first-game vs batch run modes). `05-focus-cards.md` is **file-ready** (§0–§3 + prelude + 2 screenshots) — the first Anti-Gravity target. Stitch: batch project created; MCP reads proven; generation works via CLI but persistence pending verification (see tooling status above).
+- 2026-09-10 — **Focus Cards (05) Anti-Gravity audit COMPLETE.** §4 filled with grounded UI, workflow, ESL pedagogy, and interaction findings. Status: `cowork-done`. Key priorities: in-place 3D card flip with image-only fronts (active retrieval), separating rapid grid review from deep drill (+ icon), batch pagination for 6+ words, Commander/Remote control parity, and BoardShell full-bleed retraction of the 0-points leaderboard rail.
+
+- 2026-09-10 — **Stitch autonomy proven end-to-end** (owner confirmed the generated Focus Cards screens in the UI) + first `edit_screens` correction submitted (portrait → landscape cards, per owner rule). Anti-Gravity started on 05-focus-cards §4.
