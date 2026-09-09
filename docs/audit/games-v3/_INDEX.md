@@ -53,36 +53,36 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 |---|---|---|---|---|---|---|
 | 01 | `01-intro-splash.md` | Unit Intro | `INTRO_SPLASH` | BoardUnitIntro.tsx | WARMUP | pending |
 | 02 | `02-team-splash.md` | Team Splash | `TEAM_SPLASH` | BoardIntroSplash.tsx | WARMUP | pending |
-| 03 | `03-media-player.md` | Media Player (song/video) | `MEDIA_PLAYER` | BoardMediaPlayer.tsx | WARMUP | §2 comments in — code audit pending |
+| 03 | `03-media-player.md` | Media Player (song/video) | `MEDIA_PLAYER` | BoardMediaPlayer.tsx | WARMUP | **file-ready — Anti-Gravity §4 queue** |
 | 04 | `04-live-warmup.md` | Live Class Warmup | `LIVE_WARMUP` | BoardLiveClassWarmup.tsx | WARMUP | pending |
 | 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **IMPLEMENTED 2026-09-10 — first fully-autonomous loop (ZCode → Anti-Gravity → Stitch-ZCode → code)** |
 | 06 | `06-grammar-sandbox.md` | Grammar Sandbox | `GRAMMAR_SANDBOX` | BoardGrammarSandbox.tsx | INPUT | pending |
-| 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | §2 comments in — code audit pending |
+| 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | **file-ready — Anti-Gravity §4 queue** |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |
 | 09 | `09-grammar-forge.md` | Grammar Forge | `GRAMMAR_PRACTICE` (+legacy `SCRAMBLE` sibling uses BoardUnscramble) | BoardGrammarForge.tsx | PRACTICE | pending |
-| 10 | `10-listen-tap.md` | Listen & Tap | `LISTEN_TAP` | BoardListenTap.tsx | PRACTICE | §2 comments in — code audit pending |
-| 11 | `11-flash-match.md` | Flash Match | `FLASH_MATCH` | BoardFlashMatch.tsx | PRACTICE | §2 comments in — code audit pending |
-| 12 | `12-unscramble.md` | Unscramble | `UNSCRAMBLE` (alias `SCRAMBLE`) | BoardUnscramble.tsx | PRACTICE | §2 comments in — code audit pending |
-| 13 | `13-i-say-you-say.md` | I Say You Say | `I_SAY_YOU_SAY` (alias `SPEAKING`) | BoardISayYouSay.tsx | PRACTICE | §2 comments in — code audit pending |
+| 10 | `10-listen-tap.md` | Listen & Tap | `LISTEN_TAP` | BoardListenTap.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 11 | `11-flash-match.md` | Flash Match | `FLASH_MATCH` | BoardFlashMatch.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 12 | `12-unscramble.md` | Unscramble | `UNSCRAMBLE` (alias `SCRAMBLE`) | BoardUnscramble.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 13 | `13-i-say-you-say.md` | I Say You Say | `I_SAY_YOU_SAY` (alias `SPEAKING`) | BoardISayYouSay.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
 | 14 | `14-whats-missing.md` | What's Missing | `WHATS_MISSING` | BoardWhatsMissing.tsx | PRACTICE | pending |
 | 15 | `15-magic-eyes.md` | Magic Eyes | `MAGIC_EYES` | BoardWhatsMissing.tsx (mode `magic_eyes`) | PRACTICE | pending |
 | 16 | `16-story-sequencing.md` | Story Sequencing | `STORY_SEQUENCING` | BoardStorySequencing.tsx | PRACTICE | pending |
-| 17 | `17-grammar-lab.md` | Grammar Lab | `GRAMMAR_LAB` | BoardGrammarLab.tsx | PRACTICE | §2 comments in — code audit pending |
-| 18 | `18-word-detective.md` | Word Detective | `WORD_DETECTIVE` | BoardWordDetective.tsx | PRACTICE | §2 comments in — code audit pending |
-| 19 | `19-sound-lab.md` | Sound Lab | `SOUND_LAB` | BoardSoundLab.tsx | PRACTICE | §2 comments in — code audit pending |
-| 20 | `20-story-quest.md` | Story Quest | `STORY_QUEST` | BoardStoryQuest.tsx | PRACTICE | §2 comments in — code audit pending |
-| 21 | `21-sentence-lab.md` | Sentence Lab | `SENTENCE_LAB` | BoardSentenceLab.tsx | PRACTICE | §2 comments in — code audit pending |
-| 22 | `22-phonics-arena.md` | Phonics Arena | `PHONICS_ARENA` | BoardPhonicsArena.tsx | PRACTICE | §2 comments in — code audit pending |
-| 23 | `23-memory-lab.md` | Memory Lab | `MEMORY_LAB` | BoardMemoryLab.tsx | PRACTICE | §2 comments in — code audit pending |
-| 24 | `24-class-rally.md` | Class Rally (co-op) | `CLASS_RALLY` | BoardClassRally.tsx | PRACTICE | §2 comments in — code audit pending |
-| 25 | `25-fast-vocab.md` | Fast Vocab | `FAST_VOCAB` | BoardFastVocab.tsx | PRACTICE | §2 comments in — code audit pending |
+| 17 | `17-grammar-lab.md` | Grammar Lab | `GRAMMAR_LAB` | BoardGrammarLab.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 18 | `18-word-detective.md` | Word Detective | `WORD_DETECTIVE` | BoardWordDetective.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 19 | `19-sound-lab.md` | Sound Lab | `SOUND_LAB` | BoardSoundLab.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 20 | `20-story-quest.md` | Story Quest | `STORY_QUEST` | BoardStoryQuest.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 21 | `21-sentence-lab.md` | Sentence Lab | `SENTENCE_LAB` | BoardSentenceLab.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 22 | `22-phonics-arena.md` | Phonics Arena | `PHONICS_ARENA` | BoardPhonicsArena.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 23 | `23-memory-lab.md` | Memory Lab | `MEMORY_LAB` | BoardMemoryLab.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 24 | `24-class-rally.md` | Class Rally (co-op) | `CLASS_RALLY` | BoardClassRally.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 25 | `25-fast-vocab.md` | Fast Vocab | `FAST_VOCAB` | BoardFastVocab.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
 | 26 | `26-word-search.md` | Word Search — **PILOT** | `WORD_SEARCH` | BoardWordSearch.tsx | PRACTICE | **IMPLEMENTED 2026-09-10 — full loop validated (audit → Co-Work → Stitch → code → deploy)** |
-| 27 | `27-spelling-bee.md` | Spelling Bee | `SPELLING_BEE` | BoardSpellingBee.tsx | PRACTICE | §2 comments in — code audit pending |
-| 28 | `28-comic-panels.md` | Comic — Rebuild the Story | `COMIC_PANELS` | BoardComicPanels.tsx | PRACTICE | §2 comments in — code audit pending |
+| 27 | `27-spelling-bee.md` | Spelling Bee | `SPELLING_BEE` | BoardSpellingBee.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
+| 28 | `28-comic-panels.md` | Comic — Rebuild the Story | `COMIC_PANELS` | BoardComicPanels.tsx | PRACTICE | **file-ready — Anti-Gravity §4 queue** |
 | 29 | `29-team-battle.md` | Team Battle (tic-tac-toe) | `TEAM_BATTLE` | BoardTeamBattle.tsx | ASSESS | pending |
 | 30 | `30-speed-quiz.md` | Speed Quiz | `SPEED_QUIZ` | BoardSpeedQuiz.tsx | ASSESS | pending |
 | 31 | `31-wheel-of-destiny.md` | Wheel of Destiny (picker) | `WHEEL_OF_DESTINY` | BoardWheelOfDestiny.tsx | ASSESS | pending |
-| 32 | `32-vocab-blitz.md` | Vocab Blitz | `VOCAB_BLITZ` | BoardVocabBlitz.tsx | ASSESS | §2 comments in — code audit pending |
+| 32 | `32-vocab-blitz.md` | Vocab Blitz | `VOCAB_BLITZ` | BoardVocabBlitz.tsx | ASSESS | **file-ready — Anti-Gravity §4 queue** |
 | 33 | `33-game-arena.md` | Game Arena (winner celebration) | `GAME_ARENA` | BoardGameArena.tsx | WRAPUP | pending |
 | 34 | `34-unit-selection.md` | Unit Selection dashboard | `UNIT_SELECTION` | BoardUnitSelection.tsx | WRAPUP | pending |
 
