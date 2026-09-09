@@ -156,20 +156,20 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
 
       {unitsLoading ? (
         <div className="mx-4 space-y-4" aria-live="polite">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 animate-pulse space-y-3">
-            <div className="h-6 w-2/3 bg-slate-200 rounded" />
-            <div className="h-3 w-full bg-slate-100 rounded" />
-            <div className="h-3 w-3/4 bg-slate-100 rounded" />
+          <div className="bg-wa-paper rounded-wa-card p-6 shadow-wa-card border border-wa-border animate-pulse space-y-3">
+            <div className="h-6 w-2/3 bg-wa-border rounded" />
+            <div className="h-3 w-full bg-wa-mist rounded" />
+            <div className="h-3 w-3/4 bg-wa-mist rounded" />
           </div>
           {[0, 1, 2].map(i => (
             <div key={i} className="flex justify-center">
-              <div className="w-20 h-20 rounded-full bg-slate-200 animate-pulse" style={{ opacity: 1 - i * 0.25 }} />
+              <div className="w-20 h-20 rounded-full bg-wa-border animate-pulse" style={{ opacity: 1 - i * 0.25 }} />
             </div>
           ))}
           <p className="text-center text-sm text-slate-400">{t('student.loadingLessons', 'Loading your lessons…')}</p>
         </div>
       ) : unitsError ? (
-        <div className="mx-4 bg-white rounded-2xl p-8 shadow-sm border border-red-100 text-center">
+        <div className="mx-4 bg-wa-paper rounded-wa-card p-8 shadow-wa-card border border-wa-terra/30 text-center">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle size={32} className="text-red-500" />
           </div>
@@ -177,15 +177,15 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
           <p className="text-sm text-slate-500 mb-5">{unitsError}</p>
           <button
             onClick={() => loadUnits()}
-            className="px-6 py-3 bg-duo-pink text-white font-bold rounded-2xl shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+            className="px-6 py-3 bg-wa-teal text-white font-wa-display rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
           >
             {t('common.retry', 'Try again')}
           </button>
         </div>
       ) : units.length === 0 ? (
-        <div className="mx-4 bg-white rounded-2xl p-8 shadow-sm border border-slate-200 text-center">
-          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen size={32} className="text-blue-500" />
+        <div className="mx-4 bg-wa-paper rounded-wa-card p-8 shadow-wa-card border border-wa-border text-center">
+          <div className="w-16 h-16 bg-wa-teal/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={32} className="text-wa-teal" />
           </div>
           <h3 className="font-bold text-slate-800 mb-1">{t('student.noLessonsYet', 'No lessons yet')}</h3>
           <p className="text-sm text-slate-500 mb-5">{t('student.noLessonsHint', 'Join a class with the code from your teacher to see your lessons here.')}</p>
@@ -193,14 +193,14 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             {onJoinClass && (
               <button
                 onClick={onJoinClass}
-                className="px-6 py-3 bg-duo-pink text-white font-bold rounded-2xl shadow-[0_4px_0_0_#be185d] active:shadow-none active:translate-y-1 transition-all uppercase tracking-wide text-sm"
+                className="px-6 py-3 bg-wa-teal text-white font-wa-display rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
               >
                 {t('student.joinClass', 'Join a class')}
               </button>
             )}
             <button
               onClick={() => { window.location.href = '/onboarding/student'; }}
-              className="text-duo-blue font-bold text-sm underline underline-offset-4 hover:text-blue-700 transition-colors"
+              className="text-wa-teal font-bold text-sm underline underline-offset-4 hover:text-wa-tealDeep transition-colors"
             >
               {t('student.takeTour', 'New here? Take the app tour')}
             </button>
@@ -303,30 +303,30 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                       className={`
                           w-20 h-20 rounded-full flex items-center justify-center relative transition-all duration-300 z-10
                           ${isCompleted
-                          ? 'bg-duo-yellow border-b-8 border-duo-yellow-dark shadow-xl'
+                          ? 'bg-wa-sand border-b-8 border-wa-sandDeep shadow-xl'
                           : isActive
-                            ? 'bg-duo-pink border-b-8 border-duo-pink-dark scale-110 shadow-2xl animate-bounce-subtle ring-4 ring-pink-200'
-                            : 'bg-slate-200 border-b-8 border-slate-300'
+                            ? 'bg-wa-terra border-b-8 border-wa-terraDeep scale-110 shadow-2xl animate-bounce-subtle ring-4 ring-wa-terra/25'
+                            : 'bg-wa-mist border-b-8 border-wa-border'
                         }
                         `}
                     >
                       {/* Icon */}
-                      {isCompleted && <Check size={30} className="text-yellow-700" strokeWidth={4} />}
+                      {isCompleted && <Check size={30} className="text-wa-inkDeep" strokeWidth={4} />}
                       {isActive && (
                         <span className="text-white flex items-center justify-center">
                           <StageIcon icon={stage.icon === 'trophy' ? 'star' : stage.icon} size={30} />
                         </span>
                       )}
-                      {isLocked && <Lock className="text-slate-400 w-8 h-8" />}
+                      {isLocked && <Lock className="text-wa-muted w-8 h-8" />}
 
                       {/* Stars earned for completed nodes (real values) */}
                       {isCompleted && (
-                        <div className="absolute -top-2 flex gap-1 bg-white/20 backdrop-blur rounded-full px-2 py-0.5">
+                        <div className="absolute -top-2 flex gap-1 bg-wa-paper/90 backdrop-blur rounded-full px-2 py-0.5 border border-wa-border">
                           {[1, 2, 3].map((s) => (
                             <Star
                               key={s}
                               size={10}
-                              className={s <= stars ? 'text-yellow-500 fill-yellow-500' : 'text-yellow-500/30'}
+                              className={s <= stars ? 'text-wa-sandDeep fill-wa-sandDeep' : 'text-wa-border fill-transparent'}
                             />
                           ))}
                         </div>
@@ -334,15 +334,15 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
 
                       {/* Active Popover */}
                       {isActive && (
-                        <div className="absolute -top-12 bg-white px-4 py-2 rounded-xl shadow-lg border border-slate-100 text-duo-pink font-bold text-sm whitespace-nowrap animate-bounce">
+                        <div className="absolute -top-12 bg-wa-paper px-4 py-2 rounded-2xl shadow-wa-card border border-wa-border text-wa-terra font-wa-display font-semibold text-sm whitespace-nowrap animate-bounce">
                           START
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-white rotate-45 border-b border-r border-slate-100"></div>
+                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-wa-paper rotate-45 border-b border-r border-wa-border"></div>
                         </div>
                       )}
                     </button>
 
                     {/* Node label */}
-                    <span className={`mt-2 text-[11px] font-bold max-w-[7rem] text-center leading-tight ${isLocked ? 'text-slate-300' : 'text-slate-500'}`}>
+                    <span className={`mt-2 text-[11px] font-bold max-w-[7rem] text-center leading-tight ${isLocked ? 'text-wa-border' : 'text-wa-muted'}`}>
                       {stage.title}
                     </span>
                   </motion.div>
@@ -351,7 +351,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
 
               {/* Final Chest Node — opens when every stage is completed */}
               <div className="relative mt-6">
-                <div className={`w-24 h-24 rounded-3xl flex items-center justify-center border-b-8 transition-colors ${unitLocked || !pathDone ? 'bg-slate-200 border-slate-300' : 'bg-gradient-to-b from-blue-400 to-blue-600 border-blue-700 shadow-2xl ring-4 ring-blue-100'}`}>
+                <div className={`w-24 h-24 rounded-3xl flex items-center justify-center border-b-8 transition-colors ${unitLocked || !pathDone ? 'bg-wa-mist border-wa-border' : 'bg-wa-sand border-wa-sandDeep shadow-2xl ring-4 ring-wa-sand/30'}`}>
                   <img
                     src="https://api.dicebear.com/7.x/icons/svg?seed=chest"
                     className={`w-16 h-16 ${unitLocked || !pathDone ? 'opacity-30 grayscale' : 'drop-shadow-lg animate-bounce-subtle'}`}
@@ -359,7 +359,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                   />
                 </div>
                 {pathDone && (
-                  <div className="absolute -top-3 -right-2 bg-duo-yellow text-yellow-900 text-[10px] font-black px-2 py-1 rounded-full shadow border border-yellow-600/30 animate-bounce-subtle">
+                  <div className="absolute -top-3 -right-2 bg-wa-sand text-wa-inkDeep text-[10px] font-black px-2 py-1 rounded-full shadow border border-wa-sandDeep/40 animate-bounce-subtle">
                     UNIT DONE!
                   </div>
                 )}
@@ -373,7 +373,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
       <div className="fixed bottom-24 right-4 z-40 space-y-3">
         <button
           onClick={() => onNavigate('practice')}
-          className={`w-14 h-14 bg-white rounded-2xl shadow-xl border-2 border-slate-100 flex items-center justify-center text-slate-600 hover:text-duo-pink hover:scale-110 transition-transform active:scale-95 ${units.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}
+          className={`w-14 h-14 bg-wa-paper rounded-2xl shadow-xl border-2 border-wa-border flex items-center justify-center text-wa-teal hover:text-wa-tealDeep hover:scale-110 transition-transform active:scale-95 ${units.length === 0 ? 'opacity-40 pointer-events-none' : ''}`}
         >
           <LayoutGrid size={28} />
         </button>
