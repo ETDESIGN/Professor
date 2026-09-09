@@ -100,7 +100,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
   };
 
   return (
-    <div className="flex-1 relative overflow-y-auto bg-slate-50 no-scrollbar pb-32">
+    <div className="flex-1 relative overflow-y-auto bg-wa-cream no-scrollbar pb-32">
       {/* Daily Quests Header */}
       <div className="bg-wa-paper mx-4 mt-6 mb-8 rounded-wa-card p-4 shadow-wa-card border border-wa-border">
         <div className="flex items-center justify-between mb-3">
@@ -166,15 +166,15 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               <div className="w-20 h-20 rounded-full bg-wa-border animate-pulse" style={{ opacity: 1 - i * 0.25 }} />
             </div>
           ))}
-          <p className="text-center text-sm text-slate-400">{t('student.loadingLessons', 'Loading your lessons…')}</p>
+          <p className="text-center text-sm text-wa-muted">{t('student.loadingLessons', 'Loading your lessons…')}</p>
         </div>
       ) : unitsError ? (
         <div className="mx-4 bg-wa-paper rounded-wa-card p-8 shadow-wa-card border border-wa-terra/30 text-center">
-          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle size={32} className="text-red-500" />
+          <div className="w-16 h-16 bg-wa-terra/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle size={32} className="text-wa-terra" />
           </div>
-          <h3 className="font-bold text-slate-800 mb-1">{t('student.loadLessonsFailed', 'Couldn\'t load your lessons')}</h3>
-          <p className="text-sm text-slate-500 mb-5">{unitsError}</p>
+          <h3 className="font-bold text-wa-ink mb-1">{t('student.loadLessonsFailed', 'Couldn\'t load your lessons')}</h3>
+          <p className="text-sm text-wa-muted mb-5">{unitsError}</p>
           <button
             onClick={() => loadUnits()}
             className="px-6 py-3 bg-wa-teal text-white font-wa-display rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
@@ -187,8 +187,8 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
           <div className="w-16 h-16 bg-wa-teal/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen size={32} className="text-wa-teal" />
           </div>
-          <h3 className="font-bold text-slate-800 mb-1">{t('student.noLessonsYet', 'No lessons yet')}</h3>
-          <p className="text-sm text-slate-500 mb-5">{t('student.noLessonsHint', 'Join a class with the code from your teacher to see your lessons here.')}</p>
+          <h3 className="font-bold text-wa-ink mb-1">{t('student.noLessonsYet', 'No lessons yet')}</h3>
+          <p className="text-sm text-wa-muted mb-5">{t('student.noLessonsHint', 'Join a class with the code from your teacher to see your lessons here.')}</p>
           <div className="flex flex-col items-center gap-3">
             {onJoinClass && (
               <button
