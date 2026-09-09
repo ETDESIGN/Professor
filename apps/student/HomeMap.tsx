@@ -105,7 +105,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
       <div className="bg-wa-paper mx-4 mt-6 mb-8 rounded-wa-card p-4 shadow-wa-card border border-wa-border">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-wa-display font-semibold text-wa-ink flex items-center gap-2">
-            <Target size={20} className="text-orange-500" /> {t('student.dailyQuests', 'Daily Quests')}
+            <Target size={20} className="text-wa-terra" /> {t('student.dailyQuests', 'Daily Quests')}
           </h2>
           <span className="text-sm font-bold text-wa-muted">{t('student.timeLeft', { defaultValue: '{{hours}}h left', hours: hoursLeft })}</span>
         </div>
@@ -116,8 +116,8 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-bold text-slate-700">{t('student.questEarnXp', { defaultValue: 'Earn {{xp}} XP', xp: xpGoal })}</span>
-                <span className="text-sm font-bold text-slate-400">{Math.min(studentXp, xpGoal)}/{xpGoal}</span>
+                <span className="text-sm font-bold text-wa-ink">{t('student.questEarnXp', { defaultValue: 'Earn {{xp}} XP', xp: xpGoal })}</span>
+                <span className="text-sm font-bold text-wa-muted">{Math.min(studentXp, xpGoal)}/{xpGoal}</span>
               </div>
               <div className="h-2 bg-wa-border/60 rounded-full overflow-hidden">
                 <div className="h-full bg-wa-terra rounded-full" style={{ width: `${xpProgress * 100}%` }}></div>
@@ -130,8 +130,8 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-bold text-slate-700">{t('student.questLessons', 'Complete 2 Lessons')}</span>
-                <span className="text-sm font-bold text-slate-400">{Math.min(completedUnitIds.length, 2)}/2</span>
+                <span className="text-sm font-bold text-wa-ink">{t('student.questLessons', 'Complete 2 Lessons')}</span>
+                <span className="text-sm font-bold text-wa-muted">{Math.min(completedUnitIds.length, 2)}/2</span>
               </div>
               <div className="h-2 bg-wa-border/60 rounded-full overflow-hidden">
                 <div className="h-full bg-wa-teal rounded-full" style={{ width: `${Math.min(completedUnitIds.length / 2, 1) * 100}%` }}></div>
@@ -146,7 +146,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
                   <span className="text-sm font-bold text-slate-700">{t('student.questKeepStreak', 'Keep your streak!')}</span>
-                  <span className="text-sm font-bold text-green-500">{t('student.streakDays', { defaultValue: '{{n}} days', n: studentStreak })}</span>
+                  <span className="text-sm font-bold text-wa-teal">{t('student.streakDays', { defaultValue: '{{n}} days', n: studentStreak })}</span>
                 </div>
               </div>
             </div>
