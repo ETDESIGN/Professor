@@ -110,7 +110,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-wa-display text-[22px] text-wa-ink leading-none">{t('student.dailyQuests', 'Daily Quests')}</h1>
+                <h1 className="font-wa-display font-bold text-[22px] text-wa-ink leading-none">{t('student.dailyQuests', 'Daily Quests')}</h1>
                 <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold tracking-wide uppercase border border-amber-300">
                   New Daily
                 </span>
@@ -124,11 +124,11 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
           <div className="flex items-center gap-1.5">
             <div className="flex items-center gap-1 bg-white/90 border-2 border-[#EBDCC7] rounded-full px-2.5 py-1 shadow-sm">
               <span className="text-xs">⚡</span>
-              <span className="font-wa-display text-xs font-bold text-amber-600">{stats.xp}</span>
+              <span className="font-wa-display font-bold text-xs text-amber-600">{stats.xp}</span>
             </div>
             <div className="flex items-center gap-1 bg-white/90 border-2 border-[#EBDCC7] rounded-full px-2.5 py-1 shadow-sm">
               <span className="text-xs">💎</span>
-              <span className="font-wa-display text-xs font-bold text-teal-600">{stats.gems}</span>
+              <span className="font-wa-display font-bold text-xs text-teal-600">{stats.gems}</span>
             </div>
           </div>
         </div>
@@ -145,7 +145,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h2 className="font-wa-display text-[19px] text-wa-ink leading-none">
+                  <h2 className="font-wa-display font-bold text-[19px] text-wa-ink leading-none">
                     {streak > 0 ? `${streak} Day Streak!` : 'Start Your Streak!'}
                   </h2>
                   {streak >= 3 && (
@@ -186,7 +186,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
               <span className="text-xl">{chestPercent >= 100 ? '🎁' : '🔒'}</span>
-              <h3 className="font-wa-display text-[16px] text-wa-ink leading-none">{t('student.dailyGoal', 'Daily Goal')}</h3>
+              <h3 className="font-wa-display font-bold text-[16px] text-wa-ink leading-none">{t('student.dailyGoal', 'Daily Goal')}</h3>
             </div>
             <span className="text-[11px] font-extrabold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
               {claimedCount} / {quests.length} Quests
@@ -225,7 +225,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
         {/* Today's Quests */}
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between px-1">
-            <h3 className="font-wa-display text-[17px] text-wa-ink flex items-center gap-1.5">
+            <h3 className="font-wa-display font-bold text-[17px] text-wa-ink flex items-center gap-1.5">
               <span>🎯 Today's Quests</span>
               <span className="text-xs font-bold text-wa-ink/50">({completedCount} of {quests.length} done)</span>
             </h3>

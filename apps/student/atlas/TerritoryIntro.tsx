@@ -22,7 +22,7 @@ export function TerritoryIntro({ unit, theme, lessonsCount, crowns, isLocked, on
           <span className="text-[10px] font-wa-display font-bold uppercase tracking-widest text-wa-teal">
             New Territory
           </span>
-          <h2 className="font-wa-display font-semibold text-xl text-wa-ink leading-tight">{unit.title}</h2>
+          <h2 className="font-wa-display font-bold text-xl text-wa-ink leading-tight">{unit.title}</h2>
           <p className="text-sm text-wa-muted mt-1">{theme.tagline}</p>
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <span className="text-xs font-bold text-wa-ink bg-wa-mist px-2.5 py-1 rounded-full">
@@ -39,7 +39,7 @@ export function TerritoryIntro({ unit, theme, lessonsCount, crowns, isLocked, on
       <button
         onClick={onStart}
         disabled={isLocked}
-        className="mt-4 w-full bg-wa-teal text-white font-wa-display font-semibold py-3 rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none hover:brightness-105 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+        className="mt-4 w-full bg-wa-teal text-white font-wa-display font-bold py-3 rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none hover:brightness-105 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
       >
         <Play size={18} fill="currentColor" /> START!
       </button>

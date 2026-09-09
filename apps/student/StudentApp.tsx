@@ -257,7 +257,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
           <div className="flex gap-2 items-center">
             <button
               onClick={() => setShowJoinClassModal(true)}
-              className="flex items-center gap-1 text-white text-sm font-wa-display bg-wa-teal px-3 py-1.5 rounded-full shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all"
+              className="flex items-center gap-1 text-white text-sm font-wa-display font-bold bg-wa-teal px-3 py-1.5 rounded-full shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all"
             >
               <Users size={15} />
               <span>{t('student.joinClass')}</span>
@@ -334,7 +334,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                                 </div>
                                 <button
                                   onClick={() => handleMarkAsDone(assignment.id)}
-                                  className="ml-2 px-3 py-1.5 bg-wa-teal text-white text-xs font-wa-display rounded-full shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all"
+                                  className="ml-2 px-3 py-1.5 bg-wa-teal text-white text-xs font-wa-display font-bold rounded-full shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all"
                                 >
                                   {t('student.markDone')}
                                 </button>
@@ -371,35 +371,35 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <Home size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.learn')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display font-bold">{t('nav.learn')}</span>
         </button>
         <button
           onClick={() => navigate('/student/leaderboard')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/leaderboard' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <Trophy size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.rank')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display font-bold">{t('nav.rank')}</span>
         </button>
         <button
           onClick={() => navigate('/student/quests')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/quests' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <BookOpen size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.quests')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display font-bold">{t('nav.quests')}</span>
         </button>
         <button
           onClick={() => navigate('/student/shop')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/shop' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <ShoppingBag size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.shop')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display font-bold">{t('nav.shop')}</span>
         </button>
         <button
           onClick={() => navigate('/student/profile')}
           className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/profile' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <User size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.profile')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display font-bold">{t('nav.profile')}</span>
         </button>
       </nav>
 
@@ -421,7 +421,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-wa-display text-wa-ink">{t('student.joinClass')}</h2>
+                <h2 className="text-xl font-wa-display font-bold text-wa-ink">{t('student.joinClass')}</h2>
                 <button
                   onClick={() => setShowJoinClassModal(false)}
                   className="text-wa-muted hover:text-wa-ink"
@@ -485,7 +485,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   }
                 }}
                 disabled={isJoining || classCodeInput.length !== 6}
-                className="w-full bg-wa-teal text-white font-wa-display py-3 rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full bg-wa-teal text-white font-wa-display font-bold py-3 rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {isJoining ? t('common.loading') : t('student.joinClass')}
               </button>
