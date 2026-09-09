@@ -1,6 +1,6 @@
 # Unscramble — v3 Quality Audit (`UNSCRAMBLE (alias SCRAMBLE)`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **stitch-in-flight (wave 1)** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/12-unscramble-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -206,6 +206,8 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 ## §5 ⬜ Google Stitch prompt
 
 *(ZCode writes this AFTER §4 is filled.)*
+
+**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **U1 clear task frame (photo + prompt + runway + distractors marked)** and **U2 partially assembled snap-fit**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/12-unscramble/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
 
 ## §6 ⬜ Stitch output & implementation notes
 

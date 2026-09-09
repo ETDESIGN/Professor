@@ -1,6 +1,6 @@
 # Phonics Arena — v3 Quality Audit (`PHONICS_ARENA`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **stitch-in-flight (wave 1)** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/22-phonics-arena-idle.png` — empty state (no phonics items) — code-anchored.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -185,6 +185,8 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 ## §5 ⬜ Google Stitch prompt
 
 *(ZCode writes this AFTER §4 is filled.)*
+
+**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **PH1 sound duel auto-play (randomized tablets)** and **PH2 metered replay −1pt**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/22-phonics-arena/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
 
 ## §6 ⬜ Stitch output & implementation notes
 

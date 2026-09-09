@@ -1,6 +1,6 @@
 # Vocab Blitz — v3 Quality Audit (`VOCAB_BLITZ`)
 
-> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
+> **Status:** **stitch-in-flight (wave 1)** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/32-vocab-blitz-idle.png` — captured at the confidence-bet screen — the §2 per-question re-ask.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -155,6 +155,8 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 ## §5 ⬜ Google Stitch prompt
 
 *(ZCode writes this AFTER §4 is filled.)*
+
+**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **V1 once-per-turn confidence gate** and **V2 sprint with locked 2x badge + stadium timer**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/32-vocab-blitz/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
 
 ## §6 ⬜ Stitch output & implementation notes
 
