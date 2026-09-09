@@ -214,6 +214,10 @@ const supabaseUpdateUnit = async (id: string, updates: Partial<LessonUnit>): Pro
     if (updates.status !== undefined) row.status = updates.status;
     if (updates.lessons !== undefined) row.lessons = updates.lessons;
     if (updates.coverImage !== undefined) row.cover_image = updates.coverImage;
+    if (updates.theme !== undefined) row.theme = updates.theme;
+    if (updates.tagline !== undefined) row.tagline = updates.tagline;
+    if (updates.mascotName !== undefined) row.mascot_name = updates.mascotName;
+    if (updates.mascotEmoji !== undefined) row.mascot_emoji = updates.mascotEmoji;
     if (updates.topic !== undefined) row.topic = updates.topic;
     if (updates.scannedAssets !== undefined) row.scanned_assets = updates.scannedAssets;
     if (updates.studentPath !== undefined) row.student_path = updates.studentPath;
