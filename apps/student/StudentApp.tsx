@@ -289,7 +289,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   {/* Pending Assignments Section */}
                   <div className="mx-4 mt-4 mb-2">
                     <div className="flex items-center gap-2 mb-3">
-                      <FileText size={20} className="text-orange-500" />
+                      <FileText size={20} className="text-wa-terra" />
                       <h2 className="font-bold text-wa-ink">{t('student.pendingHomework')}</h2>
                       {assignments.filter(a => a.student_status === 'pending').length > 0 && (
                         <span className="bg-wa-terra/15 text-wa-terra text-xs font-bold px-2 py-0.5 rounded-full">
@@ -299,7 +299,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                     </div>
                     <div className="space-y-2">
                       {loadingAssignments ? (
-                        <div className="bg-white rounded-xl p-4 text-center text-slate-500">
+                        <div className="bg-wa-paper rounded-wa-tile p-4 text-center text-wa-muted">
                           {t('common.loading')}
                         </div>
                       ) : assignments.filter(a => a.student_status === 'pending').length === 0 ? (
@@ -308,7 +308,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                             <CheckCircle size={32} className="text-wa-teal" />
                           </div>
                           <h3 className="font-bold text-wa-ink mb-1">{t('student.allCaughtUp')}</h3>
-                          <p className="text-sm text-slate-500">{t('student.noPendingHomework')}</p>
+                          <p className="text-sm text-wa-muted">{t('student.noPendingHomework')}</p>
                         </div>
                       ) : (
                         assignments
@@ -323,7 +323,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                                 <div className="flex-1">
                                   <h3 className="font-bold text-wa-ink text-sm">{assignment.title}</h3>
                                   {assignment.class_name && (
-                                    <p className="text-xs text-slate-500 mt-1">{assignment.class_name}</p>
+                                    <p className="text-xs text-wa-muted mt-1">{assignment.class_name}</p>
                                   )}
                                   {assignment.due_date && (
                                     <div className="flex items-center gap-1 mt-2 text-xs text-wa-terra">
