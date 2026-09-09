@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Search - Classroom Projection View</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary-fixed": "#1a1000",
+            "inverse-on-surface": "#0a0a12",
+            "secondary-fixed-dim": "#00e6b8",
+            "surface-dim": "#070b14",
+            "surface": "#0b1120",
+            "on-primary-container": "#ffe0ec",
+            "on-secondary-fixed": "#001a1a",
+            "primary-container": "#b3004e",
+            "surface-variant": "#141c2e",
+            "secondary-fixed": "#c0fff4",
+            "on-error-container": "#ffa0a0",
+            "primary-fixed-dim": "#ff80aa",
+            "surface-bright": "#1a243a",
+            "on-tertiary": "#1a1000",
+            "surface-container-low": "#090e18",
+            "tertiary-fixed": "#fff0c0",
+            "on-surface": "#e8e0f0",
+            "primary-fixed": "#ffe0ec",
+            "surface-container-high": "#192238",
+            "background": "#070b14",
+            "on-secondary": "#001a1a",
+            "primary": "#ff2d78",
+            "on-tertiary-container": "#fff0c0",
+            "surface-container-highest": "#222c46",
+            "on-error": "#1a0000",
+            "error": "#ff4444",
+            "surface-container-lowest": "#05080f",
+            "inverse-primary": "#8c0038",
+            "secondary": "#00ffcc",
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-tertiary-fixed-variant": "#665200",
+            "tertiary-container": "#665200",
+            "on-primary": "#1a0010",
+            "on-primary-fixed": "#3d0020",
+            "surface-tint": "#ff2d78",
+            "outline": "#334155",
+            "inverse-surface": "#e8e0f0",
+            "secondary-container": "#004d3d",
+            "error-container": "#3d0f0f",
+            "on-background": "#e8e0f0",
+            "outline-variant": "#1e293b",
+            "surface-container": "#0f172a",
+            "tertiary": "#ffe04a",
+            "on-secondary-container": "#c0fff4",
+            "on-surface-variant": "#94a3b8",
+            "on-primary-fixed-variant": "#8c0038",
+            "tertiary-fixed-dim": "#ffe04a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1.25rem",
+            "3xl": "2rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Fredoka", "Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 28;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Neon Tokyo Projector Atmospheric Glows */
+    .bg-grid-cyber {
+      background-size: 60px 60px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+    }
+    
+    .neon-pink-glow {
+      box-shadow: 0 0 35px rgba(255, 45, 120, 0.45), inset 0 0 15px rgba(255, 255, 255, 0.2);
+    }
+    
+    .neon-pink-glow:hover {
+      box-shadow: 0 0 50px rgba(255, 45, 120, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+    
+    .card-glow {
+      box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 255, 204, 0.15);
+    }
+    
+    .text-glow-secondary {
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body overflow-hidden select-none m-0 p-0 antialiased">
+<!-- 16:9 Projector Screen Frame (Optimized for 1920x1080 canvas) -->
+<main class="w-screen h-screen relative flex flex-col justify-between overflow-hidden bg-gradient-to-b from-[#070b14] via-[#090f1d] to-[#070b14] bg-grid-cyber">
+<!-- Ambient Atmospheric Backlight (Cyan & Hot-Pink Diffused Orbs) -->
+<div class="absolute -top-36 left-1/2 -translate-x-1/2 w-[900px] h-[350px] bg-secondary/10 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 w-[700px] h-[260px] bg-primary/10 rounded-full blur-[130px] pointer-events-none"></div>
+<!-- HEADER: TopNavBar Shared Component Specification -->
+<header class="bg-surface-dim flex justify-between items-center w-full px-10 py-5 max-w-full docked full-width top-0 border-b border-outline-variant/60 shadow-none z-30">
+<!-- Top-Left Brand Anchor & Classroom Metadata -->
+<div class="flex items-center gap-5">
+<!-- Logo Emblem -->
+<div class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center font-display font-bold text-3xl shadow-[0_0_20px_rgba(255,45,120,0.5)]">
+          W
+        </div>
+<!-- Product Brand Name -->
+<h1 class="font-headline font-bold text-3xl text-primary tracking-wide flex items-center gap-2">
+          Word Search
+        </h1>
+<span class="text-outline-variant font-light text-2xl mx-1">|</span>
+<!-- Round Level Badge (JSON string exact match) -->
+<div class="px-4 py-1.5 rounded-full bg-surface-variant border border-outline-variant text-on-surface font-label text-sm tracking-wider uppercase flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+          Round 1 · Starter
+        </div>
+<!-- Classroom Mode Chip -->
+<div class="px-4 py-1.5 rounded-full bg-secondary/10 border border-secondary/30 text-secondary font-label text-sm tracking-wide flex items-center gap-2">
+<span class="text-base">🖐</span>
+<span>Whole class — hands up</span>
+</div>
+</div>
+<!-- Top-Right Actions & Sync Console -->
+<div class="flex items-center gap-6">
+<!-- Teacher Live Sync Indicator -->
+<div class="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-surface-container-high border border-outline-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_8px_#00ffcc] animate-ping"></span>
+<span class="font-label text-xs tracking-wider uppercase text-on-surface-variant">Teacher Console Connected · Live Synced</span>
+</div>
+<!-- Trailing Action Icons from JSON: volume_up, settings, fullscreen -->
+<div class="flex items-center gap-2 border-l border-outline-variant/80 pl-5">
+<button class="w-11 h-11 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95" title="Volume">
+<span class="material-symbols-outlined" data-icon="volume_up" style="font-size: 26px;">volume_up</span>
+</button>
+<button class="w-11 h-11 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings" style="font-size: 26px;">settings</span>
+</button>
+<button class="w-11 h-11 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95" title="Fullscreen">
+<span class="material-symbols-outlined" data-icon="fullscreen" style="font-size: 26px;">fullscreen</span>
+</button>
+</div>
+</div>
+</header>
+<!-- MAIN STAGE: Center Projector Canvas (Legible from 5-8 meters) -->
+<section class="flex-1 flex flex-col items-center justify-center px-12 py-2 z-20 max-w-7xl mx-auto w-full text-center">
+<!-- Stage Header Group -->
+<div class="flex flex-col items-center mb-6">
+<!-- Difficulty Pill Badge -->
+<div class="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-surface-variant/90 border border-secondary/40 text-secondary font-label text-base tracking-widest uppercase mb-4 shadow-[0_0_15px_rgba(0,255,204,0.15)]">
+<span class="material-symbols-outlined text-lg" data-icon="explore">explore</span>
+<span>Round 1 · Starter · → ↓ only</span>
+<div class="flex items-center gap-0.5 text-secondary font-bold">
+<span>→</span>
+<span>↓</span>
+</div>
+</div>
+<!-- Main Projector-Scale Headline (Legible at 8m) -->
+<h2 class="text-6xl xl:text-7xl font-display font-extrabold text-white tracking-tight leading-none mb-3 drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
+          Find these 5 words
+        </h2>
+<!-- High-Contrast Sub-headline -->
+<p class="text-2xl xl:text-3xl font-body font-medium text-slate-300 tracking-wide flex items-center gap-3">
+<span class="text-secondary text-glow-secondary">Listen,</span>
+<span>say them,</span>
+<span class="text-primary font-semibold">then search!</span>
+</p>
+</div>
+<!-- CENTER ARC DISPLAY: 5 Textless Photographic White Cards in Curved Fan Array -->
+<div class="w-full flex items-center justify-center gap-5 xl:gap-7 py-4 my-2 px-4">
+<!-- Card 1: Green Tractor (Tilted -4deg, slightly lowered) -->
+<div class="w-56 h-72 xl:w-64 xl:h-80 bg-white rounded-3xl p-3 card-glow transition-all duration-300 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(0,255,204,0.4)] flex flex-col -rotate-[4deg] translate-y-3 cursor-pointer group">
+<div class="w-full h-full rounded-2xl overflow-hidden relative bg-slate-100">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A vivid modern bright green farm tractor parked in a lush sunny agricultural field under a clear blue sky. The tractor features crisp metallic details, huge textured tires, and reflective glass windows. Cinematic high-definition daylight, ultra clean studio clarity, vivid natural greens and deep earthy tones tailored for high-legibility educational display." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPeAcglNqRTXWwCgetmwKO2GW4NXqgV0UKqNejzGb-aZ-9txIc0WRGpX51CIlVCGxIwYIeXKx_4DwFsqs2RZbGz3mOMmVSyamzoCrVhn38mSJP7ou8i7FTm4fQ_IsKpAB73p1GaB1dPhd9vRSoV-WaCaXCk5dUJUmVb0f6BBDEzwaVZ-Rvy4Ul7hG7Xo8YZLaP2TBoczSzv7CBpXIuqmSfVGdzclfzpoUgZvy7lGKzkXl0CsRlKuva4Q"/>
+</div>
+</div>
+<!-- Card 2: Fresh Green Leaf / Foliage (Tilted -2deg) -->
+<div class="w-56 h-72 xl:w-64 xl:h-80 bg-white rounded-3xl p-3 card-glow transition-all duration-300 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(0,255,204,0.4)] flex flex-col -rotate-[2deg] -translate-y-1 cursor-pointer group">
+<div class="w-full h-full rounded-2xl overflow-hidden relative bg-slate-100">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A macro high-definition photograph of a vibrant emerald green tropical monstera leaf glistening with crystal-clear morning dew drops. The intricate leaf veins and textured botanical patterns are vividly sharp against a softly blurred natural forest background. High color saturation, crisp studio natural lighting, clean educational visual clarity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1451URTP_MPbqTEp8l_Q_4qpva8Swh9LIs2NCBpoJzoWT-MSDkP2y8-nWNTgFToX7KDmquWX7F9RQdl_b8ZOSzBGhh-HKfFvAVQ5QtQuS1TBj78XJ3DJQQmtV588IQVcx5mOJBmI8CPZBOgmPvxYd5-XJaHBncQpE0DyAE2nRef572_Mn0hho8BuEH6no0Uuaets9hbZ5m5fdDKpncIonAddJL-Y7S3q11RyDKNI7PZ3ZM6GcTQ5XQQ"/>
+</div>
+</div>
+<!-- Card 3: Clear Mountain River (Center Apex, Elevated) -->
+<div class="w-56 h-72 xl:w-64 xl:h-80 bg-white rounded-3xl p-3 card-glow transition-all duration-300 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_40px_rgba(255,45,120,0.35)] flex flex-col rotate-0 -translate-y-5 cursor-pointer group ring-4 ring-primary/40">
+<div class="w-full h-full rounded-2xl overflow-hidden relative bg-slate-100">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A crystal-clear turquoise alpine mountain river cascading through a pristine mountain valley with smooth pebble banks and pine trees in the background. Bright crisp daylight highlights the sparkling flowing water and sunlit river stones. Vibrant scenic landscape photography with exceptional sharpness and contrast for projector visibility." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBcPhkFHal0UNNJyNUe3ZkRoJ68CWLBxnW2irxI4NSvgHsLeNa-0gGvMPYquOU24Q5q5KTN2Kjz19hXLwCxqbzWuqnH_--AjVrCcw6PuWE2e6sEdN-9ymQIwvZyuvLUCpvnStgNvncc0cz5HK17esUs6CJLqOUV9IXR4mhYLtzErXneJ3ehjDzip-m7gPklMHqGIvSDISJCeE_k3wD6EYBciKamTHtXtsHB22CcfVIqfDkLV16JMKXSA"/>
+</div>
+</div>
+<!-- Card 4: Bright Red Ripe Apple (Tilted +2deg) -->
+<div class="w-56 h-72 xl:w-64 xl:h-80 bg-white rounded-3xl p-3 card-glow transition-all duration-300 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(0,255,204,0.4)] flex flex-col rotate-[2deg] -translate-y-1 cursor-pointer group">
+<div class="w-full h-full rounded-2xl overflow-hidden relative bg-slate-100">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A single plump shiny bright crimson red apple with a tiny green leaf on its natural wooden stem, resting on a clean minimalist surface. Studio lighting casts soft shadows while accentuating the glossy red skin and sparkling micro-droplets. High contrast, ultra vibrant fruit photography perfect for immediate recognition by young students." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAw0tJvVp2ipewjpbw9zgqITpxUobgvMeT5m-9Qk0TNI8sYJ2Lz6TowycPNZeLVfo_AIjHBNch-tYbusttVx10R2fy7QOuBbMddQ_uHZVGyY9Ld8eV4apvCXaoJq6stRemF0fKtOooaeM6abkahSPJ5jRcOQKdV7boBCG8yZh06iuEiipLVNRnI6CyBlMJw4SGOQrPKjLJEh_VV2TIWovinG3zChx7LREcT6A0rYGDvy6Eg2UVpwuxhg"/>
+</div>
+</div>
+<!-- Card 5: Smooth River Rock / Stone (Tilted +4deg, slightly lowered) -->
+<div class="w-56 h-72 xl:w-64 xl:h-80 bg-white rounded-3xl p-3 card-glow transition-all duration-300 hover:scale-105 hover:-translate-y-2 hover:shadow-[0_0_35px_rgba(0,255,204,0.4)] flex flex-col rotate-[4deg] translate-y-3 cursor-pointer group">
+<div class="w-full h-full rounded-2xl overflow-hidden relative bg-slate-100">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A smooth rounded natural dark grey river stone balanced in zen harmony against a warm neutral clean surface. Soft rim lighting emphasizes the smooth mineral textures and tactile pebble form with rich organic tones. Clean high-resolution still life photography with high contrast and zero clutter." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkq-Ga7OaDJjDSdFxithnddkRbgKeEPzybhye1YBqml1Br0ShpT9fZZEHc-ZwS0OUw_gn_fBIV6WAEwkQkPuLFm8VmmCMUkol6bzKUpoVAXoS7c237TICBYLZEry6kEkgvscl0XU0H4hXj3edspW5scCs_Xk-kh6FmlKpNR8Lf7k1vCK8JAGCc8lOrjhPTbxfTHep81nXxmAmXWh5az-oLeXRRaAH-yvdu6B9xLPaxcNLKWr-XlRJpbg"/>
+</div>
+</div>
+</div>
+<!-- ACTION BAR: Primary Call to Action & Timer HUD -->
+<div class="flex items-center justify-center gap-6 mt-6">
+<!-- Hot-Pink Primary CTA Button -->
+<button class="flex items-center gap-4 bg-primary hover:bg-[#ff1468] text-white font-headline font-bold text-2xl px-12 py-5 rounded-2xl neon-pink-glow transition-all duration-200 active:scale-95 cursor-pointer tracking-wide border border-white/20">
+<span class="material-symbols-outlined text-3xl" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span>Start Round</span>
+</button>
+<!-- Sky-Blue Timer Indicator Chip -->
+<div class="flex items-center gap-3 bg-surface-variant/90 border-2 border-[#38BDF8]/60 px-7 py-4 rounded-2xl text-[#38BDF8] font-label font-bold text-2xl shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+<span class="material-symbols-outlined text-2xl animate-pulse" data-icon="timer">timer</span>
+<span class="tracking-wider text-3xl font-headline">2:00</span>
+</div>
+</div>
+</section>
+<!-- FOOTER HUD: Bottom Game Console Status Bar -->
+<footer class="w-full bg-surface-dim/95 border-t border-outline-variant/60 px-10 py-3.5 flex items-center justify-between text-on-surface-variant z-30">
+<!-- Class Score -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-tertiary/10 border border-tertiary/30 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-xl" data-icon="emoji_events" style="font-variation-settings: 'FILL' 1;">emoji_events</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant">Class Score:</span>
+<span class="font-headline font-bold text-xl text-tertiary tracking-wide">420 pts</span>
+</div>
+</div>
+<!-- Center Target Mission HUD -->
+<div class="flex items-center gap-3 px-6 py-1 rounded-full bg-surface-variant border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label text-sm tracking-wider uppercase text-on-surface font-semibold">5 Target Tokens Loaded</span>
+<span class="text-outline-variant">•</span>
+<span class="font-body text-xs text-on-surface-variant">Visual Memory Phase</span>
+</div>
+<!-- Teacher Sync & Console Status -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#00ffcc] shadow-[0_0_8px_#00ffcc]"></span>
+<span class="font-label text-xs tracking-wider uppercase text-slate-300">Station Active</span>
+</div>
+<span class="text-outline-variant">|</span>
+<span class="font-label text-xs text-on-surface-variant">1920×1080 Native 60Hz</span>
+</div>
+</footer>
+</main>
+</body></html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html><html lang="en" style=""><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head>
+<meta charset="utf-8">
+<meta content="width=1920, height=1080" name="viewport">
+<title>Classroom ESL Word-Search Screen</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@700;800&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Fredoka"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            night: {
+              950: '#070C18',
+              900: '#0B132B',
+              850: '#111C3D',
+              800: '#172554',
+              700: '#1E293B',
+            },
+            accent: {
+              pink: '#FF2E79',
+              emerald: '#10B981',
+              emeraldDark: '#059669',
+              amber: '#F59E0B',
+              amberLight: '#FBBF24',
+              sky: '#38BDF8',
+              skyDeep: '#0284C7',
+            }
+          },
+          boxShadow: {
+            'glow-pink': '0 0 24px -2px rgba(255, 46, 121, 0.45)',
+            'glow-amber': '0 0 28px 4px rgba(245, 158, 11, 0.55)',
+            'glow-emerald': '0 0 22px 2px rgba(16, 185, 129, 0.45)',
+            'glow-sky': '0 0 20px 2px rgba(56, 189, 248, 0.4)',
+            'card-deep': '0 20px 40px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      user-select: none;
+      background-color: #070C18;
+      background-image: 
+        radial-gradient(circle at 50% -10%, rgba(30, 58, 138, 0.35) 0%, transparent 55%),
+        radial-gradient(circle at 10% 90%, rgba(17, 28, 68, 0.6) 0%, transparent 45%),
+        radial-gradient(circle at 90% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+    }
+    .letter-grid-glow {
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(255, 255, 255, 0.09), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+    }
+    .amber-stroke-pill {
+      filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.65));
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between p-7 text-white font-sans antialiased box-border">
+<!-- ================= TOP HEADER BAR ================= -->
+<header class="w-full flex items-center justify-between px-2 h-16">
+<!-- Left: Brand, Mode, Badges -->
+<div class="flex items-center space-x-4">
+<!-- Hot-pink square badge "W" -->
+<div class="w-14 h-14 rounded-2xl bg-[#FF2E79] flex items-center justify-center text-white font-display font-bold text-3xl shadow-glow-pink">
+        W
+      </div>
+<div class="flex flex-col">
+<div class="flex items-center space-x-3">
+<h1 class="text-3xl font-display font-bold tracking-tight text-white drop-shadow-sm">Word Search</h1>
+<!-- Round 2 badge -->
+<span class="px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 font-sans shadow-sm">
+            Round 2 · Explorer
+          </span>
+</div>
+<p class="text-xs text-slate-400 font-medium mt-0.5">Projected Board · 5–8m Distance Optimized</p>
+</div>
+<!-- Mode Chip -->
+<div class="ml-4 flex items-center space-x-2 px-4 py-2 bg-[#111C3D] border border-blue-500/30 rounded-full text-sm font-semibold text-blue-200 shadow-inner">
+<span class="text-base">🖐</span>
+<span class="">Whole class — hands up</span>
+</div>
+</div>
+<!-- Center-ish Notification Toast: Alice found TRACTOR! -->
+<div class="flex items-center space-x-3.5 px-6 py-2.5 rounded-full bg-slate-900/90 border-2 border-emerald-500/60 shadow-glow-emerald backdrop-blur-md animate-pulse">
+<div class="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center text-white font-black text-sm">
+        ✓
+      </div>
+<div class="text-sm font-bold tracking-wide text-white flex items-center space-x-1.5">
+<span class="text-emerald-400 font-extrabold text-base">Alice</span>
+<span class="text-slate-200">found</span>
+<span class="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono font-black tracking-wider text-base">TRACTOR!</span>
+</div>
+<span class="ml-1 px-2.5 py-0.5 rounded-full bg-emerald-500 text-night-950 font-black text-xs font-display">
+        +2 PTS
+      </span>
+</div>
+<!-- Right: Sky-blue Pill Timer & Progress Bar -->
+<div class="flex flex-col items-end space-y-1.5">
+<div class="flex items-center space-x-3 px-6 py-2 rounded-full bg-[#38BDF8] text-night-950 shadow-glow-sky">
+<svg class="w-6 h-6 text-night-950" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<polyline points="12 6 12 12 16 14"></polyline>
+</svg>
+<span class="text-3xl font-mono font-black tracking-tight leading-none">1:24</span>
+</div>
+<!-- Slim progress bar below timer -->
+<div class="w-36 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
+<div class="h-full bg-gradient-to-r from-sky-400 to-sky-200 w-3/5 rounded-full"></div>
+</div>
+</div>
+</header>
+<!-- ================= MAIN PLAY AREA ================= -->
+<main class="w-full flex-1 flex items-center justify-center px-8 py-3 space-x-8 max-w-[1800px] mx-auto">
+<!-- CENTER / LEFT: 9x9 Large Word Search Grid (~58% width) -->
+<div class="relative w-[820px] aspect-square flex items-center justify-center flex-shrink-0">
+<!-- Container Slate Card -->
+<div class="w-full h-full bg-[#0F172A] border-2 border-slate-700/70 rounded-3xl p-6 letter-grid-glow relative flex flex-col justify-between">
+<!-- Subtle Grid Ambient Backdrop Pattern -->
+<div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-25 rounded-3xl pointer-events-none"></div>
+<!-- 9x9 Letters Matrix -->
+<div class="relative z-10 grid grid-cols-9 grid-rows-9 gap-2.5 w-full h-full">
+<!-- Row 1 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">K</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">F</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">M</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Q</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">X</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">W</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">P</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Z</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">N</div>
+<!-- Row 2 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">B</div>
+<!-- T (Start of TRACTOR diagonal: 2,2) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">T</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">S</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">U</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">N</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">G</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">D</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">L</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">E</div>
+<!-- Row 3 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">O</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">P</div>
+<!-- R (Diagonal step 2: 3,3) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">R</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">J</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">F</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">A</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">P</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">P</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">L</div>
+<!-- Row 4 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">H</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Y</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Z</div>
+<!-- A (Diagonal step 3: 4,4) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">A</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Q</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Y</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">E</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">B</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">A</div>
+<!-- Row 5 -->
+<div class="flex items-center justify-center text-emerald-400 font-display font-black text-4xl drop-shadow">R</div>
+<div class="flex items-center justify-center text-emerald-400 font-display font-black text-4xl drop-shadow">I</div>
+<div class="flex items-center justify-center text-emerald-400 font-display font-black text-4xl drop-shadow">V</div>
+<div class="flex items-center justify-center text-emerald-400 font-display font-black text-4xl drop-shadow">E</div>
+<!-- C (Diagonal step 4: 5,5) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">C</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">L</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">E</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">A</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">F</div>
+<!-- Row 6 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">V</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">M</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">W</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">K</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">K</div>
+<!-- T (Diagonal step 5: 6,6) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">T</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">M</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">C</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">O</div>
+<!-- Row 7 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">U</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Z</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">I</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">L</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">E</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">G</div>
+<!-- O (Diagonal step 6: 7,7) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">O</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">D</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">S</div>
+<!-- Row 8 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">G</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">E</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">T</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">R</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">O</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">P</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">H</div>
+<!-- R (Diagonal step 7: 8,8) -->
+<div class="flex items-center justify-center text-amber-200 font-display font-black text-5xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]">R</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Y</div>
+<!-- Row 9 -->
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">N</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">Q</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">C</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">W</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">A</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">B</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">J</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">P</div>
+<div class="flex items-center justify-center text-slate-300 font-display font-extrabold text-4xl">K</div>
+</div>
+<!-- SVG Overlay for precise diagonal selection stroke and found word highlight -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-20" preserveAspectRatio="none" viewBox="0 0 100 100">
+<defs>
+<filter height="140%" id="glow-amber" width="140%" x="-20%" y="-20%">
+<feGaussianBlur result="blur" stdDeviation="1.8"></feGaussianBlur>
+<feMerge>
+<feMergeNode in="blur"></feMergeNode>
+<feMergeNode in="SourceGraphic"></feMergeNode>
+</feMerge>
+</filter>
+<filter height="140%" id="glow-emerald-line" width="140%" x="-20%" y="-20%">
+<feGaussianBlur result="blur" stdDeviation="1.2"></feGaussianBlur>
+<feMerge>
+<feMergeNode in="blur"></feMergeNode>
+<feMergeNode in="SourceGraphic"></feMergeNode>
+</feMerge>
+</filter>
+</defs>
+<!-- FOUND WORD: "RIVER" horizontal strike/pill highlight (Row 5, Cols 1..5) -->
+<line filter="url(#glow-emerald-line)" opacity="0.32" stroke="#10B981" stroke-linecap="round" stroke-width="7.5" x1="7" x2="41" y1="50" y2="50"></line>
+<line fill="none" stroke="#10B981" stroke-dasharray="1 0" stroke-linecap="round" stroke-opacity="0.85" stroke-width="6.5" x1="7" x2="41" y1="50" y2="50"></line>
+<!-- ACTIVE SELECTION: TRACTOR (Diagonal from ~ (17, 17) to (83, 83)) -->
+<line filter="url(#glow-amber)" opacity="0.35" stroke="#F59E0B" stroke-linecap="round" stroke-width="8.2" x1="17.2" x2="82.8" y1="17.2" y2="82.8"></line>
+<line opacity="0.85" stroke="#FBBF24" stroke-linecap="round" stroke-width="6.5" x1="17.2" x2="82.8" y1="17.2" y2="82.8"></line>
+<line opacity="0.95" stroke="#FFFBEB" stroke-linecap="round" stroke-width="2.2" x1="17.2" x2="82.8" y1="17.2" y2="82.8"></line>
+</svg>
+</div>
+</div>
+<!-- RIGHT: Vertical Rail of 4 Target Tokens (~38% width) -->
+<div class="h-full max-h-[820px] flex flex-col justify-between py-1 pl-4 space-y-4 flex-shrink-0 w-[420px]">
+<div class="flex items-center justify-between pb-1 border-b border-slate-800">
+<span class="text-sm font-bold tracking-wider uppercase text-slate-400">Target Vocabulary (4)</span>
+<span class="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2.5 py-0.5 rounded-full">
+2 / 4 SOLVED
+</span>
+</div>
+<!-- Token 1: TRACTOR (FOUND STATE) -->
+<div class="w-full h-44 rounded-3xl bg-emerald-600 border-2 border-emerald-400/90 shadow-glow-emerald flex items-center p-5 relative overflow-hidden transition-transform">
+<div class="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-emerald-400/20 blur-2xl pointer-events-none"></div>
+<!-- Photo Card / Thumbnail -->
+<div class="rounded-2xl overflow-hidden bg-slate-900 border-2 border-white/40 shadow-md flex-shrink-0 relative w-20 h-20">
+<img alt="Tractor" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="absolute inset-0 bg-emerald-900/10"></div>
+</div>
+<!-- Found Details -->
+<div class="flex-1 flex flex-col justify-center ml-4">
+<div class="flex items-center space-x-3 mb-1">
+<h3 class="font-display font-black tracking-wider text-white drop-shadow text-2xl">TRACTOR</h3>
+<div class="w-8 h-8 rounded-full bg-white text-emerald-600 flex items-center justify-center font-black text-xl shadow-sm">
+✓
+</div>
+</div>
+<p class="text-emerald-100 text-sm font-semibold tracking-wide">Found on diagonal</p>
+<!-- Child Avatar of Finder (Alice) -->
+<div class="mt-3 flex items-center space-x-2.5 bg-emerald-700/60 w-fit px-3 py-1.5 rounded-full border border-emerald-400/30">
+<img alt="Alice" class="w-6 h-6 rounded-full object-cover border border-white" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="text-xs font-bold text-white tracking-wide">Solved by <span class="text-amber-300">Alice</span></span>
+</div>
+</div>
+</div>
+<!-- Token 2: RIVER (FOUND STATE) -->
+<div class="w-full h-44 rounded-3xl bg-emerald-600 border-2 border-emerald-400/90 shadow-glow-emerald flex items-center p-5 relative overflow-hidden">
+<div class="absolute -right-8 -bottom-8 w-44 h-44 rounded-full bg-emerald-400/20 blur-2xl pointer-events-none"></div>
+<!-- Photo Card / Thumbnail -->
+<div class="rounded-2xl overflow-hidden bg-slate-900 border-2 border-white/40 shadow-md flex-shrink-0 relative w-20 h-20">
+<img alt="River" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<div class="absolute inset-0 bg-emerald-900/10"></div>
+</div>
+<!-- Found Details -->
+<div class="flex-1 flex flex-col justify-center ml-4">
+<div class="flex items-center space-x-3 mb-1">
+<h3 class="font-display font-black tracking-wider text-white drop-shadow text-2xl">RIVER</h3>
+<div class="w-8 h-8 rounded-full bg-white text-emerald-600 flex items-center justify-center font-black text-xl shadow-sm">
+✓
+</div>
+</div>
+<p class="text-emerald-100 text-sm font-semibold tracking-wide">Found horizontal</p>
+<!-- Child Avatar of Finder (Leo) -->
+<div class="mt-3 flex items-center space-x-2.5 bg-emerald-700/60 w-fit px-3 py-1.5 rounded-full border border-emerald-400/30">
+<img alt="Leo" class="w-6 h-6 rounded-full object-cover border border-white" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+<span class="text-xs font-bold text-white tracking-wide">Solved by <span class="text-amber-300">Leo</span></span>
+</div>
+</div>
+</div>
+<!-- Token 3: GREEN LEAF (UNFOUND STATE) -->
+<div class="w-full h-44 rounded-3xl bg-white border-4 border-slate-200 shadow-2xl flex items-center p-5 relative overflow-hidden group">
+<div class="rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner flex-shrink-0 w-20 h-20">
+<img alt="Green Leaf Target" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+</div>
+<div class="flex-1 flex flex-col justify-center ml-4">
+<div class="flex items-center space-x-3">
+<div class="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-mono font-black text-2xl tracking-widest border border-slate-200">
+_ _ _ _
+</div>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-600">4 Letters</span>
+</div>
+<p class="text-slate-800 text-sm font-bold mt-2 flex items-center space-x-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+<span class="">Search the grid for this photo!</span>
+</p>
+</div>
+</div>
+<!-- Token 4: APPLE (UNFOUND STATE) -->
+<div class="w-full h-44 rounded-3xl bg-white border-4 border-slate-200 shadow-2xl flex items-center p-5 relative overflow-hidden group">
+<div class="rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner flex-shrink-0 w-20 h-20">
+<img alt="Red Apple Target" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg">
+</div>
+<div class="flex-1 flex flex-col justify-center ml-4">
+<div class="flex items-center space-x-3">
+<div class="px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-mono font-black text-2xl tracking-widest border border-slate-200">
+_ _ _ _ _
+</div>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-600">5 Letters</span>
+</div>
+<p class="text-slate-800 text-sm font-bold mt-2 flex items-center space-x-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+<span class="">Unsolved target</span>
+</p>
+</div>
+</div>
+</div>
+</main>
+<!-- ================= BOTTOM HUD ================= -->
+<footer class="w-full h-20 px-8 py-2 bg-[#0B132B]/95 border-t border-slate-800 rounded-2xl flex items-center justify-between shadow-2xl backdrop-blur-md">
+<!-- Left: 5 Large Progress Tokens (2 filled emerald with tiny word labels, 3 hollow) -->
+<div class="flex items-center space-x-4">
+<span class="text-xs font-black uppercase tracking-widest text-slate-400 mr-2">Team Quest</span>
+<!-- Token 1 (Filled Emerald: TRACTOR) -->
+<div class="flex flex-col items-center">
+<div class="w-11 h-11 rounded-xl bg-emerald-500 border-2 border-emerald-300 shadow-glow-emerald flex items-center justify-center text-night-950 font-black text-lg">
+          ✓
+        </div>
+<span class="text-[10px] font-mono font-extrabold uppercase text-emerald-300 mt-1 tracking-tight">TRACTOR</span>
+</div>
+<!-- Token 2 (Filled Emerald: RIVER) -->
+<div class="flex flex-col items-center">
+<div class="w-11 h-11 rounded-xl bg-emerald-500 border-2 border-emerald-300 shadow-glow-emerald flex items-center justify-center text-night-950 font-black text-lg">
+          ✓
+        </div>
+<span class="text-[10px] font-mono font-extrabold uppercase text-emerald-300 mt-1 tracking-tight">RIVER</span>
+</div>
+<!-- Token 3 (Hollow) -->
+<div class="flex flex-col items-center">
+<div class="w-11 h-11 rounded-xl border-2 border-dashed border-slate-600 bg-slate-900/60 flex items-center justify-center text-slate-500 font-mono font-bold text-sm">
+          3
+        </div>
+<span class="text-[10px] font-mono font-bold uppercase text-slate-500 mt-1 tracking-tight">TOKEN</span>
+</div>
+<!-- Token 4 (Hollow) -->
+<div class="flex flex-col items-center">
+<div class="w-11 h-11 rounded-xl border-2 border-dashed border-slate-600 bg-slate-900/60 flex items-center justify-center text-slate-500 font-mono font-bold text-sm">
+          4
+        </div>
+<span class="text-[10px] font-mono font-bold uppercase text-slate-500 mt-1 tracking-tight">TOKEN</span>
+</div>
+<!-- Token 5 (Hollow Star / Bonus) -->
+<div class="flex flex-col items-center">
+<div class="w-11 h-11 rounded-xl border-2 border-dashed border-amber-500/40 bg-slate-900/60 flex items-center justify-center text-amber-400/60 font-mono font-bold text-sm">
+          ★
+        </div>
+<span class="text-[10px] font-mono font-bold uppercase text-amber-500/60 mt-1 tracking-tight">BONUS</span>
+</div>
+</div>
+<!-- Center: Score & Class Status Info -->
+<div class="flex items-center space-x-6">
+<div class="flex items-center space-x-2 text-slate-300 font-semibold text-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+<span class="">Class Score: <span class="text-white font-mono font-black text-xl">420 pts</span></span>
+</div>
+<div class="h-6 w-px bg-slate-700"></div>
+<div class="text-xs text-slate-400 font-medium">
+        Teacher Console Connected · <span class="text-emerald-400 font-bold">Live Synced</span>
+</div>
+</div>
+<!-- Right: Hint Chip & Hot-Pink Clue Action Button -->
+<div class="flex items-center space-x-5">
+<!-- Amber chip: 💡 Hint · ½ pt -->
+<div class="flex items-center space-x-2 px-4 py-2 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold text-sm shadow-sm">
+<span class="">💡</span>
+<span class="font-sans">Hint · <span class="font-mono text-amber-200">½ pt</span></span>
+</div>
+<!-- Hot-pink primary action button: Clue (Hot pink used ONLY for primary action) -->
+<button class="px-8 py-3 rounded-2xl bg-[#FF2E79] hover:bg-[#ff176b] text-white font-display font-extrabold text-xl tracking-wider shadow-glow-pink flex items-center space-x-2.5 transition-all transform active:scale-95 cursor-pointer">
+<span class="">🔍</span>
+<span class="">CLUE</span>
+</button>
+</div>
+</footer>
+
+
+
+</body></html>

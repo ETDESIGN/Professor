@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Classroom Word Search - Selection and Feedback</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=Sora:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24..48,400..700,0..1,-50..200" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            headline: ['Fredoka', 'Sora', 'sans-serif'],
+            body: ['Plus Jakarta Sans', 'sans-serif'],
+            sora: ['Sora', 'sans-serif']
+          },
+          colors: {
+            brand: {
+              pink: '#ff2d78',
+              navy: '#090d16',
+              surface: '#0f172a',
+              card: '#1e293b',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              sky: '#38bdf8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .cell-letter {
+      font-feature-settings: "tnum";
+      user-select: none;
+    }
+    @keyframes pulseGlow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.7), inset 0 0 15px rgba(245, 158, 11, 0.4);
+        border-color: #fbbf24;
+      }
+      50% {
+        box-shadow: 0 0 35px rgba(245, 158, 11, 1), inset 0 0 25px rgba(245, 158, 11, 0.7);
+        border-color: #fef08a;
+      }
+    }
+    .start-cell-pulse {
+      animation: pulseGlow 1.8s infinite ease-in-out;
+    }
+    @keyframes subtleFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    .float-feedback {
+      animation: subtleFloat 3s infinite ease-in-out;
+    }
+  </style>
+</link></head>
+<body class="bg-[#070b13] text-white font-body min-h-screen flex flex-col justify-between overflow-hidden select-none antialiased">
+<!-- TOP HEADER -->
+<header class="w-full px-10 py-4 flex items-center justify-between border-b border-white/10 bg-[#0c121e]/80 backdrop-blur-md">
+<!-- Top Left Identity -->
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-brand-pink flex items-center justify-center font-headline font-bold text-2xl text-white shadow-lg shadow-brand-pink/30">
+        W
+      </div>
+<div>
+<div class="flex items-center gap-3">
+<h1 class="font-headline font-bold text-2xl tracking-wide text-white">Word Search</h1>
+<span class="px-3 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-xs font-semibold text-sky-400 tracking-wide">
+            Round 2 · Explorer
+          </span>
+<span class="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs font-medium text-amber-300 flex items-center gap-1.5">
+<span>🖐</span> Whole class — hands up
+          </span>
+</div>
+<p class="text-xs text-slate-400 font-medium tracking-wide">Projected Board · 5–8m Distance Optimized</p>
+</div>
+</div>
+<!-- Live Synced Toast / Central status -->
+<div class="flex items-center gap-3">
+<div class="px-4 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-sm font-semibold flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+<span class="text-xs uppercase tracking-wider text-emerald-400 font-bold">Live Synced</span>
+<span class="text-slate-400 font-normal">|</span>
+<span class="text-emerald-200">Teacher Console Connected</span>
+</div>
+</div>
+<!-- Top Right Timer -->
+<div class="flex items-center gap-6">
+<div class="flex flex-col items-end">
+<div class="flex items-center gap-2 bg-sky-950/80 border border-sky-400/50 px-5 py-2 rounded-full shadow-lg shadow-sky-950/50">
+<span class="material-symbols-rounded text-sky-400 text-2xl">schedule</span>
+<span class="font-headline font-bold text-2xl tracking-widest text-sky-300">1:24</span>
+</div>
+<div class="w-28 h-1.5 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
+<div class="h-full bg-sky-400 rounded-full" style="width: 68%;"></div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN WORKSPACE: Grid Area (Center/Left) + Target Deck (Right) -->
+<main class="flex-1 flex items-center justify-center px-12 py-3 gap-10 max-w-[1920px] mx-auto w-full">
+<!-- SEARCH ARENA & TEACHING HIGHLIGHTS (Dominant focal point) -->
+<div class="relative flex flex-col items-center">
+<!-- FEEDBACK TOAST (Top floating above grid) -->
+<div class="float-feedback mb-3 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-slate-900/90 to-emerald-500/20 border-2 border-amber-400/80 shadow-[0_0_30px_rgba(245,158,11,0.35)] backdrop-blur-xl flex items-center gap-4 z-20">
+<div class="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shadow-inner">
+<span class="material-symbols-rounded text-2xl">volume_up</span>
+</div>
+<div class="flex items-baseline gap-2.5">
+<span class="font-headline font-bold text-2xl text-white tracking-wide">River!</span>
+<span class="text-amber-200 font-semibold text-base tracking-normal">Say it:</span>
+<span class="font-headline font-bold text-2xl text-amber-300 tracking-wider">/ˈrɪvər/</span>
+</div>
+<div class="ml-2 pl-3 border-l border-white/20 flex items-center gap-1.5 text-xs uppercase tracking-wider text-emerald-400 font-bold">
+<span class="material-symbols-rounded text-base">check_circle</span>
+<span>Matched!</span>
+</div>
+</div>
+<!-- 9x9 WORD SEARCH GRID CONTAINER -->
+<div class="relative bg-[#0d1527] border-2 border-slate-700/80 rounded-3xl p-6 shadow-2xl shadow-black/80">
+<!-- SVG OVERLAY FOR SELECTION PATHS & MOTION TRAILS -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" preserveaspectratio="none" viewbox="0 0 650 650">
+<defs>
+<!-- Amber Live Stroke Filter -->
+<filter height="140%" id="amberGlow" width="140%" x="-20%" y="-20%">
+<fegaussianblur in="SourceGraphic" result="blur1" stddeviation="6"></fegaussianblur>
+<fegaussianblur in="SourceGraphic" result="blur2" stddeviation="14"></fegaussianblur>
+<femerge>
+<femergenode in="blur2"></femergenode>
+<femergenode in="blur1"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+<!-- Motion Trail Gradient for Flying Token -->
+<lineargradient id="emeraldMotionGrad" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#10b981" stop-opacity="0.0"></stop>
+<stop offset="60%" stop-color="#10b981" stop-opacity="0.4"></stop>
+<stop offset="100%" stop-color="#34d399" stop-opacity="0.9"></stop>
+</lineargradient>
+<lineargradient id="tokenTrailCurve" x1="0%" x2="100%" y1="0%" y2="50%">
+<stop offset="0%" stop-color="#10b981" stop-opacity="0.9"></stop>
+<stop offset="40%" stop-color="#10b981" stop-opacity="0.6"></stop>
+<stop offset="100%" stop-color="#059669" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- 1. LOCKED EMERALD WORD (TRACTOR) on diagonal -->
+<!-- Coordinates mapped across cells (col 1, row 1) to (col 7, row 7) -->
+<line opacity="0.35" stroke="#10b981" stroke-linecap="round" stroke-width="52" x1="108" x2="542" y1="172" y2="606"></line>
+<line opacity="0.75" stroke="#34d399" stroke-linecap="round" stroke-width="48" x1="108" x2="542" y1="172" y2="606"></line>
+<!-- 2. LIVE SELECTION PREVIEW (R-I-V-E-R on row 4 / index 4 horizontal) -->
+<!-- Letter positions: R(x:78), I(x:142), V(x:207), E(x:272), R(x:337) on y=362 -->
+<!-- Amber Glow Outer -->
+<line filter="url(#amberGlow)" opacity="0.7" stroke="#f59e0b" stroke-linecap="round" stroke-width="54" x1="78" x2="340" y1="362" y2="362"></line>
+<!-- Amber Solid Core -->
+<line opacity="0.9" stroke="#fbbf24" stroke-linecap="round" stroke-width="46" x1="78" x2="340" y1="362" y2="362"></line>
+<!-- Inner Core Bright line -->
+<line opacity="0.95" stroke="#fef08a" stroke-linecap="round" stroke-width="26" x1="78" x2="340" y1="362" y2="362"></line>
+<!-- 3. MOTION TRAIL ARC FROM LOCKED WORD FLYING TO THE FOUND RAIL -->
+<!-- Dynamic curved trajectory from bottom right of grid pointing outward to the right vocabulary rail -->
+<path d="M 520 580 C 580 570, 620 480, 650 380" fill="none" opacity="0.8" stroke="url(#tokenTrailCurve)" stroke-dasharray="8 6" stroke-linecap="round" stroke-width="8"></path>
+<path d="M 515 575 C 570 560, 610 470, 648 375" fill="none" opacity="0.9" stroke="#6ee7b7" stroke-linecap="round" stroke-width="3"></path>
+<!-- Glowing particle sparks along motion trail -->
+<circle cx="560" cy="540" fill="#34d399" opacity="0.8" r="4"></circle>
+<circle cx="595" cy="485" fill="#6ee7b7" opacity="0.9" r="5"></circle>
+<circle cx="625" cy="425" fill="#a7f3d0" opacity="0.8" r="3.5"></circle>
+</svg>
+<!-- 9x9 CSS Grid for Letters (Approx 600x600px) -->
+<div class="grid grid-cols-9 gap-2.5 w-[600px] h-[600px] relative z-10">
+<!-- Row 0 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">K</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">F</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">M</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Q</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">X</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">W</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Z</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">N</div>
+<!-- Row 1 (Starts TRACTOR at col 1) -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">B</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-white font-extrabold drop-shadow">T</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">S</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">U</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">N</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">G</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">D</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">L</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">E</div>
+<!-- Row 2 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">O</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-white font-extrabold drop-shadow">R</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">J</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">F</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">A</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">L</div>
+<!-- Row 3 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">H</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Y</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Z</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-white font-extrabold drop-shadow">A</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Q</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Y</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">E</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">B</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">A</div>
+<!-- Row 4: LIVE PREVIEW FOR RIVER (R-I-V-E-R) -->
+<!-- Col 0: START-CELL FOCUS RING ON 'R' -->
+<div class="relative flex items-center justify-center">
+<div class="absolute inset-0.5 rounded-2xl bg-amber-400/30 border-2 border-amber-300 start-cell-pulse flex items-center justify-center z-10">
+<!-- Animated target reticle dots -->
+<span class="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-amber-200"></span>
+<span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-200"></span>
+<span class="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-amber-200"></span>
+<span class="absolute -bottom-1 -right-1 w-2 h-2 rounded-full bg-amber-200"></span>
+</div>
+<span class="font-headline font-bold text-3xl text-amber-950 font-extrabold drop-shadow z-20">R</span>
+</div>
+<!-- Col 1: I (Amber Live preview) -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-amber-950 font-extrabold drop-shadow z-20">I</div>
+<!-- Col 2: V (Amber Live preview) -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-amber-950 font-extrabold drop-shadow z-20">V</div>
+<!-- Col 3: E (Amber Live preview + Diagonal Crossover 'C') -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-amber-950 font-extrabold drop-shadow z-20">E</div>
+<!-- Col 4: R (Amber Live preview End) -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-amber-950 font-extrabold drop-shadow z-20">R</div>
+<!-- Remainder of Row 4 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">L</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">E</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">A</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">F</div>
+<!-- Row 5 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">V</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">M</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">W</div>
+<div class="flex items-center justify-center font-headline font-bold text-slate-300 text-3xl">K</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-white font-extrabold drop-shadow">T</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">M</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">C</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">O</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">S</div>
+<!-- Row 6 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">U</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Z</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">I</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">L</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">E</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-white font-extrabold drop-shadow">O</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">D</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">S</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<!-- Row 7 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">G</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">E</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">T</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">R</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">O</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-white font-extrabold drop-shadow">R</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Y</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">H</div>
+<!-- Row 8 -->
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">N</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">Q</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">C</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">W</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">A</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">B</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">J</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">P</div>
+<div class="flex items-center justify-center font-headline font-bold text-3xl text-slate-300">K</div>
+</div>
+</div>
+<!-- AMBER HELPER CHIP (Near the grid bottom: hint, never the answer) -->
+<div class="mt-3.5 px-5 py-2 rounded-full bg-amber-500/15 border border-amber-400/60 shadow-lg shadow-amber-950/40 backdrop-blur-md flex items-center gap-2.5">
+<span class="material-symbols-rounded text-amber-400 text-xl animate-pulse">lightbulb</span>
+<span class="text-amber-200 text-sm font-semibold tracking-wide">
+          Look at the picture. Say the first sound.
+        </span>
+</div>
+</div>
+<!-- RIGHT: TARGET VOCABULARY RAIL (With Found Lock & Flying Token Effect) -->
+<div class="w-[410px] flex flex-col gap-3.5">
+<div class="flex items-center justify-between px-2">
+<span class="text-xs uppercase tracking-widest font-bold text-slate-400">Target Vocabulary (4)</span>
+<span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          2 / 4 Solved
+        </span>
+</div>
+<!-- CARD 1: TRACTOR (Found & Locked Emerald - Completed) -->
+<div class="relative bg-emerald-600/90 border-2 border-emerald-400 rounded-2xl p-3.5 flex items-center gap-4 shadow-lg shadow-emerald-950/60">
+<div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-900 border border-white/20 shrink-0">
+<img alt="Tractor" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-2xl text-white tracking-wide">TRACTOR</h3>
+<span class="material-symbols-rounded text-emerald-200 text-xl">check_circle</span>
+</div>
+<p class="text-xs text-emerald-100 font-medium mt-0.5">Found on diagonal</p>
+<div class="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-emerald-900/60 border border-emerald-300/30 text-[11px] font-semibold text-emerald-200">
+<span class="w-4 h-4 rounded-full bg-amber-400 text-slate-900 flex items-center justify-center font-bold text-[9px]">A</span>
+<span>Solved by Alice</span>
+</div>
+</div>
+</div>
+<!-- CARD 2: RIVER (Receiving the flying locked token with Motion Trail!) -->
+<div class="relative rounded-2xl p-0.5 bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500 shadow-xl shadow-emerald-500/30">
+<!-- Floating badge indicating token arrived/arriving -->
+<div class="absolute -top-3 -right-2 px-3 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-extrabold text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-md z-30 animate-bounce">
+<span class="material-symbols-rounded text-sm">bolt</span>
+<span>Just Found!</span>
+</div>
+<div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-[14px] p-3.5 flex items-center gap-4 relative overflow-hidden">
+<!-- Motion trail light sweep over card -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full animate-[shimmer_2s_infinite] pointer-events-none"></div>
+<div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-900 border border-white/30 shrink-0 relative shadow-md">
+<img alt="River" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+<!-- Arriving mini check stamp -->
+<div class="absolute inset-0 bg-emerald-500/20 backdrop-blur-[1px] flex items-center justify-center">
+<span class="material-symbols-rounded text-white text-3xl drop-shadow">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<h3 class="font-headline font-bold text-2xl text-white tracking-wide">RIVER</h3>
+<span class="material-symbols-rounded text-emerald-200 text-xl">verified</span>
+</div>
+<p class="text-xs text-emerald-100 font-semibold mt-0.5 flex items-center gap-1">
+<span>Found horizontal</span>
+<span class="text-emerald-300 font-bold">→</span>
+</p>
+<div class="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full bg-emerald-950/70 border border-emerald-300/40 text-[11px] font-semibold text-emerald-200">
+<span class="w-4 h-4 rounded-full bg-sky-400 text-slate-900 flex items-center justify-center font-bold text-[9px]">L</span>
+<span>Solved by Leo</span>
+</div>
+</div>
+</div>
+</div>
+<!-- CARD 3: LEAF (Unsolved target - Photo only + dashes, no text) -->
+<div class="bg-white rounded-2xl p-3.5 flex items-center gap-4 shadow-lg">
+<div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+<img alt="Leaf" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<div class="flex gap-2 text-slate-800 font-headline font-bold text-2xl">
+<span>_</span><span>_</span><span>_</span><span>_</span>
+</div>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">4 Letters</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-xs text-slate-500 font-medium">
+<span class="w-2 h-2 rounded-full bg-amber-400"></span>
+<span>Search the grid for this photo!</span>
+</div>
+</div>
+</div>
+<!-- CARD 4: APPLE (Unsolved target - Photo only + dashes, no text) -->
+<div class="bg-white rounded-2xl p-3.5 flex items-center gap-4 shadow-lg">
+<div class="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+<img alt="Apple" class="w-full h-full object-cover" src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"/>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<div class="flex gap-2 text-slate-800 font-headline font-bold text-2xl">
+<span>_</span><span>_</span><span>_</span><span>_</span><span>_</span>
+</div>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">5 Letters</span>
+</div>
+<div class="flex items-center gap-1.5 mt-2 text-xs text-slate-400 font-medium">
+<span class="w-2 h-2 rounded-full bg-slate-300"></span>
+<span>Unsolved target</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BOTTOM HUD / FOOTER BAR -->
+<footer class="w-full px-10 py-3.5 flex items-center justify-between border-t border-white/10 bg-[#090e18]/90 backdrop-blur-md">
+<!-- Team Quest / Word Progress Tokens -->
+<div class="flex items-center gap-4">
+<span class="text-xs uppercase tracking-wider font-bold text-slate-400">Team Quest</span>
+<div class="flex items-center gap-2">
+<!-- Token 1 (Found: Tractor) -->
+<div class="w-9 h-9 rounded-xl bg-emerald-500 flex flex-col items-center justify-center text-white shadow-md shadow-emerald-900/50">
+<span class="material-symbols-rounded text-base font-bold">check</span>
+<span class="text-[8px] font-bold uppercase -mt-1 tracking-tighter">Tractor</span>
+</div>
+<!-- Token 2 (Found: River) -->
+<div class="w-9 h-9 rounded-xl bg-emerald-500 flex flex-col items-center justify-center text-white shadow-md shadow-emerald-900/50 ring-2 ring-emerald-300 animate-pulse">
+<span class="material-symbols-rounded text-base font-bold">check</span>
+<span class="text-[8px] font-bold uppercase -mt-1 tracking-tighter">River</span>
+</div>
+<!-- Token 3 (Hollow) -->
+<div class="w-9 h-9 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/40 flex items-center justify-center text-slate-500 font-bold text-xs">
+          3
+        </div>
+<!-- Token 4 (Hollow) -->
+<div class="w-9 h-9 rounded-xl border-2 border-dashed border-slate-600 bg-slate-800/40 flex items-center justify-center text-slate-500 font-bold text-xs">
+          4
+        </div>
+<!-- Bonus Star -->
+<div class="w-9 h-9 rounded-xl border border-amber-500/40 bg-amber-500/10 flex items-center justify-center text-amber-400 text-sm">
+          ★
+        </div>
+</div>
+</div>
+<!-- Class Score Center Display -->
+<div class="flex items-center gap-3">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+<span class="text-sm font-medium text-slate-400">Class Score:</span>
+<span class="font-headline font-bold text-2xl text-white tracking-wide">440 <span class="text-xs text-amber-400 font-bold">+20 pts</span></span>
+</div>
+<!-- Teacher Help Chips & Primary Pink Clue Action -->
+<div class="flex items-center gap-4">
+<div class="px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-rounded text-base">lightbulb</span>
+<span>Hint · ½ pt</span>
+</div>
+<button class="px-6 py-2 rounded-xl bg-brand-pink hover:bg-pink-600 text-white font-headline font-bold text-sm tracking-wider uppercase flex items-center gap-2 shadow-lg shadow-brand-pink/40 active:scale-95 transition-all">
+<span class="material-symbols-rounded text-lg">search</span>
+<span>Clue</span>
+</button>
+</div>
+</footer>
+</body>
+</html>
