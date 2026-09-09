@@ -38,7 +38,7 @@ async function main() {
     }
     await sleep(1000);
   }
-  await page.screenshot({ path: path.join(OUT, '26-preview.png') });
+  await page.screenshot({ path: path.join(OUT, '26-v3-preview.png') });
   console.log('📸 26-preview.png (retaken, stable)');
   await b.close();
 }

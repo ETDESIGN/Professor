@@ -86,4 +86,4 @@ The teacher performs **all input**. Kids answer orally, point, or come to the fr
 
 ## §6 ⬜ Stitch output & implementation notes
 
-<Owner drops the Stitch export into `stitch/<NN>-<game>/` and notes the filename here; ZCode records what was implemented, what was adapted and why, commit hash, deploy verification.>
+<Owner drops the Stitch export into `stitch/<NN>-<game>/` and notes the filename here; ZCode records: implementation notes, **a design-fidelity log (per Stitch screen: Followed / Adapted + why / Deviated + why)**, commit hash, deploy verification. Deviations are decisions the owner reviews — never silent.>

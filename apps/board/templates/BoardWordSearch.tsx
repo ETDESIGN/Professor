@@ -221,6 +221,48 @@ const TokenCard: React.FC<TokenCardProps> = ({ word, found, showWord, finderName
   );
 };
 
+// ── Preview card (round-preview stage) — the BIG portrait treatment from the
+// Stitch round_preview screen: photo fills the card, hover lift, speaker on
+// tap; the word strip appears only when the round shows words (Starter / r1 /
+// text-mode units).
+interface PreviewCardProps {
+  word: SearchWord;
+  showWord: boolean;
+  unitId: string;
+}
+
+const PreviewCard: React.FC<PreviewCardProps> = ({ word, showWord, unitId }) => {
+  const { play } = useSpeech({ text: word.word, audioUrl: word.audioUrl, lang: 'en', unitId });
+  return (
+    <button
+      onClick={() => play()}
+      className="ws-preview-card group relative w-32 h-44 sm:w-44 sm:h-56 lg:w-52 lg:h-64 xl:w-56 xl:h-72 bg-white rounded-3xl p-2.5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.08)] transition-all duration-300 hover:scale-[1.04] hover:-translate-y-1.5 active:scale-95 flex flex-col"
+    >
+      <div className="flex-1 min-h-0 rounded-2xl overflow-hidden bg-slate-100">
+        {word.imageUrl ? (
+          <img src={word.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full bg-sky-100 text-sky-500 font-black flex items-center justify-center text-5xl">
+            {showWord ? word.word.slice(0, 1) : '?'}
+          </div>
+        )}
+      </div>
+      {showWord ? (
+        <div className="shrink-0 pt-2 pb-0.5 flex items-center justify-center gap-1.5">
+          <span className="ws-mono font-extrabold tracking-wider text-slate-800 text-sm lg:text-base truncate">{word.word.toUpperCase()}</span>
+        </div>
+      ) : (
+        <div className="shrink-0 pt-2 pb-0.5 flex items-center justify-center gap-1.5">
+          <span className="ws-mono font-extrabold tracking-[0.18em] text-slate-400 text-xs lg:text-sm">{word.letters.split('').map(() => '_').join(' ')}</span>
+        </div>
+      )}
+      <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-slate-900/70 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title="Hear the word">
+        <Volume2 size={14} />
+      </span>
+    </button>
+  );
+};
+
 // ── Component ──────────────────────────────────────────────────────────────
 const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   useV3Fonts();
@@ -971,19 +1013,20 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       {header}
       <div className="md:hidden shrink-0 mt-1 [@media(max-height:430px)]:hidden">{modeChip}</div>
 
-      {/* ═══ PREVIEW — the round's words, INPUT moment ═══ */}
+      {/* ═══ PREVIEW — the round's words, INPUT moment (Stitch round_preview:
+          big portrait photo cards, huge display title, difficulty chip) ═══ */}
       {stage === 'preview' && grid && (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 lg:gap-6 animate-fade-in px-2">
-          <h2 className="text-2xl lg:text-4xl font-bold text-white text-center">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2.5 lg:gap-4 animate-fade-in px-2 overflow-y-auto [@media(max-height:430px)]:gap-1.5">
+          <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-800/90 border border-sky-500/30 text-sky-300 font-bold text-[10px] lg:text-xs uppercase tracking-widest whitespace-nowrap">
+            {PRESET === 'starter' ? 'Starter' : 'Explorer'} · {directionsLabel} only
+          </span>
+          <h2 className="text-3xl lg:text-5xl xl:text-6xl font-bold text-white text-center leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
             Find these {roundWords.length} words
           </h2>
-          <p className="text-sky-300/80 text-sm lg:text-base -mt-2">Listen, say them, then search!</p>
-          <div className="flex flex-wrap justify-center gap-3 max-w-4xl">
+          <p className="text-sky-300/80 text-xs lg:text-base">Listen, say them, then search!</p>
+          <div className="flex flex-wrap items-center justify-center gap-3 xl:gap-6 py-1 max-w-full">
             {roundWords.map((w) => (
-              <div key={w.id} className="w-36 lg:w-44">
-                <TokenCard word={w} found={undefined} showWord={showWordOnTokens} finderName={null}
-                  hinted={false} armed={false} onArm={() => {}} unitId={unitId} />
-              </div>
+              <PreviewCard key={w.id} word={w} showWord={showWordOnTokens} unitId={unitId} />
             ))}
           </div>
           <button onClick={startRound}

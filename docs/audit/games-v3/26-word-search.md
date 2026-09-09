@@ -258,6 +258,16 @@ Severity: **P1** = blocks learning / would stall a live lesson · **P2** = degra
 - Owner decisions applied: first miss warns (amber + "say the first sound"), −1 from the second; honest result variants (Great search! vs Let's learn these words recap; stars only for real found-success); Starter/Explorer presets (`PlanComposer.tsx` writes `preset:'starter'` default).
 - Verification: tsc clean · vitest 720 passed/1 skipped · production build clean · Playwright F0-gate green at 4 sizes · full reveal→summary flow probed end-to-end · after-shots `screenshots/26-v3-*.png`.
 
+**Design-fidelity log (Stitch screen → implementation):**
+| Stitch screen | Fidelity | Notes |
+|---|---|---|
+| Active search (main) | **Followed** | Layout, tokens, HUD, colors 1:1; mock chrome bound to real data (sync dot, game class score). |
+| Round preview | **Adapted, then fixed after owner review** | v1 shipped small rail-token cards (engineering shortcut — flagged by the owner 2026-09-10); v2 follows Stitch: big portrait photo cards, huge title, difficulty chip. At the emergency phone floor the cards wrap and the preview may scroll (play stage never scrolls). |
+| Selection & feedback | **Followed** | SVG glow strokes implemented as layered lines; start-cell/tap-last hint kept. |
+| Time's up | **Followed** | Banner + reveal-remaining/next-round choices. |
+| Attribution micro-state | **Adapted** | Stitch used a second token system (Material-style); restyled onto the night/accent system, kept the layout and paused-timer treatment. |
+| Results (recap variant) | **Followed + extended** | Success variant (stars) added per the honest-results decision; recap follows Variant B. |
+
 **Known remainder (not this game's fault):** at the 700×320 phone floor the BoardShell's leaderboard rail still consumes ~44% of width (392 px left for the game) — logged to `_CROSS-CUTTING.md` for the responsive workstream. Board-mid-game pool refetches no longer blank the game; the commander-side attribution route (Co-Work 4.b) is follow-up scope.
 
 **Commit:** see `git log` — `BoardWordSearch v3: Stitch redesign (games-v3 pilot) — F0 grid fix + 15 audit findings`. Deploy: push to master → Vercel (verified per AGENTS.md §8).
