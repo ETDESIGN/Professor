@@ -951,8 +951,12 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
     </div>
   );
 
+  // Header. The BoardShell renders its phase badge (e.g. "PRACTICE")
+  // absolutely at the center-stage's top-left (~164px wide, top-5 left-6) —
+  // pl-40/lg:pl-48 keeps this header's W badge clear of it (owner review
+  // 2026-09-10 caught the overlap).
   const header = (
-    <header className="w-full flex items-center justify-between gap-4 px-2 h-14 lg:h-16 [@media(max-height:430px)]:h-11 shrink-0">
+    <header className="w-full flex items-center justify-between gap-4 pr-2 pl-40 lg:pl-48 h-14 lg:h-16 [@media(max-height:430px)]:h-11 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-[#FF2E79] flex items-center justify-center text-white font-bold text-xl lg:text-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] shrink-0">W</div>
         <div className="flex flex-col min-w-0">

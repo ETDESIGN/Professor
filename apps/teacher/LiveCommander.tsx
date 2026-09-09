@@ -36,7 +36,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
       state, nextSlide, prevSlide, goToSlide, addPoints, triggerAction, deductAllPoints,
       clearDrawings, selectNextStudent, setSelectionMode, setRotationMode, closeOverlay, cancelTurn,
       setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence, nextStudent,
-      retrySync
+      retrySync, magicSelectStudent
    } = useSession();
 
    // Bind the live session to the class chosen on the Classes screen (?class=…).
@@ -415,6 +415,9 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45"></div>
                      <div className="flex items-center justify-between w-full pb-2 border-b border-slate-100">
                         <div className="flex items-center gap-2"><Avatar src={activePointStudent.avatar} rosterId={activePointStudent.id} name={activePointStudent.name} size={32} /><span className="font-bold text-slate-800">{activePointStudent.name}</span></div>
+                        {state.quickWheelWinner === activePointStudent.id && (
+                          <span className="absolute left-1/2 -translate-x-1/2 -bottom-2.5 whitespace-nowrap bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow">✓ ANSWERING NOW</span>
+                        )}
                         <button onClick={() => setActivePointStudentId(null)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
                      </div>
                      <div className="flex items-center gap-2 w-full justify-between">
@@ -451,7 +454,17 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
             <div className="flex-1 w-full px-0 md:px-4 overflow-x-auto no-scrollbar py-1 md:py-0">
                <div className="flex items-center gap-2 md:gap-3 min-w-min mx-auto">
                   {filterPresent(state.students).map((student: any) => (
-                     <button key={student.id} onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setTooltipLeft(rect.left + rect.width / 2); setActivePointStudentId(activePointStudentId === student.id ? null : student.id); }}
+                     <button key={student.id} onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setTooltipLeft(rect.left + rect.width / 2);
+                        setActivePointStudentId(activePointStudentId === student.id ? null : student.id);
+                        // Owner request 2026-09-10: clicking a roster student
+                        // also makes them the active responder — the next
+                        // right/wrong answer scores to them (manual pick
+                        // alongside the wheel). Counts as their turn in the
+                        // round-robin, same as a magic pick anywhere else.
+                        if (activePointStudentId !== student.id) magicSelectStudent(student.id);
+                     }}
                         className={`group flex flex-col items-center gap-1 min-w-[50px] md:min-w-[60px] p-1 md:p-2 rounded-xl transition-all active:scale-95 ${activePointStudentId === student.id ? 'bg-indigo-900/50 ring-2 ring-indigo-500' : 'hover:bg-slate-800'}`}>
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-base md:text-lg shadow-sm group-hover:border-pink-500/50 group-hover:shadow-[0_0_10px_rgba(236,72,153,0.2)] transition-all relative">
                            <Avatar src={student.avatar} rosterId={student.id} name={student.name} size={28} />
