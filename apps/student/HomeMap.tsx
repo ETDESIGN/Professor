@@ -14,6 +14,8 @@ import {
 import type { StageProgressMap } from '../../services/stageProgressService';
 import { StageIcon } from '../../components/shared/stageIcons';
 import { motion } from 'framer-motion';
+import { themeForUnit } from './atlas/territory';
+import { waColors } from './atlas/tokens';
 
 // Feature flag: dubbing is a mock (audit P1-5). Default OFF.
 const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
@@ -100,46 +102,46 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
   return (
     <div className="flex-1 relative overflow-y-auto bg-slate-50 no-scrollbar pb-32">
       {/* Daily Quests Header */}
-      <div className="bg-white mx-4 mt-6 mb-8 rounded-2xl p-4 shadow-sm border border-slate-200">
+      <div className="bg-wa-paper mx-4 mt-6 mb-8 rounded-wa-card p-4 shadow-wa-card border border-wa-border">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="font-wa-display font-semibold text-wa-ink flex items-center gap-2">
             <Target size={20} className="text-orange-500" /> {t('student.dailyQuests', 'Daily Quests')}
           </h2>
-          <span className="text-sm font-bold text-slate-400">{t('student.timeLeft', { defaultValue: '{{hours}}h left', hours: hoursLeft })}</span>
+          <span className="text-sm font-bold text-wa-muted">{t('student.timeLeft', { defaultValue: '{{hours}}h left', hours: hoursLeft })}</span>
         </div>
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
-              <Flame size={24} className="text-orange-500" />
+            <div className="w-12 h-12 bg-wa-terra/15 rounded-xl flex items-center justify-center shrink-0">
+              <Flame size={24} className="text-wa-terra" />
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
                 <span className="text-sm font-bold text-slate-700">{t('student.questEarnXp', { defaultValue: 'Earn {{xp}} XP', xp: xpGoal })}</span>
                 <span className="text-sm font-bold text-slate-400">{Math.min(studentXp, xpGoal)}/{xpGoal}</span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full" style={{ width: `${xpProgress * 100}%` }}></div>
+              <div className="h-2 bg-wa-border/60 rounded-full overflow-hidden">
+                <div className="h-full bg-wa-terra rounded-full" style={{ width: `${xpProgress * 100}%` }}></div>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-              <Headphones size={24} className="text-blue-500" />
+            <div className="w-12 h-12 bg-wa-teal/15 rounded-xl flex items-center justify-center shrink-0">
+              <Headphones size={24} className="text-wa-teal" />
             </div>
             <div className="flex-1">
               <div className="flex justify-between mb-1">
                 <span className="text-sm font-bold text-slate-700">{t('student.questLessons', 'Complete 2 Lessons')}</span>
                 <span className="text-sm font-bold text-slate-400">{Math.min(completedUnitIds.length, 2)}/2</span>
               </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(completedUnitIds.length / 2, 1) * 100}%` }}></div>
+              <div className="h-2 bg-wa-border/60 rounded-full overflow-hidden">
+                <div className="h-full bg-wa-teal rounded-full" style={{ width: `${Math.min(completedUnitIds.length / 2, 1) * 100}%` }}></div>
               </div>
             </div>
           </div>
           {studentStreak > 0 && (
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center shrink-0">
-                <Star size={24} className="text-green-500" />
+              <div className="w-12 h-12 bg-wa-sand/25 rounded-xl flex items-center justify-center shrink-0">
+                <Star size={24} className="text-wa-inkDeep" />
               </div>
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
@@ -219,26 +221,28 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
         const svgHeight = Math.max(600, nodeCount * 130 + 130);
         return (
           <div key={unit.id} className="relative z-10 pb-8">
-            {/* Unit Header */}
-            <div className={`mx-4 mt-4 rounded-2xl p-5 text-white shadow-lg transform transition-transform border-b-4 ${unit.status === 'Locked' ? 'bg-slate-400 border-slate-500 grayscale' : 'bg-duo-pink border-duo-pink-dark'}`}>
+            {/* Unit Header — Wonder Atlas territory card */}
+            <div className={`mx-4 mt-4 rounded-wa-card p-5 bg-wa-paper border-b-4 border-wa-border shadow-wa-card transform transition-transform ${unit.status === 'Locked' ? 'grayscale opacity-70' : ''}`}>
               {unit.coverImage && !unit.coverImage.includes('dicebear') && (
                 <img src={unit.coverImage} alt={unit.title} className="w-full h-36 object-cover rounded-2xl shadow-md mb-4" />
               )}
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-display font-bold text-2xl tracking-wide">{unit.title}</h3>
-                  <p className="opacity-90 text-sm font-medium mt-1">{unit.topic} • {unit.level}</p>
-                  {/* Mastery crowns (distinct from XP). Cracked objectives prompt a review. */}
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <span className="inline-flex items-center gap-1.5 bg-wa-teal/10 text-wa-teal px-2.5 py-1 rounded-full text-xs font-wa-display font-semibold mb-2">
+                    {themeForUnit(unit).emoji} {themeForUnit(unit).label}
+                  </span>
+                  <h3 className="font-wa-display font-semibold text-2xl text-wa-ink tracking-wide">{unit.title}</h3>
+                  <p className="text-wa-muted text-sm font-medium mt-1">{unit.topic} • {unit.level}</p>
                   {summary && summary.total > 0 && (
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
-                        <Crown size={13} className="text-yellow-300" />
+                      <span className="flex items-center gap-1 bg-wa-sand/25 text-wa-inkDeep px-2 py-0.5 rounded-full text-xs font-bold">
+                        <Crown size={13} className="text-wa-sandDeep" />
                         {summary.crowns}/{summary.total}
                       </span>
                       {summary.crackedCount > 0 && (
                         <button
                           onClick={() => onNavigate('practice', unit.id)}
-                          className="flex items-center gap-1 bg-amber-400/90 text-amber-950 px-2 py-0.5 rounded-full text-xs font-bold animate-pulse"
+                          className="flex items-center gap-1 bg-wa-terra/15 text-wa-terra px-2 py-0.5 rounded-full text-xs font-bold animate-pulse"
                           title={`${summary.crackedCount} skill(s) need review`}
                         >
                           <AlertTriangle size={13} />
@@ -248,8 +252,8 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                     </div>
                   )}
                 </div>
-                <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                  {unit.status === 'Locked' ? <Lock size={24} /> : summary?.isComplete ? <Crown size={24} className="text-yellow-300" /> : <BookOpen size={24} />}
+                <div className="bg-wa-mist p-3 rounded-2xl text-wa-teal">
+                  {unit.status === 'Locked' ? <Lock size={24} /> : summary?.isComplete ? <Crown size={24} className="text-wa-sandDeep" /> : <BookOpen size={24} />}
                 </div>
               </div>
             </div>
@@ -260,9 +264,10 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
                 <path
                   d={generatePath(nodeCount)}
                   fill="none"
-                  stroke={unitLocked ? '#e2e8f0' : '#e5e7eb'}
+                  stroke={unitLocked ? waColors.border : waColors.sand}
                   strokeWidth="3"
-                  strokeDasharray="0"
+                  strokeDasharray="2 7"
+                  strokeLinecap="round"
                   vectorEffect="non-scaling-stroke"
                 />
               </svg>
