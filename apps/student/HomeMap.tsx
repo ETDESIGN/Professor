@@ -105,7 +105,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
       {/* Daily Quests Header */}
       <div className="bg-wa-paper mx-4 mt-6 mb-8 rounded-wa-card p-4 shadow-wa-card border border-wa-border">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-wa-display font-semibold text-wa-ink flex items-center gap-2">
+          <h2 className="font-wa-display font-bold text-wa-ink flex items-center gap-2">
             <Target size={20} className="text-wa-terra" /> {t('student.dailyQuests', 'Daily Quests')}
           </h2>
           <span className="text-sm font-bold text-wa-muted">{t('student.timeLeft', { defaultValue: '{{hours}}h left', hours: hoursLeft })}</span>
@@ -178,7 +178,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
           <p className="text-sm text-wa-muted mb-5">{unitsError}</p>
           <button
             onClick={() => loadUnits()}
-            className="px-6 py-3 bg-wa-teal text-white font-wa-display rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
+            className="px-6 py-3 bg-wa-teal text-white font-wa-display font-bold rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
           >
             {t('common.retry', 'Try again')}
           </button>
@@ -194,7 +194,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
             {onJoinClass && (
               <button
                 onClick={onJoinClass}
-                className="px-6 py-3 bg-wa-teal text-white font-wa-display rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
+                className="px-6 py-3 bg-wa-teal text-white font-wa-display font-bold rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wide text-sm"
               >
                 {t('student.joinClass', 'Join a class')}
               </button>
@@ -245,10 +245,10 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               )}
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <span className="inline-flex items-center gap-1.5 bg-wa-teal/10 text-wa-teal px-2.5 py-1 rounded-full text-xs font-wa-display font-semibold mb-2">
+                  <span className="inline-flex items-center gap-1.5 bg-wa-teal/10 text-wa-teal px-2.5 py-1 rounded-full text-xs font-wa-display font-bold mb-2">
                     {themeForUnit(unit).emoji} {themeForUnit(unit).label}
                   </span>
-                  <h3 className="font-wa-display font-semibold text-2xl text-wa-ink tracking-wide">{unit.title}</h3>
+                  <h3 className="font-wa-display font-bold text-2xl text-wa-ink tracking-wide">{unit.title}</h3>
                   <p className="text-wa-muted text-sm font-medium mt-1">{unit.topic} • {unit.level}</p>
                   {summary && summary.total > 0 && (
                     <div className="flex items-center gap-3 mt-2">
@@ -351,7 +351,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
 
                       {/* Active Popover */}
                       {isActive && (
-                        <div className="absolute -top-12 bg-wa-paper px-4 py-2 rounded-2xl shadow-wa-card border border-wa-border text-wa-terra font-wa-display font-semibold text-sm whitespace-nowrap animate-bounce">
+                        <div className="absolute -top-12 bg-wa-paper px-4 py-2 rounded-2xl shadow-wa-card border border-wa-border text-wa-terra font-wa-display font-bold text-sm whitespace-nowrap animate-bounce">
                           START
                           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-wa-paper rotate-45 border-b border-r border-wa-border"></div>
                         </div>
