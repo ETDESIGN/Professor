@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
+import CodeInput from './atlas/CodeInput';
 import HomeMap from './HomeMap';
 import LessonSession, { ActivityType } from './LessonSession';
 import { Engine } from '../../services/SupabaseService';
@@ -417,35 +418,28 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+              className="bg-wa-paper rounded-wa-card p-6 w-full max-w-sm shadow-xl border border-wa-border"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800">{t('student.joinClass')}</h2>
+                <h2 className="text-xl font-wa-display text-wa-ink">{t('student.joinClass')}</h2>
                 <button
                   onClick={() => setShowJoinClassModal(false)}
-                  className="text-slate-400 hover:text-slate-600"
+                  className="text-wa-muted hover:text-wa-ink"
                 >
                   <X size={24} />
                 </button>
               </div>
 
-              <p className="text-slate-600 mb-4">{t('student.enterCode')}</p>
+              <p className="text-wa-muted mb-4">{t('student.enterCode')}</p>
 
-              <input
-                type="text"
+              <CodeInput
                 value={classCodeInput}
-                onChange={(e) => {
-                  setClassCodeInput(e.target.value.toUpperCase().slice(0, 6));
-                  setJoinError('');
-                }}
-                placeholder="ABCD12"
-                className="w-full px-4 py-3 text-center text-2xl font-mono font-bold border-2 border-slate-200 rounded-xl focus:border-purple-500 focus:outline-none uppercase tracking-widest mb-2"
-                maxLength={6}
+                onChange={(v) => { setClassCodeInput(v); setJoinError(''); }}
               />
 
               {joinError && (
-                <p className="text-red-500 text-sm mb-3">{joinError}</p>
+                <p className="text-wa-terra text-sm mb-3">{joinError}</p>
               )}
 
               {enrolledClasses.length > 0 && (
@@ -453,7 +447,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   <p className="text-xs font-bold text-slate-400 uppercase mb-2">{t('student.yourClasses')}</p>
                   <div className="flex flex-wrap gap-2">
                     {enrolledClasses.map((cls) => (
-                      <span key={cls.id} className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                      <span key={cls.id} className="bg-wa-teal/10 text-wa-teal px-3 py-1 rounded-full text-sm font-medium">
                         {cls.name}
                       </span>
                     ))}
@@ -492,7 +486,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   }
                 }}
                 disabled={isJoining || classCodeInput.length !== 6}
-                className="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full bg-wa-teal text-white font-wa-display py-3 rounded-2xl shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none hover:brightness-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {isJoining ? t('common.loading') : t('student.joinClass')}
               </button>
