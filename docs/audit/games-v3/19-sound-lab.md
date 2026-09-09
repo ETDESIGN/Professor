@@ -1,20 +1,67 @@
 # Sound Lab — v3 Quality Audit (`SOUND_LAB`)
 
-> **Status:** `pending` — §2 owner comments confirmed 2026-09-09; §0 identity stub; §1/§3 code audit pending (batch phase).
-> **Screenshots:** pending (batch phase).
+> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Screenshots:** `screenshots/19-sound-lab-idle.png`.
 
-## §0 Identity (stub — completed at code-audit time)
+## SHARED PRELUDE (read first — identical in every game file)
+
+**Product.** "Professor" — a teacher-facing ESL/EFL tool for **live, in-classroom** English instruction to children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options).
+
+**Classroom model (hard constraint — never propose student-device interaction).** A live class runs on three browser tabs converging via Supabase Realtime; students have **no devices**:
+
+| Tab | Route | Who | Role |
+|---|---|---|---|
+| **Commander** | `/teacher/live` | Teacher, desktop | Control room: lesson roadmap, roster chips, the per-game buttons, sidebar (wheel/teams/analytics) |
+| **Remote Baton** | `/remote` | Teacher, phone | Handheld remote: spin/pick, correct–wrong, next student |
+| **Board** | `/board` | **Projected 16:9** — the only screen kids see | Renders the current game/slide |
+
+The teacher performs **all input**. Kids answer orally, point, or come to the front.
+
+**Live loop.** Pick a student (wheel) → play a turn → score → next. `quickWheelWinner = null` means choral/practice mode (no individual scoring).
+
+**Unified scoring model.** `scoreForAttempt(mistakes, difficulty)`: difficulty 1/2/3 (receptive / constrained / free-production) → 1–3 base points; −1 live per mistake; streak bonus (+1 at streak 3, +2 at streak 5); cap 5, floor 1 on success. Every scored event triple-writes: `addPoints` (leaderboard) + `recordAttempt` (analytics) + `gradeObjective` (FSRS memory model).
+
+**Lifecycle contract — the 4 must-dos every scored game obeys:**
+1. Full reset on `currentTurnId` change (new picked student ⇒ fresh board).
+2. `mistakesRef` + `awardedRef` latches (no double-payment, no cross-turn leakage).
+3. Score via `addPoints` + `scoreForAttempt` on the picked student.
+4. Personalized message with the picked student's name.
+
+**Turn dealing.** Deterministic per `(session, unit, shell, round, turnToken, resetCount)` — a new pick or reset re-deals; class-wide coverage tracked by a ledger so every objective gets its turn.
+
+**Phases.** WARMUP / INPUT / OUTPUT / PRACTICE / ASSESS / WRAPUP — each game belongs to one phase envelope (allowed difficulty rungs + scoring posture).
+
+**Design constraints for any redesign (applies to the Stitch prompt):**
+- Board surface only, **16:9 projector**, viewed from 5–8 meters — large type, high contrast, punchy states.
+- Kid-friendly but not infantile (ages 6–12 band).
+- Must always be legible: the current challenge, the feedback state (correct/wrong/partial), the picked student's identity, and the score moment.
+- Teacher-driven: every interaction must have a remote-control path; nothing can require a student device.
+
+
+---
+
+## §0 Identity
 
 - **Flow type:** `SOUND_LAB`
 - **Component:** `apps/board/templates/BoardSoundLab.tsx`
 - **Phase:** PRACTICE
-- **Remote-control group:** Skip Phase / Correct / Redo / End (custom)
-- **Data sources:** useEscalatingPool — recognition / discrimination / production (rungs 2–5)
-- **Mode:** picked student
+- **Remote-control group:** Skip Phase (`SKIP_PHASE`) / Correct (`MARK_CORRECT`) / Redo (`RESET_GAME`) / End (`SLIDE_COMPLETE`) — custom set, `ContextualControls.tsx:183-191` (no Hint, no audio control)
+- **Data sources:** `useEscalatingPool` (shell `SOUND_LAB`, single round of up to 12 items) → phase 1 `LISTEN_SELECT` ×4, phase 2 `DICTATION` ×3 (sibling sentences as distractors), phase 3 `SPEAK_SENTENCE` ×3; audio is reference-based (`useSpeech` + round pre-warm), phase 3 uses browser speech recognition on the board tab
+- **Mode:** picked student, per-item scored attempts (receptive → receptive → productive)
 
 ## §1 How the game works today
 
-*(pending — ZCode batch code audit; the shared prelude will be embedded here when the file reaches `file-ready`.)*
+**A fixed 3-phase listening ladder, played item by item for the picked student.** The pool comes from `useEscalatingPool` (`:77-85`) and is bucketed by exercise type (`:88-147`):
+
+- **Phase 1 "Listen & Tap" (recognition, ×4):** a big purple **Listen** button, then a **2×2 grid of square images** with their English word captions; the kid taps the image matching the spoken word (`:520-583`).
+- **Phase 2 "Listen & Match" (discrimination, ×3):** Listen button, then 3 sentence options — the correct `DICTATION` sentence plus up to 2 sibling dictation sentences as real distractors, shuffled with a per-item seed (`:109-129`); the kid taps the sentence they heard.
+- **Phase 3 "Hear & Say" (production, ×3):** the target word/sentence is displayed large with a "Listen first" button, then a **mic button on the board** — the picked kid speaks; `useSpeechRecognition` scores Levenshtein similarity against the target, ≥60% passes (`SPEECH_PASS_THRESHOLD`, `scoringUtils.ts:67`); pass → success with partial credit = similarity (clamped 0.6–1), transcript + score card holds ~2 s; fail → item failure (`:179-198`, `:642-712`).
+
+**Audio flow today — strictly manual, metered.** Nothing plays when an item appears; every play requires tapping the board's Listen button (`playAudio :256-265`). A `replayCount` state increments on every play; from the **second play onward each play costs the picked student −1** via `addPoints(picked, -MISTAKE_PENALTY)` (`:260-263`) — in choral mode (no picked student) the count is tracked but nothing is charged. The counter resets on every item advance (`:396, :404, :415, :421`). A small gray hint under the button reads "Replay: N left (−1 pt each)" but only while exactly one replay has been used (`:469-472`). The round's speech is pre-warmed in the background so replays are instant (`:162-164`).
+
+**Attempt flow.** Correct tap: `itemSuccess` — streak++ (confetti at 3/5), `scoreForAttempt` triple-write, 900 ms hold, advance (`:268-296`, `:354-369`). Wrong tap: −1 live, streak reset, red flash 800 ms; 2nd consecutive miss → reveal-on-wrong (amber ring on the correct option + `explanation` when present, ~2.2 s teaching hold) then advance (`:320-331`, `:366-367`). MARK_CORRECT scores a clean success and doubles in phase 3 as "accept that pronunciation" (`:346-352`). Phases 1→2→3 chain automatically; empty phases are skipped by an effect that can never cascade into a fake completion (`:170-176`); all three done → complete card + `SLIDE_COMPLETE` broadcast (`:336-342`).
+
+**Remote controls:** Skip Phase (jump the whole current phase) / Correct / Redo (full reset) / End. There is **no per-item skip, no hint, and no Listen control** on the commander or remote — see F3.
 
 ## §2 Owner comments (verbatim — confirmed 2026-09-09)
 
@@ -27,7 +74,19 @@
 
 ## §3 ZCode code-level findings
 
-*(pending — ZCode batch code audit)*
+Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/board/templates/BoardSoundLab.tsx` unless noted.
+
+- **F1 · P2 — No auto-play on item appear (§2's headline ask).** Nothing triggers `playCurrentSpeech()` when an item enters the board — the kid sits in silence until someone taps the board button (`:256-265` is the only play path). The hook point is an effect keyed on `currentItem` (the same key the `useSpeech` resolver and the skip-empty effect use, `:155-176`) that plays once and sets `replayCount` to 1, so the existing `replayCount >= 1` charge makes the first manual replay cost −1 with zero changes to the penalty code. Care points: suppress re-fire on resolve/feedback phases and on the remote's Redo, and respect browser autoplay policies (the board tab has user gesture history from the teacher's earlier taps — the same policy `playCue` already relies on).
+- **F2 · P2 — The replay meter exists (already −1/replay) but its copy lies and its budget is fake.** `playAudio` (`:256-265`) already implements exactly §2's rule — first play free, each subsequent play −1 to the picked student, count-only in choral mode. But the hint "Replay: {2 − replayCount} left (−1 pt each)" renders only at `replayCount === 1` (`:469-472`): it implies a 2-replay budget that doesn't exist (replays are unlimited and silently keep costing after the hint disappears), and it never shows at replay 0 ("1 free listen, then −1") where it would actually inform the kid's choice. A redesign should surface the meter honestly on the button itself (e.g. free/−1 badges) and decide whether to cap or keep metering infinitely.
+- **F3 · P2 — The teacher cannot play the audio from the commander or the phone.** The contextual set is Skip Phase / Correct / Redo / End only (`ContextualControls.tsx:183-191`) — for a *listening* game the single most-used action (replay the audio) exists only as a board tap. Same parity gap Focus Cards had before v3 added `PLAY_AUDIO`; a `PLAY_AUDIO` action routed into `playAudio()` (which already meters replays) gives the remote path §2's design constraints require.
+- **F4 · P2 — Phase 1's 2×2 square grid wastes the 16:9 stage and leaks the answer into reading.** Same geometry as Word Detective F2: `grid grid-cols-2` + `aspect-square` images inside a `max-w-3xl` card (`:518`, `:543`, `:558`). Compounding it, every image carries its English word as a visible caption (`:565-567`) — a literate kid matches the *heard* word to the *written* label, converting the listening task into reading. For a listening phase the captions should be hidden (or revealed only after the attempt); the owner's horizontal redesign applies to the grid itself.
+- **F5 · P2 — Phase 2 options collapse when DICTATION items are scarce.** Distractors are sibling `correct_text` sentences, `slice(0, 2)` (`:114-118`): with 2 dictation items the kid gets a 2-option MCQ; with 1, a single-option MCQ (tap the only sentence). There is no minimum-option guard and no synthetic fallback — the phase silently becomes free points.
+- **F6 · P2 — Phase 3 has no failure exit on the board.** A failed speech attempt calls `itemFailure` (−1) but neither reveals nor advances (`:188-197`); the recognition hook keeps listening, so a kid who can't produce the sound bleeds −1 per attempt until the teacher intervenes via Correct/Skip Phase. Phases 1–2 reveal on the 2nd miss (`:366, :383`) — the same mercy rule was never wired for production. Browser-unsupported mics render a static "not supported" note whose only exit is also the remote (`:667-671`).
+- **F7 · P3 — Phase-3 advance skips the per-item resets.** `advancePhase3` resets the attempt refs but not `replayCount`/`selectedOption` (`:425-435`) — the replay meter (and the F2 hint) carries stale state into the next production item.
+- **F8 · P3 — Phase dots and labels are sub-projection and English-only.** The 3 phase pips are `w-3 h-3` (12 px — invisible at 5–8 m, `:488-497`); the phase captions ("Listen & Tap" / "Listen & Match" / "Hear & Say") are `text-sm` English (`:498-500`). The empty state is the same English-only teacher-jargon card as the other labs (`:451-462`).
+- **F9 · P3 — Fixed `max-w-3xl` card, no responsive reflow** (`:518`) — no phone-landscape floor.
+
+**What already works well (context — don't re-litigate):** the receptive→productive 3-phase ladder is pedagogically sound and correctly difficulty-tagged (productive fallback 3, `:279, :312`); the replay-cost mechanic the owner wants already exists and charges the picked student only; per-item resolve latches stop stale speech results and double remote taps; reveal-on-wrong teaching beats in phases 1–2; seeded sibling-sentence distractors; round speech pre-warm; empty-phase skipping that can't fake a completion; MARK_CORRECT doubling as pronunciation acceptance.
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 

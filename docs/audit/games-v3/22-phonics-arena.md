@@ -1,20 +1,69 @@
 # Phonics Arena — v3 Quality Audit (`PHONICS_ARENA`)
 
-> **Status:** `pending` — §2 owner comments confirmed 2026-09-09; §0 identity stub; §1/§3 code audit pending (batch phase).
-> **Screenshots:** pending (batch phase).
+> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Screenshots:** `screenshots/22-phonics-arena-idle.png` — empty state (no phonics items) — code-anchored.
 
-## §0 Identity (stub — completed at code-audit time)
+## SHARED PRELUDE (read first — identical in every game file)
+
+**Product.** "Professor" — a teacher-facing ESL/EFL tool for **live, in-classroom** English instruction to children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options).
+
+**Classroom model (hard constraint — never propose student-device interaction).** A live class runs on three browser tabs converging via Supabase Realtime; students have **no devices**:
+
+| Tab | Route | Who | Role |
+|---|---|---|---|
+| **Commander** | `/teacher/live` | Teacher, desktop | Control room: lesson roadmap, roster chips, the per-game buttons, sidebar (wheel/teams/analytics) |
+| **Remote Baton** | `/remote` | Teacher, phone | Handheld remote: spin/pick, correct–wrong, next student |
+| **Board** | `/board` | **Projected 16:9** — the only screen kids see | Renders the current game/slide |
+
+The teacher performs **all input**. Kids answer orally, point, or come to the front.
+
+**Live loop.** Pick a student (wheel) → play a turn → score → next. `quickWheelWinner = null` means choral/practice mode (no individual scoring).
+
+**Unified scoring model.** `scoreForAttempt(mistakes, difficulty)`: difficulty 1/2/3 (receptive / constrained / free-production) → 1–3 base points; −1 live per mistake; streak bonus (+1 at streak 3, +2 at streak 5); cap 5, floor 1 on success. Every scored event triple-writes: `addPoints` (leaderboard) + `recordAttempt` (analytics) + `gradeObjective` (FSRS memory model).
+
+**Lifecycle contract — the 4 must-dos every scored game obeys:**
+1. Full reset on `currentTurnId` change (new picked student ⇒ fresh board).
+2. `mistakesRef` + `awardedRef` latches (no double-payment, no cross-turn leakage).
+3. Score via `addPoints` + `scoreForAttempt` on the picked student.
+4. Personalized message with the picked student's name.
+
+**Turn dealing.** Deterministic per `(session, unit, shell, round, turnToken, resetCount)` — a new pick or reset re-deals; class-wide coverage tracked by a ledger so every objective gets its turn.
+
+**Phases.** WARMUP / INPUT / OUTPUT / PRACTICE / ASSESS / WRAPUP — each game belongs to one phase envelope (allowed difficulty rungs + scoring posture).
+
+**Design constraints for any redesign (applies to the Stitch prompt):**
+- Board surface only, **16:9 projector**, viewed from 5–8 meters — large type, high contrast, punchy states.
+- Kid-friendly but not infantile (ages 6–12 band).
+- Must always be legible: the current challenge, the feedback state (correct/wrong/partial), the picked student's identity, and the score moment.
+- Teacher-driven: every interaction must have a remote-control path; nothing can require a student device.
+
+
+---
+
+## §0 Identity
 
 - **Flow type:** `PHONICS_ARENA`
 - **Component:** `apps/board/templates/BoardPhonicsArena.tsx`
 - **Phase:** PRACTICE
-- **Remote-control group:** Next / Correct / Redo / End (custom)
-- **Data sources:** useEscalatingPool — phonics discrimination/identify/produce
-- **Mode:** picked student
+- **Remote-control group:** Next (`NEXT_ITEM`) / Correct (`MARK_CORRECT`) / Redo (`RESET_GAME`) / End (`SLIDE_COMPLETE`) — custom set, `ContextualControls.tsx:213-221` (no Hint, no audio control)
+- **Data sources:** `useEscalatingPool` (shell `PHONICS_ARENA`, single round of up to 10 items) → `MINIMAL_PAIR_SWIPE` (rounds 1–2: 5 pairs, then the next 4 — or a replay of round 1's pairs when the pool is small) + `SPEAK_SENTENCE` (round 3, ×3); audio is reference-based (`useSpeech` + round pre-warm), round 3 uses browser speech recognition on the board tab
+- **Mode:** picked student, per-item scored attempts (discriminate → identify → produce)
 
 ## §1 How the game works today
 
-*(pending — ZCode batch code audit; the shared prelude will be embedded here when the file reaches `file-ready`.)*
+**A 3-round phonics ladder for the picked student: Discriminate → Identify → Produce.** Pool via `useEscalatingPool` (`:94-102`), bucketed from `MINIMAL_PAIR_SWIPE` + `SPEAK_SENTENCE` items (`:105-140`):
+
+- **Round 1 "Discriminate" (×5):** a big red **Listen** button, then **two** large word buttons — the minimal pair `[word, confusable]` in stored order (`:176`). The kid taps which word they heard.
+- **Round 2 "Identify" (×4):** the next 4 pairs (or round 1's pairs again when the pool has fewer than 9, so the round still happens, `:119-122`), now at **four** options — the pair plus 2 real distractor words drawn from the other pairs, shuffled with a per-item seed (`:174-184`).
+- **Round 3 "Produce" (×3):** the target word is displayed large (`text-4xl`) with a "Listen first" button, then a **mic button on the board** — the picked kid speaks; `useSpeechRecognition` scores Levenshtein similarity against the target, ≥60% passes (`SPEECH_PASS_THRESHOLD`, `scoringUtils.ts:67`); pass → success with partial credit = similarity (clamped 0.6–1) and a ~2 s transcript/score card; fail → item failure (`:283-296`, `:547-613`).
+
+**Audio flow today — strictly manual, unmetered.** `playAudio` just calls `playCurrentSpeech()` (`:351-355`): nothing auto-plays on item appear, and replays are **free and unlimited** — Sound Lab's replay-count/−1 machinery was never ported here. The spoken text is `prompt_text || correctWord` (`:60`), and `correctWord` is resolved through one audited chain (MCQ option at `correct_index`, else the pair member, else `pair[0]`) so the audio and the validated answer can't diverge (`:48-64`). The round's speech is pre-warmed (`:155-157`).
+
+**Attempt flow.** Correct tap: `itemSuccess` — streak++ (confetti at 3/5), `scoreForAttempt` triple-write (difficulty: productive fallback 2), 900 ms hold, advance (`:187-215`, `:357-373`). Wrong tap: −1 live, streak reset, red flash 800 ms; 2nd consecutive miss → reveal-on-wrong (amber ring on the correct word + `explanation` when present, ~2.2 s teaching hold) then advance (`:237-248`, `:370-371`). MARK_CORRECT scores a clean success and doubles in round 3 as "accept that pronunciation" (`:264-273`). Rounds chain 1→2→3; empty rounds are skipped by an effect that can't fake a completion (`:163-169`); all done → target card + final streak + `SLIDE_COMPLETE` broadcast (`:253-259`).
+
+**Remote controls:** Next (advance the current item) / Correct / Redo (full reset) / End. No Hint, no Listen — see F4.
+
+**Empty state:** "No phonics items ready yet — run the exercise generator for this unit, or skip to the next slide." — English-only (`:423-434`).
 
 ## §2 Owner comments (verbatim — confirmed 2026-09-09)
 
@@ -26,7 +75,18 @@
 
 ## §3 ZCode code-level findings
 
-*(pending — ZCode batch code audit)*
+Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/board/templates/BoardPhonicsArena.tsx` unless noted.
+
+- **F1 · P1 — Round 1's answer is always the left button and the audio always speaks it: "tap left" wins without listening.** Generation stamps every `MINIMAL_PAIR_SWIPE` with `prompt_text: word`, `options: [{text: word}, {text: confusable}]`, `correct_index: 0` (`supabase/functions/generate-exercises/index.ts:159-164`). The board resolves `speechText = prompt_text || correctWord` → always the vocab word (`:60`), and `currentWords` for round 1 is `[word1, word2]` in stored order with **no shuffle** (`:176`; only round 2 shuffles, `:183`). So the spoken word is always the pair's first member, which always renders left: the discrimination task the round is named for (telling *ship* from *sheep*) never happens — only one member is ever played, and its position is constant. A kid can score 100% of round 1 with eyes shut tapping left. Fix needs both halves: vary the played member at generation/deal time (sometimes the confusable, `correct_index` following) AND shuffle the 2-option order per item (the seeded `makeRng` pattern round 2 already uses).
+- **F2 · P2 — No auto-play on item appear (§2's headline ask).** Nothing triggers `playCurrentSpeech()` when a question enters the board — every item starts in silence until the board's Listen is tapped (`:351-355` is the only play path). Hook point: an effect keyed on `currentItem` (the same key `useSpeech` resolves on, `:148-152`) that plays once on round 1/2 appear — ideally after a ~300 ms settle so the slide-in animation isn't fighting the audio — mirroring the fix Sound Lab needs (`19-sound-lab.md` F1). Browser autoplay policy is satisfied by the teacher's earlier gestures on the board tab (same reliance as `playCue`).
+- **F3 · P2 — No replay accounting at all: replays are free and unlimited.** §2's clarified rule (replays follow Sound Lab: −1 each after the free first play) is wholly unimplemented — there is no `replayCount` state in this component. The port is mechanical: copy Sound Lab's meter (`BoardSoundLab.tsx:256-265`) into `playAudio`, reset the counter in `advanceCurrentRound`/`advanceRound3` (both currently skip it, `:375-411`), and surface the −1 cost on the button.
+- **F4 · P2 — The teacher cannot play the audio from the commander or the phone.** The contextual set is Next / Correct / Redo / End (`ContextualControls.tsx:213-221`) — for a listening-first game the replay action exists only as a board tap. A `PLAY_AUDIO` action routed into `playAudio()` (which F3 meters) gives the remote path the classroom model requires; same gap as Sound Lab F3.
+- **F5 · P2 — Round 3 has no failure exit on the board.** A failed speech attempt calls `itemFailure` (−1) but neither reveals nor advances (`:292-294`); the recognition hook keeps listening, so a kid who can't produce the sound bleeds −1 per attempt until the teacher uses Correct/Next. Rounds 1–2 reveal on the 2nd miss (`:370-371`) — no mercy rule for production. Browser-unsupported mics render a static "not supported" note whose only exit is also the remote (`:571-575`).
+- **F6 · P3 — Round 2 replays round 1's pairs when the pool is small** (`:119-122`) — a deliberate anti-skip fallback, but it means short units hear the SAME audio and pairs twice within one slide, back to back; with F1 unshuffled the replay inherits the tap-left exploit for kids who saw round 1.
+- **F7 · P3 — Round chrome is teacher-jargon and sub-projection.** The round pips are `w-3 h-3` (12 px — invisible at 5–8 m, `:454-462`); the captions read "Round 1: Discriminate / Round 2: Identify / Round 3: Produce" (`:464-466`) — metalinguistic labels meaningful to teachers, not to 6–12-year-olds; empty state is the shared English-only card (`:423-434`).
+- **F8 · P3 — Fixed `max-w-3xl` card, no responsive reflow** (`:488`) — no phone-landscape floor; the 2-option round renders two narrow buttons in a ¾-width card, wasting the stage (a wide side-by-side pair layout would also serve the discrimination task better).
+
+**What already works well (context — don't re-litigate):** the single-source-of-truth `correctWord` resolution (audio can no longer speak pair[0] while the answer is elsewhere — a past bug class), round 2's real distractors + seeded shuffle, the discriminate→identify→produce ladder with correct difficulty tagging, per-item resolve latches stopping stale speech results and double taps, reveal-on-wrong teaching beats in rounds 1–2, round speech pre-warm, empty-round skipping that can't fake a victory, and MARK_CORRECT doubling as pronunciation acceptance.
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
