@@ -41,7 +41,7 @@ const SpellingBeeGame = lazy(() => import('./SpellingBeeGame'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full">
-    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-lime-500" />
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-wa-teal" />
   </div>
 );
 
@@ -238,13 +238,13 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
 
   // Tab views (map, leaderboard, quests, shop, profile) share the main layout with bottom nav
   return (
-    <div className="h-full bg-slate-50 font-sans max-w-md mx-auto shadow-xl border-x border-slate-200 flex flex-col pb-20 overflow-hidden">
+    <div className="h-full bg-wa-cream font-wa-body max-w-md mx-auto shadow-xl border-x border-wa-border flex flex-col pb-20 overflow-hidden">
 
       {/* Header (Only for Map view, others have their own) */}
       {location.pathname === '/student' && (
-        <header className="sticky top-0 bg-white/90 backdrop-blur z-20 border-b border-slate-200 px-4 py-3 flex justify-between items-center shrink-0">
+        <header className="sticky top-0 bg-wa-paper/90 backdrop-blur z-20 border-b border-wa-border px-4 py-3 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-6 rounded overflow-hidden relative border border-slate-200 shadow-sm">
+            <div className="w-8 h-6 rounded overflow-hidden relative border border-wa-border shadow-sm">
               {/* Mock Flag */}
               <div className="absolute inset-0 bg-white">
                 <div className="w-full h-1/3 bg-blue-500"></div>
@@ -252,20 +252,20 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                 <div className="w-full h-1/3 bg-red-500 bottom-0 absolute"></div>
               </div>
             </div>
-            <span className="font-bold text-slate-700">English</span>
+            <span className="font-wa-display font-semibold text-wa-ink">English</span>
           </div>
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-2 items-center">
             <button
               onClick={() => setShowJoinClassModal(true)}
-              className="flex items-center gap-1 text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded-lg hover:bg-purple-100 transition-colors"
+              className="flex items-center gap-1 text-white text-sm font-wa-display bg-wa-teal px-3 py-1.5 rounded-full shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all"
             >
-              <Users size={16} />
-              <span className="text-sm">{t('student.joinClass')}</span>
+              <Users size={15} />
+              <span>{t('student.joinClass')}</span>
             </button>
-            <div className="flex items-center gap-1 text-orange-500 font-bold bg-orange-50 px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-wa-terra font-bold bg-wa-terra/10 px-2.5 py-1.5 rounded-full">
               <span className="text-lg">🔥</span> {userStats.streak}
             </div>
-            <div className="flex items-center gap-1 text-blue-500 font-bold bg-blue-50 px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-1 text-wa-teal font-bold bg-wa-teal/10 px-2.5 py-1.5 rounded-full">
               <span className="text-lg">💎</span> {userStats.gems}
             </div>
           </div>
@@ -290,9 +290,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                   <div className="mx-4 mt-4 mb-2">
                     <div className="flex items-center gap-2 mb-3">
                       <FileText size={20} className="text-orange-500" />
-                      <h2 className="font-bold text-slate-800">{t('student.pendingHomework')}</h2>
+                      <h2 className="font-bold text-wa-ink">{t('student.pendingHomework')}</h2>
                       {assignments.filter(a => a.student_status === 'pending').length > 0 && (
-                        <span className="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                        <span className="bg-wa-terra/15 text-wa-terra text-xs font-bold px-2 py-0.5 rounded-full">
                           {assignments.filter(a => a.student_status === 'pending').length}
                         </span>
                       )}
@@ -303,11 +303,11 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                           {t('common.loading')}
                         </div>
                       ) : assignments.filter(a => a.student_status === 'pending').length === 0 ? (
-                        <div className="bg-white rounded-xl p-6 text-center border border-slate-100">
-                          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <CheckCircle size={32} className="text-green-500" />
+                        <div className="bg-wa-paper rounded-wa-card p-6 text-center border border-wa-border">
+                          <div className="w-16 h-16 bg-wa-successBg rounded-full flex items-center justify-center mx-auto mb-3">
+                            <CheckCircle size={32} className="text-wa-teal" />
                           </div>
-                          <h3 className="font-bold text-slate-800 mb-1">{t('student.allCaughtUp')}</h3>
+                          <h3 className="font-bold text-wa-ink mb-1">{t('student.allCaughtUp')}</h3>
                           <p className="text-sm text-slate-500">{t('student.noPendingHomework')}</p>
                         </div>
                       ) : (
@@ -317,16 +317,16 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                           .map((assignment) => (
                             <div
                               key={assignment.id}
-                              className="bg-white rounded-xl p-4 shadow-sm border border-slate-100"
+                              className="bg-wa-paper rounded-wa-card p-4 shadow-wa-card border border-wa-border"
                             >
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <h3 className="font-bold text-slate-800 text-sm">{assignment.title}</h3>
+                                  <h3 className="font-bold text-wa-ink text-sm">{assignment.title}</h3>
                                   {assignment.class_name && (
                                     <p className="text-xs text-slate-500 mt-1">{assignment.class_name}</p>
                                   )}
                                   {assignment.due_date && (
-                                    <div className="flex items-center gap-1 mt-2 text-xs text-orange-600">
+                                    <div className="flex items-center gap-1 mt-2 text-xs text-wa-terra">
                                       <Clock size={12} />
                                       <span>Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
                                     </div>
@@ -334,7 +334,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
                                 </div>
                                 <button
                                   onClick={() => handleMarkAsDone(assignment.id)}
-                                  className="ml-2 px-3 py-1.5 bg-green-500 text-white text-xs font-bold rounded-lg hover:bg-green-600 transition-colors"
+                                  className="ml-2 px-3 py-1.5 bg-wa-teal text-white text-xs font-wa-display rounded-full shadow-wa-btn-teal active:translate-y-0.5 active:shadow-none transition-all"
                                 >
                                   {t('student.markDone')}
                                 </button>
@@ -365,41 +365,41 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       </div>
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-200 pb-safe grid grid-cols-5 z-50">
+      <nav className="fixed bottom-0 w-full max-w-md bg-wa-paper border-t border-wa-border pb-safe grid grid-cols-5 z-50">
         <button
           onClick={() => navigate('/student')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <Home size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.learn')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.learn')}</span>
         </button>
         <button
           onClick={() => navigate('/student/leaderboard')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/leaderboard' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/leaderboard' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <Trophy size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.rank')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.rank')}</span>
         </button>
         <button
           onClick={() => navigate('/student/quests')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/quests' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/quests' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <BookOpen size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.quests')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.quests')}</span>
         </button>
         <button
           onClick={() => navigate('/student/shop')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/shop' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/shop' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <ShoppingBag size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.shop')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.shop')}</span>
         </button>
         <button
           onClick={() => navigate('/student/profile')}
-          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/profile' ? 'text-duo-pink border-t-2 border-duo-pink bg-pink-50' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex flex-col items-center p-3 transition-colors ${location.pathname === '/student/profile' ? 'text-wa-teal border-t-2 border-wa-teal bg-wa-teal/10' : 'text-wa-muted hover:text-wa-ink'}`}
         >
           <User size={24} />
-          <span className="text-[10px] font-bold mt-1 uppercase">{t('nav.profile')}</span>
+          <span className="text-[10px] font-bold mt-1 uppercase font-wa-display">{t('nav.profile')}</span>
         </button>
       </nav>
 
