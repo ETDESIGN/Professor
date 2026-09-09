@@ -245,7 +245,8 @@ describe('Phase 9 Tests', () => {
 
       render(<HomeMap onNavigate={() => {}} />);
 
-      expect(screen.getByText('Animals')).toBeInTheDocument();
+      // Focus unit's title renders twice: TerritoryIntro hero + unit banner.
+      expect(screen.getAllByText('Animals').length).toBeGreaterThan(0);
       expect(screen.getByText('Colors')).toBeInTheDocument();
     });
 

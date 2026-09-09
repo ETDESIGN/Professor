@@ -14,7 +14,8 @@ import {
 import type { StageProgressMap } from '../../services/stageProgressService';
 import { StageIcon } from '../../components/shared/stageIcons';
 import { motion } from 'framer-motion';
-import { themeForUnit } from './atlas/territory';
+import { themeForUnit, pickFocusUnit } from './atlas/territory';
+import TerritoryIntro from './atlas/TerritoryIntro';
 import { waColors } from './atlas/tokens';
 
 // Feature flag: dubbing is a mock (audit P1-5). Default OFF.
@@ -221,6 +222,22 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
         const svgHeight = Math.max(600, nodeCount * 130 + 130);
         return (
           <div key={unit.id} className="relative z-10 pb-8">
+            {(() => {
+              const focus = pickFocusUnit(units, masteryByUnit);
+              if (focus?.id !== unit.id) return null;
+              const focusSummary = masteryByUnit[unit.id];
+              const activeNode = nodes.find((n) => n.state === 'active') ?? nodes[0];
+              return (
+                <TerritoryIntro
+                  unit={{ title: unit.title, topic: unit.topic }}
+                  theme={themeForUnit(unit)}
+                  lessonsCount={nodes.length}
+                  crowns={focusSummary ? { current: focusSummary.crowns, total: focusSummary.total } : undefined}
+                  isLocked={unitLocked}
+                  onStart={() => (activeNode ? onNavigate('lesson', unit.id, activeNode.stage.id) : onNavigate('lesson', unit.id))}
+                />
+              );
+            })()}
             {/* Unit Header — Wonder Atlas territory card */}
             <div className={`mx-4 mt-4 rounded-wa-card p-5 bg-wa-paper border-b-4 border-wa-border shadow-wa-card transform transition-transform ${unit.status === 'Locked' ? 'grayscale opacity-70' : ''}`}>
               {unit.coverImage && !unit.coverImage.includes('dicebear') && (
