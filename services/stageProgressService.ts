@@ -16,6 +16,7 @@
 
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
+import { isStudentEligibleType, friendlyTitle, GAME_TITLES } from './gameRouting';
 import {
   StudentStage,
   StageBlock,
@@ -214,9 +215,13 @@ export const deriveDefaultPath = (unit: { id: string; flow?: any[] }): StudentSt
       pending.push(block);
       return;
     }
+    // Classroom/board mechanics (CLASS_RALLY, team games, …) never become
+    // student nodes — the map must not advertise games the solo player can't
+    // host (audit 2026-09-10 F2/F4; gate lives in gameRouting.ts).
+    if (!isStudentEligibleType(block.type)) return;
     stages.push({
       id: deterministicId(unit.id, stages.length, block.id, block.type),
-      title: block.title,
+      title: friendlyTitle(block.type, block.title),
       icon: ICON_FOR_TYPE[block.type] || 'star',
       kind: 'lesson',
       lock: 'auto',
@@ -254,9 +259,13 @@ export const deriveDefaultPath = (unit: { id: string; flow?: any[] }): StudentSt
 /** Coerce stored JSON into StudentStage, dropping unusable entries. */
 const normalizeStage = (raw: any): StudentStage | null => {
   if (!raw || typeof raw !== 'object' || !raw.id) return null;
+  // Older composed plans carry raw block-type strings as titles ("SOUND_LAB")
+  // — translate exactly those; teacher-authored titles pass through untouched.
+  const rawTitle = typeof raw.title === 'string' && raw.title ? raw.title : '';
+  const title = GAME_TITLES[rawTitle] ?? rawTitle;
   return {
     id: String(raw.id),
-    title: raw.title || 'Lesson',
+    title: title || 'Lesson',
     icon: raw.icon || 'star',
     kind: raw.kind === 'review' ? 'review' : 'lesson',
     lock: raw.lock === 'locked' || raw.lock === 'open' ? raw.lock : 'auto',
@@ -269,7 +278,10 @@ const normalizeStage = (raw: any): StudentStage | null => {
 /**
  * The playable path of a unit: the teacher-saved student_path when present,
  * otherwise the mechanically derived default (never empty — review node
- * always exists so the path is always playable).
+ * always exists so the path is always playable). Saved stages whose blocks
+ * are ALL student-ineligible (classroom/board mechanics a teacher left in an
+ * older plan) are dropped from the student view — the teacher's saved plan is
+ * not mutated (audit 2026-09-10 F2).
  */
 export const resolveUnitPath = (unit: {
   id: string;
@@ -279,6 +291,12 @@ export const resolveUnitPath = (unit: {
   const saved = Array.isArray(unit.studentPath)
     ? unit.studentPath.map(normalizeStage).filter((s: StudentStage | null): s is StudentStage => s !== null)
     : [];
-  if (saved.length > 0) return saved;
+  const playableSaved = saved.filter(
+    // Empty-blocks stages are teacher-authored markers with unknown content —
+    // kept (legacy behavior); only stages whose blocks are ALL ineligible
+    // classroom/board mechanics are dropped from the student view.
+    (s) => s.blocks.length === 0 || s.blocks.some((b) => isStudentEligibleType(b.type)),
+  );
+  if (playableSaved.length > 0) return playableSaved;
   return deriveDefaultPath(unit);
 };

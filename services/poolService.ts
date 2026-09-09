@@ -12,6 +12,7 @@ import { createClientLogger } from './logger';
 import { PoolItem, toPoolItem } from '../types/exercise';
 import { getLearnerState, rankWeakestFirst, ObjectiveState } from './learnerState';
 import { retrievability, elapsedDays, isDue, effectiveMasteryState } from './fsrs';
+import { mulberry32, seededShuffle } from './seededRandom';
 
 const log = createClientLogger('PoolService');
 
@@ -43,6 +44,53 @@ function sortByLoopStage(items: PoolItem[], rByObj: Map<string, number>): PoolIt
   );
 }
 export { sortByLoopStage };
+
+/**
+ * Shuffle within each loop-stage run (recognize → recall → produce) so replays
+ * vary while the pedagogical arc is preserved. Pure + seeded — the player rolls
+ * a fresh seed per battery mount (solo variety, audit 2026-09-10 F1); tests
+ * pass fixed seeds for determinism.
+ */
+export function variateWithinStages<T extends { exercise_type: string }>(items: readonly T[], seed: number): T[] {
+  const rng = mulberry32(seed >>> 0);
+  const out: T[] = [];
+  let run: T[] = [];
+  const flush = () => { out.push(...seededShuffle(run, rng)); run = []; };
+  let prevStage = -1;
+  for (const it of items) {
+    const st = loopStageRank(it.exercise_type);
+    if (run.length > 0 && st !== prevStage) flush();
+    run.push(it);
+    prevStage = st;
+  }
+  flush();
+  return out;
+}
+
+/** A game family thinner than this relaxes to all types (never a starved battery). */
+export const MIN_FAMILY_ITEMS = 5;
+export const MIN_FAMILY_OBJECTIVES = 3;
+
+/**
+ * Restrict candidate rows to a game's exercise-type family. Falls back to the
+ * unfiltered rows when the family is too thin to serve a full session — a
+ * "Sound Lab" with 2 listening items must degrade to a mixed battery, not an
+ * empty one. Pure; exported for tests.
+ */
+export function applyFamilyFilter(
+  rows: readonly { objective_id: string | null; exercise_type: string }[],
+  types: readonly string[] | undefined,
+): { rows: typeof rows; relaxed: boolean } {
+  if (!types || types.length === 0) return { rows, relaxed: false };
+  const family = new Set(types);
+  const inFamily = rows.filter((r) => family.has(r.exercise_type));
+  const objectives = new Set(inFamily.map((r) => r.objective_id ?? '')).size;
+  if (inFamily.length >= MIN_FAMILY_ITEMS && objectives >= MIN_FAMILY_OBJECTIVES) {
+    return { rows: inFamily, relaxed: false };
+  }
+  return { rows, relaxed: true };
+}
+
 const ALL_TYPES = [...RECEPTIVE, ...CONSTRAINED, ...FREE];
 const CRACK_THRESHOLD = 0.85;
 
@@ -59,14 +107,28 @@ export function pickForObjective(state: ObjectiveState | undefined, items: PoolI
   return byType(preferred) || byType(ALL_TYPES) || items[0];
 }
 
+export interface SelectLessonOptions {
+  /** Restrict the battery to a game's exercise-type family (see gameRouting). */
+  types?: readonly string[];
+  /** Seed for within-stage shuffle variety; omit for the deterministic order. */
+  seed?: number;
+}
+
 /**
  * Lesson selection: rank the unit's objectives weakest-first (lowest
  * retrievability), then pick one mastery-appropriate item per objective.
  * Two-phase: rank on lightweight columns, fetch full content only for the
  * chosen items (avoids transferring the whole unit's content JSONB). Caps at
- * `count` (~12-16).
+ * `count` (~12-16). `opts.types` scopes the battery to one game's exercise
+ * family (thin families relax to all types); `opts.seed` shuffles within the
+ * recognize→recall→produce arc for replay variety.
  */
-export async function selectLessonItems(unitId: string, studentId: string, count = 14): Promise<PoolItem[]> {
+export async function selectLessonItems(
+  unitId: string,
+  studentId: string,
+  count = 14,
+  opts?: SelectLessonOptions,
+): Promise<PoolItem[]> {
   try {
     // Phase 1: lightweight columns only (rank + dedupe by objective).
     const { data: rows, error } = await supabase
@@ -75,9 +137,16 @@ export async function selectLessonItems(unitId: string, studentId: string, count
       .eq('unit_id', unitId);
     if (error || !rows || rows.length === 0) return [];
 
+    // Game-family scoping (audit 2026-09-10 F1): the tapped game decides which
+    // exercise types belong in its battery; a too-thin family relaxes to all.
+    const family = applyFamilyFilter(rows, opts?.types);
+    if (family.relaxed) {
+      log.info('lesson_items_family_relaxed', { metadata: { unitId, familySize: family.rows.length } });
+    }
+
     // FIXPLAN I (#5): a lesson serves only RELEASED objectives (all of them
     // when the unit has no class plans — the RPC handles that). Fail-open.
-    let candidateRows = rows;
+    let candidateRows = family.rows as { id: string; objective_id: string | null; exercise_type: string }[];
     const { getReleasedObjectiveIds } = await import('./learnerState');
     const released = await getReleasedObjectiveIds(unitId);
     if (released) {
@@ -120,7 +189,8 @@ export async function selectLessonItems(unitId: string, studentId: string, count
     // P-C: order the session recognize → recall → produce (weakest-first within
     // each). Unseen objectives (absent from `states`) sort as weakest (0).
     const rByObj = new Map<string, number>(objectives.map((oid) => [oid, states.get(oid)?.retrievability ?? 0]));
-    return sortByLoopStage(picked, rByObj);
+    const ordered = sortByLoopStage(picked, rByObj);
+    return opts?.seed !== undefined ? variateWithinStages(ordered, opts.seed) : ordered;
   } catch (err) {
     log.warn('select_lesson_items_error', { error: err instanceof Error ? err.message : String(err) });
     return [];

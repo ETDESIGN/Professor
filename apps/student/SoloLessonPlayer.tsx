@@ -7,6 +7,7 @@ import { MediaService } from '../../services/MediaService';
 import { getVocabulary, getCharacters } from '../../services/manifest';
 import { supabase } from '../../services/supabaseClient';
 import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
+import { contentForStep, friendlyTitle } from '../../services/gameRouting';
 import { completeStage, starsForAccuracy } from '../../services/stageProgressService';
 import type { StudentStage } from '../../types/stage';
 import { playAudioUrl } from '../../services/SpeechService';
@@ -14,11 +15,13 @@ import ExerciseRunner from './exercises/ExerciseRunner';
 import WordLab from './WordLab';
 import ReactPlayer from 'react-player/lazy';
 
-// Real game engines as in-lesson steps (Student Path): a FAST_VOCAB /
-// SPELLING_BEE block plays the shared game engine, not the exercise
-// battery. Lazy so the engines stay out of the player's main bundle.
+// Real game engines as in-lesson steps (Student Path): engine-routed block
+// types (see services/gameRouting.ts) play their shared game engine, not the
+// exercise battery. Lazy so the engines stay out of the player's main bundle.
 const FastVocabStep = lazy(() => import('./steps/FastVocabStep'));
 const SpellingBeeStep = lazy(() => import('./steps/SpellingBeeStep'));
+const WordSearchStep = lazy(() => import('./steps/WordSearchStep'));
+const MemoryMatchStep = lazy(() => import('./steps/MemoryMatchStep'));
 
 interface SoloLessonPlayerProps {
   onComplete: (results: { xp: number; accuracy: number; time: string; stars?: number }) => void;
@@ -74,29 +77,38 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     supabase.auth.getUser().then(({ data: { user } }) => { if (user) setStudentId(user.id); }).catch(() => {});
   }, []);
 
-  // Detect pool-driven steps (phase tag from orchestrate-lesson, or explicit flag).
-  // The two engine-game types are excluded: they render the shared game
-  // engines (FastVocabStep / SpellingBeeStep), not the exercise battery.
+  // Step routing (audit 2026-09-10 F1): the block's TYPE decides its content.
+  //   engine  → a real game engine owns the screen (gameRouting GAME_CONTENT)
+  //   pool    → the battery, restricted to this game's exercise-type family
+  //   (fall-through) poolDriven/PRACTICE/ASSED blocks keep the mixed battery.
   const unitId = state.activeUnit?.id || '';
-  const isEngineStep =
-    currentStep?.type === 'FAST_VOCAB' || currentStep?.type === 'SPELLING_BEE';
+  const contentSpec = contentForStep(currentStep?.type);
+  const isEngineStep = contentSpec?.kind === 'engine';
   const isPoolStep = !isEngineStep && Boolean(
-    currentStep?.data?.poolDriven || currentStep?.phase === 'PRACTICE' || currentStep?.phase === 'ASSESS',
+    contentSpec?.kind === 'pool' || contentSpec?.kind === 'pool-all'
+    || currentStep?.data?.poolDriven || currentStep?.phase === 'PRACTICE' || currentStep?.phase === 'ASSESS',
   );
+  // Variety seed: re-rolled per step so replays shuffle within the pedagogical
+  // arc (recognize → recall → produce) instead of replaying the same order.
+  const [varietySeed, setVarietySeed] = useState(() => (Math.random() * 0x7fffffff) | 0);
 
-  // Load the weakest-first battery for the current pool-driven step.
+  // Load the battery for the current pool-driven step, scoped to the game's
+  // exercise family when routed (services/gameRouting.ts).
   useEffect(() => {
     if (!isPoolStep || !unitId || !studentId) { setExerciseItems([]); return; }
     let cancelled = false;
     setExerciseLoading(true);
     (async () => {
       await prepareUnitForStudent(unitId, studentId);
-      const items = await selectLessonItems(unitId, studentId, 14);
+      const items = await selectLessonItems(unitId, studentId, 14, {
+        types: contentSpec?.kind === 'pool' ? contentSpec.types : undefined,
+        seed: varietySeed,
+      });
       if (!cancelled) { setExerciseItems(items); setExerciseLoading(false); }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPoolStep, unitId, studentId, currentIndex]);
+  }, [isPoolStep, unitId, studentId, currentIndex, currentStep?.type, varietySeed]);
 
   useEffect(() => {
     const unit = state.activeUnit;
@@ -122,6 +134,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     setActiveExampleIndex(0);
     setActivePageIndex(0);
     setActiveQuizIndex(0);
+    setVarietySeed((Math.random() * 0x7fffffff) | 0);
   }, [currentIndex]);
 
   const handleNext = useCallback(() => {
@@ -586,7 +599,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
           items={exerciseItems}
           studentId={studentId}
           unitId={unitId}
-          title={currentStep.title}
+          title={friendlyTitle(currentStep.type, currentStep.title)}
           onExit={onExit}
           onDone={() => handleNext()}
         />
@@ -596,30 +609,33 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
   // Engine-game step: the shared game engine owns the full screen. Completion
   // (onDone) flows through handleNext → stage completion, exactly like the
-  // battery's onDone.
+  // battery's onDone. Dispatch by the routed engine kind (gameRouting).
   const renderEngineStep = () => {
-    if (currentStep.type === 'FAST_VOCAB') {
-      return (
-        <FastVocabStep
-          unitId={unitId}
-          unitTitle={state.activeUnit?.title || ''}
-          waveSize={currentStep.data?.waveSize}
-          onDone={() => handleNext()}
-          onExit={onExit}
-        />
-      );
+    if (contentSpec?.kind !== 'engine') return null;
+    const engineProps = {
+      unitId,
+      unitTitle: state.activeUnit?.title || '',
+      onDone: () => handleNext(),
+      onExit,
+    };
+    switch (contentSpec.engine) {
+      case 'FAST_VOCAB':
+        return <FastVocabStep {...engineProps} waveSize={currentStep.data?.waveSize} />;
+      case 'WORD_SEARCH':
+        return <WordSearchStep {...engineProps} />;
+      case 'MEMORY_MATCH':
+        // Memory pairs come from the active unit's vocabulary, not unitId.
+        return <MemoryMatchStep unitTitle={engineProps.unitTitle} onDone={engineProps.onDone} onExit={onExit} />;
+      default:
+        return (
+          <SpellingBeeStep
+            {...engineProps}
+            wordsPerRound={currentStep.data?.wordsPerTurn}
+            timerSeconds={currentStep.data?.timerSeconds}
+            letterRemoval={currentStep.data?.letterRemoval}
+          />
+        );
     }
-    return (
-      <SpellingBeeStep
-        unitId={unitId}
-        unitTitle={state.activeUnit?.title || ''}
-        wordsPerRound={currentStep.data?.wordsPerTurn}
-        timerSeconds={currentStep.data?.timerSeconds}
-        letterRemoval={currentStep.data?.letterRemoval}
-        onDone={() => handleNext()}
-        onExit={onExit}
-      />
-    );
   };
 
   const renderCurrentStep = () => {

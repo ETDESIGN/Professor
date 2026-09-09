@@ -88,3 +88,76 @@ describe('loop-stage ordering (P-C round sequencer)', () => {
     expect(types).toEqual(['MEANING_MATCH', 'IMAGE_SELECT', 'WORD_BANK_BUILD', 'TYPE_TRANSLATE']);
   });
 });
+
+import { variateWithinStages, applyFamilyFilter } from '../services/poolService';
+
+describe('variateWithinStages (replay variety, audit 2026-09-10 F1)', () => {
+  const mixed = [
+    { exercise_type: 'IMAGE_SELECT', id: 'r1' },
+    { exercise_type: 'LISTEN_SELECT', id: 'r2' },
+    { exercise_type: 'MEANING_MATCH', id: 'r3' },
+    { exercise_type: 'WORD_BANK_BUILD', id: 'c1' },
+    { exercise_type: 'ERROR_SPOT', id: 'c2' },
+    { exercise_type: 'TYPE_TRANSLATE', id: 'p1' },
+    { exercise_type: 'SPEAK_SENTENCE', id: 'p2' },
+  ];
+
+  it('preserves the recognize → recall → produce arc', () => {
+    const out = variateWithinStages(mixed, 42);
+    const ranks = out.map((x) => (x.id.startsWith('r') ? 0 : x.id.startsWith('c') ? 1 : 2));
+    expect([...ranks].sort()).toEqual(ranks); // non-decreasing
+  });
+
+  it('is deterministic for a fixed seed and never drops items', () => {
+    const a = variateWithinStages(mixed, 7);
+    const b = variateWithinStages(mixed, 7);
+    expect(a.map((x) => x.id)).toEqual(b.map((x) => x.id));
+    expect(a).toHaveLength(mixed.length);
+  });
+
+  it('different seeds produce different orders (variety)', () => {
+    const a = variateWithinStages(mixed, 1).map((x) => x.id).join(',');
+    const b = variateWithinStages(mixed, 2).map((x) => x.id).join(',');
+    const c = variateWithinStages(mixed, 3).map((x) => x.id).join(',');
+    expect(new Set([a, b, c]).size).toBeGreaterThan(1);
+  });
+});
+
+describe('applyFamilyFilter (game-scoped batteries, audit 2026-09-10 F1)', () => {
+  // 5 items across 5 distinct objectives per type — above both family thresholds.
+  const rows = (types: string[]) =>
+    types.flatMap((t, i) =>
+      ['a', 'b', 'c', 'd', 'e'].map((s) => ({
+        id: `${t}-${i}${s}`,
+        objective_id: `o${i}${s}`,
+        exercise_type: t,
+      })),
+    );
+
+  it('scopes to the family when it is rich enough', () => {
+    const all = rows(['LISTEN_SELECT', 'IMAGE_SELECT', 'GRAMMAR_FILL']);
+    const out = applyFamilyFilter(all, ['LISTEN_SELECT']);
+    expect(out.relaxed).toBe(false);
+    expect(out.rows.every((r) => r.exercise_type === 'LISTEN_SELECT')).toBe(true);
+  });
+
+  it('relaxes to all types when the family is too thin (never a starved battery)', () => {
+    const all = rows(['IMAGE_SELECT', 'GRAMMAR_FILL']);
+    const thin = all.slice(0, 2); // 2 items, 2 objectives
+    const out = applyFamilyFilter(thin, ['LISTEN_SELECT']);
+    expect(out.relaxed).toBe(true);
+    expect(out.rows).toHaveLength(2);
+  });
+
+  it('relaxes when the family has items but too few objectives', () => {
+    const sameObjective = [1, 2, 3, 4, 5].map((i) => ({ id: `l${i}`, objective_id: 'same', exercise_type: 'LISTEN_SELECT' }));
+    const out = applyFamilyFilter(sameObjective, ['LISTEN_SELECT']);
+    expect(out.relaxed).toBe(true);
+  });
+
+  it('no types → passthrough', () => {
+    const all = rows(['IMAGE_SELECT']);
+    expect(applyFamilyFilter(all, undefined)).toEqual({ rows: all, relaxed: false });
+    expect(applyFamilyFilter(all, [])).toEqual({ rows: all, relaxed: false });
+  });
+});

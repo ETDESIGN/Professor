@@ -137,6 +137,27 @@ export const SoloSessionProvider: React.FC<{ children: ReactNode }> = ({ childre
       if (stageId) {
         const path = resolveUnitPath(unit as any);
         activeStage = path.find(s => s.id === stageId) || null;
+        // Stale-id recovery (audit 2026-09-10 F3): re-publishing a unit
+        // rebuilds stage ids, so a map rendered before the refresh can hold
+        // ids that no longer resolve — silently playing the FULL flow made
+        // every icon launch the same sequence. Recover the tapped node's
+        // title from the cached snapshot and match the fresh path by title.
+        if (!activeStage) {
+          const cachedUnit = state.units.find(u => u.id === unitId);
+          const cachedStage = cachedUnit
+            ? resolveUnitPath(cachedUnit as any).find(s => s.id === stageId)
+            : undefined;
+          const title = cachedStage?.title;
+          if (title) {
+            const norm = (t: string) => t.trim().toLowerCase();
+            activeStage = path.find(s => norm(s.title) === norm(title)) || null;
+          }
+          if (activeStage) {
+            console.info('[SoloSession] stage id stale after refresh; matched by title', { unitId, stageId });
+          } else {
+            console.warn('[SoloSession] tapped stage unresolvable after refresh; falling back to full flow', { unitId, stageId });
+          }
+        }
         if (activeStage && activeStage.blocks.length > 0) {
           flowToPlay = activeStage.blocks;
         }

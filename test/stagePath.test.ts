@@ -186,3 +186,49 @@ describe('resolveUnitPath', () => {
     expect(path[0].visible).toBe(false);
   });
 });
+
+describe('student eligibility filtering (audit 2026-09-10 F2/F4)', () => {
+  it('deriveDefaultPath drops classroom/board mechanics (CLASS_RALLY never becomes a node)', () => {
+    const path = deriveDefaultPath({
+      id: 'u1',
+      flow: [
+        { id: 's1', type: 'SOUND_LAB', title: 'Sound Lab', duration: 300, data: {} },
+        { id: 's2', type: 'CLASS_RALLY', title: 'Class Rally', duration: 300, data: {} },
+        { id: 's3', type: 'TEAM_BATTLE', title: 'Team Battle', duration: 300, data: {} },
+      ],
+    });
+    expect(path.map((s) => s.blocks.map((b) => b.id))).toEqual([
+      ['s1'],
+      [expect.any(String)], // the always-appended review node
+    ]);
+  });
+
+  it('deriveDefaultPath uses friendly node titles', () => {
+    const path = deriveDefaultPath({
+      id: 'u1',
+      flow: [{ id: 's1', type: 'SOUND_LAB', title: 'SOUND_LAB', duration: 300, data: {} }],
+    });
+    expect(path[0].title).toBe('Sound Lab');
+  });
+
+  it('resolveUnitPath drops saved stages whose blocks are ALL ineligible, keeps the rest untouched', () => {
+    const saved = [
+      stage({ id: 'keep', title: 'Sound Lab', blocks: [{ id: 'b1', type: 'SOUND_LAB', title: 'Sound Lab', duration: 300, data: {} }] }),
+      stage({ id: 'drop', title: 'Class Rally', blocks: [{ id: 'b2', type: 'CLASS_RALLY', title: 'Class Rally', duration: 300, data: {} }] }),
+      stage({ id: 'keep-mixed', blocks: [
+        { id: 'b3', type: 'INTRO_SPLASH', title: 'Intro', duration: 60, data: {} },
+        { id: 'b4', type: 'MEMORY_LAB', title: 'Memory Lab', duration: 300, data: {} },
+      ] }),
+    ];
+    const path = resolveUnitPath({ id: 'u1', flow: [], studentPath: saved });
+    expect(path.map((s) => s.id)).toEqual(['keep', 'keep-mixed']);
+    expect(path[1].blocks).toHaveLength(2);
+  });
+
+  it('resolveUnitPath keeps empty-blocks saved stages (legacy markers) and falls back to derived when everything is dropped', () => {
+    const path = resolveUnitPath({ id: 'u1', flow: [], studentPath: [{ id: 'z' }] });
+    expect(path[0].id).toBe('z');
+    const allIneligible = [stage({ id: 'rally', blocks: [{ id: 'b', type: 'CLASS_RALLY', title: '', duration: 1, data: {} }] })];
+    expect(resolveUnitPath({ id: 'u1', flow: [], studentPath: allIneligible })[0].kind).toBe('review');
+  });
+});
