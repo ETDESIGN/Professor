@@ -149,10 +149,11 @@ describe('applyFamilyFilter (game-scoped batteries, audit 2026-09-10 F1)', () =>
     expect(out.rows).toHaveLength(2);
   });
 
-  it('relaxes when the family has items but too few objectives', () => {
+  it('single-objective families qualify (v2: fill pass handles thin objectives, no relax)', () => {
     const sameObjective = [1, 2, 3, 4, 5].map((i) => ({ id: `l${i}`, objective_id: 'same', exercise_type: 'LISTEN_SELECT' }));
     const out = applyFamilyFilter(sameObjective, ['LISTEN_SELECT']);
-    expect(out.relaxed).toBe(true);
+    expect(out.relaxed).toBe(false);
+    expect(out.rows).toHaveLength(5);
   });
 
   it('no types → passthrough', () => {

@@ -43,8 +43,27 @@ describe('gameRouting — content routing table', () => {
     const spec = contentForStep('SOUND_LAB');
     expect(spec?.kind).toBe('pool');
     if (spec?.kind === 'pool') {
-      expect(spec.types).toEqual(['LISTEN_SELECT', 'AUDIO_L1_SELECT', 'MINIMAL_PAIR_SWIPE']);
+      expect(spec.types).toEqual(['LISTEN_SELECT', 'AUDIO_L1_SELECT']);
     }
+    // Phonics is minimal-pair discrimination ONLY (v2 — distinct opening from Sound Lab).
+    const phonics = contentForStep('PHONICS_ARENA');
+    expect(phonics?.kind).toBe('pool');
+    if (phonics?.kind === 'pool') {
+      expect(phonics.types).toEqual(['MINIMAL_PAIR_SWIPE']);
+    }
+  });
+
+  it('every pool family signature (when present) is part of its types', () => {
+    for (const [game, spec] of Object.entries(GAME_CONTENT)) {
+      if (spec.kind !== 'pool') continue;
+      for (const s of spec.signature ?? []) expect(spec.types, game).toContain(s);
+    }
+    // The designed opening set — every game that MUST lead with its own mechanic.
+    const signatured = Object.entries(GAME_CONTENT).filter(([, s]) => s.kind === 'pool' && s.signature);
+    expect(signatured.map(([g]) => g).sort()).toEqual([
+      'DIALOGUE_STAGE', 'GRAMMAR_LAB', 'LISTEN_TAP', 'PHONICS_ARENA', 'SENTENCE_LAB',
+      'SOUND_LAB', 'SPEAKING', 'STORY_QUEST', 'VOCAB_BLITZ', 'WORD_DETECTIVE',
+    ]);
   });
 
   it('distinct games get DISTINCT type families (the F1 fix)', () => {
@@ -59,8 +78,8 @@ describe('gameRouting — content routing table', () => {
     expect(family('SPEAKING')).not.toBe(family('VOCAB_BLITZ'));
   });
 
-  it('UNIT_REVIEW is the unfiltered battery', () => {
-    expect(contentForStep('UNIT_REVIEW')).toEqual({ kind: 'pool-all' });
+  it('UNIT_REVIEW is the unfiltered, interleaved battery', () => {
+    expect(contentForStep('UNIT_REVIEW')).toEqual({ kind: 'pool-all', interleave: true });
   });
 
   it('unknown and unrouted types fall through to null (player keeps legacy behavior)', () => {

@@ -19,10 +19,25 @@ import { STUDENT_ELIGIBLE_TYPES } from '../types/stage';
 
 export type EngineKind = 'FAST_VOCAB' | 'SPELLING_BEE' | 'WORD_SEARCH' | 'MEMORY_MATCH';
 
+export interface PoolSpec {
+  kind: 'pool';
+  /** Exercise types allowed in this game's battery. */
+  types: readonly string[];
+  /**
+   * The game's SIGNATURE types lead the battery (v2, owner feedback
+   * 2026-09-10): several families overlap in modality (audio MCQ vs meaning
+   * MCQ read the same to a player), so the FIRST screen of every game must be
+   * its signature mechanic — Phonics opens on a minimal-pair swipe, Grammar
+   * Lab on a grammar fill, Sentence Lab on word tiles, never a generic
+   * word→Chinese MCQ.
+   */
+  signature?: readonly string[];
+}
+
 export type StepContent =
   | { kind: 'engine'; engine: EngineKind }
-  | { kind: 'pool'; types: readonly string[] }
-  | { kind: 'pool-all' };
+  | PoolSpec
+  | { kind: 'pool-all'; interleave?: boolean };
 
 /**
  * Block types the solo player can host beyond STUDENT_ELIGIBLE_TYPES:
@@ -45,32 +60,37 @@ export const GAME_CONTENT: Readonly<Record<string, StepContent>> = {
   MEMORY_LAB: { kind: 'engine', engine: 'MEMORY_MATCH' },
 
   // ── Listening / sound discrimination ────────────────────────────────
-  SOUND_LAB: { kind: 'pool', types: ['LISTEN_SELECT', 'AUDIO_L1_SELECT', 'MINIMAL_PAIR_SWIPE'] },
-  LISTEN_TAP: { kind: 'pool', types: ['LISTEN_SELECT', 'AUDIO_L1_SELECT'] },
-  PHONICS_ARENA: { kind: 'pool', types: ['MINIMAL_PAIR_SWIPE', 'LISTEN_SELECT', 'AUDIO_L1_SELECT'] },
+  // v2: Phonics is minimal-pair discrimination ONLY (its own distinct swipe
+  // UI); Sound Lab keeps the two audio-MCQ types and opens on LISTEN
+  // (audio → English), so the two games no longer share an opening mechanic.
+  SOUND_LAB: { kind: 'pool', types: ['LISTEN_SELECT', 'AUDIO_L1_SELECT'], signature: ['LISTEN_SELECT'] },
+  LISTEN_TAP: { kind: 'pool', types: ['LISTEN_SELECT', 'AUDIO_L1_SELECT'], signature: ['AUDIO_L1_SELECT'] },
+  PHONICS_ARENA: { kind: 'pool', types: ['MINIMAL_PAIR_SWIPE'], signature: ['MINIMAL_PAIR_SWIPE'] },
 
   // ── Vocabulary recognition / production ─────────────────────────────
-  WORD_DETECTIVE: { kind: 'pool', types: ['IMAGE_SELECT', 'MEANING_MATCH'] },
-  VOCAB_BLITZ: { kind: 'pool', types: ['IMAGE_SELECT', 'MEANING_MATCH', 'SPELL_CLOZE', 'TYPE_TRANSLATE'] },
+  // Detective = picture hunt (image MCQ); Blitz = fast recall (word→L1).
+  WORD_DETECTIVE: { kind: 'pool', types: ['IMAGE_SELECT', 'MEANING_MATCH'], signature: ['IMAGE_SELECT'] },
+  VOCAB_BLITZ: { kind: 'pool', types: ['IMAGE_SELECT', 'MEANING_MATCH', 'SPELL_CLOZE', 'TYPE_TRANSLATE'], signature: ['MEANING_MATCH'] },
 
   // ── Sentence construction / correction ──────────────────────────────
-  SENTENCE_LAB: { kind: 'pool', types: ['WORD_BANK_BUILD', 'ERROR_SPOT', 'SPELL_CLOZE'] },
+  SENTENCE_LAB: { kind: 'pool', types: ['WORD_BANK_BUILD', 'ERROR_SPOT', 'SPELL_CLOZE'], signature: ['WORD_BANK_BUILD'] },
 
   // ── Grammar ─────────────────────────────────────────────────────────
-  GRAMMAR_LAB: { kind: 'pool', types: ['GRAMMAR_FILL', 'TRANSFORM', 'ERROR_SPOT'] },
+  GRAMMAR_LAB: { kind: 'pool', types: ['GRAMMAR_FILL', 'TRANSFORM', 'ERROR_SPOT'], signature: ['GRAMMAR_FILL', 'TRANSFORM'] },
 
   // ── Speech ──────────────────────────────────────────────────────────
-  SPEAKING: { kind: 'pool', types: ['SPEAK_SENTENCE', 'DIALOGUE_ROLEPLAY'] },
-  DIALOGUE_STAGE: { kind: 'pool', types: ['DIALOGUE_ROLEPLAY', 'WHO_SAID_IT', 'SPEAK_SENTENCE'] },
+  SPEAKING: { kind: 'pool', types: ['SPEAK_SENTENCE', 'DIALOGUE_ROLEPLAY'], signature: ['SPEAK_SENTENCE'] },
+  DIALOGUE_STAGE: { kind: 'pool', types: ['DIALOGUE_ROLEPLAY', 'WHO_SAID_IT', 'SPEAK_SENTENCE'], signature: ['DIALOGUE_ROLEPLAY'] },
 
   // ── Reading comprehension ───────────────────────────────────────────
-  STORY_QUEST: { kind: 'pool', types: ['STORY_COMPREHENSION', 'WHO_SAID_IT'] },
+  STORY_QUEST: { kind: 'pool', types: ['STORY_COMPREHENSION', 'WHO_SAID_IT'], signature: ['STORY_COMPREHENSION'] },
 
-  // ── Rapid recognition sprint ────────────────────────────────────────
+  // ── Rapid recognition sprint: mixed receptive by design (no signature —
+  // its distinctness is speed, a UI concern; opening may match other games). ──
   SPEED_QUIZ: { kind: 'pool', types: ['IMAGE_SELECT', 'MEANING_MATCH', 'LISTEN_SELECT', 'AUDIO_L1_SELECT'] },
 
-  // ── Review: everything, weakest-first (the classic battery) ─────────
-  UNIT_REVIEW: { kind: 'pool-all' },
+  // ── Review: everything, interleaved so consecutive screens vary ─────
+  UNIT_REVIEW: { kind: 'pool-all', interleave: true },
 };
 
 /** Content spec for a flow block type; null = no pool/engine routing. */

@@ -102,6 +102,8 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       await prepareUnitForStudent(unitId, studentId);
       const items = await selectLessonItems(unitId, studentId, 14, {
         types: contentSpec?.kind === 'pool' ? contentSpec.types : undefined,
+        signature: contentSpec?.kind === 'pool' ? contentSpec.signature : undefined,
+        interleave: contentSpec?.kind === 'pool-all' ? contentSpec.interleave : undefined,
         seed: varietySeed,
       });
       if (!cancelled) { setExerciseItems(items); setExerciseLoading(false); }

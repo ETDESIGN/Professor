@@ -133,6 +133,29 @@ across re-publishes) → only then full flow, and never silently: `console.warn`
 `activeStage = null`. This kills the "every icon plays the same full sequence" mode for
 stale-map cases.
 
+## Addendum — v2 (2026-09-10, after owner retest: "every game still opens on the same lion/polar-bear Chinese-word question")
+
+v1 filtered each battery to its family but three flaws kept the openings feeling identical:
+families overlapped in MODALITY (Phonics/Sound Lab both opened on an audio→Chinese MCQ;
+Review is all-types by design), the "≥3 objectives" guard wrongly relaxed single-objective
+families (Story Quest's 8 MCQs on 1 objective) into the generic mix, and the released-objectives
+filter re-widened the family whenever a class plan existed (latent bug, fixed).
+
+v2 changes:
+- **Signature openings** — every routed family declares `signature` types that LEAD the battery
+  (test/familyRepro.test.ts asserts, against a snapshot of the REAL zoo pool, that no two
+  signature-led games open on the same exercise type and grammar/sentence batteries never leak
+  vocabulary MCQs).
+- **Phonics = MINIMAL_PAIR_SWIPE only** (its distinct 2-option swipe UI); Sound Lab opens on
+  LISTEN_SELECT (audio→English), Listen&Tap on AUDIO_L1_SELECT (audio→Chinese).
+- **Family guard is item-based** (≥3 items); single-objective families qualify and a repeat
+  **fill pass** tops each objective up to 3 items (buildBatteryIds, pure, shared with tests).
+- **Seeded per-objective option shuffle** — DB rows arrive alphabetically by type, which made
+  every family battery serve one type wall-to-wall (grammar = 8× ERROR_SPOT).
+- **Unit Review interleaves** the stage arc (round-robin) instead of running all MCQs first.
+- The owner's "Grammar Lab showed the polar-bear vocab MCQ" report cannot reproduce with v2
+  code (asserted); if seen again, first suspect a stale PWA tab (reload banner / hard refresh).
+
 ## Explicitly out of scope (Phase 1)
 
 - Any Stitch/Wonder Atlas reskin (owner decides after seeing the games).

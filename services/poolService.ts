@@ -68,14 +68,15 @@ export function variateWithinStages<T extends { exercise_type: string }>(items: 
 }
 
 /** A game family thinner than this relaxes to all types (never a starved battery). */
-export const MIN_FAMILY_ITEMS = 5;
-export const MIN_FAMILY_OBJECTIVES = 3;
+export const MIN_FAMILY_ITEMS = 3;
 
 /**
- * Restrict candidate rows to a game's exercise-type family. Falls back to the
- * unfiltered rows when the family is too thin to serve a full session — a
- * "Sound Lab" with 2 listening items must degrade to a mixed battery, not an
- * empty one. Pure; exported for tests.
+ * Restrict candidate rows to a game's exercise-type family. Qualifies on ITEM
+ * count alone (v2, 2026-09-10): the v1 objectives guard wrongly relaxed
+ * single-objective families (8 story-comprehension MCQs on 1 objective) into
+ * the generic mixed battery — the fill pass in selectLessonItems now handles
+ * thin-objective families instead. Falls back to the unfiltered rows when the
+ * family is too thin to serve a session at all. Pure; exported for tests.
  */
 export function applyFamilyFilter(
   rows: readonly { objective_id: string | null; exercise_type: string }[],
@@ -84,11 +85,115 @@ export function applyFamilyFilter(
   if (!types || types.length === 0) return { rows, relaxed: false };
   const family = new Set(types);
   const inFamily = rows.filter((r) => family.has(r.exercise_type));
-  const objectives = new Set(inFamily.map((r) => r.objective_id ?? '')).size;
-  if (inFamily.length >= MIN_FAMILY_ITEMS && objectives >= MIN_FAMILY_OBJECTIVES) {
+  if (inFamily.length >= MIN_FAMILY_ITEMS) {
     return { rows: inFamily, relaxed: false };
   }
   return { rows, relaxed: true };
+}
+
+/**
+ * Signature-first ordering (v2): pull the game's signature exercise types to
+ * the front (in signature order) so a battery OPENS on the game's own
+ * mechanic; everything else keeps its arc order behind them. Pure.
+ */
+export function orderFamily<T extends { exercise_type: string }>(
+  items: readonly T[],
+  signature: readonly string[],
+): T[] {
+  if (signature.length === 0) return items.slice();
+  const rank = new Map(signature.map((t, i) => [t, i]));
+  const sig = items
+    .filter((it) => rank.has(it.exercise_type))
+    .sort((a, b) => (rank.get(a.exercise_type) ?? 0) - (rank.get(b.exercise_type) ?? 0));
+  const rest = items.filter((it) => !rank.has(it.exercise_type));
+  return [...sig, ...rest];
+}
+
+/**
+ * The selection core as a pure function (shared by selectLessonItems and the
+ * real-data family tests): one mastery-appropriate item per objective, then —
+ * in family mode — repeat fill passes (max `maxPerObjective` per objective)
+ * so families concentrated on few objectives still fill a battery. When a
+ * seed is supplied, each objective's options are shuffled first: DB order is
+ * alphabetical by type, which would otherwise make every battery of a family
+ * serve the SAME type wall-to-wall.
+ */
+export interface BatteryPick {
+  id: string;
+  objective_id: string | null;
+  exercise_type: string;
+}
+
+export function buildBatteryIds(
+  candidateRows: readonly BatteryPick[],
+  states: ReadonlyMap<string, ObjectiveState>,
+  order: readonly string[],
+  count: number,
+  opts?: { family?: boolean; seed?: number; maxPerObjective?: number },
+): string[] {
+  const byObjectiveType = new Map<string, BatteryPick[]>();
+  for (const r of candidateRows) {
+    const oid = r.objective_id ?? '';
+    const arr = byObjectiveType.get(oid) || [];
+    arr.push(r);
+    byObjectiveType.set(oid, arr);
+  }
+  if (opts?.seed !== undefined) {
+    const rng = mulberry32(opts.seed >>> 0);
+    for (const arr of byObjectiveType.values()) {
+      const shuffled = seededShuffle(arr, rng);
+      arr.length = 0;
+      arr.push(...shuffled);
+    }
+  }
+
+  const chosenIds: string[] = [];
+  const perObjective = new Map<string, number>();
+  for (const oid of order) {
+    if (chosenIds.length >= count) break;
+    const picked = pickForObjective(states.get(oid), (byObjectiveType.get(oid) || []) as any);
+    if (picked) { chosenIds.push(picked.id); perObjective.set(oid, 1); }
+  }
+  if (opts?.family) {
+    const cap = Math.max(1, opts?.maxPerObjective ?? 3);
+    let progress = true;
+    while (progress && chosenIds.length < count) {
+      progress = false;
+      for (const oid of order) {
+        if (chosenIds.length >= count) break;
+        if ((perObjective.get(oid) ?? 0) >= cap) continue;
+        const remaining = (byObjectiveType.get(oid) || []).filter((o) => !chosenIds.includes(o.id));
+        if (remaining.length === 0) continue;
+        const picked = pickForObjective(states.get(oid), remaining as any);
+        if (picked) {
+          chosenIds.push(picked.id);
+          perObjective.set(oid, (perObjective.get(oid) ?? 0) + 1);
+          progress = true;
+        }
+      }
+    }
+  }
+  return chosenIds;
+}
+
+/**
+ * Round-robin across the recognize/recall/produce stages (v2): used by the
+ * mixed Unit Review battery so consecutive screens alternate modality instead
+ * of running all MCQs first. Pure.
+ */
+export function interleaveStages<T extends { exercise_type: string }>(items: readonly T[]): T[] {
+  const buckets: T[][] = [[], [], []];
+  for (const it of items) buckets[loopStageRank(it.exercise_type)].push(it);
+  const out: T[] = [];
+  let added = true;
+  while (added) {
+    added = false;
+    for (const b of buckets) {
+      const next = b.shift();
+      if (next) { out.push(next); added = true; }
+    }
+  }
+  return out;
 }
 
 const ALL_TYPES = [...RECEPTIVE, ...CONSTRAINED, ...FREE];
@@ -112,6 +217,10 @@ export interface SelectLessonOptions {
   types?: readonly string[];
   /** Seed for within-stage shuffle variety; omit for the deterministic order. */
   seed?: number;
+  /** Signature types lead the battery (the game's opening mechanic). */
+  signature?: readonly string[];
+  /** Round-robin the stage arc (mixed review batteries). */
+  interleave?: boolean;
 }
 
 /**
@@ -146,12 +255,14 @@ export async function selectLessonItems(
 
     // FIXPLAN I (#5): a lesson serves only RELEASED objectives (all of them
     // when the unit has no class plans — the RPC handles that). Fail-open.
+    // Scope WITHIN the family rows (v2 fix: this previously re-widened the
+    // selection to all types whenever a class plan existed).
     let candidateRows = family.rows as { id: string; objective_id: string | null; exercise_type: string }[];
     const { getReleasedObjectiveIds } = await import('./learnerState');
     const released = await getReleasedObjectiveIds(unitId);
     if (released) {
       const allowed = new Set(released);
-      candidateRows = rows.filter((r) => allowed.has(r.objective_id));
+      candidateRows = candidateRows.filter((r) => allowed.has(r.objective_id));
       if (candidateRows.length === 0) return [];
     }
 
@@ -161,21 +272,15 @@ export async function selectLessonItems(
     const unseen = objectives.filter((id) => !states.has(id));
     const order = unseen.concat(ranked);
 
-    // Determine the chosen (objective, type) pairs without loading content.
-    const byObjectiveType = new Map<string, { id: string; exercise_type: string }[]>();
-    for (const r of candidateRows) {
-      const arr = byObjectiveType.get(r.objective_id) || [];
-      arr.push({ id: r.id, exercise_type: r.exercise_type });
-      byObjectiveType.set(r.objective_id, arr);
-    }
-
-    const chosenIds: string[] = [];
-    for (const oid of order) {
-      if (chosenIds.length >= count) break;
-      const opts = (byObjectiveType.get(oid) || []).map((o) => ({ ...o } as unknown as PoolItem));
-      const picked = pickForObjective(states.get(oid), opts);
-      if (picked) chosenIds.push((picked as any).id);
-    }
+    // Selection core (pure, shared with the real-data family tests). Family
+    // batteries fill up to 3 items per objective so a family concentrated on
+    // few objectives (8 story MCQs on one) still yields a full battery.
+    const familyApplied = !family.relaxed && Boolean(opts?.types && opts.types.length > 0);
+    const chosenIds = buildBatteryIds(candidateRows, states, order, count, {
+      family: familyApplied,
+      seed: opts?.seed,
+      maxPerObjective: familyApplied ? 3 : 1,
+    });
     if (chosenIds.length === 0) return [];
 
     // Phase 2: fetch full content only for the chosen items.
@@ -189,8 +294,13 @@ export async function selectLessonItems(
     // P-C: order the session recognize → recall → produce (weakest-first within
     // each). Unseen objectives (absent from `states`) sort as weakest (0).
     const rByObj = new Map<string, number>(objectives.map((oid) => [oid, states.get(oid)?.retrievability ?? 0]));
-    const ordered = sortByLoopStage(picked, rByObj);
-    return opts?.seed !== undefined ? variateWithinStages(ordered, opts.seed) : ordered;
+    let ordered = sortByLoopStage(picked, rByObj);
+    if (opts?.seed !== undefined) ordered = variateWithinStages(ordered, opts.seed);
+    // v2: the game's signature types open the battery; review interleaves the
+    // arc so consecutive screens alternate modality.
+    if (opts?.signature && opts.signature.length > 0) ordered = orderFamily(ordered, opts.signature);
+    if (opts?.interleave) ordered = interleaveStages(ordered);
+    return ordered;
   } catch (err) {
     log.warn('select_lesson_items_error', { error: err instanceof Error ? err.message : String(err) });
     return [];
