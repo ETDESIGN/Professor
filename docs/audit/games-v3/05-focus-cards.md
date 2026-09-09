@@ -1,6 +1,6 @@
 # Focus Cards (vocab presentation) — v3 Quality Audit (`FOCUS_CARDS`)
 
-> **Status:** **stitch-in-flight** — §4 validated; §5 design pass submitted to Stitch (4 screens, landing ~10–20 min).
+> **Status:** **implemented** — v3 shipped to production 2026-09-10 (full autonomous loop: audit → Anti-Gravity → Stitch → code → deploy).
 > **Screenshots:** `screenshots/05-*.png` (grid + drill views; staged reveals beyond stage 1 need the commander — see F5).
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -195,3 +195,22 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 **Screen 4 — Completion & transition:** celebration: "All 12 words explored!", the word tokens as a wrap of small emerald chips, confetti energy, and one pulsing hot-pink "Start Practice Phase →" primary button.
 
 **QA checklist (ZCode, on export):** landscape cards everywhere; image-only fronts on screens 1–2; zero Chinese outside the modal; single pink primary per screen; header clear of the phase-pill zone; progress rail ≥28px tokens; no scrolling at 16:9.
+
+## §6 Stitch output & implementation notes
+
+**Stitch export:** `stitch/05-focus-cards/` — 4 screens (grid-fronts / grid-mixed / deep-dive-modal / completion), PNG + HTML, QA-passed (landscape 4:3 cards, image-only fronts, zero Chinese outside the modal, single pink primary, header clears the phase pill).
+
+**Implemented 2026-09-10 (commit `76f7a81` — "Focus Cards v3: flip-card redesign"):**
+- `BoardFocusCards.tsx` — full rewrite: 3×2 landscape flip-card grid (image-only cream fronts, indigo backs with word + sky audio + amber "+"), in-place 3D flip (tap or FLIP_CARD), halo cursor (tap / NEXT_CARD / PREV_CARD), batches of 6 with "Next 6 words" pagination, deep-dive modal (phonetics, L1 Chinese, definition, highlighted example, word/sentence audio), completion screen with real SLIDE_COMPLETE, FSRS exposure on FIRST flip (48-click barrier gone), audio auto-plays on flip, responsive 3→2 cols.
+- `BoardShell.tsx` — FOCUS_CARDS added to FULL_BLEED_TYPES (leaderboard rail retracts during presentation — cross-cutting theme addressed for this game).
+- `ContextualControls.tsx` + `TeacherRemote.tsx` — parity set: PREV / FLIP / NEXT / AUDIO (PLAY_AUDIO finally reachable) / FLIP ALL / NEXT BATCH.
+- `test/BoardComponents.test.tsx` — Focus Cards suite updated to the v3 design (studied-marking + deep-dive modal covered).
+- Verification: tsc clean · vitest 743 passed/1 skipped · build clean · live-board captures `screenshots/05-v3-*.png` — the visual pass caught one real bug (rotated-away front faces still hit-testing in Chrome → "+" unclickable; fixed with pointer-events on hidden faces).
+
+**Design-fidelity log:**
+| Stitch screen | Fidelity | Notes |
+|---|---|---|
+| Grid — all fronts | **Followed** | 3×2 landscape image-only cards, halo, batch chip, progress pills (✓/numbers vs mock's dots — data-bound), pink Next-6 primary. |
+| Grid — mixed state | **Followed** | Indigo backs + emerald studied + cream fronts; "Flip all" choral action added from the audit's 3-beat loop. |
+| Deep-dive modal | **Followed** | Layout, audio buttons, Chinese-only-here, highlighted example; max-w-2xl to fit 720p height. |
+| Completion | **Followed** | Token chips with per-word audio, confetti + pulsing pink Start Practice (real SLIDE_COMPLETE); "Review again" secondary added. |

@@ -55,7 +55,7 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 02 | `02-team-splash.md` | Team Splash | `TEAM_SPLASH` | BoardIntroSplash.tsx | WARMUP | pending |
 | 03 | `03-media-player.md` | Media Player (song/video) | `MEDIA_PLAYER` | BoardMediaPlayer.tsx | WARMUP | §2 comments in — code audit pending |
 | 04 | `04-live-warmup.md` | Live Class Warmup | `LIVE_WARMUP` | BoardLiveClassWarmup.tsx | WARMUP | pending |
-| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **stitch-in-flight — §4 validated, 4 designs submitted** |
+| 05 | `05-focus-cards.md` | Focus Cards (vocab presentation) | `FOCUS_CARDS` | BoardFocusCards.tsx | INPUT | **IMPLEMENTED 2026-09-10 — first fully-autonomous loop (ZCode → Anti-Gravity → Stitch-ZCode → code)** |
 | 06 | `06-grammar-sandbox.md` | Grammar Sandbox | `GRAMMAR_SANDBOX` | BoardGrammarSandbox.tsx | INPUT | pending |
 | 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | §2 comments in — code audit pending |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |
@@ -105,3 +105,5 @@ Registry facts (for reference): `BOARD_MAP` in `apps/board/templates/boardMap.ts
 - 2026-09-10 — **Focus Cards (05) Anti-Gravity audit COMPLETE.** §4 filled with grounded UI, workflow, ESL pedagogy, and interaction findings. Status: `cowork-done`. Key priorities: in-place 3D card flip with image-only fronts (active retrieval), separating rapid grid review from deep drill (+ icon), batch pagination for 6+ words, Commander/Remote control parity, and BoardShell full-bleed retraction of the 0-points leaderboard rail.
 
 - 2026-09-10 — **Stitch autonomy proven end-to-end** (owner confirmed the generated Focus Cards screens in the UI) + first `edit_screens` correction submitted (portrait → landscape cards, per owner rule). Anti-Gravity started on 05-focus-cards §4.
+
+- 2026-09-10 — **FOCUS CARDS v3 SHIPPED (commit 76f7a81) — the first fully-autonomous games-v3 loop**, no owner in the middle: ZCode audit → Anti-Gravity §4 (validated) → ZCode Stitch design pass (4 screens QA-passed) → implementation → 743 tests green → deployed + verified. Next file-ready targets for Anti-Gravity: 10-listen-tap, 11-flash-match.
