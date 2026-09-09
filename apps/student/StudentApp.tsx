@@ -17,6 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { GamificationService } from '../../services/GamificationService';
 import { GEM_REWARDS, XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import { createClientLogger } from '../../services/logger';
+import Avatar from '../../components/shared/Avatar';
 
 // Feature flag: dubbing is a mock (audit P1-5). Default OFF.
 const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
@@ -245,15 +246,13 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       {location.pathname === '/student' && (
         <header className="sticky top-0 bg-wa-paper/90 backdrop-blur z-20 border-b border-wa-border px-4 py-3 flex justify-between items-center shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-6 rounded overflow-hidden relative border border-wa-border shadow-sm">
-              {/* Mock Flag */}
-              <div className="absolute inset-0 bg-white">
-                <div className="w-full h-1/3 bg-blue-500"></div>
-                <div className="w-full h-1/3 bg-white top-1/3 absolute"></div>
-                <div className="w-full h-1/3 bg-red-500 bottom-0 absolute"></div>
+            {/* Stitch screen_1: rounded profile avatar + level badge (replaces the flag chip) */}
+            <div className="relative">
+              <Avatar src={myAvatar?.url ?? null} name="Me" size={36} className="border-2 border-wa-teal" />
+              <div className="absolute -bottom-1 -right-1 bg-wa-ink text-white font-wa-body font-black text-[10px] px-1.5 rounded-full border border-white">
+                L{userStats.level}
               </div>
             </div>
-            <span className="font-wa-display font-semibold text-wa-ink">English</span>
           </div>
           <div className="flex gap-2 items-center">
             <button
