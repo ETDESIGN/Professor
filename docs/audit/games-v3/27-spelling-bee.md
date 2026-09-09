@@ -1,6 +1,6 @@
 # Spelling Bee — v3 Quality Audit (`SPELLING_BEE`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/27-spelling-bee-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -102,14 +102,59 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
-> **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
-
 ### 4.a UI & visual design
+- **Severe letterbox image distortion (screenshot `27-spelling-bee-idle.png`):** The prompt image is constrained to `h-36 lg:h-44` within a narrow container (`:398-419`), squishing normal 4:3 and 16:9 vocabulary illustrations into ultra-wide horizontal letterbox strips. The forest illustration in the idle screenshot is cut in half vertically, destroying visual context.
+- **Phone-sized keyboard crammed into center 40% of 16:9 stage (F3):** The entire typing interface wraps inside `max-w-3xl` (~768px). On a 1080p projection screen, this creates tiny `min-h-11 lg:min-h-14` (~44px) keyboard keys with `text-lg` labels. For a 7–10 year old standing at the interactive smartboard, tapping these miniature keys reliably is nearly impossible, causing accidental mis-taps that trigger punitive red flashes and score deductions. The keyboard should expand across the widescreen stage with massive 72–80px arcade-style letter plates.
+- **Microscopic 56px timer ring lacks classroom visibility (F7):** The timer renders as a tiny 56px circular ring inside the sub-HUD (`FastVocabHud.tsx:38-46`), only turning red at $\le 3$s. In a bright classroom viewed from 5–8 meters, students cannot see the remaining time. It should be a bold, glowing stadium countdown gauge mounted prominently at the top of the stage.
+- **Developer settings cluttering the header (F8):** The sub-header advertises technical parameters: *"3 words per turn · 15s per word · keys drop as you go"* (`:369-371`). This internal metadata clutters the board surface. It should be replaced with a clean learner prompt: *"Listen and spell the word!"*.
+- **Ephemeral 0.9s solved flash destroys orthographic consolidation (F2, §2):** When a word is solved, it holds for a mere 900ms (`SOLVE_HOLD_MS = 900`), and a timeout reveal holds for only 1600ms (`REVEAL_HOLD_MS = 1600`). Before the student or class can read the completed spelling or connect the letters to the spoken word, the card slides off-screen.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+- **The Core Pacing Flaw: Zero presentation beat & silent start (F1, §2):** The countdown timer begins running the exact millisecond the word mounts (`useSpellingBeeTurn.ts:148-153`). Audio does **not** auto-play. The student must simultaneously: look at a cropped image, deduce what English word is intended, notice that audio is silent, reach up to tap the small speaker icon, wait for audio playback, and then spell the word — all within a breathless 15-second budget! A slow reader at distance loses 5–6 seconds before typing their first letter.
+  - **The Solution — Two-Beat Presentation:**
+    - **Beat 1: "Listen & Look" (Presentation hold):** Word mounts, image displays cleanly, audio auto-plays once, target meaning renders, and the clock remains PAUSED. A 2-second lead-in or teacher remote press transitions to the spelling phase.
+    - **Beat 2: "Spell It!" (Active typing):** Clock arms, letter slots highlight, and the arcade keyboard activates.
+- **Missing in-class time extensions & rigid 25s plan ceiling (F4, §2):** The default 15s timer is too punitive for younger EFL spellers (ages 6–8), yet the PlanComposer select caps timer options at only 25s (`PlanComposer.tsx:823-837`). Neither the commander nor the baton remote provides an in-class time extension button. Adding an `ADD_TIME_10` (+10 seconds) action button (mirroring Word Search's `ADD_TIME_30` precedent) gives teachers immediate control when a student needs thinking time.
+- **Audio lacks remote-control path (F5):** The board does not handle `PLAY_AUDIO` in its action switch (`:267-309`). If a student needs to hear the word again, the teacher cannot trigger audio from the phone remote or commander desktop; someone must walk to the board and tap the speaker icon.
+- **Wave cursor and turn persistence work cleanly:** Consecutive students receive fresh vocabulary items across the unit via `cursorRef`, and turn-owner freezing prevents score screen misattribution (`:117-126`).
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+- **Image ambiguity without audio leads to unfair failure (F1, F6):** An illustration of trees could represent *"forest"*, *"wood"*, *"trees"*, *"green"*, *"plant"*, or *"nature"*. Expecting a child to guess which word the 5 blank boxes represent without hearing the word first is not a spelling test — it is a mind-reading exercise. Auto-playing the audio at word start immediately grounds the task in phonology. Displaying the collected L1 translation (`meaning`, harvested in `contentBuilder.ts:75,106` but never displayed) eliminates ambiguity for struggling spellers.
+- **Cognitive overload from triple-punishment on typos:** A single wrong keypress triggers: (1) a 600ms red freeze, (2) shaves 1 second off the timer (`useSpellingBeeClock.ts:75-78`), and (3) deducts −1 live point from the student (`:158-169`). For a 7-year-old learning English orthography, this severe penalty induces immediate panic and keyboard mashing. Penalizing score per-word rather than per-letter typo is a much healthier pedagogical posture.
+- **Orthographic consolidation requires hold time (F2):** The primary educational value of a spelling bee is orthographic mapping (reinforcing the letter sequence in memory). Extending the solved hold to 2.5–3 seconds with full audio pronunciation allows the teacher to lead a choral reading ("F-O-R-E-S-T, forest!") before advancing.
+- **Brilliant adaptive scaffolding (`letterRemoval`):** Progressively eliminating distractor keys as time passes or mistakes occur (`keyboardEngine.ts:105-112`) is an outstanding instructional scaffold that prevents total impasse while keeping the target letters available.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+- **Arcade keyboard ergonomics:** Rather than a dense QWERTY layout that mimics office desktop typing, the keys should be styled as vibrant, chunky letter pads arranged with generous spacing. As distractor keys vanish, the remaining target letters should glow, creating an exciting "narrowing the field" game feel.
+- **Speed bonus mechanics:** The +1 speed bonus for finishing with $\ge 50\%$ of the clock remaining (`:180-182`) provides great gamification for confident spellers, while the **timeout-costs-nothing rule** protects slower students from negative scoring.
+- **Choral participation:** In choral mode (`quickWheelWinner = null`), the whole class can spell aloud while the teacher enters keys from the commander or physical keyboard.
+
 ### 4.e Top-5 prioritized recommendations
+1. **P1 — Introduce a "Listen & Look" Presentation Beat with Auto-Play Audio (F1, §2):** Split the word lifecycle into a 2-second presentation hold (image displays, pronunciation auto-plays, clock paused) before the active typing phase begins.
+2. **P1 — Extend Solved and Revealed Hold Times to 2.5s–3.0s (F2, §2):** Increase `SOLVE_HOLD_MS` and `REVEAL_HOLD_MS` to allow sufficient time for whole-class reading, phonics reinforcement, and audio replay.
+3. **P2 — Add In-Class `+10s` Quick-Add & Remote `Play Audio` Controls (F4, F5, §2):** Wire `ADD_TIME_10` and `PLAY_AUDIO` to commander and remote baton panels, enabling remote time extensions and audio replays. Expand PlanComposer timer options to include 30s, 45s, and 60s.
+4. **P2 — Widescreen 16:9 Stage Layout with Massive Touchplates (F3, 4.a):** Break out of the `max-w-3xl` container. Render large 4:3 image cards and massive 72–80px arcade letter keys accessible on interactive smartboards.
+5. **P3 — Display Collected L1 Meaning Subtitle to Resolve Ambiguity (F6):** Render the harvested `meaning` string as a subtle secondary cue beneath the image to prevent misinterpretation of illustrations.
+
 ### 4.f Design direction for Stitch
+- **Mood and visual theme:** "Arcade Spelling Stadium" / "Golden Honeycomb Hive". Deep stadium navy background (`#0B132B`), radiant honeycomb amber/gold (`#F59E0B`), electric cyan letter slots (`#00F0FF`), and vibrant emerald success illumination (`#10B981`). Keys should feel like tactile, 3D mechanical arcade buttons.
+- **Mock up these four screens/states (16:9 projector, no scrolling):**
+  1. **Screen 1 — Beat 1: "Listen & Look" (Presentation Phase):**
+     - Top HUD: Picked speller badge: `[🐝 Alice's Turn]` + word counter: `[Word 1 of 3]`.
+     - Center Stage: High-resolution uncropped illustration (`FOREST`) with an active cyan sonic ripple animation (*"Listen... 🔊"*).
+     - Subtitle: Subtle L1 meaning cue (`森林`). Letter slots show empty glowing frames. Countdown clock is paused with a gentle "Ready..." pulse.
+  2. **Screen 2 — Beat 2: Active Spelling Arena:**
+     - Top HUD: Central glowing gold digital countdown clock (`12s`).
+     - Center: 6 chunky glowing cyan letter slots (`[ F ] [ O ] [ R ] [ _ ] [ _ ] [ _ ]`).
+     - Bottom: Full widescreen arcade keyboard. 8 distractor keys have vanished; the remaining valid letter keys glow with golden rim lighting.
+     - Right rail: Compact live leaderboard.
+  3. **Screen 3 — Solved Celebration Beat (2.5s Hold):**
+     - Completed word `FOREST` glowing in radiant emerald green.
+     - Audio speaker icon pulsing with audio waves.
+     - High-energy celebratory banner: `"+3 Points + ⚡ SPEED BONUS!"` with gold star particles.
+  4. **Screen 4 — Wave Summary Modal:**
+     - Full-stage victory honeycomb: *"Spelling Champion: Alice!"*, 5 glowing stars, accuracy stats, and countdown to next student pick.
+- **What to KEEP from current design:** The deterministic `keyboardEngine` with adaptive letter removal, timeout-costs-nothing fairness rule, wheel-overlay clock freeze, and per-word analytics logging.
 
 ## §5 ⬜ Google Stitch prompt
 

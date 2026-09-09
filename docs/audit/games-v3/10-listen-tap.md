@@ -1,6 +1,6 @@
 # Listen & Tap — v3 Quality Audit (`LISTEN_TAP`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/10-listen-tap-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -98,11 +98,69 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Top-left badge collision with BoardShell chrome.** **Evidence:** `screenshots/10-listen-tap-idle.png`. The round chip ("Round 1 · LISTEN SELECT", `BoardListenTap.tsx:425`) is positioned at `top-3 left-4`, directly beneath the BoardShell's absolute-positioned `• PRACTICE` phase badge (`BoardShell.tsx:117-120`, positioned at `top-5 left-6`). The badge borders and text collide directly, producing a scrambled, illegible overlay. **Recommendation:** Shift the in-game header to start at `left-[180px]` or adopt the unified v3 top-bar pattern, displaying "Listen & Tap", the round counter ("Question 1 of 3"), and the active student pill in clean, collision-free slots.
+
+- **P2 — Fixed 160×208px option tiles are undersized for 5–8m classroom projection.** **Evidence:** §3 F8 and `BoardListenTap.tsx:478`. Option tiles are fixed at `w-40 h-52` (160×208px) in a narrow horizontal row. From 5–8 meters in a 30-student room, the 120px square image container inside each card is too small for children to discriminate subtle visual or phonics cues. **Recommendation:** Scale option tiles dynamically to dominate the center stage: for 2-option minimal pairs, render large 320×380px cards; for 3–4 options, render 240×300px cards with generous internal padding and bold, high-contrast imagery.
+
+- **P2 — 3-second empty screen delay during audio playback creates dead classroom time.** **Evidence:** `screenshots/10-listen-tap-idle.png` and `BoardListenTap.tsx:219`. When audio plays, options are completely hidden for 3000ms. Students sit staring at an isolated green speaker icon on an empty board. While intended to encourage auditory focus, 3 seconds of dead space in a live primary classroom causes attention drift. **Recommendation:** Display option card silhouettes immediately with an animated "Listening… 👂" pulse, and flip/reveal the image choices the moment audio playback completes (~1.2s), transforming dead wait time into active visual anticipation.
+
+- **P2 — Missing live projection feedback during Dictation input.** **Evidence:** §3 F7 and `BoardListenTap.tsx:448-450`. In Dictation rounds, the board renders a tiny `text-sm text-slate-500` instructional note: "Type the answer on the Remote", while the teacher types on their phone. Children looking at the board see zero feedback until the final submission. **Recommendation:** Render a prominent, projector-scaled letter-box display on the board that reflects characters in real time as the teacher types on the remote baton.
+
+- **P3 — Color tile scheme introduces accidental negative cues.** **Evidence:** `BoardListenTap.tsx:43-48`. Hardcoded pastel colors (red, teal, yellow, purple) are assigned cyclically to option tiles. Tile 0 defaults to `#FF6B6B` (red). In primary ESL pedagogy, red strongly denotes "wrong", creating an unintended negative bias against the first option. **Recommendation:** Use uniform, neutral warm-cream or deep-slate card backgrounds, utilizing color strictly for active hover/selection (blue/yellow) and correctness feedback (emerald/rose).
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Single-word modulo loop locks the game into repeating the same question.** **Evidence:** §2 (Owner comment #1) and §3 F1. The owner reported "animal" repeated 5 turns in a row. Root causes identified: (1) legacy frozen `data.options` takes precedence over `poolItems` (`:95-103`), serving a single orchestrator card indefinitely; (2) `generate-exercises` requires real images for all distractors, failing to generate items for vocabulary with placeholder images; and (3) `roundIndex: 1, totalRounds: 1` pins the pool to round 1 with modulo cycling and no objective deduplication. **Recommendation:** Deprecate frozen slide options when `useEscalatingPool` is available; enforce graceful fallback distractors (text/audio tiles) when images are unavailable; and enforce objective deduplication across turns so all unit vocabulary items rotate fairly through the pool.
+
+- **P2 — Forced "Well done → Next Round" click stalls the live lesson.** **Evidence:** §2 (Owner comment #2) and §3 F2 (`BoardListenTap.tsx:548-570`). After a correct answer, the board celebrates for 900ms and then locks on an intermediate preview screen requiring a manual click on "Next Round" (`:565`). The wheel's 1/3/full-set rotation is completely blocked because every single question demands an explicit teacher click. **Recommendation:** Implement the owner's auto-advance rotation rule:
+  - *Within a turn (e.g. Questions 1 & 2 of 3):* Celebrate for 1.2s (green glow, chime, "+1"), then **auto-advance** immediately to the next question with zero teacher clicks required.
+  - *End of turn (Question 3 of 3):* Hold a 2-second turn summary ("Alice scored 3/3! 🎉") before auto-returning to the wheel spin.
+
+- **P2 — Missing Audio Replay button on Commander and Remote.** **Evidence:** §3 F4. The board listens for `PLAY_AUDIO` (`:160-162`), but neither `ContextualControls.tsx` nor `TeacherRemote.tsx` provides an audio trigger for `LISTEN_TAP`. When classroom noise masks the prompt, the teacher cannot replay without walking to the board. **Recommendation:** Add a prominent `Replay Audio / 重新播放` button to both Commander and Remote Baton.
+
+- **P2 — Skip advances silently without learning or record.** **Evidence:** §3 F5 (`BoardListenTap.tsx:168-170`). Pressing `SKIP` advances to the next question without revealing the answer or logging the item. If a student is stumped, skipping provides no corrective value. **Recommendation:** When `SKIP` is triggered, briefly outline the correct tile in amber (~1.5s) so the class sees the answer, log a skipped attempt, and auto-advance.
+
+- **P3 — Hint hands over the answer.** **Evidence:** §3 F6 (`BoardListenTap.tsx:171-174`). For `LISTEN_SELECT`, `REVEAL_HINT` glows the correct tile for 1.5s. Highlighting the target option in an ESL listening game gives away the answer rather than scaffolding recall. **Recommendation:** Change the hint mechanic to: (1) eliminate one incorrect distractor (50/50), or (2) replay the audio prompt at 0.85x speed.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Phonological Discrimination to Visual-Semantic Binding.** `LISTEN_SELECT` is a vital receptive practice game: children hear the acoustic signal, isolate the target lexical item, and map it to visual meaning. For 6–8s, concrete image association is paramount; for 9–12s, minimal pair discernment (/b/ vs /p/, /ʃ/ vs /s/) develops critical phonemic awareness.
+
+- **P2 — Two-miss scaffold provides effective corrective feedback.** **Evidence:** `BoardListenTap.tsx:293-311`. Miss 1 triggers a brief red shake with a live −1 deduction, keeping the options active for a retry. Miss 2 reveals a clean micro-explanation card ("You heard: 'tiger'") with the correct image and audio hold (~2.2s). This reinforces error recovery without frustrating the child. Retain this structure in the redesign.
+
+- **P2 — Multi-word turn scoring structure.** **Evidence:** §3 F9. With the adoption of 3 questions per picked student, scoring should reward consistent performance: 1 base point per correct answer, with a bonus (+2) if the student clears all 3 questions without mistakes.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — High-momentum turn pacing.** A 3-question turn should execute in under 30 seconds:
+  1. *Audio Prompt (1s):* Clear native speech.
+  2. *Response (2–3s):* Picked student shouts the answer or points $\rightarrow$ teacher taps.
+  3. *Feedback & Advance (1.2s):* Green flash + chime $\rightarrow$ auto-advance to question 2.
+  4. *Turn Wrap-Up (2s):* Star badge $\rightarrow$ next student.
+
+- **P2 — Audio repeat policy.** In accordance with `_CROSS-CUTTING.md` §1: audio auto-plays once on item mount. The first manual replay is free; subsequent replays incur a −1 hint penalty in competitive modes.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Resolve the Word-Variety Collapse:** Deprecate frozen legacy slide options; provide text/fallback tiles when distractor images are missing; ensure a rotating pool of at least 6–10 unit vocabulary items.
+2. **P1 — Implement Seamless Auto-Advance for Wheel Turns:** Auto-advance between questions within a student's 3-question turn after a 1.2s celebration beat; eliminate the forced "Next Round" click screen.
+3. **P1 — Add Audio Replay Controls to Remote and Commander:** Provide a dedicated `Replay Audio` button across all teacher interfaces.
+4. **P2 — Relocate Header Badges to Clear BoardShell Chrome:** Move the round and mode chips to provide safe left clearance from the `• PRACTICE` phase badge.
+5. **P2 — Pedagogical Hints (Distractor Elimination, Never Answer Reveal):** Replace the correct-tile glow with a 50/50 distractor removal or slow audio replay.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as an electric, high-energy "Sound Stage / Audio Arena". Deep acoustic-navy stage (`#0A121E`), vibrant sonic accents (electric emerald `#10B981` for correct answers, sky blue `#38BDF8` for audio visualizers and duration, warm amber `#F59E0B` for streak flames, hot pink `#EC4899` for primary action buttons). Response cards should feel like physical, tactile arcade pads with bold imagery, clean typography, and snappy micro-animations.
+
+**Mock up these four board screens/states:**
+
+1. **Screen 1 — Listen Phase (Anticipation):** Full-bleed 16:9 stage. Center: a glowing emerald-and-blue audio speaker visualizer emitting dynamic concentric sound waves, captioned "Listen carefully! 👂". Below: 4 outlined card slots glowing softly in anticipation. Top bar: "Listen & Tap · Question 1 of 3 · Alice's Turn", streak counter "🔥 2".
+2. **Screen 2 — Options Phase (Choice):** Center stage: 4 large, tactile response cards (2×2 or 1×4 layout) featuring high-resolution photos (e.g. Tiger, Lion, Monkey, Elephant) and clear English word labels. The picked student's name badge glows at top-right.
+3. **Screen 3 — Correct Feedback & Auto-Advance:** Selected card ("Tiger") locks with an electric emerald border and bold checkmark. A floating celebration toast: "+1 Point! 🔥 Streak 3!". Bottom: a sleek 1.2-second countdown bar indicating automatic progression to Question 2.
+4. **Screen 4 — Teaching Reveal (2nd Miss):** Dimmed background with a centered white card: "You heard: TIGER", accompanied by a high-res photo, a speaker icon, and a 2-second countdown before auto-advancing.
+
+**What to KEEP from current design.** Retain the two-miss teaching reveal ladder, Levenshtein distance evaluation for dictation, class-streak celebration triggers with confetti at tiers 3 & 5, and deterministic turn dealing.
 
 ## §5 ⬜ Google Stitch prompt
 

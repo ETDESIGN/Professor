@@ -1,6 +1,6 @@
 # Media Player (song/video) — v3 Quality Audit (`MEDIA_PLAYER`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
 > **Screenshots:** `screenshots/03-media-player-idle.png` — captured in the UNRESOLVED state — the exact §2 symptom ("title shows, no media content available").
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -86,11 +86,63 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Header collision with BoardShell `• WARM-UP` phase badge.** **Evidence:** `screenshots/03-media-player-idle.png`. The top info bar (`BoardMediaPlayer.tsx:145-154`) places the yellow speaker icon and the label "WARM UP SONG" at the top-left (`p-8 flex justify-between items-start`). The BoardShell's absolute-positioned `• WARM-UP` badge (`BoardShell.tsx:117-120`, positioned at `top-5 left-6`) collides directly with "WARM UP SONG", producing overlapping amber/yellow text. **Recommendation:** Apply a standard 180 px left-margin clearance for the top-bar title or integrate the phase pill into the media player's top navigation bar so headers never collide.
+
+- **P2 — Video cropped and dimmed (150% scale + 40% dark overlay + 0.8 opacity) damages action-song visibility.** **Evidence:** `BoardMediaPlayer.tsx:98-100` scales the `ReactPlayer` to `width: 150%, height: 150%` with offsets `top: -25%, left: -25%`, under an `absolute inset-0 bg-black/40` overlay and `opacity: 0.8`. For vocabulary and phonics action songs (such as "Walking in the Jungle" or "Head, Shoulders, Knees and Toes"), up to a third of the video frame is cropped out at the edges, and characters/choreography are heavily darkened. Children sitting 5–8 meters away in a standard classroom cannot see or mimic the physical actions. **Recommendation:** Switch to a fit-contain letterbox/pillarbox (100% width/height, 1.0 opacity, no global dimming overlay). Reserve dark scrims strictly for a subtle gradient bar behind lyrics at the bottom of the screen.
+
+- **P2 — Dead-end display on unresolved steps leaves a broken classroom impression.** **Evidence:** `screenshots/03-media-player-idle.png` and `BoardMediaPlayer.tsx:227-230`. When a legacy block lacks both media URLs and a search query, the center of the board displays an empty 80 px ghosted speaker glyph with the italic text *"No media content available for this step"*. For 30 energetic children entering the room, an empty black screen reading "No content" feels like a technical failure. Even when `hasSuggestion` is true (`:183-225`), the board renders an "Open YouTube search" web link (`:217-223`) that targets `_blank`—completely inoperable from a projected board. **Recommendation:** Replace the dead-end placeholder with an engaging, illustrated "Sing & Warm Up" standby card that shows the song title and a cheerful musical mascot, while providing a clear "Tap to load song" action on the Commander and Remote.
+
+- **P2 — Lyrics overflow and line-wrapping at 5–8m projection distance.** **Evidence:** `BoardMediaPlayer.tsx:168, 173`. Lyrics use `text-8xl` with `whitespace-nowrap`. On typical 720p/1080p projectors, longer lyric lines (more than 5–6 words) clip off-screen horizontally. **Recommendation:** Use responsive, dynamic font sizing (`clamp(2.5rem, 5vw, 4.5rem)`), allow clean two-line wrapping, and ensure high-contrast text outlines (`drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]`).
+
+- **P3 — Hover-only transport controls are invisible in touch/remote environments.** **Evidence:** `BoardMediaPlayer.tsx:88, 237`. The bottom transport bar is styled with `group-hover:opacity-100 opacity-0`. In classrooms using touch panels or phone remotes without a mouse cursor hovering over the canvas, the transport bar remains invisible. **Recommendation:** Provide a persistent, unobtrusive mini-scrubber at the bottom edge, expanding to full controls on any board touch or remote interaction.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Fake transport mounts when only lyrics are present (unplayable media trap).** **Evidence:** §3 F2 and `BoardMediaPlayer.tsx:64`. `hasContent` is defined as `hasVideo || hasAudio || hasLyrics`. When a unit song has transcribed lyrics but the video/audio failed to resolve (a common state for book-scanned units), `hasContent` evaluates to `true`, mounting the bottom transport bar (`:237`). Pressing Play/Pause toggles an internal `isPlaying` flag that controls nothing because no player is rendered (`:90-142`). The timer remains stuck at 0:00, the karaoke highlight never advances, and the remote's Play button is completely dead. **Recommendation:** Define playable content strictly as `hasPlayableMedia = Boolean(data.videoUrl || data.audioUrl)`. If only lyrics exist without audio/video, treat the step as unresolved: display a "Chant / Read Along" rhythm card and keep the suggestion/resolve panel active.
+
+- **P1 — Missing playback error handling (blank black screen on network/YouTube block).** **Evidence:** §3 F3 and `BoardMediaPlayer.tsx:93-115`. `ReactPlayer` defines no `onError` callback. In the primary China market, YouTube embeds frequently fail due to school network firewall restrictions, deleted videos, or regional blocks. When YouTube fails to load, `ReactPlayer` remains on an empty black rectangle with 0% progress and live-looking play controls. The teacher has no indication of what failed or how to recover. **Recommendation:** Implement an explicit `onError` handler on `ReactPlayer`. Upon failure, automatically: (1) attempt playback of a fallback audio URL if available, (2) display an honest "Video blocked or unavailable" badge, and (3) surface candidate chips or an instant "Switch to Audio / Skip to Warmup" button.
+
+- **P2 — Commander displays an active Play/Pause button for unresolved steps.** **Evidence:** §3 F4 and `ContextualControls.tsx:81-87`. On an unresolved media step, the Commander renders a prominent primary "Play / Pause" button. Clicking it does nothing because no player exists, while the actual resolution tool ("Find video") is pushed into a secondary panel below (`LiveCommander.tsx:390`). **Recommendation:** In `ContextualControls.tsx`, check if media is playable. If unresolved, replace the Play button with a high-visibility primary button: `🔍 Find Video / 匹配视频`.
+
+- **P2 — Natural-end `SLIDE_COMPLETE` auto-advances abruptly without a wrap-up beat.** **Evidence:** `BoardMediaPlayer.tsx:103-109, 128-134`. When media finishes, `onEnded` calls `triggerAction('SLIDE_COMPLETE', { forced: false })`, which immediately navigates to the next slide (Focus Cards). In a live classroom, the song ends while children are still singing or finishing movements; an instant slide jump disorients the class. **Recommendation:** At `onEnded`, pause on a 4-second celebratory "Song Complete! 🎵" beat with a countdown timer and a teacher "Next: Today's Words →" button.
+
+- **P3 — Remote `RESTART` action fails silently without a mounted player.** **Evidence:** §3 F5 and `BoardMediaPlayer.tsx:26-29`. The remote offers a `RESTART` button (`TeacherRemote.tsx:252`), but `playerRef.current?.seekTo(0)` throws or silently fails if the player is unmounted. **Recommendation:** Guard `seekTo(0)` with a fallback that re-triggers media playback cleanly.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Total Physical Response (TPR) action songs require clear visual modeling.** **Evidence:** §1 and §3 F6. Warm-up songs for ages 6–12 (especially young learners 6–8) rely on mimicry and movement (action verbs, animal motions, greetings). Obscuring the video behind 40% black scrims and cropping limbs at 150% zoom destroys the visual modeling required for TPR. **Recommendation:** For warm-up video content, prioritize video clarity over karaoke styling. Deliver uncropped, full-color playback so young learners can mirror hand gestures, dance moves, and mouth shapes.
+
+- **P2 — Missing choral participation prompts.** **Evidence:** `03-media-player-idle.png` shows the BoardShell footer displaying "CHORAL / Whole class — choral round". However, the board itself provides no energetic invitation to sing or move. **Recommendation:** Display an animated prompt banner at song start: "Sing along! 🎤 一起唱！" or "Do the actions! 💃 一起动起来！", fading out after 6 seconds so kids understand that this is an active physical warm-up, not passive screen time.
+
+- **P2 — Karaoke highlighting must support early EFL decoders.** **Evidence:** `BoardMediaPlayer.tsx:59, 174`. The linear `lyricProgress` calculation assumes uniform character duration, which causes highlighting to drift out of sync with actual vocal rhythms. **Recommendation:** For book-scanned and synchronized lyrics, use word-level timestamp highlights rather than continuous percentage sweeps, providing clear rhythmic anchors for early English readers.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — Song duration and warm-up pacing.** **Evidence:** Videos from external searches can range from 45-second nursery rhymes to 8-minute compilation videos. In a 40-minute classroom lesson, a warm-up exceeding 2.5 minutes burns excessive instructional time. **Recommendation:** In the media resolution ladder and candidate cards, flag recommended durations (ideal: 90–150 seconds). Show an elapsed/total time pill on the board (e.g. `1:15 / 2:04`).
+
+- **P2 — Single-tap audio mute for teacher classroom management.** **Evidence:** Teachers frequently need to pause music to deliver an instruction, or mute sound while letting the video dance run in the background. **Recommendation:** Ensure the Remote Baton has both instant `Mute/Unmute` and `Pause` buttons with haptic confirmation.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Decouple lyrics from playable content gate (eliminate fake transport):** Gate playable state strictly on `hasVideo || hasAudio`. If a unit only has lyrics, treat it as an unresolved state and prompt the teacher to find audio/video.
+2. **P1 — Add YouTube network error recovery and graceful audio fallback:** Catch `onError` in `ReactPlayer` to prevent frozen black screens in restricted school networks. Fall back automatically to cached audio or candidate options.
+3. **P2 — Remove video zoom and dimming overlay (TPR action clarity):** Render video at 100% letterbox/pillarbox with full opacity so young learners can clearly see and imitate physical choreography.
+4. **P2 — Clear top-left chrome collisions with BoardShell:** Shift the "Warm Up Song" title block rightward to guarantee safe clearance from the `• WARM-UP` phase badge.
+5. **P2 — Add an intentional wrap-up beat at media end:** Replace abrupt instant slide advance with a 4-second "Great singing! 🎵" celebration screen featuring a manual "Next Step →" button.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as a vibrant, high-energy "Classroom Cinema & Sing-Along Stage". Deep theater-navy stage (`#050811`), vivid neon accents (warm amber `#F59E0B` for song badges, sky blue `#38BDF8` for duration and audio, emerald `#10B981` for completion, hot pink `#EC4899` for primary actions). Typography must be bold, friendly, and readable from 8 meters. When video plays, the video is the hero; when audio plays, energetic graphic sound waves and floating lyrics take center stage.
+
+**Mock up these four board screens/states:**
+
+1. **Screen 1 — Video Playback with Floating Karaoke Bar:** Full 16:9 uncropped video canvas (100% fit). Top bar cleanly offset to the right of the `• WARM-UP` phase badge: "Warm Up Song · Working in the Jungle" with a slim duration pill (`1:12 / 2:05`). Bottom: a sleek translucent dark pill hosting two lines of lyrics with a bouncy yellow highlight sweep across the singing line.
+2. **Screen 2 — Audio-Only Sing-Along Stage:** For audio-only songs: centered rotating vinyl record or pulsing graphic sound-wave visualizer with the song title. Large, centered two-line lyrics card with bold yellow singing line and muted upcoming line. Floating musical notes and a "Sing together! 🗣️" badge.
+3. **Screen 3 — Unresolved Song Standby (Candidate Picker):** When video is not yet attached: an attractive standby card titled "Warm-Up Song: Animals in the Jungle" with an energetic musical mascot illustration. Center: three clean candidate video cards with thumbnails, song titles, channel names, and a yellow "Tap to select on Commander" badge.
+4. **Screen 4 — Song Complete / Warm-up Celebration:** 4-second hold state at song completion: dimmed video backdrop with confetti bursts, a cheerful badge: "Great Singing! Warm-up Complete! 🎶", and a prominent pulsing hot-pink button: "Start Focus Cards → (3s)".
+
+**What to KEEP from current design.** Retain full-bleed layout (leaderboard rail retracted), verbatim synchronized lyrics highlighting, server-side oEmbed validation pipeline, and natural-end lesson progression.
 
 ## §5 ⬜ Google Stitch prompt
 

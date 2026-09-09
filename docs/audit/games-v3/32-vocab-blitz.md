@@ -1,6 +1,6 @@
 # Vocab Blitz — v3 Quality Audit (`VOCAB_BLITZ`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/32-vocab-blitz-idle.png` — captured at the confidence-bet screen — the §2 per-question re-ask.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -94,14 +94,63 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
-> **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
-
 ### 4.a UI & visual design
+- **Disruptive full-screen bet modal halts game momentum (screenshot `32-vocab-blitz-idle.png`):** The current confidence bet is rendered as an isolated white dialog box ("How confident are you? 1x Bet / 2x Bet") that obliterates the entire game stage before every single question. In a game named "Vocab Blitz", forcing a full visual stop between items destroys the high-energy arcade tempo. The bet should feel like an exciting game-show power-up sequence at the start of a turn, with the locked multiplier remaining prominently pinned in the HUD.
+- **Phase tag mismatch on board shell:** The top-left tag in the idle screenshot shows an amber "WARM-UP" badge, whereas §0 correctly identifies `VOCAB_BLITZ` as the marquee ASSESS flow type.
+- **Modest typography and cramped 2×2 options grid (F8):** Options are set in `text-xl`, prompts in `text-2xl`, and retry badges in tiny `text-sm` (`:679-681,697`). On a 1080p projection screen viewed from 5–8 meters, these elements look like standard desktop web form controls rather than a thrilling arena quiz. Options should be massive, border-lit widescreen plates labeled with distinct badges (`A`, `B`, `C`, `D`).
+- **Anemic timer presentation (F5):** The 15-second timer renders as a thin horizontal progress bar (`:683-690`). An assessment speed challenge needs an electric, high-visibility digital clock gauge with color-coded urgency (cyan $\rightarrow$ amber $\rightarrow$ flashing red at $\le 3$s) and acoustic tension cues.
+- **Steal state needs dramatic visual takeover:** When a steal is triggered, the board needs an unmistakable arena siren overlay (*"🚨 STEAL ALERT! Steal the points!"*) to instantly capture the entire classroom's attention.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+- **The Core Architectural Flaw: Bet re-asked before EVERY question instead of once per turn (F1, §2):**
+  - In `advanceToNext()`, the code unconditionally calls `setPhase('bet'); setBet(1)` after every resolution (`:533-535`).
+  - If a picked student plays a 3-question sprint, the teacher and student must tap through the "How confident are you?" gate three separate times. This creates frustrating stop-and-go pacing, exactly as the owner reported: *"when we are in a series of three questions, the system should ask only one time — not ask again on every question"*.
+  - **The Fix:** Introduce a `betLockedRef` latch. At `NEW_TURN`, the student chooses their multiplier once (`1x Safe` vs. `2x Double or Nothing`). This bet locks for their entire question sprint (`advanceToNext` stays in `phase === 'question'`). The latch only resets when the next student is picked or the game is reset.
+- **Severe baton parity gap: Steal, Correct, and End missing from phone remote (F3):**
+  - On the teacher's desktop commander, controls include Skip, Correct, Steal, Redo, and End (`ContextualControls.tsx:222-231`).
+  - On the handheld phone baton, `VOCAB_BLITZ` is lumped into the shared fallback case, providing **only Skip and Redo** (`TeacherRemote.tsx:598-609`)!
+  - The Steal mechanic — the signature comeback feature of Vocab Blitz — is completely unreachable from the teacher's handheld remote! If a student misses and a steal opens, the teacher cannot trigger the steal without walking across the room to the computer. The baton remote must have a dedicated `STEAL` button, along with `MARK_CORRECT` and `END`.
+- **Confidence bet lacks remote control triggers (F4):** The 1x/2x bet buttons exist purely on the projected board surface (`:633-648`). The teacher holding a phone remote cannot select or confirm the bet on behalf of a student calling out from their desk.
+- **Dead `MARK_CORRECT` on bet screen (F7):** The override function exits early if `phase !== 'question'` (`:473`). If a teacher presses Correct while the bet modal is up, nothing happens. Pressing Correct on the bet screen should default-lock 1x and jump straight into the question.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+- **Metacognitive risk assessment as active learning:** Asking students to evaluate their own mastery (*"Do I know this well enough to bet 2x?"*) engages metacognitive monitoring. Locking the bet once per turn establishes high psychological investment for the entire 3-question sprint.
+- **Formative assessment with low anxiety:** As an ASSESS-phase activity, Vocab Blitz evaluates vocabulary retrieval across mixed formats (definition matching, image identification, spelling cloze). Crucially, the **timeout-costs-nothing rule** protects slower EFL learners from negative scoring trauma, while logging the miss for FSRS spaced-repetition scheduling.
+- **Classroom-wide alertness via the Steal mechanic:** In traditional one-student-at-a-time quizzes, non-picked students tune out. The Steal mechanic (unlocked only after a student exhausts their retry or times out) keeps every student on the edge of their seat, ready to jump in and claim half-points.
+- **50% Second-Chance Retry:** Allowing a single retry at 50% value (`retryUsed`, `:374-379`) encourages self-monitoring and error correction rather than immediate penalization.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+- **True "Blitz" rhythm:** With the bet locked upfront, questions should fire in rapid succession with punchy 900ms win holds, giving students an exhilarating 45-second sprint.
+- **Leaderboard economy calibration (F2):** Currently, the 2x multiplier applies *after* the unified scoring cap (`basePoints * bet`, `:331`), allowing single-question payouts up to 10 points (5-streak base 5 $\times 2 = 10$). While high-rolling 10-point bursts are thrilling in an arcade ASSESS game, the economy model must explicitly sanction this tier (or clamp it to a maximum of 6–8 points) to prevent runaway score inflation.
+- **Steal balance:** Steals award 50% of base points with zero mistake penalties for the stealer (`:398-423`), which perfectly incentivizes peer rescue without risk.
+
 ### 4.e Top-5 prioritized recommendations
+1. **P1 — Lock Confidence Bet Once Per Turn Across the Question Sprint (F1, §2):** Ask "1x Safe vs. 2x Double" once at `NEW_TURN`. Maintain the locked bet across all questions in the student's turn and reset only when a new student is picked.
+2. **P1 — Close the Baton Remote Parity Gap (Add Steal, Bet 1x/2x, Correct) (F3, F4):** Add dedicated `STEAL`, `BET_1X`, `BET_2X`, and `MARK_CORRECT` actions to `TeacherRemote.tsx:598-609` so teachers can run the game entirely from their phone.
+3. **P2 — Harmonize 2x Bet Economy with Unified Scoring Model (F2):** Align the double-or-nothing payout curve with documented leaderboard rules, capping maximum single-turn score spikes at 6–8 points.
+4. **P2 — Overhaul UI into a Widescreen Arena Quiz (4.a, F8):** Enlarge option cards into widescreen touchplates with clear `A/B/C/D` badges, replace the thin line with a bold stadium countdown clock, and display the active multiplier badge in the top HUD.
+5. **P3 — Fix Dead `MARK_CORRECT` on Bet Screen & Guard Against Retry State Leakage (F6, F7):** Ensure `MARK_CORRECT` auto-advances the bet phase, and route the retry timeout through `advanceTimerRef` to prevent 50% penalties from bleeding into subsequent questions.
+
 ### 4.f Design direction for Stitch
+- **Mood and visual theme:** "High-Stakes Cyber Game Show" / "Neon Quiz Arena". Deep midnight obsidian background (`#0A0E27`), neon electric orange for 2x High-Roller multipliers (`#FF6B00`), vibrant laser cyan for 1x Safe Play (`#00F0FF`), glowing emerald for correct hits (`#10B981`), and flashing siren scarlet for Steals (`#EF4444`).
+- **Mock up these four screens/states (16:9 projector, no scrolling):**
+  1. **Screen 1 — Turn Start: The Confidence Gate (Once Per Turn):**
+     - Top HUD: `[⚡ Alice's Turn — Choose Your Stakes!]` + Question preview: `[3-Question Sprint]`.
+     - Center Stage: Two massive, glowing arcade choice pods:
+       - Left Pod (`1x SAFE PLAY`): Cyan border, description: `"+1x Standard Points · Normal -1 Penalty"`.
+       - Right Pod (`2x HIGH ROLLER`): Blazing orange neon border with lightning effects, description: `"🔥 DOUBLE POINTS · DOUBLE PENALTY!"`.
+  2. **Screen 2 — Active Blitz Sprint (Locked 2x Multiplier):**
+     - Top HUD: Picked challenger badge `[Alice]` + pinned glowing orange badge: `[🔥 2X MULTIPLIER ACTIVE]` + prominent circular 15s stadium countdown gauge (`9s`).
+     - Center Stage: Prompt plate displaying target sentence/word (`"TRACTOR"`).
+     - Bottom: 4 widescreen, border-lit option plates (`A`, `B`, `C`, `D`) with bold typography.
+     - Right rail: Compact live leaderboard.
+  3. **Screen 3 — Steal Opportunity State ("STEAL ALERT!"):**
+     - Alice has missed twice or timed out.
+     - Screen flashes with red/amber emergency beacon lighting: *"🚨 STEAL ALERT! Who can steal the points?"*.
+     - Quick-spin wheel indicator prompting the teacher to pick a stealer.
+  4. **Screen 4 — Sprint Summary Celebration:**
+     - Celebration card: *"Alice's Blitz Complete!"*, 3/3 correct, `🔥 2x Multiplier Bonus Applied`, total points splash (`+12 Points!`), and auto-advance timer for next student.
+- **What to KEEP from current design:** The StrictMode-safe timer, timeout-costs-nothing fairness rule, cancellable advance funnel with NEW_TURN suppression during steals, and per-objective pool deduplication.
 
 ## §5 ⬜ Google Stitch prompt
 

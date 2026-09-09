@@ -1,6 +1,6 @@
 # Sound Lab — v3 Quality Audit (`SOUND_LAB`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/19-sound-lab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -88,16 +88,101 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What already works well (context — don't re-litigate):** the receptive→productive 3-phase ladder is pedagogically sound and correctly difficulty-tagged (productive fallback 3, `:279, :312`); the replay-cost mechanic the owner wants already exists and charges the picked student only; per-item resolve latches stop stale speech results and double remote taps; reveal-on-wrong teaching beats in phases 1–2; seeded sibling-sentence distractors; round speech pre-warm; empty-phase skipping that can't fake a completion; MARK_CORRECT doubling as pronunciation acceptance.
 
-## §4 ⬜ ChatGPT Co-Work quality audit
+## §4 ChatGPT Co-Work quality audit
 
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Off-screen clipping of bottom image row in 2×2 vertical stack.** **Evidence:** `screenshots/19-sound-lab-idle.png`, §2 owner comments, and §3 F4 (`BoardSoundLab.tsx:518, 543, 558`). In Phase 1 ("Listen & Tap"), four square images are rendered in a 2×2 grid underneath stacked headers, duplicate subheadings, and a large purple "Listen" button within a constrained card. On standard 16:9 projection, the bottom container border slices directly through the first row of images; **the bottom two images (options 3 and 4) are completely cut off and invisible**. Students cannot see half the available choices.
+  *Recommendation:* Redesign for 16:9 horizontal projection: arrange the 4 image choices in a single horizontal row across the stage (1×4 landscape card layout, ~4:3 aspect ratio per card) beneath an acoustic wave visualizer, or split the screen into an audio control panel on the left and a 2×2 grid on the right.
+
+- **P1 — Duplicate phase subheadings.** **Evidence:** `screenshots/19-sound-lab-idle.png`. The subtitle "Phase 1: Listen & Tap" renders twice in immediate succession—once directly beneath the "Sound Lab" header card and again inside the challenge card above "Which image matches the word?". This redundancy clutters the vertical layout.
+  *Recommendation:* Replace duplicate text with a single, elegant 3-step progress bar across the top of the board: `👂 1. Listen & Tap → 🎧 2. Listen & Match → 🗣️ 3. Hear & Say`.
+
+- **P2 — Text captions convert listening challenge into a reading task.** **Evidence:** §3 F4 (`BoardSoundLab.tsx:565-567`). In Phase 1, each image displays its English vocabulary word as a visible caption below the photo. Literate children bypass auditory discrimination entirely by matching the spoken word to the printed caption.
+  *Recommendation:* Suppress written captions during the active listening phase so children rely purely on acoustic recognition. Reveal the English word caption only after a selection is made as part of the feedback celebration.
+
+- **P2 — Retract 240px leaderboard rail in Choral mode.** **Evidence:** `screenshots/19-sound-lab-idle.png`. The screenshot shows 8 students at 0 points occupying a 240px rail on the right during a whole-class choral round. Retracting this rail gives the 4 image cards the horizontal width needed for high-resolution projection.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Missing auto-play on question appearance (§2 Owner Headline Ask).** **Evidence:** §2 owner comments and §3 F1 (`BoardSoundLab.tsx:155-176, 256-265`). Currently, when a new item appears, the board is silent. The class must wait for the teacher to physically walk to the screen and tap the "Listen" button.
+  *Recommendation:* Trigger `playCurrentSpeech()` automatically once whenever an item mounts on the board (first play free). The teacher and student hear the sound immediately without manual intervention.
+
+- **P1 — Transparent replay metering with −1 penalty (§2 Owner Rule).** **Evidence:** §2 owner comments and §3 F2 (`BoardSoundLab.tsx:469-472`). The engine already implements −1 per replay for the picked student after the first play, but the current UI hides this: a tiny note only appears on the second play and misleadingly claims "Replay: 1 left".
+  *Recommendation:* Clearly communicate audio metering on the Listen button itself:
+  - On Mount (Auto-Played): Display *"Playing audio... 🔊 (Free)"*.
+  - After Auto-Play: Display *"Replay Audio 🔊 (−1 pt)"* for picked students, or *"Replay Audio 🔊"* in choral mode.
+
+- **P1 — Missing remote audio control for teacher.** **Evidence:** §3 F3 (`ContextualControls.tsx:183-191`). In a listening-centered game, neither the phone Remote Baton nor Commander contextual controls provide an audio replay button. The teacher cannot trigger replays while circulating among student desks.
+  *Recommendation:* Wire a dedicated `PLAY_AUDIO` action to the Remote Baton and Commander, connecting directly to `playAudio()`.
+
+- **P2 — Phase 3 (Speech Production) lacks a 2-miss mercy exit.** **Evidence:** §3 F6 (`BoardSoundLab.tsx:188-197`). In Phase 3, if a student mispronounces a sentence or background noise prevents speech recognition from passing, the item loops indefinitely, deducting −1 per attempt.
+  *Recommendation:* Wire the standard 2-miss teaching scaffold: after 2 consecutive failed attempts, display the model sentence, play the correct audio, award 0 points, and auto-advance. Ensure `MARK_CORRECT` remains available on the remote as an instant teacher pronunciation override.
+
+- **P3 — Reset replay counter on Phase 3 item advances.** **Evidence:** §3 F7 (`BoardSoundLab.tsx:425-435`). `advancePhase3` omits resetting `replayCount`, leaking penalty counts into subsequent items. Ensure clean state resets across all phase transitions.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — The 3-Tier Listening Ladder (Receptive $\rightarrow$ Discriminative $\rightarrow$ Productive).** The progression across Sound Lab's three phases is an exemplary ESL pedagogical structure:
+  1. *Phase 1 (Recognition):* Maps auditory input directly to concrete visual meaning without reading mediation.
+  2. *Phase 2 (Discrimination):* Distinguishes subtle grammatical differences in spoken sentences.
+  3. *Phase 3 (Production):* Active oral reproduction reinforcing phonetic articulation.
+  Preserving this structured ladder is vital for comprehensive speech acquisition.
+
+- **P2 — Acoustic Focus and Distractor Integrity.** In Phase 2 dictation matching, ensure distractors feature minimal phonological or grammatical contrasts (e.g. *"The lion runs fast"* vs *"The lion ran fast"*), training students to listen for inflectional morphemes.
+
+- **P2 — Positive Reinforcement in Speech Recognition.** For Chinese EFL learners aged 6–12, speaking into an automated system can be intimidating. Feedback should celebrate effort: display a colorful similarity meter (e.g. *"85% Match! Clear voice! ⭐"*) rather than binary failure prompts.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — High-Tech Sound Wave Visualizer.** Replace the static button with a responsive sound wave visualizer:
+  - Concentric glowing ripples emit during audio playback.
+  - An animated bouncing waveform visualizes speech input during Phase 3.
+  - A tactile circular replay button with clear cost badges gives teachers precise control.
+
+- **P2 — Level-Up Interstitial Between Phases.** Transitioning between Phase 1, 2, and 3 should feel like an achievement. Display a 1.2s celebratory interstitial card (*"Phase 1 Complete! Level Up to Sentence Listening! 🚀"*) with chimes.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Auto-Play Audio on Item Mount (F1, §2):** Auto-play sound once for free upon item deal.
+2. **P1 — Rebuild Board Layout to a Horizontal 1×4 Row to Eliminate Image Clipping (F4, §2):** Ensure all 4 images are 100% visible on 16:9 projection displays without scrolling.
+3. **P1 — Wire Remote & Commander `PLAY_AUDIO` Action (F3):** Allow handheld audio replays from the phone remote.
+4. **P1 — Honest Replay Metering on Button (−1 pt after first play) (F2, §2):** Surface the replay cost badge directly on the Listen button.
+5. **P2 — Add 2-Miss Mercy Scaffold to Phase 3 Speech Production (F6):** Prevent indefinite point bleeding on speech recognition failures.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as a high-tech "Acoustic Laboratory / Sound Wave Arena". Deep sonic navy background (`#0B132B`), electric cyan (`#38BDF8`) for dynamic audio waveforms, radiant violet (`#8B5CF6`) for primary audio controls, neon emerald (`#10B981`) for correct matches, and amber (`#F59E0B`) for metered replays. The UI should feature clean acoustic oscilloscope lines and tactile arcade response cards.
+
+**Mock up these four board screens/states (16:9 projector, no scrolling):**
+
+1. **Screen 1 — Phase 1: Listen & Tap (Auto-Playing):**
+   - Top Header: 3-step progress pill: `[👂 Listen & Tap (Active)] → [🎧 Listen & Match] → [🗣️ Hear & Say]`, Alice's turn badge.
+   - Center Stage: Sleek glowing cyan oscilloscope soundwave actively animating with caption *"Listen carefully... 👂"*.
+   - Bottom Stage: 4 large, landscape photo cards (~4:3 aspect ratio) arranged in a horizontal row (Coast, Forest, Mountain, Desert). No text captions.
+
+2. **Screen 2 — Replay State (Metered):**
+   - Oscilloscope idle.
+   - Center Button: Sleek purple pill: `"Replay Audio 🔊"` with a glowing amber badge: `"-1 pt"`.
+   - Cards active and pulsing softly, waiting for student selection.
+
+3. **Screen 3 — Phase 2: Listen & Match (Discrimination):**
+   - Header: Step 2 active.
+   - Center Audio Player with replay badge.
+   - Stage: 3 stacked horizontal sentence cards with clear typography:
+     - `A. The animal plays in the jungle.`
+     - `B. The animal sleeps in the jungle.`
+     - `C. The animal runs in the jungle.`
+
+4. **Screen 4 — Phase 3: Hear & Say (Voice Production):**
+   - Header: Step 3 active.
+   - Center: Target sentence `"The lion runs fast."` in massive bold type.
+   - Microphone status: Pulsing cyan recording ring with audio wave meter and prompt *"Your turn! Speak now 🎤"*.
+   - Bottom: Teacher override chip `"Tap to Accept / Mark Correct"`.
+
+**What to KEEP from current design.** Retain the 3-tier listening ladder progression, the replay-penalty calculation engine for picked students, the background speech pre-warming, and empty-phase skipping logic.
 
 ## §5 ⬜ Google Stitch prompt
 

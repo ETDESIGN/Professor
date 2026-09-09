@@ -1,6 +1,6 @@
 # Story Quest — v3 Quality Audit (`STORY_QUEST`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/20-story-quest-idle.png` — empty state (no story pages in fixture) — cropping/dialogue findings are code-anchored.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -88,16 +88,101 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What already works well (context — don't re-litigate):** real-content prediction distractors (never AI filler), seeded identical option order on every tab (E1.5), the shared reveal-on-wrong teaching beat with explanation, hint elimination + teacher MARK_CORRECT override, per-word vocab overlay with audio, per-page attempt-ref hygiene, the idempotent completion latch + natural-completion semantics the commander respects, and the explicit "no story pages" empty state.
 
-## §4 ⬜ ChatGPT Co-Work quality audit
+## §4 ChatGPT Co-Work quality audit
 
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Destructive image cropping (`h-64 object-cover`) cuts out story art and speech bubbles (§2 Owner Bug).** **Evidence:** `screenshots/20-story-quest-idle.png`, §2 owner comments, and §3 F1 (`BoardStoryQuest.tsx:414`). Story illustrations are forced into a fixed 256px horizontal strip (`w-full h-64 object-cover`). In book scans and custom story illustrations, speech bubbles and character interactions typically sit near the upper and outer edges. `object-cover` scales the image and chops off the borders, mutilating character faces, narrative details, and text bubbles.
+  *Recommendation:* Adopt a balanced two-column storybook layout (aligning with `07-story-stage.md`):
+  - *Right Column:* Full, uncropped illustration displayed in its natural aspect ratio using `object-contain` (with a subtle blur-fill or warm cream border).
+  - *Left Column:* Dedicated reading and dialogue panel with generous typographic scaling.
+
+- **P1 — Undifferentiated wall-of-text dialogue (§2 Owner Bug).** **Evidence:** §2 owner comments and §3 F2 (`BoardStoryQuest.tsx:419-442`). Story text is currently dumped as a single continuous block of prose. Even though `story_pages` carries `speaker` metadata (`services/manifest.ts:254`), the code completely drops it. Children cannot distinguish who is speaking, destroying the narrative pacing.
+  *Recommendation:* Structure story text into distinct speaker dialogue turns:
+  - Character portrait / avatar chip.
+  - Bold speaker name (e.g. `"Harry 🐶:"` or `"Narrator 📖:"`).
+  - Distinct speech bubbles with high-contrast text and interactive vocabulary chips.
+
+- **P2 — Retract 240px leaderboard rail (`FULL_BLEED_TYPES`).** **Evidence:** `screenshots/20-story-quest-idle.png` and §3 F10 (`BoardShell.tsx:41`). Story Quest is currently omitted from `FULL_BLEED_TYPES`. As a result, the 240px leaderboard rail stays pinned to the right side of the screen, squashing the story illustration and dialogue into a cramped space.
+  *Recommendation:* Add `STORY_QUEST` to `FULL_BLEED_TYPES` in `BoardShell.tsx` so the storybook enjoys the full 16:9 projection canvas.
+
+- **P2 — Microscopic progress dots.** **Evidence:** §3 F10 (`BoardStoryQuest.tsx:385`). The story page rail uses tiny 16px dots (`w-4 h-4`) that are virtually unreadable from 5–8 meters away. Replace with a bold chapter progress banner: *"Chapter 1 · Page 2 of 5"*.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Wheel auto-rotate restarts the story mid-flow (§3 F5).** **Evidence:** §3 F5 (`BoardStoryQuest.tsx:96-111, store/SessionContext.tsx:1565-1581`). When a student answers a comprehension check correctly, `addPoints` records an award. If the teacher's sidebar wheel is set to auto-rotate every 1 or 3 awards, a new student is picked (`NEW_TURN`). The turn-reset effect in `BoardStoryQuest.tsx` responds by resetting `currentPanelIdx` to 0! The story snaps back to page 1, forcing the class to re-read earlier pages.
+  *Recommendation:* Decouple the story reading progress from individual student turn IDs: persist `currentPanelIdx` across turn changes so picking a new student simply transfers answering rights on the *current* page without rewinding the story.
+
+- **P2 — Comprehension questions are unanchored to current story scenes.** **Evidence:** §3 F4 (`BoardStoryQuest.tsx:239-245`). Comprehension MCQs are pulled sequentially from the pool every second page. Nothing verifies that the question relates to the panel currently displayed on screen. A question about the story's climax can trigger on page 2.
+  *Recommendation:* Filter comprehension items using the current page's scene metadata or `image_asset_id` so checks assess only what students have read so far.
+
+- **P2 — "Next Page" silently drops in-flight comprehension checks.** **Evidence:** §3 F9 (`BoardStoryQuest.tsx:143-145`). Pressing `NEXT_PANEL` calls `advanceToNext` unconditionally, bypassing open prediction gates or comprehension checks without recording outcomes or displaying feedback.
+  *Recommendation:* Update button states: when a question is active, the primary remote action should be `CHECK` or `MARK_CORRECT`; `NEXT_PANEL` should only become primary once the question is resolved.
+
+- **P3 — Excessive reading load in prediction gates.** **Evidence:** §3 F3 (`BoardStoryQuest.tsx:499-516`). Prediction options present three full paragraphs of text lifted from other panels. For 6–8-year-old learners, this creates reading fatigue. Replace with short 1-sentence teasers or visual scene previews.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Speaker Attribution Drives Oral Role-Playing.** In primary ESL classrooms, stories come alive through dramatic reading. By visually separating dialogue with character badges ("Harry", "Big Puppy"), teachers can assign reading roles across the classroom. This fosters expressive intonation, prosodic rhythm, and active listening.
+
+- **P2 — Prediction as an Engagement Anchor (Choral & Non-Penalized).** Prediction in Story Quest is correctly structured as an engagement hook rather than a high-stakes test. Asking *"What will happen next?"* activates schema anticipation. Keep predictions choral and non-scored.
+
+- **P2 — Scaffolding Vocabulary Chips with Audio.** The amber vocabulary chips in story text are an excellent scaffold. Ensure tapping a chip plays clear native pronunciation and displays an unobtrusive English contextual definition rather than a hover tooltip that fails on touch projectors.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — Whole-Class Narrative Pacing.** A 5–10 page story is too long for a single student to monopolize (F6). Encourage teacher-driven turn hand-offs between pages so multiple students participate across the story arc.
+- **P2 — Audio Narration with Karaoke Sentence Highlighting.** When audio is available for a story page, provide a "Listen to Story 🎧" button that highlights each dialogue bubble in sync with the audio track.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Eliminate Image Cropping with a Two-Column Layout (F1, §2):** Render full uncropped illustrations on the right (`object-contain`) and reading dialogue on the left.
+2. **P1 — Implement Speaker-Attributed Dialogue Bubbles (F2, §2):** Format text into clear character dialogue turns with names and avatars.
+3. **P1 — Prevent Wheel Auto-Rotate from Rewinding the Story to Page 1 (F5):** Maintain `currentPanelIdx` across student turn changes.
+4. **P1 — Add `STORY_QUEST` to `FULL_BLEED_TYPES` in `BoardShell.tsx` (F10, 4.a):** Retract the 240px leaderboard rail for story immersion.
+5. **P2 — Anchor Comprehension Questions to Current Scene Content (F4):** Ensure questions match the pages students have actually read.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as a warm, cinematic "Illustrated Storybook Theater". Deep midnight indigo stage (`#0F172A`), rich storybook cream cards (`#FDFBF7`), warm honey-amber (`#F59E0B`) for interactive vocab chips, electric emerald (`#10B981`) for correct comprehension answers, and crisp speech bubbles (`#FFFFFF` with `#E2E8F0` drop shadows). The interface should feel like turning the pages of an enchanted storybook.
+
+**Mock up these four board screens/states (16:9 projector, no scrolling):**
+
+1. **Screen 1 — Story Reading Page (Two-Column Layout):**
+   - Retracted leaderboard rail (full 16:9 bleed).
+   - Top Bar: Chapter Title `"The Adventure of Harry"`, Page Indicator `"Page 2 of 5"`, Audio Narration button.
+   - Left Panel (Reading): Speaker-attributed dialogue:
+     - Avatar: Harry 🐶 | Bubble: *"Look at the big tractor! Let's explore the farm."* (with `"tractor"` as a glowing gold vocab chip).
+     - Avatar: Big Puppy 🐕 | Bubble: *"Be careful, Harry! It is very big."*.
+   - Right Panel (Illustration): Full, uncropped illustration of Harry and the puppy standing before a large red farm tractor (`object-contain` on soft cream backdrop).
+   - Bottom Action: Green `"What happens next? →"` button.
+
+2. **Screen 2 — Prediction Gate ("What Happens Next?"):**
+   - Illustration stays visible on the right, dimmed to 40% opacity.
+   - Left Panel overlays with 3 tactile prediction cards:
+     - `A. They climb up onto the big tractor.` (Correct)
+     - `B. They swim across the cold river.`
+     - `C. They sleep in the dark barn.`
+   - Header: *"Make a guess! 🔮 What happens next?"*.
+
+3. **Screen 3 — Comprehension Check:**
+   - Scene illustration visible on the right.
+   - Left Panel displays an illuminated comprehension card:
+     - Question: *"Why does the puppy tell Harry to be careful?"*.
+     - 3 clean options with Alice's turn badge active:
+       - `A. The tractor is very big.` (Correct)
+       - `B. The puppy is hungry.`
+       - `C. It is raining outside.`
+
+4. **Screen 4 — Story Complete Celebration:**
+   - Full-stage victory layout: Illustrated open storybook with golden star ribbon.
+   - Header: `"Story Complete! 📖 Excellent Reading!"`.
+   - Badges: `"5 Pages Read"` · `"Comprehension: 2/2 Correct"` · `"+5 Stars Awarded"`.
+   - Prominent `"Finish Story & Next Activity →"` button.
+
+**What to KEEP from current design.** Retain the real-content prediction distractors (lifted from other story pages rather than AI hallucinations), per-page mistake latch hygiene, non-scored prediction engagement, and natural completion lifecycle semantics.
 
 ## §5 ⬜ Google Stitch prompt
 

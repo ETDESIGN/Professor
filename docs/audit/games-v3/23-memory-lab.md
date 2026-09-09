@@ -1,6 +1,6 @@
 # Memory Lab — v3 Quality Audit (`MEMORY_LAB`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/23-memory-lab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -91,14 +91,62 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
-> **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
-
 ### 4.a UI & visual design
+- **Severe vertical clipping on 16:9 projection (F5, screenshot `23-memory-lab-idle.png`):** The current board layout places a multi-tiered header ("WARM-UP" pill, "Memory Lab" title, progress dots, round subtitle, instruction line, and an 80px circular SVG countdown timer) *above* the card grid. Even on a modest 4-card 2×2 grid, the bottom row of cards is clipped by the rounded container border and bottom edge. When the grid escalates to 6, 8, or 10 cards, cards become tiny (`w-40 md:w-44` in `grid-cols-4`) and overflow vertically off-screen, completely breaking viewing from 5–8 meters.
+- **Recall phase layout collision:** In the recall phase, the board must render *both* the memory grid (with the missing card slot) and a tray of 4 candidate options below. Because the grid already consumes nearly the full vertical height, the candidate tray is crammed into the bottom bezel, requiring tiny tap targets or causing extreme visual congestion.
+- **240px leaderboard rail encroaches on grid width (F9):** `MEMORY_LAB` is absent from `FULL_BLEED_TYPES` in `BoardShell.tsx:41,112`. The persistent 240px right rail severely narrows horizontal stage width. Memory Lab requires horizontal breathing room for 4–6 cards arranged in 1 or 2 tidy rows. The rail should retract during active play.
+- **Microscopic timer and illegible prompts at 5–8m (F7):** The countdown timer is a tiny `w-20 h-20` circle with `text-3xl` numbers, and instructions are rendered in muted `text-xl text-gray-600`. In a bright classroom at distance, children cannot read the remaining time or instruction. The timer should be a prominent, glowing top-mounted HUD gauge with clear visual urgency.
+- **Stark palette clash with PRACTICE envelope (F9):** The game mounts a light cyan/white card over the dark BoardShell background, clashing with the dark immersive palette of the PRACTICE stage.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+- **Uncontrolled timer auto-start creates classroom chaos (F4):** The countdown clock starts ticking the millisecond the round mounts (`:193-206`). Teachers in live classrooms need 3–5 seconds to direct students' attention to the screen ("Look at the board! Eyes front!"). By the time students focus, 4 seconds have elapsed and the tension tick is already firing.
+- **Missing remote clock controls ("Pause" / "Show Again") (F4):** Remote controls currently provide only `SKIP_ITEM`, `MARK_CORRECT`, `RESET_GAME`, and `SLIDE_COMPLETE` (`ContextualControls.tsx:232-240`). There is no "Pause Clock" or "Peek Again / Replay Memorize" button. If a student is distracted or enters late, the teacher must let the round fail or reset the entire game from round 1.
+- **Choral vs. Individual turn ambiguity:** When `quickWheelWinner` is active, the board still fires the 1.5s pulsing banner: *"Everyone — point at the missing card!"* (`:225-233`). This confuses class turn-taking: whole-class shouting drowns out the picked individual. The prompt should explicitly address the active participant (e.g., *"Alice, what's missing?"* vs. *"Everyone together!"* in choral mode).
+- **Post-round advance and skip mechanics work reliably:** Skip round cleanly advances using generation-guarded refs (`roundGenRef`, `:74-75`), preventing double-advances. Remote `MARK_CORRECT` is properly honored even during the transition beat.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+- **The Core Pedagogical Failure: Picture-to-picture memory without English encoding (F1, §2):** In rounds 1–2, the grid shows images, one image vanishes, and the candidate tray displays 4 images (`card.imageUrl`). The student never sees, hears, or speaks an English word during the challenge! The brain encodes purely visual shapes and colors (e.g., "the green trees are gone"). English vocabulary is relegated to a post-round passive feedback card. This violates the foundational purpose of the app: **it is an English language lesson, not a cognitive working memory test.**
+- **The Solution — Multimodal Cross-Direction Alternation (F3, §2):**
+  - **Round 1 (Image Grid $\rightarrow$ Word Recall):** Memorize a grid of 4 target *images* (with clear English word labels below each image). In the recall phase, one slot is empty `❓`. The candidate tray presents **4 English words** (with audio pronunciation icons). The student must recall the missing image and identify its English word!
+  - **Round 2 (Word Grid $\rightarrow$ Image Recall):** Memorize a grid of 4–5 **English words** (with phonetic/audio support). In the recall phase, one word vanishes. The candidate tray presents **4 distinct images**. The student must connect the recalled lexical item to its visual meaning.
+  - **Round 3 (Productive Speech / Spoken Word):** A grid of 4–6 items. The missing card must be spoken aloud in English by the student, using browser speech recognition or instant teacher remote validation (`MARK_CORRECT`).
+- **Excessive cognitive load from 8- and 10-card ladders (F2, §2):** Climbing to 8 and 10 cards breaches working memory capacity for 6–12 year olds (Cowan's $4 \pm 1$ limit) and causes cognitive exhaustion and disengagement. The owner's hard cap of **4 to 6 cards** must be strictly enforced.
+- **Double-miss remediation blackout (F8):** While keeping the missing card hidden during guessing is correct game theory, failing twice currently terminates the round with *"Missed it — moving on..."* without ever revealing the English word or playing its pronunciation. A double-miss must conclude with an explicit educational reveal: show the target image and English word, play the audio, and log the objective for spaced repetition.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+- **Three-round streamlined progression:**
+  - Round 1 (Receptive: See Images $\rightarrow$ Pick Word, 4 cards, 8s timer).
+  - Round 2 (Associative: See Words $\rightarrow$ Pick Image, 5 cards, 7s timer).
+  - Round 3 (Productive: Missing Item $\rightarrow$ Say the Word, 6 cards, 6s timer).
+  - Elimination of the bloated 10-card "Tension Round".
+- **Visual card format:** Replace tall square boxes with widescreen horizontal plates (~4:3 ratio). 4 cards arrange in a single horizontal row (`1×4`); 5–6 cards arrange in a balanced `2×3` grid, guaranteeing 40% vertical clearance for the candidate tray.
+- **Candidate tray design:** 4 clearly separated, numbered pill/card options (`A`, `B`, `C`, `D`) with prominent typography and tactile hover/active states, allowing easy pointing or verbal choice ("Letter B! / 'Dolphin'!").
+
 ### 4.e Top-5 prioritized recommendations
+1. **P1 — Implement Cross-Modal English Alternation (Image $\rightarrow$ Word, Word $\rightarrow$ Image, Spoken Production) (F1, F3, §2):** Transform Memory Lab from a visual recall task into an English vocabulary engine. Round 1 tests visual-to-word recognition; Round 2 tests word-to-visual recognition; Round 3 tests productive spoken recall.
+2. **P1 — Enforce 4–6 Card Hard Cap & Abolish 8/10-Card Ladder (F2, §2):** Cut `TENSION_ROUND` and cap grid size strictly between 4 and 6 cards across all rounds, preserving student stamina and visual sizing.
+3. **P2 — Add Teacher Clock Controls ("Pause" & "Peek Again") (F4):** Update `ContextualControls.tsx` with a `PAUSE_TIMER` toggle and a `PEEK_AGAIN` (+3s reveal) action to give teachers instructional pacing control.
+4. **P2 — Re-architect 16:9 Full-Bleed Layout to Eliminate Vertical Clipping (4.a, F5, F7):** Add `MEMORY_LAB` to `FULL_BLEED_TYPES`. Streamline the header into a compact top HUD, display cards in 1×4 or 2×3 widescreen grids, and place candidate choices in a dedicated bottom shelf without scrolling.
+5. **P2 — Provide Educational Reveal & Audio on Double-Miss Exit (F8):** When a turn ends on a double miss, show a 2-second learning card with the correct image, English word, and auto-played pronunciation before transitioning to the next round.
+
 ### 4.f Design direction for Stitch
+- **Mood and visual theme:** "Futuristic Memory Archive" / "Quantum Hologram Lab". Deep cyber slate/indigo background (`#0B132B`), glowing cyan specimen frames (`#00F0FF`), warm amber timer conduits (`#F59E0B`), and vibrant emerald confirmation glows (`#10B981`). Cards should look like floating holographic specimen plates.
+- **Mock up these four screens/states (16:9 projector, no scrolling):**
+  1. **Screen 1 — Memorize Phase (Image Grid with English Subtitles):**
+     - Full-bleed 16:9 stage with top HUD: `[Round 1: Image → Word]` + central glowing amber digital countdown timer (`8s`).
+     - 4 wide landscape specimen cards arranged in a horizontal row: each displaying high-resolution illustration + bold English word label beneath.
+     - Student turn chip: *"Alice's Turn — Memorize the specimens!"*
+  2. **Screen 2 — Recall Phase (Image $\rightarrow$ Word):**
+     - Grid re-displayed: 3 visible image cards, 1 card missing (rendered as a glowing cyan dashed frame with a pulsing `❓`).
+     - Bottom Candidate Shelf: 4 prominent horizontal English word pills (`A: TRACTOR`, `B: HELICOPTER`, `C: SUBWAY`, `D: BICYCLE`) with high-contrast typography.
+  3. **Screen 3 — Recall Phase (Word $\rightarrow$ Image):**
+     - Round 2 HUD: `[Round 2: Word → Image]` (5-card 2×3 layout).
+     - 4 visible English word cards, 1 slot empty (`❓`).
+     - Bottom Candidate Shelf: 4 clean illustrated image cards for students to select the missing concept.
+  4. **Screen 4 — Feedback & Learning Reveal:**
+     - Missing card revealed in center stage with an emerald energy beam.
+     - Bold English word (`TRACTOR`), phonetic pronunciation, audio replay speaker button, and celebratory score splash (`+3 Points for Alice!`).
+- **What to KEEP from current design:** Seeded deterministic card deals (`E1.5`), coverage-first probe rotation (`testedCardsRef`), generation-guarded timer advancement, and teacher remote `MARK_CORRECT` instant override.
 
 ## §5 ⬜ Google Stitch prompt
 

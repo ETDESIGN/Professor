@@ -1,6 +1,6 @@
 # I Say You Say — v3 Quality Audit (`I_SAY_YOU_SAY (alias SPEAKING)`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/13-i-say-you-say-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -83,16 +83,93 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What already works well (context — don't re-litigate):** the receptive-before-productive phase ordering, the honest "no scoring" banner (replacing the old fake waveform), the full lifecycle resets including the documented mid-choral new-pick fix (`:127-141`), the miss teaching beat with explanation + the double-advance timer guard (`:124, 155-159, 216-221`), streak tiers with confetti at 3/5, per-item awarded/mistake latches, and the always-in-sync text-fallback speech seam (`playAudioUrl`) that keeps every surface honest when no stale asset is stored.
 
-## §4 ⬜ ChatGPT Co-Work quality audit
+## §4 ChatGPT Co-Work quality audit
 
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Collapsed word spacing around highlighted target word (The "Thetractoris" bug).** **Evidence:** `screenshots/13-i-say-you-say-idle.png`. In the main sentence display (`"The tractor is big."`), the target vocabulary word `"tractor"` is wrapped in an individual styling tag (`text-yellow-400`). Because JSX strips whitespace between adjoining block/span elements without explicit spacing, the words render fused together as **`Thetractoris big.`** with zero space between "The" and "tractor", or "tractor" and "is". For 6–12-year-old ESL learners reading from 5–8 meters, fused words completely undermine word-boundary perception and reading fluency.
+  *Recommendation:* Ensure explicit string spacing around highlighted target tokens (e.g. `{' '}` or padding wrappers) so words are clearly separated by standard typographic word spacing.
+
+- **P1 — Lower "Next →" action button clipped by screen bezel.** **Evidence:** `screenshots/13-i-say-you-say-idle.png`. The emerald "Next →" button at the bottom of the screen is severely truncated by the board's lower container border; only the upper 40% of the pill is visible, and the bottom half of the text is cut off entirely.
+  *Recommendation:* Adjust the vertical flex layout: clamp the central typography scale and allocate at least `pb-8` clearance so primary action buttons sit comfortably within the visible 16:9 projection viewport.
+
+- **P2 — Redundant, stacked audio play buttons.** **Evidence:** `screenshots/13-i-say-you-say-idle.png`. The choral screen displays two separate audio play controls stacked directly above and below the sentence: a massive circular green speaker button in the center and a rectangular `🔊 Play` pill button below. Having two duplicate buttons for the exact same function creates visual clutter and confuses teachers about which button to tap.
+  *Recommendation:* Unify into a single, prominent audio control: a sleek, pulsing circular speaker button or an integrated soundwave banner that animates when speech is playing.
+
+- **P2 — Leaderboard rail squashes width during unscored choral drill.** **Evidence:** `screenshots/13-i-say-you-say-idle.png` and §0/§1. Phase 2 is an unscored choral drill ("Whole class — choral round"). Displaying the 240px leaderboard rail on the right with all 8 students idling at 0 points wastes 25% of horizontal screen width and compresses the sentence text.
+  *Recommendation:* Retract the leaderboard rail during the choral speaking drill (full 16:9 canvas bleed), expanding typography margins for comfortable viewing across the room.
+
+- **P2 — Monospace counter artifacts and header styling.** **Evidence:** `screenshots/13-i-say-you-say-idle.png`. The round indicator (`1 / 4 · Listen & Repeat`) uses an awkward, faint typewriter monospace font that clashes with the polished modern sans-serif aesthetic of the rest of the application.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Audio-Visual Sentence Desync (§2 Owner Bug).** **Evidence:** §2 owner comments and §3 F1 (`generate-exercises/index.ts:173, enrich-unit/index.ts:522`). When an example sentence is revised or re-enriched, the stored `target_audio` MP3 is not re-validated or updated. The database retains the audio asset from the very first generation. As a result, the board displays the current updated text (*"the animal living the jungle"*) while playing the old audio asset (*"the animal plays in the jungle"*).
+  *Authoritative Source:* The displayed sentence is canonical.
+  *Recommendation:* At runtime, check the speech hash of `target_sentence`. If `target_audio` does not match the canonical hash or fails to load, immediately fall back to dynamic TTS synthesis (`playAudioUrl(null, displayText)`), ensuring 100% synchronization between what students read and what they hear.
+
+- **P1 — Remote and Commander "Replay" button is completely dead.** **Evidence:** §3 F2 (`BoardISayYouSay.tsx:272-273`). In the choral phase, when the teacher presses `Replay` on the phone remote or desktop commander, the handler `FLIP_CARD`/`TOGGLE_PHASE` executes a no-op comment: `/* no-op state change, just lets the teacher re-tap play */`. The remote button does nothing! In a live classroom where the teacher stands among the students leading choral repetition, they are forced to walk back to the projector to tap the screen.
+  *Recommendation:* Wire the `REPLAY_AUDIO` / `FLIP_CARD` action directly to `handlePlayAudio()`, enabling seamless handheld audio repetition from anywhere in the classroom.
+
+- **P2 — Remote `MARK_CORRECT` breaks the Triple-Write Contract.** **Evidence:** §3 F3 (`BoardISayYouSay.tsx:250-264`). In Phase 1 discrimination, a board tap invokes `addPoints` + `recordAttempt` + `gradeObjective` (FSRS). When the teacher taps `MARK_CORRECT` on the phone remote, the code calls `addPoints` + `recordAttempt` only, omitting `gradeObjective`. Teacher remote scoring fails to advance the student's spaced-repetition mastery model.
+  *Recommendation:* Add the missing `gradeObjective(soundItem.objective_id, 'productive')` call to the remote `MARK_CORRECT` handler, restoring contract parity.
+
+- **P2 — Choral phase ends in frozen screen with no completion card.** **Evidence:** §3 F4 (`BoardISayYouSay.tsx:226-243`). After completing the 4th choral sentence, the game plays a win sound and freezes indefinitely on the final "One more time" screen. There is no completion card, no congratulations banner, and no `SLIDE_COMPLETE` event emitted. The teacher has no indication that the drill is finished.
+  *Recommendation:* Display an energetic "Choral Drill Complete! 🎉 Outstanding Speaking!" summary card with auto-advance or a prominent "Next Game →" button.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Audio-Visual Congruence in the Whole → Part → Whole Drill.** **Evidence:** §1 and §3 F5 (`BoardISayYouSay.tsx:441`). The 3-beat cycle (1. "Everyone listen…" $\rightarrow$ 2. "Focus on the word" $\rightarrow$ 3. "One more time") is an established ESL choral drilling technique. However, on Beat 2 ("Focus on the word"), the screen shows only the isolated target word (`tractor` at 9xl), but the audio continues to play the *entire full sentence*. This mismatch disorients young learners.
+  *Recommendation:* On Beat 2, either play the isolated word's native pronunciation, or visually display the full sentence with the surrounding words dimmed to 30% opacity while the target word remains brightly illuminated.
+
+- **P2 — Ear Before Tongue: Minimal Pair Discrimination Scaffold.** Retain and celebrate Phase 1 sound discrimination. Requiring young learners to acoustically identify confusable phonemes (e.g. /l/ vs /r/, /b/ vs /p/) before attempting oral production prevents the fossilization of pronunciation errors.
+
+- **P3 — Conductor Cues for Synchronized Choral Chanting.** In Chinese primary classrooms with 15–35 students, synchronized speaking requires rhythm cues. Relying solely on static text leads to chaotic, staggered chanting.
+  *Recommendation:* Introduce a visual rhythm visualizer (e.g. a bouncing ball or animated karaoke underline) that guides the class through the sentence tempo.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — Energetic Sound Stage Presence.** Moving from quiet receptive tasks to oral production can make shy students self-conscious. The UI should feel like a high-energy "Recording Studio" with vibrant microphone graphics, dynamic audio wave ripples, and playful crowd cheers.
+- **P2 — Handheld Teacher Pacing.** Speaking drills require flexible pacing: fast-paced repetition for confident classes, multiple slow replays for struggling classes. The phone remote must provide responsive one-thumb controls: `Play/Replay`, `Next Beat`, `Skip`.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Fix JSX Whitespace Collapse ("Thetractoris"):** Restore proper word spacing between styled target words and sentence text.
+2. **P1 — Eliminate Audio-Text Desync (F1):** Validate stored audio against current sentence text; fallback to live TTS on any text drift.
+3. **P1 — Wire Remote & Commander "Replay" Button (F2):** Enable one-tap audio replay from the phone remote and commander.
+4. **P1 — Fix Clipped "Next →" Button and Add Completion Screen (F4, 4.a):** Resolve lower-bezel button clipping and provide a clear wrap-up celebration screen.
+5. **P2 — Restore Triple-Write Parity to Remote `MARK_CORRECT` (F3):** Ensure remote teacher overrides write to the FSRS `gradeObjective` table.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as an electric "Studio Voice Stage / Audio Arena". Deep emerald stage (`#064E3B` / `#022C22`), neon cyan (`#38BDF8`) for soundwaves and audio visualizers, bright electric gold (`#FBBF24`) for target vocabulary words, and crisp studio white typography. The interface should feel kinetic, modern, and acoustically responsive.
+
+**Mock up these four board screens/states (16:9 projector, no scrolling):**
+
+1. **Screen 1 — Phase 1: Minimal Pair Sound Check:**
+   - Header: "Sound Check · Sound 1 of 5 · Tap what you hear", Alice's turn badge.
+   - Center: Glowing cyan speaker icon with concentric audio waves.
+   - Bottom: Two massive, tactile choice cards (e.g. "PENGUIN" vs "PELICAN") with distinct colors and high-contrast lettering.
+
+2. **Screen 2 — Phase 2, Beat 1: "Everyone Listen…":**
+   - Retracted leaderboard rail (full-bleed 16:9 stage).
+   - Top banner: "🎤 SPEAKING PRACTICE — LISTEN & REPEAT TOGETHER".
+   - Center: Glowing pulsing speaker with expanding acoustic rings.
+   - Text: `"The tractor is big."` with `"tractor"` highlighted in bright gold, perfectly spaced.
+   - Clean single Replay button and teacher pacing bar at bottom.
+
+3. **Screen 3 — Phase 2, Beat 2: "Focus on the Word":**
+   - Header: "Focus on the Sound 🔍".
+   - Center: Target word `"TRACTOR"` displayed in massive, ultra-clear 9xl font, flanked by pronunciation guide / phoneme markers.
+   - Subtle acoustic ripple animation indicating word-level audio playback.
+
+4. **Screen 4 — Speaking Practice Complete (Celebration):**
+   - Full-stage victory splash: "Speaking Practice Complete! 🌟 Great Voices!".
+   - Dynamic soundwave equalizer graphic celebrating class participation.
+   - Prominent "Next Activity →" button.
+
+**What to KEEP from current design.** Retain the receptive-before-productive phase structure, the honest non-scored choral signaling, the clean TTS fallback seam (`playAudioUrl`), and the minimal-pair discrimination scoring lifecycle.
 
 ## §5 ⬜ Google Stitch prompt
 

@@ -1,6 +1,6 @@
 # Sentence Lab — v3 Quality Audit (`SENTENCE_LAB`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/21-sentence-lab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -89,16 +89,104 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What already works well (context — don't re-litigate):** per-tile unique ids (duplicate words independently tappable), next-needed-tile hint (a real fix over the old random-position hint), LCS partial credit with per-position coloring concept, seeded identical banks across tabs, 3-round escalation from snapshots, reveal-on-wrong as a teaching beat, full lifecycle latches, and the most complete remote set of the five games (Skip/Hint/Check/Force ✓/Redo/End).
 
-## §4 ⬜ ChatGPT Co-Work quality audit
+## §4 ChatGPT Co-Work quality audit
 
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Under-sized, washed-out construction stage.** **Evidence:** `screenshots/21-sentence-lab-idle.png` and §3 F8 (`BoardSentenceLab.tsx:476`). The sentence building interface is confined to a small white card (`max-w-3xl`) against a pale mint background. The tiles use `text-xl` font with thin green borders, and the drop area is a pale gray rectangle. On a 16:9 classroom projector viewed from 5–8 meters, the tiles look small, fragile, and lack physical presence.
+  *Recommendation:* Expand the assembly stage across the horizontal 16:9 canvas: use substantial, tactile 3D word blocks (`text-3xl` display type) and a clear, discrete "Sentence Runway" with individual slot frames.
+
+- **P1 — Complete lack of task context and goal framing (§2 Owner Bug).** **Evidence:** `screenshots/21-sentence-lab-idle.png`, §2 owner comments, and §3 F1 (`BoardSentenceLab.tsx:479-495`).
+  1. In `WORD_BANK_BUILD`, the challenge prompt displays only a single Chinese word (`地面`) and a word-level audio button. Nothing indicates what sentence the student is supposed to build, how long the sentence should be, or what topic it addresses.
+  2. In `TRANSFORM`, the prompt displays a raw grammatical label (`Can / Cannot`) and an unpunctuated sentence (`Lions can swims`) with no instruction telling the child whether to fix, negate, or rephrase it.
+  *Recommendation:* Anchor every sentence challenge with clear context:
+  - An authentic thematic illustration (e.g. lions running in the savanna).
+  - An explicit task prompt (*"What can lions do?"* or *"Fix the mistake in the sentence"*).
+  - A word-count slot runway (e.g. 3 discrete slots indicating a 3-word target).
+
+- **P2 — Retract 240px leaderboard rail in Choral mode.** **Evidence:** `screenshots/21-sentence-lab-idle.png`. The screenshot shows all 8 students at 0 points occupying a 240px rail on the right during a whole-class choral round. Retracting this rail gives sentence blocks full horizontal projection space.
+
+- **P2 — Header chrome clearance.** Indent the game title to provide safe clearance from `BoardShell`'s absolute `• WARM-UP` badge at `top-5 left-6`.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Punitive tile-wipe destroys student self-correction (§3 F4).** **Evidence:** §3 F4 (`BoardSentenceLab.tsx:337, 344-350`). When a student checks a sentence with a mistake, the board displays per-position coloring for just 1.5 seconds, and then **wipes all placed tiles back to the bank** (`setBuildTiles([])`). If a child correctly placed 4 out of 5 words, their entire hard work is erased! Rebuilding from scratch causes classroom anxiety, wastes instructional time, and prevents targeted learning.
+  *Recommendation:* Never wipe placed tiles on a failed check! Keep correctly placed words locked in their green slots, highlight incorrect or misplaced slots with an amber diagnostic border, and allow the student to tap and swap only the erroneous words.
+
+- **P1 — Incomplete reveal-on-resolve (§2 Owner Requirement).** **Evidence:** §2 owner comments and §3 F3 (`BoardSentenceLab.tsx:572-590`). Currently, a second failed attempt flashes amber tiles for 2.4 seconds and abruptly advances. Nothing auto-plays the sentence audio, nothing provides an L1 meaning summary, and students have no opportunity to read the correct sentence aloud.
+  *Recommendation:* On final resolve (or second miss), display the full correct sentence in glowing emerald/gold, auto-play fluent native sentence TTS with karaoke word highlighting, display a supportive bilingual translation sub-line, and hold for 3.5 seconds before auto-advancing.
+
+- **P2 — Premature, answer-leaking hint timer (§3 F5).** **Evidence:** §3 F5 (`BoardSentenceLab.tsx:199-214, 437-441`). After only 5 seconds of inactivity, Hint Level 1 automatically pulses the exact next word tile in the bank. This arrives far too quickly, preempting cognitive effort and turning a productive syntax exercise into passive button-matching.
+  *Recommendation:* Replace the aggressive 5s timer with a teacher-controlled or graded progressive hint ladder:
+  - *Hint 1 (Remote or 10s):* Highlights the target sentence structure or eliminates one distractor word.
+  - *Hint 2 (Remote or 15s):* Highlights the first letter of the next word.
+  - *Hint 3 (Teacher override):* Highlights the next required word tile.
+
+- **P3 — Distractor transparency.** **Evidence:** §2 owner comments and §3 F6. Distractor tiles are currently random words from other lessons (`river`, `apple`). While distractors should be retained per §2, they should challenge grammatical agreement (e.g. `run` vs `runs`) rather than completely unrelated nouns.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Invert Language Stance to English-First.** **Evidence:** §2 and §3 F2 (`BoardSentenceLab.tsx:479-481`). In `WORD_BANK_BUILD`, Chinese is currently the *only* prompt language on screen, violating the English-first classroom principle.
+  *Recommendation:* Rebalance the presentation:
+  - Target English concept and prompt are primary: *"Topic: Lions"* + illustrative photo.
+  - Chinese meaning (`狮子`) appears only as a subtle, small supporting gloss.
+  - Sentence construction tiles are 100% English.
+
+- **P2 — Morpho-Syntactic Scaffolding via Discrete Slots.** Young ESL learners struggle to conceptualize sentence length. Providing discrete runway slots with punctuation baked into the final slot (e.g. `[ Slot 1 ] [ Slot 2 ] [ Slot 3 . ]`) scaffolds syntactic boundaries without giving away the words.
+
+- **P3 — Audio Sentence Reinforcement on Every Completion.** Sentence assembly is a productive skill. Hearing the finished sentence read aloud with natural stress and intonation is vital for phonological consolidation.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — Tactile "Word Foundry / Assembly" Physics:**
+  - Tapping a word block in the bank glides it effortlessly into the next available slot on the runway.
+  - Tapping a placed block returns it to the bank.
+  - Dragging blocks within the runway swaps their order seamlessly.
+
+- **P2 — Multi-Tier Checking Feedback:**
+  - *Full Correct (100%):* All blocks lock in glowing emerald, audio plays, celebration chime + confetti, auto-advance after 2.5s.
+  - *Partial Correct:* Correct words turn green; misplaced words pulse amber with a curved swap arrow ("Check this word! 🔄").
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Provide Visual Anchors and Clear Contextual Prompts (F1, §2):** Add a thematic photo and explicit instruction (*"What can lions do?"*) to replace the lone Chinese word.
+2. **P1 — Stop Wiping Placed Tiles on Failed Checks — Enable In-Place Swapping (F4):** Preserve correct tiles and highlight only mistakes for targeted correction.
+3. **P1 — Complete Reveal-on-Resolve with Auto-Played Audio and Karaoke (F3, §2):** Auto-play native sentence audio and show bilingual translation on resolve.
+4. **P1 — Rebuild Assembly Stage with Tactile Blocks and Discrete Slots (4.a):** Replace flat cards with 3D word blocks on a discrete sentence runway.
+5. **P2 — Implement Graded Progressive Hints (F5):** Replace the premature 5s answer-glow with distractor elimination and structural cues.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as a modern "Sentence Workshop / Syntax Lab". Deep slate navy background (`#0F172A`), bright cyan (`#06B6D4`) for interactive word blocks, warm golden-amber (`#F59E0B`) for editing slots, neon emerald (`#10B981`) for locked words, and crisp white typography. The UI should feel like tactile wooden/acrylic blocks snapping onto a precision magnetic workbench.
+
+**Mock up these four board screens/states (16:9 projector, no scrolling):**
+
+1. **Screen 1 — Fresh Challenge (Idle State):**
+   - Header: "Sentence Lab · Round 1/3 · Build the sentence", Alice's turn badge, phase clearance top-left.
+   - Top Stage: Center photo of lions running across a savanna with prompt: *"What can lions do?"* and subtle gloss `(狮子能跑)`.
+   - Middle Stage: Sentence Runway with 3 discrete glowing dashed slots: `[ Slot 1 ]`, `[ Slot 2 ]`, `[ Slot 3 . ]`.
+   - Bottom Stage: Word Bank containing 5 raised blue-and-white blocks: `swim`, `can`, `run`, `Lions`, `apple`.
+
+2. **Screen 2 — Partially Assembled Sentence:**
+   - Blocks `Lions` and `can` snapped into slots 1 and 2.
+   - Slot 3 empty and pulsing gently.
+   - Remaining blocks in bank: `swim`, `run`, `apple`.
+   - Green "Check Answer" button active at bottom-right.
+
+3. **Screen 3 — Targeted Error Feedback (In-Place Correction):**
+   - Student checked `Lions can swim`.
+   - Slot 1 (`Lions`) and Slot 2 (`can`) locked in emerald green.
+   - Slot 3 (`swim`) outlined in pulsing amber with diagnostic tag: *"Not quite! Try another word 🔄"*.
+   - Tiles stay on screen for student to tap and replace.
+
+4. **Screen 4 — Correct Completion & Karaoke Read-Aloud:**
+   - Sentence assembled: `[ Lions ] [ can ] [ run . ]` — all locked in vibrant emerald borders.
+   - Word `run` highlighted with glowing cyan ring as native TTS speaks it.
+   - Floating celebration badge: `"+1 Point! 🔥 Streak 3!"` with golden star confetti.
+
+**What to KEEP from current design.** Retain the LCS partial-credit evaluation algorithm, per-tile unique IDs (supporting duplicate words), round escalation snapshots, and full remote-control parity (`SKIP`, `HINT`, `CHECK`, `MARK_CORRECT`).
 
 ## §5 ⬜ Google Stitch prompt
 

@@ -1,6 +1,6 @@
 # Class Rally (co-op) — v3 Quality Audit (`CLASS_RALLY`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/24-class-rally-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -89,14 +89,53 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
-> **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
-
 ### 4.a UI & visual design
+- **Faint, low-energy rally progress bar (screenshot `24-class-rally-idle.png`):** The collective rally bar is the central emotional hook of the game, yet it currently renders as an anemic, pale-lavender outline with hollow grey star icons (`:384-394`). From 5–8 meters back in a classroom, children cannot discern how full the bar is or feel the excitement of charging up a team goal. It needs to look like a high-voltage arcade power core or charging super-battery with glowing segments, vibrant milestone nodes, and kinetic particle fills.
+- **Double-nested white card structure creates visual claustrophobia:** The UI mounts a white prompt card inside a larger rounded white shell container on top of the dark shell background. This double-boxed white-on-white composition washes out contrast and cramps the 2×2 options grid into the center third of the screen.
+- **`object-cover` square crop destroys vocabulary illustrations (F2):** When rendering `IMAGE_SELECT` questions, images are forced into `aspect-square` with `object-cover` (`:530, :548`), severely clipping the edges of standard 16:9 or 4:3 vocabulary illustrations. The choral preview is even worse, forcing images into tiny `w-14 h-14` thumbnails (`:488`).
+- **PRACTICE phase badge mismatch (screenshot):** The top-left tag in the idle screenshot shows an amber "WARM-UP" badge, even though §0 registers `CLASS_RALLY` as a PRACTICE flow type.
+- **Leaderboard rail width cost (F8):** While retaining the right leaderboard rail makes sense for tracking individual contributions toward the team goal, the central question container should expand to utilize all available horizontal real estate, providing wide, easily tappable option plates.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+- **Rapid student churn on EVERY_1 wheel mode (F5):** When the commander wheel is set to auto-spin every 1 point (`EVERY_1`), each correct answer instantly triggers a student switch. The 900ms celebration barely clears before a new name appears and the question updates, giving the teacher almost zero pause to praise the student or reinforce the answer.
+- **Choral sub-mode ("ALL ANSWER") works well but needs clearer board cues:** Tapping `CHORAL_ROUND` swaps the interface into a whole-class shouting drill with large "✓ CLASS NAILED IT" / "✗ NEEDS PRACTICE" validation buttons (`:150-156`). However, the transition needs a dramatic audio-visual cue (e.g., siren/horn sound + neon banner) so the entire classroom immediately shifts from individual silence to choral unison.
+- **Rigid 12-question target with no time-box or mercy adjustment (F6):** The game fixes `TARGET_CORRECT = 12` (`:45`). If a class is struggling or lesson time is running out (e.g., only 3 minutes left in the period), the teacher is forced to either grind through 12 questions (which wrap repeatedly around the pool, `:113`) or hit "End" (forced complete). The teacher needs a quick target selector (e.g., 6 / 9 / 12 questions) or a dynamic "Sprint Finish" button on the remote.
+- **Turn context disappears during transitions (F7):** The picked student's name footer only renders when `phase === 'question'` (`:625`), disappearing during feedback and milestone bursts.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+- **The Core Pedagogical Flaw: Text labels on image options destroy conceptual recall (F1, §2):** When an `IMAGE_SELECT` item appears, the options render both the picture *and* the English word label directly underneath: `{option.label && <span>{option.label}</span>}` (`:550`). If the prompt asks for "rock", the student simply scans the four cards, spots the letters "r-o-c-k", and taps it without ever looking at the picture or recalling the semantic concept! This reduces an active vocabulary recall challenge to trivial letter-matching. The text labels on option cards must be completely removed.
+- **Missing instructional prompt on audio-led questions (F3):** When the content fallback chain encounters audio-led questions (e.g., `LISTEN_SELECT`) where the text prompt is empty (`:103`), the screen displays a lone purple "Listen" button floating above four options with zero instructional context. Young learners are left confused about what they are supposed to do. A reliable default stem must always render: *"Listen and choose the matching card 🎧"*.
+- **Cooperative framing diminishes classroom anxiety:** The non-punitive collective bar (wrong answers live-penalize the individual responder by −1 point but never decrease the team's rally meter) is pedagogically superb for 6–12 ESL classrooms in China, where fear of public failure can silence shy learners.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+- **Option layout and legibility:** The 2×2 grid should be styled as large, tactile widescreen plates (~4:3 ratio) labeled with prominent badges (`A`, `B`, `C`, `D`). In a live classroom, kids at the back desks frequently shout "B!" or "Letter C!" when pointing is impossible.
+- **Milestone celebrations:** Crossing 25%, 50%, 75%, and 100% triggers a ≤900ms overlay with confetti. These milestones should feel like escalating power boosts (e.g., "⚡ 25% Power Surge!", "🔥 50% Halfway Turbo!", "🚀 75% Supercharge!", "🏆 RALLY COMPLETE!").
+- **Streak transparency (F4):** The game tracks personal streaks and fires confetti at streaks of 3 and 5, but deliberately omits the unified streak point bonus (`streak` parameter omitted in `scoreForAttempt`, `:192`). The rationale ("the bar is collective") is sound, but this should be visually celebrated with a team badge (e.g., "Alice is ON FIRE! +1 Team Energy").
+
 ### 4.e Top-5 prioritized recommendations
+1. **P1 — Strip Visible Word Labels from Image Option Cards (F1, §2):** Remove `{option.label}` text from option cards in `BoardClassRally.tsx:550` and the choral preview (`:486-493`), keeping `alt` text for accessibility. Require students to connect the prompt word to the image concept.
+2. **P2 — Overhaul the Rally Bar into a Glowing High-Voltage Energy Core (4.a, 4.d):** Replace the faint lavender line with a chunky, neon-segmented battery/energy meter with pulsing milestone stars, vibrant fill animations, and unmistakable 5–8m visibility.
+3. **P2 — Add Robust Default Prompts for Audio-Led Questions (F3):** Guard against blank prompt headers on `LISTEN_SELECT` items by enforcing fallback copy: *"Listen and choose the matching card 🎧"*.
+4. **P2 — Adopt Landscape-Ratio Option Plates to Prevent Image Cropping (F2, 4.a):** Switch option cards from `aspect-square object-cover` to widescreen containers (`~4:3` or `16:9` with `object-contain`/balanced cover) with clear `A/B/C/D` index badges.
+5. **P3 — Add Teacher Target Controls (6 / 9 / 12 Goal Selector) (F6):** Provide a quick remote/commander toggle allowing teachers to adjust rally length based on remaining classroom time.
+
 ### 4.f Design direction for Stitch
+- **Mood and visual theme:** "Co-Op Arcade Power Rally" / "Cyber Team Booster". Deep electric indigo/navy background (`#0B132B`), neon cyan power conduit (`#00F0FF`), radiant emerald completion glow (`#10B981`), glowing amber milestone stars (`#F59E0B`), and frosted glass option plates.
+- **Mock up these four screens/states (16:9 projector, no scrolling):**
+  1. **Screen 1 — Active Question (Image Options without text):**
+     - Top Stage: Glowing neon cyan/emerald Rally Power Bar showing `4 / 12` segments filled, with 3 pulsing star nodes ahead.
+     - Header: Picked student turn indicator: *"Alice's Turn — Choose the right card!"*. Prompt word `"ROCK"` in massive display typography with a sleek audio speaker button.
+     - Center Grid: 4 clean, border-lit widescreen image plates (Options A, B, C, D) displaying pure illustrations without any text labels.
+     - Right rail: Compact co-op leaderboard.
+  2. **Screen 2 — Milestone Burst Overlay (50% Halfway Boost):**
+     - Full-screen translucent celebratory freeze: glowing lightning bolts, energetic confetti burst, and banner: *"⚡ 50% HALFWAY POWER SURGE! Keep going, Team!"*.
+  3. **Screen 3 — Choral Sub-Mode ("ALL ANSWER"):**
+     - Top Banner: Glowing golden megaphone banner: *"📣 WHOLE CLASS CHORAL ROUND!"*.
+     - Center: Target challenge presented clearly to all students.
+     - Bottom Controls: Two massive, unmistakable teacher touchplates: `[✓ CLASS NAILED IT (+1 Bar)]` (neon emerald) and `[✗ NEEDS PRACTICE]` (amber outline).
+  4. **Screen 4 — Victory Screen (Rally Complete!):**
+     - Grand celebratory stage: fully illuminated 12/12 golden power core, central trophy burst, class accuracy summary, and confetti shower.
+- **What to KEEP from current design:** The cooperative non-punitive progress bar, 2-miss reveal with educational hold, dual-marking choral review (`recordChoralReview`), and seeded pool ordering.
 
 ## §5 ⬜ Google Stitch prompt
 

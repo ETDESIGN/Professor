@@ -1,6 +1,6 @@
 # Grammar Lab — v3 Quality Audit (`GRAMMAR_LAB`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
 > **Screenshots:** `screenshots/17-grammar-lab-idle.png` — captured in the empty state — the §2 symptom itself (bilingual fix point in §3).
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -93,16 +93,101 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What already works well (context — don't re-litigate):** the lifecycle discipline (per-item `mistakesRef`/`awardedRef`/`resolvedRef` latches, cancellable advance timers, steal freeze on `NEW_TURN`, pure advance updater), LCS partial credit + real distractor words on TRANSFORM banks, the reveal-on-wrong teaching beat with explanation, seeded deterministic tile banks (identical on every tab), streak bonuses with confetti/sound cues, round escalation from snapshots with an interstitial, and full remote parity (Skip/Hint-eliminates-wrong/Correct/Steal/Redo/End). The board side of this game is solid — the P1s live upstream in content generation.
 
-## §4 ⬜ ChatGPT Co-Work quality audit
+## §4 ChatGPT Co-Work quality audit
 
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Inappropriate, jargon-filled empty state on student-facing projection.** **Evidence:** `screenshots/17-grammar-lab-idle.png` and §3 F5 (`BoardGrammarLab.tsx:604-615`). When a unit has no generated grammar pool items, the board presents a stark, plain card with tiny gray text (`text-xl text-gray-500`): *"No practice items ready yet. Grammar objectives unlock here after the class has been introduced to the rule (run the Grammar presentation first) — or skip to the next slide."* This displays internal developer/teacher routing instructions on a massive 16:9 screen in front of a live class of 7-year-old Chinese students.
+  *Recommendation:* Replace this with a kid-friendly, engaging bilingual holding card: a bubbling test tube illustration with clear Chinese/English copy: *"Grammar Lab is warming up! 🧪 语法实验室准备中"*, with an automatic or one-tap teacher skip button.
+
+- **P2 — Developer monospace typography for grammatical patterns.** **Evidence:** §3 F6 (`BoardGrammarLab.tsx:707-715`). The pattern presentation beat renders rules like `Subject + Verb + Object` in `font-mono`. This looks like software code rather than an accessible grammatical scaffold for young English learners.
+  *Recommendation:* Use bold, rounded sans-serif display typography with color-coded syntax pills (e.g. blue for Subject, green for Verb, purple for Object).
+
+- **P2 — Dead "Hear it" audio button on feedback cards.** **Evidence:** §3 F7 (`BoardGrammarLab.tsx:911-918`). Every non-transform question renders an audio speaker button on the answer card. However, `generate-exercises` pushes grammar pool items without an audio URL (`content.audio_url` is null). Clicking this button does nothing, leaving teachers confused during live class.
+  *Recommendation:* Wire edge TTS synthesis (`playAudioUrl(null, targetText)`) on tap, or omit the audio icon entirely when no audio stream exists.
+
+- **P2 — Retract 240px leaderboard rail in Choral / Empty states.** **Evidence:** `screenshots/17-grammar-lab-idle.png`. The screenshot shows 8 students at 0 points occupying 25% of the horizontal canvas while the game sits in choral/idle mode. Retracting this rail gives grammar cards the horizontal width needed for long sentence options.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Degenerate exercise generation destroys learning validity (§2 Owner Bug).** **Evidence:** §2 owner comments and §3 F1/F2 (`generate-exercises/index.ts:198-206, enrich-unit/index.ts:645`). In `ERROR_SPOT`, MCQ distractors are built by plucking `correct` sentences from *other* sibling error examples in the same unit. This causes three severe failures:
+  1. *Nonsense Distractors:* Options become unrelated fragments from other sentences ("snake and climb", "the monkey do eat fish", "whales live in the river").
+  2. *Trivial Answer Identification:* The correct option is the only sentence mentioning the prompt subject ("penguins"), so students solve it via simple visual word-matching without reading or applying grammar.
+  3. *Zero-Diff Pairs:* The model frequently emits `{wrong, correct}` pairs that are identical, so the "correct fix" is identical to the uncorrected sentence.
+  *Recommendation:* Upstream generation must produce distractors that are *plausible grammatical variations of the exact same stem* (e.g. testing third-person `-s`, past tense `-ed`, or auxiliary agreement). Add strict generation-time validation requiring normalized edit distance > 0.
+
+- **P2 — Single-error objectives collapse to a 1-option MCQ.** **Evidence:** §3 F3 (`BoardGrammarLab.tsx:738-760`). When a grammar objective yields only one valid error pair, `buildChoices` produces an array of length 1. The board renders a single solitary button. The student taps the only choice on screen and receives free points.
+  *Recommendation:* Enforce a minimum of 3 options in `generate-exercises`. If fewer than 3 options exist, fall back to rule-based morphological perturbation or skip the question.
+
+- **P2 — Invisible, fragile 2.2-second Steal Window.** **Evidence:** §3 F9 (`BoardGrammarLab.tsx:336`). The Steal action (`STEAL_OFFER`) is strictly latched to the brief 2.2s reveal window following a second miss. At all other times, pressing Steal on the commander is a silent no-op. Teachers cannot react quickly enough to catch this window from a handheld device.
+  *Recommendation:* Provide a clear, persistent visual prompt on Commander and Board when a steal is available: a glowing "Offer Steal? ⚡" banner with a 4-second countdown pause.
+
+- **P3 — Abstract template stem in GRAMMAR_FILL.** **Evidence:** §3 F8 (`generate-exercises:254`). Rung 4 renders `Subject + ___ + Object` as the challenge sentence, forcing children to parse an algebraic formula rather than an authentic English sentence with a missing word.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Bilingual Meta-Linguistic Scaffolding (Owner Refined Rule).** **Evidence:** §2 owner comments and §3 F6. Explaining abstract English grammatical concepts (e.g. third-person singular, countable/uncountable nouns, modal verbs) purely in English to 6–12-year-old Chinese learners causes severe cognitive overload. In accordance with the owner's refined language rule:
+  - Explanations and rule formulas SHOULD include concise Simplified Chinese glosses (e.g. `第三人称单数 (he/she/it) 动词后加 -s`).
+  - Challenge options and sentences remain 100% English.
+
+- **P2 — Grammatical Hotspot Focus in Error Spotting.** In traditional classroom EFL, presenting four full sentences for comparative proofreading slows pacing to a crawl.
+  *Recommendation:* Highlight the error hotspot in the stem (e.g. *"Penguins [living] in the jungle"*), and prompt the student to select the correct verb form from focused choices:
+  - A: **live** (Correct)
+  - B: **lives** (Agreement error)
+  - C: **are live** (Auxiliary error)
+
+- **P3 — Immediate Audio Read-Aloud of the Corrected Sentence.** Once a student selects the correct fix, play the full, fluent sentence audio immediately so children hear the natural phonetic cadence of the correct grammar pattern.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — "Grammar Lab Experiment" Gamification.** Lean into the chemistry laboratory theme:
+  - The sentence is a "Formula".
+  - Grammar mistakes are "Unstable Compounds ⚠️".
+  - Correcting the sentence triggers a bubbling beaker animation, a green chemical reaction, and glowing sparkles.
+  - Incorrect choices trigger a harmless puff of smoke (`poof`) with an amber "Try Again" diagnostic ring.
+
+- **P2 — Scaffolded Hint Mechanic.** In MCQ shapes, `HINT` cleanly strikes through and dims one incorrect distractor (50/50 mechanic). In TRANSFORM, `HINT` pulses the next correct tile in the bank. Retain this non-revealing hint model.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Rebuild Upstream Distractor Generation (F1, F2, F4):** Generate plausible grammatical variants of the stem (verb agreement, tense) rather than recycling unrelated sibling sentences; enforce `wrong !== correct`.
+2. **P1 — Transform Empty State into Kid-Friendly Bilingual Holding Screen (F5):** Replace developer copy with friendly Chinese/English status card and auto-skip.
+3. **P1 — Add Chinese Meta-Linguistic Glosses to Grammar Rules (F6, 4.c):** Pair abstract English grammar rules with clear, concise Chinese explanations.
+4. **P2 — Hotspot Error Highlighting (4.c):** Focus attention on the targeted grammatical inflection rather than forcing full-sentence scanning.
+5. **P2 — Wire TTS to the "Hear It" Audio Button (F7):** Ensure all corrected grammar sentences can be heard aloud on tap.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as a playful "Whimsical Chemistry Lab / Syntax Workshop". Deep laboratory navy background (`#0B132B`), glowing beaker emerald (`#10B981`) for correct reactions, electric violet (`#8B5CF6`) for formula cards, vibrant amber (`#F59E0B`) for error diagnostics, and crisp white typography. The interface should feature bubbling flasks, scientific measurement markers, and tactile glassware cards.
+
+**Mock up these four board screens/states (16:9 projector, no scrolling):**
+
+1. **Screen 1 — Rule Presentation (Formula Beat):**
+   - Header: "Grammar Lab · Round 1/3 · The Formula 🧪", Alice's turn badge.
+   - Center Stage: Sleek glowing violet formula card displaying the rule: `"He / She / It + Verb(-s)"`, with a clean Chinese subtitle: `第三人称单数动词规则`.
+   - Examples in bold pills: `plays`, `runs`, `eats`.
+   - 2-second countdown bar transitioning into the practice challenge.
+
+2. **Screen 2 — Error Spotting Challenge (MCQ):**
+   - Stem Card: An illustrated blackboard showing: `"The penguin [living] in the cold snow."` with `[living]` enclosed in an amber diagnostic box.
+   - Prompt: *"Which word fixes the sentence?"*.
+   - 3 large, landscape chemical tablet options: `A. lives` (Correct), `B. live`, `C. is live`.
+
+3. **Screen 3 — Correct Reaction & Laboratory Celebration:**
+   - Selected tablet (`lives`) locks in glowing emerald with bubbling beaker icon.
+   - Full sentence reads smoothly: `"The penguin lives in the cold snow."`.
+   - Audio speaker wave actively playing pronunciation.
+   - Celebration badge: `"+1 Point! 🌟 Formula Mastered!"`.
+
+4. **Screen 4 — Bilingual Empty / Warming-Up State:**
+   - Centered friendly laboratory flask mascot bubbling gently.
+   - Title: `"Grammar Lab is Warming Up! 🧪"`.
+   - Subtitle: `"语法实验室正在准备练习题，请稍候或跳过本环节"`.
+   - Clean teacher skip button at bottom.
+
+**What to KEEP from current design.** Retain the round escalation architecture (snapshotting pool items per round to prevent mid-item wipeouts), the lifecycle latches (`mistakesRef`/`awardedRef`), the 50/50 distractor elimination hint, and the dual-write scoring pipeline.
 
 ## §5 ⬜ Google Stitch prompt
 

@@ -1,6 +1,6 @@
 # Fast Vocab — v3 Quality Audit (`FAST_VOCAB`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/25-fast-vocab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -90,14 +90,59 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
-> **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
-
 ### 4.a UI & visual design
+- **Low-contrast dark-on-dark container (screenshot `25-fast-vocab-idle.png`):** The main board container is a dark navy box (`#0a1128`) resting against the pitch-black BoardShell background. On typical classroom projectors with ambient light, the container boundary disappears, leaving floating elements without structural framing.
+- **Accidental destructive reset button in header (F5, F6):** A bare circular `RefreshCcw` icon sits directly at the top right of the game card (`:346-352`), right next to the active game area. In touch-screen projection environments, an inadvertent finger press rewinds the entire word cursor to 0 for the whole slide and instantly wipes the board mid-turn. Destructive resets belong solely on the teacher's remote.
+- **Illegible whose-turn badge at 5–8m (F8):** The picked student's identity is buried inside a muted HUD string ("MATCH 0/3 — Alice", `:322-327`). At distance, neither the active student nor their peers can tell who is on the spot. Fast Vocab needs a bold, energetic "CHALLENGER: ALICE" badge with their avatar prominently displayed.
+- **Pod layout and connection affordance:** The 3 image cards and 3 word pills are arranged in two stacked horizontal rows separated by a faint "MATCH" rule. While the layout is clean, the interactive pairing affordance lacks tactile feedback: selecting a top card needs a prominent glowing selection beam or magnetic tethering so students physically see which item is awaiting a partner.
+- **Phase transition disorientation (F2):** The transition between Phase 1 (3-pair match) and Phase 2 (timed speed recall) is a rapid 900ms wipe. Because there is no clear phase header, children and teachers are often surprised when the screen suddenly reduces to "only one card" with 3 buttons.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+- **The Core Architectural Collision: Wheel auto-rotate vs. Multi-award turn scoring (F1, §2):**
+  - The teacher activates auto-rotate on the sidebar wheel set to "1 Question" (`EVERY_1`) or "3 Questions" (`EVERY_3`).
+  - The system counts *every positive `addPoints` call* as a question answered (`SessionContext.tsx:1565-1581`).
+  - Fast Vocab emits an `addPoints` award **on every single matched pair (3 awards) and every speed question (2 awards)** — totaling 5 positive awards in one turn!
+  - Under `EVERY_1`, the picked student matches their very first pair $\rightarrow$ `addPoints` fires $\rightarrow$ wheel auto-rotate triggers immediately $\rightarrow$ wheel spins $\rightarrow$ `NEW_TURN` broadcasts $\rightarrow$ Fast Vocab's `turnId` effect fires $\rightarrow$ the board fetches `buildWave(cursorRef.current)` and re-deals brand new cards! The student's turn is violently aborted after 5 seconds, exactly as the owner observed: *"the kid will connect the first word with the first card, and then the system will automatically reset the three cards to another set"*.
+  - Under `EVERY_3`, the turn is chopped immediately after the 3rd match, discarding the speed-recall phase entirely!
+  - **The Fix:** Fast Vocab must define a clear **Turn Boundary**. The wheel rotation cadence must listen for turn completion (`onTurnComplete`), OR Fast Vocab must batch turn scoring into a single unified payout at the end of the turn summary. The card set must remain completely stable until the student finishes their full turn.
+- **Lost summary celebration under rotation (F3):** Because `SPIN_WHEEL` instantly calls `setShowSummary(false)` (`:255-262`), the turn summary screen (stars, accuracy, points earned) is instantly bypassed or flashes for less than 500ms, depriving the student of celebratory closure.
+- **Remote control parity:** The remote group (`SKIP_ITEM`, `REVEAL_HINT`, `MARK_CORRECT`, `RESET_GAME`, `SLIDE_COMPLETE`) works cleanly, but needs an explicit "Next Student" advance cue after the turn summary completes.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+- **Destruction of the Learn $\rightarrow$ Recall pedagogical arc (F4):** Fast Vocab's design has a brilliant pedagogical premise: Phase 1 (3-pair match) provides receptive cross-modal encoding (connecting visual concept to English word); Phase 2 (speed recall) immediately tests retrieval practice on the *exact same three vocabulary words*. When the auto-rotate wheel aborts the turn after 1 or 3 awards, Phase 2 is systematically erased. Fixing the turn boundary restores this high-impact retention loop.
+- **Pool cursor ensures wide classroom vocabulary coverage:** The persistent cursor (`cursorRef`) advances through the unit's vocabulary across consecutive student turns, ensuring that all 12–20 words in a unit get explored rather than repeating the first 3 words.
+- **Low-anxiety speed challenge:** The speed round's 10-second timer creates excitement, but crucially applies the **timeout-costs-nothing rule** (timeout reveals the correct answer and plays audio without deducting a point). This prevents emotional freezing and clock panic for younger EFL learners (ages 6–8).
+- **Phonological reinforcement:** Audio auto-plays upon every successful match and upon speed-round resolution, anchoring pronunciation to the printed text.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+- **Tap vs. Drag smartboard usability:** While `useTapDragPairing` supports drag-and-drop, drag gestures on classroom interactive projectors frequently drop packets or stick. The primary interaction must be **Tap-to-Select $\rightarrow$ Tap-to-Match**, featuring large, tactile target pods with prominent active states and glowing connection lines.
+- **Escalation scaffolding ladder:** Fast Vocab features an excellent built-in mistake hierarchy: 1st miss highlights the correct target pod for 1.5s; 2nd miss presents a 3-second micro-explanation card (word + image + meaning). This ensures struggling students are scaffolded rather than abandoned.
+- **Turn summary scoring (F7):** The summary awards 1–5 stars based on first-try accuracy. While guaranteeing at least 1 star encourages participation, the summary screen should hold for 3 seconds with joyful sound effects before the wheel automatically spins for the next student.
+
 ### 4.e Top-5 prioritized recommendations
+1. **P1 — Decouple Wheel Auto-Rotate from Per-Pair Awards & Enforce Turn Stability (F1, §2):** Ensure a student's card set remains 100% stable until their entire turn (3-pair match + 2 speed questions) is finished. Either batch score payouts at turn completion or emit a dedicated `TURN_COMPLETE` event that the rotation engine awaits before triggering `nextStudent()`.
+2. **P2 — Preserve the Full Learn $\rightarrow$ Recall Arc (Match Wave $\rightarrow$ Speed Round) (F4):** Guarantee that every picked student experiences both the 3-pair match and the 2 speed-recall questions on the same words, securing retrieval consolidation.
+3. **P2 — Remove Destructive In-Game Reset Button from Board Header (F5, F6):** Eliminate the bare `RefreshCcw` icon from `BoardFastVocab.tsx:346-352` to prevent disastrous accidental slide-level queue wipes. Restrict reset capabilities to teacher controls.
+4. **P2 — Build Distinct, High-Energy Visual Stages for Phase 1 and Phase 2 (4.a, F2):** Replace the sudden wipe with an unmistakable phase banner (e.g., *"STAGE 1: POWER MATCH"* $\rightarrow$ *"STAGE 2: SPEED SPRINT"*), eliminating the perception of a random reset to "one card".
+5. **P3 — Elevate Active Challenger Identity on Projection HUD (F8):** Replace the tiny HUD text with a prominent, glowing student avatar and turn badge (*"⚡ CHALLENGER: ALICE"*) visible from 8 meters.
+
 ### 4.f Design direction for Stitch
+- **Mood and visual theme:** "Lightning Vocab Arena" / "Cyber Circuit Relay". Deep electric obsidian background (`#070B19`), high-voltage neon yellow/amber accents (`#F59E0B`), energetic cyan circuit tethers (`#00F0FF`), and radiant emerald match locks (`#10B981`). Elements should look like high-tech power chips and illuminated circuit nodes.
+- **Mock up these four screens/states (16:9 projector, no scrolling):**
+  1. **Screen 1 — Stage 1: Power Match (Active Pairing):**
+     - Top HUD: Picked challenger badge: `[⚡ Alice's Turn]` + round tracker: `[Stage 1: Power Match (1/3 Pairs)]`.
+     - Stage: 3 landscape image plates on top row, 3 English word pills below.
+     - Center interaction: Card 1 (`TRACTOR`) is selected, emitting a pulsing cyan laser tether awaiting selection of the matching word pill below.
+     - Right rail: Streamlined live leaderboard.
+  2. **Screen 2 — Stage 2: Speed Sprint (Rapid Retrieval):**
+     - Top HUD: Dynamic amber banner: `[🔥 STAGE 2: SPEED SPRINT (1/2)]` + central glowing circular 10s countdown gauge (`7s`).
+     - Center Stage: Massive prompt plate displaying the target image (`HELICOPTER`).
+     - Bottom: 3 large horizontal option bars (`A: AIRPLANE`, `B: HELICOPTER`, `C: SUBWAY`) with bold, punchy typography.
+  3. **Screen 3 — Mistake Escalation Scaffold:**
+     - A missed attempt triggers the micro-explanation modal: target image + highlighted English word + audio speaker wave + gentle hint cue.
+  4. **Screen 4 — Turn Summary Celebration:**
+     - Full-stage victory pod: *"⚡ Turn Complete, Alice!"*, 5 glowing gold stars bursting onto the screen, `+5 Points Earned`, streak stats, and a prominent countdown bar: *"Next Student in 3... 2... 1..."*.
+- **What to KEEP from current design:** The two-stage learn$\rightarrow$recall engine, deterministic seeded deals (`E1.6`), persistent pool cursor for broad unit coverage, timeout-costs-nothing fairness rule, and 2-tier escalation ladder.
 
 ## §5 ⬜ Google Stitch prompt
 

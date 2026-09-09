@@ -1,6 +1,6 @@
 # Story Stage — v3 Quality Audit (`STORY_STAGE`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
 > **Screenshots:** `screenshots/07-story-stage-idle.png` — empty state (fixture unit has no story pages) — audit layout from code.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -86,11 +86,67 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 > **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
 
 ### 4.a UI & visual design
+
+- **P1 — Implement the Owner's Two-Column Layout (Center Art + Left Dialogue Panel).** **Evidence:** §2 (Owner comment #3) and §3 F2 (`BoardStoryStage.tsx:440-492`). Currently, original story art (often 4:3 or square comic panels) is stretched and cropped using `object-cover` across the 16:9 canvas (`:445`), discarding 25–33% of the illustration. A dark 50% vertical gradient and right-edge vignette are painted directly across the image (`:449-452`), and a floating glass card sits on top of the bottom third of the artwork (`:454-479`). Long dialogue lines push the text card upward, completely obscuring the characters and actions. **Recommendation:** Redesign the story page into a dedicated two-column storybook stage:
+  - **Left reading theater (38% width):** A dedicated, high-contrast narrative card featuring the active speaker's character avatar, speaker name in their signature theme color, large story dialogue (28–34px) with target vocabulary highlighted in amber underline, a tactile "Listen / Read Page" audio button, and a visual speech tail pointing toward the scene.
+  - **Center/Right art stage (62% width):** The uncropped story illustration framed in a clean card container with rounded corners (r-24) and subtle elevation shadow (`object-contain`). The artwork becomes the visual star of the stage, completely free of darkening overlays and overlapping text boxes.
+
+- **P2 — Comprehension quiz layout and projection contrast at 5–8 meters.** **Evidence:** `BoardStoryStage.tsx:516-560`. In comprehension mode, questions are presented in a 2-column grid of glass buttons (`:536-559`). Text contrast and option borders blend into the background, making it difficult for children in the back row to distinguish options A, B, C, and D. **Recommendation:** Elevate the quiz screen with high-contrast, tactile option tiles (A, B, C, D) using distinct letter badges, minimum 24px typography, bold selected states, and dimmed/crossed-out eliminated states.
+
+- **P2 — Microscopic progress dots and navigation previews.** **Evidence:** §3 F6 (`BoardStoryStage.tsx:483-490`). Page progress is indicated by tiny 8px dots (`w-2 h-2`), and the upcoming page preview is rendered in `text-xs`/`text-sm` italic. From 5–8 meters away, students cannot gauge how much of the story remains, and the preview is unreadable. **Recommendation:** Replace microscopic dots with a clear page chip in the header: "Page 3 of 6", or a tactile horizontal pill rail (minimum height 24px). Remove tiny upcoming-page italic text from the kid-facing projector.
+
+- **P2 — Responsive reflow for phone-landscape floor (~700×320).** **Evidence:** `_CROSS-CUTTING.md` #1. On a mobile landscape screen, a fixed two-column layout would compress text into illegible columns. **Recommendation:** Reflow gracefully: at 16:9 projection, display the canonical two-column layout (art right, text left); at the ~700×320 phone-landscape floor, adjust to an uncropped left-anchored image with an expandable right/bottom text card, ensuring touch targets remain ≥44×44px with zero vertical scrolling.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+
+- **P1 — Teacher buttons on Remote/Commander act on UNSEEN quiz questions during the story read-through.** **Evidence:** §3 F1 (`BoardStoryStage.tsx:262-336`). The action listener does not check `isComprehension`. If a teacher presses "Correct" while on page 2 of the story (e.g. verbally praising a student who read aloud), the code scores and marks asked an unseen question from the upcoming quiz (`:304-325`), awarding points prematurely and burning that question from the shared session ledger. Pressing "Hint" or "Skip" similarly consumes future questions silently. **Recommendation:** Enforce strict phase gating: during the story read-through (hook card and pages 0…N−1), the Remote and Commander control set must only expose `NEXT_PAGE`, `PREV_PAGE`, `READ_PAGE` (Audio), and `SKIP_TO_QUIZ`. The scoring buttons (`CORRECT`, `HINT`, `SKIP`) must be hidden or disabled until the comprehension quiz phase begins (`isComprehension === true`).
+
+- **P1 — No remote button to replay page audio.** **Evidence:** §3 F3 (`BoardStoryStage.tsx:475-477`). The "Read Page" button exists exclusively on the projector board. The component lacks a `PLAY_AUDIO` action listener, and the remote control set provides no audio button. To replay a sentence for choral repetition, the teacher is forced to walk across the room to tap the board. **Recommendation:** Add a `PLAY_AUDIO` action listener to `BoardStoryStage.tsx` and map a prominent `Read Page / 朗读本页` button to both Commander and Remote Baton.
+
+- **P2 — Async comprehension race condition and dead-end end card.** **Evidence:** §3 F4 (`BoardStoryStage.tsx:82-100, 510-513`). `comprehensionItems` are fetched asynchronously via `useBoardPool`. If the teacher pages through a short story quickly, they reach "The End" while the pool is still resolving, triggering the fallback "No comprehension questions available". Once parked there, `NEXT_PANEL` does nothing (`:268-272`), and the slide never emits `SLIDE_COMPLETE`, stranding the teacher on "The End" card. **Recommendation:** Ensure pool items are pre-loaded on mount. When no comprehension questions exist, the "The End" card must display a clear "Finish Story →" button that emits `SLIDE_COMPLETE` to smoothly advance the lesson.
+
+- **P2 — Mid-question student pick inherits locked question state.** **Evidence:** §3 F8 (`BoardStoryStage.tsx:341-348`). Spinning the wheel during a question resets the scoring refs but fails to reset `selectedOption`, `eliminatedOptions`, or `revealedAnswer`. If a new student is picked while an answer is highlighted, the board remains locked against further taps until auto-advance clears it. **Recommendation:** Fully clear all question selection state (`selectedOption`, `eliminatedOptions`, `revealedAnswer`) whenever `currentTurnId` changes.
+
+- **P3 — Silent choral scoring illusion.** **Evidence:** §3 F5 (`BoardStoryStage.tsx:157-158`). When no student is picked (`quickWheelWinner === null`), `doDualWrite` returns early without saving points, yet the board still plays success chimes, bounces "Correct!", and fires streak confetti. **Recommendation:** When in choral mode, display a clear "Choral Reading / 全班跟读" badge, and award points to the shared class meter rather than silently dropping them.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+
+- **P1 — Storybook format supports receptive-to-productive transition.** As an OUTPUT phase activity, Story Stage serves as the narrative bridge where newly acquired vocabulary (from Focus Cards) appears in authentic communicative context. The two-column layout (art right, text left) reinforces natural reading flow (left-to-right eye movement) and strengthens visual-textual dual coding.
+
+- **P2 — Two-miss scaffold in comprehension quiz provides genuine corrective teaching.** **Evidence:** `BoardStoryStage.tsx:215-235`. On a first miss, the tapped distractor and another incorrect option are eliminated, allowing a second attempt. On a second miss, a micro-explanation card reveals the correct answer with an audio hold. This is sound pedagogy: it avoids punitive dead-ends and turns mistakes into learning moments. Keep this mechanic intact in the redesign.
+
+- **P2 — Target vocabulary highlighting must remain prominent.** Target vocabulary items are dynamically highlighted with amber styling (`:385-403`). This assists early readers in noticing target words within continuous text. Ensure high visual contrast against the narrative background card.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+
+- **P2 — Story pacing and turn momentum.** A 4–6 page storybook should take roughly 3–4 minutes of class time:
+  1. *Hook Card (15s):* Teacher introduces the setting and characters.
+  2. *Story Read-Through (2–3 min):* Teacher plays audio line $\rightarrow$ class repeats in choral echo $\rightarrow$ Next Page.
+  3. *The End Beat (5s):* Brief story conclusion.
+  4. *Comprehension Quiz (1–2 min):* Wheel spins for a responder $\rightarrow$ student picks option $\rightarrow$ feedback $\rightarrow$ auto-advance.
+
+- **P2 — Smooth transition from choral read-through to individual quiz.** The switch from whole-class choral reading to individually scored quiz questions must be visually unmistakable. Display a clean transitional bumper ("Quiz Time! Let's spin the wheel!") so the classroom energy shifts from listening to answering.
+
 ### 4.e Top-5 prioritized recommendations
-### 4.f Design direction for Stitch
+
+1. **P1 — Rebuild into the Owner's Two-Column Story Layout:** Centered uncropped illustration on the right; dedicated reading panel on the left (speaker avatar, colored name, large text with amber vocabulary highlights, and a prominent audio button).
+2. **P1 — Phase-Gate Remote and Commander Controls:** Show story navigation (`Next Page`, `Prev Page`, `Read Audio`) during the read-through; strictly gate quiz controls (`Correct`, `Hint`, `Skip`) to the comprehension phase.
+3. **P1 — Add Remote and Commander Audio Replay Control:** Provide an accessible `Read Page / 朗读本页` button on the remote so the teacher can trigger model narration without touching the board.
+4. **P2 — Eliminate Comprehension Pool Race Conditions & Dead-End Exits:** Guarantee pool pre-loading on mount; if no comprehension questions exist, ensure "The End" card cleanly advances via `SLIDE_COMPLETE`.
+5. **P2 — Scale Reading & Quiz UI for 5–8m Projection:** Upgrade 8px dots to tactile page pills ("Page 3 of 6"); enlarge comprehension option cards with bold A/B/C/D letter badges and high-contrast text.
+
+### 4.f Design direction for Stitch (style/mood guidance + the 3–5 key screens/states to design; what to KEEP from the current design)
+
+**Mood and visual system.** Design this as a warm, immersive "Illustrated Storybook Theater". Deep mahogany-ink stage (`#15120A` to `#1E1B0E` with a subtle amber glow), a warm parchment-cream reading card (`#FFFDF7`) on the left, rich comic illustration centered on the right, vibrant jewel-toned speaker identity badges, glowing amber for highlighted vocabulary words, and hot pink (`#EC4899`) for primary progression actions. Typography should feel literary yet ultra-legible (rounded display serif or confident geometric sans) with 100% projection clarity from 8 meters.
+
+**Mock up these four board screens/states:**
+
+1. **Screen 1 — Story Page (Two-Column Reading Layout):** Full-bleed 16:9. Left 38%: Cream narrative card with rounded corners, speaker circular avatar (e.g. Leo the Lion), teal speaker name, large dialogue text ("Look at the tall green **trees**!"), glowing amber vocabulary highlights, and a sky-blue "Listen 👂" audio button. Right 62%: Centered 4:3 uncropped comic illustration in a warm framed card. Header shows a clean "Page 3 of 6" pill.
+2. **Screen 2 — Story Page (Choral Echo Beat):** Same layout, but with an animated sound-wave pulse on the left panel, audio playing state, and a friendly floating banner: "Repeat together! 🗣️ 跟读！".
+3. **Screen 3 — Comprehension Quiz Screen:** Transition into quiz mode. Top: clean question card with a book icon ("Where did Leo find the apple?"). Center: 4 large, tactile option tiles (A, B, C, D) with high-contrast text and colorful borders. Top-right: picked student badge ("Alice's Turn · Question 1 of 3") and sky-blue timer pill.
+4. **Screen 4 — Story & Quiz Completion Screen:** "Story Complete! 📖" celebration card featuring all story character avatars cheering, celebratory star burst, and a prominent hot-pink "Next: Practice Phase →" button.
+
+**What to KEEP from current design.** Retain target-vocabulary highlighting in story text, live bundle character avatar resolution, two-miss comprehension scaffold (distractor elimination $\rightarrow$ explanation reveal), and the shared session-scoped asked-items ledger with Story Sequencing.
 
 ## §5 ⬜ Google Stitch prompt
 

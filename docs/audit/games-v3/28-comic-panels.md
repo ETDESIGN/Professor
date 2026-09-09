@@ -1,6 +1,6 @@
 # Comic — Rebuild the Story — v3 Quality Audit (`COMIC_PANELS`)
 
-> **Status:** **file-ready** — §0–§3 audited (agent-parallel 2026-09-10) + §2 confirmed + screenshots captured. Ready for Anti-Gravity §4.
+> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
 > **Screenshots:** `screenshots/28-comic-panels-idle.png` — empty state (comics need book scans) — cropping findings are code-anchored.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -95,14 +95,57 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 ## §4 ⬜ ChatGPT Co-Work quality audit
 
-> **Co-Work: write your findings ONLY inside this section.** (Full instructions + shared prelude embedded at `file-ready`.)
-
 ### 4.a UI & visual design
+- **Tray buttons physically chop comic panels in half (F1, §2):** In the source tray, panel buttons have fixed `h-28` (112px) paired with `max-w-40` (160px) and `overflow-hidden` (`:401,405`). Standard comic book panels are wide landscape rectangles (~16:9 or 2:1 ratio). At 112px height, a 16:9 panel needs ~200px width; the `max-w-40` clamp abruptly amputates the right third of the artwork. This directly causes the owner's frustration: *"text and image are cut out... I cannot really determine if it's the right one or not"*. The tray must support height-constrained, auto-width cards with zero clipping.
+- **Slot row compresses wide panels to vertical postcard slits (F2, §2):** Target slots are forced into a single horizontal row where every slot has `flex-1 max-w-[17%]` (`:362,368`). Squeezing 5 or 6 panels into a single row forces wide illustrations to letterbox inside tall vertical boxes, shrinking them down to ~230×115px. At 5–8 meters, students cannot see facial expressions, visual action, or in-scene speech bubbles.
+- **Stage width stolen by persistent 240px leaderboard rail (F4):** `COMIC_PANELS` is missing from `FULL_BLEED_TYPES` in `BoardShell.tsx:41`. Dedicating 240px to an idle leaderboard rail severely pinches horizontal real estate on a game that is 100% reliant on wide visual artwork. Comic Panels must be full-bleed.
+- **Illegible 11px reveal-on-place text (F3):** When a panel is slotted, its narrative text and dialogue bubbles appear in microscopic `text-[11px]` (`:325,328`). The core pedagogical reward — seeing the story text assemble — is completely invisible to children in a live classroom.
+- **Incorrect WARM-UP phase badge on board shell (F6, screenshot):** `PHASE_FOR_BLOCK` in `PlanComposer.tsx:530-541` omits `COMIC_PANELS`, causing it to default to a WARM-UP badge instead of PRACTICE.
+
 ### 4.b Workflow & user flow (teacher's path: start → turns → end)
+- **Placement & Reordering interaction:** Students or teachers tap a tray card to move it into the next available numbered slot; tapping a slotted card returns it to the tray (`:287-309`). This tap-to-place model works well on classroom smartboards. However, reordering two already-placed cards is cumbersome (requires clearing cards back to tray). A direct slot-to-slot swap interaction would make live corrections effortless.
+- **Check Answer & LCS partial credit:** The teacher triggers Check Answer via the board button or remote baton. The engine's Longest Common Subsequence (`computeLCSPartialCredit`, $\ge 0.5$ threshold) awards partial credit (difficulty 2) when the general narrative arc is recognized (`:185-205`), which prevents punishing students who made an isolated inversion.
+- **Targeted mistake feedback works well:** On a failed check, the first clearly misplaced panel pulses red for 1200ms before returning to the tray, while correctly placed anchor panels remain in place (`:206-224`). This targeted feedback keeps the class motivated to fix errors.
+- **Skip vs. Next semantic collision (F7):** Both `SKIP_ROUND` and `NEXT_ROUND` call `finishSlide()` (`:253-254`). "Next" on the remote unexpectedly terminates the slide rather than dealing a new turn.
+
 ### 4.c Pedagogical practice (ESL ages 6–12)
+- **Visual narrative sequencing as reading comprehension:** Ordering comic panels tests temporal and causal discourse comprehension (e.g., *first*, *then*, *after that*, *finally*). For young EFL learners (ages 6–12), visual storytelling provides an essential scaffold before pure text reading.
+- **Art readability is a pedagogical prerequisite:** In comic comprehension, kids rely on visual continuity cues (character position, lighting, gaze direction, cause-and-effect props). When panels are chopped or shrunken, these visual cues are destroyed, reducing a higher-order reading task to random guessing.
+- **Story assembly reward:** As panels are slotted, the story should "come alive". Displaying large, high-contrast narrative text (at least 20–24px) beneath the placed panels allows the teacher to lead a choral reading of the emerging comic strip.
+- **Authentic book scan integration:** Generating comics directly from scanned curriculum textbook pages (`page_structures` + `assets` panel crops) bridges physical textbook study with interactive classroom projection.
+
 ### 4.d Game interaction (mechanic, pacing, fairness, fun)
+- **Adaptive layout architecture (Strip vs. 2-Row Comic Page):**
+  - **3 to 4 Panels:** Display in a single horizontal widescreen film-strip (`1×4`).
+  - **5 to 6 Panels:** Display in an authentic **2-Row Comic Strip Page** (e.g., Panels 1–3 on top row, 4–6 on second row). This doubles the size of every panel, maintains wide landscape proportions, and eliminates vertical squishing.
+- **Tray panel labeling:** Each tray panel should carry a prominent letter tag (`A`, `B`, `C`, `D`, `E`, `F`). In classroom dynamics where a student is answering from their desk, they can shout: *"Put D in Slot 1, then B in Slot 2!"* without needing to physically walk to the screen.
+- **Choral & Picked Mode balance:** Scored attempts write to the unit's `story` objective (`:105-120`), while choral mode lets the entire class participate in rebuilding the comic without scoring stress.
+
 ### 4.e Top-5 prioritized recommendations
+1. **P1 — Eliminate Tray Panel Cropping & Support Native Landscape Aspect (F1, §2):** Remove `max-w-40` and `overflow-hidden` from tray items (`BoardComicPanels.tsx:401,405`). Implement height-constrained, width-auto tray cards so wide artwork is never chopped.
+2. **P1 — Adopt a 2-Row Comic Layout for 5–6 Panel Stories (F2, §2):** Replace the rigid single row of vertical slots with an authentic 2-row comic layout (e.g. 3 panels top, 3 panels bottom), doubling panel size and preserving native landscape ratios.
+3. **P2 — Add `COMIC_PANELS` to `FULL_BLEED_TYPES` (F4):** Reclaim the 240px right leaderboard rail in `BoardShell.tsx:41` to give maximum stage width to book artwork.
+4. **P2 — Scale Reveal-on-Place Narrative Text to Classroom Legibility (F3):** Replace `text-[11px]` with large, projected narrative subtitles ($\ge 20$–24px) so the assembled story can be read chorally from 8 meters.
+5. **P3 — Add Tray Letter Badges (A–F) for Back-Row Student Calling (4.d):** Stamp clear letter tags on tray panels to facilitate verbal classroom direction.
+
 ### 4.f Design direction for Stitch
+- **Mood and visual theme:** "Graphic Novel Studio" / "Illustrated Comic Workshop". Warm editorial cream/slate background (`#0F172A` / `#1E293B`), bold comic-book ink borders (`#334155`), bright cyan placement halos (`#00F0FF`), and cheerful golden speech bubbles (`#F59E0B`).
+- **Mock up these four screens/states (16:9 projector, no scrolling):**
+  1. **Screen 1 — Initial Stage (Unassembled Story, 5 Panels):**
+     - Full-bleed 16:9 stage. Top HUD: Challenger badge `[📖 Alice's Turn — Rebuild the Comic!]` + Check Answer button.
+     - Center Stage (Target Slots): A 2-row comic grid with 5 empty numbered panels (Panels 1, 2, 3 on top; Panels 4, 5 on bottom), styled with clean dashed comic borders and watermark numbers `[1]`, `[2]`, `[3]`, `[4]`, `[5]`.
+     - Bottom Tray: Shuffled tray of 5 wide, uncropped comic panels labeled with large badges `[A]`, `[B]`, `[C]`, `[D]`, `[E]`.
+  2. **Screen 2 — Partially Assembled Comic with Readable Text:**
+     - Panels 1 and 2 placed.
+     - Each placed panel displays its wide illustration + a bold, readable dialogue/narration box beneath (`text-lg font-bold text-amber-300`).
+     - Slot 3 highlighted with a cyan glow awaiting the next selection.
+  3. **Screen 3 — Targeted Mistake Correction State:**
+     - Check Answer pressed. Slot 1 and 2 ring green (`✓`).
+     - Slot 3 pulses in warning red (`✗`) with a hint banner: *"Check Panel 3 — what happens next?"*. Misplaced panel animates back to the tray.
+  4. **Screen 4 — Story Complete Full Reading Showcase:**
+     - All panels locked in correct order with radiant emerald borders.
+     - Full narrative displayed in sequence for whole-class reading, accompanied by celebratory confetti and score award (`+3 Points for Alice!`).
+- **What to KEEP from current design:** The LCS partial credit algorithm, targeted mistake return, story objective grading, and absence=absence gating.
 
 ## §5 ⬜ Google Stitch prompt
 
