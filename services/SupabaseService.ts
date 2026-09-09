@@ -52,6 +52,10 @@ export interface LessonUnit {
     status: 'Active' | 'Draft' | 'Locked' | 'Completed' | 'Processing';
     lessons: number;
     coverImage: string;
+    theme?: string | null;
+    tagline?: string | null;
+    mascotName?: string | null;
+    mascotEmoji?: string | null;
     lastUpdated?: string;
     flow: any[];
     /** Teacher-planned Duolingo-style stage plan (units.student_path). */
@@ -95,6 +99,10 @@ const supabaseFetchUnits = async (): Promise<LessonUnit[]> => {
             status: row.status,
             lessons: row.lessons ?? 0,
             coverImage: row.cover_image ?? '',
+            theme: row.theme ?? null,
+            tagline: row.tagline ?? null,
+            mascotName: row.mascot_name ?? null,
+            mascotEmoji: row.mascot_emoji ?? null,
             lastUpdated: row.last_updated,
             flow: row.flow ?? [],
             studentPath: row.student_path ?? [],
@@ -155,6 +163,10 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
         status: data.status,
         lessons: data.lessons,
         coverImage: data.cover_image,
+        theme: data.theme ?? null,
+        tagline: data.tagline ?? null,
+        mascotName: data.mascot_name ?? null,
+        mascotEmoji: data.mascot_emoji ?? null,
         lastUpdated: data.last_updated,
         flow: data.flow ?? [],
         studentPath: data.student_path ?? [],
@@ -182,6 +194,10 @@ const supabaseGetUnitById = async (id: string): Promise<LessonUnit | undefined> 
         status: data.status,
         lessons: data.lessons,
         coverImage: data.cover_image,
+        theme: data.theme ?? null,
+        tagline: data.tagline ?? null,
+        mascotName: data.mascot_name ?? null,
+        mascotEmoji: data.mascot_emoji ?? null,
         lastUpdated: data.last_updated,
         flow: data.flow ?? [],
         studentPath: data.student_path ?? [],
