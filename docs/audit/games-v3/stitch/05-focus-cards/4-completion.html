@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary Focus Cards - Completion and Transition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            headline: ['Sora', 'sans-serif'],
+            body: ['Sora', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            stage: '#070C18',
+            surface: {
+              DEFAULT: '#0B132B',
+              dim: '#0e1733',
+              card: '#111D3E',
+              elevated: '#17254E',
+            },
+            primary: {
+              pink: '#FF2E79',
+              'pink-glow': 'rgba(255, 46, 121, 0.45)',
+            },
+            accent: {
+              emerald: '#10B981',
+              'emerald-glow': 'rgba(16, 185, 129, 0.35)',
+              cyan: '#06B6D4',
+              amber: '#F59E0B',
+            }
+          },
+          animation: {
+            'pulse-subtle': 'pulseGlow 2.8s ease-in-out infinite',
+            'float-slow': 'floatSlow 4s ease-in-out infinite',
+            'token-pop': 'tokenPop 0.6s ease-out forwards',
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%, 100%': {
+                boxShadow: '0 0 24px 0 rgba(255, 46, 121, 0.35), 0 0 8px 0 rgba(255, 46, 121, 0.25)',
+                transform: 'scale(1)',
+              },
+              '50%': {
+                boxShadow: '0 0 38px 6px rgba(255, 46, 121, 0.55), 0 0 16px 2px rgba(255, 46, 121, 0.35)',
+                transform: 'scale(1.018)',
+              },
+            },
+            floatSlow: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            tokenPop: {
+              '0%': { opacity: '0', transform: 'scale(0.85) translateY(8px)' },
+              '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Sora', sans-serif;
+      background-color: #070C18;
+      color: #F8FAFC;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    .text-glow-pink {
+      text-shadow: 0 0 20px rgba(255, 46, 121, 0.5);
+    }
+    .text-glow-emerald {
+      text-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+    }
+    .chip-glow {
+      box-shadow: 0 0 14px -2px rgba(16, 185, 129, 0.25);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-stage flex flex-col justify-between relative selection:bg-pink-500 selection:text-white">
+
+  <!-- Ambient Celebratory Radial Background Glows -->
+  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+    <!-- Center warm radial celebratory halo -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[980px] h-[640px] bg-gradient-to-b from-[#10B981]/12 via-[#FF2E79]/8 to-transparent rounded-full blur-[110px]"></div>
+    <!-- Upper accent glow -->
+    <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[720px] h-[280px] bg-[#06B6D4]/10 rounded-full blur-[90px]"></div>
+    <!-- Subtle projector floor glow -->
+    <div class="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[800px] h-[240px] bg-[#FF2E79]/10 rounded-full blur-[100px]"></div>
+  </div>
+
+  <!-- TOP BAR (Consistent with Vocabulary Focus Cards system) -->
+  <header class="relative z-10 w-full px-10 py-5 flex items-center justify-between border-b border-white/[0.06] bg-[#070C18]/85 backdrop-blur-md">
+    <div class="flex items-center gap-5">
+      <!-- V Brand Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#FF2E79] to-[#FF6B9D] flex items-center justify-center font-bold text-white text-xl shadow-[0_0_18px_rgba(255,46,121,0.4)]">
+          V
+        </div>
+        <span class="font-headline font-bold text-2xl tracking-tight text-white">Focus Cards</span>
+      </div>
+
+      <!-- Phase Tag: Complete -->
+      <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-card/90 border border-emerald-500/30 text-xs font-semibold text-emerald-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10B981]"></span>
+        <span class="tracking-wider uppercase">Phase Complete: Input</span>
+      </div>
+
+      <!-- Word Counter Pill -->
+      <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-card/90 border border-white/10 text-xs font-medium text-slate-300">
+        <span class="text-emerald-400 font-bold">12 of 12 words</span>
+        <span class="text-slate-500">·</span>
+        <span class="text-slate-400">Round 1</span>
+      </div>
+    </div>
+
+    <!-- Center Prompt / Mode Banner -->
+    <div class="flex items-center gap-2.5 px-5 py-2 rounded-full bg-[#0B132B]/90 border border-emerald-500/25 text-sm text-slate-200">
+      <span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span>
+      <span class="font-medium text-emerald-300">All flashcards unlocked</span>
+      <span class="text-slate-600">|</span>
+      <span class="text-slate-400 text-xs">Ready for Practice</span>
+    </div>
+
+    <!-- Right Console Controls -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0B132B] border border-white/10 text-xs text-slate-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#10B981]"></span>
+        <span>Teacher Console Connected</span>
+      </div>
+      <button class="w-10 h-10 rounded-xl bg-surface hover:bg-surface-elevated border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-xl">volume_up</span>
+      </button>
+      <button class="w-10 h-10 rounded-xl bg-surface hover:bg-surface-elevated border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-xl">settings</span>
+      </button>
+      <button class="w-10 h-10 rounded-xl bg-surface hover:bg-surface-elevated border border-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-xl">fullscreen</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN STAGE (Centered Celebration & Collected Tokens) -->
+  <main class="relative z-10 flex-1 flex flex-col items-center justify-center px-8 max-w-6xl mx-auto w-full text-center">
+
+    <!-- Celebration Badge / Sparkles Anchor -->
+    <div class="relative mb-3 flex items-center justify-center">
+      <!-- Sparkle SVG elements (Subtle celebratory accents, non-jackpot) -->
+      <svg class="absolute -left-16 -top-4 w-7 h-7 text-amber-300/80 animate-float-slow" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0L14.3 8.3L22.6 10.6L14.3 12.9L12 21.2L9.7 12.9L1.4 10.6L9.7 8.3L12 0Z"/>
+      </svg>
+      <svg class="absolute -right-14 -bottom-1 w-6 h-6 text-emerald-300/80 animate-float-slow" style="animation-delay: 1.5s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0L14.3 8.3L22.6 10.6L14.3 12.9L12 21.2L9.7 12.9L1.4 10.6L9.7 8.3L12 0Z"/>
+      </svg>
+      <svg class="absolute right-28 -top-8 w-4 h-4 text-pink-300/80 animate-float-slow" style="animation-delay: 0.8s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0L14.3 8.3L22.6 10.6L14.3 12.9L12 21.2L9.7 12.9L1.4 10.6L9.7 8.3L12 0Z"/>
+      </svg>
+      <svg class="absolute -left-28 bottom-3 w-5 h-5 text-cyan-300/70 animate-float-slow" style="animation-delay: 2.2s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0L14.3 8.3L22.6 10.6L14.3 12.9L12 21.2L9.7 12.9L1.4 10.6L9.7 8.3L12 0Z"/>
+      </svg>
+
+      <!-- Center Completion Stamp -->
+      <div class="inline-flex items-center gap-2.5 px-5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-sm font-semibold tracking-wide shadow-[0_0_20px_rgba(16,185,129,0.25)]">
+        <span class="material-symbols-outlined text-base text-emerald-400">verified</span>
+        <span>100% DISCOVERY COMPLETE</span>
+      </div>
+    </div>
+
+    <!-- Big White Display Heading (Optimized for 8m Projector View) -->
+    <h1 class="font-headline font-extrabold text-5xl md:text-6xl lg:text-[68px] leading-tight text-white tracking-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.6)]">
+      All 12 words explored!
+    </h1>
+
+    <!-- Supportive ESL Sub-line -->
+    <p class="mt-3 text-xl md:text-2xl text-slate-300 font-medium tracking-normal flex items-center justify-center gap-3">
+      <span class="material-symbols-outlined text-emerald-400 text-2xl">record_voice_over</span>
+      <span>Say them one more time</span>
+    </p>
+
+    <!-- WRAP OF TWELVE EMERALD TOKENS (Arranged like collected gems) -->
+    <div class="mt-8 mb-9 w-full max-w-4xl p-6 rounded-3xl bg-surface/80 border border-emerald-500/20 backdrop-blur-md shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
+      <div class="flex items-center justify-between px-3 pb-3 mb-4 border-b border-white/[0.06]">
+        <span class="text-xs uppercase tracking-widest font-semibold text-emerald-400 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          Collected Vocabulary Deck
+        </span>
+        <span class="text-xs text-slate-400 font-medium">12 / 12 tokens collected</span>
+      </div>
+
+      <!-- 12 Emerald Token Chips Grid -->
+      <div class="grid grid-cols-4 md:grid-cols-6 gap-3 sm:gap-3.5">
+        <!-- Token 1 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">tractor</span>
+        </div>
+
+        <!-- Token 2 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">leaf</span>
+        </div>
+
+        <!-- Token 3 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">rock</span>
+        </div>
+
+        <!-- Token 4 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">river</span>
+        </div>
+
+        <!-- Token 5 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">apple</span>
+        </div>
+
+        <!-- Token 6 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">garden</span>
+        </div>
+
+        <!-- Token 7 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">creek</span>
+        </div>
+
+        <!-- Token 8 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">pebble</span>
+        </div>
+
+        <!-- Token 9 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">field</span>
+        </div>
+
+        <!-- Token 10 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">mountain</span>
+        </div>
+
+        <!-- Token 11 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">flower</span>
+        </div>
+
+        <!-- Token 12 -->
+        <div class="chip-glow flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-[#092B21] border border-emerald-400/40 text-emerald-200 group transition-all duration-200 hover:scale-105 hover:border-emerald-300">
+          <span class="material-symbols-outlined text-emerald-400 text-base">check</span>
+          <span class="font-headline font-bold text-sm tracking-wide text-white">branch</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS SECTION (ONE Large Pulsing Hot-Pink Primary + Quiet Secondary Link) -->
+    <div class="flex flex-col items-center gap-4">
+      <!-- ONE Large Pulsing Hot-Pink Primary Action with Chevron -->
+      <button class="animate-pulse-subtle group relative inline-flex items-center justify-center gap-4 px-10 py-5 rounded-3xl bg-primary-pink text-white font-headline font-bold text-2xl tracking-wide transition-all duration-200 hover:brightness-110 active:scale-[0.98]">
+        <span>Start Practice Phase</span>
+        <span class="material-symbols-outlined text-3xl transition-transform duration-200 group-hover:translate-x-1.5">arrow_forward</span>
+      </button>
+
+      <!-- Quiet Secondary Text Link -->
+      <button class="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-white/[0.04]">
+        <span class="material-symbols-outlined text-base">replay</span>
+        <span>Review words again</span>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM HUD / FOOTER (12 Full Emerald Dots Progress Rail) -->
+  <footer class="relative z-10 w-full px-10 py-4 flex items-center justify-between border-t border-white/[0.06] bg-[#070C18]/90 backdrop-blur-md">
+    <!-- 12-dot Progress Tracker (All 12 completed in emerald) -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <!-- 12 dots all filled emerald with glowing dots -->
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+        <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+      </div>
+      <span class="text-xs font-semibold text-emerald-400 tracking-wider uppercase">All 12 Words Mastered (12/12)</span>
+    </div>
+
+    <!-- Teacher Choral Prompt Chip -->
+    <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0B132B] border border-amber-400/25 text-xs text-amber-200">
+      <span class="text-amber-400">💡</span>
+      <span>Whole-class prompt: Chant the 12 words together once before starting practice</span>
+    </div>
+
+    <!-- Room / Specs Meta -->
+    <div class="flex items-center gap-4 text-xs text-slate-400">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>ESL Primary Stage · 16:9 1080p</span>
+      </span>
+      <span class="text-slate-600">|</span>
+      <span>Viewing distance: 5–8m</span>
+    </div>
+  </footer>
+
+</body>
+</html>

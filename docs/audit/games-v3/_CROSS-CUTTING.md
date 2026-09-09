@@ -31,7 +31,9 @@
 
 ## §3 Co-Work observations (if any)
 
-*(Co-Work may note cross-cutting themes here after processing several games — one paragraph per theme, naming the games affected.)*
+- **Leaderboard rail persistence in non-scored presentation phases:** Observed in `05-focus-cards.md` (and relevant to `06-grammar-sandbox.md`, `01-intro-splash.md`, etc.). `BoardShell.tsx` currently only retracts the 240px leaderboard rail for `FULL_BLEED_TYPES = new Set(['STORY_STAGE', 'DIALOGUE_STAGE', 'MEDIA_PLAYER', 'INTRO_SPLASH', 'TEAM_SPLASH', 'LIVE_WARMUP'])`. In non-scored INPUT and WARMUP presentation activities, displaying 8–30 student avatars all sitting at 0 points adds zero pedagogical value, creates competitive distraction during initial teaching, and robs the presentation stage of ~25% of 16:9 projection width. Recommendation: Expand `FULL_BLEED_TYPES` or introduce an explicit phase-level rule (`phase === 'INPUT' || !isScoredStep`) so non-scored presentation games automatically gain the full 16:9 canvas.
+
+- **Top-left chrome collisions (BoardShell phase badge vs in-game headers/navigation):** Observed in `05-focus-cards.md` and `26-word-search.md` (prior to v3 fix). `BoardShell.tsx` places an absolute-positioned phase pill at `top-5 left-6`. Templates placing page headers (e.g. "Today's Words") or back navigation (e.g. `< Grid` at `top-3 left-4`) collide directly with this badge, visually corrupting the title and breaking touch targets on interactive projection boards. Recommendation: Standardize an in-stage header safe zone across all board templates (minimum 180px left clearance) or unify the top bar so the phase pill is part of the template's layout flow rather than an absolute-positioned overlay.
 
 ## §4 Disposition
 

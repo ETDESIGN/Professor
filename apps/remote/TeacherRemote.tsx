@@ -360,6 +360,8 @@ const TeacherRemote: React.FC = () => {
             <button onClick={() => triggerAction('PREV_CARD')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center shadow-lg active:scale-95">
               <ArrowLeft size={24} />
             </button>
+            <button onClick={() => triggerAction('PLAY_AUDIO')} className="bg-sky-600 text-white p-3 rounded-xl font-bold flex items-center justify-center shadow-lg active:scale-95" title="Play audio">🔊</button>
+            <button onClick={() => triggerAction('NEXT_BATCH')} className="bg-blue-500 text-white p-3 rounded-xl font-bold flex items-center justify-center shadow-lg active:scale-95" title="Next 6 words">6›</button>
             <button onClick={() => triggerAction('FLIP_CARD')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center shadow-lg active:scale-95 uppercase tracking-wider text-sm">
               Flip
             </button>

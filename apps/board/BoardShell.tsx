@@ -38,7 +38,7 @@ const PHASE_WASHES: Record<string, string> = {
 };
 
 // Full-bleed step types (rails auto-retract per B5).
-const FULL_BLEED_TYPES = new Set(['STORY_STAGE', 'DIALOGUE_STAGE', 'MEDIA_PLAYER', 'INTRO_SPLASH', 'TEAM_SPLASH', 'LIVE_WARMUP']);
+const FULL_BLEED_TYPES = new Set(['STORY_STAGE', 'DIALOGUE_STAGE', 'MEDIA_PLAYER', 'INTRO_SPLASH', 'TEAM_SPLASH', 'LIVE_WARMUP', 'FOCUS_CARDS']); // FOCUS_CARDS added 2026-09-10 (games-v3 audit 4.a: the 0-point leaderboard is distraction + width theft during non-scored presentation)
 
 interface BoardShellProps {
   children: React.ReactNode;

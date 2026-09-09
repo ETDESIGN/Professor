@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Search - Classroom ESL Focus Modal</title>
+<!-- Google Fonts: Sora, Inter, Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Design System Tailwind Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#004d4d",
+            "tertiary": "#ffe04a",
+            "on-error": "#1a0000",
+            "tertiary-fixed-dim": "#ffe04a",
+            "primary-fixed": "#ffe0ec",
+            "on-surface-variant": "#a098b0",
+            "error": "#ff4444",
+            "background": "#0a0a12",
+            "on-tertiary-container": "#fff0c0",
+            "outline": "#5a5068",
+            "on-secondary-container": "#c0fff4",
+            "on-tertiary": "#1a1000",
+            "outline-variant": "#302840",
+            "surface-container-high": "#1e1e30",
+            "on-primary-fixed-variant": "#8c0038",
+            "on-primary": "#1a0010",
+            "on-background": "#e8e0f0",
+            "surface-container-highest": "#28283e",
+            "surface-tint": "#ff2d78",
+            "secondary-container": "#004d3d",
+            "secondary-fixed-dim": "#00e6b8",
+            "on-tertiary-fixed-variant": "#665200",
+            "on-surface": "#e8e0f0",
+            "surface-container": "#141422",
+            "secondary-fixed": "#c0fff4",
+            "surface-variant": "#1e1e30",
+            "surface-container-low": "#111118",
+            "secondary": "#00ffcc",
+            "inverse-surface": "#e8e0f0",
+            "on-secondary": "#001a1a",
+            "surface-dim": "#0f0f1a",
+            "surface-container-lowest": "#0a0a12",
+            "on-primary-fixed": "#3d0020",
+            "inverse-on-surface": "#0a0a12",
+            "primary-container": "#b3004e",
+            "on-tertiary-fixed": "#1a1000",
+            "primary": "#ff2d78",
+            "on-error-container": "#ffa0a0",
+            "error-container": "#3d0f0f",
+            "inverse-primary": "#8c0038",
+            "tertiary-container": "#665200",
+            "surface-bright": "#1a1a2e",
+            "primary-fixed-dim": "#ff80aa",
+            "on-primary-container": "#ffe0ec",
+            "surface": "#0f0f1a",
+            "on-secondary-fixed": "#001a1a",
+            "tertiary-fixed": "#fff0c0"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .neon-border-primary {
+      border: 1px solid rgba(255, 45, 120, 0.5);
+      box-shadow: 0 0 24px rgba(255, 45, 120, 0.25), inset 0 0 16px rgba(255, 45, 120, 0.08);
+    }
+    .neon-btn-glow:hover {
+      box-shadow: 0 0 20px rgba(255, 45, 120, 0.5);
+    }
+    .neon-cyan-glow {
+      box-shadow: 0 0 14px rgba(0, 255, 204, 0.35);
+    }
+    .audio-btn-glow:hover {
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body min-h-screen w-screen overflow-x-hidden flex flex-col justify-between select-none antialiased">
+<!-- TopNavBar (Shared Component) -->
+<header class="bg-surface-dim dark:bg-surface-dim border-b border-outline-variant dark:border-outline-variant flex justify-between items-center w-full px-8 py-3 max-w-full z-40 relative">
+<div class="flex items-center gap-3">
+<span class="font-headline font-bold text-2xl text-primary dark:text-primary tracking-wide flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="school">school</span>
+        Word Search
+      </span>
+<span class="ml-4 px-2.5 py-1 bg-surface-container-high rounded text-xs font-label text-secondary uppercase tracking-wider border border-secondary/30">ESL Classroom Live</span>
+</div>
+<!-- Center status indicator -->
+<div class="hidden md:flex items-center gap-2 bg-surface-container px-4 py-1.5 rounded-full border border-outline-variant">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold">Active Session: Nature &amp; Landscape Vocabulary</span>
+</div>
+<!-- Trailing Action Cluster -->
+<div class="flex items-center gap-5">
+<span class="font-label tracking-wider uppercase text-sm font-semibold text-tertiary bg-surface-container px-3.5 py-1.5 rounded border border-tertiary/30">
+        Round 1 · Starter
+      </span>
+<div class="flex items-center gap-2 text-on-surface-variant dark:text-on-surface-variant">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container hover:text-primary dark:hover:text-primary transition-colors duration-200 active:scale-95" title="Audio volume">
+<span class="material-symbols-outlined" data-icon="volume_up">volume_up</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container hover:text-primary dark:hover:text-primary transition-colors duration-200 active:scale-95" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-surface-container hover:text-primary dark:hover:text-primary transition-colors duration-200 active:scale-95" title="Fullscreen projector">
+<span class="material-symbols-outlined" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- Classroom Avatar -->
+<div class="flex items-center gap-2">
+<div aria-label="Classroom ESL Avatar" class="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center border border-secondary/40 text-secondary font-headline font-bold text-sm">
+          G3
+        </div>
+</div>
+</div>
+</header>
+<!-- Main 16:9 Stage Area with Dimmed 6-Card Background and Active Central Modal -->
+<main class="relative flex-1 w-full max-w-[1920px] mx-auto p-4 md:p-6 flex items-center justify-center overflow-hidden">
+<!-- Background Dimmed 3x2 Landscape Flashcards Grid (Night stage #070C18 with 60% Navy scrim & blur) -->
+<div aria-hidden="true" class="absolute inset-0 grid grid-cols-3 grid-rows-2 gap-5 p-8 opacity-25 filter blur-[3px] pointer-events-none transform scale-95">
+<!-- Card 1: Tractor -->
+<div class="bg-surface-container rounded-2xl border border-outline-variant/50 p-4 flex flex-col justify-between">
+<div class="h-32 rounded-xl bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant" data-icon="agriculture">agriculture</span>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="font-headline font-bold text-xl text-on-surface">TRACTOR</span>
+<span class="font-label text-xs text-on-surface-variant">01</span>
+</div>
+</div>
+<!-- Card 2: Leaf -->
+<div class="bg-surface-container rounded-2xl border border-outline-variant/50 p-4 flex flex-col justify-between">
+<div class="h-32 rounded-xl bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-secondary" data-icon="eco">eco</span>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="font-headline font-bold text-xl text-on-surface">LEAF</span>
+<span class="font-label text-xs text-on-surface-variant">02</span>
+</div>
+</div>
+<!-- Card 3: Riverbed -->
+<div class="bg-surface-container rounded-2xl border border-outline-variant/50 p-4 flex flex-col justify-between">
+<div class="h-32 rounded-xl bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-tertiary" data-icon="water">water</span>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="font-headline font-bold text-xl text-on-surface">RIVERBED</span>
+<span class="font-label text-xs text-on-surface-variant">03</span>
+</div>
+</div>
+<!-- Card 4: Apple -->
+<div class="bg-surface-container rounded-2xl border border-outline-variant/50 p-4 flex flex-col justify-between">
+<div class="h-32 rounded-xl bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-primary" data-icon="nutrition">nutrition</span>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="font-headline font-bold text-xl text-on-surface">APPLE</span>
+<span class="font-label text-xs text-on-surface-variant">04</span>
+</div>
+</div>
+<!-- Card 5: River (Target Active) -->
+<div class="bg-surface-container-high rounded-2xl border-2 border-secondary/40 p-4 flex flex-col justify-between">
+<div class="h-32 rounded-xl bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-secondary" data-icon="tsunami">tsunami</span>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="font-headline font-bold text-xl text-secondary font-semibold">RIVER</span>
+<span class="font-label text-xs text-secondary">ACTIVE</span>
+</div>
+</div>
+<!-- Card 6: Pebble -->
+<div class="bg-surface-container rounded-2xl border border-outline-variant/50 p-4 flex flex-col justify-between">
+<div class="h-32 rounded-xl bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-4xl text-on-surface-variant" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+</div>
+<div class="mt-2 flex justify-between items-center">
+<span class="font-headline font-bold text-xl text-on-surface">PEBBLE</span>
+<span class="font-label text-xs text-on-surface-variant">06</span>
+</div>
+</div>
+</div>
+<!-- Scrim Backdrop -->
+<div class="absolute inset-0 bg-[#070C18]/85 backdrop-blur-[6px] pointer-events-none z-10"></div>
+<!-- Centered Deep-Dive Modal Dialog Card -->
+<div class="relative z-20 w-full max-w-3xl bg-[#0B132B] rounded-3xl border border-secondary/30 p-6 md:p-8 shadow-2xl shadow-black/80 flex flex-col gap-6" style="box-shadow: 0 0 35px rgba(0, 255, 204, 0.12), 0 25px 50px -12px rgba(0, 0, 0, 0.9);">
+<!-- Modal Header / Image Area -->
+<div class="relative w-full rounded-2xl overflow-hidden border border-outline-variant/60 shadow-lg aspect-video max-h-[310px] bg-surface-container-lowest">
+<img alt="A vibrant landscape photograph of a clear mountain river flowing over smooth stones between dense evergreen pines under high peaks" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVZWt9EodhYIshsCX_SIJhpc-nGCq-ktZGhYxpBlDX6OTeMdT03xq3vS9fii22VuT6tgb9nF5ZKXty40fzilDta1_BfBrd5MZ_dvhYpCNu2vtqaovMn4IlMsSmUi0O2ID3bE9Kn3iM2on1W99my2uX6gjj7bryUSROwCRnBLiOH8djTdA151KDpZzkVtScVxzslQWlP0O5QbIoIn5fYUGNXAh6tzvdAB7i5YTu8Fw0zogL5_9HX7_ZRlsHGjAHwRKIe_SnmfzTt9o-"/>
+<div class="absolute top-3 right-3 bg-[#0B132B]/85 backdrop-blur-md px-3 py-1.5 rounded-full border border-secondary/40 flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-label text-xs font-bold text-secondary uppercase tracking-wider">Vocab Spotlight</span>
+</div>
+</div>
+<!-- Word Presentation Section -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant/40 pb-5">
+<div>
+<div class="flex items-baseline gap-4 flex-wrap">
+<h1 class="font-headline font-extrabold text-5xl md:text-6xl text-white tracking-wide" style="text-shadow: 0 0 16px rgba(255, 255, 255, 0.25);">
+              RIVER
+            </h1>
+<span class="font-label text-2xl md:text-3xl text-secondary font-medium tracking-normal">
+              /ˈrɪv.ər/
+            </span>
+<span class="px-3 py-1 bg-surface-container-high rounded-md text-xs font-label uppercase tracking-widest text-on-surface-variant border border-outline-variant self-center">
+              NOUN
+            </span>
+</div>
+<!-- Bilingual Detail Scaffold Line -->
+<div class="mt-2 text-tertiary font-body text-xl font-medium tracking-wide flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-xl" data-icon="translate">translate</span>
+<span>河流 (hé liú) · river</span>
+<span class="text-xs text-on-surface-variant ml-2 font-label uppercase tracking-wider">(Mandarin scaffold)</span>
+</div>
+</div>
+<!-- Tactile Circular Sky-Blue Audio Actions -->
+<div class="flex items-center gap-3">
+<!-- Button 1: Hear word -->
+<button class="audio-btn-glow flex items-center gap-2.5 px-4 py-3 bg-[#38BDF8]/15 hover:bg-[#38BDF8]/25 text-[#38BDF8] border border-[#38BDF8]/60 rounded-full transition-all duration-200 active:scale-95 group" title="Pronounce River">
+<span class="w-9 h-9 rounded-full bg-[#38BDF8] text-[#0a0a12] flex items-center justify-center font-bold shadow-md group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-xl" data-icon="volume_up">volume_up</span>
+</span>
+<span class="font-label font-bold text-sm tracking-wide text-white uppercase">Hear word</span>
+</button>
+<!-- Button 2: Hear sentence -->
+<button class="audio-btn-glow flex items-center gap-2.5 px-4 py-3 bg-[#38BDF8]/15 hover:bg-[#38BDF8]/25 text-[#38BDF8] border border-[#38BDF8]/60 rounded-full transition-all duration-200 active:scale-95 group" title="Pronounce full sentence">
+<span class="w-9 h-9 rounded-full bg-[#38BDF8] text-[#0a0a12] flex items-center justify-center font-bold shadow-md group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-xl" data-icon="record_voice_over">record_voice_over</span>
+</span>
+<span class="font-label font-bold text-sm tracking-wide text-white uppercase">Hear sentence</span>
+</button>
+</div>
+</div>
+<!-- Example Sentence Card -->
+<div class="bg-[#141E38] rounded-2xl p-5 border border-outline-variant/80 flex items-center justify-between gap-4 shadow-inner">
+<div class="flex items-start gap-4">
+<div class="p-2 bg-surface-container rounded-lg border border-secondary/30 mt-0.5">
+<span class="material-symbols-outlined text-secondary text-2xl" data-icon="format_quote">format_quote</span>
+</div>
+<div>
+<div class="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold mb-1">Example in context</div>
+<p class="font-body text-xl md:text-2xl text-white font-medium leading-relaxed">
+              "The <span class="text-secondary font-bold underline decoration-secondary/60 underline-offset-4" style="text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);">river</span> flows down the mountain."
+            </p>
+</div>
+</div>
+<!-- Quick sentence speaker action -->
+<button class="w-12 h-12 flex-shrink-0 rounded-full bg-[#38BDF8]/20 hover:bg-[#38BDF8] text-[#38BDF8] hover:text-[#0a0a12] border border-[#38BDF8]/50 flex items-center justify-center transition-all duration-200 active:scale-90" title="Read sentence aloud">
+<span class="material-symbols-outlined text-2xl" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<!-- Modal Footer Action -->
+<div class="flex justify-center pt-2">
+<button class="neon-btn-glow px-10 py-4 bg-primary text-white font-headline font-bold text-lg md:text-xl rounded-2xl transition-all duration-200 active:scale-95 flex items-center gap-3 border border-primary-fixed shadow-lg" style="box-shadow: 0 0 24px rgba(255, 45, 120, 0.45);">
+<span>Back to cards</span>
+<span class="material-symbols-outlined text-2xl" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Classroom Bar for Teacher Control -->
+<footer class="bg-surface-dim border-t border-outline-variant px-8 py-3 flex items-center justify-between text-xs font-label text-on-surface-variant">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="cast">cast</span>
+        Projector Mode: 1080p 16:9 Scale (Optimal at 8m)
+      </span>
+<span class="text-outline">|</span>
+<span>Press <kbd class="px-2 py-0.5 bg-surface-container rounded border border-outline-variant text-white font-mono">SPACE</kbd> for audio · <kbd class="px-2 py-0.5 bg-surface-container rounded border border-outline-variant text-white font-mono">ESC</kbd> to return</span>
+</div>
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span>ESL Teacher Assist Active</span>
+</div>
+</footer>
+<!-- Micro-interactions Script -->
+<script>
+    // Audio trigger simulation feedback for classroom projector
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.add('scale-95');
+        setTimeout(() => btn.classList.remove('scale-95'), 150);
+      });
+    });
+
+    // Simple keyboard navigation scaffold for classroom remote pointer
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const backBtn = document.querySelector('button.neon-btn-glow');
+        if (backBtn) backBtn.click();
+      }
+    });
+  </script>
+</body></html>

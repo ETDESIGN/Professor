@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary Focus Cards - All Fronts Challenge Mode</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sora', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            night: '#070C18',
+            surface: '#0B132B',
+            'surface-card': '#FFF8EC',
+            primary: '#FF2E79',
+            sky: '#38BDF8',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #070C18;
+      font-family: 'Sora', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .radial-bg {
+      background: 
+        radial-gradient(circle at 50% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 85% 80%, rgba(255, 46, 121, 0.05) 0%, transparent 50%),
+        #070C18;
+    }
+    .subtle-border {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .pink-glow {
+      box-shadow: 0 0 25px -4px rgba(255, 46, 121, 0.45);
+    }
+    .sky-halo {
+      box-shadow: 0 0 0 4px #38BDF8, 0 0 30px 4px rgba(56, 189, 248, 0.4);
+    }
+    .halo-pulse {
+      animation: pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0%, 100% {
+        box-shadow: 0 0 0 4px #38BDF8, 0 0 28px 6px rgba(56, 189, 248, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 0 5px #38BDF8, 0 0 40px 10px rgba(56, 189, 248, 0.65);
+      }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen radial-bg text-white flex flex-col justify-between p-7 box-border">
+
+  <!-- TOP HEADER BAR -->
+  <header class="relative w-full flex items-center justify-between z-20 h-14">
+    <!-- Top-Left Fixed Phase Pill -->
+    <div class="absolute left-0 top-1/2 -translate-y-1/2">
+      <div class="px-4 py-2 rounded-full bg-[#0B132B] subtle-border text-xs tracking-wider uppercase font-semibold text-slate-300 shadow-sm flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky animate-pulse"></span>
+        PHASE: INPUT
+      </div>
+    </div>
+
+    <!-- Main Header content cleared ~180px from left -->
+    <div class="flex items-center gap-5 pl-[185px]">
+      <!-- Pink V Badge -->
+      <div class="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center font-extrabold text-white text-xl shadow-lg shadow-pink-500/25">
+        V
+      </div>
+      <!-- Title -->
+      <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+        Focus Cards
+      </h1>
+      <!-- Chip 1: Words 1-6 of 12 -->
+      <div class="px-3.5 py-1.5 rounded-full bg-[#0B132B] subtle-border text-sm font-medium text-slate-200 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-primary"></span>
+        Words 1–6 of 12
+      </div>
+      <!-- Chip 2: Presentation - teacher paced -->
+      <div class="px-3.5 py-1.5 rounded-full bg-[#0B132B] subtle-border text-sm font-medium text-slate-300 flex items-center gap-2">
+        <svg class="w-3.5 h-3.5 text-sky" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        Presentation — teacher paced
+      </div>
+    </div>
+
+    <!-- Top Right Status & Utilities -->
+    <div class="flex items-center gap-3">
+      <div class="px-3.5 py-1.5 rounded-full bg-[#0B132B] subtle-border text-xs font-semibold text-emerald-400 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        LIVE SYNCED
+      </div>
+      <button class="w-10 h-10 rounded-xl bg-[#0B132B] subtle-border text-slate-400 flex items-center justify-center hover:text-white transition-colors" aria-label="Audio settings">
+        <svg class="w-5 h-5 text-sky" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+        </svg>
+      </button>
+      <button class="w-10 h-10 rounded-xl bg-[#0B132B] subtle-border text-slate-400 flex items-center justify-center hover:text-white transition-colors" aria-label="Toggle Fullscreen">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- CENTER STAGE: DOMINANT 3x2 GRID OF 4:3 LANDSCAPE CARDS -->
+  <main class="flex-1 w-full flex items-center justify-center py-4 z-10">
+    <div class="grid grid-cols-3 gap-6 max-w-6xl w-full">
+
+      <!-- CARD 1: TRACTOR (Active Shout Target with Sky-Blue Halo Ring) -->
+      <div class="relative group cursor-pointer aspect-[4/3] rounded-3xl p-2.5 bg-surface-card sky-halo halo-pulse transition-transform duration-300 hover:scale-[1.02]">
+        <!-- Top Target Callout Floating Badge -->
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-sky text-[#070C18] text-xs font-extrabold uppercase tracking-widest shadow-md flex items-center gap-1.5 z-20">
+          <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"></path>
+          </svg>
+          SAY IT TOGETHER!
+        </div>
+        <div class="w-full h-full rounded-2xl overflow-hidden bg-slate-100">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1VZ9lTM06tt3O2Veqv9glYib0i3iBgSi8zHqhRC-5CS6CoVa4-4ZJWToxRB1Y9NUHBSDFbKfyiXHfU9b3pH4UvHrtO0Y41QGMRJoQqi05fpvE4Hhu9MUEUXmAF5vRDlJOVf4Ev1d6dWDZLgEwEaJmI2iA3z7sfhgyoZSLrsAgaoQU2J_0tQJCAPrFJCUoon3Z0VcyRQLWnpzPF0-hblR7oyn9jYk6LxlDwdYuwj1CmjqPuNkdyJ3KWBJapc" 
+            alt="Farm Tractor in Wheat Field" 
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+      </div>
+
+      <!-- CARD 2: GREEN LEAF -->
+      <div class="relative group cursor-pointer aspect-[4/3] rounded-3xl p-2.5 bg-surface-card subtle-border shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-white/20">
+        <div class="w-full h-full rounded-2xl overflow-hidden bg-slate-100">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1V9rRlK87SavM5WO10sFkT0kTuFz3iSrhuCeC4gftJvlr7DOt9WYNyQxI07rL5v-KEeo7Vkl_nK_evg3s5hfhLTe_Y8257BNqKHmtl_u0AwtDxWC91FAD4MHGWUyTPijd94kNOEqGCKiyrFCRHAY0K2Lmt27HrHRzglhUu2bkNValF6FGj7xc-w-17GnbvykxIHEDTKRlZqO8-dTqo6-eVTOuX9MVBVrOj7YQ6txLMkDLzmHvW01er57t-P" 
+            alt="Fresh Green Leaf with Water Droplets" 
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+      </div>
+
+      <!-- CARD 3: MOUNTAIN RIVER -->
+      <div class="relative group cursor-pointer aspect-[4/3] rounded-3xl p-2.5 bg-surface-card subtle-border shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-white/20">
+        <div class="w-full h-full rounded-2xl overflow-hidden bg-slate-100">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1W3xPssX4b1hjadn_-Dd_j1Jtwcza820RdZt2UGB2MtQ2jpXTeQbFP2r24DyCzi0I7pAZneLUT2XDKsR5nwfj9LwNZt_YdSllyO9bBTYNuOmiApMZlJ-DLp0PIOfaCqpflUm9Ny5rYB0ZPy7BwPsTJEqsIrJwv6lp3HWsMHb70ajNrG-QNxeXCGHILC7KBFKUNDt7zFLcOGYKucBPzMrlQdqxH9teflrnTvcIHM0Dova9E4KthpYZr7ESI" 
+            alt="Clear Mountain River Flowing over Stones" 
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+      </div>
+
+      <!-- CARD 4: RED APPLE -->
+      <div class="relative group cursor-pointer aspect-[4/3] rounded-3xl p-2.5 bg-surface-card subtle-border shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-white/20">
+        <div class="w-full h-full rounded-2xl overflow-hidden bg-slate-100">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1Uq6YaduAwm7qVQPLaSZuHYnJ4nuvXMoFMYoYuAEZrjZu2RWyiCd100mglAyTbqiSrtnr1Jm3SKBieEJnfhMZW8WeL2kfOErt0L2l61u6hfgk9TRsEz7oat6UEtME33TXE-AjpZMjOTHgQy7OBsiAnSlKGn4WSMgmg1uELbPLtLbyUC_Mkl5guTp5ZNoIz3Ztp365ZAak1tniG76c2ms20INjMY26kZgyjYE9VDLfQ2KJoGFwqEJKar1S9F" 
+            alt="Crisp Red Apple with Leaf" 
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+      </div>
+
+      <!-- CARD 5: ROUND STONE -->
+      <div class="relative group cursor-pointer aspect-[4/3] rounded-3xl p-2.5 bg-surface-card subtle-border shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-white/20">
+        <div class="w-full h-full rounded-2xl overflow-hidden bg-slate-100">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1X0XD0B3qjaI7nGoDWocnMqmeAwWUb6_ZZzSGhbVn35Cg-sq6UsvF8vdIMqbrX2yaUPElTEPRYO1Wg7CSFKiA_6YcqTidaI9hnd7ulu-YiT6NuhMlTMGWIY6Ef2AATGXUxplHA4RBV8gz8d63L-LJtDqjXpds-_4tVKHbXsVqwlmZHeMaiNBlpd1f-Zf23IBxYsUiwox4wp9kB1etSFYtTWXBVJLkcp3PL4MjPgaCKPGjeM0M9EMeFr8ABC" 
+            alt="Smooth Grey River Stone on Sand" 
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+      </div>
+
+      <!-- CARD 6: FLOWER GARDEN -->
+      <div class="relative group cursor-pointer aspect-[4/3] rounded-3xl p-2.5 bg-surface-card subtle-border shadow-xl transition-all duration-300 hover:scale-[1.02] hover:border-white/20">
+        <div class="w-full h-full rounded-2xl overflow-hidden bg-slate-100">
+          <img 
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsc_v0AVmlhmYlvcgH7LCe7gov13GH3poKMHlSmADnIwy_hOo5fjVTdFNBOZcjvb9WXl5FO0wvxH6qi7LzxXtx1vMi__2ezFL4b0Zp8RB_AQBaLcu5QlYaFU3YNOlIHHnlRAjlREgHjsOkJPt2tTzXdM29JRu7YwTmS5dcsdrGYltJGKq79jIi1ctOAsZeZeIFsCyryStBXXQec1t6PncDHb9RK8NWgijUJqnyyHTJJr6Y5XhwMhgK6114BeoX7Cblf64YOXTakzv9" 
+            alt="Vibrant Blooming Flower Garden" 
+            class="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          />
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- SLIM BOTTOM RAIL -->
+  <footer class="w-full flex items-center justify-between z-20 h-14">
+    <!-- 12 Tactile Progress Pills (28px tall, 6 filled white) -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 p-1.5 rounded-full bg-[#0B132B] subtle-border">
+        <!-- 6 Filled White Pills -->
+        <span class="w-3.5 h-7 rounded-full bg-white shadow-sm" title="Word 1 completed"></span>
+        <span class="w-3.5 h-7 rounded-full bg-white shadow-sm" title="Word 2 completed"></span>
+        <span class="w-3.5 h-7 rounded-full bg-white shadow-sm" title="Word 3 completed"></span>
+        <span class="w-3.5 h-7 rounded-full bg-white shadow-sm" title="Word 4 completed"></span>
+        <span class="w-3.5 h-7 rounded-full bg-white shadow-sm" title="Word 5 completed"></span>
+        <span class="w-3.5 h-7 rounded-full bg-white shadow-sm" title="Word 6 completed"></span>
+
+        <!-- 6 Unfilled Subdued Pills -->
+        <span class="w-3.5 h-7 rounded-full bg-slate-800/80 border border-slate-700/60" title="Word 7 upcoming"></span>
+        <span class="w-3.5 h-7 rounded-full bg-slate-800/80 border border-slate-700/60" title="Word 8 upcoming"></span>
+        <span class="w-3.5 h-7 rounded-full bg-slate-800/80 border border-slate-700/60" title="Word 9 upcoming"></span>
+        <span class="w-3.5 h-7 rounded-full bg-slate-800/80 border border-slate-700/60" title="Word 10 upcoming"></span>
+        <span class="w-3.5 h-7 rounded-full bg-slate-800/80 border border-slate-700/60" title="Word 11 upcoming"></span>
+        <span class="w-3.5 h-7 rounded-full bg-slate-800/80 border border-slate-700/60" title="Word 12 upcoming"></span>
+      </div>
+      
+      <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">
+        Words reviewed <span class="text-white font-bold ml-1 font-mono">(6/12)</span>
+      </span>
+    </div>
+
+    <!-- Center Interactive Teacher Guidance Pill -->
+    <div class="px-5 py-2 rounded-full bg-[#0B132B] subtle-border text-sm text-slate-300 flex items-center gap-2.5">
+      <span class="text-amber-400">💡</span>
+      <span>Challenge mode: Kids say the word aloud before flipping to reveal</span>
+    </div>
+
+    <!-- Hot-Pink Primary Action Button -->
+    <button class="h-12 px-7 rounded-2xl bg-primary text-white font-bold text-base tracking-wide pink-glow flex items-center gap-2.5 transition-all duration-200 hover:brightness-110 active:scale-95 cursor-pointer">
+      <span>Next 6 words</span>
+      <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+      </svg>
+    </button>
+  </footer>
+
+</body>
+</html>

@@ -93,11 +93,18 @@ export const renderContextualControls = (
         </button>
       );
     case 'FOCUS_CARDS':
+      // v3 flip-card redesign (games-v3 audit F5/4.e): full teacher parity —
+      // cursor PREV/NEXT, FLIP the active card, FLIP ALL (batch), AUDIO for the
+      // active card (PLAY_AUDIO was previously listened-for but unreachable),
+      // and NEXT_BATCH pagination.
       return (
-        <div className="flex gap-2">
-          <button onClick={() => triggerAction('PREV_CARD')} className="h-12 w-12 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-xl active:scale-95"><ArrowLeft size={20} /></button>
-          <button onClick={() => triggerAction('FLIP_CARD')} className="h-12 px-6 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/50 active:scale-95">Flip Card</button>
-          <button onClick={() => triggerAction('NEXT_CARD')} className="h-12 w-12 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-xl active:scale-95"><ArrowRight size={20} /></button>
+        <div className="flex gap-2 flex-wrap items-center">
+          <button onClick={() => triggerAction('PREV_CARD')} className="h-12 w-12 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-xl active:scale-95" title="Previous card (moves the halo)"><ArrowLeft size={20} /></button>
+          <button onClick={() => triggerAction('FLIP_CARD')} className="h-12 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg active:scale-95" title="Flip the active card in place">Flip Card</button>
+          <button onClick={() => triggerAction('NEXT_CARD')} className="h-12 w-12 flex items-center justify-center bg-slate-700 hover:bg-slate-600 text-white rounded-xl active:scale-95" title="Next card"><ArrowRight size={20} /></button>
+          <button onClick={() => triggerAction('PLAY_AUDIO')} className="h-12 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Play the active card's audio"><Volume2 size={18} /> Audio</button>
+          <button onClick={() => triggerAction('FLIP_ALL_CARDS')} className="h-12 px-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Flip the whole batch (choral drill)">Flip All</button>
+          <button onClick={() => triggerAction('NEXT_BATCH')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Next 6 words">Next 6 <ChevronRight size={18} /></button>
         </div>
       );
     case 'SPEED_QUIZ':

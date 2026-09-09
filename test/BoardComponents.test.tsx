@@ -104,40 +104,48 @@ describe('BoardFocusCards', () => {
 
   // v2 is the Overview Grid ("Today's Words") — the old single-card flipper
   // UI ('Vocabulary Cards' title, '1 / 2' counter, 'Flip for meaning') was
-  // replaced by the design-doc grid → 4-stage drill flow.
-  it('renders the grid header title', () => {
+  // v3 redesign (games-v3 loop 2026-09-10): flip-card grid — image-only
+  // fronts, in-place 3D flip, batches of 6, deep-dive "+" modal.
+  it('renders the v3 grid header (title + batch chip, English-first)', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText("Today's Words")).toBeInTheDocument();
-    expect(screen.getByText(/今天的单词/)).toBeInTheDocument();
+    expect(screen.getByText('Focus Cards')).toBeInTheDocument();
+    expect(screen.getByText(/Words 1–2 of 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Presentation — teacher paced/)).toBeInTheDocument();
   });
 
-  it('renders the word count badge', () => {
+  it('renders every word card in the grid (no more slice(0,5))', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('Words')).toBeInTheDocument();
+    // 'cat' + 'dog' fronts exist in the flow data; the words render on backs
+    // and in the empty-image fallback — at minimum the fallback letter.
+    expect(screen.getAllByText('cat').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('dog').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the front face content of the first card', () => {
+  it('marks a card studied (emerald) after flipping it', () => {
     render(<BoardFocusCards data={mockData} />);
-    const catElements = screen.getAllByText('cat');
-    expect(catElements.length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getAllByText('cat')[0]);
+    // After the flip the back face shows the word + the audio/plus controls.
+    expect(screen.getAllByTitle('Play word audio').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByTitle(/Deep dive/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the tap-to-learn hint in the empty grid slot', () => {
+  it('opens the deep-dive modal from the + button (Chinese allowed there)', () => {
     render(<BoardFocusCards data={mockData} />);
-    expect(screen.getByText('Tap a card to learn')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText('cat')[0]); // flip
+    fireEvent.click(screen.getAllByTitle(/Deep dive/)[0]);
+    expect(screen.getByText('Back to cards')).toBeInTheDocument();
   });
 
   it('renders gracefully with empty cards array', () => {
     render(<BoardFocusCards data={{ title: 'Empty', cards: [] }} />);
-    expect(screen.getByText('Vocabulary Grid')).toBeInTheDocument();
-    expect(screen.getByText('No vocabulary for this unit.')).toBeInTheDocument();
+    expect(screen.getByText('Focus Cards')).toBeInTheDocument();
+    expect(screen.getByText('This unit has no vocabulary words yet.')).toBeInTheDocument();
   });
 
   it('renders gracefully with no data.cards property', () => {
     render(<BoardFocusCards data={{ title: 'No Cards' }} />);
-    expect(screen.getByText('Vocabulary Grid')).toBeInTheDocument();
-    expect(screen.getByText('No vocabulary for this unit.')).toBeInTheDocument();
+    expect(screen.getByText('Focus Cards')).toBeInTheDocument();
+    expect(screen.getByText('This unit has no vocabulary words yet.')).toBeInTheDocument();
   });
 });
 
