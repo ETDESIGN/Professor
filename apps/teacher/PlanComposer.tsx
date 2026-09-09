@@ -168,12 +168,15 @@ const buildBlockData = (type: string, ec: any, comic?: any, meta?: any): any => 
     }
     case 'WORD_SEARCH': {
       // BoardWordSearch pulls words from the pool/vocabulary at runtime; the
-      // frozen data only carries the game settings (mode: open | collaborative | relay).
+      // frozen data only carries the game settings (mode: open | collaborative
+      // | relay; preset — v3 audit: starter = 3 words, gentler direction ramp,
+      // 180 s; explorer = 5 words, full 8-way ramp, 120 s).
       return {
         rounds: 3,
-        wordsPerRound: Math.min(5, Math.max(3, vocab.length || 5)),
-        seconds: 120,
+        wordsPerRound: Math.min(3, Math.max(3, vocab.length || 3)),
+        seconds: 180,
         mode: 'open',
+        preset: 'starter',
       };
     }
     case 'SPELLING_BEE': {

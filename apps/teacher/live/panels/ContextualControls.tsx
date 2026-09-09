@@ -256,8 +256,11 @@ export const renderContextualControls = (
       );
     case 'WORD_SEARCH':
       // BoardWordSearch listens for exactly these strings: Clue circles an
-      // unfound word's first letter and halves its award; Reveal locks a word
-      // without points; Play/Pause and +30s drive the round timer.
+      // unfound word's first letter (armed token, or first unfound) and halves
+      // its award; Reveal locks a word without points; Play/Pause and +30s
+      // drive the round timer. v3 (audit F2): a real Next Round control — from
+      // the summary it advances with the celebratory path, from play it
+      // abandons the round silently.
       return (
         <div className="flex gap-2 flex-wrap items-center">
           <button onClick={() => triggerAction('PLAY_PAUSE')} className="h-12 px-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Pause / resume the round timer">
@@ -275,7 +278,10 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('REVEAL_ANSWER')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
             <Eye size={18} /> Reveal
           </button>
-          <button onClick={() => triggerAction('SKIP_ROUND')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">
+          <button onClick={() => triggerAction('NEXT_ROUND')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Next round (from the summary: continue; from play: abandon this round)">
+            <ChevronRight size={18} /> Next Round
+          </button>
+          <button onClick={() => triggerAction('SKIP_ROUND')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Skip without the celebration">
             <SkipForward size={18} /> Skip
           </button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95">

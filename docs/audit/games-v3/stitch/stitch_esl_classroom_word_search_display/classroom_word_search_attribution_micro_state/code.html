@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Search - Attribution Modal State</title>
+<!-- Google Fonts: Sora, Inter, Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-container": "#c0fff4",
+            "on-secondary": "#001a1a",
+            "on-background": "#e8e0f0",
+            "surface": "#0f0f1a",
+            "tertiary-container": "#665200",
+            "on-primary-fixed-variant": "#8c0038",
+            "secondary": "#00ffcc",
+            "on-tertiary-fixed": "#1a1000",
+            "surface-container-highest": "#28283e",
+            "on-primary": "#1a0010",
+            "primary": "#ff2d78",
+            "secondary-fixed-dim": "#00e6b8",
+            "outline-variant": "#302840",
+            "surface-container-lowest": "#0a0a12",
+            "error-container": "#3d0f0f",
+            "inverse-primary": "#8c0038",
+            "primary-fixed-dim": "#ff80aa",
+            "surface-container-high": "#1e1e30",
+            "surface-dim": "#0f0f1a",
+            "primary-fixed": "#ffe0ec",
+            "surface-tint": "#ff2d78",
+            "background": "#0a0a12",
+            "on-surface-variant": "#a098b0",
+            "tertiary": "#ffe04a",
+            "inverse-surface": "#e8e0f0",
+            "secondary-fixed": "#c0fff4",
+            "outline": "#5a5068",
+            "on-tertiary-container": "#fff0c0",
+            "surface-container": "#141422",
+            "inverse-on-surface": "#0a0a12",
+            "on-primary-container": "#ffe0ec",
+            "tertiary-fixed": "#fff0c0",
+            "on-surface": "#e8e0f0",
+            "on-secondary-fixed-variant": "#004d4d",
+            "primary-container": "#b3004e",
+            "on-error-container": "#ffa0a0",
+            "on-tertiary": "#1a1000",
+            "error": "#ff4444",
+            "on-primary-fixed": "#3d0020",
+            "on-tertiary-fixed-variant": "#665200",
+            "on-error": "#1a0000",
+            "secondary-container": "#004d3d",
+            "tertiary-fixed-dim": "#ffe04a",
+            "surface-bright": "#1a1a2e",
+            "on-secondary-fixed": "#001a1a",
+            "surface-variant": "#1e1e30",
+            "surface-container-low": "#111118"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    .neon-text-primary {
+      text-shadow: 0 0 10px rgba(255, 45, 120, 0.7);
+    }
+    .neon-text-cyan {
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.7);
+    }
+    .neon-text-emerald {
+      text-shadow: 0 0 12px rgba(16, 185, 129, 0.85);
+    }
+    .neon-box-pink {
+      box-shadow: 0 0 20px rgba(255, 45, 120, 0.35);
+    }
+    .neon-box-cyan {
+      box-shadow: 0 0 18px rgba(0, 255, 204, 0.3);
+    }
+    .neon-box-emerald {
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.45);
+    }
+    .grid-board {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 6px;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body overflow-hidden select-none w-screen h-screen flex flex-col justify-between">
+<!-- ================= TOP APP BAR / SHARED COMPONENT ================= -->
+<header class="bg-surface-dim border-b border-outline-variant flex justify-between items-center w-full px-8 py-3.5 z-20 shrink-0">
+<!-- Left Identity cluster -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-headline font-bold text-2xl text-on-primary shadow-lg shadow-primary/30">
+          W
+        </div>
+<span class="font-headline font-bold text-2xl text-primary tracking-wide neon-text-primary">
+          Word Search
+        </span>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="bg-surface-container-highest text-secondary border border-secondary/40 font-label tracking-wider uppercase text-xs px-3 py-1.5 rounded-full font-bold">
+          Round 2 · Explorer
+        </span>
+<span class="bg-surface-container text-on-surface-variant border border-outline font-label text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
+<span class="text-sm">🖐</span> Whole class — hands up
+        </span>
+</div>
+</div>
+<!-- Center/Right: Live Sync & Sky-Blue Glowing Paused Pill -->
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low border border-outline-variant text-on-surface-variant font-label text-xs">
+<span class="inline-block w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="text-secondary font-bold">LIVE SYNCED</span>
+<span>|</span>
+<span>Teacher Console Connected</span>
+</div>
+<!-- Sky Blue Paused Pill -->
+<div class="flex items-center gap-2.5 px-4 py-2 rounded-full bg-surface-container-high border-2 border-secondary/60 neon-box-cyan text-secondary font-headline font-bold text-sm tracking-wide">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">pause_circle</span>
+<span>Paused — choose the finder</span>
+</div>
+<!-- Action icons matching Shared Component JSON -->
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center rounded-lg hover:text-primary transition-colors active:scale-95">
+<span class="material-symbols-outlined">fullscreen</span>
+</button>
+</div>
+</div>
+</header>
+<!-- ================= MAIN GAME WORKSPACE ================= -->
+<main class="relative flex-1 w-full flex items-stretch overflow-hidden px-8 py-4">
+<!-- BACKGROUND DIMMED GAME CANVAS (60% opacity with blur) -->
+<div class="w-full flex gap-6 opacity-60 pointer-events-none filter blur-[2px] transition-opacity duration-300">
+<!-- 9x9 Word Search Matrix Area -->
+<section class="flex-1 flex flex-col items-center justify-center bg-surface-container/60 rounded-xl border border-outline-variant/50 p-6 relative">
+<div class="w-full max-w-2xl aspect-square grid-board">
+<!-- Row 1 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">B</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">A</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">P</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">P</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">L</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">E</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Z</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Q</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">M</div>
+<!-- Row 2 (TRACTOR diagonal start T) -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">T</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">O</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">R</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">N</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">W</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">X</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">K</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">S</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Y</div>
+<!-- Row 3 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">J</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">R</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">I</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">V</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">E</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">R</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">H</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">U</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">G</div>
+<!-- Row 4 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">V</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">N</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">A</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">P</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">O</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">I</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">L</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">C</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">F</div>
+<!-- Row 5: HORIZONTAL CELEBRATION FOR "LEAF" -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">C</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">K</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">D</div>
+<!-- L - E - A - F with intense green glow capsule -->
+<div class="relative flex items-center justify-center text-3xl font-headline font-extrabold text-white bg-emerald-500/80 border-y-2 border-l-2 border-emerald-400 rounded-l-xl aspect-square shadow-[0_0_20px_rgba(16,185,129,0.9)]">
+            L
+          </div>
+<div class="relative flex items-center justify-center text-3xl font-headline font-extrabold text-white bg-emerald-500/80 border-y-2 border-emerald-400 aspect-square shadow-[0_0_20px_rgba(16,185,129,0.9)]">
+            E
+          </div>
+<div class="relative flex items-center justify-center text-3xl font-headline font-extrabold text-white bg-emerald-500/80 border-y-2 border-emerald-400 aspect-square shadow-[0_0_20px_rgba(16,185,129,0.9)]">
+            A
+          </div>
+<div class="relative flex items-center justify-center text-3xl font-headline font-extrabold text-white bg-emerald-500/80 border-y-2 border-r-2 border-emerald-400 rounded-r-xl aspect-square shadow-[0_0_20px_rgba(16,185,129,0.9)]">
+            F
+            <span class="absolute -top-3 -right-3 bg-tertiary text-on-tertiary font-headline font-bold text-xs px-2 py-0.5 rounded-full shadow-lg">+2 PTS</span>
+</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">O</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">W</div>
+<!-- Row 6 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">T</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Y</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">U</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">C</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">S</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">A</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">B</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">C</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">E</div>
+<!-- Row 7 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">P</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Q</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">W</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">E</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">T</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">R</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">L</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">M</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Z</div>
+<!-- Row 8 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">F</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">B</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">N</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">M</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Y</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">O</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">P</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">Q</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">R</div>
+<!-- Row 9 -->
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">L</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">K</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">J</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">H</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">G</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">F</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 rounded-lg aspect-square">R</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">D</div>
+<div class="flex items-center justify-center text-2xl font-headline font-bold text-on-surface/80 bg-surface-container-low rounded-lg aspect-square">S</div>
+</div>
+</section>
+<!-- Right Rail: Vocabulary Targets (4 cards) -->
+<aside class="w-80 flex flex-col gap-3">
+<!-- Card 1: LEAF (Being Solved) -->
+<div class="bg-surface-container p-3 rounded-xl border-2 border-emerald-500 flex items-center gap-3">
+<img alt="Fresh green leaf with water dew drops" class="w-16 h-16 rounded-lg object-cover border border-emerald-400/50" src="https://lh3.googleusercontent.com/aida/AEtjO1Wcz_SeA8svDa3E6uBhhkxJ5rHXwZcN5wXM2M4VahmTf9N8PY964zprrSazkJwaApdbS3oEzdKb5dfrOHjEY_AcTQ9a4cdheOcGQeVY0uv70-JAARRgP0LOz2TArLscA0pB2Rrh21S5XIsFjSJXjho1Zv832kau-_MN7rhP8AZh40UD5wO53m8GFQGgzJEDqXRhFS72cXVUVEgmqtDyXVYS_LOZ41BOWXCrRGQ0ylhVtx8B9iRyXIznR3mA"/>
+<div class="flex-1">
+<span class="font-headline font-bold text-lg text-emerald-400">LEAF</span>
+<span class="block text-xs text-secondary font-label">FINDING FINDER...</span>
+</div>
+<span class="material-symbols-outlined text-emerald-400">check_circle</span>
+</div>
+<!-- Card 2: TRACTOR (Solved with Alice) -->
+<div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/60 flex items-center gap-3 opacity-80">
+<div class="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center text-2xl">🚜</div>
+<div class="flex-1">
+<span class="font-headline font-bold text-base text-on-surface">TRACTOR</span>
+<span class="block text-xs text-tertiary font-label">Found by Alice ⭐</span>
+</div>
+<span class="material-symbols-outlined text-emerald-500" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<!-- Card 3: RIVER (Solved with Leo) -->
+<div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/60 flex items-center gap-3 opacity-80">
+<div class="w-16 h-16 rounded-lg bg-surface-container-high flex items-center justify-center text-2xl">🌊</div>
+<div class="flex-1">
+<span class="font-headline font-bold text-base text-on-surface">RIVER</span>
+<span class="block text-xs text-secondary font-label">Found by Leo ⭐</span>
+</div>
+<span class="material-symbols-outlined text-emerald-500" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<!-- Card 4: APPLE (Unsolved blank card with Image 3) -->
+<div class="bg-surface-container-low p-3 rounded-xl border border-outline-variant/40 flex items-center gap-3 opacity-60">
+<img alt="Crisp red apple with green leaf" class="w-16 h-16 rounded-lg object-cover grayscale" src="https://lh3.googleusercontent.com/aida/AEtjO1WBoV2dzucSPyV51JEZH5DTrmZYnlmlvMx9n83QyEudJ_ukT3m605882pWKmwwgzVgXo6SeNA3wqFwGLIDHVjFby0HZvkW89oZi8Kz2XouHKDqYqWBix5u6oMAQnjhRkKQCEG09C8MDAT33zXlh1GeJCJRGGK3kWMSsCPUj1WvUWZ2nX5FGujehwPTkKai52ZzvbN40Rika5KLdLqB-HeQleLt8zxsHVhTTc2OrLbMrkiKja9f7v6iFuGgU"/>
+<div class="flex-1">
+<span class="font-headline font-bold text-base text-on-surface-variant">APPLE</span>
+<span class="block text-xs text-outline font-label">Hidden in grid</span>
+</div>
+<span class="material-symbols-outlined text-outline">lock</span>
+</div>
+</aside>
+</div>
+<!-- ================= ATTRIBUTION MICRO-STATE MODAL ================= -->
+<div class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-background/60 backdrop-blur-md">
+<div class="bg-surface-container-high/95 border-2 border-emerald-500/60 rounded-xl shadow-2xl shadow-emerald-950/80 p-8 max-w-2xl w-full text-center flex flex-col items-center relative neon-box-emerald">
+<!-- Subtle Top Glow Badge -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-label font-bold text-xs uppercase tracking-wider mb-3">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span>Point Allocation</span>
+</div>
+<!-- Headline & Emerald Points Badge -->
+<div class="flex items-center justify-center gap-3 mb-1">
+<h2 class="font-headline font-extrabold text-3xl md:text-4xl text-on-surface tracking-tight">
+            Who found <span class="text-emerald-400 neon-text-emerald">LEAF</span>?
+          </h2>
+<span class="bg-emerald-500 text-on-primary font-headline font-black text-sm px-3 py-1 rounded-full shadow-lg shadow-emerald-500/40">
+            +2 PTS
+          </span>
+</div>
+<!-- Subtitle (Optimized for 8-meter classroom viewing) -->
+<p class="text-on-surface-variant font-body text-lg mb-8 font-medium">
+          Tap the student who called it out
+        </p>
+<!-- Student Avatar Chips (3 columns x 2 rows) -->
+<div class="grid grid-cols-3 gap-6 w-full max-w-lg mb-8">
+<!-- Student 1: Alice (Pink ring) -->
+<button class="group flex flex-col items-center gap-2.5 p-3 rounded-xl bg-surface-container/70 border-2 border-primary/50 hover:border-primary hover:bg-surface-container transition-all active:scale-95 focus:outline-none">
+<div class="w-20 h-20 rounded-full border-4 border-primary p-1 bg-surface flex items-center justify-center relative shadow-lg shadow-primary/20">
+<span class="font-headline font-bold text-2xl text-primary">A</span>
+<span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold font-label">1</span>
+</div>
+<span class="font-headline font-bold text-2xl text-on-surface group-hover:text-primary transition-colors">Alice</span>
+</button>
+<!-- Student 2: Ben (Cyan ring) -->
+<button class="group flex flex-col items-center gap-2.5 p-3 rounded-xl bg-surface-container/70 border-2 border-secondary/50 hover:border-secondary hover:bg-surface-container transition-all active:scale-95 focus:outline-none">
+<div class="w-20 h-20 rounded-full border-4 border-secondary p-1 bg-surface flex items-center justify-center relative shadow-lg shadow-secondary/20">
+<span class="font-headline font-bold text-2xl text-secondary">B</span>
+<span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center text-xs font-bold font-label">0</span>
+</div>
+<span class="font-headline font-bold text-2xl text-on-surface group-hover:text-secondary transition-colors">Ben</span>
+</button>
+<!-- Student 3: Coco (ACTIVE / SELECTED STATE - Vibrant Emerald Glow & Scale) -->
+<button class="flex flex-col items-center gap-2.5 p-3 rounded-xl bg-emerald-950/40 border-2 border-emerald-400 transform scale-105 shadow-xl shadow-emerald-500/30 transition-all focus:outline-none relative">
+<div class="absolute -top-3 right-4 bg-emerald-400 text-slate-950 rounded-full w-7 h-7 flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-lg font-extrabold" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="w-20 h-20 rounded-full border-4 border-emerald-400 p-1 bg-surface flex items-center justify-center relative shadow-[0_0_15px_rgba(16,185,129,0.8)]">
+<span class="font-headline font-extrabold text-2xl text-emerald-400">C</span>
+</div>
+<span class="font-headline font-extrabold text-2xl text-emerald-400 neon-text-emerald">Coco</span>
+</button>
+<!-- Student 4: Dudu (Tertiary Amber ring) -->
+<button class="group flex flex-col items-center gap-2.5 p-3 rounded-xl bg-surface-container/70 border-2 border-tertiary/50 hover:border-tertiary hover:bg-surface-container transition-all active:scale-95 focus:outline-none">
+<div class="w-20 h-20 rounded-full border-4 border-tertiary p-1 bg-surface flex items-center justify-center relative shadow-lg shadow-tertiary/20">
+<span class="font-headline font-bold text-2xl text-tertiary">D</span>
+<span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center text-xs font-bold font-label">0</span>
+</div>
+<span class="font-headline font-bold text-2xl text-on-surface group-hover:text-tertiary transition-colors">Dudu</span>
+</button>
+<!-- Student 5: Emma (Violet ring) -->
+<button class="group flex flex-col items-center gap-2.5 p-3 rounded-xl bg-surface-container/70 border-2 border-purple-500/50 hover:border-purple-400 hover:bg-surface-container transition-all active:scale-95 focus:outline-none">
+<div class="w-20 h-20 rounded-full border-4 border-purple-400 p-1 bg-surface flex items-center justify-center relative shadow-lg shadow-purple-500/20">
+<span class="font-headline font-bold text-2xl text-purple-400">E</span>
+<span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold font-label">0</span>
+</div>
+<span class="font-headline font-bold text-2xl text-on-surface group-hover:text-purple-400 transition-colors">Emma</span>
+</button>
+<!-- Student 6: Fang (Sky Teal ring) -->
+<button class="group flex flex-col items-center gap-2.5 p-3 rounded-xl bg-surface-container/70 border-2 border-teal-400/50 hover:border-teal-300 hover:bg-surface-container transition-all active:scale-95 focus:outline-none">
+<div class="w-20 h-20 rounded-full border-4 border-teal-400 p-1 bg-surface flex items-center justify-center relative shadow-lg shadow-teal-400/20">
+<span class="font-headline font-bold text-2xl text-teal-400">F</span>
+<span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-teal-400 text-on-secondary flex items-center justify-center text-xs font-bold font-label">0</span>
+</div>
+<span class="font-headline font-bold text-2xl text-on-surface group-hover:text-teal-400 transition-colors">Fang</span>
+</button>
+</div>
+<!-- Fallback Action: No credit / Class point -->
+<button class="px-5 py-2.5 rounded-full bg-surface-container hover:bg-surface-container-highest text-on-surface-variant hover:text-on-surface border border-outline/50 hover:border-outline text-sm font-label font-bold tracking-wide transition-all active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined text-base">group</span>
+<span>No credit — class point (+2 to class pool)</span>
+</button>
+</div>
+</div>
+</main>
+<!-- ================= BOTTOM HUD (Slightly dimmed behind modal) ================= -->
+<footer class="bg-surface-dim border-t border-outline-variant px-8 py-3 flex items-center justify-between z-20 shrink-0 opacity-70">
+<!-- Left: Quest & Score -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 bg-surface-container px-4 py-2 rounded-lg border border-outline-variant">
+<span class="font-label text-xs text-on-surface-variant uppercase tracking-wider">Class Score</span>
+<span class="font-headline font-extrabold text-xl text-secondary">440 pts</span>
+</div>
+<!-- Quest tokens -->
+<div class="flex items-center gap-2">
+<span class="font-label text-xs text-on-surface-variant uppercase">Quest:</span>
+<div class="flex items-center gap-1.5">
+<span class="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 text-xs font-bold">1</span>
+<span class="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 text-xs font-bold">2</span>
+<span class="w-7 h-7 rounded-full bg-surface-container border border-outline text-on-surface-variant text-xs font-bold">3</span>
+<span class="w-7 h-7 rounded-full bg-surface-container border border-outline text-on-surface-variant text-xs font-bold">4</span>
+</div>
+</div>
+</div>
+<!-- Center: Quick Hint Status -->
+<div class="font-label text-xs text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<span>2/4 Words Discovered in Forest Theme</span>
+</div>
+<!-- Right: Clue and Controls -->
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline text-on-surface text-sm font-label font-bold flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-base">help_outline</span>
+<span>Hint (2 Left)</span>
+</button>
+<button class="px-5 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-headline font-bold text-sm tracking-wider uppercase flex items-center gap-1.5 shadow-lg shadow-primary/30 neon-box-pink transition-all">
+<span class="material-symbols-outlined text-base">visibility</span>
+<span>CLUE</span>
+</button>
+</div>
+</footer>
+</body></html>

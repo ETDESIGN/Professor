@@ -58,16 +58,17 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!unitId) { setLoading(false); return; }
-      setLoading(true);
-      setError(false);
+      try {
+        if (!unitId) { setLoading(false); return; }
+        setLoading(true);
+        setError(false);
 
-      let weakRankMap: Record<string, number> = {};
-      if (classWeak && roster && roster.length > 0) {
-        const weak = await classWeakObjectives(roster, unitId);
-        weakRankMap = denseWeakRanks(weak);
-        if (!cancelled) setWeakOrder(Object.keys(weakRankMap));
-      }
+        let weakRankMap: Record<string, number> = {};
+        if (classWeak && roster && roster.length > 0) {
+          const weak = await classWeakObjectives(roster, unitId);
+          weakRankMap = denseWeakRanks(weak);
+          if (!cancelled) setWeakOrder(Object.keys(weakRankMap));
+        }
 
       // Fetch the whole unit pool for the requested types (bounded: ~15 words
       // × ~10 types per unit), with only a generous safety cap. The caller's
@@ -111,6 +112,12 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       if (limit && limit > 0) pool = pool.slice(0, limit);
 
       if (!cancelled) { setItems(pool); setLoading(false); }
+      } catch {
+        // F15 (games-v3 audit): a rejected fetch used to leave loading=true
+        // forever as an unhandled rejection — the board blanked on "Loading…"
+        // mid-lesson. Surface the error state and always settle loading.
+        if (!cancelled) { setItems([]); setError(true); setLoading(false); }
+      }
     })();
     return () => { cancelled = true; };
   }, [unitId, sessionId, scopeObjectiveIds?.join(','), exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);

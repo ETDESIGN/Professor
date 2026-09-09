@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Word Search - Classroom Projector Recap</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-primary": "#1a0010",
+            "on-surface": "#e8e0f0",
+            "on-error": "#1a0000",
+            "on-primary-container": "#ffe0ec",
+            "surface-tint": "#ff2d78",
+            "surface-container-lowest": "#0a0a12",
+            "primary-container": "#b3004e",
+            "error-container": "#3d0f0f",
+            "surface-container": "#141422",
+            "surface-dim": "#0f0f1a",
+            "surface-container-high": "#1e1e30",
+            "on-primary-fixed-variant": "#8c0038",
+            "secondary": "#00ffcc",
+            "outline-variant": "#302840",
+            "on-tertiary": "#1a1000",
+            "tertiary": "#ffe04a",
+            "background": "#0a0a12",
+            "on-secondary-fixed": "#001a1a",
+            "primary-fixed": "#ffe0ec",
+            "on-tertiary-container": "#fff0c0",
+            "on-tertiary-fixed-variant": "#665200",
+            "primary": "#ff2d78",
+            "surface": "#0f0f1a",
+            "inverse-surface": "#e8e0f0",
+            "on-background": "#e8e0f0",
+            "on-secondary-container": "#c0fff4",
+            "surface-variant": "#1e1e30",
+            "secondary-fixed-dim": "#00e6b8",
+            "error": "#ff4444",
+            "surface-container-highest": "#28283e",
+            "on-tertiary-fixed": "#1a1000",
+            "primary-fixed-dim": "#ff80aa",
+            "surface-bright": "#1a1a2e",
+            "inverse-on-surface": "#0a0a12",
+            "on-error-container": "#ffa0a0",
+            "secondary-container": "#004d3d",
+            "on-secondary": "#001a1a",
+            "tertiary-fixed": "#fff0c0",
+            "tertiary-container": "#665200",
+            "inverse-primary": "#8c0038",
+            "on-surface-variant": "#a098b0",
+            "on-primary-fixed": "#3d0020",
+            "secondary-fixed": "#c0fff4",
+            "outline": "#5a5068",
+            "surface-container-low": "#111118",
+            "tertiary-fixed-dim": "#ffe04a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .neon-text-pink {
+      text-shadow: 0 0 12px rgba(255, 45, 120, 0.45);
+    }
+    .neon-text-cyan {
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+    }
+    .neon-border-card {
+      border: 1px solid rgba(0, 255, 204, 0.22);
+      box-shadow: inset 0 0 20px rgba(0, 255, 204, 0.03), 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .neon-border-card:hover {
+      border: 1px solid rgba(0, 255, 204, 0.55);
+      box-shadow: inset 0 0 24px rgba(0, 255, 204, 0.08), 0 0 20px rgba(0, 255, 204, 0.15);
+    }
+    .btn-pink-glow {
+      box-shadow: 0 0 20px rgba(255, 45, 120, 0.35);
+    }
+    .btn-pink-glow:hover {
+      box-shadow: 0 0 28px rgba(255, 45, 120, 0.6);
+    }
+    /* Subtle Retro Grid scanlines overlay */
+    .bg-grid-cyber {
+      background-image: linear-gradient(to right, rgba(48, 40, 64, 0.12) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(48, 40, 64, 0.12) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body h-screen w-screen overflow-hidden flex flex-col select-none bg-grid-cyber">
+<!-- ================= TOP APP BAR (Shared Anchored Hierarchy) ================= -->
+<header class="bg-surface-dim border-b border-outline-variant px-8 py-3 flex justify-between items-center w-full shrink-0 z-20">
+<!-- Left: Brand + Round Context -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high border border-primary/40 flex items-center justify-center text-primary font-headline font-extrabold text-xl shadow-[0_0_12px_rgba(255,45,120,0.35)]">
+          W
+        </div>
+<span class="font-headline font-bold text-2xl text-primary tracking-wide">
+          Word Search
+        </span>
+</div>
+<div class="h-5 w-[1px] bg-outline-variant mx-1"></div>
+<div class="px-3.5 py-1 rounded-full bg-surface-container border border-outline-variant flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_6px_#00ffcc]"></span>
+<span class="font-label text-xs uppercase tracking-wider text-secondary font-medium">Round 2 · Recap</span>
+</div>
+</div>
+<!-- Center: Live Synced State Indicator -->
+<div class="hidden lg:flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/60">
+<span class="flex h-2.5 w-2.5 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
+</span>
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant font-semibold">
+        LIVE SYNCED <span class="text-outline">|</span> Teacher Console Connected
+      </span>
+</div>
+<!-- Right: Trailing Actions + Status Pill -->
+<div class="flex items-center gap-3">
+<!-- Status Pill -->
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary-container/40 border border-secondary/30 text-secondary mr-2">
+<span class="text-sm">📖</span>
+<span class="font-label text-xs uppercase tracking-wider font-semibold">Word Recap</span>
+</div>
+<button aria-label="Audio Controls" class="w-9 h-9 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="volume_up">volume_up</span>
+</button>
+<button aria-label="Settings" class="w-9 h-9 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+</button>
+<button aria-label="Fullscreen" class="w-9 h-9 rounded-lg bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/50 transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</header>
+<!-- ================= MAIN RECAP CANVAS (16:9 Optimized Distance Layout) ================= -->
+<main class="flex-1 w-full max-w-7xl mx-auto px-8 py-5 flex flex-col justify-between items-center z-10 overflow-hidden">
+<!-- Section Header (Encouraging Classroom Tone) -->
+<div class="text-center space-y-2 mt-1">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high/70 border border-secondary/20 text-secondary text-xs font-label uppercase tracking-widest mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="auto_stories">auto_stories</span>
+        Collective Phonics Mastery
+      </div>
+<h1 class="font-headline font-extrabold text-4xl lg:text-5xl text-on-surface tracking-tight">
+        Let's learn these <span class="text-primary neon-text-pink">words</span>
+</h1>
+<p class="font-body text-base lg:text-lg text-secondary font-medium tracking-wide">
+        You found the tricky ones together — now you know them all!
+      </p>
+</div>
+<!-- Large Revealed Words Showcase (3-Card Horizontal Deck) -->
+<section aria-label="Revealed Word Cards" class="grid grid-cols-3 gap-7 w-full my-auto max-h-[380px]">
+<!-- Card 1: TRACTOR -->
+<article class="bg-surface-container rounded-xl neon-border-card p-6 flex flex-col items-center justify-between transition-all duration-300 group cursor-pointer">
+<!-- Visual Thumbnail -->
+<div class="w-full h-36 rounded-lg overflow-hidden border border-outline-variant/60 relative bg-surface-dim">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A bright green agricultural tractor parked proudly in a sunlit organic farm field under a crisp azure sky. Dramatic low-angle perspective showing powerful heavy tires and clean modern farm mechanics. The atmosphere is warm and educational with cinematic natural outdoor illumination, vibrant green bodywork, and sharp focus suited for classroom vocabulary study." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeNWdoyG4mfjJd8CS1o-0M48X4D1B1J7Ejj0yQbJgD3CvdnK389maTw3LHq0QPfVd7X_rv0qKPM3n8M-BHSMeFfXmJBmmjl04-6FRySPkLCYGbI5SyMc8YxWnQvpKkOwfFGZK6IwTVHUfkKyraEt2krxgzYMcLLhzVXaYoKxKIwHP_5pqH0W-_RTVEiM-yVL_BvpD6P4vZg1zL6WtOUkR_2X7MJZ4sGSro2wMv5B37tXQee_OfCBv57w"/>
+<div class="absolute top-2 right-2 bg-surface-dim/80 backdrop-blur-md px-2 py-0.5 rounded text-[11px] font-label text-tertiary border border-tertiary/20">
+            Noun
+          </div>
+</div>
+<!-- Word Info & Phonics -->
+<div class="w-full text-center mt-3">
+<div class="flex items-center justify-center gap-3">
+<h2 class="font-headline font-bold text-3xl tracking-wide text-on-surface group-hover:text-secondary transition-colors duration-200">
+              TRACTOR
+            </h2>
+<button aria-label="Pronounce TRACTOR" class="w-9 h-9 rounded-full bg-surface-container-high border border-outline-variant hover:border-secondary flex items-center justify-center text-secondary hover:bg-secondary-container transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<p class="font-label text-sm text-on-surface-variant font-medium tracking-wider mt-1">
+            /ˈtræk.tər/
+          </p>
+</div>
+<!-- Definition Cue -->
+<div class="w-full pt-3 mt-2 border-t border-outline-variant/40 text-center">
+<span class="font-body text-xs text-on-surface-variant">A powerful vehicle used on farms to pull heavy machines.</span>
+</div>
+</article>
+<!-- Card 2: RIVER -->
+<article class="bg-surface-container rounded-xl neon-border-card p-6 flex flex-col items-center justify-between transition-all duration-300 group cursor-pointer">
+<!-- Visual Thumbnail -->
+<div class="w-full h-36 rounded-lg overflow-hidden border border-outline-variant/60 relative bg-surface-dim">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A picturesque winding freshwater river coursing smoothly through vibrant lush alpine foothills with smooth stone banks. Crystal-clear aquamarine water reflecting gentle morning mist and warm sunlight highlights. The scene evokes tranquility, geographic exploration, and environmental vitality with vivid natural hues and crisp focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAI8jtbB0Uxrim0CygHltRYgmVQ9903zEvUno3V6SMZQmn-HVXZQnsPJGoMhbgI67aA0DUavH1UxgDcq6I_5chs1ZQlHOE7kvUMCKraoU5LUOiNbR3-6sol0w8Cm4IWE9sZZ3SoICdfYC6xvVLYtbtSgNn2IkDXeBpkdzAYJWk74N88dxeiL4al5G2S1wNW-LtfGlXseNxL4QMxqNhkzatdrL4IS1KlG_2I-gRzPCIjJKp5xYyK4ZIraQ"/>
+<div class="absolute top-2 right-2 bg-surface-dim/80 backdrop-blur-md px-2 py-0.5 rounded text-[11px] font-label text-secondary border border-secondary/20">
+            Noun
+          </div>
+</div>
+<!-- Word Info & Phonics -->
+<div class="w-full text-center mt-3">
+<div class="flex items-center justify-center gap-3">
+<h2 class="font-headline font-bold text-3xl tracking-wide text-on-surface group-hover:text-secondary transition-colors duration-200">
+              RIVER
+            </h2>
+<button aria-label="Pronounce RIVER" class="w-9 h-9 rounded-full bg-surface-container-high border border-outline-variant hover:border-secondary flex items-center justify-center text-secondary hover:bg-secondary-container transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<p class="font-label text-sm text-on-surface-variant font-medium tracking-wider mt-1">
+            /ˈrɪv.ər/
+          </p>
+</div>
+<!-- Definition Cue -->
+<div class="w-full pt-3 mt-2 border-t border-outline-variant/40 text-center">
+<span class="font-body text-xs text-on-surface-variant">A natural flowing stream of water winding toward a sea or lake.</span>
+</div>
+</article>
+<!-- Card 3: APPLE -->
+<article class="bg-surface-container rounded-xl neon-border-card p-6 flex flex-col items-center justify-between transition-all duration-300 group cursor-pointer">
+<!-- Visual Thumbnail -->
+<div class="w-full h-36 rounded-lg overflow-hidden border border-outline-variant/60 relative bg-surface-dim">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A pristine, glossy red Honeycrisp apple resting peacefully on a rustic dark wooden surface with tiny sparkling water droplets. A single fresh green leaf is attached to the stem. The lighting is soft and studio-quality with rich ruby-red saturation and deep shadows, highlighting the clean organic freshness of healthy produce." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBJW-EGOJu1rmnEl8Ct6tlXs5ndKIUaJvkbGf5DscwGxIQLFPraJlPjDz7M5_a9Wwzqii3_I15zu5BPOxxW_wxMMUmAMXsjg9yc5YZ8W_jPAMy-S-iUAwxI4YLKTHmfVahxQZReJvB3Ao91sShX8os9ep2A16vmAipxm24JB28Se4n0zumdJvswLa3iKO-f44Z5JN_234heUkNqtOKUNSxFUQMN4Q2qEi-QzDddBPV5VbgugesZR6jyg"/>
+<div class="absolute top-2 right-2 bg-surface-dim/80 backdrop-blur-md px-2 py-0.5 rounded text-[11px] font-label text-primary border border-primary/20">
+            Noun
+          </div>
+</div>
+<!-- Word Info & Phonics -->
+<div class="w-full text-center mt-3">
+<div class="flex items-center justify-center gap-3">
+<h2 class="font-headline font-bold text-3xl tracking-wide text-on-surface group-hover:text-secondary transition-colors duration-200">
+              APPLE
+            </h2>
+<button aria-label="Pronounce APPLE" class="w-9 h-9 rounded-full bg-surface-container-high border border-outline-variant hover:border-secondary flex items-center justify-center text-secondary hover:bg-secondary-container transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="volume_up">volume_up</span>
+</button>
+</div>
+<p class="font-label text-sm text-on-surface-variant font-medium tracking-wider mt-1">
+            /ˈæp.əl/
+          </p>
+</div>
+<!-- Definition Cue -->
+<div class="w-full pt-3 mt-2 border-t border-outline-variant/40 text-center">
+<span class="font-body text-xs text-on-surface-variant">A round, crisp fruit that grows on trees and has seeds inside.</span>
+</div>
+</article>
+</section>
+<!-- Interactive Prompt Chip & CTAs Section -->
+<div class="flex flex-col items-center gap-4 mb-2">
+<!-- Learning Prompt Chip -->
+<div class="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-surface-container-high/80 border border-outline-variant text-on-surface-variant shadow-sm text-sm">
+<span class="text-tertiary">💡</span>
+<span class="font-label tracking-wide">Tap any word or speaker to hear pronunciation together as a class</span>
+</div>
+<!-- Call to Action Buttons -->
+<div class="flex items-center gap-4 mt-1">
+<button class="px-6 py-3 rounded-lg bg-surface-container-high border border-outline hover:border-on-surface-variant text-on-surface font-headline font-semibold text-sm transition-all duration-200 active:scale-95 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="replay">replay</span>
+          Replay Round
+        </button>
+<button class="px-8 py-3.5 rounded-lg bg-surface-container border border-primary text-primary hover:text-on-primary hover:bg-primary btn-pink-glow font-headline font-bold text-base transition-all duration-200 active:scale-95 flex items-center gap-3">
+<span>Next round</span>
+<span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- ================= BOTTOM HUD (Classroom Game Telemetry) ================= -->
+<footer class="bg-surface-dim border-t border-outline-variant px-8 py-3 flex justify-between items-center w-full shrink-0 z-20">
+<!-- Class Score Metric -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3 px-4 py-1.5 rounded-lg bg-surface-container border border-outline-variant">
+<span class="material-symbols-outlined text-tertiary text-xl" data-icon="stars" data-weight="fill" style="font-variation-settings: 'FILL' 1;">stars</span>
+<div class="flex flex-col">
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-widest">Class Score</span>
+<span class="font-headline font-extrabold text-lg text-tertiary leading-none">440 pts</span>
+</div>
+</div>
+<!-- Streak / Accuracy Metric -->
+<div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container/60 border border-outline-variant/60 text-xs font-label text-on-surface-variant">
+<span class="text-secondary">🎯</span>
+<span>Accuracy: <strong class="text-on-surface">94%</strong></span>
+</div>
+</div>
+<!-- Team Quest Completed Tokens -->
+<div class="flex items-center gap-3">
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant font-medium">
+        Team Quest Badges:
+      </span>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-container/40 border border-secondary/30 text-secondary text-xs font-label">
+<span class="material-symbols-outlined text-sm" data-icon="bolt">bolt</span>
+<span>Quick Find</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/30 border border-primary/30 text-primary-fixed-dim text-xs font-label">
+<span class="material-symbols-outlined text-sm" data-icon="group">group</span>
+<span>100% Teamwork</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/30 border border-tertiary/30 text-tertiary text-xs font-label">
+<span class="material-symbols-outlined text-sm" data-icon="verified">verified</span>
+<span>Zero Hints</span>
+</div>
+</div>
+</div>
+<!-- Teacher Console Status Indicator -->
+<div class="flex items-center gap-2 text-xs font-label text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Console: Room 204B</span>
+<span class="text-outline">·</span>
+<span class="text-secondary font-mono">Synced (12ms)</span>
+</div>
+</footer>
+</body></html>
