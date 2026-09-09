@@ -1,3 +1,10 @@
+import { waColors, waRadii, waShadows } from './apps/student/atlas/tokens';
+
+// Wonder Atlas (student app, 2026-09-09) — flattened to wa-* Tailwind keys.
+const waTailwindColors = Object.fromEntries(
+  Object.entries(waColors).map(([name, hex]) => [`wa-${name}`, hex])
+);
+
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -14,6 +21,9 @@ export default {
                 cn: ['Noto Sans SC', 'sans-serif'],
             },
             colors: {
+                // Wonder Atlas — student app (apps/student/atlas/tokens.ts)
+                ...waTailwindColors,
+
                 // Classroom Board & Student App (Duo Berry — rebranded from green 2026-08-31)
                 'duo-pink': '#e91e63',
                 'duo-pink-dark': '#be185d',
@@ -80,6 +90,19 @@ export default {
                 // Carnival Quest Stage (Stitch, 2026-09-09) — picker wheel & celebrations
                 rubik: ['Rubik', 'Noto Sans SC', 'system-ui', 'sans-serif'],
                 nunito: ['Nunito Sans', 'Inter', 'system-ui', 'sans-serif'],
+                // Wonder Atlas (student app)
+                'wa-display': ['Fredoka', 'Fredoka One', 'system-ui', 'sans-serif'],
+                'wa-body': ['Nunito', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+            },
+            borderRadius: {
+                'wa-card': waRadii.card,
+                'wa-tile': waRadii.tile,
+            },
+            boxShadow: {
+                'wa-btn-teal': waShadows.btnTeal,
+                'wa-btn-terra': waShadows.btnTerra,
+                'wa-btn-sand': waShadows.btnSand,
+                'wa-card': waShadows.card,
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',
