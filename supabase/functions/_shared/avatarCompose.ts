@@ -125,7 +125,11 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
   //    invalidates render caches when the underlying layer art is regenerated
   //    (the config alone can't see art changes). Bump on wholesale art refresh.
   const itemParts = SLOTS.filter((s) => config.items[s]).map((s) => `${s}:${config.items[s]}`).sort();
-  const canonical = JSON.stringify({ version: 1, art: 10, body: config.body, items: itemParts });
+  // art:11 — invalidate every render composed under art:10: those renders are
+  // structurally broken (the body layer was fetched but never composited, so
+  // they show floating items with no character; shipped with the 2026-09-07
+  // swap and missed by a false-positive E2E vision check).
+  const canonical = JSON.stringify({ version: 1, art: 11, body: config.body, items: itemParts });
   const hash = await sha256Hex16(canonical);
 
   const basePath = `avatars/renders/${userId}/${hash}`;
@@ -183,7 +187,12 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
 
   let out: Image;
   if (bgLayer) {
-    const bg = await fetchPngImage(bgLayer.url);
+    // Body-scoped variant first, then the common layer_asset_path —
+    // backgrounds are never body-scoped, so without the fallback every
+    // background silently vanished.
+    const bg =
+      (await fetchPngImage(bgLayer.url)) ??
+      (bgLayer.fallbackUrl ? await fetchPngImage(bgLayer.fallbackUrl) : null);
     out = bg
       ? bg.clone()
       : new Image(CANVAS, CANVAS, [255, 255, 255, 255] as unknown as number);
@@ -191,12 +200,18 @@ export async function composeAvatar(userId: string): Promise<{ ok: boolean; url?
     out = new Image(CANVAS, CANVAS, [255, 255, 255, 255] as unknown as number);
   }
 
-  for (const l of [...backLayers, ...frontLayers]) {
-    if (l.order === RENDER_ORDER.indexOf('background')) continue;
+  const compositeLayer = async (l: { url: string; fallbackUrl?: string }) => {
     let img = await fetchPngImage(l.url);
     if (!img && l.fallbackUrl) img = await fetchPngImage(l.fallbackUrl);
     if (img) out.composite(img, 0, 0);
-  }
+  };
+
+  for (const l of backLayers) await compositeLayer(l);
+  // THE BODY — RENDER_ORDER places it between back and front items. It is
+  // fetched and required above; before art:11 it was never composited, which
+  // is the "items but no character" render bug.
+  out.composite(baseImg, 0, 0);
+  for (const l of frontLayers) await compositeLayer(l);
 
   // 5) Multi-res encode + upload + cache row + avatar_url writeback.
   for (const size of SIZES) {
