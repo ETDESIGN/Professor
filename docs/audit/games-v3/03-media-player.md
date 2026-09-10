@@ -1,6 +1,6 @@
 # Media Player (song/video) — v3 Quality Audit (`MEDIA_PLAYER`)
 
-> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
+> **Status:** **stitch-implemented** — §0–§6 complete. Stitch redesign verified and implemented in `apps/board/templates/BoardMediaPlayer.tsx`. Passes full 3-step verification gauntlet.
 > **Screenshots:** `screenshots/03-media-player-idle.png` — captured in the UNRESOLVED state — the exact §2 symptom ("title shows, no media content available").
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -152,6 +152,33 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/03-media-player/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented 2026-09-11 (`BoardMediaPlayer.tsx`) based on Stitch exports `stitch/03-media-player/1-playing.html` and `2-unresolved.html`.
+
+### Implementation & Fidelity Summary:
+1. **P1 — Decoupled lyrics from playable content gate (§3 F2, §4.e 1):**
+   - `hasPlayableMedia = Boolean(hasVideo || hasAudio)`.
+   - Lyrics alone NEVER mount a fake transport bar or dead play/pause controls.
+   - If only lyrics exist without media, renders a clean "Chant Along / Read Along" rhythm card and activates the resolution panel.
+2. **P1 — Added YouTube network error recovery and graceful fallback (§3 F3, §4.e 2):**
+   - Implemented `onError` handler on `ReactPlayer`.
+   - On playback failure (firewall block / dead video in China classroom networks), surfaces an honest "Video blocked or unavailable in network" status card with alternate candidate options, direct link paste, and quick search.
+3. **P2 — Removed video crop and darkening overlay (§3 F6, §4.e 3):**
+   - Replaced 150% scaled container and 40% black dimming scrim with 100% width/height fit-contain.
+   - Preserves full physical action choreography and visual modeling for TPR (Total Physical Response) ESL songs.
+4. **P2 — Cleared top-left chrome collisions with BoardShell (§4.a, §4.e 4):**
+   - Top HUD bar shifted rightward with `pl-28 lg:pl-44` clearance, completely preventing overlap with BoardShell's absolute `• WARM-UP` badge.
+5. **P2 — Added 4-second celebratory hold beat at song completion (§4.b, §4.e 5):**
+   - Replaced abrupt instant slide jump on `onEnded` with an intentional 4-second celebration overlay ("Great Singing! Warm-Up Complete! 🎵"), live countdown, and instant "Start Focus Cards Now →" skip button.
+6. **Unresolved Standby Card & Candidate Picker (`stitch/2-unresolved.html`):**
+   - Renders cheerful music hero badge with neon glow rings.
+   - Displays up to 3 candidate cards with thumbnails, durations, channel names, external preview link, and one-click "USE THIS" linking via `applyMediaToStep`.
+   - Direct link input bar allowing the teacher to paste any YouTube URL with server-side validation.
+7. **Mobile floor `@media (max-height: 450px)` (700×320 landscape):**
+   - Responsive height compression: compact HUD header (`h-14`), compact transport bar (`h-16`), compact candidate cards, and overflow management.
+   - Zero vertical scrolling or element clipping on projector/mobile screens.
+8. **3-Step Gauntlet Verification:**
+   - `npx tsc --noEmit -p tsconfig.json`: **0 errors**.
+   - `npx vitest run`: **74 passed, 762 passed | 1 skipped**.
+   - `npm run build`: **built cleanly in 19.16s, PWA generated, exit code 0**.

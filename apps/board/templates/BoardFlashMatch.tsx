@@ -462,7 +462,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const pairCount = matchPairs.length;
 
   return (
-    <div className="fm-root h-full w-full flex flex-col gap-1.5 lg:gap-2 p-2 lg:p-3.5 [@media(max-height:430px)]:gap-1 [@media(max-height:430px)]:p-1.5 bg-[#070C18] relative overflow-hidden">
+    <div className="fm-root h-full w-full flex flex-col gap-1.5 lg:gap-2 p-2 lg:p-3.5 [@media(max-height:450px)]:gap-1 [@media(max-height:450px)]:p-1 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .fm-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .fm-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -478,23 +478,22 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
       `}</style>
 
-      {/* Header — compressed per the Stitch revision; pl-40/lg:pl-48 clears
-          BoardShell's phase pill (owner's #1 complaint was the clipped 6th
-          row, killed by the compact header + 2x3 grids). */}
-      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-40 lg:pl-48 h-11 lg:h-13 shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-lg bg-gradient-to-br from-[#FF2E79] to-rose-600 flex items-center justify-center font-black text-white text-xs shadow-md shrink-0">
+      {/* Header — compressed per the Stitch revision; pl-32/lg:pl-48 clears
+          BoardShell's phase pill. */}
+      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-10 lg:h-13 [@media(max-height:450px)]:h-8 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 lg:w-8 lg:h-8 [@media(max-height:450px)]:w-5 [@media(max-height:450px)]:h-5 rounded-lg bg-gradient-to-br from-[#FF2E79] to-rose-600 flex items-center justify-center font-black text-white text-[10px] lg:text-xs shadow-md shrink-0">
             FM
           </div>
-          <h1 className="text-lg lg:text-xl font-extrabold tracking-tight text-white truncate">Flash Match</h1>
-          <span className="fm-mono px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] lg:text-xs font-bold text-slate-300 whitespace-nowrap">
+          <h1 className="text-base lg:text-xl [@media(max-height:450px)]:text-sm font-extrabold tracking-tight text-white truncate">Flash Match</h1>
+          <span className="fm-mono px-2 py-0.5 [@media(max-height:450px)]:px-1.5 [@media(max-height:450px)]:py-px rounded-full bg-slate-800/80 border border-slate-700 text-[10px] lg:text-xs [@media(max-height:450px)]:text-[9px] font-bold text-slate-300 whitespace-nowrap">
             ROUND <span className="text-white">{roundIndex}/{TOTAL_ROUNDS}</span>
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="fm-mono px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 flex items-center gap-1.5 whitespace-nowrap">
-            <span className="text-[10px] lg:text-xs uppercase text-slate-400">Matched</span>
-            <span className="text-[10px] lg:text-xs font-bold text-amber-300 px-1.5 py-px rounded bg-amber-400/15 border border-amber-400/30">
+          <span className="fm-mono px-2.5 py-1 [@media(max-height:450px)]:px-1.5 [@media(max-height:450px)]:py-0.5 rounded-full bg-slate-800/80 border border-slate-700 flex items-center gap-1.5 whitespace-nowrap text-[10px] lg:text-xs [@media(max-height:450px)]:text-[9px]">
+            <span className="uppercase text-slate-400">Matched</span>
+            <span className="font-bold text-amber-300 px-1 py-px rounded bg-amber-400/15 border border-amber-400/30">
               {matchedCount}/{pairCount}
             </span>
           </span>
@@ -506,8 +505,8 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       </header>
 
       {/* Instruction banner */}
-      <div className="w-full shrink-0 py-1.5 px-3.5 rounded-xl bg-[#0B132B]/90 border border-slate-800 flex items-center justify-between gap-3">
-        <p className="text-xs lg:text-sm text-slate-300 truncate">
+      <div className="w-full shrink-0 py-1 lg:py-1.5 px-3.5 rounded-xl bg-[#0B132B]/90 border border-slate-800 flex items-center justify-between gap-3 [@media(max-height:450px)]:py-0.5">
+        <p className="text-xs lg:text-sm [@media(max-height:450px)]:text-[11px] text-slate-300 truncate">
           <span className="text-white font-bold">{matchedCount === 0 ? 'Fresh deal!' : 'Keep going!'}</span> Tap a word, then tap its matching photo.
         </p>
         <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 flex items-center gap-1.5 whitespace-nowrap">

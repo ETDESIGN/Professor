@@ -1,6 +1,6 @@
 # I Say You Say — v3 Quality Audit (`I_SAY_YOU_SAY (alias SPEAKING)`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **stitch-implemented** — §0–§6 complete. Stitch redesign verified and implemented in `apps/board/templates/BoardISayYouSay.tsx`. Passes full 3-step verification gauntlet.
 > **Screenshots:** `screenshots/13-i-say-you-say-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -179,6 +179,34 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/13-i-say-you-say/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented 2026-09-11 (`BoardISayYouSay.tsx`) based on Stitch exports `stitch/13-i-say-you-say/1-choral.html` and `2-solo.html`.
+
+### Implementation & Fidelity Summary:
+1. **P1 — Fixed JSX Whitespace Collapse ("Thetractoris" bug) (§4.a, §4.e 1):**
+   - Sentence words wrapped into discrete flex tokens with explicit `gap-x-4` spacing, completely eliminating word fusion.
+   - Highlighted target word rendered in a glowing luminous Sky pill (`bg-[#38bdf8]/15 border-2 border-[#38bdf8] text-[#38bdf8] shadow-[0_0_30px_rgba(56,189,248,0.4)]`).
+2. **P1 — Eliminated Audio-Text Desync (§2 Owner Bug, §3 F1, §4.e 2):**
+   - Canonical displayed text `displayText` is always passed to `playAudioUrl(undefined, displayText)`, synthesizing the live canonical sentence.
+   - In Beat 2 ("Focus on the word"), isolated word audio is played instead of the full sentence (§3 F5), matching student visual focus.
+3. **P1 — Wired Remote & Commander Replay Button (§3 F2, §4.e 3):**
+   - Wired `FLIP_CARD`, `TOGGLE_PHASE`, `REPLAY_AUDIO`, and `REPLAY` actions directly to `playCurrentAudio()`, enabling handheld audio repetition from anywhere in the classroom.
+4. **P1 — Resolved Clipped "Next →" Button and Added Completion Card (§4.a, §3 F4, §4.e 4):**
+   - Footer redesigned with roomy padding and hot-pink primary action button, immune to screen bezel truncation.
+   - Added celebratory completion splash card ("Speaking Practice Complete! 🌟 Great Voices!") when all choral sentences are completed, with trigger to advance cleanly.
+5. **P2 — Restored Triple-Write Parity to Remote `MARK_CORRECT` (§3 F3, §4.e 5):**
+   - Remote teacher override now writes `addPoints` + `recordAttempt` + `gradeObjective(pickedStudent.id, unitId, item.objectiveId, true, 'receptive')`.
+6. **P2 — Unified Audio Control and Top HUD Clearance (§4.a):**
+   - Stacked duplicate play buttons replaced by a single prominent circular speaker button with pulse rings and `SPACE` keyboard shortcut.
+   - Header shifted with `pl-28 lg:pl-44` clearance to prevent overlap with BoardShell's absolute `• PRACTICE` badge.
+7. **Two Visual Modes Supported (Stitch 1-choral & 2-solo):**
+   - When a student is picked: renders Solo Echo stage with student avatar, "Alice, repeat clearly!", and live acoustic soundwave visualizer.
+   - When in choral mode: renders two-step flow strip "1. Teacher Says ➔ 2. Class Repeats".
+8. **Responsive Phone Floor `@media (max-height: 450px)` (700×320 landscape):**
+   - Compact HUD header (`h-12`), compact padding, dynamically scaled typography (`text-3xl lg:text-6xl`), and compact action bar.
+   - Zero vertical scrollbars and zero element clipping.
+9. **3-Step Gauntlet Verification:**
+   - `npx tsc --noEmit -p tsconfig.json`: **0 errors**.
+   - `npx vitest run`: **74 passed, 762 passed | 1 skipped**.
+   - `npm run build`: **built cleanly in 13.26s, PWA generated, exit code 0**.

@@ -500,13 +500,13 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   // ── Render pieces (v3 "Phonics Arena" per stitch/22-phonics-arena) ─────
 
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-40 lg:pl-48 h-12 lg:h-14 [@media(max-height:430px)]:h-9 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 [@media(max-height:450px)]:h-8 shrink-0">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="pa-mono px-2.5 py-1.5 rounded-lg bg-[#FF2E79]/15 border border-[#FF2E79]/50 text-[#FF2E79] text-[10px] lg:text-xs font-black tracking-widest shrink-0">
+        <div className="pa-mono px-2.5 py-1.5 [@media(max-height:450px)]:py-0.5 rounded-lg bg-[#FF2E79]/15 border border-[#FF2E79]/50 text-[#FF2E79] text-[10px] lg:text-xs font-black tracking-widest shrink-0">
           PHONICS
         </div>
         {/* Tier strip — design's Tier 1/2/3 ladder maps to rounds 1/2/3 */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1 [@media(max-height:450px)]:!hidden">
           {TIERS.map((t) => (
             <span key={t.n}
               className={`pa-mono px-2.5 py-1 rounded-md text-[9px] lg:text-[10px] font-bold tracking-wider whitespace-nowrap ${
@@ -520,14 +520,14 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
             </span>
           ))}
         </nav>
-        <span className="md:hidden pa-mono text-[10px] font-bold text-[#FF2E79] tracking-wider shrink-0">T{currentRound}/3</span>
+        <span className="md:hidden [@media(max-height:450px)]:inline pa-mono text-[10px] font-bold text-[#FF2E79] tracking-wider shrink-0">T{currentRound}/3</span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <span className="pa-mono text-[10px] lg:text-xs text-slate-400 font-bold whitespace-nowrap">
           {currentRound !== 3 ? `Pair ${itemIdx + 1}/${itemTotal}` : `Word ${itemIdx + 1}/${itemTotal}`}
         </span>
         {streak > 1 && (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/60 border border-amber-500/50">
+          <div className="flex items-center gap-1.5 px-3 py-1 [@media(max-height:450px)]:px-2 [@media(max-height:450px)]:py-0.5 rounded-full bg-amber-950/60 border border-amber-500/50">
             <Flame size={13} className="text-amber-400" />
             <span className="pa-mono text-[10px] lg:text-xs font-bold tracking-wider text-amber-300">STREAK {streak}</span>
           </div>
@@ -538,8 +538,9 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
 
   // Acoustic hub (design #1/#2): ripple rings + METERED replay core + EQ bars.
   const acousticHub = (
-    <div className="shrink-0 flex flex-col items-center gap-1.5 py-1">
-      <div className="relative flex items-center justify-center">
+    <div className="shrink-0 flex flex-col [@media(max-height:450px)]:flex-row items-center justify-center gap-1.5 [@media(max-height:450px)]:gap-3 py-1 [@media(max-height:450px)]:py-0.5">
+      {/* Standard ripple rings + large replay button */}
+      <div className="relative flex items-center justify-center [@media(max-height:450px)]:hidden">
         <span className="pa-ring absolute w-28 h-28 lg:w-40 lg:h-40 rounded-full border border-[#38BDF8]/30" />
         <span className="pa-ring absolute w-40 h-40 lg:w-56 lg:h-56 rounded-full border border-[#38BDF8]/20" style={{ animationDelay: '0.6s' }} />
         <button onClick={playAudio} aria-label="Replay the target audio"
@@ -554,14 +555,30 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
           )}
         </button>
       </div>
-      <div className="flex items-end justify-center gap-1 h-5" aria-hidden>
+
+      {/* Sleek inline audio pill at max-height:450px */}
+      <button onClick={playAudio} aria-label="Replay the target audio"
+        className="hidden [@media(max-height:450px)]:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border-2 border-[#38BDF8] text-[#38BDF8] hover:shadow-[0_0_12px_-2px_rgba(56,189,248,0.6)] transition-all active:scale-95 shrink-0">
+        <Volume2 size={16} />
+        <span className="pa-mono text-[10px] font-bold uppercase tracking-wider">Listen</span>
+        {replayCost > 0 && (
+          <span className="bg-rose-500 text-white pa-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+            −{replayCost}
+          </span>
+        )}
+      </button>
+
+      {/* EQ visualizers hidden at max-height:450px */}
+      <div className="flex items-end justify-center gap-1 h-5 [@media(max-height:450px)]:hidden" aria-hidden>
         {[10, 16, 20, 13, 8, 17, 11].map((h, i) => (
           <span key={i} className="w-1 rounded-full bg-[#38BDF8] pa-eq" style={{ height: h, animationDelay: `${i * 0.11}s` }} />
         ))}
       </div>
-      <div className="flex items-center gap-2 bg-slate-800/80 px-4 lg:px-6 py-1.5 rounded-full border border-slate-700">
-        <span className="text-sm lg:text-base font-bold text-white">
-          {currentRound === 3 ? 'Listen first — then say the word!' : 'Listen carefully! Which word did you hear?'}
+
+      {/* Prompt text */}
+      <div className="flex items-center gap-2 bg-slate-800/80 px-4 lg:px-6 [@media(max-height:450px)]:px-3 py-1 lg:py-1.5 rounded-full border border-slate-700">
+        <span className="text-sm lg:text-base [@media(max-height:450px)]:text-xs font-bold text-white">
+          {currentRound === 3 ? 'Listen first — then say the word!' : 'Which word did you hear?'}
         </span>
         <span className="hidden lg:inline pa-mono text-[10px] text-slate-500 uppercase tracking-wider">(auto-plays · replay −1 pt)</span>
       </div>
@@ -583,7 +600,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         transition={{ delay: idx * 0.07, duration: 0.28 }}
         whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
         onClick={() => handleWordSelect(idx)}
-        className={`relative rounded-2xl border-2 p-3 lg:p-5 flex flex-col justify-between min-h-0 overflow-hidden transition-colors
+        className={`relative rounded-2xl border-2 p-3 lg:p-5 [@media(max-height:450px)]:p-1.5 flex flex-col justify-between min-h-0 overflow-hidden transition-colors
           ${solved ? 'border-emerald-400 bg-emerald-950/40 pa-glow-correct'
             : wrongPick ? 'border-rose-400 bg-rose-950/30 pa-shake'
             : revealed && isCorrect ? 'border-amber-400 bg-amber-950/25 pa-pulse-hint'
@@ -594,16 +611,16 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#38BDF8]/50 rounded-tr-2xl pointer-events-none" />
         <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#38BDF8]/50 rounded-bl-2xl pointer-events-none" />
         <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#38BDF8]/50 rounded-br-2xl pointer-events-none" />
-        <span className={`pa-mono text-[9px] lg:text-[10px] font-bold tracking-[0.18em] uppercase self-start px-2 py-0.5 rounded
+        <span className={`pa-mono text-[9px] lg:text-[10px] [@media(max-height:450px)]:text-[8px] font-bold tracking-[0.18em] uppercase self-start px-2 py-0.5 rounded
           ${isSelected ? 'bg-[#38BDF8]/20 text-[#7DD3FC]' : 'bg-slate-800 text-slate-400'}`}>
           Option {LETTERS[idx]}
         </span>
-        <span className={`text-center font-black tracking-tight leading-none my-1 lg:my-2
-          ${currentWords.length > 2 ? 'text-3xl lg:text-5xl xl:text-6xl' : 'text-5xl lg:text-7xl'}
+        <span className={`text-center font-black tracking-tight leading-none my-1 lg:my-2 [@media(max-height:450px)]:my-0.5
+          ${currentWords.length > 2 ? 'text-3xl lg:text-5xl xl:text-6xl [@media(max-height:450px)]:text-xl' : 'text-5xl lg:text-7xl [@media(max-height:450px)]:text-2xl'}
           ${solved ? 'text-emerald-300' : revealed && isCorrect ? 'text-amber-300' : isSelected ? 'text-[#7DD3FC]' : 'text-white'}`}>
           {word}
         </span>
-        <span className={`pa-mono w-full py-1.5 lg:py-2.5 rounded-lg text-[9px] lg:text-[11px] font-bold tracking-[0.16em] uppercase text-center border
+        <span className={`pa-mono w-full py-1.5 lg:py-2.5 rounded-lg text-[9px] lg:text-[11px] font-bold tracking-[0.16em] uppercase text-center border [@media(max-height:450px)]:hidden
           ${solved ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
             : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40 text-[#7DD3FC]'
             : 'bg-slate-800/80 border-slate-700 text-slate-300 group-hover:text-[#7DD3FC]'}`}>
@@ -614,7 +631,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="pa-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 [@media(max-height:430px)]:gap-1 [@media(max-height:430px)]:p-1.5 bg-[#070C18] relative overflow-hidden">
+    <div className="pa-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 [@media(max-height:450px)]:gap-1 [@media(max-height:450px)]:p-1 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .pa-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .pa-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
