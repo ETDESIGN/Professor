@@ -1,6 +1,6 @@
 # Memory Lab — v3 Quality Audit (`MEMORY_LAB`)
 
-> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
+> **Status:** **stitch-implemented** — Stitch design (`1-memorize.html`, `2-recall.html`) implemented, 3-step verification gauntlet clean (Anti-Gravity 2026-09-11).
 > **Screenshots:** `screenshots/23-memory-lab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -156,6 +156,36 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/23-memory-lab/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented 2026-09-11 by Anti-Gravity against Stitch designs `1-memorize.html` and `2-recall.html`:
+
+1. **Cross-Modal English Alternation Across Rounds (F1, F3, §2, §4.c):**
+   - Eliminated image↔image cognitive loop. Memory Lab now systematically trains English vocabulary:
+     - **Round 1 (`image→word`, 4 cards):** Memorize illustrated cards with English word labels; in recall, 1 slot is missing `❓`; candidate shelf renders **4 English word pills** (`A: TRACTOR`, `B: HELICOPTER`, `C: SUBWAY`, `D: BICYCLE`).
+     - **Round 2 (`word→image`, 5 cards):** Memorize large English word plates; in recall, 1 slot is missing `❓`; candidate shelf renders **4 illustrated image cards**.
+     - **Round 3 (`produce`, 6 cards):** Memorize items; in recall, 1 slot missing `❓`; productive speech interface with "Tap to Speak" / browser speech recognition (or 4 English word fallback buttons if mic unsupported) and teacher remote `MARK_CORRECT` override.
+2. **Strict 4–6 Card Hard Cap (F2, §2, §4.c):**
+   - Abolished the bloated 10-card `TENSION_ROUND` and 8-card tiers. Grid is capped strictly between 4 and 6 cards across all rounds, respecting Cowan's working memory bounds for ages 6–12.
+3. **Teacher Clock Controls (F4, §4.b):**
+   - Countdown timer waits for an explicit manual trigger ("START TIMER" button in top HUD, `SPACE` bar, or remote `NEXT_ITEM`/`PLAY_AUDIO`) so the teacher can direct student attention before ticking starts.
+   - Clickable timer badge pauses/resumes countdown.
+   - Added **Peek Again (+3s)** button in recall phase for instructional scaffolding when students get stuck.
+4. **Educational Double-Miss Learning Reveal (F8, §4.c):**
+   - Replaced silent dismissal ("Missed it — moving on…") with an explicit 2.6s learning card displaying the target illustration, bold English word, and auto-played native audio via `useSpeech` before advancing to the next round.
+5. **Widescreen 16:9 Layout & Clear Candidate Shelf (F5, F7, F9, §4.a, §4.d):**
+   - 4-card round renders in a single horizontal row (`1×4`, `grid-cols-4`).
+   - 5–6 card rounds render in a balanced `2×3` grid (`grid-cols-3 grid-rows-2`).
+   - Candidate shelf occupies a dedicated bottom tray that never collides with or clips the memory grid.
+   - Header clearance `pl-28 lg:pl-44` protects against `• PRACTICE` badge overlap.
+   - Fully responsive `@media (max-height: 450px)` styling ensures zero vertical scrolling at 700×320.
+6. **Candidate Distractor Robustness:**
+   - Gracefully handles small unit pools (e.g., 4–5 cards) by selecting distractors from outside the grid first, then from non-tested cards inside the grid, guaranteeing 4 candidate options (A, B, C, D) are always available.
+7. **Keyboard Shortcuts:**
+   - `SPACE`: Starts/pauses memorize timer; triggers mic in produce recall; replays audio in feedback.
+   - `1`–`4` / `A`–`D`: Direct candidate selection.
+
+### Verification Gauntlet
+- `npx tsc --noEmit -p tsconfig.json` → **0 errors** (clean).
+- `npx vitest run` → **762/762 passing** (1 skipped).
+- `npm run build` → **Clean production build** (14.51s).

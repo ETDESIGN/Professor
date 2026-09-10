@@ -1,25 +1,36 @@
-// BoardMemoryLab — Memory game with speech-recognition production (NEW GEN)
+// BoardMemoryLab — English Vocabulary Memory Lab (v3 Redesign)
 //
-// Replaces: BoardWhatsMissing / MagicEyes (764 lines + teacher-typing produce mode)
+// Pedagogical loop (per games-v3 audit & owner direction 2026-09-09):
+//   "It's not a memory class, it's an English memory class."
+//   Strict 4–6 card hard cap (eliminates bloated 8/10-card rounds).
+//   Alternate cross-modal directions across 3 rounds:
+//     Round 1 (Image → Word, 4 cards): memorize pictures & words → recall missing word
+//     Round 2 (Word → Image, 5 cards): memorize English words → recall missing picture
+//     Round 3 (Productive Speech, 6 cards): memorize items → speak the missing English word
 //
-// Pedagogical loop (per MASTER_ROADMAP.md Game 8):
-//   SHOW grid of images (timed memorize) → REMOVE one → RECALL:
-//     Rounds 1-2 (recognize): student TAPS which card is missing (MCQ candidates)
-//     Round 3 (produce): student SPEAKS the missing word — speech recognition
-//     scores it (replaces the legacy teacher-typing produce mode)
-//     Round 4 (produce, tension peak): 10 cards / 5s — appended ONLY when the
-//     illustrated card pool has ≥10 distinct cards
-//   → Progressive: grid 4→6→8(→10), memorize 10s→8s→6s(→5s) → FSRS push per round
-//   → Tension pack: ticking clock while memorizing (ramps to 500ms under 4s
-//     left) + a ~1.5s choral "Everyone — point!" callout before recall
-//
-// Lifecycle: NEW_TURN reset on currentTurnId, per-round mistakesRef/awardedRef
-// reset, remote controls via state.lastAction (RESET_GAME / SKIP_ITEM).
-// Zero teacher typing.
+// Features:
+//   - Stitch Cyber-Lab Widescreen HUD & 16:9 projection layout
+//   - Teacher Clock Controls: manual Start ("START TIMER"), Pause/Resume, and "Peek Again" (+3s)
+//   - 4-Option Candidate Shelf (A/B/C/D) with keyboard shortcuts (1-4, A-D, SPACE)
+//   - Educational Double-Miss Reveal: shows target image + English word + auto-played native audio
+//   - Fully responsive @media (max-height: 450px) reflow without scrolling
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, Volume2 } from 'lucide-react';
+import {
+  Mic,
+  MicOff,
+  Volume2,
+  Play,
+  Pause,
+  RotateCcw,
+  Sparkles,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Flame,
+  HelpCircle,
+} from 'lucide-react';
 import { useSession, useSeedBase } from '../../../store/SessionContext';
 import { makeRng } from '../../../services/seededRandom';
 import { useBoardPool } from '../useBoardPool';
@@ -38,7 +49,6 @@ interface MemoryCard {
   imageUrl: string;
   word: string;
   audioUrl?: string;
-  /** TTS source text when audioUrl is absent (reference-based audio). */
   speechText?: string;
 }
 
@@ -46,58 +56,72 @@ interface RoundConfig {
   gridSize: number;
   memorizeTime: number;
   mode: 'recognize' | 'produce';
+  direction: 'image→word' | 'word→image' | 'produce';
+  title: string;
+  instruction: string;
 }
 
-const ROUNDS: RoundConfig[] = [
-  { gridSize: 4, memorizeTime: 10, mode: 'recognize' },
-  { gridSize: 6, memorizeTime: 8, mode: 'recognize' },
-  { gridSize: 8, memorizeTime: 6, mode: 'produce' },
+// 4–6 card hard cap across the 3 rounds
+const BASE_ROUNDS: RoundConfig[] = [
+  {
+    gridSize: 4,
+    memorizeTime: 10,
+    mode: 'recognize',
+    direction: 'image→word',
+    title: 'Image → Word',
+    instruction: 'Memorize pictures & words — recall the missing word!',
+  },
+  {
+    gridSize: 5,
+    memorizeTime: 8,
+    mode: 'recognize',
+    direction: 'word→image',
+    title: 'Word → Image',
+    instruction: 'Memorize the words — recall the missing picture!',
+  },
+  {
+    gridSize: 6,
+    memorizeTime: 8,
+    mode: 'produce',
+    direction: 'produce',
+    title: 'Say It Aloud',
+    instruction: 'Memorize the items — speak the missing word in English!',
+  },
 ];
 
-/** Round 4 — the tension peak (biggest grid, shortest clock). Only staged
- *  when the illustrated card pool has ≥10 distinct cards; advanceRound's
- *  per-round gridSize guard enforces it exactly like rounds 2-3. */
-const TENSION_ROUND: RoundConfig = { gridSize: 10, memorizeTime: 5, mode: 'produce' };
+const OPTION_KEYS = ['A', 'B', 'C', 'D'];
 
-const BoardMemoryLab = ({ data }: { data: any }) => {
+const BoardMemoryLab: React.FC<{ data?: any }> = () => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
-  // FIXPLAN E1.5 — seeded grid/candidates (identical on every tab).
   const seedBase = useSeedBase();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
-  /** Per-round resolve latch (success / MARK_CORRECT / miss auto-resolve). */
   const roundResolvedRef = useRef(false);
-  /** Completion latch — makes the SLIDE_COMPLETE broadcast idempotent. */
   const completeRef = useRef(false);
-  /** Round generation counter — stale auto-advance timers (e.g. after a
-   *  remote SKIP_ITEM raced the pending timeout) must not skip a 2nd round. */
   const roundGenRef = useRef(0);
-  /** Per-round choral-callout latch — the "Everyone — point!" reveal cue must
-   *  fire exactly once per round (reset to -1 in setupRound, re-render safe). */
   const choralFiredRef = useRef(-1);
 
   const [round, setRound] = useState(0);
   const [phase, setPhase] = useState<'memorize' | 'choral' | 'recall' | 'feedback' | 'complete'>('memorize');
-  const [countdown, setCountdown] = useState(ROUNDS[0].memorizeTime);
-  // games-v3 audit F4: the countdown used to arm the instant the round mounted
-  // — classroom chaos when the teacher is still talking. The clock now waits
-  // for an explicit Start (board tap or remote NEXT_ITEM) per round.
+  const [countdown, setCountdown] = useState(BASE_ROUNDS[0].memorizeTime);
   const [clockArmed, setClockArmed] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [peekActive, setPeekActive] = useState(false);
+
   const [grid, setGrid] = useState<MemoryCard[]>([]);
   const [removedIdx, setRemovedIdx] = useState(-1);
   const [candidates, setCandidates] = useState<MemoryCard[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
   const [lastAward, setLastAward] = useState(0);
   const [streak, setStreak] = useState(0);
-  /** 2nd-miss auto-resolve notice ("Missed it — moving on…") during the hold. */
   const [missedOut, setMissedOut] = useState(false);
 
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id).filter(Boolean), [state.students]);
 
-  // ── Content: IMAGE_SELECT items → card pool (correct-option image + word) ──
+  // ── Content: IMAGE_SELECT items → card pool ──
   const { items: poolItems, loading } = useBoardPool({
     unitId,
     exerciseTypes: ['IMAGE_SELECT'],
@@ -116,7 +140,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
       cards.push({
         poolItem: pi,
         imageUrl: correct.image_url,
-        word: correct.label || content.prompt,
+        word: correct.label || content.prompt || '',
         audioUrl: content.prompt_audio || content.audio_url,
         speechText: content.prompt || correct.label,
       });
@@ -124,79 +148,92 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     return cards;
   }, [poolItems]);
 
-  // Effective round ladder: the 3 base rounds always, + the 10-card/5s
-  // tension round only when the pool has ≥10 distinct cards. Every
-  // round-count surface (progress dots, "Round x of y", advanceRound, mode
-  // lookups) reads this — nothing hardcodes 3.
-  const rounds = useMemo<RoundConfig[]>(
-    () => (cardPool.length >= TENSION_ROUND.gridSize ? [...ROUNDS, TENSION_ROUND] : ROUNDS),
-    [cardPool.length]
-  );
+  // Adaptive round ladder bounded by pool length, strictly capped at 4–6 cards
+  const rounds = useMemo<RoundConfig[]>(() => {
+    if (cardPool.length < 4) return BASE_ROUNDS;
+    return BASE_ROUNDS.map((r, idx) => {
+      const targetSize = idx === 0 ? 4 : idx === 1 ? 5 : 6;
+      return {
+        ...r,
+        gridSize: Math.min(targetSize, cardPool.length),
+      };
+    });
+  }, [cardPool.length]);
 
-  // Warm the TTS cache for the round's cards (bounded, fire-and-forget).
+  const cfg = rounds[round] || BASE_ROUNDS[0];
+
+  // Pre-warm TTS for cards
   useEffect(() => {
     if (poolItems.length > 0) preloadRoundSpeech(unitId, poolItems);
   }, [poolItems, unitId]);
 
-  // ── Round setup: build grid, pick the removed card, build candidates ────
-  /** Cards already probed (removed) in earlier rounds of this game — see
-   *  setupRound. Keyed by pool item id (falls back to image URL). */
+  // ── Round setup ──────────────────────────────────────────────────────────
   const testedCardsRef = useRef<Set<string>>(new Set());
-  const setupRound = (roundIdx: number) => {
-    const cfg = rounds[roundIdx];
-    if (!cfg) return;
-    const cardKey = (c: MemoryCard) => c.poolItem?.id ?? c.imageUrl;
-    const shuffledCards = shuffle(cardPool, makeRng(seedBase, roundIdx, 'cards'));
-    // Coverage fix: pick the removed (tested) card from the not-yet-probed
-    // ones first — the old pure-random pick inside a reshuffled grid could
-    // re-test the same word round after round while the rest of the pool was
-    // never probed. Once every card has been probed, start a fresh cycle.
-    let unprobed = shuffledCards.filter((c) => !testedCardsRef.current.has(cardKey(c)));
-    if (unprobed.length === 0) {
-      testedCardsRef.current = new Set();
-      unprobed = shuffledCards;
-    }
-    const removedCard = unprobed[0];
-    testedCardsRef.current.add(cardKey(removedCard));
-    const gridCards = shuffle([
-      removedCard,
-      ...shuffledCards.filter((c) => c !== removedCard).slice(0, cfg.gridSize - 1),
-    ], makeRng(seedBase, roundIdx, 'grid'));
-    const removed = gridCards.indexOf(removedCard);
-    // Candidates = the missing card + 3 distractors NOT in the grid.
-    const distractors = shuffledCards
-      .filter((c) => !gridCards.includes(c))
-      .slice(0, 3);
-    setCandidates(shuffle([removedCard, ...distractors], makeRng(seedBase, roundIdx, 'candidates')));
-    setGrid(gridCards);
-    setRemovedIdx(removed);
-    setCountdown(cfg.memorizeTime);
-    setClockArmed(false); // each round's clock waits for its own Start
-    setSelectedCandidate(null);
-    setMissedOut(false);
-    mistakesRef.current = 0;
-    awardedRef.current = false;
-    roundResolvedRef.current = false;
-    roundGenRef.current += 1;
-    choralFiredRef.current = -1;
-    setPhase('memorize');
-  };
 
-  // Initial round setup once the pool is ready (and on pool changes when idle).
+  const setupRound = useCallback(
+    (roundIdx: number) => {
+      const currentCfg = rounds[roundIdx] || rounds[0];
+      if (!currentCfg || cardPool.length < 4) return;
+
+      const cardKey = (c: MemoryCard) => c.poolItem?.id ?? c.imageUrl;
+      const shuffledCards = shuffle(cardPool, makeRng(seedBase, roundIdx, 'cards'));
+
+      let unprobed = shuffledCards.filter((c) => !testedCardsRef.current.has(cardKey(c)));
+      if (unprobed.length === 0) {
+        testedCardsRef.current = new Set();
+        unprobed = shuffledCards;
+      }
+      const removedCard = unprobed[0];
+      testedCardsRef.current.add(cardKey(removedCard));
+
+      const gridCards = shuffle(
+        [
+          removedCard,
+          ...shuffledCards.filter((c) => c !== removedCard).slice(0, currentCfg.gridSize - 1),
+        ],
+        makeRng(seedBase, roundIdx, 'grid')
+      );
+      const removed = gridCards.indexOf(removedCard);
+
+      // Candidates: target card + 3 distinct distractors
+      const outsideGrid = shuffledCards.filter((c) => !gridCards.includes(c));
+      const insideGrid = gridCards.filter((c) => c !== removedCard);
+      const distractorPool = [...outsideGrid, ...insideGrid];
+      const distractors = distractorPool.slice(0, 3);
+      const roundCandidates = shuffle(
+        [removedCard, ...distractors],
+        makeRng(seedBase, roundIdx, 'candidates')
+      );
+
+      setCandidates(roundCandidates);
+      setGrid(gridCards);
+      setRemovedIdx(removed);
+      setCountdown(currentCfg.memorizeTime);
+      setClockArmed(false);
+      setIsPaused(false);
+      setPeekActive(false);
+      setSelectedCandidate(null);
+      setMissedOut(false);
+      mistakesRef.current = 0;
+      awardedRef.current = false;
+      roundResolvedRef.current = false;
+      roundGenRef.current += 1;
+      choralFiredRef.current = -1;
+      setPhase('memorize');
+    },
+    [cardPool, rounds, seedBase]
+  );
+
   const setupDone = useRef(false);
   useEffect(() => {
     if (loading || cardPool.length < 4 || setupDone.current) return;
     setupDone.current = true;
     setupRound(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, cardPool.length]);
+  }, [loading, cardPool.length, setupRound]);
 
-  // ── Memorize countdown → choral callout → recall ────────────────────────
-  // grid.length === 0 guards the loading/empty-pool screens: phase state sits
-  // at 'memorize' there, and without this guard the clock (and its ticks)
-  // would run audibly behind them.
+  // ── Countdown Timer ───────────────────────────────────────────────────────
   useEffect(() => {
-    if (phase !== 'memorize' || grid.length === 0 || !clockArmed) return;
+    if (phase !== 'memorize' || grid.length === 0 || !clockArmed || isPaused) return;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -208,25 +245,16 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [phase, round, grid.length, clockArmed]);
+  }, [phase, round, grid.length, clockArmed, isPaused]);
 
-  // ── Ticking clock (tension): one tick per memorize second, doubling up
-  // (every 500ms) for the final stretch (<4s left). Restarting on each
-  // countdown change re-anchors the tick to the visible number; the cleanup
-  // makes every exit path — countdown exhausted, phase/round change
-  // (SKIP_ITEM / RESET_GAME / new turn / advance), unmount — stop the loop,
-  // so no path can leave a tick interval running. ─────────────────────────
+  // Tension ticking cue
   useEffect(() => {
-    if (phase !== 'memorize' || grid.length === 0) return;
+    if (phase !== 'memorize' || grid.length === 0 || !clockArmed || isPaused) return;
     const stopTicks = startTickLoop(countdown > 0 && countdown < 4 ? 500 : 1000);
     return stopTicks;
-  }, [phase, round, countdown, grid.length]);
+  }, [phase, round, countdown, grid.length, clockArmed, isPaused]);
 
-  // ── Choral callout: ~1.5s full-screen "Everyone — point!" beat between
-  // memorize and recall. choralFiredRef guarantees the reveal cue fires once
-  // per round (re-render / re-entry safe); the cleanup drops the pending
-  // timer whenever the phase exits early (SKIP_ITEM / MARK_CORRECT /
-  // SLIDE_COMPLETE / reset), so recall is never entered by a stale timer. ──
+  // Choral callout phase transition
   useEffect(() => {
     if (phase !== 'choral') return;
     if (choralFiredRef.current !== round) {
@@ -237,22 +265,172 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     return () => clearTimeout(t);
   }, [phase, round]);
 
-  // Reveal cue exactly when the missing card bounces in (feedback phase
-  // mounts) — the card stays hidden until this moment.
+  // Reveal cue when feedback mounts
   useEffect(() => {
     if (phase === 'feedback') playCue('reveal');
   }, [phase]);
 
-  // ── Speech recognition (round 3 produce mode) ───────────────────────────
+  // Speech & reference audio
   const removedCard = removedIdx >= 0 ? grid[removedIdx] : undefined;
-
-  // Reference-based audio: background-resolve the removed card's word;
-  // play() never blocks — browser voice covers the not-ready case.
   const { play: playRemovedSpeech } = useSpeech({
     text: removedCard?.speechText,
     audioUrl: removedCard?.audioUrl,
     unitId,
   });
+
+  const playRemovedAudio = useCallback(() => {
+    if (removedCard?.audioUrl || removedCard?.speechText) {
+      playRemovedSpeech();
+    }
+  }, [removedCard, playRemovedSpeech]);
+
+  // ── Attempt Handlers ──────────────────────────────────────────────────────
+  const scheduleAdvance = useCallback(
+    (delay: number) => {
+      const gen = roundGenRef.current;
+      setTimeout(() => {
+        if (roundGenRef.current === gen) advanceRound();
+      }, delay);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [round, rounds.length, cardPool.length]
+  );
+
+  const completeGame = useCallback(
+    (broadcast = true) => {
+      if (completeRef.current) return;
+      completeRef.current = true;
+      playCue('win');
+      setPhase('complete');
+      if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
+    },
+    [triggerAction]
+  );
+
+  const advanceRound = useCallback(() => {
+    if (round < rounds.length - 1 && cardPool.length >= 4) {
+      const next = round + 1;
+      setRound(next);
+      setupRound(next);
+    } else {
+      completeGame();
+    }
+  }, [round, rounds.length, cardPool.length, setupRound, completeGame]);
+
+  const roundSuccess = useCallback(
+    (partialRatio = 1.0) => {
+      const card = removedCard;
+      if (!card || roundResolvedRef.current) return;
+      roundResolvedRef.current = true;
+      playCue('correct');
+      const nextStreak = streak + 1;
+      setStreak(nextStreak);
+      if (nextStreak === 3 || nextStreak === 5) {
+        playCue('streak');
+        triggerConfetti();
+      }
+      const picked = state.quickWheelWinner;
+      const difficulty = card.poolItem.difficulty || 1;
+      const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio, nextStreak);
+      if (picked && !awardedRef.current) {
+        awardedRef.current = true;
+        if (points > 0) addPoints(picked, points);
+        logAttempt({
+          state,
+          picked,
+          unitId,
+          objectiveId: card.poolItem.objective_id,
+          exerciseType: 'IMAGE_SELECT',
+          difficulty,
+          correctness: partialRatio >= 1 ? 'correct' : 'partial',
+          modality: rounds[round]?.mode === 'produce' ? 'productive' : 'receptive',
+          pushToRemediation,
+        });
+      }
+      setLastAward(points);
+      setPhase('feedback');
+      playRemovedAudio();
+      scheduleAdvance(2400);
+    },
+    [
+      removedCard,
+      streak,
+      state,
+      rounds,
+      round,
+      triggerConfetti,
+      addPoints,
+      unitId,
+      pushToRemediation,
+      playRemovedAudio,
+      scheduleAdvance,
+    ]
+  );
+
+  const roundMiss = useCallback(
+    (modality: 'receptive' | 'productive') => {
+      const card = removedCard;
+      if (roundResolvedRef.current) return;
+      playCue('wrong');
+      setStreak(0);
+      mistakesRef.current += 1;
+      const picked = state.quickWheelWinner;
+      if (picked) addPoints(picked, -MISTAKE_PENALTY);
+      if (card) {
+        logAttempt({
+          state,
+          picked: picked || '',
+          unitId,
+          objectiveId: card.poolItem.objective_id,
+          exerciseType: 'IMAGE_SELECT',
+          difficulty: card.poolItem.difficulty || 1,
+          correctness: 'incorrect',
+          correct: false,
+          modality,
+          pushToRemediation,
+        });
+      }
+    },
+    [removedCard, state, addPoints, unitId, pushToRemediation]
+  );
+
+  // Educational Double-Miss Reveal (F8): shows the missing card & plays audio before advancing
+  const resolveRoundAsMiss = useCallback(() => {
+    if (roundResolvedRef.current) return;
+    roundResolvedRef.current = true;
+    playCue('reveal');
+    setMissedOut(true);
+    setLastAward(0);
+    setPhase('feedback');
+    playRemovedAudio();
+    scheduleAdvance(2600);
+  }, [playRemovedAudio, scheduleAdvance]);
+
+  const markCorrect = useCallback(() => {
+    if ((phase !== 'recall' && phase !== 'choral') || roundResolvedRef.current || completeRef.current) return;
+    roundSuccess(1.0);
+  }, [phase, roundSuccess]);
+
+  const handleCandidateSelect = useCallback(
+    (idx: number) => {
+      if (phase !== 'recall' || roundResolvedRef.current) return;
+      const card = candidates[idx];
+      setSelectedCandidate(idx);
+      if (card && removedCard && card.poolItem.id === removedCard.poolItem.id) {
+        roundSuccess(1.0);
+      } else {
+        roundMiss(cfg?.mode === 'produce' ? 'productive' : 'receptive');
+        if (mistakesRef.current >= 2) {
+          resolveRoundAsMiss();
+        } else {
+          setTimeout(() => setSelectedCandidate(null), 800);
+        }
+      }
+    },
+    [phase, candidates, removedCard, cfg?.mode, roundSuccess, roundMiss, resolveRoundAsMiss]
+  );
+
+  // Speech Recognition for Produce mode
   const {
     isListening,
     isSupported: speechSupported,
@@ -272,7 +450,57 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     },
   });
 
-  // ── Lifecycle: reset on new turn ────────────────────────────────────────
+  // Peek Again (+3s temporary reveal)
+  const triggerPeekAgain = useCallback(() => {
+    if (phase !== 'recall' || peekActive) return;
+    setPeekActive(true);
+    playCue('reveal');
+    setTimeout(() => {
+      setPeekActive(false);
+    }, 3000);
+  }, [phase, peekActive]);
+
+  // ── Keyboard Shortcuts ────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (phase === 'memorize') {
+          if (!clockArmed) setClockArmed(true);
+          else setIsPaused((p) => !p);
+        } else if (phase === 'recall' && cfg?.mode === 'produce' && speechSupported) {
+          if (!isListening) startListening();
+        } else if (phase === 'feedback') {
+          playRemovedAudio();
+        }
+        return;
+      }
+
+      if (phase === 'recall' && candidates.length > 0) {
+        const key = e.key.toUpperCase();
+        if (key === 'A' || key === '1') handleCandidateSelect(0);
+        else if (key === 'B' || key === '2') handleCandidateSelect(1);
+        else if (key === 'C' || key === '3') handleCandidateSelect(2);
+        else if (key === 'D' || key === '4') handleCandidateSelect(3);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    phase,
+    clockArmed,
+    cfg?.mode,
+    speechSupported,
+    isListening,
+    startListening,
+    playRemovedAudio,
+    candidates.length,
+    handleCandidateSelect,
+  ]);
+
+  // ── Lifecycle: Reset on New Turn ──────────────────────────────────────────
   useEffect(() => {
     if (turnId === null) return;
     setupDone.current = false;
@@ -285,16 +513,15 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
       setupDone.current = true;
       setupRound(0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnId]);
+  }, [turnId, cardPool.length, setupRound]);
 
-  // ── Remote controls ─────────────────────────────────────────────────────
+  // ── Remote Controls ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!state.lastAction) return;
     const { type } = state.lastAction;
     if (type === 'RESET_GAME') {
       completeRef.current = false;
-      testedCardsRef.current = new Set(); // fresh coverage cycle
+      testedCardsRef.current = new Set();
       setRound(0);
       setLastAward(0);
       setStreak(0);
@@ -303,466 +530,628 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     } else if (type === 'SKIP_ITEM') {
       advanceRound();
     } else if (type === 'PLAY_AUDIO' || type === 'NEXT_ITEM') {
-      // audit F4: "Start the clock" — the teacher's go signal for the memorize
-      // phase (NEXT_ITEM while not armed = start, not skip).
-      if (phase === 'memorize' && !clockArmed) setClockArmed(true);
+      if (phase === 'memorize') {
+        if (!clockArmed) setClockArmed(true);
+        else setIsPaused((p) => !p);
+      } else if (phase === 'feedback') {
+        playRemovedAudio();
+      }
     } else if (type === 'MARK_CORRECT') {
-      // Teacher override ("Correct" on the remote): accept the answer
-      // WITHOUT recognition — especially the round-3 spoken word. Scores the
-      // round as a clean correct (mistakesRef preserved) and advances.
       markCorrect();
     } else if (type === 'SLIDE_COMPLETE') {
-      // Forced End from the remote/commander → jump to the complete state.
-      // completeRef stops us echoing the broadcast back (our own optimistic
-      // lastAction update re-enters this listener).
       completeGame(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.lastAction]);
+  }, [state.lastAction, phase, clockArmed, setupRound, advanceRound, playRemovedAudio, markCorrect, completeGame, cardPool.length]);
 
-  // ── Scoring (per-round attempt lifecycle) ───────────────────────────────
-  // Generation-guarded auto-advance: a remote SKIP_ITEM racing the pending
-  // timer bumps the generation in setupRound and the stale timer bails.
-  const scheduleAdvance = (delay: number) => {
-    const gen = roundGenRef.current;
-    setTimeout(() => {
-      if (roundGenRef.current === gen) advanceRound();
-    }, delay);
-  };
-
-  // Natural completion → terminal card + SLIDE_COMPLETE broadcast. The ref
-  // makes it idempotent across the optimistic lastAction echo and the
-  // remote's forced End both landing here.
-  const completeGame = (broadcast = true) => {
-    if (completeRef.current) return;
-    completeRef.current = true;
-    playCue('win');
-    setPhase('complete');
-    if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
-  };
-
-  const roundSuccess = (partialRatio = 1.0) => {
-    const card = removedCard;
-    if (!card || roundResolvedRef.current) return;
-    roundResolvedRef.current = true;
-    playCue('correct');
-    const nextStreak = streak + 1;
-    setStreak(nextStreak);
-    if (nextStreak === 3 || nextStreak === 5) {
-      playCue('streak');
-      triggerConfetti();
-    }
-    const picked = state.quickWheelWinner;
-    const difficulty = card.poolItem.difficulty || 1;
-    const points = scoreForAttempt(mistakesRef.current, difficulty, partialRatio, nextStreak);
-    if (picked && !awardedRef.current) {
-      awardedRef.current = true;
-      if (points > 0) addPoints(picked, points);
-      logAttempt({
-        state,
-        picked,
-        unitId,
-        objectiveId: card.poolItem.objective_id,
-        exerciseType: 'IMAGE_SELECT',
-        difficulty,
-        correctness: partialRatio >= 1 ? 'correct' : 'partial',
-        modality: rounds[round]?.mode === 'produce' ? 'productive' : 'receptive',
-        pushToRemediation,
-      });
-    }
-    setLastAward(points);
-    setPhase('feedback');
-    // Hold ~2.2s: the feedback card (image + word + Hear it) is teaching
-    // content, not empty celebration.
-    scheduleAdvance(2200);
-  };
-
-  const roundMiss = (modality: 'receptive' | 'productive') => {
-    const card = removedCard;
-    if (roundResolvedRef.current) return;
-    playCue('wrong');
-    setStreak(0);
-    mistakesRef.current += 1;
-    const picked = state.quickWheelWinner;
-    if (picked) addPoints(picked, -MISTAKE_PENALTY);
-    if (card) {
-      logAttempt({
-        state,
-        picked: picked || '',
-        unitId,
-        objectiveId: card.poolItem.objective_id,
-        exerciseType: 'IMAGE_SELECT',
-        difficulty: card.poolItem.difficulty || 1,
-        correctness: 'incorrect',
-        correct: false,
-        modality,
-        pushToRemediation,
-      });
-    }
-  };
-
-  // Reveal-on-wrong, MemoryLab EXCEPTION: never reveal the missing card (that
-  // would defeat the memory mechanic). After the 2nd miss, cue and auto-
-  // resolve the round as a miss via the standard miss path, then move on.
-  const resolveRoundAsMiss = () => {
-    if (roundResolvedRef.current) return;
-    roundResolvedRef.current = true;
-    playCue('reveal');
-    setMissedOut(true);
-    scheduleAdvance(1600);
-  };
-
-  // MARK_CORRECT body (invoked from the lastAction listener): accept the
-  // answer without recognition — scores as a clean correct with mistakesRef
-  // preserved, shows the card, and advances.
-  const markCorrect = () => {
-    // Also accept during the choral callout — never drop a remote "Correct"
-    // press (dead-button avoidance). roundSuccess moves us to feedback and
-    // the callout's pending timer is cleaned up by the phase change.
-    if ((phase !== 'recall' && phase !== 'choral') || roundResolvedRef.current || completeRef.current) return;
-    roundSuccess(1.0);
-  };
-
-  const handleCandidateSelect = (idx: number) => {
-    // Recall-phase taps work in recognize rounds AND as the speech-unsupported
-    // fallback in the produce round (candidates only render in those cases).
-    if (phase !== 'recall' || roundResolvedRef.current) return;
-    const card = candidates[idx];
-    setSelectedCandidate(idx);
-    if (card && removedCard && card.poolItem.id === removedCard.poolItem.id) {
-      roundSuccess(1.0);
-    } else {
-      roundMiss(cfg?.mode === 'produce' ? 'productive' : 'receptive');
-      if (mistakesRef.current >= 2) resolveRoundAsMiss();
-      else setTimeout(() => setSelectedCandidate(null), 800);
-    }
-  };
-
-  const advanceRound = () => {
-    if (round < rounds.length - 1 && cardPool.length >= rounds[round + 1].gridSize) {
-      const next = round + 1;
-      setRound(next);
-      setupRound(next);
-    } else {
-      completeGame();
-    }
-  };
-
-  const playRemovedAudio = () => {
-    if (removedCard?.audioUrl || removedCard?.speechText) playRemovedSpeech();
-  };
-
-  // ── Loading / empty states ──────────────────────────────────────────────
+  // ── Loading & Empty Fallbacks ─────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-cyan-50 to-blue-50">
-        <div className="text-2xl text-gray-400">Loading memory items…</div>
+      <div className="flex items-center justify-center h-full bg-[#070C18] text-sky-400 font-mono">
+        <div className="flex items-center gap-3 text-lg font-bold">
+          <span className="w-3 h-3 rounded-full bg-sky-400 animate-ping" />
+          <span>INITIALIZING MEMORY ARCHIVE…</span>
+        </div>
       </div>
     );
   }
+
   if (cardPool.length < 4) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-cyan-50 to-blue-50 p-8 text-center">
+      <div className="flex flex-col items-center justify-center h-full bg-[#070C18] text-slate-100 p-8 text-center select-none">
         <div className="text-7xl mb-6">🧠</div>
-        <h2 className="text-4xl font-bold text-cyan-900 mb-3">Memory Lab</h2>
-        <div className="text-xl text-gray-500 max-w-xl">
-          Not enough illustrated vocabulary for this unit yet. Run the exercise generator (with
-          images), or skip to the next slide.
+        <h2 className="text-3xl font-extrabold text-sky-400 mb-3 tracking-wide">Memory Lab</h2>
+        <div className="text-base text-slate-400 max-w-md">
+          Not enough illustrated vocabulary in this unit yet (minimum 4 items required). Run the exercise
+          generator or advance to the next slide.
         </div>
       </div>
     );
   }
 
-  const cfg = rounds[round];
+  // Grid layout class based on card count (4 cards = 1 row of 4; 5-6 cards = 2 rows of 3)
+  const gridClass =
+    grid.length === 4
+      ? 'grid-cols-4 grid-rows-1'
+      : grid.length === 5
+      ? 'grid-cols-3 grid-rows-2'
+      : 'grid-cols-3 grid-rows-2';
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-cyan-50 to-blue-50 p-8">
-      {/* Header */}
-      <div className="text-center mb-4">
-        <motion.h1
-          key={round}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-cyan-900 mb-2"
-        >
-          Memory Lab
-        </motion.h1>
-        <div className="flex items-center justify-center gap-2">
-          {rounds.map((_, r) => (
-            <div
-              key={r}
-              className={`w-3 h-3 rounded-full ${
-                r === round ? 'bg-cyan-600 animate-pulse' : r < round ? 'bg-cyan-400' : 'bg-gray-300'
+    <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-3 select-none overflow-hidden relative font-sans">
+      {/* ── TOP HUD HEADER STRIP ── */}
+      <header className="w-full flex items-center justify-between px-4 py-2 bg-[#0B132B]/95 border border-[#1E2D5A] rounded-2xl backdrop-blur-md shrink-0 shadow-lg z-20 pl-28 lg:pl-44">
+        {/* Left: Phase Pill & Round Detail */}
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex items-center gap-2 px-3.5 py-1 rounded-full border text-xs font-mono font-bold uppercase tracking-wider ${
+              phase === 'memorize'
+                ? 'bg-sky-500/15 border-sky-400/50 text-sky-400'
+                : phase === 'choral'
+                ? 'bg-pink-500/15 border-pink-400/50 text-pink-400 animate-pulse'
+                : phase === 'recall'
+                ? 'bg-emerald-500/15 border-emerald-400/50 text-emerald-400'
+                : 'bg-amber-500/15 border-amber-400/50 text-amber-400'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                phase === 'memorize'
+                  ? 'bg-sky-400 animate-pulse'
+                  : phase === 'recall'
+                  ? 'bg-emerald-400'
+                  : 'bg-pink-400'
               }`}
             />
-          ))}
-        </div>
-        <div className="text-sm text-gray-500 mt-1">
-          Round {round + 1} of {rounds.length} — {cfg?.mode === 'produce' ? 'Say what is missing' : 'Tap what is missing'}
-        </div>
-        {streak > 1 && (
-          <div className="inline-flex items-center gap-1 mt-1 px-3 py-1 bg-cyan-500 text-white rounded-full font-bold text-sm">
-            🔥 Streak x{streak}
+            <span>
+              PHASE: {phase === 'choral' ? 'POINT!' : phase.toUpperCase()}
+            </span>
           </div>
-        )}
-      </div>
 
-      <AnimatePresence mode="wait">
-        {/* Memorize phase */}
-        {phase === 'memorize' && cfg && (
-          <motion.div
-            key={`memorize-${round}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            <div className="text-center mb-4">
-              <div className="text-xl text-gray-600 mb-2">Memorize the cards!</div>
-              {/* Countdown ring — games-v3 audit F4: the clock waits for the
-                  teacher's Start (board tap or remote "Next") before ticking. */}
-              <div className="relative inline-flex items-center justify-center">
-                <svg className="w-20 h-20 -rotate-90">
-                  <circle cx="40" cy="40" r="34" stroke="#e5e7eb" strokeWidth="8" fill="none" />
-                  <motion.circle
-                    cx="40" cy="40" r="34"
-                    stroke="#0891b2" strokeWidth="8" fill="none"
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#0E1733] border border-[#1E2D5A] rounded-lg text-xs font-mono text-slate-300">
+            <span className="text-slate-400 font-bold">R{round + 1}/3:</span>
+            <span className="text-sky-300 font-semibold">{cfg.title}</span>
+          </div>
+        </div>
+
+        {/* Center: Big Countdown Timer + Play/Pause/Start Controls */}
+        <div className="flex items-center gap-3">
+          {phase === 'memorize' && (
+            <div className="flex items-center gap-3 bg-[#070C18]/90 border-2 border-sky-400/50 px-3.5 py-1 rounded-full shadow-[0_0_20px_rgba(56,189,248,0.25)]">
+              {/* Circular gauge */}
+              <div className="relative w-9 h-9 flex items-center justify-center">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-slate-800"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className={countdown < 4 ? 'text-pink-500' : 'text-sky-400'}
+                    strokeDasharray={`${Math.round((countdown / cfg.memorizeTime) * 100)}, 100`}
+                    strokeWidth="3.5"
                     strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 34}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 34 * (1 - countdown / cfg.memorizeTime) }}
-                    transition={{ duration: 1, ease: 'linear' }}
+                    stroke="currentColor"
+                    fill="none"
                   />
                 </svg>
-                <span className="absolute text-3xl font-bold text-cyan-800">{countdown}</span>
+                <span className="text-xs font-mono font-bold text-sky-300 absolute">
+                  {countdown}
+                </span>
               </div>
-              {!clockArmed && (
-                <div className="mt-2">
-                  <button onClick={() => setClockArmed(true)}
-                    className="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg active:scale-95 transition-all shadow-lg">
-                    ▶ Start the clock
-                  </button>
-                  <div className="text-xs text-gray-500 mt-1">Teacher: tap when the class is ready</div>
-                </div>
+
+              {/* Big Seconds text */}
+              <div className="flex items-baseline gap-1">
+                <span
+                  className={`text-2xl font-black font-mono tracking-tight leading-none ${
+                    countdown < 4 ? 'text-pink-400 animate-pulse' : 'text-sky-400'
+                  }`}
+                >
+                  {countdown < 10 ? `0${countdown}` : countdown}
+                </span>
+                <span className="font-mono text-[10px] font-bold text-sky-400/80">SEC</span>
+              </div>
+
+              <div className="h-5 w-[1px] bg-slate-700 mx-1" />
+
+              {/* Manual Teacher Start / Pause Trigger */}
+              {!clockArmed ? (
+                <button
+                  onClick={() => setClockArmed(true)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#FF2E79] hover:bg-[#FF2E79]/90 active:scale-95 text-white font-bold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(255,46,121,0.45)] transition-all cursor-pointer"
+                >
+                  <Play size={14} className="fill-current" />
+                  <span>START TIMER (SPACE)</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsPaused((p) => !p)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0E1733] hover:bg-[#1E2D5A] border border-sky-400/40 active:scale-95 text-sky-300 font-mono text-xs font-bold transition-all cursor-pointer"
+                  title={isPaused ? 'Resume timer' : 'Pause timer'}
+                >
+                  {isPaused ? <Play size={13} /> : <Pause size={13} />}
+                  <span>{isPaused ? 'RESUME' : 'PAUSE'}</span>
+                </button>
               )}
             </div>
-            <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-5xl`}>
-              {grid.map((card, idx) => (
-                <motion.div
-                  key={`${card.poolItem.id}-${idx}`}
-                  initial={{ rotateY: 90, opacity: 0 }}
-                  animate={{ rotateY: 0, opacity: 1 }}
-                  transition={{ delay: idx * 0.08 }}
-                  className="aspect-square w-40 md:w-44 rounded-xl overflow-hidden border-4 border-white shadow-lg"
-                >
-                  <img src={card.imageUrl} alt={card.word} className="w-full h-full object-cover" />
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* Choral callout — full-screen rally right before recall */}
-        {phase === 'choral' && (
-          <motion.div
-            key={`choral-${round}`}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-            className="flex-1 flex items-center justify-center"
-          >
+          {phase === 'recall' && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0E1733] border border-emerald-400/40 text-emerald-300 text-xs font-mono font-bold">
+                <HelpCircle size={14} />
+                <span>WHAT IS MISSING?</span>
+              </div>
+
+              {/* Peek Again (+3s reveal) */}
+              <button
+                onClick={triggerPeekAgain}
+                disabled={peekActive}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold font-mono transition-all active:scale-95 ${
+                  peekActive
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 animate-pulse'
+                    : 'bg-[#0E1733] hover:bg-[#1E2D5A] border-amber-400/40 text-amber-300'
+                }`}
+                title="Briefly peek at the missing card for 3 seconds"
+              >
+                <Eye size={13} />
+                <span>PEEK (+3s)</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Streak & Turn Indicator */}
+        <div className="flex items-center gap-3">
+          {streak > 1 && (
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-mono font-bold shadow-[0_0_10px_rgba(245,158,11,0.25)]">
+              <Flame size={14} className="fill-current text-amber-400" />
+              <span>STREAK x{streak}</span>
+            </div>
+          )}
+
+          {pickedStudent && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-[#0E1733] border border-[#1E2D5A] rounded-full text-xs font-medium text-slate-200">
+              <div className="w-5 h-5 rounded-full bg-pink-500/20 border border-pink-400 text-pink-400 flex items-center justify-center font-bold text-[11px]">
+                {pickedStudent.name[0]}
+              </div>
+              <span className="font-semibold">{pickedStudent.name}'s turn</span>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── MAIN CONTENT ARENA ── */}
+      <div className="flex-1 flex flex-col justify-center my-2 min-h-0 relative z-10">
+        <AnimatePresence mode="wait">
+          {/* 1. MEMORIZE PHASE */}
+          {phase === 'memorize' && (
             <motion.div
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ repeat: Infinity, duration: 0.7, ease: 'easeInOut' }}
-              className="text-center px-12 py-16 rounded-3xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-2xl"
+              key={`memorize-${round}`}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="w-full h-full flex flex-col justify-center"
             >
-              <div className="text-8xl mb-4">👉</div>
-              <div className="text-4xl md:text-6xl font-extrabold text-white leading-tight">
-                Everyone — point at the missing card!
+              <div className="text-center mb-1.5">
+                <span className="text-xs font-mono text-sky-400 uppercase tracking-widest font-bold">
+                  {cfg.instruction}
+                </span>
+              </div>
+
+              {/* Grid of landscape specimen cards */}
+              <div className={`grid gap-3 w-full max-w-6xl mx-auto flex-1 min-h-0 ${gridClass}`}>
+                {grid.map((card, idx) => {
+                  const isWordMode = cfg.direction === 'word→image';
+                  return (
+                    <motion.div
+                      key={`${card.poolItem.id}-${idx}`}
+                      initial={{ rotateY: 90, opacity: 0 }}
+                      animate={{ rotateY: 0, opacity: 1 }}
+                      transition={{ delay: idx * 0.06 }}
+                      className="group relative bg-[#111C3D] border border-[#1E2D5A] hover:border-sky-400/60 rounded-2xl overflow-hidden flex flex-col shadow-md transition-all"
+                    >
+                      {/* Number badge */}
+                      <div className="absolute top-2 left-2 z-10 font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-[#070C18]/85 text-slate-300 border border-white/10 backdrop-blur-sm">
+                        0{idx + 1}
+                      </div>
+
+                      {/* Card Content based on Round Direction */}
+                      {isWordMode ? (
+                        /* Word Focus Card */
+                        <div className="flex-1 w-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#0E1733] to-[#111C3D]">
+                          <span className="text-2xl lg:text-3xl font-black text-white tracking-wide font-sans group-hover:text-sky-300 transition-colors">
+                            {card.word.toUpperCase()}
+                          </span>
+                          <span className="font-mono text-xs text-sky-400 mt-1 font-semibold">
+                            ENGLISH WORD
+                          </span>
+                        </div>
+                      ) : (
+                        /* Image + Subtitle Card */
+                        <>
+                          <div className="relative flex-1 w-full overflow-hidden bg-slate-950">
+                            <img
+                              src={card.imageUrl}
+                              alt={card.word}
+                              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <div className="h-10 px-3.5 bg-[#0E1733] border-t border-[#1E2D5A] flex items-center justify-between shrink-0">
+                            <span className="font-sans text-base lg:text-lg font-black tracking-wide text-white group-hover:text-sky-300 transition-colors">
+                              {card.word.toUpperCase()}
+                            </span>
+                            <span className="font-mono text-xs text-sky-400 font-bold">
+                              0{idx + 1}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
-          </motion.div>
-        )}
+          )}
 
-        {/* Recall phase */}
-        {phase === 'recall' && cfg && (
-          <motion.div
-            key={`recall-${round}`}
-            initial={{ opacity: 0, x: 60 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -60 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            <div className="text-center mb-4">
-              <div className="text-2xl text-gray-700 font-semibold">
-                {cfg.mode === 'produce' ? 'What is missing? Say it!' : 'Which card is missing?'}
-              </div>
-              {missedOut && (
-                <div className="text-xl text-gray-500 mt-2 animate-pulse">Missed it — moving on…</div>
-              )}
-            </div>
-
-            {/* Grid with the gap */}
-            <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-5xl mb-8`}>
-              {grid.map((card, idx) => (
-                <div
-                  key={`${card.poolItem.id}-${idx}`}
-                  className={`aspect-square w-40 md:w-44 rounded-xl overflow-hidden border-4 shadow-lg ${
-                    idx === removedIdx
-                      ? 'border-dashed border-cyan-400 bg-cyan-100 flex items-center justify-center'
-                      : 'border-white'
-                  } ${missedOut ? 'opacity-60' : ''}`}
-                >
-                  {idx === removedIdx ? (
-                    <span className="text-5xl">❓</span>
-                  ) : (
-                    <img src={card.imageUrl} alt={card.word} className="w-full h-full object-cover" />
-                  )}
+          {/* 2. CHORAL RALLY CALLOUT */}
+          {phase === 'choral' && (
+            <motion.div
+              key={`choral-${round}`}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+              className="flex-1 flex items-center justify-center"
+            >
+              <div className="text-center px-12 py-10 rounded-3xl bg-gradient-to-br from-[#0B132B] to-[#1E2D5A] border-2 border-pink-500 shadow-[0_0_40px_rgba(255,46,121,0.35)]">
+                <div className="text-6xl mb-3 animate-bounce">👉</div>
+                <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight tracking-wide mb-2">
+                  Everyone — Point at the Missing Card!
+                </h2>
+                <div className="text-base text-pink-300 font-mono font-bold">
+                  {pickedStudent ? `${pickedStudent.name}, get ready to answer!` : 'Spot the gap!'}
                 </div>
-              ))}
-            </div>
-
-            {/* Recognize: candidate cards */}
-            {cfg.mode === 'recognize' && (
-              <div className="flex gap-4 justify-center flex-wrap">
-                {candidates.map((card, idx) => (
-                  <motion.button
-                    key={`${card.poolItem.id}-c${idx}`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleCandidateSelect(idx)}
-                    className={`aspect-square w-40 rounded-xl overflow-hidden border-4 transition-all ${
-                      selectedCandidate === idx
-                        ? removedCard && card.poolItem.id === removedCard.poolItem.id
-                          ? 'border-green-500'
-                          : 'border-red-500'
-                        : 'border-white hover:border-cyan-400 shadow-lg'
-                    }`}
-                  >
-                    <img src={card.imageUrl} alt={`Candidate ${idx + 1}`} className="w-full h-full object-cover" />
-                  </motion.button>
-                ))}
               </div>
-            )}
+            </motion.div>
+          )}
 
-            {/* Produce: speech recognition */}
-            {cfg.mode === 'produce' && (
-              <div className="text-center">
-                {!speechSupported ? (
-                  <div>
-                    <MicOff size={48} className="mx-auto mb-4 text-gray-400" />
-                    <div className="text-gray-500 text-lg mb-4">Speech recognition not supported — tap the word instead:</div>
-                    {/* Fallback: recognize-style candidates */}
-                    <div className="flex gap-4 justify-center flex-wrap">
-                      {candidates.map((card, idx) => (
-                        <motion.button
-                          key={`${card.poolItem.id}-f${idx}`}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleCandidateSelect(idx)}
-                          className="px-6 py-4 bg-white border-2 border-cyan-300 rounded-xl text-xl font-bold text-cyan-800"
-                        >
-                          {card.word}
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={startListening}
-                      disabled={isListening}
-                      className={`px-12 py-6 rounded-full font-bold text-2xl flex items-center gap-3 mx-auto ${
-                        isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-green-500 hover:bg-green-600 text-white'
-                      }`}
-                    >
-                      <Mic size={32} />
-                      {isListening ? 'Listening…' : 'Tap to Speak'}
-                    </motion.button>
-                    {speechTranscript && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-6 p-4 bg-white rounded-xl inline-block"
+          {/* 3. RECALL PHASE */}
+          {phase === 'recall' && (
+            <motion.div
+              key={`recall-${round}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full h-full flex flex-col justify-between"
+            >
+              {/* Grid with Missing Slot */}
+              <div className={`grid gap-3 w-full max-w-6xl mx-auto flex-1 min-h-0 mb-2 ${gridClass}`}>
+                {grid.map((card, idx) => {
+                  const isMissing = idx === removedIdx && !peekActive;
+                  const isWordMode = cfg.direction === 'word→image';
+
+                  if (isMissing) {
+                    return (
+                      <div
+                        key={`gap-${idx}`}
+                        className="relative rounded-2xl overflow-hidden bg-[#0D1733]/90 border-2 border-dashed border-sky-400 flex flex-col items-center justify-center p-3 text-center shadow-[0_0_20px_rgba(56,189,248,0.25)] animate-pulse"
                       >
-                        <div className="text-sm text-gray-500 mb-1">You said:</div>
-                        <div className="text-2xl text-gray-800 mb-2">{speechTranscript}</div>
-                        <div className="text-lg">
-                          Score:{' '}
-                          <span className={`font-bold ${speechPassed ? 'text-green-600' : 'text-red-600'}`}>
-                            {Math.round((speechScore || 0) * 100)}%
-                          </span>
-                          {speechPassed && ' ✅'}
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-sky-400/20 border border-sky-400/50 font-mono text-[11px] font-bold text-sky-300">
+                          0{idx + 1} · ACTIVE TARGET
                         </div>
-                      </motion.div>
+                        <div className="w-12 h-12 rounded-full bg-sky-400/15 border border-sky-400 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(56,189,248,0.35)]">
+                          <span className="font-extrabold text-2xl text-sky-300">?</span>
+                        </div>
+                        <span className="font-sans font-bold text-sm lg:text-base text-sky-200 tracking-wider">
+                          TARGET #0{idx + 1}
+                        </span>
+                        <span className="font-mono text-[11px] text-slate-400 mt-0.5">
+                          {cfg.direction === 'image→word'
+                            ? 'Recall the missing word'
+                            : cfg.direction === 'word→image'
+                            ? 'Recall the missing picture'
+                            : 'Say the missing word'}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={`${card.poolItem.id}-${idx}`}
+                      className="group relative bg-[#111C3D] border border-[#1E2D5A] rounded-2xl overflow-hidden flex flex-col shadow-md"
+                    >
+                      <div className="absolute top-2 left-2 z-10 font-mono text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-[#070C18]/85 text-slate-300 border border-white/10">
+                        0{idx + 1}
+                      </div>
+                      {isWordMode ? (
+                        <div className="flex-1 w-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#0E1733] to-[#111C3D]">
+                          <span className="text-xl lg:text-2xl font-black text-white tracking-wide font-sans">
+                            {card.word.toUpperCase()}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="relative flex-1 w-full overflow-hidden bg-slate-950">
+                            <img
+                              src={card.imageUrl}
+                              alt={card.word}
+                              className="w-full h-full object-cover object-center"
+                            />
+                          </div>
+                          <div className="h-9 px-3.5 bg-[#0E1733] border-t border-[#1E2D5A] flex items-center justify-between shrink-0">
+                            <span className="font-sans text-sm lg:text-base font-black tracking-wide text-white">
+                              {card.word.toUpperCase()}
+                            </span>
+                            <span className="font-mono text-xs text-sky-400">0{idx + 1}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── CANDIDATE SHELF (Bottom Tray) ── */}
+              <div className="w-full max-w-6xl mx-auto bg-[#0B132B]/95 border border-[#1E2D5A] rounded-2xl p-2.5 backdrop-blur-md shrink-0 shadow-lg">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-400">
+                      CHOOSE FOR MISSING SLOT:
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-slate-400">
+                    Keys: [A] [B] [C] [D] or Tap Option
+                  </span>
+                </div>
+
+                {/* Candidate Selection Modes */}
+                {cfg.direction === 'image→word' && (
+                  /* Word Pills Tray */
+                  <div className="grid grid-cols-4 gap-3">
+                    {candidates.map((cand, idx) => {
+                      const isSelected = selectedCandidate === idx;
+                      const isCorrect = removedCard && cand.poolItem.id === removedCard.poolItem.id;
+                      return (
+                        <motion.button
+                          key={`${cand.poolItem.id}-${idx}`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleCandidateSelect(idx)}
+                          className={`relative rounded-xl border p-3 flex items-center justify-between transition-all cursor-pointer ${
+                            isSelected
+                              ? isCorrect
+                                ? 'bg-emerald-500/20 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                                : 'bg-red-500/20 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                              : 'bg-[#111C3D] hover:bg-[#1E2D5A] border-[#1E2D5A] hover:border-sky-400/60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="w-7 h-7 rounded-lg bg-[#070C18] border border-white/10 font-mono text-xs font-black text-sky-400 flex items-center justify-center">
+                              {OPTION_KEYS[idx]}
+                            </span>
+                            <span className="font-sans text-base lg:text-lg font-black text-white tracking-wide">
+                              {cand.word.toUpperCase()}
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <span>
+                              {isCorrect ? (
+                                <CheckCircle2 className="text-emerald-400" size={20} />
+                              ) : (
+                                <XCircle className="text-red-400" size={20} />
+                              )}
+                            </span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {cfg.direction === 'word→image' && (
+                  /* Picture Cards Tray */
+                  <div className="grid grid-cols-4 gap-3">
+                    {candidates.map((cand, idx) => {
+                      const isSelected = selectedCandidate === idx;
+                      const isCorrect = removedCard && cand.poolItem.id === removedCard.poolItem.id;
+                      return (
+                        <motion.button
+                          key={`${cand.poolItem.id}-${idx}`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleCandidateSelect(idx)}
+                          className={`relative rounded-xl border p-2 flex items-center gap-3 transition-all cursor-pointer ${
+                            isSelected
+                              ? isCorrect
+                                ? 'bg-emerald-500/20 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                                : 'bg-red-500/20 border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                              : 'bg-[#111C3D] hover:bg-[#1E2D5A] border-[#1E2D5A] hover:border-sky-400/60'
+                          }`}
+                        >
+                          <span className="w-6 h-6 rounded-lg bg-[#070C18] border border-white/10 font-mono text-xs font-black text-sky-400 flex items-center justify-center shrink-0">
+                            {OPTION_KEYS[idx]}
+                          </span>
+                          <div className="w-14 h-12 rounded-lg overflow-hidden bg-slate-950 shrink-0 border border-white/10">
+                            <img
+                              src={cand.imageUrl}
+                              alt={cand.word}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="font-sans text-sm font-bold text-slate-200 truncate">
+                            {cand.word.toUpperCase()}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {cfg.direction === 'produce' && (
+                  /* Productive Speech Mode */
+                  <div className="flex items-center justify-between px-2 py-1">
+                    {!speechSupported ? (
+                      /* Fallback Word Pills if mic unsupported */
+                      <div className="grid grid-cols-4 gap-3 w-full">
+                        {candidates.map((cand, idx) => (
+                          <button
+                            key={`${cand.poolItem.id}-${idx}`}
+                            onClick={() => handleCandidateSelect(idx)}
+                            className="bg-[#111C3D] hover:bg-[#1E2D5A] border border-[#1E2D5A] hover:border-sky-400/60 rounded-xl p-3 flex items-center gap-3 font-sans font-bold text-base text-white"
+                          >
+                            <span className="w-6 h-6 rounded-lg bg-[#070C18] font-mono text-xs text-sky-400 flex items-center justify-center">
+                              {OPTION_KEYS[idx]}
+                            </span>
+                            <span>{cand.word.toUpperCase()}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Speech Recognition Mic Bar */
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={startListening}
+                            disabled={isListening}
+                            className={`px-7 py-2.5 rounded-xl font-sans font-bold text-base flex items-center gap-2.5 shadow-lg cursor-pointer ${
+                              isListening
+                                ? 'bg-pink-500 text-white animate-pulse shadow-[0_0_20px_rgba(255,46,121,0.5)]'
+                                : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                            }`}
+                          >
+                            <Mic size={20} />
+                            <span>{isListening ? 'Listening… Speak English' : 'Tap to Speak (SPACE)'}</span>
+                          </motion.button>
+
+                          {speechTranscript && (
+                            <div className="px-4 py-1.5 bg-[#070C18] border border-[#1E2D5A] rounded-xl font-mono text-sm text-slate-200">
+                              <span>Heard: </span>
+                              <span className="font-bold text-white">"{speechTranscript}"</span>
+                              <span className="ml-2 font-bold text-sky-400">
+                                ({Math.round((speechScore || 0) * 100)}%)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={markCorrect}
+                            className="px-4 py-2 bg-[#0E1733] hover:bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold rounded-xl transition-all"
+                          >
+                            Teacher: Mark Correct
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
-            )}
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
-        {/* Feedback */}
-        {phase === 'feedback' && removedCard && (
-          <motion.div
-            key="feedback"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="flex-1 flex items-center justify-center"
-          >
-            <div className="text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1, y: [0, -12, 0] }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="w-48 h-48 mx-auto mb-6 rounded-2xl overflow-hidden border-4 border-green-400 shadow-2xl"
-              >
-                <img src={removedCard.imageUrl} alt={removedCard.word} className="w-full h-full object-cover" />
-              </motion.div>
-              <h2 className="text-4xl font-bold text-green-600 mb-2">
-                {pickedStudent ? `${pickedStudent.name} remembered it!` : 'Got it!'}
-              </h2>
-              <div className="text-3xl text-cyan-900 font-bold mb-2">{removedCard.word}</div>
-              <div className="text-2xl text-gray-600 mb-3">+{lastAward} points</div>
-              {(removedCard.audioUrl || removedCard.speechText) && (
+          {/* 4. FEEDBACK & EDUCATIONAL REVEAL (F8 Fix) */}
+          {phase === 'feedback' && removedCard && (
+            <motion.div
+              key="feedback"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex-1 flex items-center justify-center"
+            >
+              <div className="text-center max-w-lg p-8 bg-[#0B132B]/95 border-2 border-emerald-400 rounded-3xl shadow-[0_0_35px_rgba(16,185,129,0.3)] backdrop-blur-md">
+                {/* Revealed Image Card */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1, y: [0, -8, 0] }}
+                  transition={{ type: 'spring', stiffness: 220 }}
+                  className="w-48 h-36 mx-auto mb-4 rounded-2xl overflow-hidden border-2 border-emerald-400 shadow-xl bg-slate-950"
+                >
+                  <img
+                    src={removedCard.imageUrl}
+                    alt={removedCard.word}
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+
+                {/* Status headline */}
+                <h2
+                  className={`text-2xl font-black mb-1 tracking-wide ${
+                    missedOut ? 'text-amber-400' : 'text-emerald-400'
+                  }`}
+                >
+                  {missedOut
+                    ? 'Learning Moment · Remember This Word!'
+                    : pickedStudent
+                    ? `${pickedStudent.name} Got It!`
+                    : 'Target Card Revealed!'}
+                </h2>
+
+                {/* Bold Word */}
+                <div className="text-3xl font-black text-white mb-2 font-sans tracking-wider">
+                  {removedCard.word.toUpperCase()}
+                </div>
+
+                {/* Points or Review badge */}
+                <div className="text-base font-mono font-bold mb-4 text-slate-300">
+                  {lastAward > 0 ? (
+                    <span className="text-emerald-400 font-extrabold">+{lastAward} POINTS</span>
+                  ) : (
+                    <span className="text-amber-400">0 Points · Vocabulary Review</span>
+                  )}
+                </div>
+
+                {/* Audio replay button */}
                 <button
                   onClick={playRemovedAudio}
-                  className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-bold inline-flex items-center gap-2"
+                  className="px-6 py-2.5 bg-sky-500 hover:bg-sky-400 active:scale-95 text-slate-950 rounded-xl font-bold font-sans inline-flex items-center gap-2 shadow-[0_0_15px_rgba(56,189,248,0.4)] transition-all cursor-pointer"
                 >
-                  <Volume2 size={20} /> Hear it
+                  <Volume2 size={18} />
+                  <span>Hear Native Audio (SPACE)</span>
                 </button>
-              )}
-            </div>
-          </motion.div>
-        )}
+              </div>
+            </motion.div>
+          )}
 
-        {/* Complete */}
-        {phase === 'complete' && (
-          <motion.div key="complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-8xl mb-6">🧠</div>
-              <h2 className="text-5xl font-bold text-cyan-900 mb-4">Memory Lab Complete!</h2>
-              <div className="text-2xl text-gray-600">Elephant memory! 🐘</div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* 5. COMPLETE SCREEN */}
+          {phase === 'complete' && (
+            <motion.div
+              key="complete"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex-1 flex items-center justify-center"
+            >
+              <div className="text-center px-12 py-10 bg-[#0B132B]/95 border border-sky-400/40 rounded-3xl shadow-2xl">
+                <div className="text-7xl mb-4">🐘</div>
+                <h2 className="text-4xl font-extrabold text-white mb-2 font-sans tracking-wide">
+                  Memory Lab Complete!
+                </h2>
+                <div className="text-lg text-sky-300 font-mono mb-4">Elephant Memory Achieved!</div>
+                <div className="text-sm text-slate-400">
+                  All 3 English memory rounds mastered with the class.
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {/* Turn footer */}
-      {pickedStudent && phase !== 'complete' && (
-        <div className="mt-4 text-center">
-          <div className="inline-flex items-center gap-3 bg-white rounded-full px-6 py-3 shadow-lg">
-            <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
-              {pickedStudent.name[0]}
-            </div>
-            <div className="text-xl font-semibold text-gray-800">{pickedStudent.name}'s turn</div>
-          </div>
+      {/* ── FOOTER BAR ── */}
+      <footer className="w-full flex items-center justify-between px-3 py-1 bg-[#0B132B]/60 border border-[#1E2D5A]/50 rounded-xl text-xs font-mono text-slate-400 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span>16:9 Projector Board · Optimal Legibility</span>
         </div>
-      )}
+        <div className="flex items-center gap-4">
+          <span>Shortcuts: [SPACE] Timer/Audio · [1-4 / A-D] Candidate</span>
+        </div>
+      </footer>
     </div>
   );
 };

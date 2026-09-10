@@ -27,7 +27,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCcw, Star, SpellCheck } from 'lucide-react';
+import { Star, SpellCheck, Zap, Trophy } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
@@ -37,7 +37,6 @@ import { playCue } from './playCue';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { getVocabulary } from '../../../services/manifest';
 import type { ContextualControlsSpec } from '../lessonDirector';
-import FastVocabHud from '../../../components/games/fastVocab/FastVocabHud';
 import SpellingBeeStage from '../../../components/games/spellingBee/SpellingBeeStage';
 import { useSpellingBeeTurn } from '../../../components/games/spellingBee/useSpellingBeeTurn';
 import {
@@ -64,6 +63,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 // ── Contextual controls contract (same strings the emitters use) ───────────
 export const SPELLING_BEE_ACTION_TYPES = {
+  playAudio: 'PLAY_AUDIO',
+  addTime: 'ADD_TIME_10',
   hint: 'REVEAL_HINT',
   forceCorrect: 'MARK_CORRECT',
   skip: 'SKIP_ITEM',
@@ -75,7 +76,9 @@ const noop = () => {};
 export const SPELLING_BEE_CONTROLS: ContextualControlsSpec = {
   shellType: 'SPELLING_BEE',
   controls: {
-    revealHint:   { label: 'Hint', enabled: true, onTrigger: noop }, // sheds 3 distractor keys / pulses the next letter
+    playAudio:    { label: 'Audio', enabled: true, onTrigger: noop },
+    addTime:      { label: '+10s', enabled: true, onTrigger: noop },
+    revealHint:   { label: 'Hint', enabled: true, onTrigger: noop },
     forceCorrect: { label: 'Mark Correct', enabled: true, onTrigger: noop },
     skip:         { label: 'Skip Word', enabled: true, onTrigger: noop },
     endSlide:     { label: 'End', enabled: true, onTrigger: noop },
@@ -88,7 +91,8 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
   const unitId = state.activeUnit?.id || '';
 
   const WORDS_PER_TURN = clampInt(data?.wordsPerTurn, 1, 10, 3);
-  const TIMER_SECONDS = clampInt(data?.timerSeconds, 0, 120, 15);
+  // Default timer changed from 15s to 25s per owner feedback & audit §2/F4
+  const TIMER_SECONDS = clampInt(data?.timerSeconds, 0, 120, 25);
   const LETTER_REMOVAL = data?.letterRemoval !== false;
 
   // ── Content: pool_items → vocabulary_items → frozen data.words ───────────
@@ -293,6 +297,9 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
         if (turn.status === 'presenting') turn.beginTyping();
         else if (turn.currentWord) playAudioUrl(turn.currentWord.audioUrl, turn.currentWord.word).catch(() => {});
         break;
+      case 'ADD_TIME_10':
+        turn.addTime(10);
+        break;
       case 'SKIP_ITEM':
         playCue('reveal');
         turn.skip();
@@ -372,53 +379,122 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
     : 0;
 
   return (
-    <div className="h-full bg-slate-900 flex flex-col p-6 md:p-8 font-display relative overflow-hidden">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4 gap-4">
-        <div className="bg-white/10 px-5 py-2.5 rounded-2xl flex items-center gap-3 border border-white/10">
-          <div className="w-11 h-11 bg-amber-500 rounded-xl flex items-center justify-center text-white">
-            <SpellCheck size={22} strokeWidth={2.5} />
+    <div className="h-full w-full bg-[#070C18] text-white flex flex-col justify-between p-3 sm:p-5 font-display relative overflow-hidden select-none">
+      {/* ── Stitch Stadium Header (Overscan Safe, pl-28 lg:pl-44) ── */}
+      <header className="w-full flex items-center justify-between h-14 shrink-0 border-b border-slate-800/80 pb-2 pl-28 lg:pl-44 pr-2 gap-3 z-30">
+        {/* Left Region: Phase Indicator + Title Cluster */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          {/* Phase Pill */}
+          <div
+            className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-wider uppercase border shadow-md shrink-0 ${
+              turn.status === 'presenting'
+                ? 'bg-cyan-950/80 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(0,255,204,0.3)]'
+                : turn.status === 'typing'
+                  ? 'bg-sky-950/80 border-sky-400 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]'
+                  : turn.status === 'solved'
+                    ? 'bg-emerald-950/80 border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                    : 'bg-amber-950/80 border-amber-400 text-amber-300'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                turn.status === 'presenting'
+                  ? 'bg-cyan-400 animate-ping'
+                  : turn.status === 'typing'
+                    ? 'bg-sky-400 animate-pulse'
+                    : turn.status === 'solved'
+                      ? 'bg-emerald-400'
+                      : 'bg-amber-400'
+              }`}
+            />
+            <span>
+              {turn.status === 'presenting'
+                ? 'PHASE: LOOK & LISTEN'
+                : turn.status === 'typing'
+                  ? 'PHASE: SPELL IT'
+                  : turn.status === 'solved'
+                    ? 'PHASE: SOLVED!'
+                    : 'PHASE: REVEALED'}
+            </span>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-white leading-tight">Spelling Bee</h1>
-            <p className="text-slate-400 text-xs md:text-sm">
-              {WORDS_PER_TURN} words per turn{timed ? ` · ${TIMER_SECONDS}s per word` : ' · untimed'}
-              {LETTER_REMOVAL ? ' · keys drop as you go' : ''}
-            </p>
+
+          {/* Title & Round badge */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 font-headline font-black text-lg text-white">
+              <Zap size={18} className="text-amber-400 fill-amber-400" />
+              <span>SPELLING BEE</span>
+            </div>
+            <span className="text-slate-600 font-bold">•</span>
+            <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">
+              Round {turn.wordIdx + 1} of {turn.wordsTotal}
+            </span>
+          </div>
+
+          {/* Picked student turn pill */}
+          <div className="flex items-center gap-2 bg-[#111C3D] px-3 py-1 rounded-full border border-cyan-500/40 text-xs font-mono shrink-0">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="font-bold text-white tracking-wide">
+              {pickedStudent?.name ?? 'Class Practice'}
+            </span>
+          </div>
+
+          {/* Streak pill */}
+          {turn.streak >= 2 && (
+            <div className="hidden md:flex items-center gap-1 bg-amber-950/50 border border-amber-400/50 px-2.5 py-1 rounded-full text-xs font-mono font-bold text-amber-300 shrink-0">
+              <span>🔥</span>
+              <span>{turn.streak} IN A ROW</span>
+            </div>
+          )}
+        </div>
+
+        {/* Right Corner Telemetry: Countdown Clock + +10s Button + Room Score */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Countdown Clock with +10s in-class adjust button */}
+          {timed && (
+            <div
+              className={`flex items-center gap-2 px-3 py-1 rounded-xl border transition-all ${
+                turn.timeRemaining <= 5 && turn.status === 'typing'
+                  ? 'bg-rose-950/70 border-rose-500 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse'
+                  : 'bg-slate-800/80 border-slate-700 text-cyan-300'
+              }`}
+            >
+              <span className="font-mono text-base sm:text-lg font-black tracking-wider">
+                {turn.timeRemaining}s
+              </span>
+              {turn.status === 'typing' && (
+                <button
+                  type="button"
+                  onClick={() => turn.addTime(10)}
+                  className="px-2 py-0.5 bg-purple-900/60 hover:bg-purple-800 border border-purple-400/60 text-purple-200 rounded-md text-[11px] font-mono font-extrabold active:scale-95 transition-all cursor-pointer"
+                  title="Grant +10 seconds"
+                >
+                  +10s
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Score chip */}
+          <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-xl bg-slate-800/80 border border-slate-700 font-mono text-xs">
+            <span className="text-slate-400 uppercase text-[11px]">SCORE</span>
+            <span className="font-headline font-black text-sm text-emerald-400">
+              {turnPoints >= 0 ? '+' : ''}{turnPoints} PTS
+            </span>
           </div>
         </div>
-        <button
-          onClick={() => triggerAction('RESET_GAME')}
-          className="p-3 bg-slate-800 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-white shrink-0"
-          title="Reset (Rewinds the word queue to the start)"
-        >
-          <RefreshCcw />
-        </button>
-      </div>
+      </header>
 
-      {/* HUD */}
-      <div className="mb-4">
-        <FastVocabHud
-          score={turnPoints}
-          streak={turn.streak}
-          progressLabel={hudLabel}
-          progress={hudProgress}
-          timeRemaining={timed && turn.status === 'typing' ? turn.timeRemaining : undefined}
-          timeLimit={timed ? TIMER_SECONDS : undefined}
-        />
-      </div>
-
-      {/* Stage */}
-      <div className="flex-1 min-h-0 flex items-center justify-center">
+      {/* ── Main Stage ── */}
+      <main className="flex-1 min-h-0 flex items-center justify-center my-auto w-full py-1">
         <AnimatePresence mode="wait">
           {turn.currentWord && turn.status !== 'complete' && (
             <motion.div
               key={`${turn.wordIdx}-${turn.currentWord.id}`}
-              initial={{ opacity: 0, x: 80 }}
+              initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -80 }}
-              transition={{ duration: 0.25 }}
-              className="w-full"
+              exit={{ opacity: 0, x: -60 }}
+              transition={{ duration: 0.22 }}
+              className="w-full flex justify-center"
             >
               <SpellingBeeStage
                 word={turn.currentWord}
@@ -434,16 +510,16 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
 
-      {/* Turn-complete overlay */}
+      {/* ── Screen 4: Cyber Victory Pod ── */}
       <AnimatePresence>
         {turn.status === 'complete' && showSummary && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md cursor-pointer p-4 select-none"
             onClick={() => {
               setShowSummary(false);
               // Choral practice: clicking rolls straight into the next wave.
@@ -461,57 +537,77 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
             }}
           >
             <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              className="bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl flex flex-col items-center max-w-lg mx-4"
+              initial={{ scale: 0.85, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              className="bg-[#0B132B] border-2 border-cyan-500/40 rounded-3xl p-6 sm:p-10 shadow-[0_0_60px_rgba(0,255,204,0.25)] flex flex-col items-center max-w-lg w-full text-center relative overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-3xl md:text-5xl font-black text-slate-800 mb-2 text-center">
-                {summaryName ? `${summaryName} nailed it!` : 'Complete!'}
+              {/* Decorative ambient glow */}
+              <div className="absolute -right-20 -top-20 w-56 h-56 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -left-20 -bottom-20 w-56 h-56 bg-pink-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Victory Trophy Icon */}
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_24px_rgba(245,158,11,0.4)] mb-3">
+                <Trophy size={36} />
+              </div>
+
+              <h2 className="text-2xl sm:text-4xl font-black text-white font-headline tracking-wide mb-1">
+                {summaryName ? `${summaryName} Nailed It!` : 'Spelling Complete!'}
               </h2>
+              <p className="text-cyan-300 font-mono text-xs uppercase tracking-widest mb-4">
+                Round Complete · Excellent Work!
+              </p>
 
               {turnSummary && (
                 <>
                   {/* Star tally (fills in sequence) */}
-                  <div className="flex gap-2 my-5">
+                  <div className="flex gap-2.5 my-4">
                     {Array.from({ length: 5 }, (_, i) => (
                       <motion.span
                         key={i}
                         initial={{ scale: 0, rotate: -30 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: 0.25 + i * 0.22, type: 'spring', stiffness: 300, damping: 15 }}
+                        transition={{ delay: 0.2 + i * 0.15, type: 'spring', stiffness: 350, damping: 15 }}
                       >
                         <Star
                           size={36}
-                          className={i < stars ? 'text-amber-400' : 'text-slate-200'}
+                          className={i < stars ? 'text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)]' : 'text-slate-700'}
                           fill={i < stars ? 'currentColor' : 'none'}
                           strokeWidth={2}
                         />
                       </motion.span>
                     ))}
                   </div>
-                  <div className="flex gap-6 text-center">
-                    <div>
-                      <p className="text-3xl font-black text-emerald-500 tabular-nums">
+
+                  {/* Stat Cards Grid */}
+                  <div className="grid grid-cols-3 gap-3 w-full my-2">
+                    <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-3 flex flex-col items-center">
+                      <p className="text-2xl sm:text-3xl font-black text-emerald-400 tabular-nums font-headline">
                         {turnPoints >= 0 ? '+' : ''}{turnPoints}
                       </p>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">pts this turn</p>
+                      <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-1">PTS EARNED</p>
                     </div>
-                    <div>
-                      <p className="text-3xl font-black text-orange-400 tabular-nums">{turnSummary.bestStreak}</p>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">best streak</p>
+
+                    <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-3 flex flex-col items-center">
+                      <p className="text-2xl sm:text-3xl font-black text-amber-400 tabular-nums font-headline">
+                        {turnSummary.bestStreak} 🔥
+                      </p>
+                      <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-1">BEST STREAK</p>
                     </div>
-                    <div>
-                      <p className="text-3xl font-black text-indigo-500 tabular-nums">
+
+                    <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-3 flex flex-col items-center">
+                      <p className="text-2xl sm:text-3xl font-black text-cyan-400 tabular-nums font-headline">
                         {turnSummary.solved}/{turnSummary.attempted}
                       </p>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">words spelled</p>
+                      <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-1">WORDS SPELLED</p>
                     </div>
                   </div>
                 </>
               )}
-              <p className="text-sm text-slate-400 mt-6 animate-pulse">
-                {state.quickWheelWinner ? 'tap to dismiss — Next Student for a new wave' : 'tap for the next wave'}
+
+              <p className="text-xs text-slate-400 mt-5 font-mono animate-pulse">
+                {state.quickWheelWinner ? 'Tap screen or Next Student on remote' : 'Tap to continue'}
               </p>
             </motion.div>
           </motion.div>

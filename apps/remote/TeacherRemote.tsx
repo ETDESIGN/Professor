@@ -10,6 +10,7 @@ import VoiceCommandModal from './VoiceCommandModal';
 import QuickSpinModal from './QuickSpinModal';
 import DrawingLayer from '../../components/shared/DrawingLayer';
 import { gradeStudentWeakest } from '../../services/boardLearner';
+import { getGrammar } from '../../services/manifest';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('TeacherRemote');
@@ -268,14 +269,39 @@ const TeacherRemote: React.FC = () => {
           </div>
         );
       case 'TEAM_BATTLE':
+        // BoardTeamBattle v3 (audit F2): full mobile control parity
+        // Mark Correct (oral answer override), Steal (offer to other team),
+        // Switch Turn (manual handover), Reset Timer (+15s), Reveal Answer,
+        // Reset Game, End Slide.
         return (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button onClick={() => triggerAction('SWITCH_TURN')} className="bg-orange-500 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <RefreshCw size={24} /> Switch Turn
-            </button>
-            <button onClick={() => triggerAction('RESET_TIMER')} className="bg-slate-700 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform">
-              <Clock size={24} /> Reset Timer
-            </button>
+          <div className="space-y-2 mb-4">
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => triggerAction('MARK_CORRECT')} className="bg-emerald-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-transform text-sm">
+                <Check size={18} /> Correct
+              </button>
+              <button onClick={() => triggerAction('STEAL_TURN')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-transform text-sm">
+                <Zap size={18} /> Steal
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => triggerAction('SWITCH_TURN')} className="bg-orange-500 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-transform text-sm">
+                <RefreshCw size={18} /> Switch Team
+              </button>
+              <button onClick={() => triggerAction('RESET_TIMER')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition-transform text-sm">
+                <Clock size={18} /> +15s
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button onClick={() => triggerAction('REVEAL_ANSWER')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <Eye size={16} /> Reveal
+              </button>
+              <button onClick={() => triggerAction('RESET_GAME')} className="bg-purple-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <RotateCw size={16} /> Restart
+              </button>
+              <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="bg-rose-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform text-xs">
+                <X size={16} /> End
+              </button>
+            </div>
           </div>
         );
       case 'STORY_STAGE':
@@ -433,12 +459,27 @@ const TeacherRemote: React.FC = () => {
             </button>
           </div>
         );
-      case 'GRAMMAR_PRACTICE':
+      case 'GRAMMAR_PRACTICE': {
         // BoardGrammarForge v2: ERROR_SPOT → TRANSFORM → PRODUCE.
         // Reveal/Check (per rung), Mark Correct, Rate buttons (rung 4),
         // Choral/Picked toggle (rung 4), Skip/Next/End.
+        const grammarRules = state.activeUnit?.manifest ? getGrammar(state.activeUnit.manifest) : [];
+        const rule = grammarRules[0];
+        const targetTransformed = rule?.transformation_pairs?.[rule.transformation_pairs.length - 1]?.transformed;
+        const targetOriginal = rule?.transformation_pairs?.[rule.transformation_pairs.length - 1]?.original;
         return (
           <div className="grid grid-cols-3 gap-2 mb-4">
+            {targetTransformed && (
+              <div className="col-span-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl p-2.5 mb-1 text-left shadow-lg">
+                <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                  <Check size={12} /> Target Model Answer (Produce Mode)
+                </div>
+                <div className="text-white font-bold text-sm mt-0.5">{targetTransformed}</div>
+                {targetOriginal && (
+                  <div className="text-slate-400 text-xs mt-0.5">Original: {targetOriginal}</div>
+                )}
+              </div>
+            )}
             <button onClick={() => triggerAction('REVEAL_ANSWER')} className="bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
               <Eye size={20} /> Reveal
             </button>
@@ -468,6 +509,7 @@ const TeacherRemote: React.FC = () => {
             </button>
           </div>
         );
+      }
       case 'FLASH_MATCH':
         return (
           <div className="grid grid-cols-3 gap-2 mb-4">
@@ -549,6 +591,9 @@ const TeacherRemote: React.FC = () => {
       case 'SOUND_LAB':
         return (
           <div className="grid grid-cols-2 gap-2 mb-4">
+            <button onClick={() => triggerAction('PLAY_AUDIO')} className="bg-purple-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform col-span-2">
+              <Volume2 size={18} /> Replay Audio
+            </button>
             <button onClick={() => triggerAction('SKIP_PHASE')} className="bg-slate-700 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
               <SkipForward size={18} /> Skip Phase
             </button>
@@ -661,8 +706,16 @@ const TeacherRemote: React.FC = () => {
         // Same action strings BoardSpellingBee listens for (and that the
         // commander's ContextualControls emit) — the dead-button gotcha.
         // Hint sheds 3 keyboard keys / pulses the next letter.
+        // Audio replays pronunciation / confirms presentation beat.
+        // +10s adds 10 seconds to the active timer countdown.
         return (
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <button onClick={() => triggerAction('PLAY_AUDIO')} className="bg-sky-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform" title="Replay audio / Ready to spell">
+              <Volume2 size={18} /> Audio
+            </button>
+            <button onClick={() => triggerAction('ADD_TIME_10')} className="bg-purple-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform" title="Add 10 seconds">
+              <Clock size={18} /> +10s
+            </button>
             <button onClick={() => triggerAction('REVEAL_HINT')} className="bg-amber-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-1 shadow-lg active:scale-95 transition-transform">
               <Lightbulb size={18} /> Hint
             </button>

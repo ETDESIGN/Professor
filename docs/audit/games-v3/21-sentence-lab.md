@@ -1,6 +1,6 @@
 # Sentence Lab — v3 Quality Audit (`SENTENCE_LAB`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **stitch-implemented** — Stitch designs implemented & verified (Anti-Gravity). Ready for deploy.
 > **Screenshots:** `screenshots/21-sentence-lab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -196,6 +196,19 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/21-sentence-lab/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented by Anti-Gravity (`apps/board/templates/BoardSentenceLab.tsx`):
+1. **Context & Task Framing (§2 Owner Bug, §3 F1, §4.a P1, §4.e 1):** Replaced lone Chinese translation prompt with English-first task prompt ("Build the sentence: N words" / "Grammar Transform"), contextual prompt icon, and demoted Chinese to a subtle supporting L1 cue.
+2. **In-Place Editing Without Punitive Tile Wipe (§3 F4, §4.b P1, §4.e 2):** Eliminated the 1.5s tile wipe (`setBuildTiles([])`) on failed checks. Correctly placed words remain in place with green indicators, while erroneous slots highlight in pulsing amber/pink; students or teachers can tap any individual erroneous word to swap it without losing the rest of the sentence.
+3. **Complete Reveal-on-Resolve with Sentence Audio (§2 Owner Requirement, §3 F3, §4.b P1, §4.e 3):** When resolved or on 2nd miss, the full correct sentence is revealed on the runway in glowing emerald, auto-plays native sentence TTS speech via `useSpeech`, and displays bilingual scaffold for a 3.0s teaching beat before advancing.
+4. **Sentence Runway with Discrete Slots & 3D Tactile Blocks (§4.a P1, §4.d P2, §4.e 4, Stitch 1-build):** Built discrete slot frames (`01`, `02`, `03`...) on the Sentence Runway matching target sentence length with active target pulse animation (`pulse-target`). Rebuilt word bank into tactile 3D word blocks with hover elevations and keyboard shortcut numbers 1–6.
+5. **Graded Progressive Hints (§3 F5, §4.b P2, §4.e 5):** Replaced aggressive 5s answer-leak with progressive ladder: Hint 1 (10s or remote) dims a distractor word; Hint 2 (18s or remote) pulses the exact next needed word.
+6. **Cancellable Timers & Parity (§3 F9):** Wrapped all timeout advances into `advanceTimerRef`, preventing turn-bleeding on remote `SKIP_ITEM` or `RESET_GAME`. Full keyboard support (`SPACE` for audio, `ENTER` for check).
+7. **Header Clearance & Phone Floor (§4.a P2):** Header indents `pl-28 lg:pl-44` to clear `• PRACTICE` badge. Added `@media (max-height: 450px)` styling so at 700×320 runway and tray fit without vertical scrolling.
+
+**Verification:**
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors
+- `npx vitest run`: 762 passed (1 skipped)
+- `npm run build`: built clean in 13.46s
+

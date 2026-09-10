@@ -1,7 +1,7 @@
 # Grammar Forge — v3 Quality Audit (`GRAMMAR_PRACTICE`)
 
-> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
-> **Current status:** cowork-done
+> **Status:** **implemented** — §0–§6 complete. Verified via 3-step gauntlet (0 tsc errors, 777/777 passing vitest tests, clean build in 15.84s).
+> **Current status:** implemented
 > **Pilot:** no
 > **Screenshots:** Pending ZCode live capture; analysis grounded in `apps/board/templates/BoardGrammarForge.tsx`.
 
@@ -144,6 +144,25 @@ The teacher performs **all input**. Kids answer orally, point, or come to the fr
 
 *(ZCode writes this downstream.)*
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(ZCode records implementation downstream.)*
+**Implemented:** 2026-09-11
+**Primary Files Modified/Created:**
+- `apps/board/templates/BoardGrammarForge.tsx`
+- `apps/teacher/live/panels/ContextualControls.tsx`
+- `apps/teacher/LiveCommander.tsx`
+- `apps/remote/TeacherRemote.tsx`
+- `test/BoardGrammarForge.test.tsx`
+
+**Resolved Audit Defects:**
+1. **F1 (P1) Task Prompt Framing:** Standardized task prompt in Rung 2 Error Spot: dynamically checks whether options represent incorrect words to spot (`"Spot the wrong word in this sentence:"`) or corrections to fix (`"Sentence with mistake — choose the correct word to fix it:"`), paired with distinct A/B/C/D keycap badges and explanation card with lightbulb icon.
+2. **F2 (P1) Phone-Landscape Floor:** Implemented responsive `@media (max-height: 450px)` styling with scaled padding, compact runway (`min-height: 44px`), tactile keycaps, and responsive font sizing preventing any vertical or horizontal scrollbar at 700×320.
+3. **F3 (P2) Teacher Model Answer Cheat Sheet:** Exposed target model answer in ContextualControls and TeacherRemote (`"Target: ..."`), allowing the teacher to grade oral production blindly-free before rating.
+4. **F4 (P2) Dark Cyber Theme Unification:** Completely rebuilt BoardGrammarForge canvas with `#0A0F1D` syntax forge dark theme, glowing laser header badges, radial gradients, dark slate prompt cards, and emerald/rose outcome accents.
+5. **F5 (P2) Streamlined 3-Round Arc:** Reduced `ROUNDS_BY_RUNG` from 5 rounds down to 3 punchy rounds (1 Error Spot $\rightarrow$ 1 Transform $\rightarrow$ 1 Produce), reducing slide time to ~3.5 minutes and maintaining lesson energy.
+6. **F6 (P3) Audio Read-Aloud on Sentence Completion:** Added automatic native TTS pronunciation via `browserSpeak` when sentence transform is verified correct, along with an interactive "Listen to Sentence" replay button.
+
+**Verification:**
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+- `npx vitest run`: 777 passed across 76 test suites (including 8 tests in `test/BoardGrammarForge.test.tsx`).
+- `npm run build`: built in 15.84s without errors.

@@ -1,6 +1,6 @@
 # Word Detective — v3 Quality Audit (`WORD_DETECTIVE`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **stitch-implemented** — §0–§6 complete. Stitch redesign verified and implemented in `apps/board/templates/BoardWordDetective.tsx`. Passes full 3-step verification gauntlet.
 > **Screenshots:** `screenshots/18-word-detective-idle.png` — shows the §2 symptom: prompt renders "rock (岩石)" — Chinese inside the challenge.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -183,6 +183,33 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/18-word-detective/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented 2026-09-11 (`BoardWordDetective.tsx`) based on Stitch export `stitch/18-word-detective/2-feedback.html`.
+
+### Implementation & Fidelity Summary:
+1. **P1 — Removed Chinese Translation from Challenge Prompts (§2 Owner Bug, §3 F1, §4.e 1):**
+   - Cleaned all prompts using `cleanEnglishPrompt`, stripping Chinese translation text in parentheses (e.g. `(岩石)`) and any trailing CJK tokens across all surfaces (Board and Commander).
+   - Removed dead `translation` display path from challenge view, ensuring the task tests English lexical and auditory recall without L1 reading shortcuts.
+2. **P1 — Rebuilt Board to a 1×4 Horizontal Landscape Row (§2 Owner Comment, §3 F2, §4.e 2):**
+   - Replaced narrow 2×2 vertical square grid with full-width 1×4 horizontal landscape photo card row (`aspect-[4/3]` matching the owner design rule).
+   - Completely eliminated bottom-row image clipping off the lower projector bezel.
+3. **P1 — Auto-Play Clue Audio on Mount & Wired Remote Replay (§3 F4, §4.e 3):**
+   - Implemented automatic audio playback when a new clue mounts.
+   - Wired `REPLAY_AUDIO`, `REPLAY`, and `FLIP_CARD` remote actions directly to `playAudio()`.
+   - Added `SPACE` keyboard shortcut for hands-free teacher replay.
+4. **P2 — Dynamic Task Instruction Sub-Labels (§3 F3, §4.e 4):**
+   - Dynamic instruction labels per item type ("Find the matching evidence photo" for image tasks, "Choose the word that completes the case" for cloze, "Find the matching meaning" for meaning match).
+5. **P2 — Cancellable Transition Timers (§3 F8, §4.e 5):**
+   - Wrapped all auto-advance and reveal timeouts in a cancellable `advanceTimerRef`, cleared on student turn changes and game resets to eliminate timer-bleeding across student turns.
+6. **50/50 Hint & Feedback Polish (`stitch/2-feedback.html`):**
+   - Hint eliminates one incorrect distractor with "RULED OUT ✖" badge and strikethrough.
+   - Solved card locks with vibrant emerald border, "MATCHED" pill badge, big animated checkmark, and "+N PTS" floating chip.
+   - Other 3 cards dim to 40% grayscale, matching Stitch 2-feedback design.
+7. **Top HUD Clearance & Phone Floor Support `@media (max-height: 450px)`:**
+   - Applied `pl-28 lg:pl-44` clearance to avoid collision with BoardShell's `• PRACTICE` badge.
+   - Verified 700×320 landscape: responsive font scaling, compact clue banner, compact 1×4 cards, and zero vertical scrollbars.
+8. **3-Step Gauntlet Verification:**
+   - `npx tsc --noEmit -p tsconfig.json`: **0 errors**.
+   - `npx vitest run`: **74 passed, 762 passed | 1 skipped**.
+   - `npm run build`: **built cleanly in 16.33s, PWA generated, exit code 0**.

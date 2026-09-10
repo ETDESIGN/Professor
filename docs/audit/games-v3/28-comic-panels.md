@@ -1,6 +1,6 @@
 # Comic — Rebuild the Story — v3 Quality Audit (`COMIC_PANELS`)
 
-> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
+> **Status:** **stitch-implemented** — §6 implementation complete (Anti-Gravity 2026-09-11). Stitch 1-rebuild.html & 2-complete.html implemented and verified.
 > **Screenshots:** `screenshots/28-comic-panels-idle.png` — empty state (comics need book scans) — cropping findings are code-anchored.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -155,6 +155,24 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/28-comic-panels/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Stitch output & implementation notes (Anti-Gravity 2026-09-11)
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+- **Stitch export reference:** `stitch/28-comic-panels/` (`1-rebuild.html`, `2-complete.html`).
+- **Defects addressed:**
+  - **F1 (P1) — Uncropped 3:2 landscape tray candidates:** Completely eliminated the `max-w-40` and `overflow-hidden` clips that previously bisected wide book art. Implemented native 3:2 landscape candidate cards (`aspect-[3/2]`, `object-contain`) with zero cropping, allowing students to read character expressions, objects, and panel action before placing.
+  - **F2 (P1) — Widescreen 3:2 story runway:** Replaced rigid vertical postcard slits (`flex-1 max-w-[17%]`) with a dynamic horizontal 3:2 classroom ratio runway (`aspect-[3/2]` containers). Active target receiver slot glows with cyan dashed boundary and bouncing indicator (`DROP PANEL 0X HERE`). Subsequent empty slots render clean locked states.
+  - **F3 (P2) — Legible reveal-on-place narrative & dialogue:** In placed slots, narrative boxes render in high-contrast amber (`bg-amber-950/60 border border-amber-500/30 text-amber-300 font-semibold`) and verbatim dialogue appears in crisp high-contrast white text (`text-xs sm:text-sm font-bold`).
+  - **F7 (P3) — Skip vs. Next semantic differentiation:** `NEXT_ROUND` now re-deals a fresh turn (`deal()`) when played during a live lesson rather than prematurely terminating the entire slide, giving the teacher a smooth remote loop between student turns. `SKIP_ROUND` cleanly finishes the slide without penalty.
+  - **F8 (P3) — Universal hint affordance & back-row letter badges:**
+    - Stamped prominent letter tags (`[A]`, `[B]`, `[C]`, `[D]`, `[E]`, `[F]`) on tray candidates so back-row students can shout: *"Put Panel B in Slot 1!"*.
+    - `REVEAL_HINT` is no longer a dead button when the board is empty or all placed panels are correct: it identifies the candidate panel that belongs in the active slot and pulses it with radiant sky-blue rim lighting. If an error exists in a placed slot, it highlights the misplaced slot with a warning red pulse.
+  - **Screen 4 — Story Solved celebration & whole-class oral chant:** Implemented Stitch `2-complete.html` showcase featuring:
+    - Celebration Hero Banner with gold star rating, trophy icon, student name, and points awarded (`+{points} PTS`).
+    - Connected horizontal filmstrip runway showing all panels in chronological order with emerald glowing locks and connecting arrow badges (`[→]`).
+    - Whole-Class Oral Chant recap banner uniting narration and dialogue into a fluent reading story (`First... Then... Finally...`) legible from 8 meters, with a dedicated audio read-aloud button (`browserSpeak`).
+  - **Responsive reflow:** Embedded `@media (max-height: 450px)` styling ensuring full reflow without scrolling or clipping on 700×320 landscape projector displays.
+- **Verification Gauntlet passed:**
+  - TypeScript: 0 errors (`npx tsc --noEmit -p tsconfig.json`).
+  - Vitest: 762/762 tests passing across 74 test files (`npx vitest run`).
+  - Production build: Clean build in 14.39s (`npm run build`).
+

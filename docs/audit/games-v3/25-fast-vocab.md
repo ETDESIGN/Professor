@@ -1,6 +1,6 @@
 # Fast Vocab — v3 Quality Audit (`FAST_VOCAB`)
 
-> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
+> **Status:** **stitch-implemented** — Stitch design (`1-match.html`, `2-speed.html`) implemented, 3-step verification gauntlet clean (Anti-Gravity 2026-09-11).
 > **Screenshots:** `screenshots/25-fast-vocab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -152,6 +152,32 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/25-fast-vocab/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented 2026-09-11 by Anti-Gravity against Stitch designs `1-match.html` and `2-speed.html`:
+
+1. **Turn Stability & Batched Payout (F1, F3, §2, §4.b):**
+   - Scoring points are accumulated per turn via `turnPointsRef` and flushed as a single batched award to `awardeeRef.current` upon turn completion (`onComplete`). This completely prevents the sidebar wheel's `EVERY_1` or `EVERY_3` auto-rotation counter from aborting a student's turn mid-match.
+   - If the teacher manually spins or triggers `NEW_TURN`, `flushTurnPoints()` flushes what the student earned, preserving fair scoring without mid-turn card re-deals.
+2. **Distinct, High-Energy Visual Stages (F2, §4.a):**
+   - Replaced disorienting 900ms wipe with explicit glowing phase banners:
+     - **Phase 1:** `⚡ PHASE 1: MATCH` (Sky/Cyan neon badge + "Match 3 Pairs").
+     - **Phase 2:** `🔥 PHASE 2: SPEED` (Hot Pink neon badge + "Speed Recall" + Radial Countdown Gauge).
+3. **Elevated Active Challenger Identity (F8, §4.a, §4.e):**
+   - Replaced tiny HUD string with prominent glowing student avatar ring and turn badge (`⚡ ALICE'S TURN`) clearly legible from 8 meters.
+4. **Eliminated Destructive In-Game Reset Button (F5, F6, §4.a):**
+   - Removed bare circular `RefreshCcw` icon button from board header. Destructive slide-level queue resets remain safely restricted to the teacher's remote (`RESET_GAME`).
+5. **Interactive Speed Round Keypad & Audio Replay:**
+   - Keyboard shortcuts `1`, `2`, `3` or `A`, `B`, `C` map directly to answer choices 0, 1, 2.
+   - `SPACE` triggers pronunciation audio for the active speed question.
+6. **High-Tech Victory Summary Pod (Stitch Screen 4):**
+   - Transformed summary overlay into a cyber victory pod with glowing 5-star spring sequence, `+N Points Earned`, `Best Streak`, `First Try Accuracy`, and clean tap-to-dismiss / next-student cue.
+7. **Projection & Responsive Ergonomics:**
+   - Top HUD left clearance `pl-28 lg:pl-44` protects against `• PRACTICE` badge collisions.
+   - Fully responsive `@media (max-height: 450px)` styling ensures zero vertical scroll at 700×320 landscape.
+
+### Verification Gauntlet
+- `npx tsc --noEmit -p tsconfig.json` → **0 errors** (clean).
+- `npx vitest run` → **762/762 passing** (1 skipped).
+- `npm run build` → **Clean production build** (14.45s).
+

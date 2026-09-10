@@ -1,6 +1,6 @@
 # Sound Lab — v3 Quality Audit (`SOUND_LAB`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **stitch-implemented** — Stitch designs implemented & verified (Anti-Gravity). Ready for deploy.
 > **Screenshots:** `screenshots/19-sound-lab-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -192,6 +192,20 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/19-sound-lab/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented by Anti-Gravity (`apps/board/templates/BoardSoundLab.tsx`, `apps/teacher/live/panels/ContextualControls.tsx`, `apps/remote/TeacherRemote.tsx`):
+1. **Auto-Play on Item Deal (§2 Owner Headline Ask, §3 F1, §4.b P1):** Automatically plays audio once upon item mount/deal; records initial free play in `replayCount = 1`, making subsequent manual replays by the picked student cost −1 pt.
+2. **Horizontal 1×4 Row in Phase 1 (§2 Owner Comment, §3 F4, §4.a P1, §4.e 2):** Replaced 2×2 square vertical grid with a responsive 1×4 horizontal landscape card row (`aspect-[4/3]`), completely eliminating the bottom-row bezel cutoff.
+3. **Auditory Purity / Sight-Reading Leak Resolved (§3 F4, §4.a P2):** Suppressed English text labels during active listening. Words, phonetic breakdowns, and spelling are revealed on selection/feedback.
+4. **Honest Replay Metering & Audio Visualizer (§2 Owner Rule, §3 F2, §4.d P2):** Central acoustic hub with glowing concentric ripples during audio playback, dynamic frequency equalizer bars, and a clear replay cost badge (`"Free"` vs `"-1 pt"` for picked students). Added `SPACE` shortcut.
+5. **Remote & Commander `PLAY_AUDIO` Wired (§3 F3, §4.b P1):** Added `PLAY_AUDIO` action handlers to `BoardSoundLab.tsx`, `ContextualControls.tsx`, and `TeacherRemote.tsx`.
+6. **Phase 2 Distractor Integrity Guard (§3 F5):** Guaranteed minimum 3 options in sentence discrimination by generating contrast variations if sibling dictation items are scarce.
+7. **Phase 3 Speech Production 2-Miss Mercy Scaffold (§3 F6, §4.b P2):** Added 2-miss mercy exit so students struggling with speech recognition or background noise do not bleed points indefinitely; model sentence is highlighted, audio model is played, and game auto-advances. Provided teacher override `MARK_CORRECT` button.
+8. **Phase Resets & Phone Floor (§3 F7, F9):** Clean resets of `replayCount`, `phase3MissesRef`, and attempt latches on phase advances. Added `@media (max-height: 450px)` responsive scaling and top header `pl-28 lg:pl-44` badge clearance.
+
+**Verification:**
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors
+- `npx vitest run`: 762 passed (1 skipped)
+- `npm run build`: built clean in 13.42s
+

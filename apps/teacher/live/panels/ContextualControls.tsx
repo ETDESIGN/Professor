@@ -7,6 +7,7 @@ import {
   Star, Shuffle, Scale, CheckCircle, XCircle, Music, Activity,
   Plus, Minus, X, List, Sparkles, Trophy, Users
 } from 'lucide-react';
+import { getGrammar } from '../../../../services/manifest';
 
 // Produce-mode answer input for BoardWhatsMissing v2 (whatsmissing-v2-spec §2):
 // the teacher types what the picked student says; the board scores it via
@@ -76,6 +77,7 @@ export const renderContextualControls = (
   currentStep: any,
   triggerAction: (type: string, payload?: any) => void,
   selectNextStudent: (filterTeam?: string, useOverlay?: boolean) => void,
+  activeUnit?: any,
 ) => {
   switch (currentStep.type) {
     case 'MEDIA_PLAYER':
@@ -183,6 +185,7 @@ export const renderContextualControls = (
     case 'SOUND_LAB':
       return (
         <div className="flex gap-2">
+          <button onClick={() => triggerAction('PLAY_AUDIO')} className="h-12 px-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Volume2 size={18} /> Audio</button>
           <button onClick={() => triggerAction('SKIP_PHASE')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><SkipForward size={18} /> Skip Phase</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Correct</button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={18} /> Redo</button>
@@ -249,6 +252,36 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
         </div>
       );
+    case 'TEAM_BATTLE':
+      // BoardTeamBattle v3 (games-v3 audit F1/F2): full teacher control parity
+      // Force correct for active team (adds points, moves to choose_cell),
+      // Steal (manually offer steal to opponent), Switch Team (hand over),
+      // Reset Timer (+15s), Reveal Answer (forfeit/reveal), Reset Game, End Slide.
+      return (
+        <div className="flex gap-2 flex-wrap items-center">
+          <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Force correct for active team">
+            <Check size={18} /> Correct
+          </button>
+          <button onClick={() => triggerAction('STEAL_TURN')} className="h-12 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Offer steal chance to opponent">
+            <Zap size={18} /> Steal
+          </button>
+          <button onClick={() => triggerAction('SWITCH_TURN')} className="h-12 px-4 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Switch active team">
+            <RefreshCw size={18} /> Switch Team
+          </button>
+          <button onClick={() => triggerAction('RESET_TIMER')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Reset / +15s timer">
+            <Clock size={18} /> +15s
+          </button>
+          <button onClick={() => triggerAction('REVEAL_ANSWER')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Reveal answer without points">
+            <Eye size={18} /> Reveal
+          </button>
+          <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Restart match">
+            <RotateCw size={18} /> Restart
+          </button>
+          <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-rose-700 hover:bg-rose-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="End this slide">
+            <X size={18} /> End
+          </button>
+        </div>
+      );
     case 'FAST_VOCAB':
       // BoardFastVocab listens for exactly these strings (match: skip pair /
       // hint glow; speed: skip question / eliminate a wrong choice). RESET_GAME
@@ -304,8 +337,16 @@ export const renderContextualControls = (
       // BoardSpellingBee listens for exactly these strings (match: hint sheds
       // 3 keyboard keys or pulses the next letter; skip reveals the word, no
       // penalty). RESET_GAME rewinds the word queue to the start of the pool.
+      // PLAY_AUDIO replays pronunciation / confirms presentation beat.
+      // ADD_TIME_10 grants an in-class +10s timer extension.
       return (
         <div className="flex gap-2 flex-wrap items-center">
+          <button onClick={() => triggerAction('PLAY_AUDIO')} className="h-12 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Hear word audio">
+            <Volume2 size={18} /> Audio
+          </button>
+          <button onClick={() => triggerAction('ADD_TIME_10')} className="h-12 px-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Add 10 seconds to countdown">
+            <Clock size={18} /> +10s
+          </button>
           <button onClick={() => triggerAction('REVEAL_HINT')} className="h-12 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95" title="Drop 3 more keyboard keys / pulse the next letter">
             <Lightbulb size={18} /> Hint
           </button>
@@ -351,12 +392,21 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-rose-700 hover:bg-rose-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
         </div>
       );
-    case 'GRAMMAR_PRACTICE':
+    case 'GRAMMAR_PRACTICE': {
       // BoardGrammarForge v2: ERROR_SPOT MCQ → TRANSFORM tiles → PRODUCE 3-way rating.
       // Controls cover all 3 rungs: Reveal/Check (per rung), Mark Correct (override),
       // Rate (rung 4 only), Choral/Picked toggle (rung 4 only), Skip/Next/End.
+      const grammarRules = activeUnit?.manifest ? getGrammar(activeUnit.manifest) : [];
+      const rule = grammarRules[0];
+      const targetTransformed = rule?.transformation_pairs?.[rule.transformation_pairs.length - 1]?.transformed;
       return (
         <div className="flex gap-2 flex-wrap items-center">
+          {targetTransformed && (
+            <div className="bg-emerald-950/80 border border-emerald-500/50 rounded-xl px-3 py-1.5 text-xs text-left mr-2 shadow-md">
+              <span className="font-bold text-emerald-400 block text-[10px] uppercase tracking-wider">Target Model:</span>
+              <span className="text-white font-bold">{targetTransformed}</span>
+            </div>
+          )}
           <button onClick={() => triggerAction('REVEAL_ANSWER')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Eye size={18} /> Reveal</button>
           <button onClick={() => triggerAction('CHECK_ANSWER')} className="h-12 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Check</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Mark Correct</button>
@@ -370,6 +420,7 @@ export const renderContextualControls = (
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })} className="h-12 px-4 bg-rose-700 hover:bg-rose-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><X size={18} /> End</button>
         </div>
       );
+    }
     case 'I_SAY_YOU_SAY':
     case 'SPEAKING':
       // BoardISayYouSay v2: discrimination (scored) → choral (unscored).

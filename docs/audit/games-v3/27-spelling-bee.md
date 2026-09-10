@@ -1,6 +1,6 @@
 # Spelling Bee — v3 Quality Audit (`SPELLING_BEE`)
 
-> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
+> **Status:** **stitch-implemented** — Stitch designs (`1-presentation.html`, `2-typing.html`) implemented, audit defects F1–F9 resolved, 3-step verification passed (2026-09-11).
 > **Screenshots:** `screenshots/27-spelling-bee-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -164,6 +164,19 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/27-spelling-bee/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Stitch output & implementation notes (Anti-Gravity 2026-09-11)
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+- **Stitch export reference:** `stitch/27-spelling-bee/` (`1-presentation.html`, `2-typing.html`).
+- **Defects addressed:**
+  - **F1 (P1) — Presentation beat & auto-played audio:** Split the word lifecycle into a 3.2s paused presentation hold with an uncropped 4:3 illustration, L1 meaning subtitle pill, animated soundwave phonics stream, dashed letter slot preview, and auto-played native pronunciation. Kids or teacher can tap "Ready to spell → [ENTER]", press `Space`/`Enter`, or trigger remote `PLAY_AUDIO` to begin typing immediately.
+  - **F2 (P1) — Extended orthographic consolidation holds:** Solved hold increased to 2600ms (2.6s) with audio pronunciation replay; timeout reveal hold increased to 2800ms (2.8s) so class can read and repeat the completed word together.
+  - **F3 (P2) — Widescreen 16:9 stage layout:** Expanded from narrow `max-w-3xl` to generous `max-w-5xl` arena with massive tactile 3D mechanical arcade keycaps (`key-cap-bevel`), generous letter slot runway (`[T] [I] [G] [_] [_]`) with slot numbers `01`-`05`, active amber snap glow on input, and locked status pills.
+  - **F4 & F5 (P2) — In-class `+10s` quick-add & remote audio controls:** Added `ADD_TIME_10` and `PLAY_AUDIO` action handlers to `ContextualControls.tsx` (desktop Commander), `TeacherRemote.tsx` (mobile Baton), and `BoardSpellingBee.tsx`. Added an interactive `+10s` quick-add button directly on the board countdown gauge. Raised default fallback timer from 15s to 25s, and expanded PlanComposer timer select with 30s, 45s, and 60s options.
+  - **F6 (P3) — Collected L1 meaning rendered:** Harvested `word.meaning` surfaced in a prominent subtitle badge during both presentation and typing phases to eliminate illustration ambiguity (e.g. forest vs trees).
+  - **F7 & F8 (P3) — Stadium countdown gauge & header cleanup:** High-visibility countdown gauge mounted in the stadium header, turning radiant red with pulse at $\le 5$s. Removed bare destructive `RefreshCcw` icon from header. Added overscan clearance `pl-28 lg:pl-44` to eliminate collision with the `• PRACTICE` badge.
+  - **Screen 4 — Cyber victory pod:** Modern victory pod with 5 glowing gold stars (`starsForRun`), points earned, best streak, and words spelled statistics.
+  - **Responsive reflow:** Added `@media (max-height: 450px)` styling ensuring zero vertical scrolling or clipping at 700×320 landscape.
+- **Verification Gauntlet passed:**
+  - TypeScript: 0 errors (`npx tsc --noEmit -p tsconfig.json`).
+  - Vitest: 762/762 tests passing across 74 test files (`npx vitest run`).
+  - Production build: Clean build in 14.43s (`npm run build`).

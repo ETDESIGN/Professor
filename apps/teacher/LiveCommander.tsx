@@ -380,7 +380,7 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   </div>
 
                   <div className="mt-6 flex items-center gap-4 bg-slate-800/80 p-2 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
-                     {renderContextualControls(currentStep, triggerAction, selectNextStudent)}
+                     {renderContextualControls(currentStep, triggerAction, selectNextStudent, state.activeUnit)}
                   </div>
 
                   {/* Media resolution (media design W3.4): the current step is an
