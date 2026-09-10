@@ -59,14 +59,14 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 06 | `06-grammar-sandbox.md` | Grammar Sandbox | `GRAMMAR_SANDBOX` | BoardGrammarSandbox.tsx | INPUT | pending |
 | 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | **cowork-done** |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |
-| 09 | `09-grammar-forge.md` | Grammar Forge | `GRAMMAR_PRACTICE` (+legacy `SCRAMBLE` sibling uses BoardUnscramble) | BoardGrammarForge.tsx | PRACTICE | pending |
+| 09 | `09-grammar-forge.md` | Grammar Forge | `GRAMMAR_PRACTICE` (+legacy `SCRAMBLE` sibling uses BoardUnscramble) | BoardGrammarForge.tsx | PRACTICE | **cowork-done** |
 | 10 | `10-listen-tap.md` | Listen & Tap | `LISTEN_TAP` | BoardListenTap.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED 632e6f4 |
 | 11 | `11-flash-match.md` | Flash Match | `FLASH_MATCH` | BoardFlashMatch.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED 77fa16f |
 | 12 | `12-unscramble.md` | Unscramble | `UNSCRAMBLE` (alias `SCRAMBLE`) | BoardUnscramble.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED b08d819 |
 | 13 | `13-i-say-you-say.md` | I Say You Say | `I_SAY_YOU_SAY` (alias `SPEAKING`) | BoardISayYouSay.tsx | PRACTICE | **cowork-done** |
-| 14 | `14-whats-missing.md` | What's Missing | `WHATS_MISSING` | BoardWhatsMissing.tsx | PRACTICE | pending |
-| 15 | `15-magic-eyes.md` | Magic Eyes | `MAGIC_EYES` | BoardWhatsMissing.tsx (mode `magic_eyes`) | PRACTICE | pending |
-| 16 | `16-story-sequencing.md` | Story Sequencing | `STORY_SEQUENCING` | BoardStorySequencing.tsx | PRACTICE | pending |
+| 14 | `14-whats-missing.md` | What's Missing | `WHATS_MISSING` | BoardWhatsMissing.tsx | PRACTICE | **cowork-done** |
+| 15 | `15-magic-eyes.md` | Magic Eyes | `MAGIC_EYES` | BoardWhatsMissing.tsx (mode `magic_eyes`) | PRACTICE | **cowork-done** |
+| 16 | `16-story-sequencing.md` | Story Sequencing | `STORY_SEQUENCING` | BoardStorySequencing.tsx | PRACTICE | pending (retired/superseded) |
 | 17 | `17-grammar-lab.md` | Grammar Lab | `GRAMMAR_LAB` | BoardGrammarLab.tsx | PRACTICE | **cowork-done** |
 | 18 | `18-word-detective.md` | Word Detective | `WORD_DETECTIVE` | BoardWordDetective.tsx | PRACTICE | **cowork-done** |
 | 19 | `19-sound-lab.md` | Sound Lab | `SOUND_LAB` | BoardSoundLab.tsx | PRACTICE | **cowork-done** |
@@ -79,8 +79,8 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 26 | `26-word-search.md` | Word Search — **PILOT** | `WORD_SEARCH` | BoardWordSearch.tsx | PRACTICE | **IMPLEMENTED 2026-09-10 — full loop validated (audit → Co-Work → Stitch → code → deploy)** |
 | 27 | `27-spelling-bee.md` | Spelling Bee | `SPELLING_BEE` | BoardSpellingBee.tsx | PRACTICE | **cowork-done** |
 | 28 | `28-comic-panels.md` | Comic — Rebuild the Story | `COMIC_PANELS` | BoardComicPanels.tsx | PRACTICE | **cowork-done** |
-| 29 | `29-team-battle.md` | Team Battle (tic-tac-toe) | `TEAM_BATTLE` | BoardTeamBattle.tsx | ASSESS | pending |
-| 30 | `30-speed-quiz.md` | Speed Quiz | `SPEED_QUIZ` | BoardSpeedQuiz.tsx | ASSESS | pending |
+| 29 | `29-team-battle.md` | Team Battle (tic-tac-toe) | `TEAM_BATTLE` | BoardTeamBattle.tsx | ASSESS | **cowork-done** |
+| 30 | `30-speed-quiz.md` | Speed Quiz | `SPEED_QUIZ` | BoardSpeedQuiz.tsx | ASSESS | pending (retired/superseded) |
 | 31 | `31-wheel-of-destiny.md` | Wheel of Destiny (picker) | `WHEEL_OF_DESTINY` | BoardWheelOfDestiny.tsx | ASSESS | pending |
 | 32 | `32-vocab-blitz.md` | Vocab Blitz | `VOCAB_BLITZ` | BoardVocabBlitz.tsx | ASSESS | **cowork-done** v3-UI SHIPPED b43ff84 |
 | 33 | `33-game-arena.md` | Game Arena (winner celebration) | `GAME_ARENA` | BoardGameArena.tsx | WRAPUP | pending |
@@ -109,3 +109,5 @@ Registry facts (for reference): `BOARD_MAP` in `apps/board/templates/boardMap.ts
 - 2026-09-10 — **FOCUS CARDS v3 SHIPPED (commit 76f7a81) — the first fully-autonomous games-v3 loop**, no owner in the middle: ZCode audit → Anti-Gravity §4 (validated) → ZCode Stitch design pass (4 screens QA-passed) → implementation → 743 tests green → deployed + verified. Next file-ready targets for Anti-Gravity: 10-listen-tap, 11-flash-match.
 
 - 2026-09-10 — **BATCH PREP COMPLETE: all 18 commented games are file-ready for Anti-Gravity.** Five parallel audit agents filled §0–§3 (root-causing every §2 live bug: Flash Match tautology validator, Listen&Tap pool collapse, Unscramble identical re-deal, Fast Vocab wheel-award auto-rotate, Vocab Blitz post-cap bet, Phonics round-1 exploit, StoryStage panel-blind handlers, I-Say-You-Say stale audio, SpellingBee missing presentation beat, ComicPanels tray crop). Screenshots captured for all 18 via the batch fixture (real pool via generate-exercises; honest empty-state notes where fixture content does not exist). Tooling: games-v3-batch-*.ts. **Anti-Gravity BATCH RUN is GO on the whole list.**
+- 2026-09-11 — **REMAINING 4 LIVE GAMES AUDITED (Anti-Gravity):** Created and completed §0–§4 audits for the 4 remaining un-commented live games: `14-whats-missing.md` (P1: eliminate live phone typing in produce mode; P1: 700×320 floor reflow; 2.5s choral reveal hold), `15-magic-eyes.md` (P1: replace leaky gaussian blur with mystery frosted shutter; P1: teacher-gated flash trigger; split-screen phone floor), `09-grammar-forge.md` (P1: remote cheat-sheet for model answers in produce mode; 3-round compact arc; inline strike-through error spotting), and `29-team-battle.md` (P1: full ContextualControls and TeacherRemote wiring; permanently visible 3×3 grid; replace broken simultaneous multi-touch race with turn-based speed duel). All 4 marked `cowork-done`. Status: all 24 active/supported games now audited (§4 complete)!
+

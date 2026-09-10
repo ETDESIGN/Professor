@@ -68,6 +68,7 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
   SPELLING_BEE: { icon: <SpellCheck size={16} />, chip: 'bg-lime-100 text-lime-600' },
   COMIC_PANELS: { icon: <BookOpen size={16} />, chip: 'bg-purple-100 text-purple-600' },
   TEAM_SPLASH: { icon: <Trophy size={16} />, chip: 'bg-red-100 text-red-600' },
+  STORY_STAGE_AG: { icon: <BookOpen size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' },
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
@@ -365,6 +366,11 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     // content stuffing.
     items.push({ key: 'team_splash', label: 'Team Splash', detail: 'Red vs Blue rally screen', type: 'TEAM_SPLASH', icon: <Trophy size={16} />, chip: 'bg-red-100 text-red-600' });
 
+    // games-v3 head-to-head (2026-09-11): the Anti-Gravity rebuild of the Story
+    // Stage reading theater, live as its own block so both versions can run in
+    // real classes. Deliberate insert (excluded from add-all), like TEAM_SPLASH.
+    items.push({ key: 'story_stage_ag', label: 'Story Stage 2', detail: 'Reading theater — A/B (Anti-Gravity build)', type: 'STORY_STAGE_AG', icon: <BookOpen size={16} />, chip: 'bg-fuchsia-100 text-fuchsia-600' });
+
     // ── New-gen games (pool-driven; appear when the unit has the matching content).
     if (grammarCount > 0) items.push({ key: 'grammar_lab', label: 'Grammar Lab', detail: `${grammarCount} rule${grammarCount === 1 ? '' : 's'} · 3-rung practice`, type: 'GRAMMAR_LAB', icon: <Puzzle size={16} />, chip: 'bg-indigo-100 text-indigo-600' });
     if (vocabCount > 0) items.push({ key: 'word_detective', label: 'Word Detective', detail: 'vocab in context', type: 'WORD_DETECTIVE', icon: <Search size={16} />, chip: 'bg-cyan-100 text-cyan-600' });
@@ -530,7 +536,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
   const PHASE_FOR_BLOCK: Record<string, string> = {
     INTRO_SPLASH: 'WARMUP', MEDIA_PLAYER: 'WARMUP', TEAM_SPLASH: 'WARMUP',
     FOCUS_CARDS: 'INPUT', GRAMMAR_SANDBOX: 'INPUT',
-    STORY_STAGE: 'OUTPUT', DIALOGUE_STAGE: 'OUTPUT',
+    STORY_STAGE: 'OUTPUT', STORY_STAGE_AG: 'OUTPUT', DIALOGUE_STAGE: 'OUTPUT',
     TEAM_BATTLE: 'ASSESS', SPEED_QUIZ: 'ASSESS', VOCAB_BLITZ: 'ASSESS',
     GRAMMAR_LAB: 'PRACTICE', WORD_DETECTIVE: 'PRACTICE', SOUND_LAB: 'PRACTICE',
     STORY_QUEST: 'PRACTICE', SENTENCE_LAB: 'PRACTICE', PHONICS_ARENA: 'PRACTICE',

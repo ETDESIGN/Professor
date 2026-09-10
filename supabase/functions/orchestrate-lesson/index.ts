@@ -291,6 +291,7 @@ function transformManifestToFlow(assets: any, wordImages?: Map<string, string>):
     GRAMMAR_SANDBOX: 'INPUT',
     GRAMMAR_PRACTICE: 'PRACTICE',
     STORY_STAGE: 'OUTPUT',
+    STORY_STAGE_AG: 'OUTPUT', // games-v3 head-to-head variant (Anti-Gravity build)
     DIALOGUE_STAGE: 'OUTPUT',
     LISTEN_TAP: 'PRACTICE',
     FLASH_MATCH: 'PRACTICE',

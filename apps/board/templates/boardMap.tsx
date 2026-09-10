@@ -17,6 +17,9 @@ import React from 'react';
 import BoardMediaPlayer from './BoardMediaPlayer';
 import BoardFocusCards from './BoardFocusCards';
 import BoardStoryStage from './BoardStoryStage';
+// games-v3 head-to-head round 1 (2026-09-11): the Anti-Gravity rebuild of the
+// same Stitch design, live in-app as its own insertable block "Story Stage 2".
+import BoardStoryStageAG from './BoardStoryStage.ag';
 import BoardDialogueStage from './BoardDialogueStage';
 import BoardGrammarSandbox from './BoardGrammarSandbox';
 import BoardGrammarForge from './BoardGrammarForge';
@@ -63,6 +66,7 @@ export const BOARD_MAP: Record<string, React.FC<any>> = {
   FOCUS_CARDS: BoardFocusCards,
   GAME_ARENA: BoardGameArena,
   STORY_STAGE: BoardStoryStage,
+  STORY_STAGE_AG: BoardStoryStageAG,
   DIALOGUE_STAGE: BoardDialogueStage,
   GRAMMAR_SANDBOX: BoardGrammarSandbox,
   GRAMMAR_PRACTICE: BoardGrammarForge,

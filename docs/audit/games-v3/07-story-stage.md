@@ -163,3 +163,41 @@ Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json
 **Fidelity:** design colors/typography adopted verbatim (`#070C18/#0B132B/#111C3D/#16234D`, `#FF2E79`, `#38BDF8`, `#10B981`; Fredoka/Sora/JetBrains Mono via `ss-mono` + app display stack). Stripped: Console-Synced pill, system icon cluster, SPACEBAR tag, Emphasis/Mood chips (no data), response meter, projection-status footer text. Substituted: speaker avatar → `speakerPortrait`/emoji fallback in the design's halo; scene HUD → `SCENE n` (no scene-title data); watermark → story title. Anti-Gravity is implementing its own version into `BoardStoryStage.ag.tsx` (prompt: `prompts/antigravity-07-story-stage.md`) — owner compares, the winner's approach becomes the template.
 
 **Gauntlet:** tsc clean · 762/762 vitest · build clean. Board-capture scripts ready (`scripts/testing/games-v3-ss-shots.ts`); live-session capture pending (fixture board needed an active commander connection — to re-verify in-app with the owner watching).
+
+## §7 ✅ Anti-Gravity implementation notes (head-to-head round 1)
+
+**IMPLEMENTED 2026-09-11 (`apps/board/templates/BoardStoryStage.ag.tsx`)** — Rebuilt the Reading Theater state directly from `stitch/07-story-stage/1-reading-theater.html`, preserving 100% of the underlying lifecycle, hooks, dual-write scoring, remote action handlers, and pool coordination verbatim.
+
+### Fidelity to Stitch Design
+- **Two-Column 38% / 62% Split**: Maintained exact layout tree with dedicated reading theater on the left and uncropped art card on the right.
+- **Palette & Contrast**: Adopted exact hex values (`#070C18` night, `#0B132B` surface, `#111C3D` surface-card, `#16234D` surface-elevated, `#FF2E79` pink-accent, `#38BDF8` sky-accent, `#10B981` emerald-accent, `#F59E0B` amber).
+- **Typography & Font Roles**: Applied Fredoka display font, Sora UI text, and JetBrains Mono code/HUD typography with text dialogue glow (`text-shadow: 0 2px 14px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.12)`).
+- **Chunky 28px Dots**: Realized with completed emerald `✓` + shadow, active luminous pink pulse ring, and upcoming outlined dots.
+- **Uncropped Artwork**: Artwork container set to `object-contain` with subtle ambient gradient backlight (`from-amber-500/10 via-transparent to-sky-500/10`) and stage watermark.
+
+### Intentional Deviations & Adaptations from Stitch Mock
+1. **Stripped Mock Chrome**:
+   - Stripped `TEACHER CONSOLE SYNCED` chip (sync is automatic via Supabase Realtime).
+   - Stripped volume, settings, and fullscreen header icon cluster (system/projector concerns managed by BoardShell).
+   - Stripped `SPACEBAR` kbd shortcut badge from the audio replay button (the projector board is touch-driven; keyboard shortcuts belong to the teacher remote).
+   - Stripped secondary `speed` pronunciation drill button (no speed modulation parameter in SpeechService).
+   - Stripped `Emphasis` and `Mood` badges below dialogue (manifest schema contains no emphasis/mood metadata).
+   - Stripped `Class Response Meter` 4-dot graphic from art footer (no student-device hardware in classroom model; replaced with active teacher/choral cue).
+   - Stripped footer projection/audio metadata (`16:9 Classroom Stage · 8m Distance Optimized` / `Studio Audio Track · 48kHz Stereo`) in favor of clear line position info.
+2. **BoardShell Phase Pill Clearance**:
+   - Replaced Stitch's static top-left `PHASE: STORY READ` pill with `pl-40 lg:pl-48` padding so header elements start safely clear of the live `BoardShell` phase pill.
+3. **Data Bindings**:
+   - Speaker avatar and halo color dynamically bound to `current.speaker` and `getCharColor()` with glowing gradient border.
+   - Text rendered through `renderText(current.text)` with emerald `#10B981` target vocabulary underline.
+   - Art wired to `current.imageUrl` with graceful fallback gradient.
+   - Navigation actions wired to `prevPanel()` and `nextPanel()` with proper phase transition to comprehension quiz when story ends.
+4. **Responsive Floor Adaptation (700×320 Phone Landscape)**:
+   - Clamped dialogue blockquote typography from `text-[20px]` at the 320px height floor up to `text-[44px]` on 1080p projectors, preventing cutoffs and keeping play 100% scroll-free.
+   - Scaled vertical padding and header/footer heights responsively (`p-2 sm:p-4 lg:p-6`, header `h-10 sm:h-12 lg:h-14`).
+   - Progress dot strip wrapped in an overflow container for stories exceeding 6 pages.
+
+### Verification Gauntlet
+- `npx tsc --noEmit -p tsconfig.json` — clean (0 errors).
+- `npx vitest run` — 762/762 passed (1 skipped).
+- `npm run build` — clean production build (0 errors).
+

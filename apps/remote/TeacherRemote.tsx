@@ -279,6 +279,7 @@ const TeacherRemote: React.FC = () => {
           </div>
         );
       case 'STORY_STAGE':
+    case 'STORY_STAGE_AG':
         // BoardStoryStage v2: read-through + scored comprehension MCQs.
         // Controls: Next Page / Hint / Mark Correct / Skip / End.
         return (
