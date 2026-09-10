@@ -538,6 +538,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     FAST_VOCAB: 'PRACTICE',
     WORD_SEARCH: 'PRACTICE',
     SPELLING_BEE: 'PRACTICE',
+    COMIC_PANELS: 'PRACTICE', // games-v3 audit 28 §3 F6: omission defaulted it to a WARM-UP badge
   };
   const buildDbFlow = () => timeline.map((b) => ({
     id: b.id,

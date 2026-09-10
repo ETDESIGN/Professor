@@ -438,7 +438,12 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
 
           {(choralItem.audio || displayText) && (
             <button
-              onClick={() => playAudioUrl(choralItem.audio, displayText)}
+              onClick={() => playAudioUrl(
+                  // games-v3 audit F1: the stored sentence MP3 is stamped from whatever
+                  // example_sentence existed at FIRST publish and is never re-validated —
+                  // after a rewrite it speaks the OLD sentence over the NEW display. The
+                  // display text is authoritative: always TTS what the class can see.
+                  undefined, displayText)}
               className="mt-8 flex items-center gap-3 bg-white/15 hover:bg-white/25 text-white px-8 py-4 rounded-2xl font-bold text-2xl active:scale-95 border border-white/20"
             >
               <Volume2 size={32} className="text-yellow-300" /> Play

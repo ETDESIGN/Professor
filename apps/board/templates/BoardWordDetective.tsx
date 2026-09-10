@@ -110,7 +110,7 @@ const BoardWordDetective = ({ data }: { data: any }) => {
         if (!hasImages) continue; // text-only IMAGE_SELECT rows can't render here
         items.push({
           poolItem: pi,
-          sentence: img.prompt_translation ? `${img.prompt} (${img.prompt_translation})` : img.prompt,
+          sentence: img.prompt, // games-v3 audit F1 (§2 owner rule): English-only challenge — the L1 translation gave the answer away
           options: img.options.map((o) => o.image_url),
           correctIndex: img.correct_index,
           audioUrl: img.prompt_audio,

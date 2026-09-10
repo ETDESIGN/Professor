@@ -85,7 +85,19 @@ const BoardFastVocab = ({ data }: { data: any }) => {
   const [summaryName, setSummaryName] = useState<string | null>(null);
   const [turnPoints, setTurnPoints] = useState(0);
   const turnPointsRef = useRef(0);
+  // games-v3 audit F1: the student who EARNED the accumulated points — batched
+  // awards flush to this id, never to whatever quickWheelWinner points at by
+  // the time the flush fires (a mid-turn spin would have flipped it).
+  const awardeeRef = useRef<string | null>(null);
   const winCuedRef = useRef(false);
+  const flushTurnPoints = () => {
+    if (turnPointsRef.current !== 0 && awardeeRef.current) {
+      addPoints(awardeeRef.current, turnPointsRef.current);
+    }
+    turnPointsRef.current = 0;
+    setTurnPoints(0);
+    awardeeRef.current = null;
+  };
 
   const buildWave = useCallback(
     (fromCursor: number) => {
@@ -131,9 +143,13 @@ const BoardFastVocab = ({ data }: { data: any }) => {
         }
         const picked = state.quickWheelWinner;
         if (!picked) return; // choral/practice — game feel, zero writes
+        awardeeRef.current = picked;
         if (r.correct) {
           const points = scoreForAttempt(0, pair.difficulty, 1.0, r.streak);
-          addPoints(picked, points);
+          // games-v3 audit F1: points are ACCUMULATED per turn and flushed as
+          // ONE award at turn completion — per-pair addPoints used to hit the
+          // sidebar wheel's EVERY_1/EVERY_3 rotation counter mid-turn,
+          // re-dealing the board under the kid after the first match.
           turnPointsRef.current += points;
           setTurnPoints(turnPointsRef.current);
           logAttempt({
@@ -148,7 +164,6 @@ const BoardFastVocab = ({ data }: { data: any }) => {
             pushToRemediation,
           });
         } else {
-          addPoints(picked, -MISTAKE_PENALTY);
           turnPointsRef.current -= MISTAKE_PENALTY;
           setTurnPoints(turnPointsRef.current);
           logAttempt({
@@ -181,14 +196,14 @@ const BoardFastVocab = ({ data }: { data: any }) => {
         }
         const picked = state.quickWheelWinner;
         if (!picked) return;
+        awardeeRef.current = picked;
         if (r.correct) {
           const points = scoreForAttempt(0, q.difficulty, 1.0, r.streak);
-          addPoints(picked, points);
+          // games-v3 audit F1: accumulated, flushed once at turn completion.
           turnPointsRef.current += points;
           setTurnPoints(turnPointsRef.current);
         } else if (!r.timedOut) {
           // Timeout costs nothing (clock-anxiety rule) — a wrong click does.
-          addPoints(picked, -MISTAKE_PENALTY);
           turnPointsRef.current -= MISTAKE_PENALTY;
           setTurnPoints(turnPointsRef.current);
         }
@@ -206,6 +221,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
         });
       },
       onComplete: (summary: FastVocabTurnSummary) => {
+        flushTurnPoints(); // batched per-turn award (audit F1) — fires here, at turn end
         setTurnSummary(summary);
         setShowSummary(true);
         setSummaryName(pickedStudent?.name ?? null);
@@ -238,8 +254,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
   const turnId = state.currentTurnId;
   useEffect(() => {
     if (turnId === null) return; // choral mode keeps the board as-is
-    turnPointsRef.current = 0;
-    setTurnPoints(0);
+    flushTurnPoints(); // teacher spun mid-turn: the kid keeps what they earned
     setTurnSummary(null);
     setShowSummary(false); // drop the previous turn's score screen instantly
     winCuedRef.current = false;
@@ -252,17 +267,18 @@ const BoardFastVocab = ({ data }: { data: any }) => {
     const action = state.lastAction;
     if (!action) return;
     switch (action.type) {
-      case 'SPIN_WHEEL':
       case 'CLEAR_RESPONDER':
-      case 'GAME_WIN':
-        // The teacher started the Next-Student cycle — hide the previous
-        // turn's score screen right away so the new student's name never
-        // lands on the old screen.
+        // audit F3: only a responder CLEAR hides the score screen instantly.
+        // SPIN_WHEEL/GAME_WIN deliberately no longer do — the summary rides
+        // through the wheel overlay and is dropped by the NEW_TURN effect,
+        // so kids actually get to read their stars/accuracy/points.
         setShowSummary(false);
         break;
+      case 'SPIN_WHEEL':
+      case 'GAME_WIN':
+        break;
       case 'RESET_GAME': {
-        turnPointsRef.current = 0;
-        setTurnPoints(0);
+        flushTurnPoints();
         setTurnSummary(null);
         setShowSummary(false);
         winCuedRef.current = false;
@@ -271,6 +287,7 @@ const BoardFastVocab = ({ data }: { data: any }) => {
         break;
       }
       case 'SKIP_ITEM':
+        flushTurnPoints(); // a skipped turn still pays what was earned
         turn.skip();
         break;
       case 'REVEAL_HINT':

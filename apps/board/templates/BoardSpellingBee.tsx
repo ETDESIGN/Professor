@@ -287,6 +287,12 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
         if (allWords.length > 0) buildWave(0);
         break;
       }
+      case 'PLAY_AUDIO':
+        // audit F1 parity: remote audio replay (also serves as the Ready tap
+        // during the presentation beat).
+        if (turn.status === 'presenting') turn.beginTyping();
+        else if (turn.currentWord) playAudioUrl(turn.currentWord.audioUrl, turn.currentWord.word).catch(() => {});
+        break;
       case 'SKIP_ITEM':
         playCue('reveal');
         turn.skip();
@@ -346,6 +352,15 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
       </div>
     );
   }
+
+  // games-v3 audit F1: the presentation beat auto-plays the word ONCE (image +
+  // audio together); replay stays a tap away on the word card.
+  useEffect(() => {
+    if (turn.status === 'presenting' && turn.currentWord) {
+      playAudioUrl(turn.currentWord.audioUrl, turn.currentWord.word).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turn.status, turn.wordIdx]);
 
   const wordProgress = turn.wordIdx + (turn.status === 'typing' ? 0 : 1);
   const hudProgress = Math.min(1, wordProgress / Math.max(1, turn.wordsTotal));
@@ -412,6 +427,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
                 removedKeys={turn.removedKeys}
                 hintKey={turn.hintKey}
                 status={turn.status}
+                onReady={turn.beginTyping}
                 onType={turn.typeLetter}
                 onReplayAudio={() => playAudioUrl(turn.currentWord?.audioUrl, turn.currentWord?.word).catch(() => {})}
               />

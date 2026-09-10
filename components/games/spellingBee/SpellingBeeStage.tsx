@@ -22,6 +22,8 @@ export interface SpellingBeeStageProps {
   removedKeys: ReadonlySet<string>;
   hintKey: string | null;
   status: SpellingBeeStatus;
+  /** Presentation-beat skip (audit F1): board "Ready" tap starts typing. */
+  onReady: () => void;
   onType: (letter: string) => void;
   onReplayAudio: () => void;
   /** Compact variant for the student app. */
@@ -35,11 +37,13 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
   removedKeys,
   hintKey,
   status,
+  onReady,
   onType,
   onReplayAudio,
   compact = false,
 }) => {
   const slots = React.useMemo(() => slotLayout(word.word), [word.word]);
+  const presenting = status === 'presenting'; // games-v3 audit F1: look & listen beat — clock paused, no keyboard
   const typing = status === 'typing';
   const solved = status === 'solved';
   const revealed = status === 'revealed';
@@ -136,6 +140,20 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
         </button>
       </div>
 
+      {/* games-v3 audit F1: presentation beat — look & listen first. The word
+          card IS the audio button (tap replays); the clock is paused and the
+          keyboard dimmed until Ready (auto after ~2.6s, or this tap). */}
+      {presenting && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          type="button"
+          onClick={onReady}
+          className="px-8 py-3 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xl shadow-lg active:scale-95 transition-all"
+        >
+          🔊 Listen… then Ready to spell
+        </motion.button>
+      )}
+
       {/* ── On-screen QWERTY ── */}
       <div className="w-full flex flex-col items-center gap-1.5 sm:gap-2">
         {QWERTY_ROWS.map((row, rowIdx) => (
@@ -160,6 +178,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     whileTap={typing ? { scale: 0.9 } : undefined}
                     onClick={() => typing && onType(letter)}
+                    style={presenting ? { opacity: 0.25, pointerEvents: 'none' } : undefined}
                     disabled={!typing}
                     className={`flex-1 sm:flex-none ${keyMin} rounded-xl border-b-4 font-black uppercase transition-colors ${
                       compact ? 'text-base' : 'text-lg lg:text-2xl'

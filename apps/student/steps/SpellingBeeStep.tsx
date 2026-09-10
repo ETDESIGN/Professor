@@ -417,6 +417,7 @@ const SpellingBeeStep: React.FC<SpellingBeeStepProps> = ({
                 removedKeys={turn.removedKeys}
                 hintKey={turn.hintKey}
                 status={turn.status}
+                onReady={turn.beginTyping}
                 onType={turn.typeLetter}
                 onReplayAudio={() => playAudioUrl(turn.currentWord?.audioUrl, turn.currentWord?.word).catch(() => {})}
                 compact

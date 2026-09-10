@@ -80,6 +80,10 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   const [round, setRound] = useState(0);
   const [phase, setPhase] = useState<'memorize' | 'choral' | 'recall' | 'feedback' | 'complete'>('memorize');
   const [countdown, setCountdown] = useState(ROUNDS[0].memorizeTime);
+  // games-v3 audit F4: the countdown used to arm the instant the round mounted
+  // — classroom chaos when the teacher is still talking. The clock now waits
+  // for an explicit Start (board tap or remote NEXT_ITEM) per round.
+  const [clockArmed, setClockArmed] = useState(false);
   const [grid, setGrid] = useState<MemoryCard[]>([]);
   const [removedIdx, setRemovedIdx] = useState(-1);
   const [candidates, setCandidates] = useState<MemoryCard[]>([]);
@@ -167,6 +171,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
     setGrid(gridCards);
     setRemovedIdx(removed);
     setCountdown(cfg.memorizeTime);
+    setClockArmed(false); // each round's clock waits for its own Start
     setSelectedCandidate(null);
     setMissedOut(false);
     mistakesRef.current = 0;
@@ -191,7 +196,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
   // at 'memorize' there, and without this guard the clock (and its ticks)
   // would run audibly behind them.
   useEffect(() => {
-    if (phase !== 'memorize' || grid.length === 0) return;
+    if (phase !== 'memorize' || grid.length === 0 || !clockArmed) return;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -203,7 +208,7 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [phase, round, grid.length]);
+  }, [phase, round, grid.length, clockArmed]);
 
   // ── Ticking clock (tension): one tick per memorize second, doubling up
   // (every 500ms) for the final stretch (<4s left). Restarting on each
@@ -297,6 +302,10 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
       if (cardPool.length >= 4) setupRound(0);
     } else if (type === 'SKIP_ITEM') {
       advanceRound();
+    } else if (type === 'PLAY_AUDIO' || type === 'NEXT_ITEM') {
+      // audit F4: "Start the clock" — the teacher's go signal for the memorize
+      // phase (NEXT_ITEM while not armed = start, not skip).
+      if (phase === 'memorize' && !clockArmed) setClockArmed(true);
     } else if (type === 'MARK_CORRECT') {
       // Teacher override ("Correct" on the remote): accept the answer
       // WITHOUT recognition — especially the round-3 spoken word. Scores the
@@ -510,7 +519,8 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
           >
             <div className="text-center mb-4">
               <div className="text-xl text-gray-600 mb-2">Memorize the cards!</div>
-              {/* Countdown ring */}
+              {/* Countdown ring — games-v3 audit F4: the clock waits for the
+                  teacher's Start (board tap or remote "Next") before ticking. */}
               <div className="relative inline-flex items-center justify-center">
                 <svg className="w-20 h-20 -rotate-90">
                   <circle cx="40" cy="40" r="34" stroke="#e5e7eb" strokeWidth="8" fill="none" />
@@ -525,6 +535,15 @@ const BoardMemoryLab = ({ data }: { data: any }) => {
                 </svg>
                 <span className="absolute text-3xl font-bold text-cyan-800">{countdown}</span>
               </div>
+              {!clockArmed && (
+                <div className="mt-2">
+                  <button onClick={() => setClockArmed(true)}
+                    className="px-6 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-lg active:scale-95 transition-all shadow-lg">
+                    ▶ Start the clock
+                  </button>
+                  <div className="text-xs text-gray-500 mt-1">Teacher: tap when the class is ready</div>
+                </div>
+              )}
             </div>
             <div className={`grid gap-4 ${cfg.gridSize > 4 ? 'grid-cols-4' : 'grid-cols-2'} max-w-5xl`}>
               {grid.map((card, idx) => (

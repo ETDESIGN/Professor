@@ -41,10 +41,15 @@ export interface SpellingBeeTurnOptions {
   paused?: boolean;
 }
 
-export type SpellingBeeStatus = 'typing' | 'solved' | 'revealed' | 'complete';
+export type SpellingBeeStatus = 'presenting' | 'typing' | 'solved' | 'revealed' | 'complete';
 
-const SOLVE_HOLD_MS = 900;
-const REVEAL_HOLD_MS = 1600;
+// games-v3 audit F1/F2: every word now opens with a presentation beat (image +
+// auto-played audio, clock NOT running) before typing. The solved hold is the
+// orthographic-consolidation moment — 0.9s was a flash, the kid never read
+// their own correct spelling; the reveal hold got the same treatment.
+const PRESENT_BEAT_MS = 2600;
+const SOLVE_HOLD_MS = 2200;
+const REVEAL_HOLD_MS = 2400;
 const WRONG_FLASH_MS = 600;
 const HINT_PULSE_MS = 2500;
 
@@ -116,7 +121,8 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
     firstTryRef.current = 0;
     completedRef.current = false;
     wordIdxRef.current = 0;
-    setStatus('typing');
+    setStatus('presenting');
+    later(() => beginTyping(), PRESENT_BEAT_MS);
     setWordIdx(0);
     setTypedCount(0);
     typedCountRef.current = 0;
@@ -220,10 +226,15 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
     if (next >= waveWordsRef.current.length) {
       finishTurn();
     } else {
-      setStatus('typing');
+      setStatus('presenting');
       setWordIdx(next);
       wordIdxRef.current = next;
+      later(() => beginTyping(), PRESENT_BEAT_MS);
     }
+  }
+
+  function beginTyping() {
+    if (statusRef.current === 'presenting') setStatus('typing');
   }
 
   function finishTurn() {
@@ -377,6 +388,9 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
   return {
     // word state
     status,
+    // games-v3 audit F1: presenter -> typing transition (board "Ready" tap /
+    // remote NEXT_ITEM can beat the auto-timer)
+    beginTyping,
     currentWord,
     wordIdx,
     wordsTotal: waveWords.length,
