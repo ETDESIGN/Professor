@@ -504,135 +504,255 @@ const BoardUnscramble = ({ data }: { data: any }) => {
 
   const isTransform = round?.exerciseType === 'TRANSFORM';
   const canCheck = !!round && placed.length >= round.targetTiles.length && !outcome;
+  const targetLen = round?.targetTiles.length ?? 0;
 
-  return (
-    <div className="h-full bg-slate-900 flex flex-col p-8 font-display relative">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="bg-white/10 px-6 py-3 rounded-2xl flex items-center gap-4 border border-white/10">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white text-2xl font-bold ${isTransform ? 'bg-purple-500' : 'bg-duo-pink'}`}>
-            {isTransform ? '↻' : 'Abc'}
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">{isTransform ? 'Transform It!' : 'Unscramble'}</h1>
-            <p className="text-slate-400 text-sm">
-              Round {roundIndex}/{TOTAL_ROUNDS} — {isTransform ? (round?.instruction || 'Rewrite the sentence.') : 'Build the correct sentence.'}
-            </p>
-          </div>
+  // ── Render pieces (v3 "Syntax Workshop" per stitch/12-unscramble) ──────
+
+  // Header. BoardShell's phase pill occupies the top-left ~164px —
+  // pl-40/lg:pl-48 keeps the U badge clear (same as Word Search/Listen&Tap).
+  const header = (
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-40 lg:pl-48 h-12 lg:h-14 [@media(max-height:430px)]:h-9 shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-lg lg:text-xl flex items-center justify-center shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)] shrink-0">
+          U
         </div>
-
-        <div className="flex gap-4 items-center">
-          {round?.exerciseType === 'WORD_BANK_BUILD' && round.translation && (
-            <div className="bg-slate-800 px-5 py-3 rounded-xl border border-slate-700 text-slate-300 font-cn text-lg">
-              {round.translation}
-            </div>
-          )}
-          <button onClick={() => triggerAction('RESET_GAME')}
-            className="p-3 bg-slate-800 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-white">
-            <RefreshCcw />
-          </button>
+        <div className="min-w-0">
+          <p className="un-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400 leading-none">
+            {isTransform ? 'Transform Workshop' : 'Syntax Workshop'}
+          </p>
+          <h1 className="text-lg lg:text-xl font-bold tracking-tight text-white leading-tight truncate">
+            {isTransform ? 'Transform It' : 'Unscramble'}
+          </h1>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          <span className="un-mono text-[10px] lg:text-xs font-bold text-slate-200">Round {roundIndex}/{TOTAL_ROUNDS}</span>
         </div>
       </div>
-
-      {/* TRANSFORM reference line (path b — spec A2) */}
-      {isTransform && round?.promptText && (
-        <div className="max-w-5xl mx-auto w-full mb-6 flex items-center gap-4 bg-purple-500/10 border border-purple-500/30 rounded-2xl px-6 py-4">
-          <span className="text-purple-300 uppercase tracking-widest text-xs font-bold shrink-0">Original</span>
-          <span className="text-2xl text-white font-bold">{round.promptText}</span>
-        </div>
-      )}
-
-      {/* Main Game Area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-10 max-w-6xl mx-auto w-full">
-        {/* Drop Zone */}
-        <div className={`
-          w-full min-h-[160px] bg-slate-800/50 rounded-3xl border-4 border-dashed transition-all duration-300 flex flex-wrap items-center justify-center p-6 gap-4 relative
-          ${outcome === 'correct' ? 'border-green-500 bg-green-500/10'
-            : outcome === 'partial' ? 'border-yellow-500 bg-yellow-500/10'
-            : isWrongFlash ? 'border-red-500 bg-red-500/10 animate-shake'
-            : 'border-slate-700'}
-        `}>
-          {placed.length === 0 && (
-            <div className="text-slate-600 font-bold text-2xl uppercase tracking-widest pointer-events-none select-none">
-              Drop Words Here
-            </div>
-          )}
-
-          {placed.map((tile, i) => {
-            const inSwapHint = swapHint !== null && (swapHint[0] === i || swapHint[1] === i);
-            const isWrongSpot = wrongIdx === i;
-            return (
-              <button key={tile.id} onClick={() => handleTileClick(tile, 'placed')}
-                className={`text-4xl font-bold px-8 py-4 rounded-2xl shadow-lg transition-all active:scale-95 animate-pop-in
-                  ${outcome ? 'bg-white text-slate-900' : 'bg-white text-slate-900 hover:bg-red-50 hover:text-red-500'}
-                  ${inSwapHint ? 'ring-4 ring-yellow-400 animate-pulse' : ''}
-                  ${isWrongSpot ? 'ring-4 ring-red-500' : ''}`}>
-                {tile.text}
-              </button>
-            );
-          })}
-
-          {isWrongFlash && (
-            <div className="absolute -top-4 right-4 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-bounce">
-              Try Again!
-            </div>
-          )}
-          {swapHint && !outcome && (
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-yellow-400 text-yellow-950 text-sm font-bold px-4 py-1.5 rounded-full flex items-center gap-2 animate-pop-in">
-              <ArrowLeftRight size={16} /> Swap these two!
-            </div>
-          )}
-          {wrongIdx >= 0 && !outcome && (
-            <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full animate-pop-in">
-              Check this spot…
-            </div>
-          )}
-        </div>
-
-        {/* Arrow Divider */}
-        <div className="text-slate-600">
-          <ArrowRight size={48} className="rotate-90" />
-        </div>
-
-        {/* Word Bank */}
-        <div className="flex flex-wrap justify-center gap-4">
-          {tray.map((tile) => (
-            <button key={tile.id} onClick={() => handleTileClick(tile, 'bank')}
-              className="bg-duo-blue hover:bg-blue-400 text-white text-4xl font-bold px-8 py-4 rounded-2xl shadow-[0_6px_0_0_#0b5cb5] active:translate-y-1 active:shadow-none transition-all">
-              {tile.text}
-            </button>
-          ))}
-        </div>
-
-        {/* Check button (in-board; the remote/contextual bar also broadcast CHECK_ANSWER) */}
+      <div className="flex items-center gap-2 shrink-0">
         {!outcome && !slideComplete && !revealTiles && (
-          <button onClick={checkAnswer} disabled={!canCheck}
-            className={`px-10 py-4 rounded-2xl font-bold text-2xl flex items-center gap-3 transition-all
-              ${canCheck ? 'bg-green-600 hover:bg-green-500 text-white shadow-lg active:scale-95' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}>
-            <Check size={28} /> Check Answer
+          <button onClick={revealHint} title="Hint (swap cue / first wrong spot)"
+            className="px-2.5 lg:px-4 py-1.5 lg:py-2 rounded-xl border border-amber-500/50 bg-amber-950/40 text-amber-300 hover:bg-amber-900/40 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-colors active:scale-95 flex items-center gap-1.5">
+            <Lightbulb size={13} /> Clue
           </button>
         )}
+        <button onClick={() => triggerAction('RESET_GAME')} title="Re-deal this round"
+          className="p-2 bg-slate-800/90 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+          <RefreshCcw size={15} />
+        </button>
+      </div>
+    </header>
+  );
+
+  // Task frame plate (design #1 upper section). No per-sentence photo exists
+  // in WORD_BANK_BUILD/TRANSFORM content — the plate is full-width (fidelity
+  // log #1). The stem shows only SLOT COUNT blanks, never a revealed word.
+  const taskFrame = (
+    <section className="w-full shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-4 lg:px-6 py-2.5 lg:py-4 flex flex-col gap-2 relative">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="un-mono px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/40 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest shrink-0">
+            Task {String(roundIndex).padStart(2, '0')}
+          </span>
+          <span className="text-slate-400 text-xs lg:text-sm font-medium truncate">
+            {isTransform ? (round?.instruction || 'Rewrite the sentence.') : 'Build the sentence:'}
+          </span>
+        </div>
+        <span className="un-mono text-[9px] lg:text-[10px] text-slate-500 hidden sm:flex items-center gap-1.5 shrink-0">
+          <span className="text-emerald-400 font-bold">{targetLen} words</span>· tap or drag blocks
+        </span>
       </div>
 
-      {/* Success / partial feedback overlay — click to dismiss early */}
+      {/* Reference line: TRANSFORM original (path b) or L1 translation clue */}
+      <div className="rounded-xl bg-[#070C18]/90 border-2 border-slate-800 px-3.5 lg:px-5 py-2 lg:py-3 flex items-center gap-3 min-h-0 overflow-hidden">
+        {isTransform ? (
+          <>
+            <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-widest text-cyan-400 font-bold shrink-0">Original</span>
+            <span className="text-base lg:text-xl font-bold text-white truncate">{round?.promptText}</span>
+          </>
+        ) : (
+          <>
+            <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-widest text-cyan-400 font-bold shrink-0">Meaning</span>
+            <span className={`text-base lg:text-xl font-bold truncate ${round?.translation ? 'text-white' : 'text-slate-600'}`}>
+              {round?.translation || `${targetLen} words — put them in order`}
+            </span>
+            <span className="ml-auto hidden md:flex items-center gap-1 shrink-0" aria-hidden>
+              {round?.targetTiles.map((_, i) => (
+                <span key={i} className="un-mono text-slate-600 text-lg tracking-widest font-bold">__</span>
+              ))}
+            </span>
+          </>
+        )}
+      </div>
+    </section>
+  );
+
+  // Sentence runway (design #1 middle): N numbered dashed slots; filled slots
+  // render the design-#2 amber "snapped" block.
+  const runway = (
+    <section className={`w-full flex-1 min-h-0 rounded-2xl bg-[#070C18]/70 border px-3 lg:px-5 py-2 lg:py-3 flex flex-col justify-center gap-2 relative
+      ${isWrongFlash ? 'border-rose-500/70 un-shake' : 'border-slate-800'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-[0.18em] text-cyan-300 font-bold shrink-0">
+          Sentence Runway
+        </span>
+        <span className="text-[10px] text-slate-500 hidden sm:inline">tap a block to send it back</span>
+      </div>
+      <div className="grid gap-2 lg:gap-4 flex-1 min-h-0"
+        style={{ gridTemplateColumns: `repeat(${Math.max(targetLen, 1)}, minmax(0, 1fr))` }}>
+        {Array.from({ length: Math.max(targetLen, placed.length) }).map((_, i) => {
+          const tile = placed[i];
+          const inSwapHint = swapHint !== null && (swapHint[0] === i || swapHint[1] === i);
+          const isWrongSpot = wrongIdx === i;
+          if (!tile) {
+            return (
+              <div key={`slot-${i}`}
+                className={`rounded-xl border-2 border-dashed flex items-center justify-center gap-1.5 min-h-0 transition-all
+                  ${i === placed.length && !outcome ? 'border-cyan-400/70 bg-cyan-950/20 un-slot-glow' : 'border-slate-700 bg-slate-900/40'}`}>
+                <span className={`un-mono w-5 h-5 lg:w-6 lg:h-6 rounded-md flex items-center justify-center text-[10px] lg:text-xs font-bold
+                  ${i === placed.length && !outcome ? 'bg-cyan-400/15 border border-cyan-400/50 text-cyan-300' : 'bg-slate-800 border border-slate-700 text-slate-500'}`}>
+                  {i + 1}
+                </span>
+                <span className="un-mono text-slate-600 text-lg hidden lg:inline">____</span>
+              </div>
+            );
+          }
+          return (
+            <button key={tile.id} onClick={() => handleTileClick(tile, 'placed')}
+              className={`rounded-xl border-2 flex flex-col items-center justify-center min-h-0 px-1 lg:px-2 transition-all active:scale-95 animate-pop-in group
+                ${outcome === 'correct' ? 'border-emerald-400 bg-emerald-950/40'
+                  : outcome === 'partial' ? 'border-amber-400 bg-amber-950/30'
+                  : 'border-amber-500/70 bg-[#111C3D] un-snapped'}
+                ${inSwapHint ? 'ring-4 ring-amber-400/70 animate-pulse' : ''}
+                ${isWrongSpot ? 'ring-4 ring-rose-500' : ''}`}>
+              <span className="un-mono text-[8px] lg:text-[9px] uppercase tracking-widest text-amber-400/90 font-bold leading-none mb-0.5 hidden sm:block">
+                {String(i + 1).padStart(2, '0')} · {outcome ? 'Locked' : 'Tap to remove'}
+              </span>
+              <span className={`font-extrabold tracking-tight truncate w-full text-center
+                ${targetLen > 5 ? 'text-sm lg:text-xl' : targetLen > 3 ? 'text-lg lg:text-2xl' : 'text-xl lg:text-3xl'}
+                ${outcome === 'correct' ? 'text-emerald-300' : outcome === 'partial' ? 'text-amber-300' : 'text-amber-300'}`}>
+                {tile.text}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Targeted feedback chips (kept from v2 logic, v3-styled) */}
+      {isWrongFlash && (
+        <div className="absolute -top-2.5 right-3 bg-rose-500 text-white text-[10px] lg:text-xs font-bold px-3 py-1 rounded-full animate-bounce">
+          Try Again!
+        </div>
+      )}
+      {swapHint && !outcome && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-950 text-[10px] lg:text-xs font-bold px-3.5 py-1 rounded-full flex items-center gap-1.5 animate-pop-in whitespace-nowrap">
+          <ArrowLeftRight size={13} /> Swap these two!
+        </div>
+      )}
+      {wrongIdx >= 0 && !outcome && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-[10px] lg:text-xs font-bold px-3.5 py-1 rounded-full animate-pop-in whitespace-nowrap">
+          Check spot {wrongIdx + 1}…
+        </div>
+      )}
+    </section>
+  );
+
+  // Word bank tray (design #1 lower): tactile cyan blocks with pressed-shadow.
+  // Distractor tiles are NOT visually marked during play — marking them would
+  // give the answer away (fidelity log #2); grey styling is reveal-only.
+  const wordBank = (
+    <section className="w-full shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-3 lg:px-5 py-2 lg:py-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-[0.18em] text-amber-300 font-bold">
+          Word Bank
+        </span>
+        <span className="un-mono text-[9px] lg:text-[10px] text-slate-500">
+          {tray.length} block{tray.length === 1 ? '' : 's'} left
+        </span>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2 lg:gap-4">
+        {tray.length === 0 && (
+          <span className="un-mono text-slate-600 text-sm font-bold uppercase tracking-widest py-2">All blocks placed</span>
+        )}
+        {tray.map((tile) => (
+          <button key={tile.id} onClick={() => handleTileClick(tile, 'bank')}
+            className="un-block bg-cyan-400 text-slate-950 font-extrabold text-base lg:text-2xl tracking-wide px-3.5 lg:px-6 py-2 lg:py-3 rounded-xl border-t border-cyan-200 transition-all hover:-translate-y-0.5 active:translate-y-0.5 animate-pop-in">
+            {tile.text}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+
+  return (
+    <div className="un-root h-full w-full flex flex-col gap-2 lg:gap-3 p-2 lg:p-4 [@media(max-height:430px)]:gap-1.5 [@media(max-height:430px)]:p-1.5 bg-[#070C18] relative overflow-hidden">
+      <style>{`
+        .un-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
+        .un-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .un-block { box-shadow: 0 5px 0 0 #0e7490, 0 10px 20px -6px rgba(6,182,212,0.35); }
+        .un-block:active { box-shadow: 0 1px 0 0 #0e7490; }
+        .un-snapped { box-shadow: 0 0 18px -2px rgba(245,158,11,0.35), inset 0 0 14px rgba(245,158,11,0.08); }
+        @keyframes un-slot-pulse { 0%, 100% { box-shadow: 0 0 8px -2px rgba(34,211,238,0.35); } 50% { box-shadow: 0 0 22px -2px rgba(34,211,238,0.7); } }
+        .un-slot-glow { animation: un-slot-pulse 1.1s ease-in-out infinite; }
+        @keyframes pop-in {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in { animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes un-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+        .un-shake { animation: un-shake 0.4s ease-in-out; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.35s ease-out; }
+        @keyframes bounce-subtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
+      `}</style>
+
+      {header}
+
+      {/* Amber-framed workshop panel (design #1 main) */}
+      <main className="flex-1 min-h-0 w-full rounded-2xl lg:rounded-3xl bg-[#0F172A] border-2 border-amber-500/40 shadow-[0_0_36px_-12px_rgba(245,158,11,0.35)] p-2.5 lg:p-5 flex flex-col gap-2 lg:gap-4 relative overflow-hidden">
+        {/* Amber corner brackets (design accent) */}
+        <div className="absolute top-0 left-0 w-5 h-5 lg:w-7 lg:h-7 border-t-4 border-l-4 border-amber-400/70 rounded-tl-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-5 h-5 lg:w-7 lg:h-7 border-t-4 border-r-4 border-amber-400/70 rounded-tr-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-5 h-5 lg:w-7 lg:h-7 border-b-4 border-l-4 border-amber-400/70 rounded-bl-2xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-5 h-5 lg:w-7 lg:h-7 border-b-4 border-r-4 border-amber-400/70 rounded-br-2xl pointer-events-none" />
+
+        {taskFrame}
+        {runway}
+        {wordBank}
+
+        {/* Check CTA — the single hot-pink primary (design's pink accent) */}
+        {!outcome && !slideComplete && !revealTiles && (
+          <div className="shrink-0 flex justify-center pt-0.5">
+            <button onClick={checkAnswer} disabled={!canCheck}
+              className={`px-8 lg:px-10 py-2 lg:py-3 rounded-xl font-bold text-base lg:text-xl flex items-center gap-2.5 transition-all
+                ${canCheck
+                  ? 'bg-[#FF2E79] text-white shadow-[0_0_22px_-4px_rgba(255,46,121,0.6)] hover:shadow-[0_0_30px_-4px_rgba(255,46,121,0.8)] active:scale-95'
+                  : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
+              <Check size={20} /> Check Answer
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* Success / partial feedback overlay — click to dismiss early (v3 dark) */}
       {outcome && (
         <div
           onClick={() => setOutcome(null)}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
-            <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-6 ${outcome === 'correct' ? 'bg-green-100 text-green-500' : 'bg-yellow-100 text-yellow-500'}`}>
-              {outcome === 'correct' ? <Check size={64} strokeWidth={4} /> : <Lightbulb size={64} strokeWidth={3} />}
+          <div className="bg-[#111C3D] border-2 border-emerald-400/50 p-8 lg:p-12 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
+            <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center mb-5 ${outcome === 'correct' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+              {outcome === 'correct' ? <Check size={56} strokeWidth={3} /> : <Lightbulb size={56} strokeWidth={2.5} />}
             </div>
-            <h2 className="text-5xl font-black text-slate-800 mb-2">
+            <h2 className="text-3xl lg:text-5xl font-black text-white mb-2">
               {outcome === 'correct'
                 ? (pickedStudent ? `Nice one, ${pickedStudent.name}!` : 'Excellent!')
                 : (pickedStudent ? `So close, ${pickedStudent.name}!` : 'So close!')}
             </h2>
             {outcome === 'partial' && (
-              <p className="text-xl text-slate-500 font-medium mb-3">Almost there — {Math.round(lastRatio * 100)}% in the right order.</p>
+              <p className="text-base lg:text-xl text-slate-400 font-medium mb-3">Almost there — {Math.round(lastRatio * 100)}% in the right order.</p>
             )}
-            <p className="text-3xl font-bold text-slate-700 text-center">{round?.targetTiles.join(' ')}</p>
-            <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
+            <p className="text-xl lg:text-3xl font-bold text-emerald-300 text-center">{round?.targetTiles.join(' ')}</p>
+            <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
       )}
@@ -643,20 +763,20 @@ const BoardUnscramble = ({ data }: { data: any }) => {
           hold (~2.4s via afterResolve), then the round advances. */}
       {revealTiles && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white p-10 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
-            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-5">
-              <Lightbulb size={44} strokeWidth={2.5} />
+          <div className="bg-[#111C3D] border-2 border-amber-400/50 p-8 lg:p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
+            <div className="w-16 h-16 bg-amber-500/15 text-amber-400 rounded-full flex items-center justify-center mb-4">
+              <Lightbulb size={36} strokeWidth={2.5} />
             </div>
-            <h2 className="text-3xl font-black text-slate-800 mb-1">Here's the sentence</h2>
-            <p className="text-base text-slate-500 mb-6 font-medium">
-              <span className="text-emerald-600 font-bold">Green</span> = you had it right ·
-              <span className="text-amber-600 font-bold"> Amber</span> = wrong spot
+            <h2 className="text-2xl lg:text-3xl font-black text-white mb-1">Here's the sentence</h2>
+            <p className="text-sm text-slate-400 mb-5 font-medium">
+              <span className="text-emerald-400 font-bold">Green</span> = you had it right ·
+              <span className="text-amber-400 font-bold"> Amber</span> = wrong spot
             </p>
-            <div className="flex flex-wrap justify-center gap-3">
+            <div className="flex flex-wrap justify-center gap-2.5">
               {revealTiles.map((t, i) => (
                 <span key={i}
-                  className={`text-3xl font-bold px-6 py-3 rounded-2xl shadow-md animate-pop-in
-                    ${t.inPlace ? 'bg-green-500 text-white' : 'bg-amber-400 text-amber-950'}`}>
+                  className={`text-xl lg:text-3xl font-bold px-4 lg:px-6 py-2 lg:py-3 rounded-2xl shadow-md animate-pop-in
+                    ${t.inPlace ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-amber-950'}`}>
                   {t.word}
                 </span>
               ))}
@@ -667,43 +787,28 @@ const BoardUnscramble = ({ data }: { data: any }) => {
 
       {/* Already-scored chip */}
       {alreadyScoredChip && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 bg-slate-800/90 text-white px-5 py-2 rounded-full font-bold animate-fade-in">
-          🔁 already scored this turn
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-800/95 border border-slate-600 text-white px-5 py-2 rounded-full font-bold text-sm animate-fade-in">
+          already scored this turn
         </div>
       )}
 
-      {/* Slide complete overlay — click to dismiss */}
+      {/* Slide complete overlay — click to dismiss (v3 dark) */}
       {slideComplete && (
         <div
           onClick={() => setSlideComplete(false)}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
-            <div className="w-32 h-32 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mb-6">
-              <Check size={64} strokeWidth={4} />
+          <div className="bg-[#111C3D] border-2 border-cyan-400/50 p-8 lg:p-12 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
+            <div className="w-24 h-24 lg:w-32 lg:h-32 bg-cyan-500/15 text-cyan-400 rounded-full flex items-center justify-center mb-5">
+              <Check size={56} strokeWidth={3} />
             </div>
-            <h2 className="text-5xl font-black text-slate-800 mb-2">
+            <h2 className="text-3xl lg:text-5xl font-black text-white mb-2">
               {pickedStudent ? `Great building, ${pickedStudent.name}!` : 'Great building, everyone!'}
             </h2>
-            <p className="text-2xl text-slate-500 font-medium">Ready for the next slide.</p>
-            <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
+            <p className="text-lg lg:text-2xl text-slate-400 font-medium">Ready for the next slide.</p>
+            <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes pop-in {
-          0% { transform: scale(0.5); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-pop-in { animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-10px); }
-          40%, 80% { transform: translateX(10px); }
-        }
-        .animate-shake { animation: shake 0.4s ease-in-out; }
-      `}</style>
     </div>
   );
 };

@@ -210,6 +210,22 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 **§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/12-unscramble/{1-fresh-challenge,2-snapped-blocks}.{png,html}`. QA verdict: **PASS**. Only wave-1 screen generated on a native **1920x1080 canvas** (true 16:9). Structure confirmed: progress header (2/6 + amber timer badge), snap-fit answer runway, chunky word blocks, distractor tray. Palette: v3 + workshop cyan `#06B6D4` accent. Zero CJK. Implementation may proceed.
 
 *(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**IMPLEMENTED 2026-09-10 (v3 redesign of `BoardUnscramble.tsx`)** — rebuilt from `stitch/12-unscramble/{1-fresh-challenge,2-snapped-blocks}` (the only wave-1 design generated on a native 1920×1080 canvas). Logic (incl. the §3 pixel-identical re-deal fix: tray seed carries `currentTurnId`) preserved verbatim; presentation rewritten as the "Syntax Workshop".
+
+**Fidelity log (Stitch → shipped):**
+| # | Design element | Shipped | Note |
+|---|---|---|---|
+| 1 | Landscape photo card ("Target Observation Photo") | ✗ replaced | WORD_BANK_BUILD/TRANSFORM content carries NO per-sentence image — the task-frame plate is full-width instead; photo card would need a content-model change (future: reuse word_images of the objective's keyword) |
+| 2 | Task frame: badge + instruction + sentence stem | ✅ adapted | Stem shows SLOT-COUNT blanks + L1 meaning clue only — the mock's revealed first word ("Lions ____") would give away part of the answer; L1 translation retained (allowed support text) |
+| 3 | Sentence Runway: N numbered dashed slots + role labels | ✅ | Slots = targetTiles.length (dynamic, not fixed 4); POS labels (SUBJECT/MODAL/…) dropped — our content model has no POS metadata; next-empty slot gets the cyan pulse glow |
+| 4 | Snapped state (design #2): amber-bordered blocks, LOCK + Snapped tags | ✅ | Placed tiles render amber "snapped" blocks; verdict states tint emerald (correct) / amber (partial) |
+| 5 | Word Bank Tray: cyan tactile 3D blocks | ✅ | `un-block` pressed-shadow (#0e7490 bed), hover-lift, active-press |
+| 6 | Grey line-through distractor blocks + "NOT NEEDED" tag | ✗ during play | Marking distractors mid-play gives the answer away; grey marking is reserved for the reveal state. Deviation logged for owner review |
+| 7 | Pink "Clue" CTA in header | ✅ split | Clue = amber outline (hint); hot pink reserved for "Check Answer" (the game's true primary) — one pink element per screen |
+| 8 | Active-turn student chip / Teacher-sync pill in header | ✗ | Both already live in BoardShell (whose-turn pill + rails) — no duplication; header uses `pl-40/lg:pl-48` clearance |
+| 9 | POS tags on word blocks (NOUN/MODAL/…) | ✗ | No POS data in content model |
+| 10 | Sora/Inter + custom tokens | mapped → Fredoka/JetBrains Mono + v3 palette | App v3 font stack; workshop cyan #06B6D4 kept as the game accent per design |
+
+**Gauntlet:** tsc clean · 762/762 vitest · build clean · Playwright capture 4 states (`screenshots/12-unscramble-v3-{fresh,assembly,correct,floor}.png`, real pool item "My garden is small." + 2 distractors) + DOM probe (tray 6→5→4 as tiles snap) · no overflow at 700×320.
