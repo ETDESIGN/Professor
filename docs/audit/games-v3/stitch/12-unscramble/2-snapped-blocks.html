@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Unscramble · Syntax Workshop ESL Arena 16:9</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary-container": "#ffe0ec",
+            "tertiary-fixed": "#fff0c0",
+            "surface-dim": "#0f0f1a",
+            "surface-container-high": "#1e1e30",
+            "surface-container-lowest": "#0a0a12",
+            "on-secondary-fixed-variant": "#004d4d",
+            "tertiary": "#ffe04a",
+            "on-secondary-fixed": "#001a1a",
+            "inverse-on-surface": "#0a0a12",
+            "background": "#0a0a12",
+            "surface-container-low": "#111118",
+            "on-tertiary-fixed-variant": "#665200",
+            "on-primary": "#1a0010",
+            "secondary-fixed-dim": "#00e6b8",
+            "tertiary-fixed-dim": "#ffe04a",
+            "on-secondary-container": "#c0fff4",
+            "surface-bright": "#1a1a2e",
+            "on-tertiary-container": "#fff0c0",
+            "primary-container": "#b3004e",
+            "on-tertiary-fixed": "#1a1000",
+            "surface-tint": "#ff2d78",
+            "primary-fixed": "#ffe0ec",
+            "surface": "#0f0f1a",
+            "secondary-container": "#004d3d",
+            "primary-fixed-dim": "#ff80aa",
+            "on-primary-fixed": "#3d0020",
+            "on-secondary": "#001a1a",
+            "secondary-fixed": "#c0fff4",
+            "tertiary-container": "#665200",
+            "surface-container": "#141422",
+            "on-tertiary": "#1a1000",
+            "on-background": "#e8e0f0",
+            "outline-variant": "#302840",
+            "surface-variant": "#1e1e30",
+            "on-surface": "#e8e0f0",
+            "error-container": "#3d0f0f",
+            "on-surface-variant": "#a098b0",
+            "primary": "#ff2d78",
+            "outline": "#5a5068",
+            "secondary": "#00ffcc",
+            "on-error-container": "#ffa0a0",
+            "on-primary-fixed-variant": "#8c0038",
+            "on-error": "#1a0000",
+            "inverse-surface": "#e8e0f0",
+            "inverse-primary": "#8c0038",
+            "error": "#ff4444",
+            "surface-container-highest": "#28283e"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .neon-border-amber {
+      border: 1.5px solid rgba(255, 224, 74, 0.45);
+      box-shadow: inset 0 0 16px rgba(255, 224, 74, 0.08), 0 0 20px rgba(255, 224, 74, 0.12);
+    }
+    .neon-glow-primary {
+      box-shadow: 0 0 16px rgba(255, 45, 120, 0.45);
+    }
+    .neon-pulse-cyan {
+      animation: pulseCyan 2.2s infinite ease-in-out;
+    }
+    @keyframes pulseCyan {
+      0%, 100% {
+        box-shadow: 0 0 14px rgba(0, 255, 204, 0.35), inset 0 0 12px rgba(0, 255, 204, 0.15);
+        border-color: rgba(0, 255, 204, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 26px rgba(0, 255, 204, 0.65), inset 0 0 20px rgba(0, 255, 204, 0.28);
+        border-color: rgba(0, 255, 204, 1);
+      }
+    }
+    .grid-mesh {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body w-full min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-primary selection:text-white">
+<!-- TOP APP BAR -->
+<header class="bg-surface-dim border-b border-outline-variant w-full px-6 py-3 flex items-center justify-between z-30 shrink-0">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest border border-tertiary flex items-center justify-center shadow-[0_0_12px_rgba(255,224,74,0.3)]">
+<span class="font-headline font-extrabold text-tertiary text-2xl tracking-tight">U</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label text-xs uppercase tracking-wider text-tertiary">Syntax Workshop · ESL Arena 16:9</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container/40 border border-secondary/40 text-secondary text-[11px] font-label font-bold">LIVE STAGE</span>
+</div>
+<h1 class="font-headline font-extrabold text-2xl text-primary tracking-tight">Unscramble</h1>
+</div>
+</div>
+<div class="hidden lg:flex items-center gap-2 pl-4 border-l border-outline-variant">
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container border border-outline text-xs font-label text-on-surface">
+<span class="material-symbols-outlined text-tertiary text-base" data-icon="flag">flag</span>
+<span class="font-bold text-on-surface">Round 1 / 4</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/50 border border-secondary/40 text-xs font-label text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span>Alice's turn</span>
+</div>
+</div>
+</div>
+<!-- Center Mission Pill -->
+<div class="hidden xl:flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-high border border-tertiary/40 shadow-[0_0_15px_rgba(255,224,74,0.15)]">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="psychology">psychology</span>
+<span class="font-label text-xs tracking-wide text-on-surface">
+<span class="text-tertiary font-bold">Grammar Mission:</span> Subject + Modal + Verb + Adverb
+      </span>
+</div>
+<!-- Right Controls -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container border border-outline text-xs font-label">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_8px_#00ffcc]"></span>
+<span class="text-on-surface-variant font-medium">Teacher Pad Synced</span>
+</div>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button class="p-2 rounded-lg hover:text-primary transition-all duration-200 active:scale-95 bg-surface-container border border-outline-variant" title="Sound Volume">
+<span class="material-symbols-outlined text-xl" data-icon="volume_up">volume_up</span>
+</button>
+<button class="p-2 rounded-lg hover:text-primary transition-all duration-200 active:scale-95 bg-surface-container border border-outline-variant" title="Settings">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+<button class="p-2 rounded-lg hover:text-primary transition-all duration-200 active:scale-95 bg-surface-container border border-outline-variant" title="Fullscreen View">
+<span class="material-symbols-outlined text-xl" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-surface-container-high border border-primary text-primary font-label text-sm font-bold tracking-wide neon-glow-primary hover:bg-primary hover:text-on-primary transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined text-lg" data-icon="lightbulb">lightbulb</span>
+<span>Clue</span>
+</button>
+</div>
+</header>
+<!-- MAIN PROJECTOR CANVAS (16:9 Optimized) -->
+<main class="flex-1 w-full max-w-[1920px] mx-auto px-6 py-4 flex flex-col gap-4 justify-between grid-mesh">
+<!-- UPPER OBSERVATION & PROMPT ARENA -->
+<section class="grid grid-cols-12 gap-5 rounded-xl bg-surface-container-low p-4 neon-border-amber relative overflow-hidden">
+<div class="absolute -right-20 -top-20 w-80 h-80 bg-tertiary/5 rounded-full blur-3xl pointer-events-none"></div>
+<!-- LEFT: Photo Card (16:9 Landscape) -->
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-2">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm" data-icon="visibility">visibility</span>
+<span class="font-label text-xs uppercase tracking-wider text-tertiary font-bold">Target Observation Photo</span>
+</div>
+<span class="text-[11px] font-label text-on-surface-variant">Classroom Lens · Savanna</span>
+</div>
+<div class="relative rounded-lg overflow-hidden border border-outline-variant bg-surface-container-lowest aspect-video group">
+<img alt="A pride of lions with cubs running across the sunlit golden savanna grass at golden hour" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida/AEtjO1U1yJv5x30s1lDQN8iu8mB6LbkELiFuVFf4Kk0bnlAFvt2rbPk0yj_dKfSQSXhOP0gpk0DIOGBhFfzaU-Sk-BO2D2YdrYP3xyEjY8z0BThtCCuaufJaiMbLWmzQNynBurLVsdkg5J9GVDewvNdG9rP_kU7az2sPpBrfnMFgOW9X3RsiognP0q3Qe8tR6UnvTR8zeTiTn1Fc3DnnGT5bjh48qYGS7Et_3YWlW2td9myOI-ZW9wdoDYtaxtaK"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent"></div>
+<div class="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high/90 backdrop-blur-md border border-secondary text-secondary font-label text-xs tracking-wider font-semibold shadow-[0_0_12px_rgba(0,255,204,0.3)] hover:bg-secondary hover:text-on-secondary transition-colors duration-200">
+<span class="material-symbols-outlined text-base" data-icon="record_voice_over">record_voice_over</span>
+<span>Listen to the clue</span>
+</button>
+<span class="px-2 py-1 rounded bg-background/80 text-[11px] font-label text-on-surface border border-outline-variant">
+              16:9 HQ Projection
+            </span>
+</div>
+</div>
+</div>
+<!-- RIGHT: Prompt & Live Progress Plate -->
+<div class="col-span-12 lg:col-span-7 flex flex-col justify-between py-1 px-2">
+<div class="space-y-3">
+<div class="flex flex-wrap items-center gap-2 justify-between">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-1 rounded bg-surface-container-high border border-tertiary/60 text-tertiary font-label text-xs font-bold tracking-wide">
+                TASK FRAME #01 · Observe &amp; Construct
+              </span>
+<span class="px-2.5 py-1 rounded bg-surface-container border border-outline text-on-surface-variant font-label text-xs">
+                4 Words Target · Classroom Projected 8m
+              </span>
+</div>
+<div class="flex items-center gap-1.5 text-xs font-label text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="sync">sync</span>
+<span>Stage: In Assembly (3/4 Snapped)</span>
+</div>
+</div>
+<div>
+<h2 class="font-label uppercase text-xs tracking-widest text-on-surface-variant">Challenge Prompt</h2>
+<p class="font-headline font-bold text-2xl text-on-surface mt-0.5">Build the sentence about the picture:</p>
+</div>
+<!-- Live Sentence Progress Display -->
+<div class="p-4 rounded-lg bg-surface-container border border-outline-variant relative">
+<div class="text-xs font-label uppercase tracking-wider text-on-surface-variant mb-1 flex items-center justify-between">
+<span>Live Projection Monitor</span>
+<span class="text-secondary font-mono">STEP 4/4 PENDING</span>
+</div>
+<div class="text-3xl lg:text-4xl font-headline font-bold tracking-wide flex flex-wrap items-baseline gap-3">
+<span class="text-tertiary drop-shadow-[0_0_12px_rgba(255,224,74,0.4)]">Lions</span>
+<span class="text-tertiary drop-shadow-[0_0_12px_rgba(255,224,74,0.4)]">can</span>
+<span class="text-tertiary drop-shadow-[0_0_12px_rgba(255,224,74,0.4)]">run</span>
+<span class="inline-block px-4 py-1 rounded border-b-4 border-secondary text-secondary neon-pulse-cyan tracking-wider">_______</span>
+<span class="text-on-surface">.</span>
+</div>
+</div>
+</div>
+<div class="mt-3 flex items-center justify-between pt-3 border-t border-outline-variant/60">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="campaign">campaign</span>
+<p class="text-sm font-body text-on-surface-variant">
+<strong class="text-tertiary font-label">Teacher tip:</strong> Encourage class chant: <em class="text-on-surface font-medium">"Lions can run... how?"</em>
+</p>
+</div>
+<span class="text-xs font-label text-outline uppercase tracking-wider">Syntax: Subject + Verb + Adverb</span>
+</div>
+</div>
+</section>
+<!-- MIDDLE: SENTENCE RUNWAY -->
+<section class="rounded-xl bg-surface-container-high/60 border border-outline p-5 flex flex-col gap-3 backdrop-blur-sm">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="view_column">view_column</span>
+<h3 class="font-label font-bold text-sm tracking-wider uppercase text-on-surface">
+            Sentence Runway <span class="text-on-surface-variant font-normal">(Drag or tap word blocks into sequential order)</span>
+</h3>
+</div>
+<div class="flex items-center gap-4 text-xs font-label">
+<span class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span> Locked Block
+          </span>
+<span class="flex items-center gap-1.5 text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span> Active Target Slot
+          </span>
+</div>
+</div>
+<!-- Slots Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Slot 1: Snapped "Lions" -->
+<div class="relative flex flex-col justify-between p-3 rounded-xl bg-surface-container border-2 border-tertiary/80 shadow-[0_0_18px_rgba(255,224,74,0.18)]">
+<div class="flex items-center justify-between text-xs font-label text-tertiary">
+<span class="uppercase tracking-widest font-bold">01 · SUBJECT</span>
+<span class="flex items-center gap-0.5 text-secondary font-bold text-[11px]">
+<span class="material-symbols-outlined text-sm" data-icon="lock">lock</span> Locked
+            </span>
+</div>
+<div class="my-4 py-3 px-4 rounded-lg bg-surface-dim border border-tertiary/40 flex items-center justify-center text-center shadow-inner">
+<span class="font-headline font-extrabold text-3xl text-tertiary tracking-tight drop-shadow-[0_0_8px_rgba(255,224,74,0.4)]">Lions</span>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label text-on-surface-variant">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant">PLURAL NOUN</span>
+<span class="text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span> Snapped
+            </span>
+</div>
+</div>
+<!-- Slot 2: Snapped "can" -->
+<div class="relative flex flex-col justify-between p-3 rounded-xl bg-surface-container border-2 border-tertiary/80 shadow-[0_0_18px_rgba(255,224,74,0.18)]">
+<div class="flex items-center justify-between text-xs font-label text-tertiary">
+<span class="uppercase tracking-widest font-bold">02 · MODAL VERB</span>
+<span class="flex items-center gap-0.5 text-secondary font-bold text-[11px]">
+<span class="material-symbols-outlined text-sm" data-icon="lock">lock</span> Locked
+            </span>
+</div>
+<div class="my-4 py-3 px-4 rounded-lg bg-surface-dim border border-tertiary/40 flex items-center justify-center text-center shadow-inner">
+<span class="font-headline font-extrabold text-3xl text-tertiary tracking-tight drop-shadow-[0_0_8px_rgba(255,224,74,0.4)]">can</span>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label text-on-surface-variant">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant">ABILITY MODAL</span>
+<span class="text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span> Snapped
+            </span>
+</div>
+</div>
+<!-- Slot 3: Snapped "run" -->
+<div class="relative flex flex-col justify-between p-3 rounded-xl bg-surface-container border-2 border-tertiary/80 shadow-[0_0_18px_rgba(255,224,74,0.18)]">
+<div class="flex items-center justify-between text-xs font-label text-tertiary">
+<span class="uppercase tracking-widest font-bold">03 · ACTION VERB</span>
+<span class="flex items-center gap-0.5 text-secondary font-bold text-[11px]">
+<span class="material-symbols-outlined text-sm" data-icon="lock">lock</span> Locked
+            </span>
+</div>
+<div class="my-4 py-3 px-4 rounded-lg bg-surface-dim border border-tertiary/40 flex items-center justify-center text-center shadow-inner">
+<span class="font-headline font-extrabold text-3xl text-tertiary tracking-tight drop-shadow-[0_0_8px_rgba(255,224,74,0.4)]">run</span>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label text-on-surface-variant">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest border border-outline-variant">BASE FORM</span>
+<span class="text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle">check_circle</span> Snapped
+            </span>
+</div>
+</div>
+<!-- Slot 4: Empty Slot (Awaiting Adverb) -->
+<div class="relative flex flex-col justify-between p-3 rounded-xl bg-surface-container-low border-2 border-dashed border-secondary neon-pulse-cyan cursor-pointer group">
+<div class="flex items-center justify-between text-xs font-label text-secondary">
+<span class="uppercase tracking-widest font-bold">04 · ADVERB / END</span>
+<span class="px-1.5 py-0.5 rounded bg-secondary/20 text-[10px] font-bold tracking-wider uppercase">DROP HERE</span>
+</div>
+<div class="my-4 py-3 px-4 rounded-lg bg-surface-container/60 border border-secondary/40 flex flex-col items-center justify-center gap-1 text-center min-h-[58px]">
+<span class="material-symbols-outlined text-secondary text-2xl animate-bounce" data-icon="add_circle">add_circle</span>
+<span class="font-label text-xs font-semibold text-secondary uppercase tracking-wider">Awaiting Adverb</span>
+</div>
+<div class="flex items-center justify-between text-[11px] font-label text-secondary/80">
+<span>MANNER MODIFIER</span>
+<span class="font-mono text-[10px]">PULSE ACTIVE</span>
+</div>
+</div>
+</div>
+</section>
+<!-- LOWER: WORD BANK TRAY -->
+<section class="rounded-xl bg-surface-container-low border border-outline-variant p-4 flex flex-col gap-3">
+<div class="flex flex-wrap items-center justify-between gap-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="grid_view">grid_view</span>
+<h3 class="font-label font-bold text-xs tracking-wider uppercase text-on-surface">
+            Word Bank Tray · Tap or drag to complete the sentence
+          </h3>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-label text-on-surface-variant">NOT NEEDED: 2 Distractor blocks in tray</span>
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span class="text-xs font-label text-tertiary flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="tips_and_updates">tips_and_updates</span>
+<span>Classroom Interactive</span>
+</span>
+</div>
+</div>
+<!-- Word Blocks Cluster -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-1">
+<!-- Ghosted 1: Lions -->
+<div class="p-3 rounded-lg bg-surface-dim/70 border border-outline-variant/50 opacity-40 flex flex-col items-center justify-center text-center cursor-not-allowed">
+<span class="font-headline text-lg line-through text-on-surface-variant font-bold">Lions</span>
+<span class="mt-1 text-[10px] font-label uppercase tracking-widest text-secondary font-bold">SNAPPED</span>
+</div>
+<!-- Ghosted 2: can -->
+<div class="p-3 rounded-lg bg-surface-dim/70 border border-outline-variant/50 opacity-40 flex flex-col items-center justify-center text-center cursor-not-allowed">
+<span class="font-headline text-lg line-through text-on-surface-variant font-bold">can</span>
+<span class="mt-1 text-[10px] font-label uppercase tracking-widest text-secondary font-bold">SNAPPED</span>
+</div>
+<!-- Ghosted 3: run -->
+<div class="p-3 rounded-lg bg-surface-dim/70 border border-outline-variant/50 opacity-40 flex flex-col items-center justify-center text-center cursor-not-allowed">
+<span class="font-headline text-lg line-through text-on-surface-variant font-bold">run</span>
+<span class="mt-1 text-[10px] font-label uppercase tracking-widest text-secondary font-bold">SNAPPED</span>
+</div>
+<!-- ACTIVE TILE: fast -->
+<div class="p-3 rounded-lg bg-surface-bright border-2 border-secondary shadow-[0_0_20px_rgba(0,255,204,0.45)] flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_0_28px_rgba(0,255,204,0.7)] group">
+<span class="font-headline text-2xl font-extrabold text-secondary drop-shadow-[0_0_10px_rgba(0,255,204,0.6)]">fast</span>
+<div class="mt-1 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+<span class="text-[10px] font-label uppercase tracking-widest text-secondary font-bold">ADVERB · READY</span>
+</div>
+</div>
+<!-- Distractor 1: river -->
+<div class="p-3 rounded-lg bg-surface-container border border-outline-variant text-on-surface-variant/70 flex flex-col items-center justify-center text-center hover:border-outline transition-colors">
+<span class="font-headline text-xl font-bold text-on-surface-variant">river</span>
+<span class="mt-1 text-[10px] font-label uppercase tracking-widest text-outline">DISTRACTOR</span>
+</div>
+<!-- Distractor 2: apple -->
+<div class="p-3 rounded-lg bg-surface-container border border-outline-variant text-on-surface-variant/70 flex flex-col items-center justify-center text-center hover:border-outline transition-colors">
+<span class="font-headline text-xl font-bold text-on-surface-variant">apple</span>
+<span class="mt-1 text-[10px] font-label uppercase tracking-widest text-outline">DISTRACTOR</span>
+</div>
+</div>
+<!-- Hint chip bar -->
+<div class="flex items-center justify-between pt-2 text-xs font-label">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="px-2 py-0.5 rounded bg-surface-container border border-outline-variant text-[11px] font-mono">DRAG OR CLICK</span>
+<span>Target slot highlights on hover</span>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container-high border border-tertiary/40 text-tertiary hover:bg-tertiary/10 transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="lightbulb">lightbulb</span>
+<span class="font-bold">Hint: Removes one distractor</span>
+<kbd class="px-1.5 py-0.2 rounded bg-surface-dim border border-outline text-[10px] font-mono">H</kbd>
+</button>
+</div>
+</section>
+</main>
+<!-- BOTTOM CLASS STATUS HUD -->
+<footer class="bg-surface-dim border-t border-outline-variant w-full px-6 py-3 shrink-0">
+<div class="max-w-[1920px] mx-auto flex flex-col md:flex-row items-center justify-between gap-3 font-label text-xs">
+<!-- Left specs -->
+<div class="flex items-center gap-3 text-on-surface-variant">
+<span class="px-2 py-0.5 rounded bg-surface-container border border-outline text-[11px] text-tertiary font-bold">16:9 PROJECTOR</span>
+<span class="hidden sm:inline text-outline">|</span>
+<span class="hidden sm:inline">Challenge: #01 In Assembly</span>
+<span class="hidden sm:inline text-outline">|</span>
+<span class="text-secondary font-medium">Progress: 3 of 4 Words Snapped</span>
+</div>
+<!-- Center Student Calling Prompt -->
+<div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container border border-secondary/40 shadow-[0_0_12px_rgba(0,255,204,0.15)] text-on-surface">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-secondary font-bold">Classroom Prompt:</span>
+<span class="font-body text-sm text-on-surface">"Alice, what word tells how lions run?"</span>
+</div>
+<!-- Right HUD & CTAs -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 bg-surface-container px-3 py-1 rounded border border-outline">
+<span class="text-on-surface-variant uppercase text-[11px]">CLASS SCORE:</span>
+<span class="font-headline font-extrabold text-tertiary text-base tracking-tight">480</span>
+<span class="text-secondary font-bold text-[11px]">+50 PTS</span>
+</div>
+<button class="px-5 py-2 rounded-lg bg-surface-container-high border border-secondary text-secondary font-label font-bold tracking-wider uppercase hover:bg-secondary hover:text-on-secondary transition-all duration-200 active:scale-95 shadow-[0_0_12px_rgba(0,255,204,0.25)] flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="task_alt">task_alt</span>
+<span>Check Sentence</span>
+</button>
+</div>
+</div>
+</footer>
+</body></html>

@@ -182,12 +182,13 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What to KEEP from current design.** Retain the dual-write scoring (`addPoints` + `recordAttempt` + FSRS), per-pair mistake latching, seeded right-column shuffling across tabs, and the snappy 900ms auto-advance between rounds.
 
-## §5 ⬜ Google Stitch prompt
+## §5 ✅ Google Stitch prompt — RETURNED
 
 *(ZCode writes this AFTER §4 is filled.)*
 
-**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **F1 fresh deal 2-column board (all 6 rows visible)** and **F2 selection + electric connection path**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/11-flash-match/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
+**§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/11-flash-match/{1-fresh-deal,2-connection}.{png,html}`. QA verdict: **#1 FAILED the gate — REVISION SUBMITTED** (it reproduced the owner's core complaint: 6th row clipped by the bottom bar, square photos, decorative clutter). `edit_screens` correction (session 8223030384017350829): compress header/footer, 6 rows fully visible, LANDSCAPE 3:2 photo tiles, strip teacher-panel clutter. **#2 connection screen: PASS** (HTML clean, electric connection path, selection states). Implementation of this game waits for the revised #1 to land + re-export.
 
+*(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
 ## §6 ⬜ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*

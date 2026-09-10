@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ESL Arena - Listen &amp; Tap</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-highest": "#28283e",
+            "on-error-container": "#ffa0a0",
+            "on-background": "#e8e0f0",
+            "tertiary": "#ffe04a",
+            "on-surface-variant": "#a098b0",
+            "on-secondary": "#001a1a",
+            "inverse-surface": "#e8e0f0",
+            "on-surface": "#e8e0f0",
+            "background": "#0a0a12",
+            "surface-container-lowest": "#0a0a12",
+            "secondary-fixed": "#c0fff4",
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-primary-container": "#ffe0ec",
+            "surface-container": "#141422",
+            "surface": "#0f0f1a",
+            "outline-variant": "#302840",
+            "tertiary-fixed": "#fff0c0",
+            "secondary-fixed-dim": "#00e6b8",
+            "inverse-primary": "#8c0038",
+            "surface-container-high": "#1e1e30",
+            "on-tertiary": "#1a1000",
+            "on-tertiary-fixed": "#1a1000",
+            "secondary-container": "#004d3d",
+            "primary-fixed": "#ffe0ec",
+            "on-tertiary-container": "#fff0c0",
+            "surface-variant": "#1e1e30",
+            "error-container": "#3d0f0f",
+            "surface-dim": "#0f0f1a",
+            "on-error": "#1a0000",
+            "tertiary-container": "#665200",
+            "outline": "#5a5068",
+            "surface-tint": "#ff2d78",
+            "on-tertiary-fixed-variant": "#665200",
+            "tertiary-fixed-dim": "#ffe04a",
+            "on-primary": "#1a0010",
+            "primary": "#ff2d78",
+            "error": "#ff4444",
+            "secondary": "#00ffcc",
+            "on-secondary-fixed": "#001a1a",
+            "surface-bright": "#1a1a2e",
+            "on-secondary-container": "#c0fff4",
+            "primary-fixed-dim": "#ff80aa",
+            "primary-container": "#b3004e",
+            "on-primary-fixed-variant": "#8c0038",
+            "on-primary-fixed": "#3d0020",
+            "surface-container-low": "#111118",
+            "inverse-on-surface": "#0a0a12"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .neon-grid-bg {
+      background-color: #0A121E;
+      background-image: 
+        linear-gradient(to right, rgba(0, 255, 204, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 255, 204, 0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .correct-glow {
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.55), inset 0 0 20px rgba(16, 185, 129, 0.25);
+    }
+    .toast-glow {
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.45), 0 0 15px rgba(245, 158, 11, 0.35);
+    }
+    .text-glow-emerald {
+      text-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.7);
+    }
+    .text-glow-amber {
+      text-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+    }
+    @keyframes autoAdvance {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+    .animate-progress {
+      animation: autoAdvance 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes subtlePulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.008); filter: brightness(1.08); }
+    }
+    .pulse-correct {
+      animation: subtlePulse 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body w-screen h-screen overflow-hidden select-none neon-grid-bg flex flex-col justify-between">
+<!-- ==================== TOP SHELL: PROJECTOR APP BAR ==================== -->
+<header class="relative z-30 flex items-center justify-between px-8 py-3.5 bg-surface-dim/95 backdrop-blur-md border-b border-outline-variant/60 shadow-[0_4px_24px_rgba(0,0,0,0.6)]">
+<!-- Brand / Stage Mode -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container/40 border border-secondary/40 text-secondary text-xs font-label tracking-wider font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span>PHASE: LISTEN &amp; TAP</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h1 class="font-headline font-bold text-2xl text-on-surface tracking-wide flex items-center gap-2">
+<span class="text-secondary text-glow-cyan">Word Search</span>
+<span class="text-outline text-xl font-light">/</span>
+<span class="text-on-surface text-xl font-semibold">Listen &amp; Tap</span>
+</h1>
+<span class="font-label text-xs tracking-widest text-on-surface-variant font-bold">ESL ARENA V2.4</span>
+</div>
+</div>
+<!-- Floating Header-Center Celebration Toast Pill -->
+<div class="absolute left-1/2 -translate-x-1/2 top-2 z-40">
+<div class="toast-glow flex items-center gap-3 px-6 py-2 rounded-full bg-surface-container-high border-2 border-emerald-400/80 transform hover:scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined text-emerald-400 text-2xl" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-headline font-bold text-lg text-emerald-300 text-glow-emerald tracking-wide">+1 Point!</span>
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span class="font-label font-bold text-base text-amber-400 text-glow-amber tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-400 text-xl" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+          Streak: 3
+        </span>
+</div>
+</div>
+<!-- Center-Right Metrics & Audio Controls -->
+<div class="flex items-center gap-3">
+<!-- Round Pill -->
+<div class="px-3.5 py-1.5 rounded-lg bg-surface-container border border-outline-variant/80 flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-base" data-icon="flag">flag</span>
+<span class="font-label text-xs font-bold tracking-wider text-on-surface-variant uppercase">Round 1 · Starter</span>
+</div>
+<!-- Turn Pill -->
+<div class="px-3.5 py-1.5 rounded-lg bg-surface-container border border-outline-variant/80 flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary/20 border border-primary text-primary flex items-center justify-center font-headline font-bold text-xs">
+          A
+        </div>
+<span class="font-headline font-semibold text-sm text-on-surface">Alice's turn</span>
+</div>
+<!-- Amber Streak Pill -->
+<div class="px-3.5 py-1.5 rounded-lg bg-amber-950/40 border border-amber-500/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-400 text-lg animate-bounce" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label text-xs font-bold text-amber-300 text-glow-amber tracking-wider">STREAK: 3</span>
+</div>
+<!-- Icon Actions -->
+<div class="flex items-center gap-1 pl-2 border-l border-outline-variant/80 text-on-surface-variant">
+<button class="p-2 rounded-lg hover:text-secondary hover:bg-surface-container-high transition-colors" title="Volume">
+<span class="material-symbols-outlined" data-icon="volume_up" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+<button class="p-2 rounded-lg hover:text-secondary hover:bg-surface-container-high transition-colors" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="p-2 rounded-lg hover:text-secondary hover:bg-surface-container-high transition-colors" title="Fullscreen">
+<span class="material-symbols-outlined" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</div>
+</header>
+<!-- ==================== AUDITORY PROMPT BANNER ==================== -->
+<section class="relative z-20 px-8 py-2.5 bg-surface-container-low/90 border-b border-outline-variant/40 flex items-center justify-between">
+<div class="flex items-center gap-4 flex-1">
+<div class="w-11 h-11 rounded-xl bg-secondary-container/60 border border-secondary/50 flex items-center justify-center text-secondary shadow-[0_0_15px_rgba(0,255,204,0.25)] flex-shrink-0">
+<span class="material-symbols-outlined text-2xl" data-icon="headphones" style="font-variation-settings: 'FILL' 1;">headphones</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label text-xs uppercase tracking-widest text-secondary font-bold flex items-center gap-2">
+          Auditory Prompt Voice
+          <span class="inline-flex gap-0.5 items-end h-3">
+<span class="w-0.5 h-3 bg-secondary rounded-full animate-pulse"></span>
+<span class="w-0.5 h-2 bg-secondary rounded-full"></span>
+<span class="w-0.5 h-3.5 bg-secondary rounded-full animate-pulse"></span>
+<span class="w-0.5 h-1.5 bg-secondary rounded-full"></span>
+</span>
+</span>
+<p class="font-headline font-bold text-xl text-on-surface tracking-wide">
+          Which animal has this name? <span class="text-secondary text-glow-cyan">"Can you spot the fierce creature in the wild?"</span>
+</p>
+</div>
+</div>
+<!-- Auditory Verification Badge -->
+<div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-400/60 shadow-[0_0_15px_rgba(16,185,129,0.3)] flex-shrink-0">
+<span class="material-symbols-outlined text-emerald-400 text-lg font-bold" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label font-bold text-sm text-emerald-300 tracking-wider">CORRECT! "TIGER"</span>
+</div>
+</section>
+<!-- ==================== MAIN 2x2 ANIMAL CHOICE GRID (16:9 OPTIMIZED) ==================== -->
+<main class="flex-1 px-8 py-4 grid grid-cols-2 grid-rows-2 gap-5 relative z-10 overflow-hidden max-h-[calc(100vh-172px)]">
+<!-- CARD A: TIGER (LOCKED CORRECT STATE) -->
+<div class="relative rounded-2xl overflow-hidden bg-surface-container border-2 border-emerald-400 correct-glow pulse-correct flex flex-col justify-between transition-all duration-300">
+<!-- Background Image Container -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover object-center transform scale-105" data-alt="A majestic Bengal tiger sitting upright looking directly forward into the camera with piercing amber eyes and vivid orange coat striped with deep black. The setting is a moody dark studio background with subtle soft side-lighting highlighting its regal fur texture. Rendered in high contrast, cinematic photography style with crisp details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUdPPxbl9H9Ewf___1AItqmQymhDdYQuy1pouS2wEbmABYTFmwLWp5aQSZS8ZQXzQqx5ZpPh9NWejsgffDpRbP03yRSTTtiMlC-gsTUithQ4i5Em9x4ULWDyHzJanE0HyRxOJul_rCrH4ySruQB_5odhLsCjStpf7waDP3lwzutxqZGI7uHETNPySkdAo1Cb5r6SZdPNHrelnePfqS1hV6iIxNaooUSbglI7j-OGm58GsFr44yLnVchCuls0HFJTNrsYYahD3Khp2A"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+<div class="absolute inset-0 bg-emerald-950/20 mix-blend-color-dodge"></div>
+</div>
+<!-- Top Overlay Badges -->
+<div class="relative z-10 p-5 flex items-start justify-between">
+<!-- Option Badge -->
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-surface-dim/90 border border-emerald-400/80 backdrop-blur-md">
+<span class="font-headline font-extrabold text-sm text-emerald-300">A</span>
+<span class="w-1 h-3 bg-emerald-400/50 rounded-full"></span>
+<span class="font-label font-bold text-xs tracking-wider text-on-surface">OPTION 1</span>
+</div>
+<!-- Correct Target Pill -->
+<div class="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-500 text-background font-label font-black text-xs tracking-wider shadow-[0_0_20px_rgba(16,185,129,0.7)] uppercase">
+<span class="material-symbols-outlined text-base" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span>MATCHED TARGET</span>
+</div>
+</div>
+<!-- Bottom Identity & giant check badge -->
+<div class="relative z-10 p-5 flex items-end justify-between">
+<div>
+<div class="inline-block px-2.5 py-0.5 mb-1 rounded bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 font-label text-xs tracking-widest uppercase font-bold">
+            ESL VOCABULARY
+          </div>
+<h2 class="font-headline font-extrabold text-5xl text-emerald-300 text-glow-emerald tracking-wide">
+            TIGER
+          </h2>
+<p class="font-label font-medium text-emerald-200/80 text-lg tracking-widest mt-0.5">
+            /ˈtaɪ.ɡər/
+          </p>
+</div>
+<!-- Giant Emerald Checkmark Badge -->
+<div class="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 text-background font-headline font-black text-xl tracking-wider shadow-[0_0_25px_rgba(16,185,129,0.8)] transform scale-105">
+<span class="material-symbols-outlined text-3xl font-black" data-icon="check" style="font-variation-settings: 'wght' 700;">check</span>
+<span>CORRECT</span>
+</div>
+</div>
+</div>
+<!-- CARD B: LION (DIMMED 40%) -->
+<div class="relative rounded-2xl overflow-hidden bg-surface-container border border-outline-variant/40 opacity-40 grayscale-[30%] flex flex-col justify-between">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover object-center" data-alt="A magnificent African lion with a massive, dense golden-brown mane lying on an elevated rock ledge against a dark studio background. The atmosphere is solemn and composed, with studio rim lighting defining the lion's proud posture and facial structure. A high-end wildlife studio portrait aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0ghwAvtm8QsmeZBPBVMHlJqoVZOIpJ1cmVF5w8-iIugC0_Jpj_aLl6XuP8kYstmISjnybaLKtmHCze648QGRYl-RGXiA_zxWocloqeCc0UT2SgL5aemaJriRgiScezKn8PsrW5xJs7MPAWwZySCH4nTBc4fHYxDS9tzn5gaJyodkQuBp1Fz3SYeGkkFjqqRoH9HzoOY6X5CugCOstVDGg2bgGRzcu0NGsmprUuw9E72JwD572TNmbXsucN8eD_TU_hWtyiJfpn9aX"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
+</div>
+<div class="relative z-10 p-5 flex items-start justify-between">
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-surface-dim/80 border border-outline-variant/60 backdrop-blur-md">
+<span class="font-headline font-extrabold text-sm text-on-surface-variant">B</span>
+<span class="w-1 h-3 bg-outline-variant rounded-full"></span>
+<span class="font-label font-bold text-xs tracking-wider text-on-surface-variant">OPTION 2</span>
+</div>
+</div>
+<div class="relative z-10 p-5">
+<h2 class="font-headline font-bold text-4xl text-on-surface-variant tracking-wide">
+          LION
+        </h2>
+<p class="font-label font-normal text-on-surface-variant/70 text-base tracking-widest mt-0.5">
+          /ˈlaɪ.ən/
+        </p>
+</div>
+</div>
+<!-- CARD C: MONKEY (DIMMED 40%) -->
+<div class="relative rounded-2xl overflow-hidden bg-surface-container border border-outline-variant/40 opacity-40 grayscale-[30%] flex flex-col justify-between">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover object-center" data-alt="A young chimpanzee primate perched peacefully on a rustic dark wooden branch holding a small piece of food. The backdrop is deep charcoal with soft atmospheric lighting emphasizing its inquisitive eyes, fine dark fur, and realistic expressive face in a dark studio setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuChb8yKKanq1cTo7QaFvAQ4DpayO3klAtYhhd1I3vWXXYd-XyiSNjDK6xPTE-xwUiBLFLISuXly0Kvq8XUHFJbCLz1wjizppRyVSTDnLLHK7NNueKNAbCAiYEtGWPxlKY_2teF3m5ES4FFK2hCWRWLz_X1hV-VzU3-vJhFbs0u40eRwc3a8X_48Hn2vSeJnMPdM4mOjTFXiiEOlUrh5osibGRKWF5SV1VWMMU_8ZGw6iAbAEMwYQ7RIFuSdZDBFwNhrpLmc0FYD45mR"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
+</div>
+<div class="relative z-10 p-5 flex items-start justify-between">
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-surface-dim/80 border border-outline-variant/60 backdrop-blur-md">
+<span class="font-headline font-extrabold text-sm text-on-surface-variant">C</span>
+<span class="w-1 h-3 bg-outline-variant rounded-full"></span>
+<span class="font-label font-bold text-xs tracking-wider text-on-surface-variant">OPTION 3</span>
+</div>
+</div>
+<div class="relative z-10 p-5">
+<h2 class="font-headline font-bold text-4xl text-on-surface-variant tracking-wide">
+          MONKEY
+        </h2>
+<p class="font-label font-normal text-on-surface-variant/70 text-base tracking-widest mt-0.5">
+          /ˈmʌŋ.ki/
+        </p>
+</div>
+</div>
+<!-- CARD D: ELEPHANT (DIMMED 40%) -->
+<div class="relative rounded-2xl overflow-hidden bg-surface-container border border-outline-variant/40 opacity-40 grayscale-[30%] flex flex-col justify-between">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover object-center" data-alt="A large African elephant standing in full profile on a dark studio surface with deep dark grey studio backdrop. Soft, precise studio lighting outlines the elephant's large textured ears, wrinkled grey hide, and elegant curved ivory tusks with museum-quality wildlife portraiture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1kspSFjk6EAdMABguwl1IfqXklr8yigBwqePBF3GE4SoDzIgmGFrTlqA79UavZq11bVy5XiXdtnkG44C-ZIjDMeReN9utFn62dh5IW83WXuuxqWKyYvv2US8nIrGKCgsb9PyZJFM5YUkOFbZ9czXxzAoYiKtwNOnS-79x3CxZ0rKmZIMsRgLozrr17Z8ZDZDtcvxtChu4IJz3mnFVvV9GVWmmoH5XQvFXxaa44HulCV8Xqyl_wN-nTgbup3pt9cKSLbMDqXBTlV3J"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
+</div>
+<div class="relative z-10 p-5 flex items-start justify-between">
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-surface-dim/80 border border-outline-variant/60 backdrop-blur-md">
+<span class="font-headline font-extrabold text-sm text-on-surface-variant">D</span>
+<span class="w-1 h-3 bg-outline-variant rounded-full"></span>
+<span class="font-label font-bold text-xs tracking-wider text-on-surface-variant">OPTION 4</span>
+</div>
+</div>
+<div class="relative z-10 p-5">
+<h2 class="font-headline font-bold text-4xl text-on-surface-variant tracking-wide">
+          ELEPHANT
+        </h2>
+<p class="font-label font-normal text-on-surface-variant/70 text-base tracking-widest mt-0.5">
+          /ˈel.ɪ.fənt/
+        </p>
+</div>
+</div>
+</main>
+<!-- ==================== BOTTOM STAGE BAR: HANDS-FREE AUTOMATED FLOW ==================== -->
+<footer class="relative z-30 px-8 py-3 bg-surface-dim/95 border-t border-outline-variant/60 backdrop-blur-md flex items-center justify-between shadow-[0_-4px_24px_rgba(0,0,0,0.5)]">
+<!-- Left: Projector Live Signal & Scoreboard -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2.5">
+<span class="relative flex h-3.5 w-3.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
+</span>
+<span class="font-label text-xs uppercase tracking-widest text-emerald-400 font-bold">PROJECTOR LIVE</span>
+</div>
+<div class="h-6 w-px bg-outline-variant/80"></div>
+<!-- Class Score with Neon Pop -->
+<div class="flex items-baseline gap-2.5">
+<span class="font-label text-xs tracking-wider text-on-surface-variant uppercase font-semibold">CLASS SCORE:</span>
+<span class="font-headline font-extrabold text-2xl text-secondary text-glow-cyan">2,550 <span class="text-sm font-label text-on-surface-variant">PTS</span></span>
+<span class="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-400 text-emerald-300 font-headline font-bold text-xs shadow-[0_0_10px_rgba(16,185,129,0.5)]">
+          +100 PTS
+        </span>
+</div>
+</div>
+<!-- Center-Right: 1.2s Auto-Advance Countdown Bar & Stepper -->
+<div class="flex items-center gap-6">
+<!-- Stepper dots -->
+<div class="flex items-center gap-2">
+<!-- Q1 Completed -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container border border-emerald-500/50 text-emerald-400 text-xs font-label font-bold">
+<span class="material-symbols-outlined text-sm font-bold" data-icon="check" style="font-variation-settings: 'wght' 700;">check</span>
+<span>Q1</span>
+</div>
+<!-- Q2 Active -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary-container/60 border border-secondary text-secondary text-xs font-label font-bold shadow-[0_0_12px_rgba(0,255,204,0.3)]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+<span>Q2</span>
+</div>
+<!-- Q3 Upcoming -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container/60 border border-outline-variant/40 text-on-surface-variant/60 text-xs font-label">
+<span>Q3</span>
+</div>
+</div>
+<!-- Auto-loading countdown container -->
+<div class="w-64 flex flex-col gap-1.5">
+<div class="flex justify-between items-center text-xs font-label">
+<span class="text-secondary text-glow-cyan font-bold tracking-wide flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="timer">timer</span>
+            Next question in 1.2s…
+          </span>
+<span class="text-on-surface-variant font-mono">ROUND 1 · 2/3</span>
+</div>
+<!-- Luminous Progress Bar -->
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden p-0.5 border border-outline-variant">
+<div class="h-full bg-gradient-to-r from-secondary to-emerald-400 rounded-full shadow-[0_0_12px_rgba(0,255,204,0.8)] animate-progress"></div>
+</div>
+</div>
+<!-- Hands-Free Indicator Pill -->
+<div class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-surface-container border border-secondary/40 text-secondary font-label font-bold text-xs tracking-wider shadow-[0_0_10px_rgba(0,255,204,0.15)]">
+<span class="material-symbols-outlined text-base" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span>Hands-Free Auto Advance</span>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="dark h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Phonics Arena - Minimal Pairs Duel</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800;900&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface": "#0f0f1a",
+            "primary-container": "#b3004e",
+            "secondary-fixed-dim": "#00e6b8",
+            "inverse-surface": "#e8e0f0",
+            "primary-fixed": "#ffe0ec",
+            "error": "#ff4444",
+            "on-surface": "#e8e0f0",
+            "on-tertiary": "#1a1000",
+            "on-primary-fixed": "#3d0020",
+            "surface-container-high": "#1e1e30",
+            "primary": "#ff2d78",
+            "on-tertiary-fixed": "#1a1000",
+            "background": "#0a0a12",
+            "outline-variant": "#302840",
+            "on-secondary-fixed-variant": "#004d4d",
+            "secondary-fixed": "#c0fff4",
+            "on-primary": "#1a0010",
+            "error-container": "#3d0f0f",
+            "surface-container": "#141422",
+            "on-secondary-container": "#c0fff4",
+            "tertiary-container": "#665200",
+            "on-error-container": "#ffa0a0",
+            "secondary-container": "#004d3d",
+            "on-primary-container": "#ffe0ec",
+            "tertiary-fixed-dim": "#ffe04a",
+            "surface-tint": "#ff2d78",
+            "outline": "#5a5068",
+            "on-error": "#1a0000",
+            "tertiary-fixed": "#fff0c0",
+            "primary-fixed-dim": "#ff80aa",
+            "surface-container-low": "#111118",
+            "inverse-on-surface": "#0a0a12",
+            "on-tertiary-fixed-variant": "#665200",
+            "secondary": "#00ffcc",
+            "on-surface-variant": "#a098b0",
+            "on-secondary-fixed": "#001a1a",
+            "surface-dim": "#0f0f1a",
+            "surface-bright": "#1a1a2e",
+            "on-background": "#e8e0f0",
+            "surface-container-highest": "#28283e",
+            "inverse-primary": "#8c0038",
+            "surface-container-lowest": "#0a0a12",
+            "tertiary": "#ffe04a",
+            "surface-variant": "#1e1e30",
+            "on-secondary": "#001a1a",
+            "on-tertiary-container": "#fff0c0",
+            "on-primary-fixed-variant": "#8c0038"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .glow-cyan-text {
+      text-shadow: 0 0 16px rgba(0, 255, 204, 0.75), 0 0 32px rgba(0, 255, 204, 0.45);
+    }
+    .glow-pink-text {
+      text-shadow: 0 0 16px rgba(255, 45, 120, 0.75), 0 0 32px rgba(255, 45, 120, 0.45);
+    }
+    .glow-box-pink {
+      box-shadow: 0 0 24px rgba(255, 45, 120, 0.35);
+    }
+    .glow-box-cyan {
+      box-shadow: 0 0 30px rgba(0, 255, 204, 0.25), inset 0 0 18px rgba(0, 255, 204, 0.1);
+    }
+    .glow-box-card {
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(48, 40, 64, 0.4);
+    }
+    .glow-box-card:hover {
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 255, 204, 0.35);
+    }
+    @keyframes pulseWave {
+      0% { transform: scale(0.92); opacity: 0.8; }
+      50% { transform: scale(1.18); opacity: 0.15; }
+      100% { transform: scale(1.36); opacity: 0; }
+    }
+    .acoustic-wave-1 {
+      animation: pulseWave 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+    }
+    .acoustic-wave-2 {
+      animation: pulseWave 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.9s infinite;
+    }
+    .acoustic-wave-3 {
+      animation: pulseWave 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) 1.8s infinite;
+    }
+    @keyframes barBounce {
+      0%, 100% { height: 18%; }
+      50% { height: 95%; }
+    }
+    .bar-1 { animation: barBounce 1.2s ease-in-out infinite 0.1s; }
+    .bar-2 { animation: barBounce 1.2s ease-in-out infinite 0.3s; }
+    .bar-3 { animation: barBounce 1.2s ease-in-out infinite 0.5s; }
+    .bar-4 { animation: barBounce 1.2s ease-in-out infinite 0.2s; }
+    .bar-5 { animation: barBounce 1.2s ease-in-out infinite 0.4s; }
+    .bar-6 { animation: barBounce 1.2s ease-in-out infinite 0.15s; }
+    .bar-7 { animation: barBounce 1.2s ease-in-out infinite 0.45s; }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body h-screen w-screen overflow-hidden select-none flex flex-col justify-between antialiased">
+<!-- TOP PROJECTOR HEADER (Synchronized with Shared Components JSON TopNavBar tokens) -->
+<header class="bg-surface-dim border-b border-outline-variant flex justify-between items-center w-full px-8 py-3.5 max-w-full z-20 shrink-0">
+<!-- Left Section: Arena Logo & Tier Progression -->
+<div class="flex items-center gap-6">
+<!-- Product Name & Brand Anchor -->
+<div class="font-headline font-bold text-2xl text-primary tracking-wide flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="volume_up" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+<span class="tracking-tight">Word Search</span>
+<span class="text-xs font-label uppercase tracking-widest text-secondary ml-1 px-2 py-0.5 rounded border border-secondary/40 bg-secondary/10">Arena</span>
+</div>
+<!-- Tier Strip -->
+<nav class="flex items-center gap-2 ml-4">
+<!-- Tier 1: Active Navigation from JSON Anchor Rules -->
+<div class="text-primary border-b-2 border-primary pb-1 font-label text-sm font-bold tracking-wider uppercase flex items-center gap-2 px-3 py-1 bg-surface-container rounded-t">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span>Tier 1 · Sound Duel</span>
+</div>
+<!-- Tier 2: Inactive Navigation from JSON Anchor Rules -->
+<div class="text-on-surface-variant font-label text-sm tracking-wider uppercase flex items-center gap-1.5 px-3 py-1 hover:text-primary transition-colors duration-200 cursor-not-allowed opacity-75">
+<span class="material-symbols-outlined text-base" data-icon="lock_open">lock_open</span>
+<span>Tier 2 · Sound Arena</span>
+</div>
+<!-- Tier 3: Inactive Navigation from JSON Anchor Rules -->
+<div class="text-on-surface-variant font-label text-sm tracking-wider uppercase flex items-center gap-1.5 px-3 py-1 hover:text-primary transition-colors duration-200 cursor-not-allowed opacity-50">
+<span class="material-symbols-outlined text-base" data-icon="lock">lock</span>
+<span>Tier 3 · Voice Champion</span>
+</div>
+</nav>
+</div>
+<!-- Center/Right Section: Turn, Live Sync, Streaks, and Trailing Actions -->
+<div class="flex items-center gap-4">
+<!-- Active Turn Avatar Chip -->
+<div class="flex items-center gap-2.5 bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-headline font-bold text-on-primary text-base shadow-sm">
+          A
+        </div>
+<div class="text-left">
+<span class="block text-xs font-label tracking-wider uppercase text-on-surface-variant leading-none">Current Turn</span>
+<span class="block font-headline font-bold text-sm text-on-surface leading-tight">Alice's turn</span>
+</div>
+</div>
+<!-- Gold Amber Streak Badge -->
+<div class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#2a1d07] border border-[#f59e0b]/50 text-[#f59e0b] shadow-sm">
+<span class="material-symbols-outlined text-lg" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label font-bold text-sm tracking-wider uppercase">Streak: 3</span>
+</div>
+<!-- Sync Status Pill -->
+<div class="hidden xl:flex items-center gap-2 px-3 py-1 rounded bg-surface-container-high border border-outline-variant text-xs font-label text-secondary">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Auto-Play Active · Console Synced</span>
+</div>
+<!-- Trailing Action Buttons matching JSON tokens -->
+<div class="flex items-center gap-1 border-l border-outline-variant pl-3 ml-1">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95 flex items-center justify-center rounded" title="Volume Controls" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="volume_up">volume_up</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95 flex items-center justify-center rounded" title="Arena Settings" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95 flex items-center justify-center rounded" title="Fullscreen" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+<!-- Primary Action CTA Button (Neon Hot-Pink from DS) -->
+<button class="font-label font-bold uppercase tracking-wider text-xs px-4 py-2 rounded bg-surface-container border border-primary text-primary hover:bg-primary/20 glow-box-pink transition-all duration-200 active:scale-95 flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-base" data-icon="lightbulb">lightbulb</span>
+<span>Teacher Clue</span>
+</button>
+</div>
+</header>
+<!-- CENTER-TOP SONIC ACOUSTIC VISUALIZER (Auditory Focus Area) -->
+<section class="relative w-full flex flex-col items-center justify-center pt-3 pb-2 px-8 z-10 shrink-0">
+<!-- Target Sound Playback Hub -->
+<div class="relative flex items-center justify-center">
+<!-- Expanding concentric ripple rings -->
+<div class="absolute w-36 h-36 rounded-full border border-secondary/30 acoustic-wave-1 pointer-events-none"></div>
+<div class="absolute w-48 h-48 rounded-full border border-secondary/20 acoustic-wave-2 pointer-events-none"></div>
+<div class="absolute w-60 h-60 rounded-full border border-secondary/10 acoustic-wave-3 pointer-events-none"></div>
+<!-- Central Acoustic Hub Button -->
+<button aria-label="Replay Master Phoneme Audio" class="relative z-10 w-20 h-20 rounded-full bg-surface-container-high border-2 border-secondary flex items-center justify-center glow-box-cyan transition-transform duration-200 hover:scale-105 active:scale-95 group cursor-pointer" onclick="triggerAudioPing()" type="button">
+<span class="material-symbols-outlined text-secondary text-4xl group-hover:scale-110 transition-transform" data-icon="graphic_eq" style="font-variation-settings: 'FILL' 1;">graphic_eq</span>
+</button>
+</div>
+<!-- Undulating Audio Equalizer Bars -->
+<div class="flex items-end justify-center gap-1.5 h-8 mt-2.5 mb-1.5">
+<div class="w-1.5 bg-secondary rounded-full bar-1 shadow-[0_0_8px_#00ffcc]"></div>
+<div class="w-1.5 bg-secondary rounded-full bar-2 shadow-[0_0_8px_#00ffcc]"></div>
+<div class="w-1.5 bg-secondary rounded-full bar-3 shadow-[0_0_8px_#00ffcc]"></div>
+<div class="w-1.5 bg-secondary rounded-full bar-4 shadow-[0_0_8px_#00ffcc]"></div>
+<div class="w-1.5 bg-secondary rounded-full bar-5 shadow-[0_0_8px_#00ffcc]"></div>
+<div class="w-1.5 bg-secondary rounded-full bar-6 shadow-[0_0_8px_#00ffcc]"></div>
+<div class="w-1.5 bg-secondary rounded-full bar-7 shadow-[0_0_8px_#00ffcc]"></div>
+</div>
+<!-- Auditory Instruction Pill (Legible at 8 Meters) -->
+<div class="flex items-center gap-2 bg-surface-container/90 px-6 py-1.5 rounded-full border border-outline-variant/60 shadow-lg">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="headphones">headphones</span>
+<span class="font-headline font-bold text-base text-on-surface tracking-wide">Listen carefully! Spot the sound you hear</span>
+<span class="font-label text-xs text-on-surface-variant uppercase tracking-wider ml-1">(Audio auto-plays on round start)</span>
+</div>
+</section>
+<!-- MAIN BATTLE STAGE: 2 BALANCED MASSIVE LANDSCAPE ARCADE TABLETS -->
+<main class="flex-1 w-full max-w-[1800px] mx-auto px-8 py-2 grid grid-cols-2 gap-8 items-stretch z-10 min-h-0">
+<!-- LEFT TABLET: OPTION A [SHEEP - /iː/] -->
+<div class="group relative flex flex-col justify-between bg-surface-container rounded-xl border-2 border-outline-variant hover:border-secondary transition-all duration-300 glow-box-card p-6 cursor-pointer overflow-hidden" id="card-option-a" onclick="selectOption('A')">
+<!-- Neon Corner Accent Decals -->
+<div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-secondary/60 rounded-tl-xl pointer-events-none"></div>
+<div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-secondary/60 rounded-tr-xl pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-secondary/60 rounded-bl-xl pointer-events-none"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-secondary/60 rounded-br-xl pointer-events-none"></div>
+<!-- Top Card Header: Option Tag & Vowel Type Badge -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 bg-surface-container-high px-4 py-1.5 rounded-md border border-outline-variant">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="font-label font-bold text-sm tracking-widest text-on-surface uppercase">OPTION A</span>
+</div>
+<div class="px-3.5 py-1 rounded bg-secondary/10 border border-secondary/30 text-secondary font-label text-xs font-bold uppercase tracking-wider">
+          Long Vowel
+        </div>
+</div>
+<!-- Massive Center Word Typography -->
+<div class="my-auto text-center py-2">
+<div class="font-headline font-black text-7xl xl:text-8xl tracking-tight text-white mb-2 leading-none flex items-center justify-center">
+<span>SH</span>
+<span class="text-secondary glow-cyan-text px-1">EE</span>
+<span>P</span>
+</div>
+<!-- Phonetic Transcription Tag -->
+<div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-surface-container-highest/80 border border-outline text-2xl font-label font-bold text-on-surface tracking-wider">
+<span class="material-symbols-outlined text-secondary text-xl" data-icon="record_voice_over">record_voice_over</span>
+<span>/ʃiːp/</span>
+</div>
+</div>
+<!-- Bottom Interactive Tap Banner -->
+<div class="w-full mt-auto">
+<div class="w-full py-4 rounded-lg bg-surface-container-high group-hover:bg-secondary/20 border border-outline-variant group-hover:border-secondary flex items-center justify-center gap-3 transition-all duration-200">
+<span class="material-symbols-outlined text-secondary text-2xl group-hover:scale-125 transition-transform" data-icon="touch_app">touch_app</span>
+<span class="font-label font-bold text-lg tracking-widest text-on-surface uppercase group-hover:text-secondary">TAP TO CHOOSE /iː/</span>
+</div>
+</div>
+</div>
+<!-- RIGHT TABLET: OPTION B [SHIP - /ɪ/] -->
+<div class="group relative flex flex-col justify-between bg-surface-container rounded-xl border-2 border-outline-variant hover:border-secondary transition-all duration-300 glow-box-card p-6 cursor-pointer overflow-hidden" id="card-option-b" onclick="selectOption('B')">
+<!-- Neon Corner Accent Decals -->
+<div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-secondary/60 rounded-tl-xl pointer-events-none"></div>
+<div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-secondary/60 rounded-tr-xl pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-secondary/60 rounded-bl-xl pointer-events-none"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-secondary/60 rounded-br-xl pointer-events-none"></div>
+<!-- Top Card Header: Option Tag & Vowel Type Badge -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 bg-surface-container-high px-4 py-1.5 rounded-md border border-outline-variant">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="font-label font-bold text-sm tracking-widest text-on-surface uppercase">OPTION B</span>
+</div>
+<div class="px-3.5 py-1 rounded bg-secondary/10 border border-secondary/30 text-secondary font-label text-xs font-bold uppercase tracking-wider">
+          Short Vowel
+        </div>
+</div>
+<!-- Massive Center Word Typography -->
+<div class="my-auto text-center py-2">
+<div class="font-headline font-black text-7xl xl:text-8xl tracking-tight text-white mb-2 leading-none flex items-center justify-center">
+<span>SH</span>
+<span class="text-secondary glow-cyan-text px-1">I</span>
+<span>P</span>
+</div>
+<!-- Phonetic Transcription Tag -->
+<div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-surface-container-highest/80 border border-outline text-2xl font-label font-bold text-on-surface tracking-wider">
+<span class="material-symbols-outlined text-secondary text-xl" data-icon="record_voice_over">record_voice_over</span>
+<span>/ʃɪp/</span>
+</div>
+</div>
+<!-- Bottom Interactive Tap Banner -->
+<div class="w-full mt-auto">
+<div class="w-full py-4 rounded-lg bg-surface-container-high group-hover:bg-secondary/20 border border-outline-variant group-hover:border-secondary flex items-center justify-center gap-3 transition-all duration-200">
+<span class="material-symbols-outlined text-secondary text-2xl group-hover:scale-125 transition-transform" data-icon="touch_app">touch_app</span>
+<span class="font-label font-bold text-lg tracking-widest text-on-surface uppercase group-hover:text-secondary">TAP TO CHOOSE /ɪ/</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BOTTOM CLASSROOM HUD -->
+<footer class="bg-surface-dim border-t border-outline-variant px-8 py-3.5 flex items-center justify-between w-full z-20 shrink-0">
+<!-- Left HUD: Challenge Label (from JSON String Anchor conventions) -->
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="sports_esports">sports_esports</span>
+<span class="font-label font-bold text-sm tracking-wider uppercase text-on-surface">Round 1 · Starter</span>
+<span class="text-on-surface-variant font-label text-sm">/ 4 · Minimal Pairs Challenge</span>
+</div>
+<!-- Center HUD: Pedagogical Helper Chip -->
+<div class="flex items-center gap-2 bg-surface-container px-5 py-1.5 rounded-full border border-outline-variant shadow-sm">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="lightbulb" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<span class="font-body text-sm text-on-surface font-medium">Focus on vowel duration: long sound <strong class="text-secondary font-headline">/iː/</strong> versus crisp short <strong class="text-secondary font-headline">/ɪ/</strong></span>
+</div>
+<!-- Right HUD: Class Points & Quick Keypill -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 bg-surface-container-high px-4 py-1.5 rounded-md border border-outline-variant">
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant">Class Score</span>
+<span class="font-headline font-extrabold text-xl text-secondary" id="score-counter">460 PTS</span>
+<span class="text-xs font-label text-emerald-400 font-bold bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-500/30">+20</span>
+</div>
+<button class="flex items-center gap-2 px-3.5 py-1.5 rounded bg-surface-container border border-outline text-xs font-label uppercase tracking-wider text-on-surface hover:text-secondary hover:border-secondary transition-colors duration-200 active:scale-95" onclick="triggerAudioPing()" type="button">
+<span class="material-symbols-outlined text-base" data-icon="replay">replay</span>
+<span>Replay (Space)</span>
+</button>
+</div>
+</footer>
+<!-- Notification Toast for Interactive Response Feedback -->
+<div class="fixed bottom-20 left-1/2 -translate-x-1/2 px-8 py-3 rounded-xl bg-surface-bright border-2 border-emerald-400 text-emerald-300 font-headline font-bold text-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 pointer-events-none translate-y-4 z-50" id="feedback-toast">
+<span class="material-symbols-outlined text-2xl" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span id="feedback-msg">CORRECT! Long vowel /iː/ matched!</span>
+</div>
+<!-- Micro-Interactions Script -->
+<script>
+    let currentScore = 460;
+
+    function triggerAudioPing() {
+      // Simulate classroom audio feedback ping
+      const toast = document.getElementById('feedback-toast');
+      const msg = document.getElementById('feedback-msg');
+      msg.textContent = '🔊 Playing Master Audio: /ʃiːp/...';
+      toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 px-8 py-3 rounded-xl bg-surface-bright border-2 border-secondary text-secondary font-headline font-bold text-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-100 translate-y-0 z-50';
+      
+      setTimeout(() => {
+        toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 px-8 py-3 rounded-xl bg-surface-bright border-2 border-secondary text-secondary font-headline font-bold text-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50';
+      }, 1500);
+    }
+
+    function selectOption(optionKey) {
+      const toast = document.getElementById('feedback-toast');
+      const msg = document.getElementById('feedback-msg');
+      const scoreElement = document.getElementById('score-counter');
+
+      if (optionKey === 'A') {
+        currentScore += 20;
+        scoreElement.textContent = currentScore + ' PTS';
+        msg.textContent = 'EXCELLENT! "SHEEP" /iː/ is correct! (+20 PTS)';
+        toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 px-8 py-3 rounded-xl bg-surface-bright border-2 border-emerald-400 text-emerald-300 font-headline font-bold text-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-100 translate-y-0 z-50';
+      } else {
+        msg.textContent = 'TRY AGAIN: You selected /ɪ/ as in "SHIP". Listen to vowel length!';
+        toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 px-8 py-3 rounded-xl bg-surface-bright border-2 border-primary text-primary font-headline font-bold text-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-100 translate-y-0 z-50';
+      }
+
+      setTimeout(() => {
+        toast.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 px-8 py-3 rounded-xl bg-surface-bright border-2 border-emerald-400 text-emerald-300 font-headline font-bold text-xl shadow-2xl flex items-center gap-3 transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50';
+      }, 2200);
+    }
+
+    // Keyboard support for classroom clickers or teacher spacebar
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        triggerAudioPing();
+      } else if (e.key === '1' || e.key === 'a' || e.key === 'A') {
+        selectOption('A');
+      } else if (e.key === '2' || e.key === 'b' || e.key === 'B') {
+        selectOption('B');
+      }
+    });
+  </script>
+</body></html>

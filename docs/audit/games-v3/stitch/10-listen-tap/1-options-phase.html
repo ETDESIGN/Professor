@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="dark h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Listen &amp; Tap — ESL Projector Arena</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-lowest": "#0a0a12",
+            "surface-container-highest": "#28283e",
+            "error": "#ff4444",
+            "primary": "#ff2d78",
+            "on-secondary-fixed": "#001a1a",
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-primary": "#1a0010",
+            "inverse-surface": "#e8e0f0",
+            "inverse-primary": "#8c0038",
+            "primary-container": "#b3004e",
+            "on-tertiary-fixed-variant": "#665200",
+            "inverse-on-surface": "#0a0a12",
+            "error-container": "#3d0f0f",
+            "secondary-fixed": "#c0fff4",
+            "surface-dim": "#0f0f1a",
+            "surface-container": "#141422",
+            "on-primary-fixed": "#3d0020",
+            "background": "#0a0a12",
+            "surface-container-low": "#111118",
+            "on-error-container": "#ffa0a0",
+            "surface-tint": "#ff2d78",
+            "on-tertiary-container": "#fff0c0",
+            "surface-container-high": "#1e1e30",
+            "secondary": "#00ffcc",
+            "outline-variant": "#302840",
+            "primary-fixed": "#ffe0ec",
+            "on-secondary-container": "#c0fff4",
+            "on-background": "#e8e0f0",
+            "tertiary": "#ffe04a",
+            "outline": "#5a5068",
+            "on-tertiary": "#1a1000",
+            "tertiary-fixed": "#fff0c0",
+            "secondary-container": "#004d3d",
+            "surface-bright": "#1a1a2e",
+            "on-secondary": "#001a1a",
+            "secondary-fixed-dim": "#00e6b8",
+            "primary-fixed-dim": "#ff80aa",
+            "on-primary-fixed-variant": "#8c0038",
+            "on-error": "#1a0000",
+            "on-tertiary-fixed": "#1a1000",
+            "surface": "#0f0f1a",
+            "tertiary-fixed-dim": "#ffe04a",
+            "on-primary-container": "#ffe0ec",
+            "surface-variant": "#1e1e30",
+            "tertiary-container": "#665200",
+            "on-surface-variant": "#a098b0",
+            "on-surface": "#e8e0f0"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "sans-serif"]
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            full: "0.75rem"
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .neon-text-pink {
+      text-shadow: 0 0 12px rgba(255, 45, 120, 0.7);
+    }
+    .neon-text-cyan {
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.7);
+    }
+    .neon-text-amber {
+      text-shadow: 0 0 12px rgba(255, 224, 74, 0.7);
+    }
+    .neon-border-pink {
+      box-shadow: 0 0 16px rgba(255, 45, 120, 0.35), inset 0 0 12px rgba(255, 45, 120, 0.15);
+    }
+    .neon-border-cyan {
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.4), inset 0 0 16px rgba(0, 255, 204, 0.15);
+    }
+    /* Subtle scanline grid background */
+    .cyber-grid {
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    @keyframes wavePulse {
+      0%, 100% { height: 8px; opacity: 0.4; }
+      50% { height: 28px; opacity: 1; }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-background text-on-background font-body select-none flex flex-col justify-between cyber-grid">
+<!-- ==================== TOP BAR / ARENA HEADER ==================== -->
+<header class="w-full h-20 px-8 flex items-center justify-between border-b border-outline-variant/40 bg-surface-dim/80 backdrop-blur-md relative z-30 shrink-0">
+<!-- Left Section: Phase Badge & Title & Status Chips -->
+<div class="flex items-center gap-6">
+<!-- Locked Arena Phase Badge -->
+<div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-high border border-secondary/40 text-secondary shadow-[0_0_15px_rgba(0,255,204,0.25)]">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-ping"></span>
+<span class="font-label font-bold text-xs tracking-widest uppercase">PHASE: LISTEN</span>
+</div>
+<!-- Game Title -->
+<div class="flex items-baseline gap-2 pl-2">
+<h1 class="font-headline font-extrabold text-2xl text-on-surface tracking-tight">
+          Listen &amp; Tap
+        </h1>
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant/80">ESL Arena v2.4</span>
+</div>
+<div class="h-6 w-px bg-outline-variant/60 mx-1"></div>
+<!-- Chips: Question Progress, Child Turn, Streak -->
+<div class="flex items-center gap-3">
+<!-- Question Count Chip -->
+<div class="px-3 py-1.5 rounded-md bg-surface-container border border-outline-variant flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-sm text-secondary">help</span>
+<span class="font-label font-bold text-xs tracking-wider uppercase">Round 1 · Question 1 of 3</span>
+</div>
+<!-- Student Turn Avatar Chip -->
+<div class="px-3 py-1 rounded-full bg-surface-container-high border border-secondary/30 flex items-center gap-2.5">
+<div class="w-6 h-6 rounded-full bg-secondary-container border border-secondary text-secondary flex items-center justify-center font-headline font-bold text-xs">
+            A
+          </div>
+<span class="font-label font-bold text-xs tracking-wide text-secondary">Alice's turn</span>
+</div>
+<!-- Streak Fire Chip -->
+<div class="px-3 py-1.5 rounded-md bg-tertiary-container/30 border border-tertiary/40 flex items-center gap-1.5 text-tertiary">
+<span class="material-symbols-outlined text-sm text-tertiary" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label font-bold text-xs tracking-wider neon-text-amber">STREAK: 2</span>
+</div>
+</div>
+</div>
+<!-- Right Controls: Audio Action & System Controls -->
+<div class="flex items-center gap-4">
+<!-- Audio Listening Trigger Pill -->
+<button class="flex items-center gap-3 px-5 py-2 rounded-lg bg-surface-container-high border border-secondary/50 text-secondary hover:bg-secondary-container/40 hover:shadow-[0_0_16px_rgba(0,255,204,0.3)] transition-all duration-200 group active:scale-95">
+<span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform" data-icon="volume_up">volume_up</span>
+<span class="font-label font-bold text-sm tracking-wide neon-text-cyan uppercase">Tap to Replay Audio 🔊</span>
+</button>
+<div class="h-6 w-px bg-outline-variant/60 mx-1"></div>
+<!-- Icon Buttons matching TopNavBar shared anchor -->
+<div class="flex items-center gap-2 text-on-surface-variant">
+<button class="p-2 rounded-md hover:text-secondary hover:bg-surface-container transition-colors duration-200 flex items-center justify-center active:scale-95" title="Mute/Unmute">
+<span class="material-symbols-outlined" data-icon="volume_up">volume_up</span>
+</button>
+<button class="p-2 rounded-md hover:text-secondary hover:bg-surface-container transition-colors duration-200 flex items-center justify-center active:scale-95" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="p-2 rounded-md hover:text-secondary hover:bg-surface-container transition-colors duration-200 flex items-center justify-center active:scale-95" title="Toggle Fullscreen">
+<span class="material-symbols-outlined" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</div>
+</header>
+<!-- ==================== CENTER STAGE / MAIN INTERACTION ==================== -->
+<main class="flex-1 w-full max-w-[1720px] mx-auto px-8 py-4 flex flex-col justify-between items-center z-10 min-h-0">
+<!-- Audio Wave Cue Banner -->
+<div class="w-full max-w-4xl py-3 px-8 rounded-xl bg-surface-container/90 border border-secondary/30 backdrop-blur-md flex items-center justify-between shadow-[0_0_24px_rgba(0,255,204,0.08)] shrink-0">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-bright border border-secondary/50 flex items-center justify-center text-secondary shadow-[0_0_12px_rgba(0,255,204,0.3)]">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">headphones</span>
+</div>
+<div>
+<h2 class="font-headline font-bold text-lg md:text-xl text-on-surface tracking-tight">
+            Listen carefully... Which animal has this name?
+          </h2>
+<p class="font-body text-xs text-on-surface-variant">
+            Auditory target prompt: <span class="text-secondary font-semibold">"Can you spot the fierce creature in the wild?"</span>
+</p>
+</div>
+</div>
+<!-- Animated Audio Waveform Graphic -->
+<div class="flex items-center gap-1.5 h-8 px-4 bg-surface-dim/70 rounded-md border border-outline-variant">
+<span class="w-1 bg-secondary rounded-full" style="animation: wavePulse 0.9s ease-in-out infinite 0.1s;"></span>
+<span class="w-1 bg-secondary rounded-full" style="animation: wavePulse 1.2s ease-in-out infinite 0.3s;"></span>
+<span class="w-1 bg-secondary rounded-full" style="animation: wavePulse 0.8s ease-in-out infinite 0.15s;"></span>
+<span class="w-1 bg-secondary rounded-full" style="animation: wavePulse 1.4s ease-in-out infinite 0.4s;"></span>
+<span class="w-1 bg-secondary rounded-full" style="animation: wavePulse 1.0s ease-in-out infinite 0.25s;"></span>
+<span class="w-1 bg-secondary rounded-full" style="animation: wavePulse 0.7s ease-in-out infinite 0.05s;"></span>
+</div>
+</div>
+<!-- 2x2 Arcade Responsive Landscape Card Grid (Targeted for 8-meter visibility) -->
+<div class="w-full grid grid-cols-2 gap-6 my-auto max-h-[640px] items-stretch">
+<!-- CARD 1: TIGER [A] -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container border border-outline-variant/60 hover:border-secondary/60 transition-all duration-300 flex flex-col justify-between shadow-lg cursor-pointer transform hover:-translate-y-1 active:scale-[0.99]">
+<!-- Arcade Pad Corner Bracket Accent -->
+<div class="absolute top-2 left-2 z-20 flex items-center gap-2">
+<span class="w-7 h-7 rounded bg-surface-dim/90 border border-outline text-secondary font-label font-bold text-sm flex items-center justify-center shadow-md">
+            A
+          </span>
+<span class="font-label text-xs tracking-wider text-on-surface-variant/80 uppercase bg-surface-dim/80 px-2 py-0.5 rounded">Option 1</span>
+</div>
+<!-- Animal Image Container (Landscape Crop) -->
+<div class="relative w-full h-[230px] overflow-hidden bg-surface-container-lowest">
+<img alt="Studio portrait of a Bengal Tiger sitting tall facing camera on dark stage" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 brightness-95 group-hover:brightness-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3Nis8C4ymBhdGqXpzpNz9byg-uuVvejBUdEJVYh5C7gfgcOUnLu8jaj4kz-qbvd_Rm9FT8XpKp0ga-Ufm8-rgI_qcb-Yn1Sn_PLUiD0ELOtOZ8nbN01Q-vsZ0w4DRwZan9WBm8gE77_fMdA5kq9zYliOlFh_GciiPyE79PVH7YH_F2z6ZiEu76dv_NJMJt_25rwQBq4NWsqAjftmFh77ptHunCw_3D65BaybWrMeYCn3NflRb1HpQlo1P-zWFnnWm9BmSQdAn2mgU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-black/30"></div>
+</div>
+<!-- Bottom Tactile Label Plate -->
+<div class="p-4 bg-surface-container flex items-center justify-between border-t border-outline-variant/40">
+<span class="font-headline font-extrabold text-3xl tracking-wide text-on-surface group-hover:text-secondary group-hover:neon-text-cyan transition-colors">
+            TIGER
+          </span>
+<div class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant group-hover:border-secondary group-hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+</div>
+</div>
+</div>
+<!-- CARD 2: LION [B] (Active Focused Tactile State with Cyan Neon Halo) -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container-high border-2 border-secondary neon-border-cyan transition-all duration-300 flex flex-col justify-between shadow-2xl cursor-pointer transform -translate-y-1 active:scale-[0.99]">
+<!-- Top Left Active Keypad Indicator -->
+<div class="absolute top-2 left-2 z-20 flex items-center gap-2">
+<span class="w-7 h-7 rounded bg-secondary text-surface-container-lowest font-label font-extrabold text-sm flex items-center justify-center shadow-[0_0_10px_rgba(0,255,204,0.8)]">
+            B
+          </span>
+<span class="font-label text-xs tracking-wider text-secondary font-bold uppercase bg-surface-container-highest/90 border border-secondary/40 px-2.5 py-0.5 rounded">
+            Selected / Listening Target
+          </span>
+</div>
+<!-- Top Right Pulsing Target Status -->
+<div class="absolute top-2 right-2 z-20">
+<span class="px-2.5 py-1 rounded-full bg-secondary-container/90 border border-secondary text-secondary font-label text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span> Target
+          </span>
+</div>
+<!-- Animal Image Container (Landscape Crop) -->
+<div class="relative w-full h-[230px] overflow-hidden bg-surface-container-lowest">
+<img alt="Studio portrait of a majestic male Lion sitting with lush mane against dark studio backdrop" class="w-full h-full object-cover object-center scale-105 transition-transform duration-500 brightness-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAc2bC0IdcnMAFwWP05bCPiKHT3VzfLU6h9FNRvThXASlrXFto4xyaJHCQNUBPTD73x_8SDheaqeC3KfsCAdaHx_Sj3yktDAwA6BoT1hg3uYT4HIjeD9RB2henkKgDRQJM5pWhymiq1Ye1C_9b7heWU-YsY6ABtiYzGGCRPd7xIPsV0abwDWC2u8h7xKBP2lMP3c_0v0QhGon7BBQxzCn4O0h4o4WtQWQuFNjsvUhQkHcwzA93eGYjtUsc5_SGM73hDJMnMoWZSqYPx"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-high via-transparent to-black/20"></div>
+</div>
+<!-- Bottom Tactile Label Plate -->
+<div class="p-4 bg-surface-container-high flex items-center justify-between border-t border-secondary/40">
+<div class="flex items-center gap-3">
+<span class="font-headline font-extrabold text-3xl tracking-wide text-secondary neon-text-cyan">
+              LION
+            </span>
+<span class="text-xs font-label uppercase px-2 py-0.5 rounded bg-secondary/10 border border-secondary/30 text-secondary">
+              /ˈlaɪ.ən/
+            </span>
+</div>
+<div class="w-8 h-8 rounded-full bg-secondary text-surface-container-lowest flex items-center justify-center shadow-[0_0_12px_rgba(0,255,204,0.9)]">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">done</span>
+</div>
+</div>
+</div>
+<!-- CARD 3: MONKEY [C] -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container border border-outline-variant/60 hover:border-secondary/60 transition-all duration-300 flex flex-col justify-between shadow-lg cursor-pointer transform hover:-translate-y-1 active:scale-[0.99]">
+<div class="absolute top-2 left-2 z-20 flex items-center gap-2">
+<span class="w-7 h-7 rounded bg-surface-dim/90 border border-outline text-secondary font-label font-bold text-sm flex items-center justify-center shadow-md">
+            C
+          </span>
+<span class="font-label text-xs tracking-wider text-on-surface-variant/80 uppercase bg-surface-dim/80 px-2 py-0.5 rounded">Option 3</span>
+</div>
+<div class="relative w-full h-[230px] overflow-hidden bg-surface-container-lowest">
+<img alt="Studio close-up portrait of a chimpanzee holding a snack branch against dark backdrop" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 brightness-95 group-hover:brightness-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUFJuzwhAiX_L5Q9iqFGBhD4X4GsL-dn295o7Vsf3PM2oqOx0fOGEU97IEg-_7dyvAouniTBSDdX3TfjzVgPMTJurNUZYYFUNXoCRXa8frg_fePLbBxAMDLLFfo-USOXNQ1KRr943lAEVUioYseYMDInF9XIgpdvw1qIRho0KEC8EFhjnrPdLfizFWkVxlWQ3VherVjI1o3q9PZYoDDApd_CZy5ITV2JNNrXQ5PT_9Dxt7EtqUVobZUozdAaRL1bB07BZFlbNRZcxM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-black/30"></div>
+</div>
+<div class="p-4 bg-surface-container flex items-center justify-between border-t border-outline-variant/40">
+<span class="font-headline font-extrabold text-3xl tracking-wide text-on-surface group-hover:text-secondary group-hover:neon-text-cyan transition-colors">
+            MONKEY
+          </span>
+<div class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant group-hover:border-secondary group-hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+</div>
+</div>
+</div>
+<!-- CARD 4: ELEPHANT [D] -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container border border-outline-variant/60 hover:border-secondary/60 transition-all duration-300 flex flex-col justify-between shadow-lg cursor-pointer transform hover:-translate-y-1 active:scale-[0.99]">
+<div class="absolute top-2 left-2 z-20 flex items-center gap-2">
+<span class="w-7 h-7 rounded bg-surface-dim/90 border border-outline text-secondary font-label font-bold text-sm flex items-center justify-center shadow-md">
+            D
+          </span>
+<span class="font-label text-xs tracking-wider text-on-surface-variant/80 uppercase bg-surface-dim/80 px-2 py-0.5 rounded">Option 4</span>
+</div>
+<div class="relative w-full h-[230px] overflow-hidden bg-surface-container-lowest">
+<img alt="Full-body studio photograph of a magnificent African elephant on a dark background" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 brightness-95 group-hover:brightness-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdNii-Zz1Wn4N8g94pyP89R7RGagOjh7742nvk9qQJDugDEIyZUq-u9SvY3FkoaRdp8is6ejN6drS77zji585TKQy1mdjJIjwcECvTtGTqXoB86lxAIBlTMUPGIBi-bO6xjs4PUUQHBVL-2JmYd91xXpAYicFaTWs90GSSXDC7xx_L3DYsDnXZMbTPkPvt_5lyr_-JDdXwG2HdRFZtLJ6GhpsQMKPSptKJe4FaD35uxaJsPF24fsfkjkAiny74guK1Fs8a7Ds7SRQt"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-black/30"></div>
+</div>
+<div class="p-4 bg-surface-container flex items-center justify-between border-t border-outline-variant/40">
+<span class="font-headline font-extrabold text-3xl tracking-wide text-on-surface group-hover:text-secondary group-hover:neon-text-cyan transition-colors">
+            ELEPHANT
+          </span>
+<div class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant group-hover:border-secondary group-hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- ==================== BOTTOM HUD BAR ==================== -->
+<footer class="w-full h-20 px-8 flex items-center justify-between border-t border-outline-variant/40 bg-surface-dim/90 backdrop-blur-md relative z-30 shrink-0">
+<!-- Left HUD: Classroom Sync Status & Live Score -->
+<div class="flex items-center gap-6">
+<!-- Live Sync Beacon -->
+<div class="flex items-center gap-2.5 text-xs font-label text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-medium text-secondary">PROJECTOR LIVE</span>
+<span class="text-outline">/</span>
+<span>Teacher Pad Connected (Sync 12ms)</span>
+</div>
+<div class="h-6 w-px bg-outline-variant/60"></div>
+<!-- Live Class Points -->
+<div class="flex items-center gap-3">
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant">CLASS SCORE:</span>
+<span class="font-headline font-extrabold text-2xl text-tertiary neon-text-amber tracking-tight">
+          2,450 <span class="text-xs font-label uppercase text-on-surface-variant font-medium">PTS</span>
+</span>
+</div>
+</div>
+<!-- Center HUD: Question Indicators (3 total) -->
+<div class="flex items-center gap-4">
+<span class="font-label text-xs uppercase tracking-widest text-on-surface-variant mr-1">PROGRESS:</span>
+<!-- Dot 1 (Active) -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container/50 border border-secondary text-secondary shadow-[0_0_10px_rgba(0,255,204,0.3)]">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label font-bold text-xs">Q1</span>
+</div>
+<!-- Dot 2 (Upcoming) -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant/70">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label font-bold text-xs">Q2</span>
+</div>
+<!-- Dot 3 (Upcoming) -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant/70">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label font-bold text-xs">Q3</span>
+</div>
+</div>
+<!-- Right HUD: Primary Confirm CTA Button (Neon Hot Pink) -->
+<div class="flex items-center gap-4">
+<button class="px-4 py-2.5 rounded-lg border border-outline text-on-surface-variant hover:text-on-surface hover:border-outline-variant transition-colors text-sm font-label font-bold uppercase tracking-wider active:scale-95">
+        Skip Question
+      </button>
+<!-- Primary Neon Hot Pink CTA with Subtle Text Glow -->
+<button class="px-8 py-3 rounded-lg bg-surface-container-high border-2 border-primary text-primary hover:text-on-primary hover:bg-primary transition-all duration-200 shadow-[0_0_20px_rgba(255,45,120,0.45)] hover:shadow-[0_0_28px_rgba(255,45,120,0.7)] flex items-center gap-3 font-headline font-bold text-base tracking-wide active:scale-95">
+<span class="neon-text-pink">Confirm Choice</span>
+<span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</div>
+</footer>
+<!-- Micro-interaction audio trigger mock -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const audioBtn = document.querySelector('button:has(.material-symbols-outlined[data-icon="volume_up"])');
+      if (audioBtn) {
+        audioBtn.addEventListener('click', () => {
+          audioBtn.classList.add('scale-95');
+          setTimeout(() => audioBtn.classList.remove('scale-95'), 150);
+        });
+      }
+    });
+  </script>
+</body></html>

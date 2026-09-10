@@ -182,12 +182,13 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What to KEEP from current design.** Retain the 3-round phonics ladder progression, the single-source-of-truth `correctWord` resolution, background speech pre-warming, and empty-round skipping logic.
 
-## §5 ⬜ Google Stitch prompt
+## §5 ✅ Google Stitch prompt — RETURNED
 
 *(ZCode writes this AFTER §4 is filled.)*
 
-**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **PH1 sound duel auto-play (randomized tablets)** and **PH2 metered replay −1pt**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/22-phonics-arena/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
+**§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/22-phonics-arena/{1-sound-duel,2-metered-replay}.{png,html}`. QA verdict: **PASS** (HTML/structural QA; vision spot-checks flaked server-side — final visual gate happens via Playwright board screenshots during implementation, per the F0 process). Structure: two-sided sound duel grid + tier ladder (TIER 2 SOUND ARENA / TIER 3 VOICE CHAMPION) + amber meter for the replay cost. Zero CJK, v3 palette. Implementation may proceed.
 
+*(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
 ## §6 ⬜ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*

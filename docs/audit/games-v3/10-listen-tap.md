@@ -162,12 +162,13 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What to KEEP from current design.** Retain the two-miss teaching reveal ladder, Levenshtein distance evaluation for dictation, class-streak celebration triggers with confetti at tiers 3 & 5, and deterministic turn dealing.
 
-## §5 ⬜ Google Stitch prompt
+## §5 ✅ Google Stitch prompt — RETURNED
 
 *(ZCode writes this AFTER §4 is filled.)*
 
-**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **L1 options-phase (tactile 2x2 cards)** and **L2 correct + 1.2s auto-advance bar**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/10-listen-tap/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
+**§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/10-listen-tap/{1-options-phase,2-auto-advance}.{png,html}`. QA verdict: **PASS (implementation may proceed)**. HTML scan: zero CJK (an earlier vision-tool "Chinese on Lion card" read was a hallucination — cards are pure photos). Palette conforms to v3 system. Logged deviations for implementation: (a) audio prompt bar rendered slim in design → implement a LARGE circular speaker button as the centerpiece; (b) design's top-left cluster sits at frame edge → board header starts after the phase pill (`pl-40 lg:pl-48`, ~180px clearance); (c) option photo cards are near-square in the 2x2 grid → implement LANDSCAPE ~4:3 per owner rule 2026-09-10.
 
+*(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
 ## §6 ⬜ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*

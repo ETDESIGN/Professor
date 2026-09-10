@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Phonics Arena - Sound Duel (16:9 Projector Board)</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-fixed": "#ffe0ec",
+            "surface-container-lowest": "#0a0a12",
+            "surface-container-low": "#111118",
+            "error": "#ff4444",
+            "on-primary-fixed": "#3d0020",
+            "inverse-primary": "#8c0038",
+            "on-tertiary-container": "#fff0c0",
+            "tertiary-container": "#665200",
+            "on-error": "#1a0000",
+            "secondary": "#00ffcc",
+            "on-secondary-container": "#c0fff4",
+            "tertiary": "#ffe04a",
+            "surface-container-highest": "#28283e",
+            "tertiary-fixed-dim": "#ffe04a",
+            "secondary-container": "#004d3d",
+            "outline-variant": "#302840",
+            "on-surface-variant": "#a098b0",
+            "surface-tint": "#ff2d78",
+            "on-primary-fixed-variant": "#8c0038",
+            "error-container": "#3d0f0f",
+            "outline": "#5a5068",
+            "surface-container": "#141422",
+            "on-primary": "#1a0010",
+            "inverse-surface": "#e8e0f0",
+            "primary-container": "#b3004e",
+            "on-secondary-fixed": "#001a1a",
+            "surface-bright": "#1a1a2e",
+            "on-surface": "#e8e0f0",
+            "on-background": "#e8e0f0",
+            "tertiary-fixed": "#fff0c0",
+            "secondary-fixed": "#c0fff4",
+            "surface-variant": "#1e1e30",
+            "inverse-on-surface": "#0a0a12",
+            "on-tertiary-fixed": "#1a1000",
+            "surface": "#0f0f1a",
+            "secondary-fixed-dim": "#00e6b8",
+            "primary-fixed-dim": "#ff80aa",
+            "on-error-container": "#ffa0a0",
+            "surface-dim": "#0f0f1a",
+            "on-secondary": "#001a1a",
+            "on-tertiary-fixed-variant": "#665200",
+            "background": "#0a0a12",
+            "on-secondary-fixed-variant": "#004d4d",
+            "primary": "#ff2d78",
+            "on-tertiary": "#1a1000",
+            "on-primary-container": "#ffe0ec",
+            "surface-container-high": "#1e1e30"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* Ambient CRT scanline and subtle arena grid */
+    .bg-arena-grid {
+      background-color: #0a0a12;
+      background-image: 
+        radial-gradient(circle at 50% 18%, rgba(0, 255, 204, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(255, 45, 120, 0.05) 0%, transparent 60%),
+        linear-gradient(rgba(48, 40, 64, 0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(48, 40, 64, 0.25) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+    }
+
+    /* Diffused neon glows per Design System */
+    .glow-cyan-border {
+      border: 1px solid rgba(0, 255, 204, 0.45);
+      box-shadow: inset 0 0 16px rgba(0, 255, 204, 0.08), 0 0 20px rgba(0, 255, 204, 0.2);
+    }
+    .glow-pink-border {
+      border: 1px solid rgba(255, 45, 120, 0.5);
+      box-shadow: inset 0 0 16px rgba(255, 45, 120, 0.1), 0 0 24px rgba(255, 45, 120, 0.25);
+    }
+    .glow-gold-border {
+      border: 1px solid rgba(255, 224, 74, 0.5);
+      box-shadow: 0 0 16px rgba(255, 224, 74, 0.25);
+    }
+    .text-glow-secondary {
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.6);
+    }
+    .text-glow-primary {
+      text-shadow: 0 0 14px rgba(255, 45, 120, 0.6);
+    }
+    .pulse-ring {
+      animation: waveRing 2.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    @keyframes waveRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.2; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased select-none overflow-hidden m-0 p-0 w-screen h-screen flex flex-col justify-between bg-arena-grid">
+<!-- ================================================================= -->
+<!-- 1. TOP NAVIGATION BAR (Shared Component JSON Blueprint Executed)  -->
+<!-- ================================================================= -->
+<header class="flex justify-between items-center w-full px-8 py-3 max-w-full bg-surface-dim border-b border-outline-variant shrink-0 z-30">
+<!-- Brand / Arena Identifier -->
+<div class="flex items-center gap-4">
+<div class="font-headline font-bold text-2xl text-primary tracking-wide flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="volume_up">volume_up</span>
+<span class="tracking-tight text-white">Word Search</span>
+</div>
+<span class="bg-surface-container-high border border-outline px-2.5 py-1 rounded text-xs font-label uppercase text-secondary tracking-widest flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+        Phonics Arena
+      </span>
+</div>
+<!-- Center: Tier Mode Selector -->
+<nav class="hidden lg:flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant shadow-inner">
+<!-- Active Tier -->
+<button class="font-label tracking-wider uppercase text-xs px-4 py-1.5 rounded-full bg-primary-container text-primary-fixed border-b-2 border-primary font-bold shadow transition-all duration-200 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="swords">swords</span>
+        TIER 1 · SOUND DUEL
+      </button>
+<button class="font-label tracking-wider uppercase text-xs px-4 py-1.5 text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
+        TIER 2 · SOUND ARENA
+      </button>
+<button class="font-label tracking-wider uppercase text-xs px-4 py-1.5 text-on-surface-variant hover:text-primary transition-colors duration-200 flex items-center gap-1">
+        TIER 3 · VOICE CHAMPION
+      </button>
+</nav>
+<!-- Right Turn State & Controls -->
+<div class="flex items-center gap-4">
+<!-- Turn Indicator Avatar -->
+<div class="flex items-center gap-2.5 bg-surface-container-high border border-outline-variant px-3 py-1.5 rounded-full">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-headline font-bold text-base text-on-primary ring-2 ring-primary/40 shadow-sm">
+          A
+        </div>
+<div class="flex flex-col text-left">
+<span class="font-label text-[10px] uppercase text-on-surface-variant leading-none tracking-widest">Active Turn</span>
+<span class="font-display font-bold text-sm text-white leading-tight">Alice's turn</span>
+</div>
+</div>
+<!-- Streak Pill -->
+<div class="glow-gold-border bg-surface-container px-3 py-1.5 rounded-full flex items-center gap-1.5 text-tertiary">
+<span class="material-symbols-outlined material-symbols-fill text-lg" data-icon="local_fire_department">local_fire_department</span>
+<span class="font-label font-bold text-xs tracking-wider">STREAK: 3</span>
+</div>
+<!-- Teacher Clue Action -->
+<button class="hidden xl:flex items-center gap-1.5 bg-surface-container-highest hover:bg-surface-bright border border-outline px-3.5 py-1.5 rounded text-xs font-label uppercase text-on-surface tracking-wider transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined text-sm text-tertiary" data-icon="lightbulb">lightbulb</span>
+        TEACHER CLUE
+      </button>
+<!-- System Icons Cluster -->
+<div class="flex items-center gap-2 border-l border-outline-variant pl-3">
+<span class="hidden md:inline-flex items-center gap-1 text-[11px] font-label text-secondary mr-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          Console Synced
+        </span>
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Audio Settings">
+<span class="material-symbols-outlined text-xl" data-icon="volume_up">volume_up</span>
+</button>
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Settings">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" title="Fullscreen">
+<span class="material-symbols-outlined text-xl" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</div>
+</header>
+<!-- ================================================================= -->
+<!-- 2. MAIN 16:9 VIEWPORT CANVAS (DUEL ARENA & METERED REPLAY)       -->
+<!-- ================================================================= -->
+<main class="flex-1 flex flex-col items-center justify-between px-10 py-3 relative z-10 max-h-[calc(100vh-130px)]">
+<!-- Sub-header / Sound Waveform Visualizer Section -->
+<div class="w-full flex flex-col items-center gap-2 mt-1">
+<!-- Waveform Visualizer Box -->
+<div class="relative flex items-center justify-center">
+<!-- Concentric Sound Rings -->
+<div class="absolute w-24 h-24 rounded-full border border-secondary/20 pulse-ring pointer-events-none"></div>
+<div class="absolute w-32 h-32 rounded-full border border-secondary/10 pulse-ring pointer-events-none" style="animation-delay: 0.9s;"></div>
+<div class="relative z-10 flex items-center gap-3 bg-surface-container-high border border-secondary/40 px-6 py-2 rounded-full shadow-lg">
+<span class="material-symbols-outlined text-secondary text-2xl animate-pulse" data-icon="graphic_eq">graphic_eq</span>
+<!-- Dynamic waveform bars -->
+<div class="flex items-center gap-1 h-6">
+<span class="w-1 bg-secondary rounded-full h-3"></span>
+<span class="w-1 bg-secondary rounded-full h-5 animate-pulse"></span>
+<span class="w-1 bg-secondary rounded-full h-6"></span>
+<span class="w-1 bg-secondary rounded-full h-4"></span>
+<span class="w-1 bg-secondary rounded-full h-2"></span>
+<span class="w-1 bg-secondary rounded-full h-5"></span>
+<span class="w-1 bg-secondary rounded-full h-3"></span>
+</div>
+<span class="font-label font-bold text-xs tracking-widest text-secondary uppercase">
+            TARGET SOUND PLAYED
+          </span>
+</div>
+</div>
+<!-- Metered Status Pill & Note -->
+<div class="flex items-center gap-2 bg-surface-container-low border border-outline-variant px-4 py-1 rounded-full text-xs font-label">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="headphones">headphones</span>
+<span class="text-on-surface">One free listen done — replay costs a point</span>
+<span class="bg-error px-2 py-0.5 rounded text-[11px] font-bold text-white tracking-wider leading-none shadow-sm">
+          -1 pt
+        </span>
+<span class="text-on-surface-variant text-[11px] hidden md:inline font-body">
+          (First audio auto-played on round start)
+        </span>
+</div>
+</div>
+<!-- 3. SOUND DUEL WORD TABLETS (2-Column Arena with Center Gap) -->
+<div class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-8 my-auto relative items-center">
+<!-- LEFT TABLET: OPTION A (LONG VOWEL) -->
+<div class="group relative bg-surface-container rounded-xl border border-outline hover:border-secondary/60 p-7 flex flex-col justify-between min-h-[300px] lg:min-h-[340px] transition-all duration-300 shadow-2xl overflow-hidden hover:shadow-[0_0_30px_rgba(0,255,204,0.15)]">
+<!-- Subtle corner background watermark -->
+<div class="absolute -right-8 -top-8 text-surface-container-highest/30 font-headline font-black text-9xl select-none pointer-events-none">A</div>
+<!-- Tablet Header Badges -->
+<div class="flex justify-between items-center z-10">
+<div class="flex items-center gap-2">
+<span class="w-8 h-8 rounded-lg bg-surface-container-highest text-secondary border border-secondary/30 flex items-center justify-center font-display font-black text-base">
+              A
+            </span>
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold">
+              Option 1
+            </span>
+</div>
+<span class="bg-secondary-container/50 border border-secondary/40 text-secondary-fixed text-xs font-label font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            LONG VOWEL SOUND
+          </span>
+</div>
+<!-- Word Centerpiece: SHEEP (Focus on EE) -->
+<div class="my-4 flex flex-col items-center justify-center text-center z-10">
+<div class="font-display font-black text-7xl lg:text-8xl tracking-tight text-white flex items-center justify-center">
+<span>SH</span>
+<span class="text-secondary text-glow-secondary mx-0.5 border-b-4 border-secondary pb-1">EE</span>
+<span>P</span>
+</div>
+<!-- Phonetic Notation -->
+<div class="mt-4 flex items-center gap-2 bg-surface-container-high px-4 py-1.5 rounded-full border border-outline-variant">
+<span class="material-symbols-outlined text-base text-secondary" data-icon="volume_down">volume_down</span>
+<span class="font-label text-xl tracking-wider text-secondary font-bold">/ʃiːp/</span>
+</div>
+</div>
+<!-- Waiting Action Banner -->
+<div class="z-10 mt-2">
+<div class="w-full py-3.5 px-4 rounded-lg bg-surface-container-high group-hover:bg-surface-bright border border-outline-variant group-hover:border-secondary text-center text-on-surface-variant group-hover:text-white font-label font-bold text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="touch_app">touch_app</span>
+            TAP TO CHOOSE /iː/ (SHEEP)
+          </div>
+</div>
+</div>
+<!-- RIGHT TABLET: OPTION B (SHORT VOWEL) -->
+<div class="group relative bg-surface-container rounded-xl border border-outline hover:border-primary/60 p-7 flex flex-col justify-between min-h-[300px] lg:min-h-[340px] transition-all duration-300 shadow-2xl overflow-hidden hover:shadow-[0_0_30px_rgba(255,45,120,0.15)]">
+<!-- Subtle corner background watermark -->
+<div class="absolute -right-8 -top-8 text-surface-container-highest/30 font-headline font-black text-9xl select-none pointer-events-none">B</div>
+<!-- Tablet Header Badges -->
+<div class="flex justify-between items-center z-10">
+<div class="flex items-center gap-2">
+<span class="w-8 h-8 rounded-lg bg-surface-container-highest text-primary border border-primary/30 flex items-center justify-center font-display font-black text-base">
+              B
+            </span>
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold">
+              Option 2
+            </span>
+</div>
+<span class="bg-primary-container/40 border border-primary/40 text-primary-fixed text-xs font-label font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            SHORT VOWEL SOUND
+          </span>
+</div>
+<!-- Word Centerpiece: SHIP (Focus on I) -->
+<div class="my-4 flex flex-col items-center justify-center text-center z-10">
+<div class="font-display font-black text-7xl lg:text-8xl tracking-tight text-white flex items-center justify-center">
+<span>SH</span>
+<span class="text-secondary text-glow-secondary mx-0.5 border-b-4 border-secondary pb-1">I</span>
+<span>P</span>
+</div>
+<!-- Phonetic Notation -->
+<div class="mt-4 flex items-center gap-2 bg-surface-container-high px-4 py-1.5 rounded-full border border-outline-variant">
+<span class="material-symbols-outlined text-base text-secondary" data-icon="volume_down">volume_down</span>
+<span class="font-label text-xl tracking-wider text-secondary font-bold">/ʃɪp/</span>
+</div>
+</div>
+<!-- Waiting Action Banner -->
+<div class="z-10 mt-2">
+<div class="w-full py-3.5 px-4 rounded-lg bg-surface-container-high group-hover:bg-surface-bright border border-outline-variant group-hover:border-primary text-center text-on-surface-variant group-hover:text-white font-label font-bold text-sm tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="touch_app">touch_app</span>
+            TAP TO CHOOSE /ɪ/ (SHIP)
+          </div>
+</div>
+</div>
+<!-- 4. CENTERED CIRCULAR REPLAY BUTTON WITH METERED COST -->
+<div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center pointer-events-auto">
+<!-- Floating Label Above -->
+<div class="bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1 rounded-full border border-outline text-[10px] font-label font-bold text-on-surface-variant uppercase tracking-widest mb-2 shadow-lg whitespace-nowrap">
+          METERED REPLAY
+        </div>
+<!-- Big Circular Replay Core -->
+<button class="w-24 h-24 rounded-full bg-surface-dim border-2 border-secondary hover:border-primary glow-cyan-border hover:shadow-[0_0_24px_rgba(255,45,120,0.5)] transition-all duration-200 active:scale-90 flex flex-col items-center justify-center group relative cursor-pointer">
+<span class="material-symbols-outlined text-4xl text-white group-hover:text-secondary transition-colors" data-icon="replay">replay</span>
+<span class="text-[9px] font-label uppercase tracking-widest text-secondary mt-0.5">LISTEN</span>
+<!-- Overlaid Scarlet Penalty Pill -->
+<div class="absolute -bottom-3.5 bg-error text-white font-label font-bold text-xs px-3 py-1 rounded-full border-2 border-surface-dim shadow-lg flex items-center gap-1.5 whitespace-nowrap">
+<span class="w-3.5 h-3.5 rounded-full bg-on-error flex items-center justify-center text-[9px] font-display font-black text-white">A</span>
+<span>Replay -1 pt</span>
+</div>
+</button>
+<!-- Under-button helper string -->
+<span class="text-[10px] font-label tracking-wide text-on-surface-variant mt-5 uppercase">
+          Alice: -1 pt from class pool
+        </span>
+</div>
+</div>
+<!-- Arena Target Prompt Bar -->
+<div class="w-full max-w-4xl flex items-center justify-between bg-surface-container-low px-6 py-2.5 rounded-lg border border-outline-variant mb-1">
+<div class="flex items-center gap-3">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-display font-bold text-sm text-white">TARGET PHONEME CHALLENGE:</span>
+<span class="font-label text-xs text-on-surface-variant">Discriminate long /iː/ vowel against crisp short /ɪ/</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label text-xs text-secondary font-semibold">PROMPT PLAYBACK:</span>
+<span class="bg-surface-container px-2 py-0.5 rounded text-xs font-label text-on-surface">Auto-played (1x)</span>
+</div>
+</div>
+</main>
+<!-- ================================================================= -->
+<!-- 5. BOTTOM CLASSROOM HUD (Shared HUD & Teacher Support Layer)      -->
+<!-- ================================================================= -->
+<footer class="w-full bg-surface-dim px-8 py-3 border-t border-outline-variant flex flex-wrap justify-between items-center gap-4 shrink-0 z-30">
+<!-- Left: Round & Challenge Context -->
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded bg-surface-container-high border border-outline flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl" data-icon="sports_esports">sports_esports</span>
+</div>
+<div>
+<div class="flex items-center gap-1.5">
+<span class="font-headline font-bold text-sm text-white tracking-wide">ROUND 1 · STARTER</span>
+<span class="text-on-surface-variant text-xs font-label font-semibold">/ 4</span>
+</div>
+<span class="font-label text-xs text-secondary tracking-wider uppercase">Minimal Pairs Challenge</span>
+</div>
+</div>
+<!-- Center: Teacher Tip Banner (Warm Yellow Glow / Teritary) -->
+<div class="flex-1 max-w-2xl mx-auto flex items-center justify-center">
+<div class="w-full bg-surface-container border border-tertiary/40 px-4 py-2 rounded-lg flex items-center justify-center gap-2.5 shadow-sm">
+<span class="material-symbols-outlined material-symbols-fill text-tertiary text-lg shrink-0" data-icon="lightbulb">lightbulb</span>
+<p class="font-body text-xs md:text-sm text-on-surface font-medium text-center truncate">
+<span class="font-bold text-tertiary">Teacher Tip:</span> Focus on vowel duration: long sound <span class="font-label text-secondary font-bold">/iː/</span> versus crisp short <span class="font-label text-secondary font-bold">/ɪ/</span>
+</p>
+</div>
+</div>
+<!-- Right: Class Score Widget & Quick Replay Shortcut -->
+<div class="flex items-center gap-4">
+<!-- Class Points Score -->
+<div class="bg-surface-container-high border border-outline-variant px-4 py-1.5 rounded flex flex-col items-end">
+<span class="font-label text-[10px] uppercase text-on-surface-variant tracking-widest">Class Bank</span>
+<span class="font-display font-black text-base text-secondary tracking-tight">460 PTS</span>
+</div>
+<!-- Quick Action Keyboard Key Hint -->
+<button class="bg-surface-container border border-error/50 hover:bg-error/20 text-on-surface hover:text-white px-3.5 py-2 rounded font-label text-xs font-bold tracking-wider uppercase transition-all duration-200 flex items-center gap-2 active:scale-95 shadow">
+<span class="bg-surface-dim px-1.5 py-0.5 rounded border border-outline text-[10px] text-on-surface-variant font-mono">SPACE</span>
+<span>REPLAY (-1 PT)</span>
+</button>
+</div>
+</footer>
+<!-- Inline Micro-interaction Script for Replay Sound / Keyboard shortcut feedback -->
+<script>
+    document.addEventListener('keydown', function(event) {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        const replayCostBanner = document.querySelector('button[title="Audio Settings"]');
+        console.log("Teacher / Student triggered Replay shortcut: -1 Class Point");
+      }
+    });
+  </script>
+</body></html>

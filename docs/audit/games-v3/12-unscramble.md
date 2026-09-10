@@ -203,12 +203,13 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 **What to KEEP from current design.** Retain the LCS partial credit algorithms, targeted two-tile swap guidance ("Swap these two!"), dual-write scoring with productive-mode FSRS tracking, and `UNSCRAMBLE_MOVE` cross-tab realtime synchronization.
 
-## §5 ⬜ Google Stitch prompt
+## §5 ✅ Google Stitch prompt — RETURNED
 
 *(ZCode writes this AFTER §4 is filled.)*
 
-**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **U1 clear task frame (photo + prompt + runway + distractors marked)** and **U2 partially assembled snap-fit**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/12-unscramble/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
+**§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/12-unscramble/{1-fresh-challenge,2-snapped-blocks}.{png,html}`. QA verdict: **PASS**. Only wave-1 screen generated on a native **1920x1080 canvas** (true 16:9). Structure confirmed: progress header (2/6 + amber timer badge), snap-fit answer runway, chunky word blocks, distractor tray. Palette: v3 + workshop cyan `#06B6D4` accent. Zero CJK. Implementation may proceed.
 
+*(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
 ## §6 ⬜ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*

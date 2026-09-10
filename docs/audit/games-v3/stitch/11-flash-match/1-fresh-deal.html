@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom ESL Flash Match - Fresh Deal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sora', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            night: '#0B1120',
+            panel: '#0F172A',
+            cardbg: '#162036',
+            'card-border': '#1E293B',
+            electric: '#38BDF8',
+            'neon-emerald': '#10B981',
+            'arcade-gold': '#FBBF24',
+            'hot-pink': '#FF2D78',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #0B1120;
+      color: #F1F5F9;
+      font-family: 'Sora', sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+    .neon-border-blue {
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+    .neon-border-emerald {
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.3);
+    }
+    .neon-border-pink {
+      box-shadow: 0 0 24px rgba(255, 45, 120, 0.45);
+    }
+    .grid-bg {
+      background-image: radial-gradient(#1e293b 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between p-4 box-border grid-bg">
+
+  <!-- TOP HEADER ROW -->
+  <header class="w-full flex items-center justify-between px-3 py-1.5 shrink-0 relative">
+    <!-- Left Anchored Phase Pill -->
+    <div class="flex items-center gap-2.5">
+      <div class="px-3.5 py-1.5 rounded-full border border-sky-500/40 bg-sky-950/40 backdrop-blur-md flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-electric animate-ping"></span>
+        <span class="text-xs font-bold uppercase tracking-wider text-electric font-mono">Phase: Flash Match</span>
+      </div>
+    </div>
+
+    <!-- Title and Core Game Meta (~180px offset clearing the pill) -->
+    <div class="flex items-center gap-5 absolute left-[195px]">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-hot-pink to-rose-600 flex items-center justify-center font-black text-white text-base shadow-md">
+          FM
+        </div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+          Flash Match
+          <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">ESL ARENA</span>
+        </h1>
+      </div>
+
+      <!-- Round Pill -->
+      <div class="px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+        <span class="text-slate-400 font-mono">ROUND</span>
+        <span class="text-white font-bold font-mono">1/4</span>
+      </div>
+
+      <!-- Matched Pill 0/6 -->
+      <div class="px-3.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 flex items-center gap-2">
+        <span class="text-xs font-semibold text-slate-400 font-mono uppercase">Matched</span>
+        <span class="text-xs font-bold text-arcade-gold font-mono px-1.5 py-0.2 rounded bg-arcade-gold/15 border border-arcade-gold/30">0/6</span>
+      </div>
+
+      <!-- Child Turn Avatar -->
+      <div class="px-3.5 py-1 rounded-full bg-slate-900 border border-electric/40 flex items-center gap-2.5 neon-border-blue">
+        <div class="w-5 h-5 rounded-full bg-electric text-slate-950 font-black text-[11px] flex items-center justify-center">
+          A
+        </div>
+        <span class="text-xs font-bold text-white tracking-wide">Alice’s turn</span>
+        <span class="w-2 h-2 rounded-full bg-electric animate-pulse"></span>
+      </div>
+    </div>
+
+    <!-- Right System Indicators -->
+    <div class="flex items-center gap-3">
+      <!-- Streak Badge -->
+      <div class="px-3 py-1 rounded-lg bg-slate-800/60 border border-amber-500/30 flex items-center gap-1.5 text-arcade-gold font-mono text-xs font-bold">
+        <span class="material-symbols-outlined text-[16px] text-arcade-gold">local_fire_department</span>
+        STREAK: 0
+      </div>
+
+      <!-- Teacher Console Live Sync -->
+      <div class="px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-neon-emerald"></span>
+        <span class="text-[11px] font-mono text-emerald-400 uppercase font-semibold">Teacher Sync Live</span>
+      </div>
+
+      <!-- Utilities -->
+      <div class="flex items-center gap-1 text-slate-400 bg-slate-900/60 p-1 rounded-lg border border-slate-800">
+        <button class="p-1.5 rounded hover:text-white transition-colors">
+          <span class="material-symbols-outlined text-[18px]">volume_up</span>
+        </button>
+        <button class="p-1.5 rounded hover:text-white transition-colors">
+          <span class="material-symbols-outlined text-[18px]">fullscreen</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- INSTRUCTION BANNER -->
+  <div class="w-full max-w-5xl mx-auto py-1 px-4 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between shadow-inner shrink-0 my-1">
+    <div class="flex items-center gap-3">
+      <div class="w-6 h-6 rounded-md bg-electric/15 text-electric flex items-center justify-center">
+        <span class="material-symbols-outlined text-[17px]">touch_app</span>
+      </div>
+      <p class="text-sm text-slate-300 font-medium">
+        <span class="text-white font-bold">Fresh Deal!</span> Tap a word tablet, then tap its matching animal photo.
+      </p>
+    </div>
+    <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
+      <span class="w-2 h-2 rounded-full bg-arcade-gold"></span>
+      <span>6 pairs hidden in the arena</span>
+    </div>
+  </div>
+
+  <!-- MAIN MATCHING ARENA: TWO BALANCED COLUMNS -->
+  <!-- Strict height fit: (3 rows x 2 cols) to prevent any clipping or scrolling -->
+  <main class="w-full flex-1 grid grid-cols-2 gap-5 px-3 min-h-0 items-center">
+
+    <!-- LEFT COLUMN: 6 BOLD ENGLISH WORD TABLETS (3 rows x 2 columns) -->
+    <section class="h-full flex flex-col justify-center">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-widest text-electric font-mono">Column A</span>
+          <span class="text-xs text-slate-400 font-medium">· Vocabulary Tablets</span>
+        </div>
+        <span class="text-[11px] font-mono text-slate-500 uppercase">Tap Word First</span>
+      </div>
+
+      <!-- Word Tablets Grid: 3 rows x 2 cols -->
+      <div class="grid grid-cols-2 gap-3.5 h-[calc(100%-28px)]">
+        <!-- WORD 1: TIGER -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border p-3.5 flex flex-col justify-between hover:border-electric/70 hover:bg-slate-800 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-electric/10 hover:scale-[1.01]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">W1</span>
+            <span class="material-symbols-outlined text-slate-500 text-[18px] group-hover:text-electric transition-colors">volume_up</span>
+          </div>
+          <div class="my-auto py-1">
+            <h3 class="text-3xl font-extrabold tracking-wide text-white group-hover:text-electric transition-colors font-sans">
+              TIGER
+            </h3>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">/ˈtaɪ.ɡər/</p>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/40">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Wild Predator</span>
+            <span class="w-3 h-3 rounded-full border border-slate-600 group-hover:border-electric transition-colors"></span>
+          </div>
+        </div>
+
+        <!-- WORD 2: TOUCAN -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border p-3.5 flex flex-col justify-between hover:border-electric/70 hover:bg-slate-800 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-electric/10 hover:scale-[1.01]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">W2</span>
+            <span class="material-symbols-outlined text-slate-500 text-[18px] group-hover:text-electric transition-colors">volume_up</span>
+          </div>
+          <div class="my-auto py-1">
+            <h3 class="text-3xl font-extrabold tracking-wide text-white group-hover:text-electric transition-colors font-sans">
+              TOUCAN
+            </h3>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">/ˈtuː.kæn/</p>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/40">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Tropical Bird</span>
+            <span class="w-3 h-3 rounded-full border border-slate-600 group-hover:border-electric transition-colors"></span>
+          </div>
+        </div>
+
+        <!-- WORD 3: GIRAFFE -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border p-3.5 flex flex-col justify-between hover:border-electric/70 hover:bg-slate-800 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-electric/10 hover:scale-[1.01]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">W3</span>
+            <span class="material-symbols-outlined text-slate-500 text-[18px] group-hover:text-electric transition-colors">volume_up</span>
+          </div>
+          <div class="my-auto py-1">
+            <h3 class="text-3xl font-extrabold tracking-wide text-white group-hover:text-electric transition-colors font-sans">
+              GIRAFFE
+            </h3>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">/dʒəˈræf/</p>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/40">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Tall Herbivore</span>
+            <span class="w-3 h-3 rounded-full border border-slate-600 group-hover:border-electric transition-colors"></span>
+          </div>
+        </div>
+
+        <!-- WORD 4: MONKEY -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border p-3.5 flex flex-col justify-between hover:border-electric/70 hover:bg-slate-800 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-electric/10 hover:scale-[1.01]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">W4</span>
+            <span class="material-symbols-outlined text-slate-500 text-[18px] group-hover:text-electric transition-colors">volume_up</span>
+          </div>
+          <div class="my-auto py-1">
+            <h3 class="text-3xl font-extrabold tracking-wide text-white group-hover:text-electric transition-colors font-sans">
+              MONKEY
+            </h3>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">/ˈmʌŋ.ki/</p>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/40">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Playful Primate</span>
+            <span class="w-3 h-3 rounded-full border border-slate-600 group-hover:border-electric transition-colors"></span>
+          </div>
+        </div>
+
+        <!-- WORD 5: PANDA -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border p-3.5 flex flex-col justify-between hover:border-electric/70 hover:bg-slate-800 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-electric/10 hover:scale-[1.01]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">W5</span>
+            <span class="material-symbols-outlined text-slate-500 text-[18px] group-hover:text-electric transition-colors">volume_up</span>
+          </div>
+          <div class="my-auto py-1">
+            <h3 class="text-3xl font-extrabold tracking-wide text-white group-hover:text-electric transition-colors font-sans">
+              PANDA
+            </h3>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">/ˈpæn.də/</p>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/40">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Bamboo Forest</span>
+            <span class="w-3 h-3 rounded-full border border-slate-600 group-hover:border-electric transition-colors"></span>
+          </div>
+        </div>
+
+        <!-- WORD 6: FOX -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border p-3.5 flex flex-col justify-between hover:border-electric/70 hover:bg-slate-800 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-electric/10 hover:scale-[1.01]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800/90 text-slate-400 border border-slate-700/60">W6</span>
+            <span class="material-symbols-outlined text-slate-500 text-[18px] group-hover:text-electric transition-colors">volume_up</span>
+          </div>
+          <div class="my-auto py-1">
+            <h3 class="text-3xl font-extrabold tracking-wide text-white group-hover:text-electric transition-colors font-sans">
+              FOX
+            </h3>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">/fɒks/</p>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-700/40">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Clever Canine</span>
+            <span class="w-3 h-3 rounded-full border border-slate-600 group-hover:border-electric transition-colors"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: 6 SHUFFLED LANDSCAPE PHOTO CARDS (4:3, 3 rows x 2 columns) -->
+    <section class="h-full flex flex-col justify-center">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-widest text-arcade-gold font-mono">Column B</span>
+          <span class="text-xs text-slate-400 font-medium">· Shuffled Photo Targets (4:3 Landscape)</span>
+        </div>
+        <span class="text-[11px] font-mono text-slate-500 uppercase">Match Target</span>
+      </div>
+
+      <!-- Photos Grid: 3 rows x 2 cols (Shuffled order: Giraffe, Tiger, Panda, Toucan, Fox, Monkey) -->
+      <div class="grid grid-cols-2 gap-3.5 h-[calc(100%-28px)]">
+        <!-- PHOTO 1: GIRAFFE (Shuffled) -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border overflow-hidden cursor-pointer hover:border-arcade-gold/80 transition-all duration-200 shadow-lg hover:scale-[1.01] flex flex-col">
+          <div class="relative w-full h-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiFGxwRFGbYCmwXtmcQ8Vs9UjpV7iBqFrvrY18ERrvno4hla8GncORhPNxoEJpCbRytGzmdi5zLqp58a6jruTunGBBsplaPypWQlSocJHtLEHdtG49q6ANnJpSba_KtpyxqzUA6OoyuTduOR2y4lacI5qvIN79nSuCbHMErk2hs_YPIGG4YwnUZrQNeb5m13jjzVteW6a2AlDTi_oG12Of0jMAcXVH_1ahME8I-zFukB7-wCE2sKFhzEe1zd4jUvWtVz-wlyI-Ca5b" alt="Giraffe" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+            <!-- Top tag -->
+            <div class="absolute top-2 left-2">
+              <span class="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold text-slate-300 border border-slate-700/70">PHOTO 1</span>
+            </div>
+            <!-- Interactive tap ring indicator -->
+            <div class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-600 flex items-center justify-center text-slate-400 group-hover:border-arcade-gold group-hover:text-arcade-gold transition-colors">
+              <span class="material-symbols-outlined text-[15px]">crop_free</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTO 2: TIGER (Shuffled) -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border overflow-hidden cursor-pointer hover:border-arcade-gold/80 transition-all duration-200 shadow-lg hover:scale-[1.01] flex flex-col">
+          <div class="relative w-full h-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1WrPpmwaNeDfqX-Sk0KHo6-0uUmBERulu5qGIb7ksMp2134u0Yx-agUrcB6zZG2-EebRKOyVnIctpLMUcW9eSAgJo_aOZSQZ5-uMRvARju6r2VXs17AcSCd1Yvsf9TjTSx0iFRyd0WDMyKc0KdflESC-xSS9WVB__XLIt1o-XrSZUodhZxuAWTDs_H5doKkhN7bUsuFTK49oa638nJAxlaM7iVYDWqOQga_ehe12BzIKGrf9aj3JkfKNnY" alt="Tiger" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+            <div class="absolute top-2 left-2">
+              <span class="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold text-slate-300 border border-slate-700/70">PHOTO 2</span>
+            </div>
+            <div class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-600 flex items-center justify-center text-slate-400 group-hover:border-arcade-gold group-hover:text-arcade-gold transition-colors">
+              <span class="material-symbols-outlined text-[15px]">crop_free</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTO 3: PANDA (Shuffled) -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border overflow-hidden cursor-pointer hover:border-arcade-gold/80 transition-all duration-200 shadow-lg hover:scale-[1.01] flex flex-col">
+          <div class="relative w-full h-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLUy9c8FmsWnakyYGE40QQWRy5W4W_bGFbXz98pd6H7C2PyHs6gaYpdxbupKRDIHKzhNSJjR5Tzby5d5uvFXlkrD0iPrISOf1lIl225dKwVa65skNftMD2WRtvBvSEftm0vS-vVFYKEiu6iUirDyThMmnx5ZOBQbbUEFWcVEoO_T7hu77PsbsEFDcD9utEi0poy7in3973G5pnV4rZXMQgfKRGcZNZnXKRDXBsULtqeeKPgaRKzJ8qE7zVkh3Dhnv6icb-UEna-kpR" alt="Panda" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+            <div class="absolute top-2 left-2">
+              <span class="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold text-slate-300 border border-slate-700/70">PHOTO 3</span>
+            </div>
+            <div class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-600 flex items-center justify-center text-slate-400 group-hover:border-arcade-gold group-hover:text-arcade-gold transition-colors">
+              <span class="material-symbols-outlined text-[15px]">crop_free</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTO 4: TOUCAN (Shuffled) -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border overflow-hidden cursor-pointer hover:border-arcade-gold/80 transition-all duration-200 shadow-lg hover:scale-[1.01] flex flex-col">
+          <div class="relative w-full h-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBx3yBMn2QN_8RqiZu1vbfi1RiRxGiNwM0RVElbEfiMahwJjpwJWlKKA8UQ0j3l2FOmc_0NBgMfAjzBJB157j0uGN6Sv9twKW9Bfi44FadFdnUQoEvEOBBWwdWflI9vF19u18U4PdYYtR_8pLTFn7e75ytnWSDBcg6Xg8Z7Y-SnEkntq8ZYLWQSoTqLYH4s--VJqGen4HtXUwrj7Wn4HyfRIcsYGPxZuRDGZODWEMSl9JqemODoxaPR4dgytb07Zai8y3zFrCuoHi_Y" alt="Toucan" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+            <div class="absolute top-2 left-2">
+              <span class="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold text-slate-300 border border-slate-700/70">PHOTO 4</span>
+            </div>
+            <div class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-600 flex items-center justify-center text-slate-400 group-hover:border-arcade-gold group-hover:text-arcade-gold transition-colors">
+              <span class="material-symbols-outlined text-[15px]">crop_free</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTO 5: FOX (Shuffled) -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border overflow-hidden cursor-pointer hover:border-arcade-gold/80 transition-all duration-200 shadow-lg hover:scale-[1.01] flex flex-col">
+          <div class="relative w-full h-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBZzPqBAk5uQbTiaE8tjoFaZ28_MoS3TOc3O_XxHCTAzFGYtZrTWwPUI-6FbQz5biIJIOwg9kJVUnTPGLTz4HyYZ2MpwkiENjsoePMQYysG4Gm6AXoUYUNNuF-B_PIh005Vp3jSk-VFpLg-MNmseT0vTQ2y_ZrlycaAJLiY6sngrjh_6exacKlPlzyj2OEAnUncwghsLPuyxPzrMcjtLJ3ppobCZFoz2C8cCigme6JDCMrXU1XwAxdbrH6P9S7Gthmg14jOynVUOUm" alt="Fox" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+            <div class="absolute top-2 left-2">
+              <span class="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold text-slate-300 border border-slate-700/70">PHOTO 5</span>
+            </div>
+            <div class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-600 flex items-center justify-center text-slate-400 group-hover:border-arcade-gold group-hover:text-arcade-gold transition-colors">
+              <span class="material-symbols-outlined text-[15px]">crop_free</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTO 6: MONKEY (Shuffled) -->
+        <div class="group relative rounded-2xl bg-cardbg border-2 border-card-border overflow-hidden cursor-pointer hover:border-arcade-gold/80 transition-all duration-200 shadow-lg hover:scale-[1.01] flex flex-col">
+          <div class="relative w-full h-full overflow-hidden">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1Uj0BS6szb8tmIDNnK77ir3g0cW6igoIARnYf3zzban9VOutZBeEsH78Pz0q9HtTdyKfwoqu9_8cHCQc1bJIrsguZV3TCXowtbkcWyXq00CJlNrbFgDMNomWhKSaYyh8YRBcnbrBX4LcgVc81t08K0-jNQoOLHGHY71B814fJmrN_Plfj2nhC4BdIp6O7jFA5CphyAeB7vcnT4DZ8NPqRnoMAnDM92cjh60mgyjCHx4xlMh4C-e2YH1jWYJ" alt="Monkey" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20"></div>
+            <div class="absolute top-2 left-2">
+              <span class="px-2 py-0.5 rounded bg-slate-900/80 backdrop-blur-md text-[10px] font-mono font-bold text-slate-300 border border-slate-700/70">PHOTO 6</span>
+            </div>
+            <div class="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-600 flex items-center justify-center text-slate-400 group-hover:border-arcade-gold group-hover:text-arcade-gold transition-colors">
+              <span class="material-symbols-outlined text-[15px]">crop_free</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM PROJECTOR HUD / STATUS BAR -->
+  <footer class="w-full px-3 py-2 mt-1 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between shrink-0 shadow-2xl">
+    <!-- Live Match Progress Dots -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono font-bold text-slate-400">PAIRS MASTERED:</span>
+        <div class="flex items-center gap-1.5">
+          <div class="w-3 h-3 rounded-full border border-slate-600 bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full border border-slate-600 bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full border border-slate-600 bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full border border-slate-600 bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full border border-slate-600 bg-slate-800"></div>
+          <div class="w-3 h-3 rounded-full border border-slate-600 bg-slate-800"></div>
+        </div>
+      </div>
+      <div class="h-4 w-px bg-slate-800"></div>
+      <!-- Class Score -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono text-slate-400">CLASS SCORE:</span>
+        <span class="text-sm font-black font-mono text-arcade-gold">2,450 <span class="text-[11px] font-normal text-slate-500">PTS</span></span>
+      </div>
+    </div>
+
+    <!-- Center Classroom Prompt -->
+    <div class="px-4 py-1 rounded-full bg-slate-900/90 border border-amber-500/20 flex items-center gap-2 text-xs font-medium text-slate-300">
+      <span class="material-symbols-outlined text-[16px] text-arcade-gold">lightbulb</span>
+      <span>Whole class: Read the word aloud before tapping its picture!</span>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3">
+      <button class="px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">shuffle</span>
+        Shuffle Board
+      </button>
+
+      <!-- Hot Pink Primary Button Only -->
+      <button class="px-6 py-2 rounded-xl bg-hot-pink hover:bg-rose-500 text-white font-bold text-sm shadow-lg neon-border-pink transition-all duration-200 active:scale-95 flex items-center gap-2">
+        <span>Check Match</span>
+        <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+      </button>
+    </div>
+  </footer>
+
+</body>
+</html>

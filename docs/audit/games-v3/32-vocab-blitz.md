@@ -152,12 +152,13 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
      - Celebration card: *"Alice's Blitz Complete!"*, 3/3 correct, `🔥 2x Multiplier Bonus Applied`, total points splash (`+12 Points!`), and auto-advance timer for next student.
 - **What to KEEP from current design:** The StrictMode-safe timer, timeout-costs-nothing fairness rule, cancellable advance funnel with NEW_TURN suppression during steals, and per-objective pool deduplication.
 
-## §5 ⬜ Google Stitch prompt
+## §5 ✅ Google Stitch prompt — RETURNED
 
 *(ZCode writes this AFTER §4 is filled.)*
 
-**§5 wave-1 design pass — SUBMITTED 2026-09-10 (ZCode → Stitch, autonomous):** two key screens per the §4.f brief: **V1 once-per-turn confidence gate** and **V2 sprint with locked 2x badge + stadium timer**. Landing in the Stitch project (~15 min); ZCode verifies against the QA list, exports to `stitch/32-vocab-blitz/`, then implements (with the §3 root-cause fixes) in implementation wave 1.
+**§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/32-vocab-blitz/{1-confidence-gate,2-sprint-locked}.{png,html}`. QA verdict: **PASS** (HTML/structural QA; final visual gate via Playwright during implementation). Structure: V1 = 3-zone confidence gate `grid-cols-[1fr_auto_1fr]` (stake selection once per turn), V2 = sprint with locked 2x badge + stadium timer + 2x2 answer grid. Zero CJK, v3 palette (`#FF2D78` primary). Implementation may proceed — the post-cap bet clamp (§3) is already live.
 
+*(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
 ## §6 ⬜ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*

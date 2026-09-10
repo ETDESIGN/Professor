@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html class="dark h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VOCAB BLITZ · Confidence Gate (Stakes Decision)</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@700;800;900&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-tint": "#ff2d78",
+            "on-secondary-fixed": "#001a1a",
+            "surface-container-low": "#111118",
+            "tertiary-fixed-dim": "#ffe04a",
+            "on-tertiary": "#1a1000",
+            "on-background": "#e8e0f0",
+            "on-error": "#1a0000",
+            "inverse-on-surface": "#0a0a12",
+            "on-surface": "#e8e0f0",
+            "on-secondary-container": "#c0fff4",
+            "background": "#0a0a12",
+            "tertiary-fixed": "#fff0c0",
+            "on-tertiary-fixed-variant": "#665200",
+            "surface-container-lowest": "#0a0a12",
+            "surface": "#0f0f1a",
+            "surface-container": "#141422",
+            "surface-variant": "#1e1e30",
+            "error-container": "#3d0f0f",
+            "on-tertiary-fixed": "#1a1000",
+            "secondary-fixed-dim": "#00e6b8",
+            "on-tertiary-container": "#fff0c0",
+            "tertiary-container": "#665200",
+            "on-primary-fixed": "#3d0020",
+            "surface-container-highest": "#28283e",
+            "surface-container-high": "#1e1e30",
+            "secondary-container": "#004d3d",
+            "error": "#ff4444",
+            "on-secondary": "#001a1a",
+            "secondary": "#00ffcc",
+            "inverse-primary": "#8c0038",
+            "tertiary": "#ffe04a",
+            "outline-variant": "#302840",
+            "surface-bright": "#1a1a2e",
+            "primary-fixed": "#ffe0ec",
+            "outline": "#5a5068",
+            "primary": "#ff2d78",
+            "on-error-container": "#ffa0a0",
+            "inverse-surface": "#e8e0f0",
+            "on-primary-container": "#ffe0ec",
+            "surface-dim": "#0f0f1a",
+            "secondary-fixed": "#c0fff4",
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-primary": "#1a0010",
+            "on-primary-fixed-variant": "#8c0038",
+            "primary-fixed-dim": "#ff80aa",
+            "primary-container": "#b3004e",
+            "on-surface-variant": "#a098b0"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          fontFamily: {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 28;
+      vertical-align: middle;
+    }
+    .synth-grid {
+      background-size: 48px 48px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 255, 204, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 45, 120, 0.04) 1px, transparent 1px);
+    }
+    .neon-text-primary {
+      text-shadow: 0 0 10px rgba(255, 45, 120, 0.65), 0 0 24px rgba(255, 45, 120, 0.35);
+    }
+    .neon-text-secondary {
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.65), 0 0 24px rgba(0, 255, 204, 0.35);
+    }
+    .neon-text-tertiary {
+      text-shadow: 0 0 10px rgba(255, 224, 74, 0.65), 0 0 24px rgba(255, 224, 74, 0.35);
+    }
+    .neon-card-cyan {
+      box-shadow: 0 0 28px rgba(0, 255, 204, 0.15), inset 0 0 18px rgba(0, 255, 204, 0.06);
+    }
+    .neon-card-cyan:hover {
+      box-shadow: 0 0 45px rgba(0, 255, 204, 0.3), inset 0 0 25px rgba(0, 255, 204, 0.12);
+    }
+    .neon-card-pink {
+      box-shadow: 0 0 28px rgba(255, 45, 120, 0.18), inset 0 0 18px rgba(255, 45, 120, 0.07);
+    }
+    .neon-card-pink:hover {
+      box-shadow: 0 0 45px rgba(255, 45, 120, 0.35), inset 0 0 25px rgba(255, 45, 120, 0.14);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body h-screen w-screen overflow-hidden select-none flex flex-col justify-between synth-grid relative">
+<!-- Ambient Perspective Light Beam Overlays -->
+<div class="pointer-events-none absolute inset-0 overflow-hidden z-0">
+<div class="absolute -top-48 left-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[110px]"></div>
+<div class="absolute -top-48 right-1/4 w-96 h-96 bg-primary/15 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+</div>
+<!-- TOP HUD: Height calibrated ~160px for high-visibility ESL Classroom Projection -->
+<header class="relative z-10 w-full px-10 pt-5 pb-4 bg-surface-dim/90 border-b border-outline-variant flex flex-col gap-3 backdrop-blur-md">
+<div class="flex items-center justify-between">
+<!-- Brand & Game ID -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-surface-container-high border border-primary/50 flex items-center justify-center shadow-[0_0_16px_rgba(255,45,120,0.4)]">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div class="flex flex-col">
+<h1 class="font-headline font-black text-3xl tracking-tight text-white flex items-center gap-2">
+<span>VOCAB</span>
+<span class="text-primary neon-text-primary">BLITZ</span>
+</h1>
+<span class="font-label text-xs tracking-widest text-on-surface-variant uppercase">ESL Speed-Quiz Arena</span>
+</div>
+</div>
+<div class="h-8 w-px bg-outline-variant mx-1"></div>
+<!-- Player Turn & Mode Badges -->
+<div class="flex items-center gap-3">
+<!-- Active Player Chip -->
+<div class="flex items-center gap-3 px-4 py-2 rounded-full bg-surface-container border border-secondary/40 shadow-[0_0_14px_rgba(0,255,204,0.15)]">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center font-headline font-black text-on-primary text-sm shadow-[0_0_10px_rgba(255,45,120,0.8)]">
+              A
+            </div>
+<div class="flex flex-col leading-tight">
+<span class="font-label text-xs uppercase tracking-wider text-secondary font-bold">Alice's Turn</span>
+<span class="font-headline text-sm font-extrabold text-white">Choose Your Stakes</span>
+</div>
+</div>
+<!-- Round Format Badge -->
+<div class="flex items-center gap-2 px-3.5 py-2 rounded-full bg-surface-container-high border border-outline text-on-surface-variant">
+<span class="material-symbols-outlined text-tertiary text-xl" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-label font-bold text-xs uppercase tracking-wider text-on-surface">3-Question Sprint</span>
+</div>
+</div>
+</div>
+<!-- Classroom Telemetry / Stats HUD -->
+<div class="flex items-center gap-4">
+<!-- Class Bank -->
+<div class="px-5 py-2 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary text-2xl" style="font-variation-settings: 'FILL' 1;">savings</span>
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Class Bank</span>
+<span class="font-headline font-black text-xl text-tertiary neon-text-tertiary">520 PTS</span>
+</div>
+</div>
+<!-- Hot Streak -->
+<div class="px-4 py-2 rounded-xl bg-surface-container-high border border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Streak</span>
+<span class="font-headline font-black text-xl text-primary">4 IN A ROW</span>
+</div>
+</div>
+<!-- Teacher Sync Status -->
+<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container border border-outline-variant">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
+</span>
+<span class="font-label text-xs uppercase font-bold text-secondary tracking-wider">Teacher Sync Live</span>
+</div>
+<!-- Shared Component JSON Trailing Actions: volume_up, settings, fullscreen -->
+<div class="flex items-center gap-1 bg-surface-container rounded-lg p-1 border border-outline-variant">
+<button class="w-10 h-10 flex items-center justify-center rounded text-on-surface-variant hover:text-primary transition-colors active:scale-95" title="Audio">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded text-on-surface-variant hover:text-primary transition-colors active:scale-95" title="Settings">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded text-on-surface-variant hover:text-primary transition-colors active:scale-95" title="Fullscreen">
+<span class="material-symbols-outlined">fullscreen</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Arena Context Strip -->
+<div class="flex items-center justify-between text-xs font-label uppercase tracking-widest text-on-surface-variant pt-1 border-t border-outline-variant/50">
+<div class="flex items-center gap-2">
+<span class="text-primary font-bold">● GATE STATE:</span>
+<span class="text-on-surface font-semibold">CONFIDENCE DECISION (ONCE PER SPRINT)</span>
+</div>
+<div class="text-on-surface-variant">
+        DIFFICULTY: <span class="text-secondary font-bold">ESL GRADE 3–5</span> · TOPIC: <span class="text-white font-bold">ANIMAL ACTION VERBS</span>
+</div>
+</div>
+</header>
+<!-- CENTER ARENA: The Core Decision (Massive 5-8 Meter Legible Pods) -->
+<main class="relative z-10 flex-1 px-12 py-5 flex items-center justify-center">
+<div class="w-full max-w-[1780px] h-full max-h-[720px] grid grid-cols-[1fr_auto_1fr] items-stretch gap-8">
+<!-- POD 1: SAFE PLAY (1X) -->
+<section class="flex flex-col justify-between p-8 rounded-2xl bg-surface-container border-2 border-secondary/40 neon-card-cyan transition-all duration-300 relative group overflow-hidden">
+<!-- Ambient corner accents -->
+<div class="absolute -top-16 -left-16 w-48 h-48 bg-secondary/15 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-secondary" style="font-variation-settings: 'FILL' 1;">shield</span>
+</div>
+<!-- Pod Top Header -->
+<div class="relative z-10 flex items-center justify-between">
+<div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-container/60 border border-secondary/50 text-secondary">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label font-bold text-xs uppercase tracking-widest">Standard Sprint · Steady Climb</span>
+</div>
+<span class="font-label text-sm text-secondary tracking-widest font-mono font-bold">[ KEY 1 ]</span>
+</div>
+<!-- Pod Hero Identity -->
+<div class="relative z-10 my-4 text-center">
+<div class="font-headline font-black text-8xl xl:text-9xl text-secondary neon-text-secondary tracking-tighter leading-none">
+            1x
+          </div>
+<h2 class="font-headline font-extrabold text-4xl xl:text-5xl text-white tracking-tight mt-1">
+            SAFE PLAY
+          </h2>
+<p class="font-body text-base text-on-surface-variant mt-2 font-medium">
+            Solid progression. Ideal for securing team points without heavy penalties.
+          </p>
+</div>
+<!-- Feature Pills (Readable 5-8m away) -->
+<div class="relative z-10 flex flex-col gap-3 my-2">
+<!-- Reward -->
+<div class="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-variant/70 border border-secondary/30 text-left">
+<div class="w-10 h-10 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl font-bold">add_circle</span>
+</div>
+<div>
+<div class="font-headline font-bold text-lg text-white">+100 PTS <span class="text-secondary font-normal text-sm font-label">/ correct answer</span></div>
+<div class="font-body text-xs text-on-surface-variant font-medium">Standard 1x reward per question in the sprint</div>
+</div>
+</div>
+<!-- Risk / Penalty -->
+<div class="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-variant/70 border border-outline-variant text-left">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high text-on-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl font-bold">remove_circle</span>
+</div>
+<div>
+<div class="font-headline font-bold text-lg text-on-surface">-50 PTS <span class="text-on-surface-variant font-normal text-sm font-label">/ on miss</span></div>
+<div class="font-body text-xs text-on-surface-variant font-medium">Low risk buffer (-1 normal penalty deduction)</div>
+</div>
+</div>
+<!-- Streak Protection -->
+<div class="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-variant/70 border border-secondary/30 text-left">
+<div class="w-10 h-10 rounded-lg bg-secondary/15 text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">security</span>
+</div>
+<div>
+<div class="font-headline font-bold text-lg text-secondary">Streak Shield Protected</div>
+<div class="font-body text-xs text-on-surface-variant font-medium">Preserves the class hot streak even if you drop a round</div>
+</div>
+</div>
+</div>
+<!-- Big Interactive Button -->
+<button class="relative z-10 w-full mt-2 py-5 px-6 rounded-xl bg-surface-container-high hover:bg-secondary-container border-2 border-secondary text-secondary hover:text-white font-headline font-extrabold text-2xl tracking-wide uppercase flex items-center justify-center gap-3 transition-all duration-200 active:scale-98 shadow-[0_0_18px_rgba(0,255,204,0.25)] hover:shadow-[0_0_30px_rgba(0,255,204,0.6)] cursor-pointer" onclick="handleSelection('1x SAFE PLAY')">
+<span class="material-symbols-outlined text-3xl">check_circle</span>
+<span>SELECT SAFE PLAY (1x)</span>
+</button>
+</section>
+<!-- BETWEEN: Arcade Lightning Divider & "OR" Badge -->
+<div class="relative flex flex-col items-center justify-center">
+<div class="w-0.5 h-full bg-gradient-to-b from-transparent via-outline-variant to-transparent flex flex-col items-center justify-center">
+<div class="w-16 h-16 rounded-full bg-surface-container-highest border-2 border-tertiary flex items-center justify-center shadow-[0_0_24px_rgba(255,224,74,0.5)] z-20">
+<span class="font-headline font-black text-xl text-tertiary neon-text-tertiary">OR</span>
+</div>
+</div>
+</div>
+<!-- POD 2: HIGH ROLLER (2X) -->
+<section class="flex flex-col justify-between p-8 rounded-2xl bg-surface-container border-2 border-primary/50 neon-card-pink transition-all duration-300 relative group overflow-hidden">
+<!-- Ambient corner accents -->
+<div class="absolute -top-16 -right-16 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-primary" style="font-variation-settings: 'FILL' 1;">electric_bolt</span>
+</div>
+<!-- Pod Top Header -->
+<div class="relative z-10 flex items-center justify-between">
+<div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-container/40 border border-primary/60 text-primary">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<span class="font-label font-bold text-xs uppercase tracking-widest">High Stakes · Jackpot Mode</span>
+</div>
+<span class="font-label text-sm text-primary tracking-widest font-mono font-bold">[ KEY 2 ]</span>
+</div>
+<!-- Pod Hero Identity -->
+<div class="relative z-10 my-4 text-center">
+<div class="font-headline font-black text-8xl xl:text-9xl text-primary neon-text-primary tracking-tighter leading-none">
+            2x
+          </div>
+<h2 class="font-headline font-extrabold text-4xl xl:text-5xl text-white tracking-tight mt-1">
+            HIGH ROLLER
+          </h2>
+<p class="font-body text-base text-on-surface-variant mt-2 font-medium">
+            Double the glory, double the danger! High confidence sprint.
+          </p>
+</div>
+<!-- Feature Pills (Readable 5-8m away) -->
+<div class="relative z-10 flex flex-col gap-3 my-2">
+<!-- Reward -->
+<div class="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-variant/70 border border-primary/40 text-left">
+<div class="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl font-bold">stars</span>
+</div>
+<div>
+<div class="font-headline font-bold text-lg text-primary">+200 PTS <span class="text-white font-normal text-sm font-label">(DOUBLE POINTS!)</span></div>
+<div class="font-body text-xs text-on-surface-variant font-medium">Earn massive class score leaps on each correct card</div>
+</div>
+</div>
+<!-- Risk / Penalty -->
+<div class="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-variant/70 border border-error/40 text-left">
+<div class="w-10 h-10 rounded-lg bg-error-container text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl font-bold">warning</span>
+</div>
+<div>
+<div class="font-headline font-bold text-lg text-error">-100 PTS <span class="text-on-surface-variant font-normal text-sm font-label">(DOUBLE PENALTY)</span></div>
+<div class="font-body text-xs text-on-surface-variant font-medium">High stakes miss deduction! Stay sharp with your team</div>
+</div>
+</div>
+<!-- Sweep Bonus -->
+<div class="flex items-center gap-4 px-5 py-3 rounded-xl bg-surface-variant/70 border border-tertiary/40 text-left">
+<div class="w-10 h-10 rounded-lg bg-tertiary/20 text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<div>
+<div class="font-headline font-bold text-lg text-tertiary">+100 PTS Sweep Bonus!</div>
+<div class="font-body text-xs text-on-surface-variant font-medium">Perfect 3-of-3 sprint earns instant Jackpot bonus</div>
+</div>
+</div>
+</div>
+<!-- Big Interactive Button -->
+<button class="relative z-10 w-full mt-2 py-5 px-6 rounded-xl bg-surface-container-high hover:bg-primary-container border-2 border-primary text-primary hover:text-white font-headline font-extrabold text-2xl tracking-wide uppercase flex items-center justify-center gap-3 transition-all duration-200 active:scale-98 shadow-[0_0_20px_rgba(255,45,120,0.3)] hover:shadow-[0_0_35px_rgba(255,45,120,0.7)] cursor-pointer" onclick="handleSelection('2x HIGH ROLLER')">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span>LOCK HIGH ROLLER (2x)</span>
+</button>
+</section>
+</div>
+</main>
+<!-- BOTTOM BAR / HINT LINE: Classroom pedagogical anchor & quick keys -->
+<footer class="relative z-10 w-full px-10 py-4 bg-surface-dim/95 border-t border-outline-variant flex items-center justify-between backdrop-blur-md">
+<!-- Left Metadata -->
+<div class="flex items-center gap-3 text-on-surface-variant font-label text-xs tracking-wider uppercase">
+<span class="material-symbols-outlined text-base text-secondary">cast</span>
+<span>Projector Mode · 16:9 Scale (Optimal Legibility at 5–8m)</span>
+</div>
+<!-- Centered Pedagogical Guidance Prompt -->
+<div class="px-6 py-2 rounded-full bg-surface-container-high border border-tertiary/40 flex items-center gap-3 shadow-[0_0_15px_rgba(255,224,74,0.1)]">
+<span class="material-symbols-outlined text-tertiary text-xl animate-pulse" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<span class="font-label font-bold text-sm tracking-wide text-white">
+        Choice locks for all 3 sprint questions! Discuss with your ESL squad before tapping.
+      </span>
+</div>
+<!-- Right Keyboard / Remote Hotkeys -->
+<div class="flex items-center gap-3">
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant">Classroom Remote:</span>
+<div class="flex items-center gap-1.5 font-label font-bold text-xs">
+<span class="px-2.5 py-1 rounded bg-surface-variant text-secondary border border-secondary/30">[1] Safe</span>
+<span class="text-outline">/</span>
+<span class="px-2.5 py-1 rounded bg-surface-variant text-primary border border-primary/30">[2] High Roller</span>
+</div>
+</div>
+</footer>
+<!-- Inline Interaction Logic for Keyboard/Touch Simulation -->
+<script>
+    function handleSelection(mode) {
+      const banner = document.createElement('div');
+      banner.className = 'fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-md transition-all';
+      banner.innerHTML = `
+        <div class="p-10 rounded-2xl bg-surface-container border-2 border-secondary shadow-[0_0_50px_rgba(0,255,204,0.5)] text-center max-w-lg">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/20 text-secondary flex items-center justify-center">
+            <span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">lock</span>
+          </div>
+          <div class="font-label text-xs uppercase tracking-widest text-secondary font-bold">Stakes Confirmed</div>
+          <div class="font-headline font-black text-4xl text-white mt-1 mb-2">${mode} LOCKED</div>
+          <div class="font-body text-base text-on-surface-variant">Launching 3-Question Sprint in 3... 2... 1...</div>
+        </div>
+      `;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 1600);
+    }
+
+    // Keyboard Hotkey Support: 1 for Safe Play, 2 for High Roller
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '1') {
+        handleSelection('1x SAFE PLAY');
+      } else if (e.key === '2') {
+        handleSelection('2x HIGH ROLLER');
+      }
+    });
+  </script>
+</body></html>
