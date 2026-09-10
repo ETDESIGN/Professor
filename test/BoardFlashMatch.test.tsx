@@ -49,6 +49,7 @@ describe('BoardFlashMatch (pool mode, no infinite loop)', () => {
     // Matching the first pair should not reset the board (the old bug wiped state).
     fireEvent.click(screen.getByText('apple'));
     fireEvent.click(screen.getByText('苹果'));
-    await waitFor(() => expect(container.textContent).toContain('1 /'));
+    // v3 UI: the round pill renders as ROUND <n>/<total> (games-v3 Stitch redesign).
+    await waitFor(() => expect(container.textContent).toContain('ROUND 1/4'));
   });
 });

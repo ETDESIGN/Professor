@@ -441,9 +441,9 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   if (loading || (matchPairs.length === 0 && !frozenPairs.length)) {
     if (matchPairs.length === 0 && !loading) {
       return (
-        <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white text-center px-8">
-          <h2 className="text-4xl font-bold text-slate-500 mb-2">Flash Match</h2>
-          <p className="text-slate-600 text-xl">Content isn't ready for this round yet.</p>
+        <div className="fm-root h-full bg-[#070C18] flex flex-col items-center justify-center text-white text-center px-8">
+          <h2 className="text-4xl font-bold text-slate-400 mb-2">Flash Match</h2>
+          <p className="text-slate-500 text-xl">Content isn't ready for this round yet.</p>
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
             className="mt-6 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white">
             Skip Round
@@ -452,99 +452,157 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       );
     }
     return (
-      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white">
-        <h2 className="text-4xl font-bold text-slate-500 mb-2">Flash Match</h2>
-        <p className="text-slate-600 text-xl">Loading…</p>
+      <div className="fm-root h-full bg-[#070C18] flex flex-col items-center justify-center text-white">
+        <h2 className="text-4xl font-bold text-slate-400 mb-2">Flash Match</h2>
+        <p className="text-slate-500 text-xl">Loading…</p>
       </div>
     );
   }
 
+  const pairCount = matchPairs.length;
+
   return (
-    <div className="h-full bg-slate-900 flex flex-col p-8 font-display">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="bg-white/10 px-6 py-3 rounded-2xl flex items-center gap-4 border border-white/10">
-          <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center text-white text-2xl font-bold">⚡</div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Flash Match</h1>
-            <p className="text-slate-400 text-sm">Round {roundIndex}/{TOTAL_ROUNDS} — Match word pairs</p>
+    <div className="fm-root h-full w-full flex flex-col gap-1.5 lg:gap-2 p-2 lg:p-3.5 [@media(max-height:430px)]:gap-1 [@media(max-height:430px)]:p-1.5 bg-[#070C18] relative overflow-hidden">
+      <style>{`
+        .fm-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
+        .fm-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .fm-glow-sky { box-shadow: 0 0 22px -4px rgba(56,189,248,0.55), inset 0 0 18px rgba(56,189,248,0.08); }
+        .fm-glow-correct { box-shadow: 0 0 26px -4px rgba(16,185,129,0.55), inset 0 0 20px rgba(16,185,129,0.1); }
+        @keyframes fm-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+        .fm-shake { animation: fm-shake 0.4s ease-in-out; }
+        @keyframes fm-pulse-hint { 0%, 100% { box-shadow: 0 0 8px -2px rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 26px -2px rgba(245,158,11,0.75); } }
+        .fm-pulse-hint { animation: fm-pulse-hint 0.8s ease-in-out infinite; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.35s ease-out; }
+        @keyframes bounce-subtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
+      `}</style>
+
+      {/* Header — compressed per the Stitch revision; pl-40/lg:pl-48 clears
+          BoardShell's phase pill (owner's #1 complaint was the clipped 6th
+          row, killed by the compact header + 2x3 grids). */}
+      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-40 lg:pl-48 h-11 lg:h-13 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 lg:w-8 lg:h-8 rounded-lg bg-gradient-to-br from-[#FF2E79] to-rose-600 flex items-center justify-center font-black text-white text-xs shadow-md shrink-0">
+            FM
           </div>
+          <h1 className="text-lg lg:text-xl font-extrabold tracking-tight text-white truncate">Flash Match</h1>
+          <span className="fm-mono px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] lg:text-xs font-bold text-slate-300 whitespace-nowrap">
+            ROUND <span className="text-white">{roundIndex}/{TOTAL_ROUNDS}</span>
+          </span>
         </div>
-        <div className="flex gap-4 items-center">
-          <div className="bg-slate-800 px-6 py-3 rounded-xl border border-slate-700 text-white font-bold text-lg">
-            {matchedCount} / {matchPairs.length}
-          </div>
-          <button onClick={() => triggerAction('RESET_GAME')}
-            className="p-3 bg-slate-800 rounded-xl text-slate-400 hover:bg-slate-700 hover:text-white">
-            <RefreshCcw />
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="fm-mono px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700 flex items-center gap-1.5 whitespace-nowrap">
+            <span className="text-[10px] lg:text-xs uppercase text-slate-400">Matched</span>
+            <span className="text-[10px] lg:text-xs font-bold text-amber-300 px-1.5 py-px rounded bg-amber-400/15 border border-amber-400/30">
+              {matchedCount}/{pairCount}
+            </span>
+          </span>
+          <button onClick={() => triggerAction('RESET_GAME')} title="Re-deal this round"
+            className="p-1.5 bg-slate-800 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors">
+            <RefreshCcw size={14} />
           </button>
         </div>
+      </header>
+
+      {/* Instruction banner */}
+      <div className="w-full shrink-0 py-1.5 px-3.5 rounded-xl bg-[#0B132B]/90 border border-slate-800 flex items-center justify-between gap-3">
+        <p className="text-xs lg:text-sm text-slate-300 truncate">
+          <span className="text-white font-bold">{matchedCount === 0 ? 'Fresh deal!' : 'Keep going!'}</span> Tap a word, then tap its matching photo.
+        </p>
+        <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 flex items-center gap-1.5 whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          {pairCount} pairs hidden
+        </span>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full h-3 bg-slate-800 rounded-full mb-6 overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-purple-500 to-emerald-500 rounded-full transition-all duration-500"
-          style={{ width: `${(matchedCount / Math.max(1, matchPairs.length)) * 100}%` }} />
-      </div>
-
-      {/* Game Area */}
-      <div className="flex-1 flex items-center justify-center gap-12 max-w-6xl mx-auto w-full">
-        {/* Left Column — Prompts */}
-        <div className="flex flex-col gap-4 w-[45%]">
-          {leftItems.map((item) => (
-            <button key={item.id} onClick={() => handleLeftClick(item.id)} disabled={item.matched}
-              className={`text-left px-6 py-4 rounded-2xl text-xl font-bold transition-all duration-300 border-2 flex items-center gap-3
-                ${item.matched ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 opacity-50'
-                  : selectedLeft === item.id ? 'bg-blue-600 border-blue-400 text-white scale-105 shadow-lg shadow-blue-500/30'
-                  : isWrong ? 'bg-slate-800 border-slate-600 text-white' : 'bg-slate-800 border-slate-600 text-white hover:border-blue-400'}`}>
-              {item.kind === 'audio' ? (
-                <><Volume2 size={24} className="text-blue-300 shrink-0" /><span className="text-sm text-blue-300">Tap to hear</span></>
-              ) : (
-                <span>{item.display}</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Center Connector */}
-        <div className="flex flex-col items-center gap-4 text-slate-600">
-          {matchPairs.map((_, i) => (
-            <div key={i} className="w-8 h-14 flex items-center justify-center">
-              {i < matchedCount ? '✓' : '→'}
-            </div>
-          ))}
-        </div>
-
-        {/* Right Column — Answers (text + image tiles) */}
-        <div className="flex flex-col gap-4 w-[45%]">
-          {rightItems.map((item) => {
-            const isHint = hintTileId === item.id;
-            return (
-              <button key={item.id} onClick={() => handleRightClick(item.id)} disabled={item.matched}
-                className={`text-left px-6 py-4 rounded-2xl text-lg font-medium transition-all duration-300 border-2 flex items-center gap-3
-                  ${item.matched ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 opacity-50'
-                    : selectedRight === item.id ? 'bg-purple-600 border-purple-400 text-white scale-105 shadow-lg shadow-purple-500/30'
-                    : isHint ? 'bg-yellow-500/20 border-yellow-400 text-yellow-200 animate-pulse shadow-lg shadow-yellow-500/30'
-                    : isWrong ? 'bg-slate-800 border-red-500 text-white animate-shake'
-                    : 'bg-slate-800 border-slate-600 text-slate-200 hover:border-purple-400'}`}>
-                {item.kind === 'image' ? (
-                  <img src={item.display} alt="" className="w-16 h-16 object-contain drop-shadow-lg" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.2'; }} />
+      {/* Matching arena: two balanced columns, each a 2-col grid (3 rows for a
+          6-pair deal — nothing clips, per the Stitch revision). */}
+      <main className={`w-full flex-1 min-h-0 grid gap-3 lg:gap-5 items-stretch ${pairCount > 4 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+        {/* Column A — word tablets */}
+        <section className="h-full min-h-0 flex flex-col">
+          <div className="flex items-center justify-between mb-1 px-1 shrink-0">
+            <span className="fm-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-[#38BDF8]">
+              Column A <span className="text-slate-500 normal-case">· words</span>
+            </span>
+            <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 uppercase hidden sm:block">Tap word first</span>
+          </div>
+          <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 lg:gap-3.5">
+            {leftItems.map((item, i) => (
+              <button key={item.id} onClick={() => handleLeftClick(item.id)} disabled={item.matched}
+                className={`relative rounded-xl border-2 px-2.5 lg:px-3.5 flex flex-col justify-center min-h-0 transition-all duration-200
+                  ${item.matched ? 'border-emerald-500/40 bg-emerald-950/30 opacity-45'
+                    : selectedLeft === item.id ? 'border-[#38BDF8] bg-[#38BDF8]/10 fm-glow-sky'
+                    : 'border-slate-700 bg-[#111C3D] hover:border-[#38BDF8]/70'}`}>
+                <span className="fm-mono absolute top-1 left-1.5 text-[8px] lg:text-[9px] font-bold px-1.5 py-px rounded bg-slate-800/90 text-slate-500 border border-slate-700/60">
+                  W{i + 1}
+                </span>
+                {item.kind === 'audio' ? (
+                  <span className="flex items-center gap-2 py-1.5">
+                    <Volume2 size={16} className="text-[#7DD3FC] shrink-0" />
+                    <span className="text-xs lg:text-sm font-bold text-[#7DD3FC]">Tap to hear</span>
+                  </span>
                 ) : (
-                  <span>{item.display}</span>
+                  <span className={`font-extrabold tracking-wide truncate text-center ${pairCount > 4 ? 'text-base lg:text-xl' : 'text-xl lg:text-2xl'}
+                    ${item.matched ? 'text-emerald-400' : selectedLeft === item.id ? 'text-[#7DD3FC]' : 'text-white'}`}>
+                    {item.display}
+                  </span>
                 )}
+                {item.matched && <Check size={14} className="absolute top-1.5 right-1.5 text-emerald-400" strokeWidth={4} />}
               </button>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Column B — photo tiles (landscape) */}
+        <section className="h-full min-h-0 flex flex-col">
+          <div className="flex items-center justify-between mb-1 px-1 shrink-0">
+            <span className="fm-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-[#FF2E79]">
+              Column B <span className="text-slate-500 normal-case">· photos</span>
+            </span>
+            <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 uppercase hidden sm:block">Match the word</span>
+          </div>
+          <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 lg:gap-3.5">
+            {rightItems.map((item) => {
+              const isHint = hintTileId === item.id;
+              return (
+                <button key={item.id} onClick={() => handleRightClick(item.id)} disabled={item.matched}
+                  className={`relative rounded-xl border-2 overflow-hidden min-h-0 transition-all duration-200
+                    ${item.matched ? 'border-emerald-500/40 opacity-45'
+                      : selectedRight === item.id ? 'border-[#FF2E79] fm-glow-sky'
+                      : isHint ? 'border-amber-400 fm-pulse-hint'
+                      : isWrong ? 'border-rose-400 fm-shake'
+                      : 'border-slate-700 bg-[#111C3D] hover:border-[#FF2E79]/70'}`}>
+                  {item.kind === 'image' && String(item.display).startsWith('http') ? (
+                    <img src={item.display} alt="" className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.15'; }} />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center font-bold text-slate-300 text-base lg:text-xl px-2 text-center">
+                      {item.display}
+                    </span>
+                  )}
+                  {item.matched && (
+                    <span className="absolute inset-0 bg-emerald-950/60 flex items-center justify-center">
+                      <Check size={22} className="text-emerald-400" strokeWidth={4} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </main>
 
       {/* Micro-explanation overlay (2nd miss feedback) */}
       {showMicroExplanation && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 pointer-events-none">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-fade-in max-w-md">
-            <Lightbulb size={40} className="text-amber-500 mb-3" />
-            <p className="text-2xl font-bold text-slate-800">{showMicroExplanation.left.display}</p>
-            <p className="text-xl text-slate-500 mt-1">= {showMicroExplanation.right.display}</p>
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 pointer-events-none">
+          <div className="bg-[#111C3D] border-2 border-amber-400/60 p-6 lg:p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-fade-in max-w-md">
+            <div className="flex items-center gap-2 mb-2">
+              <Lightbulb size={20} className="text-amber-400" />
+              <span className="fm-mono text-[10px] font-bold tracking-widest uppercase text-amber-300">Remember this pair</span>
+            </div>
+            <p className="fm-mono text-2xl lg:text-3xl font-extrabold text-white">{showMicroExplanation.left.display}</p>
+            <p className="text-lg text-slate-400 mt-1">= {showMicroExplanation.right.display}</p>
           </div>
         </div>
       )}
@@ -553,11 +611,11 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       {roundComplete && !allComplete && (
         <div
           onClick={advanceRound}
-          className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 cursor-pointer">
-          <div className="bg-white p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
-            <Check size={56} className="text-emerald-500 mb-3" strokeWidth={4} />
-            <h2 className="text-3xl font-black text-slate-800">Round {roundIndex} Complete!</h2>
-            <p className="text-lg text-slate-500 mt-1">Next round loading…</p>
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 cursor-pointer">
+          <div className="bg-[#111C3D] border-2 border-emerald-400/60 p-8 lg:p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
+            <Check size={52} className="text-emerald-400 mb-3" strokeWidth={4} />
+            <h2 className="text-2xl lg:text-3xl font-black text-white">Round {roundIndex} Complete!</h2>
+            <p className="text-base text-slate-400 mt-1">Next round loading…</p>
           </div>
         </div>
       )}
@@ -567,27 +625,18 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         <div
           onClick={() => setAllComplete(false)}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
-            <div className="w-32 h-32 bg-purple-100 text-purple-500 rounded-full flex items-center justify-center mb-6">
-              <Check size={64} strokeWidth={4} />
+          <div className="bg-[#111C3D] border-2 border-[#FF2E79]/60 p-8 lg:p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
+            <div className="w-24 h-24 bg-[#FF2E79]/15 text-[#FF2E79] rounded-full flex items-center justify-center mb-5">
+              <Check size={56} strokeWidth={4} />
             </div>
-            <h2 className="text-5xl font-black text-slate-800 mb-2">
+            <h2 className="text-3xl lg:text-5xl font-black text-white mb-2">
               {pickedStudent ? `${pickedStudent.name} nailed it!` : 'All Matched!'}
             </h2>
-            <p className="text-2xl text-slate-500 font-medium">Great job connecting the pairs!</p>
-            <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
+            <p className="text-lg lg:text-2xl text-slate-400">Great job connecting the pairs!</p>
+            <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-8px); }
-          40%, 80% { transform: translateX(8px); }
-        }
-        .animate-shake { animation: shake 0.4s ease-in-out; }
-      `}</style>
     </div>
   );
 };

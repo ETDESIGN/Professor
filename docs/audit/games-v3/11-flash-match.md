@@ -189,6 +189,20 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 **§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/11-flash-match/{1-fresh-deal,2-connection}.{png,html}`. QA verdict: **#1 FAILED the gate — REVISION SUBMITTED** (it reproduced the owner's core complaint: 6th row clipped by the bottom bar, square photos, decorative clutter). `edit_screens` correction (session 8223030384017350829): compress header/footer, 6 rows fully visible, LANDSCAPE 3:2 photo tiles, strip teacher-panel clutter. **#2 connection screen: PASS** (HTML clean, electric connection path, selection states). Implementation of this game waits for the revised #1 to land + re-export.
 
 *(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**IMPLEMENTED 2026-09-10 (v3 redesign of `BoardFlashMatch.tsx`)** — rebuilt from `stitch/11-flash-match/{1-fresh-deal,2-connection}` where **#1 is the Stitch-REVISED export** (edit session 8223030384017350829: the first pass FAILED the QA gate by reproducing the owner's core complaint — 6th row clipped by a tall bottom bar + square photos + tracker/spy-note clutter). Logic preserved verbatim incl. the wave-1 tautology-validator fix.
+
+**Fidelity log (Stitch → shipped):**
+| # | Design element | Shipped | Note |
+|---|---|---|---|
+| 1 | Compressed header (FM badge, ROUND n/4 pill, Matched n/6 gold pill) + slim instruction banner | ✅ | Replaces the old tall header + fat progress bar — that height is what now keeps all rows visible; matched pill doubles as progress (bar removed) |
+| 2 | Column A words + Column B photos, each a 2-col grid (3 rows for 6 pairs) | ✅ | Dynamic pair counts reflow in the same grid; vision-verified 6+6 tiles fully visible |
+| 3 | Landscape photo tiles | ✅ | object-cover fills each grid cell (landscape by geometry) |
+| 4 | W1–W6 tablet badges, "Tap word first" column hints | ✅ | |
+| 5 | Selection state sky vs pink (design #2 electric connection) | ✅ | Word select = sky glow; photo select = pink glow; matched = emerald w/ check veil; wrong = rose shake; hint = amber pulse |
+| 6 | Audio tiles ("Tap to hear") | ✅ | Kept from the existing audio-pair mechanic, v3-styled |
+| 7 | Student turn chip / streak / teacher-sync pills in header | ✗ | Live in BoardShell (whose-turn pill + rails) — no duplication; header keeps `pl-40/lg:pl-48` clearance |
+| 8 | Sora/Inter + electric cyan | mapped → Fredoka/JetBrains Mono + sky/pink | App v3 stack |
+
+**Gauntlet:** tsc clean · 762/762 vitest (BoardFlashMatch test updated to v3 round-pill string) · build clean · Playwright capture (`screenshots/11-flash-match-v3-{fresh,selected,floor}.png`) — vision-verified ALL rows fully visible (the owner complaint is dead), landscape photos, no clipping; no overflow at 700×320.
