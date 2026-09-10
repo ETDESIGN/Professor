@@ -60,9 +60,9 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 07 | `07-story-stage.md` | Story Stage | `STORY_STAGE` | BoardStoryStage.tsx | OUTPUT | **cowork-done** |
 | 08 | `08-dialogue-stage.md` | Dialogue Stage | `DIALOGUE_STAGE` | BoardDialogueStage.tsx | OUTPUT | pending |
 | 09 | `09-grammar-forge.md` | Grammar Forge | `GRAMMAR_PRACTICE` (+legacy `SCRAMBLE` sibling uses BoardUnscramble) | BoardGrammarForge.tsx | PRACTICE | pending |
-| 10 | `10-listen-tap.md` | Listen & Tap | `LISTEN_TAP` | BoardListenTap.tsx | PRACTICE | **cowork-done** |
-| 11 | `11-flash-match.md` | Flash Match | `FLASH_MATCH` | BoardFlashMatch.tsx | PRACTICE | **cowork-done** |
-| 12 | `12-unscramble.md` | Unscramble | `UNSCRAMBLE` (alias `SCRAMBLE`) | BoardUnscramble.tsx | PRACTICE | **cowork-done** |
+| 10 | `10-listen-tap.md` | Listen & Tap | `LISTEN_TAP` | BoardListenTap.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED 632e6f4 |
+| 11 | `11-flash-match.md` | Flash Match | `FLASH_MATCH` | BoardFlashMatch.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED 77fa16f |
+| 12 | `12-unscramble.md` | Unscramble | `UNSCRAMBLE` (alias `SCRAMBLE`) | BoardUnscramble.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED b08d819 |
 | 13 | `13-i-say-you-say.md` | I Say You Say | `I_SAY_YOU_SAY` (alias `SPEAKING`) | BoardISayYouSay.tsx | PRACTICE | **cowork-done** |
 | 14 | `14-whats-missing.md` | What's Missing | `WHATS_MISSING` | BoardWhatsMissing.tsx | PRACTICE | pending |
 | 15 | `15-magic-eyes.md` | Magic Eyes | `MAGIC_EYES` | BoardWhatsMissing.tsx (mode `magic_eyes`) | PRACTICE | pending |
@@ -72,7 +72,7 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 19 | `19-sound-lab.md` | Sound Lab | `SOUND_LAB` | BoardSoundLab.tsx | PRACTICE | **cowork-done** |
 | 20 | `20-story-quest.md` | Story Quest | `STORY_QUEST` | BoardStoryQuest.tsx | PRACTICE | **cowork-done** |
 | 21 | `21-sentence-lab.md` | Sentence Lab | `SENTENCE_LAB` | BoardSentenceLab.tsx | PRACTICE | **cowork-done** |
-| 22 | `22-phonics-arena.md` | Phonics Arena | `PHONICS_ARENA` | BoardPhonicsArena.tsx | PRACTICE | **cowork-done** |
+| 22 | `22-phonics-arena.md` | Phonics Arena | `PHONICS_ARENA` | BoardPhonicsArena.tsx | PRACTICE | **cowork-done** v3-UI SHIPPED 0ec0cfb |
 | 23 | `23-memory-lab.md` | Memory Lab | `MEMORY_LAB` | BoardMemoryLab.tsx | PRACTICE | **cowork-done** |
 | 24 | `24-class-rally.md` | Class Rally (co-op) | `CLASS_RALLY` | BoardClassRally.tsx | PRACTICE | **cowork-done** |
 | 25 | `25-fast-vocab.md` | Fast Vocab | `FAST_VOCAB` | BoardFastVocab.tsx | PRACTICE | **cowork-done** |
@@ -82,7 +82,7 @@ ZCode: implements into apps/board/templates/Board*.tsx, tests, deploys     statu
 | 29 | `29-team-battle.md` | Team Battle (tic-tac-toe) | `TEAM_BATTLE` | BoardTeamBattle.tsx | ASSESS | pending |
 | 30 | `30-speed-quiz.md` | Speed Quiz | `SPEED_QUIZ` | BoardSpeedQuiz.tsx | ASSESS | pending |
 | 31 | `31-wheel-of-destiny.md` | Wheel of Destiny (picker) | `WHEEL_OF_DESTINY` | BoardWheelOfDestiny.tsx | ASSESS | pending |
-| 32 | `32-vocab-blitz.md` | Vocab Blitz | `VOCAB_BLITZ` | BoardVocabBlitz.tsx | ASSESS | **cowork-done** |
+| 32 | `32-vocab-blitz.md` | Vocab Blitz | `VOCAB_BLITZ` | BoardVocabBlitz.tsx | ASSESS | **cowork-done** v3-UI SHIPPED b43ff84 |
 | 33 | `33-game-arena.md` | Game Arena (winner celebration) | `GAME_ARENA` | BoardGameArena.tsx | WRAPUP | pending |
 | 34 | `34-unit-selection.md` | Unit Selection dashboard | `UNIT_SELECTION` | BoardUnitSelection.tsx | WRAPUP | pending |
 
