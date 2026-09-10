@@ -34,6 +34,8 @@ export interface SpellingBeeClock {
   elapsedRatio: number;
   /** Wrong-letter penalty: drop the clock by 1s, floor 0. */
   penalize: () => void;
+  /** In-class extension: add extra seconds to the countdown (clamped to 120s max). */
+  addSeconds: (extra: number) => void;
 }
 
 export function useSpellingBeeClock({ seconds, running, onExpire, resetKey }: SpellingBeeClockOptions): SpellingBeeClock {
@@ -77,7 +79,12 @@ export function useSpellingBeeClock({ seconds, running, onExpire, resetKey }: Sp
     setTimeRemaining((prev) => Math.max(0, prev - 1));
   };
 
+  const addSeconds = (extra: number) => {
+    if (!timed) return;
+    setTimeRemaining((prev) => Math.min(120, prev + extra));
+  };
+
   const elapsedRatio = timed ? Math.max(0, Math.min(1, 1 - timeRemaining / seconds)) : 0;
 
-  return { timeRemaining, elapsedRatio, penalize };
+  return { timeRemaining, elapsedRatio, penalize, addSeconds };
 }

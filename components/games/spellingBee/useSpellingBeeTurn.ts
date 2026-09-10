@@ -45,11 +45,11 @@ export type SpellingBeeStatus = 'presenting' | 'typing' | 'solved' | 'revealed' 
 
 // games-v3 audit F1/F2: every word now opens with a presentation beat (image +
 // auto-played audio, clock NOT running) before typing. The solved hold is the
-// orthographic-consolidation moment — 0.9s was a flash, the kid never read
-// their own correct spelling; the reveal hold got the same treatment.
-const PRESENT_BEAT_MS = 2600;
-const SOLVE_HOLD_MS = 2200;
-const REVEAL_HOLD_MS = 2400;
+// orthographic-consolidation moment — 2.6s gives time for whole-class choral reading;
+// the reveal hold gives 2.8s.
+const PRESENT_BEAT_MS = 3200;
+const SOLVE_HOLD_MS = 2600;
+const REVEAL_HOLD_MS = 2800;
 const WRONG_FLASH_MS = 600;
 const HINT_PULSE_MS = 2500;
 
@@ -286,11 +286,19 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
 
   // Physical keyboard (a–z; no text input anywhere, so no native keyboard on
   // touch devices — the on-screen QWERTY is the touch surface).
+  // Also supports SPACE / ENTER to transition out of presenting beat.
   const typeLetterRef = useRef(typeLetter);
   typeLetterRef.current = typeLetter;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (statusRef.current === 'presenting') {
+          e.preventDefault();
+          beginTyping();
+          return;
+        }
+      }
       if (!/^[a-zA-Z]$/.test(e.key)) return;
       typeLetterRef.current(e.key);
     };
@@ -385,6 +393,14 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
     setStatus('complete');
   }, []);
 
+  /** In-class timer extension: add extra seconds (+10s) to current countdown */
+  const addTime = useCallback(
+    (extra: number = 10) => {
+      clock.addSeconds(extra);
+    },
+    [clock],
+  );
+
   return {
     // word state
     status,
@@ -403,6 +419,7 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
     timeRemaining: clock.timeRemaining,
     timerSeconds: settings.timerSeconds,
     elapsedRatio: clock.elapsedRatio,
+    addTime,
     // typing + controls
     typeLetter,
     hint,
