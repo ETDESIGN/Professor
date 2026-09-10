@@ -169,6 +169,26 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 **§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/10-listen-tap/{1-options-phase,2-auto-advance}.{png,html}`. QA verdict: **PASS (implementation may proceed)**. HTML scan: zero CJK (an earlier vision-tool "Chinese on Lion card" read was a hallucination — cards are pure photos). Palette conforms to v3 system. Logged deviations for implementation: (a) audio prompt bar rendered slim in design → implement a LARGE circular speaker button as the centerpiece; (b) design's top-left cluster sits at frame edge → board header starts after the phase pill (`pl-40 lg:pl-48`, ~180px clearance); (c) option photo cards are near-square in the 2x2 grid → implement LANDSCAPE ~4:3 per owner rule 2026-09-10.
 
 *(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+
+**IMPLEMENTED 2026-09-10 (v3 redesign of `BoardListenTap.tsx`)** — rebuilt from `stitch/10-listen-tap/{1-options-phase,2-auto-advance}`. Logic (incl. the §3 pool-collapse fix: dedupe memo + pool-first frozen fallback) preserved verbatim; presentation layer rewritten.
+
+**Fidelity log (Stitch → shipped):**
+| # | Design element | Shipped | Note |
+|---|---|---|---|
+| 1 | Header: PHASE badge + title + Round/Q chip + student chip + streak chip + Replay pill | ✅ minus student chip | Student identity already lives in BoardShell's whose-turn pill (no duplication); header starts `pl-40/lg:pl-48` to clear the shell's phase pill |
+| 2 | Audio-cue banner with waveform | ✅ | Waveform bars animate during listen phase only; prompt TEXT is never displayed during listen/options — our `promptText` IS the spoken target and would reveal the answer on the projector (design adaptation, not in Stitch mock) |
+| 3 | 2×2 photo cards, letter badges A–D, label plate + check glyph | ✅ | Cards landscape by grid geometry; 2-option MINIMAL_PAIR renders 2-up larger |
+| 4 | Correct state: emerald MATCHED pill + glow, others dimmed 40% grayscale | ✅ | Verified via DOM probe (verdict=CORRECT, emerald class present) |
+| 5 | Hands-free auto-advance bar ("Next question in…") | ✅ | 0.9s correct / 2.2s teaching / 3s dictation — durations match the logic, not the mock's 1.2s |
+| 6 | Footer HUD: class score + progress dots Q1–Q3 + Skip + pink Confirm CTA | ✅ partial | Class score lives in BoardShell rail/footer (no dup); progress dots = per-item Q n/N; pink CTA = "Next Round" in preview phase (game is single-tap-answer, not select-then-confirm — pink stays the single hot accent) |
+| 7 | Cyan (#00ffcc) accents | mapped → sky #38BDF8 | v3 cross-game token consistency (Word Search/Focus Cards already ship sky for audio) |
+| 8 | Sora/Inter/Space Grotesk fonts | mapped → Fredoka + JetBrains Mono | App v3 font stack |
+| 9 | Chinese (听！/太棒了 etc. in old UI) | removed | English-first rule: praise/cues have English equivalents |
+| 10 | Dictation "compare" state (not in Stitch mock) | ✅ v3-styled | Emerald/rose verdict card: typed text vs target + match % |
+
+**Gauntlet:** tsc clean · 762/762 vitest · build clean · Playwright board capture 5 states (`screenshots/10-listen-tap-v3-{listen,options,feedback,preview,floor}.png`) incl. 700×320 phone floor (no page overflow; DOM-probe verified correct-answer state).
+
+

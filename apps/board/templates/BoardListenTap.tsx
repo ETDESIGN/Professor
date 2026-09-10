@@ -1,19 +1,22 @@
-// BoardListenTap v2 — multi-type listen recognition + production game.
+// BoardListenTap v3 — multi-type listen recognition + production game.
 //
-// Rewritten per listentap-v2-spec.md. Consumes LISTEN_SELECT,
-// MINIMAL_PAIR_SWIPE, and DICTATION via useEscalatingPool.
+// UI REBUILT FROM STITCH DESIGN (games-v3 §5, stitch/10-listen-tap/):
+//   #1 options-phase (audio-cue banner + 2x2 landscape photo cards + footer
+//      HUD) and #2 correct-feedback (emerald MATCHED TARGET + dimmed losers +
+//      hands-free auto-advance bar).
+// Fidelity log lives in docs/audit/games-v3/10-listen-tap.md §6.
 //
-// Round types:
-//   LISTEN_SELECT (rung 2): audio → tap matching image (current mechanic).
-//   MINIMAL_PAIR_SWIPE (rung 2): audio → pick left/right of near-sounds.
-//   DICTATION (rung 4): audio → teacher types answer on Remote-Baton.
-//
-// Lifecycle: standard single-item (mistakesRef + awardedRef, reset on turnId).
-// Scoring: dual-write — addPoints(id, delta) + recordAttempt(...) per event.
+// Consumes LISTEN_SELECT, MINIMAL_PAIR_SWIPE, and DICTATION via
+// useEscalatingPool. Lifecycle: standard single-item (mistakesRef +
+// awardedRef, reset on turnId). Scoring: dual-write — addPoints(id, delta) +
+// recordAttempt(...) per event.
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Check, X, Flame, ChevronRight, Keyboard, Lightbulb } from 'lucide-react';
+import {
+  Volume2, Check, X, Flame, ChevronRight, Keyboard, Lightbulb,
+  Headphones, CheckCircle2, Timer, Zap, Flag,
+} from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { playCue } from './playCue';
@@ -40,15 +43,17 @@ function levenshtein(a: string, b: string): number {
 }
 
 const DICTATION_PASS_THRESHOLD = 0.6;
-const TILE_COLORS = [
-  { bg: 'bg-[#FF6B6B]', border: 'border-[#FF6B6B]' },
-  { bg: 'bg-[#4ECDC4]', border: 'border-[#4ECDC4]' },
-  { bg: 'bg-[#FFD93D]', border: 'border-[#FFD93D]' },
-  { bg: 'bg-[#A78BFA]', border: 'border-[#A78BFA]' },
-];
 
 type Phase = 'listen' | 'options' | 'feedback' | 'preview';
 type RoundKind = 'LISTEN_SELECT' | 'MINIMAL_PAIR_SWIPE' | 'DICTATION';
+
+const KIND_LABEL: Record<RoundKind, string> = {
+  LISTEN_SELECT: 'Tap the picture',
+  MINIMAL_PAIR_SWIPE: 'Which sound did you hear?',
+  DICTATION: 'Spell it on the Remote',
+};
+
+const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 // ── Component ─────────────────────────────────────────────────────────────
 const BoardListenTap = ({ data }: { data: any }) => {
@@ -401,9 +406,9 @@ const BoardListenTap = ({ data }: { data: any }) => {
   if (loading || !currentItem) {
     if (!loading && !currentItem) {
       return (
-        <div className="h-full flex flex-col items-center justify-center text-slate-400">
-          <Volume2 size={48} className="text-green-500/30 mb-3" />
-          <p className="font-display text-2xl font-bold">Content isn't ready for this round yet.</p>
+        <div className="lt-root h-full flex flex-col items-center justify-center text-slate-400 bg-[#070C18]">
+          <Headphones size={48} className="text-sky-500/30 mb-3" />
+          <p className="text-2xl font-bold">Content isn't ready for this round yet.</p>
           <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
             className="mt-6 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-white">
             Skip Slide
@@ -412,194 +417,390 @@ const BoardListenTap = ({ data }: { data: any }) => {
       );
     }
     return (
-      <div className="h-full flex flex-col items-center justify-center text-slate-400">
-        <Volume2 size={48} className="text-green-500/30 mb-3" />
-        <p className="font-display text-2xl font-bold">{loading ? 'Loading…' : 'No listening items.'}</p>
+      <div className="lt-root h-full flex flex-col items-center justify-center text-slate-400 bg-[#070C18]">
+        <Headphones size={48} className="text-sky-500/30 mb-3" />
+        <p className="text-2xl font-bold">{loading ? 'Loading…' : 'No listening items.'}</p>
       </div>
     );
   }
 
   const kind = currentItem.kind;
+  const total = Math.max(1, distinctPoolItems.length);
+  const itemNum = (round % total) + 1;
+  const correctLabel = currentItem.options[correctIndex]?.label || '';
 
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Streak counter */}
-      <AnimatePresence>
-        {classStreak >= 1 && (
-          <motion.div initial={{ opacity: 0, scale: 0.5, x: 20 }} animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.5 }} className="absolute top-3 right-4 flex items-center gap-1.5 z-20">
-            {classStreak >= 3 && <Flame size={classStreak >= 10 ? 32 : classStreak >= 5 ? 26 : 20}
-              className={classStreak >= 5 ? 'text-orange-400' : 'text-amber-400'} />}
-            <span className={`font-display font-black tabular-nums ${classStreak >= 10 ? 'text-4xl text-orange-300' : classStreak >= 5 ? 'text-3xl text-orange-400' : 'text-2xl text-amber-400'}`}>
-              {classStreak}
-            </span>
+  // ── Render pieces ─────────────────────────────────────────────────────
+
+  // Header. BoardShell's phase pill sits top-left (~164px) — pl-40/lg:pl-48
+  // keeps the game badge clear of it (same fix as Word Search, 2026-09-10).
+  const header = (
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-40 lg:pl-48 h-12 lg:h-14 [@media(max-height:430px)]:h-9 shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/40 flex items-center justify-center shadow-[0_0_18px_-4px_rgba(56,189,248,0.5)] shrink-0">
+          <Headphones size={16} className="text-[#38BDF8]" />
+        </div>
+        <h1 className="text-lg lg:text-xl font-bold tracking-tight text-white truncate">Listen &amp; Tap</h1>
+        <span className="hidden sm:inline px-2.5 py-0.5 rounded-full text-[10px] lg:text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
+          Q{itemNum}/{total} · {KIND_LABEL[kind]}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {classStreak >= 2 && (
+          <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-950/60 border border-amber-500/50">
+            <Flame size={14} className="text-amber-400" />
+            <span className="lt-mono text-xs font-bold tracking-wider text-amber-300">STREAK {classStreak}</span>
           </motion.div>
         )}
-      </AnimatePresence>
+        <button onClick={playAudio} title="Replay the audio"
+          className="flex items-center gap-2 px-3 lg:px-5 py-1.5 lg:py-2 rounded-xl bg-slate-800/90 border border-[#38BDF8]/50 hover:bg-[#38BDF8]/15 hover:shadow-[0_0_16px_-2px_rgba(56,189,248,0.4)] transition-all active:scale-95">
+          <Volume2 size={16} className="text-[#38BDF8]" />
+          <span className="hidden md:inline text-xs lg:text-sm font-bold uppercase tracking-wide text-[#7DD3FC]">Replay Audio</span>
+        </button>
+        {(uiPhase === 'options' || uiPhase === 'listen') && (
+          <button onClick={advanceRound} title="Skip this question"
+            className="px-2.5 lg:px-4 py-1.5 lg:py-2 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-colors active:scale-95">
+            Skip
+          </button>
+        )}
+      </div>
+    </header>
+  );
 
-      {/* Round counter */}
-      <div className="absolute top-3 left-4 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1 z-20">
-        <span className="text-sm text-slate-400 font-bold">Round {round + 1} · {kind.replace(/_/g, ' ')}</span>
+  // Audio-cue banner. NEVER renders promptText during listen/options — that
+  // text IS the spoken target and would reveal the answer on the projector
+  // (design adaptation; fidelity log). It appears only after answering.
+  const banner = (
+    <div className="w-full shrink-0 flex items-center justify-between gap-4 px-4 lg:px-6 py-2 lg:py-2.5 rounded-2xl bg-[#0B132B]/90 border border-[#38BDF8]/25 shadow-[0_0_24px_-8px_rgba(56,189,248,0.25)]">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={`w-9 h-9 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+          uiPhase === 'listen' ? 'bg-[#38BDF8]/20 border border-[#38BDF8]/60 shadow-[0_0_14px_-2px_rgba(56,189,248,0.5)]' : 'bg-slate-800 border border-slate-700'
+        }`}>
+          <Headphones size={18} className={uiPhase === 'listen' ? 'text-[#38BDF8]' : 'text-slate-400'} />
+        </div>
+        <div className="min-w-0">
+          <p className="lt-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.18em] text-[#38BDF8] flex items-center gap-2">
+            Auditory prompt
+            <span className="hidden sm:flex items-end gap-[3px] h-3">
+              {[0, 1, 2, 3].map(i => (
+                <span key={i} className={`w-[3px] rounded-full bg-[#38BDF8] ${uiPhase === 'listen' ? 'lt-wave' : ''}`}
+                  style={{ height: [12, 7, 14, 9][i], animationDelay: `${i * 0.12}s` }} />
+              ))}
+            </span>
+          </p>
+          <p className="text-sm lg:text-lg font-bold text-white truncate">
+            {uiPhase === 'listen' ? (kind === 'DICTATION' ? 'Listen… then type what you heard.' : 'Listen carefully… then tap the matching picture.')
+              : kind === 'DICTATION' ? 'Type what you heard on the Remote.'
+              : uiPhase === 'feedback' && selectedTile === correctIndex ? 'You heard:'
+              : uiPhase === 'feedback' ? 'The answer was:'
+              : 'Which picture matches what you hear?'}
+            {(uiPhase === 'feedback' || uiPhase === 'preview') && (
+              <span className="text-[#7DD3FC]"> {correctLabel}</span>
+            )}
+          </p>
+        </div>
+      </div>
+      {/* Feedback verdict badge (design #2) */}
+      {uiPhase === 'feedback' && kind !== 'DICTATION' && (
+        <motion.div initial={{ scale: 0.7, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-full border shrink-0 ${
+            selectedTile === correctIndex
+              ? 'bg-emerald-950/80 border-emerald-400/70 shadow-[0_0_16px_-4px_rgba(16,185,129,0.6)]'
+              : 'bg-rose-950/80 border-rose-400/70'
+          }`}>
+          {selectedTile === correctIndex
+            ? <CheckCircle2 size={16} className="text-emerald-400" />
+            : <X size={16} className="text-rose-400" />}
+          <span className={`lt-mono text-xs font-bold tracking-wider ${selectedTile === correctIndex ? 'text-emerald-300' : 'text-rose-300'}`}>
+            {selectedTile === correctIndex ? 'CORRECT' : 'TRY AGAIN'}
+          </span>
+        </motion.div>
+      )}
+    </div>
+  );
+
+  // Option card (design #1: landscape photo card, letter badge, label plate;
+  // design #2 states: correct = emerald MATCHED TARGET glow, others dimmed).
+  const renderCard = (opt: any, i: number) => {
+    const isCorrect = i === correctIndex;
+    const isSelected = selectedTile === i;
+    const showResult = uiPhase === 'feedback' || uiPhase === 'preview';
+    const solvedCorrect = showResult && selectedTile === correctIndex;
+    const isHinted = hintActive && isCorrect && !isSelected;
+    const twoUp = currentItem.options.length === 2;
+
+    return (
+      <motion.button
+        key={i}
+        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: i * 0.07, duration: 0.28 }}
+        onClick={() => handleTap(i)}
+        disabled={uiPhase !== 'options'}
+        className={`lt-card group relative min-h-0 flex flex-col overflow-hidden rounded-2xl border text-left transition-all duration-200 ${
+          solvedCorrect && isCorrect
+            ? 'border-2 border-emerald-400 lt-glow-correct scale-[1.02]'
+            : solvedCorrect
+              ? 'border border-slate-700/60 opacity-40 grayscale-[30%]'
+              : wrongFlash && isSelected
+                ? 'border-2 border-rose-400 lt-shake bg-rose-950/30'
+                : isSelected
+                  ? 'border-2 border-[#38BDF8] lt-glow-sky'
+                  : isHinted
+                    ? 'border-2 border-amber-400 lt-pulse-hint bg-amber-950/20'
+                    : 'border border-slate-700/80 bg-[#111C3D] hover:border-[#38BDF8]/60 hover:-translate-y-0.5'
+        } ${uiPhase === 'options' ? 'cursor-pointer' : 'cursor-default'}`}>
+        {/* Photo area (landscape — fills the card top) */}
+        <div className="relative flex-1 min-h-0 overflow-hidden bg-[#0B132B]">
+          {opt.image && String(opt.image).startsWith('http') ? (
+            <img src={opt.image} alt="" className="absolute inset-0 w-full h-full object-cover"
+              onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0.15')} />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="lt-mono font-extrabold text-slate-600 text-5xl lg:text-7xl">
+                {opt.label?.charAt(0).toUpperCase() || '?'}
+              </span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B] via-transparent to-black/25" />
+          {/* Letter badge + option tag */}
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
+            <span className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center lt-mono font-extrabold text-sm shadow-md ${
+              solvedCorrect && isCorrect ? 'bg-emerald-400 text-slate-900'
+                : isSelected ? 'bg-[#38BDF8] text-slate-900'
+                : 'bg-[#070C18]/90 border border-slate-600 text-sky-300'
+            }`}>{LETTERS[i]}</span>
+            <span className="hidden md:inline lt-mono text-[9px] tracking-[0.14em] uppercase text-slate-300/80 bg-[#070C18]/80 px-2 py-0.5 rounded">
+              Option {i + 1}
+            </span>
+          </div>
+          {/* Correct verdict pill (design #2) */}
+          {solvedCorrect && isCorrect && (
+            <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500 text-slate-900 lt-mono text-[10px] font-black tracking-wider uppercase shadow-[0_0_18px_-2px_rgba(16,185,129,0.8)]">
+              <Check size={12} strokeWidth={4} /> Matched
+            </motion.div>
+          )}
+          {wrongFlash && isSelected && (
+            <div className="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg bg-rose-500 text-white flex items-center justify-center">
+              <X size={16} strokeWidth={4} />
+            </div>
+          )}
+        </div>
+        {/* Label plate */}
+        <div className={`shrink-0 h-10 lg:h-14 px-3 lg:px-4 flex items-center justify-between gap-2 border-t ${
+          solvedCorrect && isCorrect ? 'bg-emerald-950/60 border-emerald-500/40'
+            : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40'
+            : 'bg-[#111C3D] border-slate-700/60'
+        }`}>
+          <span className={`lt-mono font-extrabold tracking-wide truncate ${twoUp ? 'text-xl lg:text-3xl' : 'text-base lg:text-2xl'} ${
+            solvedCorrect && isCorrect ? 'text-emerald-300'
+              : isSelected ? 'text-[#7DD3FC]' : 'text-white'
+          }`}>
+            {opt.label}
+          </span>
+          <CheckCircle2 size={twoUp ? 24 : 18} className={`shrink-0 ${
+            solvedCorrect && isCorrect ? 'text-emerald-400' : isSelected ? 'text-[#38BDF8]' : 'text-slate-600'
+          }`} />
+        </div>
+      </motion.button>
+    );
+  };
+
+  // Footer HUD: progress dots + hands-free auto-advance bar (design #2) /
+  // pink Next-Round CTA (preview) — the single hot-pink element per screen.
+  const footer = (
+    <footer className="w-full shrink-0 h-10 lg:h-12 flex items-center justify-between gap-3 px-1">
+      <div className="flex items-center gap-1.5 min-w-0">
+        {Array.from({ length: Math.min(total, 8) }).map((_, i) => {
+          const done = i < itemNum - 1;
+          const active = i === itemNum - 1;
+          return (
+            <div key={i} className={`flex items-center gap-1 px-2 py-0.5 rounded-md border lt-mono text-[10px] font-bold ${
+              done ? 'border-emerald-500/50 bg-emerald-950/50 text-emerald-400'
+                : active ? 'border-[#38BDF8] bg-[#38BDF8]/10 text-[#7DD3FC]'
+                : 'border-slate-700/60 bg-slate-800/40 text-slate-500'
+            }`}>
+              {done && <Check size={10} strokeWidth={4} />}Q{i + 1}
+            </div>
+          );
+        })}
+        {total > 8 && <span className="lt-mono text-[10px] text-slate-500 font-bold">+{total - 8}</span>}
       </div>
 
-      {/* ═══ LISTEN PHASE ═══ */}
-      <AnimatePresence mode="wait">
-        {uiPhase === 'listen' && (
-          <motion.div key="listen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="flex flex-col items-center">
-            <button onClick={playAudio} className="relative flex items-center justify-center mb-6" style={{ width: 200, height: 200 }}>
-              {[0, 1, 2].map(i => (
-                <motion.div key={i} className="absolute rounded-full border-2 border-green-400"
-                  style={{ width: 100 + i * 45, height: 100 + i * 45 }}
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.1, 0.5] }}
-                  transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.4, ease: 'easeOut' }} />
-              ))}
-              <div className="relative w-[120px] h-[120px] rounded-full bg-green-500/15 border-2 border-green-500 flex items-center justify-center shadow-[0_0_40px_rgba(34,197,94,.4)]">
-                <Volume2 size={56} className="text-green-400" />
-              </div>
-            </button>
-            <p className="font-display text-4xl font-bold text-green-300">Listen!</p>
-            <p className="font-cn text-2xl text-slate-400/60 mt-1">听！</p>
-            {kind === 'DICTATION' && (
-              <p className="mt-4 text-sm text-slate-500 flex items-center gap-2">
-                <Keyboard size={16} /> Type the answer on the Remote
-              </p>
-            )}
-          </motion.div>
-        )}
+      <div className="flex-1 max-w-md flex items-center justify-end gap-3">
+        {/* Whisper cue (options phase, first 3s) */}
+        <AnimatePresence>
+          {showWhisper && uiPhase === 'options' && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 whitespace-nowrap">
+              <span className="text-xs">🤫</span>
+              <span className="text-xs font-bold text-slate-300">Class: whisper your answer!</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* ═══ OPTIONS PHASE (LISTEN_SELECT + MINIMAL_PAIR_SWIPE) ═══ */}
-        {(uiPhase === 'options' || uiPhase === 'feedback') && kind !== 'DICTATION' && (
-          <motion.div key="options" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="flex flex-col items-center w-full">
-            <p className="font-display text-2xl font-bold text-green-300 mb-1">
-              {uiPhase === 'feedback' && selectedTile === correctIndex ? 'Yes! 太棒了!' :
-               uiPhase === 'feedback' ? `The answer is: ${currentItem.options[correctIndex]?.label}` : 'Tap the answer!'}
-            </p>
-
-            {/* Tiles */}
-            <div className={`flex items-stretch gap-4 ${currentItem.options.length === 2 ? '' : 'flex-wrap justify-center'}`}>
-              {currentItem.options.map((opt: any, i: number) => {
-                const isCorrect = i === correctIndex;
-                const isSelected = selectedTile === i;
-                const color = TILE_COLORS[i % TILE_COLORS.length];
-                const showResult = uiPhase === 'feedback';
-                const isHinted = hintActive && isCorrect && !isSelected;
-
-                return (
-                  <motion.button key={i}
-                    initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08, duration: 0.3 }}
-                    onClick={() => handleTap(i)} disabled={uiPhase !== 'options'}
-                    className={`group relative rounded-2xl border-2 w-[160px] h-[200px] flex flex-col items-center justify-center gap-3 transition-all duration-200 ${
-                      showResult && isCorrect ? 'border-green-400 bg-green-500/20 scale-110 shadow-[0_0_30px_rgba(34,197,94,.5)]' :
-                      showResult && isSelected && !isCorrect ? 'border-red-400 bg-red-500/10' :
-                      wrongFlash && isSelected ? 'border-red-400 bg-red-500/10' :
-                      isHinted ? 'border-yellow-400 bg-yellow-500/20 animate-pulse shadow-lg' :
-                      `${color.border} bg-white/5 hover:scale-105 hover:shadow-lg`
-                    } ${uiPhase === 'options' ? 'cursor-pointer' : 'cursor-default'}`}>
-                    {opt.image && String(opt.image).startsWith('http') ? (
-                      <img src={opt.image} alt="" className="w-24 h-24 object-contain drop-shadow-lg"
-                        onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0.2')} />
-                    ) : (
-                      <span className="text-6xl">{opt.label?.charAt(0).toUpperCase() || '?'}</span>
-                    )}
-                    {showResult && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-                        <div className="font-display text-lg font-bold text-white">{opt.label}</div>
-                      </motion.div>
-                    )}
-                    {showResult && isCorrect && <Check size={24} className="absolute top-2 right-2 text-green-400" strokeWidth={4} />}
-                    {(showResult || wrongFlash) && isSelected && !isCorrect && <X size={24} className="absolute top-2 right-2 text-red-400" strokeWidth={4} />}
-                    {(showResult || wrongFlash) && isSelected && !isCorrect && (
-                      <motion.div className="absolute inset-0 rounded-2xl border-2 border-red-400"
-                        animate={{ x: [-4, 4, -4, 4, 0] }} transition={{ duration: 0.3 }} />
-                    )}
-                  </motion.button>
-                );
-              })}
+        {uiPhase === 'feedback' && (
+          <div className="w-40 lg:w-64 flex flex-col gap-1">
+            <span className="lt-mono text-[9px] lg:text-[10px] text-[#7DD3FC] font-bold tracking-wide flex items-center gap-1 justify-end">
+              <Timer size={10} /> Next question…
+            </span>
+            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
+              <div className="h-full rounded-full bg-gradient-to-r from-[#38BDF8] to-emerald-400 lt-advance"
+                style={{ animationDuration: showMicroExplanation ? '2.2s' : (kind === 'DICTATION' ? '3s' : '0.9s') }} />
             </div>
-
-            {/* Feedback */}
-            {uiPhase === 'feedback' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 text-center">
-                {selectedTile === correctIndex ? (
-                  <p className="font-display text-xl text-green-300">
-                    {classStreak >= 10 ? '🔥 INCREDIBLE! 太厉害了!' : classStreak >= 5 ? '🔥 Amazing! 太棒了!' : (pickedStudent ? `${pickedStudent.name} got it!` : 'Correct!')}
-                  </p>
-                ) : (
-                  <p className="font-display text-lg text-slate-400">
-                    {currentItem.options[correctIndex]?.label} {currentItem.promptText ? `· ${currentItem.promptText}` : ''}
-                  </p>
-                )}
-              </motion.div>
-            )}
-
-            {/* Class-whisper cue */}
-            <AnimatePresence>
-              {showWhisper && uiPhase === 'options' && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2">
-                  <span className="text-sm">🤫</span>
-                  <span className="font-display text-sm font-bold text-slate-300">Class: whisper your answer!</span>
-                  <span className="font-cn text-xs text-slate-400/60">全班：小声说答案！</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+          </div>
         )}
 
-        {/* ═══ DICTATION FEEDBACK ═══ */}
-        {uiPhase === 'feedback' && kind === 'DICTATION' && dictationResult && (
-          <motion.div key="dictation-fb" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="flex flex-col items-center text-center">
-            <div className="text-5xl mb-3">{dictationResult.ratio >= DICTATION_PASS_THRESHOLD ? '✅' : '❌'}</div>
-            <p className="font-display text-2xl font-bold text-white mb-2">"{dictationResult.text}"</p>
-            <p className="text-lg text-slate-400">Target: <span className="text-green-300 font-bold">{(currentItem.poolItem?.content as any)?.correct_text}</span></p>
-            <p className="text-sm text-slate-500 mt-1">Match: {Math.round(dictationResult.ratio * 100)}%</p>
-          </motion.div>
-        )}
-
-        {/* ═══ PREVIEW PHASE ═══ */}
         {uiPhase === 'preview' && (
-          <motion.div key="preview" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center text-center">
-            <div className="text-5xl mb-3">
-              {kind === 'DICTATION' ? (dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD ? '✅' : '📚')
-                : selectedTile === correctIndex ? '✅' : '📚'}
-            </div>
-            <p className="font-display text-2xl font-bold text-slate-300 mb-2">
-              {kind === 'DICTATION' ? (dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD ? 'Well done!' : 'Good try!')
-                : selectedTile === correctIndex ? 'Well done!' : 'Good try!'}
+          <motion.button initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={advanceRound}
+            className="flex items-center gap-2 px-4 lg:px-7 py-2 rounded-xl bg-[#FF2E79] text-white font-bold text-sm lg:text-base tracking-wide shadow-[0_0_20px_-4px_rgba(255,46,121,0.6)] hover:shadow-[0_0_28px_-4px_rgba(255,46,121,0.8)] active:scale-95 transition-all">
+            Next Round <ChevronRight size={18} />
+          </motion.button>
+        )}
+      </div>
+    </footer>
+  );
+
+  return (
+    <div className="lt-root h-full w-full flex flex-col gap-2 lg:gap-3 p-2 lg:p-4 [@media(max-height:430px)]:gap-1.5 [@media(max-height:430px)]:p-1.5 relative overflow-hidden">
+      <style>{`
+        .lt-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
+        .lt-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .lt-card { container-type: normal; }
+        .lt-glow-correct { box-shadow: 0 0 30px -4px rgba(16,185,129,0.55), inset 0 0 24px rgba(16,185,129,0.12); }
+        .lt-glow-sky { box-shadow: 0 0 24px -4px rgba(56,189,248,0.5), inset 0 0 20px rgba(56,189,248,0.1); }
+        @keyframes lt-wave { 0%, 100% { transform: scaleY(0.5); opacity: 0.5; } 50% { transform: scaleY(1.15); opacity: 1; } }
+        .lt-wave { animation: lt-wave 0.9s ease-in-out infinite; transform-origin: bottom; }
+        @keyframes lt-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+        .lt-shake { animation: lt-shake 0.4s ease-in-out; }
+        @keyframes lt-pulse-hint { 0%, 100% { box-shadow: 0 0 8px -2px rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 26px -2px rgba(245,158,11,0.75); } }
+        .lt-pulse-hint { animation: lt-pulse-hint 0.8s ease-in-out infinite; }
+        @keyframes lt-advance { from { width: 100%; } to { width: 0%; } }
+        .lt-advance { animation-name: lt-advance; animation-timing-function: linear; animation-fill-mode: forwards; }
+        @keyframes lt-ring { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.22); opacity: 0.12; } }
+        .lt-ring { animation: lt-ring 1.8s ease-in-out infinite; }
+      `}</style>
+
+      {header}
+
+      {/* ═══ LISTEN PHASE — big sky speaker moment (design's audio role) ═══ */}
+      {uiPhase === 'listen' && (
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-5">
+          {banner}
+          <button onClick={playAudio} className="relative flex items-center justify-center w-28 h-28 lg:w-44 lg:h-44 [@media(max-height:430px)]:w-20 [@media(max-height:430px)]:h-20 shrink-0">
+            <span className="lt-ring absolute inset-0 rounded-full border-2 border-[#38BDF8]/60" />
+            <span className="lt-ring absolute rounded-full border-2 border-[#38BDF8]/40" style={{ inset: '14%', animationDelay: '0.5s' }} />
+            <span className="lt-ring absolute rounded-full border-2 border-[#38BDF8]/25" style={{ inset: '28%', animationDelay: '1s' }} />
+            <span className="relative w-16 h-16 lg:w-24 lg:h-24 rounded-full bg-[#38BDF8]/15 border-2 border-[#38BDF8] flex items-center justify-center shadow-[0_0_44px_-6px_rgba(56,189,248,0.65)] active:scale-95 transition-transform">
+              <Volume2 size={36} className="text-[#38BDF8] lg:hidden" />
+              <Volume2 size={56} className="text-[#38BDF8] hidden lg:block" />
+            </span>
+          </button>
+          <p className="text-2xl lg:text-4xl font-bold text-[#7DD3FC]">Listen!</p>
+          {kind === 'DICTATION' && (
+            <p className="flex items-center gap-2 text-sm text-slate-400">
+              <Keyboard size={16} className="text-slate-500" /> Type the answer on the Remote
             </p>
-            {nextStudent && (
-              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-5 py-2">
-                <span className="text-sm text-slate-400">Next:</span>
-                <span className="font-display text-lg font-bold text-green-300">{nextStudent}</span>
+          )}
+        </div>
+      )}
+
+      {/* ═══ OPTIONS / FEEDBACK — photo card grid ═══ */}
+      {(uiPhase === 'options' || uiPhase === 'feedback') && kind !== 'DICTATION' && (
+        <div className="flex-1 min-h-0 flex flex-col gap-2 lg:gap-3">
+          {banner}
+          <div className={`flex-1 min-h-0 grid gap-2.5 lg:gap-5 ${
+            currentItem.options.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
+          }`}>
+            {currentItem.options.map((opt: any, i: number) => renderCard(opt, i))}
+          </div>
+          {footer}
+        </div>
+      )}
+
+      {/* ═══ DICTATION — remote-typing card + compare feedback ═══ */}
+      {(uiPhase === 'listen' || uiPhase === 'options' || uiPhase === 'feedback') && kind === 'DICTATION' && (
+        <div className="flex-1 min-h-0 flex flex-col gap-2 lg:gap-3">
+          {banner}
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            {uiPhase === 'feedback' && dictationResult ? (
+              <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+                className={`w-full max-w-2xl rounded-3xl border-2 p-6 lg:p-10 text-center ${
+                  dictationResult.ratio >= DICTATION_PASS_THRESHOLD
+                    ? 'border-emerald-400/70 bg-emerald-950/30 lt-glow-correct'
+                    : 'border-rose-400/60 bg-rose-950/20'
+                }`}>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  {dictationResult.ratio >= DICTATION_PASS_THRESHOLD
+                    ? <CheckCircle2 size={28} className="text-emerald-400" />
+                    : <X size={28} className="text-rose-400" />}
+                  <span className={`lt-mono text-sm font-bold tracking-widest uppercase ${dictationResult.ratio >= DICTATION_PASS_THRESHOLD ? 'text-emerald-300' : 'text-rose-300'}`}>
+                    {dictationResult.ratio >= DICTATION_PASS_THRESHOLD ? 'Correct' : 'Not quite'}
+                  </span>
+                </div>
+                <p className="lt-mono text-2xl lg:text-4xl font-extrabold text-white mb-2">“{dictationResult.text}”</p>
+                <p className="text-sm lg:text-base text-slate-400">
+                  Target: <span className="text-[#7DD3FC] font-bold">{(currentItem.poolItem?.content as any)?.correct_text}</span>
+                  <span className="lt-mono ml-2 text-slate-500">{Math.round(dictationResult.ratio * 100)}% match</span>
+                </p>
+              </motion.div>
+            ) : (
+              <div className="w-full max-w-xl rounded-3xl border-2 border-dashed border-[#38BDF8]/40 bg-[#0B132B]/70 p-8 lg:p-12 text-center">
+                <Keyboard size={40} className="text-[#38BDF8]/70 mx-auto mb-4" />
+                <p className="text-xl lg:text-2xl font-bold text-white">Teacher: type what you heard on the Remote</p>
+                <p className="lt-mono text-xs text-slate-500 mt-3 uppercase tracking-widest">Remote Baton · dictation mode</p>
               </div>
             )}
-            <button onClick={advanceRound}
-              className="mt-4 flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-2xl font-bold text-lg active:scale-95 shadow-lg">
-              Next Round <ChevronRight size={20} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+          {footer}
+        </div>
+      )}
 
-      {/* Micro-explanation overlay — 2nd consecutive miss teaching beat
-          (BoardFlashMatch pattern): the correct option + the item's prompt. */}
-      {showMicroExplanation && currentItem && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 pointer-events-none">
+      {/* ═══ PREVIEW — transition beat with next student ═══ */}
+      {uiPhase === 'preview' && (
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-4">
+          <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className={`w-20 h-20 lg:w-28 lg:h-28 rounded-full flex items-center justify-center border-2 ${
+              (kind === 'DICTATION' ? dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD : selectedTile === correctIndex)
+                ? 'border-emerald-400 bg-emerald-500/15 lt-glow-correct' : 'border-amber-400/70 bg-amber-500/10'
+            }`}>
+            {(kind === 'DICTATION' ? dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD : selectedTile === correctIndex)
+              ? <Check size={44} className="text-emerald-400" strokeWidth={3} />
+              : <Lightbulb size={40} className="text-amber-400" />}
+          </motion.div>
+          <p className="text-2xl lg:text-3xl font-bold text-white">
+            {(kind === 'DICTATION' ? dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD : selectedTile === correctIndex)
+              ? (classStreak >= 5 ? 'Amazing! Keep the streak burning!' : pickedStudent ? `${pickedStudent.name} got it!` : 'Well done!')
+              : 'Good try — listen once more!'}
+          </p>
+          {nextStudent && (
+            <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10">
+              <Flag size={14} className="text-[#38BDF8]" />
+              <span className="text-sm text-slate-400">Next:</span>
+              <span className="font-bold text-[#7DD3FC]">{nextStudent}</span>
+            </div>
+          )}
+          {footer}
+        </div>
+      )}
+
+      {/* Micro-explanation overlay — 2nd consecutive miss teaching beat:
+          the correct option + the item's prompt (v3 dark styling). */}
+      {showMicroExplanation && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 pointer-events-none">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-md text-center">
-            <Lightbulb size={40} className="text-amber-500 mb-3" />
+            className="bg-[#111C3D] border-2 border-amber-400/60 p-6 lg:p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-md text-center">
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb size={22} className="text-amber-400" />
+              <span className="lt-mono text-xs font-bold tracking-widest uppercase text-amber-300">Remember this one</span>
+            </div>
             {currentItem.options[correctIndex]?.image && String(currentItem.options[correctIndex].image).startsWith('http') ? (
               <img src={currentItem.options[correctIndex].image} alt=""
-                className="w-24 h-24 object-contain mb-2 drop-shadow-lg" />
+                className="w-28 h-28 object-cover rounded-2xl mb-3 border border-slate-600" />
             ) : null}
-            <p className="text-3xl font-bold text-slate-800">{currentItem.options[correctIndex]?.label}</p>
+            <p className="lt-mono text-3xl lg:text-4xl font-extrabold text-white">{currentItem.options[correctIndex]?.label}</p>
             {currentItem.promptText && (
-              <p className="text-lg text-slate-500 mt-1">You heard: “{currentItem.promptText}”</p>
+              <p className="text-base text-slate-400 mt-2">You heard: “{currentItem.promptText}”</p>
             )}
           </motion.div>
         </div>
