@@ -159,6 +159,20 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 **§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/32-vocab-blitz/{1-confidence-gate,2-sprint-locked}.{png,html}`. QA verdict: **PASS** (HTML/structural QA; final visual gate via Playwright during implementation). Structure: V1 = 3-zone confidence gate `grid-cols-[1fr_auto_1fr]` (stake selection once per turn), V2 = sprint with locked 2x badge + stadium timer + 2x2 answer grid. Zero CJK, v3 palette (`#FF2D78` primary). Implementation may proceed — the post-cap bet clamp (§3) is already live.
 
 *(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**IMPLEMENTED 2026-09-10 (v3 redesign of `BoardVocabBlitz.tsx`)** — rebuilt from `stitch/32-vocab-blitz/{1-confidence-gate,2-sprint-locked}`. Logic preserved verbatim incl. the wave-1 post-cap bet clamp (§3 F2) and the full steal machinery (banners restyled dark).
+
+**Fidelity log (Stitch → shipped):**
+| # | Design element | Shipped | Note |
+|---|---|---|---|
+| 1 | Confidence gate: two pods (1x SAFE PLAY cyan / 2x HIGH ROLLER pink) + OR divider | ✅ | Whole pod is clickable (kids don't need the small button); reward/risk pills use the REAL scoring values (2x miss = −2×MISTAKE_PENALTY) |
+| 2 | Pod "Streak Shield" feature pill | ✗ | No streak-shield mechanic exists in our scoring — omitted rather than promising a fake rule |
+| 3 | KEY 1 / KEY 2 tags | ✅ | Keyboard shortcut not bound (board is tap-driven) — tags kept as visual anchors |
+| 4 | Sprint header: 2X MULTIPLIER LOCKED pill (orange, pulsing) | ✅ | Shows only when bet=2 (1x sprints don't see it) |
+| 5 | Stadium radial countdown (SVG ring + seconds) | ✅ | Ring drains sky → amber → rose; hidden during steals (untimed strip instead) |
+| 6 | 2×2 answer grid, h-44 landscape tiles | ✅ | Image options render photo + label plate (landscape); text options big-type; 2-option questions render 2-up larger |
+| 7 | Class Bank / sync pills in header | ✗ | Class score + student identity live in BoardShell rails/footer (no dup); header keeps counter + streak + 2X-locked |
+| 8 | Sora/Inter + cyan #00ffcc | mapped → Fredoka/JetBrains Mono + sky #38BDF8 / pink #FF2E79 | App v3 stack |
+
+**Gauntlet:** tsc clean · 762/762 vitest · build clean · Playwright capture (`screenshots/32-vocab-blitz-v3-{gate,sprint,floor}.png`) — vision-verified: 2 landscape options side-by-side, radial clock at 14s, 2X pills, no clipping/overlap; no overflow at 700×320.

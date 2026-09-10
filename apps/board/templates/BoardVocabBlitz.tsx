@@ -23,7 +23,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Timer } from 'lucide-react';
+import { Check, X, Flame, TrendingUp, TrendingDown, Trophy, Zap } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY, MAX_QUESTION_POINTS } from './scoringDefaults';
@@ -545,269 +545,296 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-yellow-50 to-orange-50">
-        <div className="text-2xl text-gray-400">Loading quiz questions…</div>
-      </div>
-    );
-  }
-  if (!currentQuestion) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-yellow-50 to-orange-50 p-8 text-center">
-        <div className="text-7xl mb-6">⚡</div>
-        <h2 className="text-4xl font-bold text-yellow-900 mb-3">Vocab Blitz</h2>
-        <div className="text-xl text-gray-500 max-w-xl">
-          No quiz items ready for this unit yet. Run the exercise generator for this unit, or skip
-          to the next slide.
+  // ── Render pieces (v3 per stitch/32-vocab-blitz) ────────────────────────
+  const bet2 = bet === 2;
+
+  const header = (
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-40 lg:pl-48 h-12 lg:h-14 [@media(max-height:430px)]:h-9 shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF2E79]/15 border border-[#FF2E79]/50 shrink-0">
+          <Zap size={15} className="text-[#FF2E79]" />
+          <span className="vb-mono text-[10px] lg:text-xs font-black tracking-widest text-[#FF2E79] whitespace-nowrap">VOCAB BLITZ</span>
         </div>
+        <span className="vb-mono text-[10px] lg:text-xs text-slate-400 font-bold whitespace-nowrap">
+          {phase === 'bet' ? 'Confidence gate' : `Q ${currentQIdx + 1}/${questions.length}`}
+        </span>
       </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {phase === 'question' && bet2 && stealBanner?.kind !== 'active' && (
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border-2 border-orange-500 animate-pulse whitespace-nowrap">
+            <span className="vb-mono text-[10px] lg:text-xs font-black text-orange-400">2X LOCKED</span>
+          </span>
+        )}
+        {streak > 1 && (
+          <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#FF2E79]/10 border border-[#FF2E79]/40 whitespace-nowrap">
+            <Flame size={12} className="text-[#FF2E79]" />
+            <span className="vb-mono text-[10px] lg:text-xs font-black text-[#FF2E79]">{streak} IN A ROW</span>
+          </span>
+        )}
+      </div>
+    </header>
+  );
+
+  // Stadium radial countdown (design #2): SVG ring, sky → amber → rose as time drains.
+  const timeFrac = timeRemaining / QUESTION_TIME_LIMIT;
+  const ringColor = timeFrac > 0.33 ? '#38BDF8' : timeFrac > 0.2 ? '#F59E0B' : '#F43F5E';
+
+  const renderOption = (option: QuizOption, idx: number) => {
+    const isSelected = selectedOption === idx;
+    const isCorrect = idx === currentQuestion.correctIndex;
+    const solved = phase === 'feedback' || (isSelected && isCorrect);
+    const wrongPick = isSelected && !isCorrect && !revealCorrect;
+    return (
+      <motion.button
+        key={idx}
+        initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: idx * 0.06, duration: 0.25 }}
+        whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
+        onClick={() => handleOptionSelect(idx)}
+        className={`relative rounded-2xl border-2 min-h-0 flex flex-col overflow-hidden transition-colors
+          ${solved && isCorrect ? 'border-emerald-400 bg-emerald-950/40 vb-glow-correct'
+            : wrongPick ? 'border-rose-400 bg-rose-950/30 vb-shake'
+            : revealCorrect && isCorrect ? 'border-amber-400 bg-amber-950/30 vb-pulse-hint'
+            : isSelected ? 'border-[#38BDF8] bg-[#38BDF8]/10'
+            : 'border-slate-700 bg-[#111C3D] hover:border-[#38BDF8]/70'}`}>
+        {option.imageUrl ? (
+          <>
+            <div className="relative flex-1 min-h-0">
+              <img src={option.imageUrl} alt={option.label || `Option ${idx + 1}`}
+                className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B] to-transparent" />
+            </div>
+            {option.label && (
+              <span className={`shrink-0 h-9 lg:h-11 px-3 flex items-center vb-mono font-bold text-sm lg:text-base border-t
+                ${solved && isCorrect ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                  : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40 text-[#7DD3FC]' : 'bg-[#111C3D] border-slate-700/60 text-white'}`}>
+                {option.label}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className={`flex-1 min-h-0 flex items-center justify-center px-4 py-3 text-center font-bold
+            ${currentQuestion.options.length > 2 ? 'text-lg lg:text-2xl' : 'text-2xl lg:text-3xl'}
+            ${solved && isCorrect ? 'text-emerald-300' : revealCorrect && isCorrect ? 'text-amber-300' : isSelected ? 'text-[#7DD3FC]' : 'text-white'}`}>
+            {option.label}
+          </span>
+        )}
+        {solved && isCorrect && (
+          <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }}
+            className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-900 vb-mono text-[9px] font-black tracking-wider uppercase">
+            <Check size={11} strokeWidth={4} /> Correct
+          </motion.span>
+        )}
+        {wrongPick && (
+          <span className="absolute top-2 right-2 z-10 w-7 h-7 rounded-lg bg-rose-500 text-white flex items-center justify-center">
+            <X size={15} strokeWidth={4} />
+          </span>
+        )}
+      </motion.button>
     );
-  }
+  };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-yellow-50 to-orange-50 p-8">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <motion.h1
-          key={currentQIdx}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-yellow-900 mb-2"
-        >
-          Vocab Blitz
-        </motion.h1>
-        <div className="flex items-center justify-center gap-4">
-          <div className="text-sm text-gray-500">
-            Question {currentQIdx + 1} of {questions.length}
-          </div>
-          {streak > 1 && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-full font-bold"
-            >
-              🔥 Streak x{streak}
-            </motion.div>
-          )}
-        </div>
-      </div>
+    <div className="vb-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 [@media(max-height:430px)]:gap-1 [@media(max-height:430px)]:p-1.5 bg-[#070C18] relative overflow-hidden">
+      <style>{`
+        .vb-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
+        .vb-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .vb-glow-correct { box-shadow: 0 0 30px -4px rgba(16,185,129,0.55), inset 0 0 24px rgba(16,185,129,0.1); }
+        @keyframes vb-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+        .vb-shake { animation: vb-shake 0.4s ease-in-out; }
+        @keyframes vb-pulse-hint { 0%, 100% { box-shadow: 0 0 8px -2px rgba(245,158,11,0.4); } 50% { box-shadow: 0 0 26px -2px rgba(245,158,11,0.75); } }
+        .vb-pulse-hint { animation: vb-pulse-hint 0.8s ease-in-out infinite; }
+        @keyframes vb-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+        .vb-rise { animation: vb-rise 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+      `}</style>
+
+      {header}
 
       {/* Steal banner (STEAL_OFFER → pick → half-of-base steal) */}
       <AnimatePresence>
         {stealBanner && (
           <motion.div
             key={stealBanner.kind}
-            initial={{ y: -24, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -24, opacity: 0 }}
-            className={`mb-4 mx-auto w-fit px-8 py-3 rounded-2xl text-center text-white shadow-2xl ${
-              stealBanner.kind === 'stolen' ? 'bg-green-600' : 'bg-purple-600'
-            }`}
-          >
+            initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }}
+            className={`shrink-0 mx-auto px-6 py-2 rounded-2xl text-center border-2 ${
+              stealBanner.kind === 'stolen' ? 'bg-emerald-950/70 border-emerald-400/70' : 'bg-purple-950/70 border-purple-400/70'
+            }`}>
             {stealBanner.kind === 'offer' && (
-              <div className="text-2xl font-black animate-pulse">🆚 STEAL CHANCE! Pick the stealer!</div>
+              <span className="text-lg lg:text-2xl font-black text-purple-200 animate-pulse">STEAL CHANCE! Pick the stealer!</span>
             )}
             {stealBanner.kind === 'active' && (
-              <div className="text-2xl font-black">
-                🆚 {stealBanner.name} — steal for <span className="text-yellow-300">HALF</span> points!
-              </div>
+              <span className="text-lg lg:text-2xl font-black text-purple-200">
+                {stealBanner.name} — steal for <span className="text-amber-300">HALF</span> points!
+              </span>
             )}
             {stealBanner.kind === 'stolen' && (
-              <div className="text-3xl font-black">⚡ STOLEN! {stealBanner.name} +{stealBanner.points}</div>
+              <span className="text-xl lg:text-3xl font-black text-emerald-300">STOLEN! {stealBanner.name} +{stealBanner.points}</span>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main content */}
       <AnimatePresence mode="wait">
-        {phase === 'bet' && (
-          <motion.div
-            key="bet"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="flex-1 flex items-center justify-center"
-          >
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-xl w-full text-center">
-              <div className="text-2xl text-gray-800 mb-6">How confident are you?</div>
-              <div className="flex gap-4 justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleBetSelect(1)}
-                  className="px-8 py-6 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-2xl font-bold"
-                >
-                  1x Bet
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleBetSelect(2)}
-                  className="px-8 py-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-2xl font-bold"
-                >
-                  2x Bet
-                </motion.button>
+        {/* ═══ CONFIDENCE GATE (design #1): two pods + OR divider ═══ */}
+        {phase === 'bet' && currentQuestion && (
+          <motion.div key="bet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="flex-1 min-h-0 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2.5 lg:gap-7">
+            {([
+              { b: 1 as const, label: 'SAFE PLAY', mult: '1x', tone: 'sky', tag: 'Standard sprint · steady climb',
+                reward: 'Standard points per correct answer', risk: `−${MISTAKE_PENALTY} pts on a miss` },
+              { b: 2 as const, label: 'HIGH ROLLER', mult: '2x', tone: 'pink', tag: 'High stakes · jackpot mode',
+                reward: 'DOUBLE points if correct', risk: `−${MISTAKE_PENALTY * 2} pts if wrong` },
+            ] as const).map((pod) => (
+              <section key={pod.b} onClick={() => handleBetSelect(pod.b)}
+                className={`relative rounded-2xl border-2 p-3 lg:p-6 flex flex-col justify-between min-h-0 cursor-pointer overflow-hidden transition-all active:scale-[0.99]
+                  ${pod.tone === 'pink' ? 'border-[#FF2E79]/60 bg-[#111C3D]' : 'border-[#38BDF8]/50 bg-[#111C3D]'} hover:shadow-[0_0_30px_-6px_${pod.tone === 'pink' ? 'rgba(255,46,121,0.5)' : 'rgba(56,189,248,0.5)'}]`}>
+                <div className={`absolute -top-14 ${pod.tone === 'pink' ? '-right-14' : '-left-14'} w-36 h-36 rounded-full blur-3xl pointer-events-none ${pod.tone === 'pink' ? 'bg-[#FF2E79]/15' : 'bg-[#38BDF8]/15'}`} />
+                <div className="relative z-10 flex items-center justify-between gap-2">
+                  <span className={`px-2.5 py-1 rounded-full border vb-mono text-[8px] lg:text-[10px] font-bold uppercase tracking-widest truncate
+                    ${pod.tone === 'pink' ? 'bg-[#FF2E79]/10 border-[#FF2E79]/50 text-[#FF2E79]' : 'bg-[#38BDF8]/10 border-[#38BDF8]/50 text-[#7DD3FC]'}`}>
+                    {pod.tag}
+                  </span>
+                  <span className={`vb-mono text-[9px] lg:text-xs font-bold ${pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'} shrink-0`}>
+                    KEY {pod.b}
+                  </span>
+                </div>
+                <div className="relative z-10 text-center my-1 lg:my-3">
+                  <div className={`font-black tracking-tighter leading-none ${pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'}
+                    text-6xl lg:text-8xl`}>
+                    {pod.mult}
+                  </div>
+                  <h2 className="text-xl lg:text-3xl font-extrabold text-white tracking-tight">{pod.label}</h2>
+                </div>
+                <div className="relative z-10 flex flex-col gap-1.5 lg:gap-2.5">
+                  <div className="flex items-center gap-2.5 px-3 lg:px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                    <TrendingUp size={16} className={pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'} />
+                    <span className="text-sm lg:text-base font-bold text-white">{pod.reward}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 px-3 lg:px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                    <TrendingDown size={16} className="text-slate-400" />
+                    <span className="text-sm lg:text-base font-bold text-slate-300">{pod.risk}</span>
+                  </div>
+                  <button className={`w-full py-2.5 lg:py-4 rounded-xl border-2 font-extrabold text-base lg:text-xl tracking-wide uppercase transition-all active:scale-95
+                    ${pod.tone === 'pink'
+                      ? 'bg-slate-800 hover:bg-[#FF2E79] border-[#FF2E79] text-[#FF2E79] hover:text-white'
+                      : 'bg-slate-800 hover:bg-[#38BDF8] border-[#38BDF8] text-[#7DD3FC] hover:text-slate-900'}`}>
+                    Select {pod.label} ({pod.mult})
+                  </button>
+                </div>
+              </section>
+            ))}
+            {/* OR divider */}
+            <div className="relative flex flex-col items-center justify-center py-2">
+              <div className="w-0.5 flex-1 bg-gradient-to-b from-transparent via-slate-600 to-transparent" />
+              <div className="w-10 h-10 lg:w-14 lg:h-14 my-1 rounded-full bg-[#111C3D] border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)] shrink-0">
+                <span className="font-black text-amber-300 text-sm lg:text-lg">OR</span>
               </div>
-              <div className="text-sm text-gray-500 mt-4">
-                2x bet = double points if correct, but double penalty if wrong
-              </div>
+              <div className="w-0.5 flex-1 bg-gradient-to-b from-transparent via-slate-600 to-transparent" />
             </div>
           </motion.div>
         )}
 
+        {/* ═══ SPRINT (design #2): radial clock + prompt + answer grid ═══ */}
         {phase === 'question' && (
-          <motion.div
-            key="question"
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl w-full">
-              {/* Timer bar — replaced by the untimed steal strip while the
-                  stealer answers (the countdown is frozen from the steal
-                  offer onward and never restarts for them). */}
-              <div className="mb-6">
-                {stealBanner?.kind === 'active' ? (
-                  <div className="flex items-center justify-center py-1 text-purple-600">
-                    <span className="text-2xl font-black">⚡ STEAL — untimed!</span>
+          <motion.div key={`q-${currentQIdx}`} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
+            className="flex-1 min-h-0 flex flex-col gap-2 lg:gap-3">
+            {/* Clock strip */}
+            <div className="shrink-0 flex items-center justify-between gap-3 px-3 lg:px-4 py-1.5 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70">
+              {stealBanner?.kind === 'active' ? (
+                <span className="vb-mono text-sm lg:text-lg font-black text-purple-300 animate-pulse">STEAL — untimed!</span>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <div className="relative w-9 h-9 lg:w-11 lg:h-11 flex items-center justify-center">
+                    <svg className="w-9 h-9 lg:w-11 lg:h-11 -rotate-90" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" fill="none" r="15.5" stroke="#1e293b" strokeWidth="3.5" />
+                      <circle cx="18" cy="18" fill="none" r="15.5" stroke={ringColor}
+                        strokeDasharray="97.4" strokeDashoffset={97.4 * (1 - timeFrac)} strokeLinecap="round" strokeWidth="3.5"
+                        style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }} />
+                    </svg>
+                    <span className="absolute vb-mono text-[10px] lg:text-sm font-black" style={{ color: ringColor }}>
+                      {timeRemaining}s
+                    </span>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Timer size={20} />
-                        <span className="text-2xl font-bold">{timeRemaining}s</span>
-                      </div>
-                      {retryUsed && <div className="text-sm text-orange-500">Retry used (50% points)</div>}
-                    </div>
-                    <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full ${timeRemaining > 5 ? 'bg-green-500' : timeRemaining > 3 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        initial={{ width: '100%' }}
-                        animate={{ width: `${(timeRemaining / QUESTION_TIME_LIMIT) * 100}%` }}
-                        transition={{ duration: 0.1 }}
-                      />
-                    </div>
-                  </>
+                  <span className="vb-mono text-[9px] lg:text-[10px] uppercase tracking-widest text-slate-500 font-bold hidden sm:block">Speed clock</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                {retryUsed && stealBanner?.kind !== 'active' && (
+                  <span className="vb-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-950/50 border border-amber-500/40 px-2.5 py-1 rounded-full">
+                    Retry · 50% points
+                  </span>
+                )}
+                {bet2 && (
+                  <span className="vb-mono text-[9px] lg:text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/50 border border-orange-500/50 px-2.5 py-1 rounded-full">
+                    2x multiplier locked
+                  </span>
                 )}
               </div>
+            </div>
 
-              {/* Question */}
-              <div className="text-center mb-8">
-                <div className="text-2xl text-gray-800 mb-4">{currentQuestion.prompt}</div>
-              </div>
+            {/* Prompt plate */}
+            <div className="shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-4 lg:px-6 py-2.5 lg:py-4 flex items-center justify-center min-h-11 lg:min-h-16">
+              <p className="text-lg lg:text-2xl font-bold text-white text-center">{currentQuestion.prompt}</p>
+            </div>
 
-              {/* Options — image cards for IMAGE_SELECT, text otherwise */}
-              <div className="grid grid-cols-2 gap-4">
-                {currentQuestion.options.map((option, idx) => (
-                  <motion.button
-                    key={idx}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleOptionSelect(idx)}
-                    className={`rounded-xl text-xl font-semibold transition-all ${
-                      option.imageUrl ? 'aspect-square p-2 border-4 overflow-hidden' : 'p-6 border-2'
-                    } ${
-                      selectedOption === idx
-                        ? idx === currentQuestion.correctIndex
-                          ? 'bg-green-500 text-white border-green-600'
-                          : 'bg-red-500 text-white border-red-600'
-                        : revealCorrect && idx === currentQuestion.correctIndex
-                        ? 'bg-amber-100 text-gray-800 border-amber-400 ring-4 ring-amber-400'
-                        : option.imageUrl
-                        ? 'bg-gray-50 border-gray-200 hover:border-yellow-400'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-200'
-                    }`}
-                  >
-                    {option.imageUrl ? (
-                      <span className="w-full h-full flex flex-col items-center justify-center gap-2">
-                        <img
-                          src={option.imageUrl}
-                          alt={option.label || `Option ${idx + 1}`}
-                          className="flex-1 min-h-0 w-full object-cover rounded-lg"
-                        />
-                        {option.label && <span className="text-sm text-gray-700">{option.label}</span>}
-                      </span>
-                    ) : (
-                      option.label
-                    )}
-                  </motion.button>
-                ))}
-              </div>
+            {/* Answer grid (landscape) */}
+            <div className={`flex-1 min-h-0 grid gap-2.5 lg:gap-4 ${currentQuestion.options.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
+              {currentQuestion.options.map((option, idx) => renderOption(option, idx))}
+            </div>
 
-              {/* Reveal beat (timeout / exhausted retry): the answer + the why. */}
-              {revealCorrect && (
-                <div className="mt-6 text-center">
-                  <div className="text-xl font-bold text-amber-600">
-                    {timedOut ? "Time's up! The answer was:" : 'The answer was:'}
-                  </div>
-                  {currentQuestion.explanation && (
-                    <div className="text-base text-gray-500 mt-2">{currentQuestion.explanation}</div>
-                  )}
+            {/* Reveal beat */}
+            {revealCorrect && (
+              <div className="shrink-0 text-center pb-0.5">
+                <div className="text-base lg:text-xl font-bold text-amber-400">
+                  {timedOut ? "Time's up! The answer was:" : 'The answer was:'}
                 </div>
+                {currentQuestion.explanation && (
+                  <div className="text-xs lg:text-sm text-slate-400 mt-1">{currentQuestion.explanation}</div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ═══ FEEDBACK ═══ */}
+        {phase === 'feedback' && (
+          <motion.div key="feedback" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="flex-1 flex flex-col items-center justify-center gap-3">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}
+              className="w-20 h-20 lg:w-28 lg:h-28 rounded-full bg-emerald-500/15 border-2 border-emerald-400 flex items-center justify-center vb-glow-correct">
+              <Check size={44} className="text-emerald-400" strokeWidth={3} />
+            </motion.div>
+            <h2 className="text-2xl lg:text-4xl font-black text-white">
+              {pickedStudent ? `${pickedStudent.name} nailed it!` : 'Excellent!'}
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="px-4 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-400/60 vb-mono font-black text-emerald-300 text-lg lg:text-2xl">
+                +{lastAward} pts
+              </span>
+              {bet2 && stealBanner?.kind !== 'stolen' && (
+                <span className="px-3 py-1.5 rounded-full bg-orange-950/60 border border-orange-500/50 vb-mono font-black text-orange-300 text-sm lg:text-lg">
+                  2x bet
+                </span>
               )}
             </div>
           </motion.div>
         )}
 
-        {phase === 'feedback' && (
-          <motion.div
-            key="feedback"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="flex-1 flex items-center justify-center"
-          >
-            <div className="text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="text-8xl mb-6"
-              >
-                🎉
-              </motion.div>
-              <h2 className="text-4xl font-bold text-green-600 mb-4">
-                {pickedStudent ? `${pickedStudent.name} nailed it!` : 'Excellent!'}
-              </h2>
-              <div className="text-2xl text-gray-600">
-                +{lastAward} points
-                {bet === 2 && stealBanner?.kind !== 'stolen' && ' (2x bet!)'}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
+        {/* ═══ COMPLETE ═══ */}
         {phase === 'complete' && (
-          <motion.div
-            key="complete"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex-1 flex items-center justify-center"
-          >
-            <div className="text-center">
-              <div className="text-8xl mb-6">🏆</div>
-              <h2 className="text-5xl font-bold text-yellow-900 mb-4">Vocab Blitz Complete!</h2>
-              <div className="text-2xl text-gray-600">Final streak: {streak} 🔥</div>
+          <motion.div key="complete" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+            className="flex-1 flex flex-col items-center justify-center gap-4">
+            <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-amber-500/15 border-2 border-amber-400 flex items-center justify-center shadow-[0_0_30px_-6px_rgba(245,158,11,0.6)]">
+              <Trophy size={48} className="text-amber-400" />
+            </div>
+            <h2 className="text-3xl lg:text-5xl font-black text-white">Vocab Blitz Complete!</h2>
+            <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-[#FF2E79]/10 border border-[#FF2E79]/40">
+              <Flame size={18} className="text-[#FF2E79]" />
+              <span className="text-lg font-bold text-[#FF2E79]">Final streak: {streak}</span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Turn footer */}
-      {pickedStudent && phase !== 'complete' && (
-        <div className="mt-6 text-center">
-          <div className="inline-flex items-center gap-3 bg-white rounded-full px-6 py-3 shadow-lg">
-            <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white font-bold">
-              {pickedStudent.name[0]}
-            </div>
-            <div className="text-xl font-semibold text-gray-800">{pickedStudent.name}'s turn</div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
