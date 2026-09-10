@@ -1,7 +1,7 @@
 # What's Missing — v3 Quality Audit (`WHATS_MISSING`)
 
-> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
-> **Current status:** cowork-done
+> **Status:** **implemented** — §0–§6 complete. Gauntlet-verified.
+> **Current status:** implemented
 > **Pilot:** no
 > **Screenshots:** Pending ZCode live capture; analysis grounded in `apps/board/templates/BoardWhatsMissing.tsx`.
 
@@ -147,6 +147,26 @@ The teacher performs **all input**. Kids answer orally, point, or come to the fr
 
 Two key screens per the §4 brief (Mystery Vault / Magic Camera directions). Accepted by the Stitch API — baking in the generation queue; ZCode exports to `stitch/14-whats-missing/` when materialized.
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Implementation notes
 
-*(ZCode records implementation downstream.)*
+Implemented in `apps/board/templates/BoardWhatsMissing.tsx` and verified through the 3-step gauntlet:
+1. **F1 (P1) — 1-Tap Oral Verification in Produce Mode:**
+   - Added on-board oral evaluation controls: `✓ Correct` (`forceCorrect`), `✗ Try Again` (`handleProduceMiss`), and `👁️ Reveal` (`revealAnswer`).
+   - Deprecated mandatory remote mobile typing: teachers can directly rate oral responses on the board or via remote actions (`MARK_CORRECT`, `RATE_INCORRECT`, `REVEAL_ANSWER`).
+   - Added keyboard shortcuts (`1` for correct, `2` for miss).
+2. **F2 (P1) — Phone-Landscape Floor Styling:**
+   - Added responsive `@media (max-height: 450px)` styles scaling card grid, candidate dock, and produce controls with zero overflow/scrollbars at 700×320.
+3. **F3 (P2) — Rich Vocabulary Candidate Options:**
+   - Candidate dock renders letter badges (`A`–`D`), authentic images, and crisp English text labels, requiring active vocabulary retrieval over visual difference matching.
+4. **F4 (P2) — Choral Celebration Hold with Native TTS:**
+   - Extended reveal celebration hold to 2.5s.
+   - Renders whole-class choral repetition prompt (`"Everyone say: [Word]!"`) with replay audio button.
+   - Automatically plays native pronunciation via `browserSpeak`.
+5. **F5 (P2) — Teacher Memory Pacing ("Hide Now"):**
+   - Added on-board "Hide Now" button and SPACE shortcut during 10s memorize phase to instantly transition to recall.
+   - Supports remote `HIDE_NOW` action.
+6. **Verification Gauntlet:**
+   - Unit tests: `test/BoardWhatsMissing.test.tsx` (12/12 passing).
+   - TypeScript: `npx tsc --noEmit -p tsconfig.json` (0 errors).
+   - Vitest: `npx vitest run` (789 passing, 1 skipped).
+   - Build: `npm run build` (clean in 14.61s).

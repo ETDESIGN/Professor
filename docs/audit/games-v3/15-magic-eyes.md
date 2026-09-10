@@ -1,7 +1,7 @@
 # Magic Eyes — v3 Quality Audit (`MAGIC_EYES`)
 
-> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
-> **Current status:** cowork-done
+> **Status:** **implemented** — §0–§6 complete. Gauntlet-verified.
+> **Current status:** implemented
 > **Pilot:** no
 > **Screenshots:** Pending ZCode live capture; analysis grounded in `apps/board/templates/BoardWhatsMissing.tsx` (mode `magic_eyes`).
 
@@ -149,6 +149,24 @@ The teacher performs **all input**. Kids answer orally, point, or come to the fr
 
 Two key screens per the §4 brief (Mystery Vault / Magic Camera directions). Accepted by the Stitch API — baking in the generation queue; ZCode exports to `stitch/15-magic-eyes/` when materialized.
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Implementation notes
 
-*(ZCode records implementation downstream.)*
+Implemented in `apps/board/templates/BoardWhatsMissing.tsx` (mode `magic_eyes`) and verified through the 3-step gauntlet:
+1. **F1 (P1) — Frosted Mystery Shutter (Eliminates Gaussian Blur Leaks):**
+   - Replaced `blur-[80px]` color leak with a high-contrast cyber-frosted mystery shutter featuring a glowing cyan dashed aperture and prompt (*"Mystery Lens Closed: What did you see in the photo?"*).
+2. **F2 (P1) — Teacher-Gated "Ready... Flash!" Trigger:**
+   - Replaced instant auto-flash on slide mount with a teacher-gated camera ready gate: pulsing "👀 FLASH IMAGE (3s)" CTA, SPACE / Enter key shortcut, and remote `START_FLASH` action.
+3. **F3 (P2) — Choral Celebration Hold with Native TTS:**
+   - Extended reveal celebration hold to 2.5s.
+   - Automatically speaks authentic vocabulary pronunciation via `browserSpeak`.
+   - Prompts whole-class repetition (*"Everyone say: [Word]!"*) with speaker replay button.
+4. **F4 (P2) — Pure Visual Observation & Authentic Recall:**
+   - During the 3-second flash, displays the photo only (no English text label), enforcing authentic visual observation.
+   - In the recall phase, displays candidate buttons with letter badges (`A`–`D`), image thumbnails, and English words to assess active vocabulary retrieval.
+5. **F5 (P2) — Responsive Phone-Landscape Floor Reflow:**
+   - Added responsive `@media (max-height: 450px)` CSS scaling shutter height and candidate buttons, ensuring zero overflow/scrollbars at 700×320.
+6. **Verification Gauntlet:**
+   - Unit tests: `test/BoardWhatsMissing.test.tsx` (12/12 passing).
+   - TypeScript: `npx tsc --noEmit -p tsconfig.json` (0 errors).
+   - Vitest: `npx vitest run` (789 passing, 1 skipped).
+   - Build: `npm run build` (clean in 14.61s).

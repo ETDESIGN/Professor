@@ -1,6 +1,7 @@
 # Story Stage — v3 Quality Audit (`STORY_STAGE`)
 
-> **Status:** **cowork-done** — §0–§4 complete (Anti-Gravity quality audit). Ready for ZCode §5 Stitch prompt.
+> **Status:** **implemented** — §0–§7 complete. Gauntlet-verified.
+> **Current status:** implemented
 > **Screenshots:** `screenshots/07-story-stage-idle.png` — empty state (fixture unit has no story pages) — audit layout from code.
 
 ## SHARED PRELUDE (read first — identical in every game file)

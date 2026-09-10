@@ -28,7 +28,7 @@
 // addPoints + scoreForAttempt, personalized message via usePickedStudent.
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Eye, EyeOff, HelpCircle, Lightbulb, Check } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Lightbulb, Check, Volume2, Zap, Play, CheckCircle, X, Users, Sparkles } from 'lucide-react';
 import { useSession, useSeedBase } from '../../../store/SessionContext';
 import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
@@ -36,6 +36,7 @@ import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { logAttempt } from './scoreAttempt';
 import { playCue } from './playCue';
+import { browserSpeak } from '../../../services/SpeechService';
 import type { ContextualControlsSpec } from '../lessonDirector';
 import type { PoolItem } from '../../../types/exercise';
 
@@ -106,10 +107,14 @@ export const WHATS_MISSING_ACTION_TYPES = {
   skip: 'SKIP_ROUND',
   revealHint: 'REVEAL_HINT',
   forceCorrect: 'MARK_CORRECT',
-  replay: 'SHOW_AGAIN', // 'START_MEMORIZE' / 'RESTART' accepted as legacy aliases
+  rateIncorrect: 'RATE_INCORRECT',
+  replay: 'SHOW_AGAIN', // 'START_MEMORIZE' / 'RESTART' / 'START_FLASH' accepted as legacy aliases
   nextRound: 'NEXT_ROUND',
   endSlide: 'SLIDE_COMPLETE',
   produceSubmit: 'WM_SUBMIT_ANSWER',
+  startFlash: 'START_FLASH',
+  hideNow: 'HIDE_NOW',
+  revealAnswer: 'REVEAL_ANSWER',
 } as const;
 
 const noop = () => {};
@@ -196,23 +201,29 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
   const [alreadyScoredChip, setAlreadyScoredChip] = useState(false);
 
+  // For magic_eyes: teacher-gated flash (F2)
+  const isMagic = mode === 'magic_eyes';
+  const [magicReady, setMagicReady] = useState(isMagic);
+  const [magicFlashing, setMagicFlashing] = useState(false);
+
   // ── Lifecycle refs (the 4 must-dos) ───────────────────────────────────
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
   const roundResolvedRef = useRef(false);
   const missedThisSlideRef = useRef<Map<string, string[]>>(new Map());
-  // Slide-scoped streak for the picked responder (consecutive correct
-  // rounds; reset on a wrong answer and a new turn). Passed as the 4th arg
-  // to scoreForAttempt — 3 = 1.25x, 5 = 1.5x.
   const streakRef = useRef(0);
-  // Latch so the win cue plays exactly once per slide completion (our own
-  // SLIDE_COMPLETE broadcast echoes back into the lastAction listener).
   const winCuedRef = useRef(false);
+  const advanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const handledActionRef = useRef<any>(null);
+
+  // Clear timers on unmount
+  useEffect(() => {
+    return () => {
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    };
+  }, []);
 
   // ── Interaction mode for the current round (spec §4) ──────────────────
-  // whats_missing escalates recognize → produce in the second half of the
-  // slide, capped by the objective's mastery rung (buildRound already clamps
-  // rungByObjective). magic_eyes is always rung-1 recognition.
   const testedEntry: GridEntry | null = grid.length > 0 ? grid[missingIndex] : null;
   const interactionMode: InteractionMode = useMemo(() => {
     if (mode === 'magic_eyes') return 'recognize';
@@ -222,12 +233,16 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     return objRung >= 4 ? 'produce' : 'recognize';
   }, [mode, roundIndex, testedEntry, rungByObjective]);
 
+  // ── Flash trigger for magic_eyes ─────────────────────────────────────
+  const startMagicFlash = useCallback(() => {
+    if (mode !== 'magic_eyes') return;
+    setMagicReady(false);
+    setMagicFlashing(true);
+    setTimer(FLASH_SECONDS);
+    playCue('reveal');
+  }, [mode]);
+
   // ── Round setup (snapshot items into the board once per round) ────────
-  // Per-turn variety (2026-08-30): the signature includes the turn token and
-  // reset count, so the grid re-snapshots (re-deals) when a new student is
-  // picked or the teacher hits Reset — the per-turn dealt order changes which
-  // variant leads and which word sits first — instead of replaying the exact
-  // same board for every kid.
   const setupSigRef = useRef('');
   useEffect(() => {
     const source = usingFrozen ? frozenEntries : poolEntries;
@@ -237,20 +252,12 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     setupSigRef.current = sig;
 
     const gridSize = mode === 'magic_eyes' ? 1 : Math.min(MAX_GRID_ITEMS, source.length);
-    // magic_eyes flashes ONE item per round — cycle through the entries so
-    // consecutive rounds don't repeat the same image.
     const roundGrid = mode === 'magic_eyes'
       ? [source[(roundIndex - 1) % source.length]]
       : source.slice(0, gridSize);
-    // Cycle the tested item by round like magic_eyes does (pool-coverage fix):
-    // a Math.random pick inside an unchanged grid could repeat the same word
-    // round after round while other grid words were never tested.
     const idx = (roundIndex - 1) % roundGrid.length;
     const entry = roundGrid[idx];
 
-    // Candidate tray: the tested item's own options[] set (correct image +
-    // its distractors), shuffled. Frozen data has no options[] — use the
-    // whole grid's images as the candidate set instead.
     let cands: Candidate[];
     const poolItem = poolItemByObjective.get(entry.objectiveId);
     const c = poolItem?.content as any;
@@ -258,11 +265,15 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (Array.isArray(c?.options) && c.options.length > 0) {
       cands = c.options.map((o: any) => ({
         image: String(o.image_url || ''),
-        label: o.label,
+        label: String(o.label || o.word || o.prompt || ''),
         isCorrect: String(o.image_url || '') === String(correctImage),
       })).filter((cd: Candidate) => cd.image);
     } else {
-      cands = roundGrid.map((g) => ({ image: g.image, isCorrect: g.image === entry.image }));
+      cands = roundGrid.map((g) => ({
+        image: g.image,
+        label: g.word,
+        isCorrect: g.image === entry.image,
+      }));
     }
 
     setGrid(roundGrid);
@@ -272,6 +283,8 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     setFirstLetterHint(false);
     setShowExplanation(false);
     setFeedback(null);
+    setMagicReady(mode === 'magic_eyes');
+    setMagicFlashing(false);
     setGamePhase('memorize');
     setTimer(mode === 'magic_eyes' ? FLASH_SECONDS : MEMORIZE_SECONDS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,12 +293,16 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   // ── Memorize/flash countdown → recall ─────────────────────────────────
   useEffect(() => {
     if (gamePhase !== 'memorize' || grid.length === 0) return;
+    if (mode === 'magic_eyes' && magicReady) return; // teacher-gated flash
     if (timer > 0) {
       const t = setInterval(() => setTimer((v) => v - 1), 1000);
       return () => clearInterval(t);
     }
+    if (mode === 'magic_eyes') {
+      setMagicFlashing(false);
+    }
     setGamePhase('recall');
-  }, [gamePhase, timer, grid.length]);
+  }, [gamePhase, timer, grid.length, mode, magicReady]);
 
   // ── Dual-write + cognitive capture helper ─────────────────────────────
   const doScoring = useCallback((correctness: 'correct' | 'partial' | 'incorrect', points: number, objectiveId: string, word: string) => {
@@ -295,9 +312,6 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     const difficulty = testedEntry
       ? effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, interactionMode)
       : 1;
-    // FIXPLAN P3.3 — unified triple-write. Previously hand-rolled with a
-    // direct gradeStudent call (the only game bypassing the contract); now
-    // the shared logAttempt path (analytics + FSRS gradeObjective + remediation).
     void word;
     logAttempt({
       state, picked, unitId,
@@ -321,18 +335,23 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     setFeedback(correct ? 'correct' : 'incorrect');
     setGamePhase('reveal');
     if (!correct) setShowExplanation(true);
-  }, []);
+    if (correct && testedEntry) {
+      browserSpeak(testedEntry.word);
+    }
+  }, [testedEntry]);
 
   const checkSlideComplete = useCallback(() => {
-    // Dead-time compression: these are pure celebration holds (the reveal
-    // strip already shows the answer) — ≤900ms, down from 2200ms.
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    const holdMs = 2500; // 2.5s choral celebration hold (F4 WhatsMissing, F3 MagicEyes)
     if (roundIndex >= TOTAL_ROUNDS) {
-      setTimeout(() => {
+      advanceTimerRef.current = setTimeout(() => {
         setGamePhase('slideComplete');
         triggerAction('SLIDE_COMPLETE', { forced: false });
-      }, 900);
+      }, holdMs);
     } else {
-      setTimeout(() => setRoundIndex((r) => r + 1), 900);
+      advanceTimerRef.current = setTimeout(() => {
+        setRoundIndex((r) => r + 1);
+      }, holdMs);
     }
   }, [roundIndex, triggerAction]);
 
@@ -343,7 +362,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (cand.isCorrect) {
       awardedRef.current = true;
       const difficulty = effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, interactionMode);
-      streakRef.current += 1; // bumped before scoring so the award sees it
+      streakRef.current += 1;
       const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0, streakRef.current);
       doScoring('correct', points, testedEntry.objectiveId, testedEntry.word);
       playCue('correct');
@@ -381,7 +400,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (correct) {
       awardedRef.current = true;
       const difficulty = effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, 'produce');
-      streakRef.current += 1; // bumped before scoring so the award sees it
+      streakRef.current += 1;
       const points = scoreForAttempt(mistakesRef.current, difficulty, ratio, streakRef.current);
       doScoring(ratio < 1 ? 'partial' : 'correct', points, testedEntry.objectiveId, testedEntry.word);
       playCue('correct');
@@ -392,12 +411,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
       finishRound(true);
       checkSlideComplete();
     } else {
-      // Produce-mode (speech) miss — same feedback weight as recognize mode.
       mistakesRef.current += 1;
       doScoring('incorrect', -MISTAKE_PENALTY, testedEntry.objectiveId, testedEntry.word);
       playCue('wrong');
       streakRef.current = 0;
-      setFirstLetterHint(true); // narrowed hint: reveal the first letter
+      setFirstLetterHint(true);
       setFeedback('incorrect');
       setTimeout(() => setFeedback(null), 700);
       if (mistakesRef.current >= 2) {
@@ -408,31 +426,57 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     }
   }, [gamePhase, testedEntry, interactionMode, poolItemByObjective, doScoring, finishRound, checkSlideComplete, showAlreadyScored]);
 
+  // Produce-mode oral miss trigger
+  const handleProduceMiss = useCallback(() => {
+    if (gamePhase !== 'recall' || !testedEntry || interactionMode !== 'produce') return;
+    if (awardedRef.current) { showAlreadyScored(); return; }
+    mistakesRef.current += 1;
+    doScoring('incorrect', -MISTAKE_PENALTY, testedEntry.objectiveId, testedEntry.word);
+    playCue('wrong');
+    streakRef.current = 0;
+    setFirstLetterHint(true);
+    setFeedback('incorrect');
+    setTimeout(() => setFeedback(null), 700);
+    if (mistakesRef.current >= 2) {
+      playCue('reveal');
+      setShowExplanation(true);
+      setTimeout(() => setShowExplanation(false), 2500);
+    }
+  }, [gamePhase, testedEntry, interactionMode, doScoring, showAlreadyScored]);
+
+  // Oral answer reveal trigger
+  const revealAnswer = useCallback(() => {
+    if (gamePhase !== 'recall' || !testedEntry) return;
+    playCue('reveal');
+    setShowExplanation(true);
+    setTimeout(() => setShowExplanation(false), 3000);
+  }, [gamePhase, testedEntry]);
+
   // ── Teacher controls ──────────────────────────────────────────────────
   const replayMemorize = useCallback(() => {
     if (gamePhase === 'slideComplete') return;
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     setEliminated([]);
     setFirstLetterHint(false);
     setShowExplanation(false);
     setFeedback(null);
+    setMagicReady(mode === 'magic_eyes');
+    setMagicFlashing(false);
     setGamePhase('memorize');
     setTimer(mode === 'magic_eyes' ? FLASH_SECONDS : MEMORIZE_SECONDS);
   }, [gamePhase, mode]);
 
   const advanceRound = useCallback((opts?: { silent?: boolean }) => {
     if (gamePhase === 'slideComplete') return;
+    if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     if (roundIndex >= TOTAL_ROUNDS) {
       setGamePhase('slideComplete');
-      // Natural end (NEXT_ROUND on the last round) celebrates via the inbound
-      // SLIDE_COMPLETE echo; a silent skip ({ silent: true }) stays quiet.
       triggerAction('SLIDE_COMPLETE', { forced: !!opts?.silent ? true : false });
     } else {
       setRoundIndex((r) => r + 1);
     }
   }, [roundIndex, gamePhase, triggerAction]);
 
-  // Auto-dismiss the terminal celebration after 6s. SLIDE_COMPLETE already
-  // broadcast (above); this only hides the overlay so the board isn't stuck.
   useEffect(() => {
     if (gamePhase !== 'slideComplete') return;
     const t = setTimeout(() => setGamePhase('reveal'), 6000);
@@ -440,7 +484,6 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   }, [gamePhase]);
 
   const skipRound = useCallback(() => {
-    // Skip: no penalty, no remediation push — just advance (no win cue).
     advanceRound({ silent: true });
   }, [advanceRound]);
 
@@ -449,7 +492,6 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     if (interactionMode === 'produce') {
       setFirstLetterHint(true);
     } else {
-      // Eliminate one wrong candidate.
       setEliminated((prev) => {
         const idx = candidates.findIndex((c, i) => !c.isCorrect && !prev.includes(i));
         return idx === -1 ? prev : [...prev, idx];
@@ -458,12 +500,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   }, [gamePhase, interactionMode, candidates]);
 
   const forceCorrect = useCallback(() => {
-    // Teacher override (defensible oral answer): award as clean correct.
     if (gamePhase !== 'recall' || !testedEntry) return;
     if (awardedRef.current) { showAlreadyScored(); return; }
     awardedRef.current = true;
     const difficulty = effectiveDifficulty(poolItemByObjective.get(testedEntry.objectiveId) ?? null, interactionMode);
-    streakRef.current += 1; // teacher-confirmed oral answer counts toward the streak
+    streakRef.current += 1;
     const points = scoreForAttempt(mistakesRef.current, difficulty, 1.0, streakRef.current);
     doScoring('correct', points, testedEntry.objectiveId, testedEntry.word);
     playCue('correct');
@@ -479,17 +520,31 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   useEffect(() => {
     const action = state.lastAction;
     if (!action) return;
+    if (handledActionRef.current === action) return;
+    handledActionRef.current = action;
+
     switch (action.type) {
       case 'SKIP_ROUND': skipRound(); break;
       case 'REVEAL_HINT': revealHint(); break;
       case 'MARK_CORRECT': forceCorrect(); break;
+      case 'RATE_INCORRECT': handleProduceMiss(); break;
+      case 'REVEAL_ANSWER': revealAnswer(); break;
+      case 'HIDE_NOW':
+        setMagicReady(false);
+        setMagicFlashing(false);
+        setTimer(0);
+        break;
+      case 'START_FLASH': startMagicFlash(); break;
       case 'SHOW_AGAIN':
-      case 'START_MEMORIZE': // legacy commander/remote alias
-      case 'RESTART':        // legacy MagicEyes alias
-        replayMemorize(); break;
+      case 'START_MEMORIZE':
+      case 'RESTART':
+        if (mode === 'magic_eyes' && magicReady) startMagicFlash();
+        else replayMemorize();
+        break;
       case 'NEXT_ROUND': advanceRound(); break;
       case 'WM_SUBMIT_ANSWER': handleProduceSubmit(String(action.payload?.text ?? '')); break;
       case 'RESET_GAME':
+        if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
         setupSigRef.current = '';
         mistakesRef.current = 0;
         awardedRef.current = false;
@@ -500,10 +555,6 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
         replayMemorize();
         break;
       case 'SLIDE_COMPLETE':
-        // Forced End from the remote/commander AND our own natural-completion
-        // broadcast (optimistic lastAction echo) both land here — a single
-        // win-cue site, latched so it plays exactly once. The only forced:true
-        // producer is a skip path, which stays silent.
         setGamePhase('slideComplete');
         if (action.payload?.forced !== true && !winCuedRef.current) {
           winCuedRef.current = true;
@@ -511,8 +562,56 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
         }
         break;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.lastAction]);
+  }, [state.lastAction, skipRound, revealHint, forceCorrect, handleProduceMiss, revealAnswer, startMagicFlash, replayMemorize, advanceRound, handleProduceSubmit, mode, magicReady]);
+
+  // ── Keyboard shortcuts ──────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (mode === 'magic_eyes' && magicReady) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          startMagicFlash();
+        }
+      } else if (mode === 'magic_eyes' && magicFlashing) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          setMagicFlashing(false);
+          setTimer(0);
+        }
+      } else if (mode === 'whats_missing' && gamePhase === 'memorize') {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          setTimer(0);
+        }
+      } else if (gamePhase === 'recall') {
+        if (interactionMode === 'recognize') {
+          if (e.key >= '1' && e.key <= '8') {
+            const idx = parseInt(e.key, 10) - 1;
+            if (candidates[idx] && !eliminated.includes(idx)) handleRecognizeTap(candidates[idx], idx);
+          } else if (e.key === 'a' || e.key === 'A') {
+            if (candidates[0] && !eliminated.includes(0)) handleRecognizeTap(candidates[0], 0);
+          } else if (e.key === 'b' || e.key === 'B') {
+            if (candidates[1] && !eliminated.includes(1)) handleRecognizeTap(candidates[1], 1);
+          } else if (e.key === 'c' || e.key === 'C') {
+            if (candidates[2] && !eliminated.includes(2)) handleRecognizeTap(candidates[2], 2);
+          } else if (e.key === 'd' || e.key === 'D') {
+            if (candidates[3] && !eliminated.includes(3)) handleRecognizeTap(candidates[3], 3);
+          }
+        } else if (interactionMode === 'produce') {
+          if (e.key === '1') forceCorrect();
+          else if (e.key === '2') handleProduceMiss();
+        }
+      } else if (gamePhase === 'reveal' && testedEntry) {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          browserSpeak(testedEntry.word);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mode, magicReady, magicFlashing, gamePhase, interactionMode, candidates, eliminated, testedEntry, startMagicFlash, handleRecognizeTap, forceCorrect, handleProduceMiss]);
 
   // ── Game-lifecycle: new responder (NEW_TURN) → fresh turn refs + fresh
   // memorize beat. If the round already resolved for the previous responder,
@@ -623,55 +722,109 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
     );
   }
 
-  const isMagic = mode === 'magic_eyes';
   const memorizeSeconds = isMagic ? FLASH_SECONDS : MEMORIZE_SECONDS;
   const testedWord = testedEntry?.word || '';
 
   return (
-    <div className="h-full bg-indigo-950 flex flex-col relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-indigo-800/50 to-transparent"></div>
+    <div className="h-full w-full bg-[#0A0E27] text-white flex flex-col p-4 sm:p-6 lg:p-8 relative overflow-hidden select-none wm-container">
+      {/* Ambient background glow */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-[#0A0E27] to-[#0A0E27] pointer-events-none" />
 
       {/* Header */}
-      <div className="relative z-10 p-6 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-2xl ${gamePhase === 'memorize' ? 'bg-emerald-500' : 'bg-indigo-600'} text-white shadow-lg transition-colors duration-500`}>
-            {gamePhase === 'memorize' ? <Eye size={28} /> : <EyeOff size={28} />}
+      <div className="relative z-10 flex justify-between items-center mb-3 sm:mb-6 wm-header">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg transition-colors duration-500 ${
+            gamePhase === 'memorize' ? 'bg-emerald-500 shadow-emerald-950/50' : 'bg-indigo-600 shadow-indigo-950/50'
+          }`}>
+            {gamePhase === 'memorize' ? <Eye size={26} className="text-white" /> : <EyeOff size={26} className="text-white" />}
           </div>
           <div>
-            <h1 className="text-3xl font-display font-bold text-white">
-              {gamePhase === 'memorize' ? (isMagic ? 'Magic Eyes — Memorize!' : 'Memorize!')
-                : gamePhase === 'recall' ? (isMagic ? 'What did you see?' : interactionMode === 'produce' ? "What's missing? Say it!" : "What's Missing?")
-                : 'Revealed!'}
-            </h1>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-indigo-300 text-sm font-bold">Round {roundIndex}/{TOTAL_ROUNDS}</span>
-              {interactionMode === 'produce' && gamePhase === 'recall' && (
-                <span className="text-xs font-bold uppercase tracking-wider bg-fuchsia-500/30 text-fuchsia-200 px-2 py-0.5 rounded-full">Spell it!</span>
+            <div className="text-xs sm:text-sm font-black tracking-widest uppercase flex items-center gap-2">
+              <span className="bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 px-2 py-0.5 rounded-md text-[11px] font-bold">
+                Round {roundIndex}/{TOTAL_ROUNDS}
+              </span>
+              <span className="text-slate-400 font-bold">{isMagic ? 'Magic Eyes' : "What's Missing"}</span>
+            </div>
+            <div className="text-xl sm:text-3xl font-black text-white flex items-center gap-3 wm-title">
+              <span>
+                {gamePhase === 'memorize'
+                  ? (isMagic ? (magicReady ? 'Magic Eyes — Ready?' : 'Watch Closely!') : 'Memorize the Items!')
+                  : gamePhase === 'recall'
+                  ? (isMagic ? 'What did you see?' : interactionMode === 'produce' ? "What's missing? Say it!" : "What's Missing?")
+                  : 'Revealed!'}
+              </span>
+              {pickedStudent && (
+                <span className="text-xs sm:text-sm font-bold bg-amber-400/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  {pickedStudent.name}'s Turn
+                </span>
               )}
-              <div className="h-2 w-40 bg-white/10 rounded-full overflow-hidden">
-                <div className={`h-full transition-all duration-1000 linear ${gamePhase === 'memorize' ? 'bg-emerald-400' : 'bg-transparent'}`}
-                  style={{ width: gamePhase === 'memorize' ? `${(timer / memorizeSeconds) * 100}%` : '0%' }}></div>
-              </div>
             </div>
           </div>
+        </div>
+
+        {/* Timer / Progress Bar */}
+        <div className="flex items-center gap-3">
+          {mode === 'whats_missing' && gamePhase === 'memorize' && (
+            <button
+              onClick={() => setTimer(0)}
+              className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-400/50 text-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-sm"
+              title="Ready! Hide now (or press Space)"
+            >
+              <EyeOff size={14} /> Hide Now
+            </button>
+          )}
+          {gamePhase === 'memorize' && (!isMagic || magicFlashing) && (
+            <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl">
+              <div className="h-2 w-24 sm:w-32 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-400 transition-all duration-1000 ease-linear rounded-full"
+                  style={{ width: `${(timer / memorizeSeconds) * 100}%` }}
+                />
+              </div>
+              <span className="font-mono text-xs font-bold text-emerald-400">{timer}s</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ═══ MEMORIZE / FLASH PHASE ═══ */}
       {gamePhase === 'memorize' && (
-        <div className="flex-1 relative z-10 px-8 pb-8 flex items-center justify-center">
+        <div className="flex-1 relative z-10 flex items-center justify-center overflow-hidden">
           {isMagic ? (
-            <div className="w-full max-w-3xl aspect-video bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center justify-center">
-              <img src={grid[0]?.image} alt={grid[0]?.word} className="max-h-[70%] object-contain drop-shadow-md mb-4" />
-              <h3 className="text-4xl font-display font-bold text-slate-800">{grid[0]?.word}</h3>
-            </div>
+            magicReady ? (
+              /* Camera Ready Gate (F2) */
+              <div className="flex flex-col items-center justify-center p-6 sm:p-10 bg-slate-900/90 border-2 border-cyan-500/50 rounded-3xl shadow-2xl max-w-xl text-center animate-pop-in">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center mb-4 text-cyan-300">
+                  <Eye size={40} className="animate-pulse" />
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">Magic Eyes! Watch Closely!</h2>
+                <p className="text-slate-300 text-sm sm:text-base mb-6">The photo will flash for 3 seconds. Look at all the details!</p>
+                <button
+                  onClick={startMagicFlash}
+                  className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-lg sm:text-xl shadow-xl shadow-cyan-950/50 active:scale-95 transition-all flex items-center gap-3 animate-bounce-subtle mx-auto"
+                >
+                  <Zap size={24} /> FLASH IMAGE (3s)
+                </button>
+                <span className="text-xs text-slate-500 mt-3">Teacher: tap button or press SPACE to flash</span>
+              </div>
+            ) : (
+              /* Flash Image (image ONLY — no text label, solving F4) */
+              <div className="w-full max-w-2xl aspect-video bg-white rounded-3xl shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-center wm-shutter border-4 border-cyan-400 animate-fade-in">
+                <img src={grid[0]?.image} alt="Flash target" className="w-full h-full object-contain drop-shadow-md" />
+              </div>
+            )
           ) : (
-            <div className={`grid gap-6 w-full max-w-7xl ${grid.length <= 4 ? 'grid-cols-2 max-w-4xl' : 'grid-cols-4'}`}>
+            /* What's Missing Grid (4-8 items) */
+            <div className={`grid gap-3 sm:gap-6 w-full max-w-6xl max-h-[70vh] wm-card-grid ${
+              grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-2 sm:grid-cols-4'
+            }`}>
               {grid.map((item, i) => (
-                <div key={i} className="aspect-[4/3] rounded-3xl shadow-2xl bg-white flex flex-col items-center justify-center p-4">
-                  <img src={item.image} alt={item.word} className="h-2/3 object-contain drop-shadow-md mb-3" />
-                  <h3 className="text-2xl font-display font-bold text-slate-800">{item.word}</h3>
+                <div key={i} className="aspect-[4/3] rounded-2xl sm:rounded-3xl shadow-xl bg-white flex flex-col items-center justify-center p-3 sm:p-4 wm-grid-card border border-slate-100">
+                  <img src={item.image} alt={item.word} className="h-2/3 object-contain drop-shadow-sm mb-2" />
+                  <h3 className="text-base sm:text-2xl font-display font-bold text-slate-800 text-center truncate w-full px-1">
+                    {item.word}
+                  </h3>
                 </div>
               ))}
             </div>
@@ -681,36 +834,60 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
 
       {/* ═══ RECALL + REVEAL PHASE ═══ */}
       {(gamePhase === 'recall' || gamePhase === 'reveal' || gamePhase === 'slideComplete') && (
-        <div className="flex-1 relative z-10 px-8 pb-6 flex flex-col items-center justify-center gap-6">
-          {/* Grid with the missing tile (whats_missing) or blurred flash (magic_eyes) */}
+        <div className="flex-1 relative z-10 flex flex-col items-center justify-center gap-4 sm:gap-6 overflow-hidden">
           {isMagic ? (
-            <div className="w-full max-w-3xl aspect-video rounded-3xl overflow-hidden shadow-2xl relative">
-              <img src={grid[0]?.image} alt="" className={`w-full h-full object-cover transition-all duration-1000 ${gamePhase === 'reveal' ? 'blur-0 opacity-100' : 'blur-[80px] opacity-40 scale-110'}`} />
-              {gamePhase === 'reveal' && (
-                <div className="absolute inset-0 rounded-3xl border-8 border-yellow-400 pointer-events-none"></div>
-              )}
-            </div>
+            /* Magic Eyes Shutter / Revealed Image */
+            gamePhase === 'reveal' ? (
+              <div className="w-full max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl relative border-4 border-emerald-400 shadow-emerald-500/20 bg-white p-3 sm:p-4 wm-shutter animate-pop-in">
+                <img src={grid[0]?.image} alt={grid[0]?.word} className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              /* Mystery Frosted Shutter (NO color leak, solving F1) */
+              <div className="w-full max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl relative bg-slate-950 border-4 border-cyan-500/30 flex items-center justify-center wm-shutter">
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-indigo-950/90 to-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-cyan-400/50 border-dashed animate-spin-slow flex items-center justify-center mb-2 shadow-[0_0_25px_rgba(6,182,212,0.3)]">
+                    <EyeOff size={32} className="text-cyan-400" />
+                  </div>
+                  <p className="text-cyan-300 font-bold text-base sm:text-lg tracking-widest uppercase">Mystery Lens Closed</p>
+                  <p className="text-slate-400 text-xs sm:text-sm mt-0.5">What did you see in the photo?</p>
+                </div>
+              </div>
+            )
           ) : (
-            <div className={`grid gap-4 w-full ${grid.length <= 4 ? 'grid-cols-2 max-w-4xl' : 'grid-cols-4 max-w-7xl'}`}>
+            /* What's Missing: Grid with missing aperture */
+            <div className={`grid gap-2.5 sm:gap-4 w-full max-h-[55vh] wm-card-grid ${
+              grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-2 sm:grid-cols-4 max-w-6xl'
+            }`}>
               {grid.map((item, i) => {
                 const isMissing = i === missingIndex;
                 const revealed = isMissing && gamePhase !== 'recall';
                 return (
-                  <div key={i}
-                    className={`aspect-[4/3] rounded-3xl shadow-2xl transition-all duration-500 relative
-                      ${isMissing && !revealed ? 'bg-indigo-900/50 border-4 border-dashed border-indigo-500/50' : 'bg-white'}`}>
-                    <div className={`w-full h-full p-3 flex flex-col items-center justify-center transition-opacity duration-300 ${isMissing && !revealed ? 'opacity-0' : 'opacity-100'}`}>
-                      <img src={item.image} alt={revealed ? item.word : ''} className="h-2/3 object-contain drop-shadow-md mb-2" />
-                      {/* Labels hidden during recall (keeps produce mode honest) */}
-                      {(!isMissing || revealed) && <h3 className="text-xl font-display font-bold text-slate-800">{item.word}</h3>}
+                  <div
+                    key={i}
+                    className={`aspect-[4/3] rounded-2xl sm:rounded-3xl shadow-xl transition-all duration-500 relative wm-grid-card ${
+                      isMissing && !revealed
+                        ? 'bg-indigo-950/60 border-2 border-dashed border-cyan-400/60 shadow-cyan-950/50'
+                        : 'bg-white border border-slate-100'
+                    }`}
+                  >
+                    <div className={`w-full h-full p-2.5 sm:p-3 flex flex-col items-center justify-center transition-opacity duration-300 ${
+                      isMissing && !revealed ? 'opacity-0' : 'opacity-100'
+                    }`}>
+                      <img src={item.image} alt={revealed ? item.word : ''} className="h-2/3 object-contain drop-shadow-sm mb-1.5" />
+                      {(!isMissing || revealed) && (
+                        <h3 className="text-sm sm:text-xl font-display font-bold text-slate-800 text-center truncate w-full px-1">
+                          {item.word}
+                        </h3>
+                      )}
                     </div>
                     {isMissing && !revealed && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <HelpCircle size={64} className="text-indigo-500/50 animate-bounce" />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <HelpCircle size={44} className="text-cyan-400 animate-bounce mb-1" />
+                        <span className="text-[11px] font-bold text-cyan-300 tracking-wider uppercase">Missing</span>
                       </div>
                     )}
                     {revealed && (
-                      <div className="absolute inset-0 rounded-3xl border-8 border-yellow-400 pointer-events-none"></div>
+                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border-4 border-emerald-400 pointer-events-none animate-pop-in" />
                     )}
                   </div>
                 );
@@ -718,36 +895,76 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
             </div>
           )}
 
-          {/* Produce-mode prompt (teacher types the student's answer on the Baton) */}
+          {/* Produce-mode oral challenge bar (1-tap oral verification, solving F1) */}
           {interactionMode === 'produce' && gamePhase === 'recall' && (
-            <div className="flex flex-col items-center gap-2">
-              <div className="bg-fuchsia-600/30 border-2 border-fuchsia-400/50 text-white text-2xl font-display font-bold px-8 py-4 rounded-2xl">
-                {pickedStudent ? `${pickedStudent.name}, say the missing word!` : 'Say the missing word!'}
+            <div className="flex flex-col items-center gap-2.5 w-full max-w-lg animate-fade-in wm-produce-bar">
+              <div className="bg-fuchsia-950/70 border-2 border-fuchsia-500/50 text-white text-lg sm:text-2xl font-display font-bold px-6 py-3 rounded-2xl text-center shadow-lg">
+                {pickedStudent ? `${pickedStudent.name}, say the missing word!` : 'Say the missing word loud!'}
               </div>
               {firstLetterHint && testedWord && (
-                <div className="bg-yellow-400 text-yellow-950 font-bold text-xl px-6 py-2 rounded-xl animate-pop-in">
+                <div className="bg-amber-400 text-slate-950 font-black text-base sm:text-xl px-4 py-1.5 rounded-xl animate-pop-in shadow-md">
                   Hint: starts with “{testedWord.charAt(0).toUpperCase()}”
                 </div>
               )}
-              <p className="text-indigo-300 text-sm">Teacher: type the answer on the Baton to submit.</p>
+              {/* On-board oral evaluation buttons */}
+              <div className="flex items-center gap-3 mt-1">
+                <button
+                  onClick={forceCorrect}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base shadow-lg active:scale-95 flex items-center gap-2 transition-all wm-produce-btn"
+                >
+                  <Check size={18} strokeWidth={3} /> ✓ Correct
+                </button>
+                <button
+                  onClick={handleProduceMiss}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm sm:text-base shadow-lg active:scale-95 flex items-center gap-2 transition-all wm-produce-btn"
+                >
+                  <X size={18} strokeWidth={3} /> ✗ Try Again
+                </button>
+                <button
+                  onClick={revealAnswer}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm shadow active:scale-95 flex items-center gap-1.5 transition-all wm-produce-btn"
+                >
+                  <Eye size={16} /> Reveal
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Recognize-mode candidate tray */}
+          {/* Recognize-mode Candidate Dock (with letter badges, images, and text labels, solving F3/F4) */}
           {interactionMode === 'recognize' && gamePhase === 'recall' && (
-            <div className="flex flex-col items-center gap-3">
-              <p className="text-indigo-200 text-xl font-display font-bold">
-                {isMagic ? 'Which one was it?' : 'Which one is gone? Tap it!'}
+            <div className="flex flex-col items-center gap-2 sm:gap-3 w-full max-w-5xl animate-fade-in">
+              <p className="text-indigo-200 text-sm sm:text-lg font-display font-bold text-center">
+                {isMagic ? 'Which item did you see in the photo?' : 'Which item is missing? Tap the answer!'}
               </p>
-              <div className="flex gap-4 flex-wrap justify-center">
+              <div className="flex gap-2 sm:gap-3 flex-wrap justify-center w-full wm-cand-dock">
                 {candidates.map((cand, i) => {
                   const isEliminated = eliminated.includes(i);
+                  const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
                   return (
-                    <button key={i} onClick={() => handleRecognizeTap(cand, i)} disabled={isEliminated}
-                      className={`w-36 h-28 rounded-2xl bg-white shadow-xl p-2 transition-all duration-300
-                        ${isEliminated ? 'opacity-20 scale-90 cursor-not-allowed' : 'hover:scale-110 hover:-translate-y-1 active:scale-95'}
-                        ${feedback === 'incorrect' ? 'animate-shake' : ''}`}>
-                      <img src={cand.image} alt="" className="w-full h-full object-contain drop-shadow" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.2'; }} />
+                    <button
+                      key={i}
+                      onClick={() => handleRecognizeTap(cand, i)}
+                      disabled={isEliminated}
+                      className={`flex items-center gap-2.5 px-3.5 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-slate-900/90 border-2 border-slate-700 hover:border-cyan-400 hover:bg-slate-800 shadow-lg transition-all duration-200 wm-cand-btn ${
+                        isEliminated
+                          ? 'opacity-20 scale-90 cursor-not-allowed border-slate-800'
+                          : 'hover:scale-105 active:scale-95'
+                      } ${feedback === 'incorrect' ? 'animate-shake' : ''}`}
+                    >
+                      <span className="w-6 h-6 rounded-md bg-slate-800 text-cyan-400 font-mono text-xs font-black flex items-center justify-center border border-slate-700">
+                        {labels[i] || i + 1}
+                      </span>
+                      {cand.image && (
+                        <img
+                          src={cand.image}
+                          alt={cand.label || ''}
+                          className="h-8 w-8 sm:h-11 sm:w-11 object-contain drop-shadow"
+                          onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.2'; }}
+                        />
+                      )}
+                      <span className="font-display font-bold text-sm sm:text-lg text-white">
+                        {cand.label || `Option ${i + 1}`}
+                      </span>
                     </button>
                   );
                 })}
@@ -755,61 +972,87 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
             </div>
           )}
 
-          {/* Reveal feedback strip */}
+          {/* Reveal Feedback Strip with Choral Echo & Audio Pronunciation (solving F4/F3) */}
           {gamePhase === 'reveal' && testedEntry && (
-            <div className={`px-10 py-4 rounded-3xl shadow-2xl flex items-center gap-5 animate-bounce-subtle ${feedback === 'correct' ? 'bg-green-500' : 'bg-yellow-500'} text-white`}>
-              {feedback === 'correct' ? <Check size={36} strokeWidth={4} /> : <Lightbulb size={36} />}
+            <div className={`px-6 sm:px-8 py-3 rounded-2xl sm:rounded-3xl shadow-2xl flex items-center gap-4 sm:gap-6 animate-bounce-subtle ${
+              feedback === 'correct' ? 'bg-emerald-600 border-2 border-emerald-400' : 'bg-amber-600 border-2 border-amber-400'
+            } text-white`}>
+              {feedback === 'correct' ? <Check size={30} strokeWidth={3} className="text-white shrink-0" /> : <Lightbulb size={30} className="shrink-0" />}
               <div className="text-left">
-                <div className="text-2xl font-display font-black">
+                <div className="text-lg sm:text-2xl font-display font-black">
                   {feedback === 'correct'
-                    ? (pickedStudent ? `Nice one, ${pickedStudent.name}!` : 'Correct!')
+                    ? (pickedStudent ? `Nice one, ${pickedStudent.name}!` : 'Awesome!')
                     : `It was: ${testedEntry.word}`}
                 </div>
+                <div className="text-xs sm:text-sm text-emerald-100 font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                  <Users size={15} /> Everyone say: <span className="underline font-black text-white text-sm sm:text-base">{testedEntry.word}</span>
+                </div>
               </div>
-              <img src={testedEntry.image} alt={testedEntry.word} className="h-16 w-16 object-contain bg-white/20 rounded-xl p-1" />
+              <img src={testedEntry.image} alt={testedEntry.word} className="h-12 w-12 sm:h-14 sm:w-14 object-contain bg-white/20 rounded-xl p-1 shrink-0" />
+              <button
+                onClick={() => browserSpeak(testedEntry.word)}
+                className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors shrink-0"
+                title="Listen again (Space)"
+              >
+                <Volume2 size={20} />
+              </button>
             </div>
           )}
         </div>
       )}
 
-      {/* Already-scored chip (spec: make the award latch visible) */}
+      {/* Already-scored chip */}
       {alreadyScoredChip && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 bg-slate-800/90 text-white px-5 py-2 rounded-full font-bold animate-fade-in">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-800/95 border border-slate-700 text-white px-5 py-2 rounded-full font-bold shadow-2xl animate-fade-in">
           🔁 already scored this turn
         </div>
       )}
 
       {/* 2nd-miss micro-explanation card */}
       {showExplanation && testedEntry && gamePhase === 'recall' && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 pointer-events-none">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-fade-in max-w-md">
-            <Lightbulb size={40} className="text-amber-500 mb-3" />
-            <img src={testedEntry.image} alt={testedEntry.word} className="h-32 object-contain drop-shadow mb-3" />
-            <p className="text-3xl font-display font-bold text-slate-800">{testedEntry.word}</p>
-            <p className="text-slate-500 mt-1">Here's what it was!</p>
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none animate-fade-in">
+          <div className="bg-slate-900 border-2 border-amber-400/80 p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
+            <Lightbulb size={36} className="text-amber-400 mb-2 animate-bounce" />
+            <img src={testedEntry.image} alt={testedEntry.word} className="h-28 object-contain drop-shadow mb-3 bg-white/10 rounded-2xl p-2" />
+            <p className="text-2xl sm:text-3xl font-display font-black text-white">{testedEntry.word}</p>
+            <p className="text-slate-400 text-xs sm:text-sm mt-1">Here's what it was!</p>
           </div>
         </div>
       )}
 
-      {/* Slide complete overlay — click to dismiss */}
+      {/* Slide complete overlay */}
       {gamePhase === 'slideComplete' && (
         <div
           onClick={() => setGamePhase('reveal')}
-          className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-white p-12 rounded-[3rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
-            <div className="w-32 h-32 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center mb-6">
-              <Eye size={64} strokeWidth={2.5} />
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in cursor-pointer"
+        >
+          <div className="bg-slate-900 border-2 border-indigo-500/50 p-8 sm:p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-bounce-subtle text-center max-w-lg">
+            <div className="w-24 h-24 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mb-4 border border-indigo-400/40">
+              <Sparkles size={48} />
             </div>
-            <h2 className="text-5xl font-black text-slate-800 mb-2">
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">
               {pickedStudent ? `Great memory, ${pickedStudent.name}!` : 'Great memory, everyone!'}
             </h2>
-            <p className="text-2xl text-slate-500 font-medium">Ready for the next slide.</p>
-            <p className="text-sm text-slate-400 mt-4 animate-pulse">tap to dismiss</p>
+            <p className="text-lg text-slate-400 font-medium">Memory round complete!</p>
+            <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
       )}
 
+      {/* Responsive phone-landscape floor styling */}
       <style>{`
+        @media (max-height: 450px) {
+          .wm-container { padding: 0.35rem 0.75rem !important; }
+          .wm-header { margin-bottom: 0.25rem !important; padding: 0.25rem 0 !important; }
+          .wm-title { font-size: 1.1rem !important; }
+          .wm-card-grid { gap: 0.35rem !important; max-height: 140px !important; }
+          .wm-grid-card { padding: 0.25rem !important; border-radius: 0.75rem !important; }
+          .wm-cand-dock { gap: 0.35rem !important; margin-top: 0.25rem !important; }
+          .wm-cand-btn { padding: 0.25rem 0.5rem !important; min-height: 38px !important; border-radius: 0.5rem !important; }
+          .wm-shutter { max-height: 135px !important; }
+          .wm-produce-bar { margin-top: 0.25rem !important; gap: 0.35rem !important; }
+          .wm-produce-btn { padding: 0.35rem 0.75rem !important; font-size: 0.875rem !important; border-radius: 0.5rem !important; }
+        }
         @keyframes wm-shake {
           0%, 100% { transform: translateX(0); }
           20%, 60% { transform: translateX(-8px); }
@@ -827,3 +1070,4 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
 };
 
 export default BoardWhatsMissing;
+
