@@ -143,6 +143,10 @@ The teacher performs **all input**. Kids answer orally, point, or come to the fr
 
 *(ZCode writes this downstream.)*
 
+## §5 note — Stitch design pass SUBMITTED 2026-09-12 (ZCode, while AG recharges)
+
+Two key screens per the §4 brief (Mystery Vault / Magic Camera directions). Accepted by the Stitch API — baking in the generation queue; ZCode exports to `stitch/14-whats-missing/` when materialized.
+
 ## §6 ⬜ Stitch output & implementation notes
 
 *(ZCode records implementation downstream.)*
