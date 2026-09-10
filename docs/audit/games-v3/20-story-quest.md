@@ -188,6 +188,10 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 *(ZCode writes this AFTER §4 is filled.)*
 
+## §5 note — wave-2 design pass SUBMITTED 2026-09-11 (ZCode → Stitch, autonomous)
+
+Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/20-story-quest/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
+
 ## §6 ⬜ Stitch output & implementation notes
 
 *(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
