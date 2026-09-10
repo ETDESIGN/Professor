@@ -196,8 +196,23 @@ Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json
    - Scaled vertical padding and header/footer heights responsively (`p-2 sm:p-4 lg:p-6`, header `h-10 sm:h-12 lg:h-14`).
    - Progress dot strip wrapped in an overflow container for stories exceeding 6 pages.
 
+5. **Multi-Speaker Bubble Parsing & Per-Character Audio Playback (Owner Request)**:
+   - **Context**: In textbook scans, a single image page frequently contains multiple speech bubbles for different characters talking, but `story_pages.text` stores them combined in one string.
+   - **`parseDialogueLines` Engine**: Parses multi-speaker text using newline boundaries, colon prefixes (`Speaker: ...`), bracketed attributions (`[Speaker] ...`), and cast list regex matches from `currentStory.characters`. Automatically strips duplicate prefixes from dialogue text while preserving character attribution and color bindings.
+   - **Interactive Multi-Speaker Cards**: When multiple dialogue lines exist (`parsedLines.length > 1`), displays separate interactive speaker cards with character portraits, name badges, colored halos, and vocabulary highlighting. The currently selected speaker card receives an active glow. When a single speaker is present, retains Stitch's 44px chant blockquote format.
+   - **Targeted Line-by-Line Audio**: Tapping any speaker's dialogue card directly triggers `playAudioUrl(undefined, line.text)` to read *only* that character's individual sentence via TTS. The bottom "REPLAY AUDIO LINE" button targets the currently active speaker line.
+   - **Line-by-Line Stepping**: Next / Prev controls (and remote actions `NEXT_PANEL` / `PREV_PANEL`) cycle across individual speaker turns on a page before advancing to the next panel.
+
+6. **Live-Screen Cutout Image / Book Crop Rendering (Owner Request)**:
+   - **Context**: In Teacher Commander, the story illustration/cutout image rendered correctly, but on the live projector screen (`ClassroomBoard`), the image card fell back to the brown gradient title box.
+   - **Root Cause**: In Teacher Commander, `setActiveUnit` attaches `_relational` via `get_unit_bundle`, which populates `p.imageUrl` via the `assets` table join. On the live screen, `applySessionRow` does not call `get_unit_bundle`, so `getStory` falls back to `normalizeManifest`, which maps the book crop/cutout to `image_url` (from `image_url_book_crop`). The template strictly checked `current.imageUrl`, causing `{current.imageUrl ? ...}` to evaluate to false.
+   - **Multi-Source Key Resolution (`resolvePageImageUrl`)**: Added resolver inspecting `imageUrl`, `image_url`, `image`, `image_url_book_crop`, `cropUrl`, `crop_url`, and `url`.
+   - **Live Screen Relational Recovery**: Added automatic background fetch of `get_unit_bundle` (falling back to `story_pages` joined with `assets`), attaching `_relational` to `manifest` in-memory and updating `dbPages`.
+   - **Cross-Source Page Merging**: Merges `relPages`, `flowPages`, `dataPages`, and `dbPages` so all text, speakers, audio, and cutout images are guaranteed to render on both the live projector and commander surfaces.
+
 ### Verification Gauntlet
 - `npx tsc --noEmit -p tsconfig.json` — clean (0 errors).
 - `npx vitest run` — 762/762 passed (1 skipped).
 - `npm run build` — clean production build (0 errors).
+
 

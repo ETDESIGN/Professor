@@ -2,6 +2,8 @@
 // Reading Theater state rebuilt directly from Stitch HTML design
 // (docs/audit/games-v3/stitch/07-story-stage/1-reading-theater.html).
 // Preserves all game lifecycle, scoring, remote actions, and pool coordination verbatim.
+// Supports multi-character speech bubbles: spreads multiple character dialogues
+// into distinct interactive speaker cards with individual audio playback.
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,6 +49,109 @@ export function resetAskedComprehensionItems(): void {
 const MAX_COMPREHENSION_QUESTIONS = 4;
 const FALLBACK_COLORS = ['#EF4444', '#3B82F6', '#22C55E', '#F59E0B', '#A855F7', '#EC4899'];
 
+// ── Dialogue parsing helper ────────────────────────────────────────────
+export interface ParsedDialogueLine {
+  speaker: string;
+  text: string;
+}
+
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Parse page text into separate dialogue lines when a page represents a comic
+ * panel with multiple speech bubbles or distinct character speech turns.
+ */
+export function parseDialogueLines(
+  rawText: string | undefined,
+  defaultSpeaker: string | undefined,
+  characters: any[] = []
+): ParsedDialogueLine[] {
+  if (!rawText) return [];
+  const trimmed = rawText.trim();
+  if (!trimmed) return [];
+
+  // 1. Separate into raw chunks: either by newline or by inline speaker markers
+  let rawChunks: string[] = [];
+  if (trimmed.includes('\n')) {
+    rawChunks = trimmed.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+  } else {
+    // If no newlines, check for multiple known character names followed by colon
+    const knownNames = characters
+      .map(c => String(c.name || '').trim())
+      .filter(n => n.length > 0);
+
+    let foundInline = false;
+    if (knownNames.length > 0) {
+      const namesPattern = knownNames.map(escapeRegExp).join('|');
+      const inlineNamedRegex = new RegExp(`(?:^|\\s+)(${namesPattern})\\s*[:：]\\s*`, 'gi');
+      const matches = Array.from(trimmed.matchAll(inlineNamedRegex));
+      if (matches.length > 1) {
+        const indices = matches.map(m => m.index!);
+        for (let i = 0; i < matches.length; i++) {
+          const start = indices[i];
+          const end = i + 1 < matches.length ? indices[i + 1] : trimmed.length;
+          rawChunks.push(trimmed.slice(start, end).trim());
+        }
+        foundInline = true;
+      }
+    }
+
+    // Generic fallback for inline capitalized speakers if known names didn't match
+    if (!foundInline) {
+      const genericSpeakerRegex = /(?:^|\s+)([A-Za-z0-9\s_'-]{2,25})\s*[:：]\s*/g;
+      const matches = Array.from(trimmed.matchAll(genericSpeakerRegex));
+      if (matches.length > 1) {
+        const indices = matches.map(m => m.index!);
+        for (let i = 0; i < matches.length; i++) {
+          const start = indices[i];
+          const end = i + 1 < matches.length ? indices[i + 1] : trimmed.length;
+          rawChunks.push(trimmed.slice(start, end).trim());
+        }
+      } else {
+        rawChunks = [trimmed];
+      }
+    }
+  }
+
+  // 2. Parse each chunk into { speaker, text }
+  return rawChunks.map((chunk, idx) => {
+    // Match "Speaker: Dialogue"
+    const colonMatch = chunk.match(/^([^:：\r\n]{1,35})[:：]\s*(.+)$/s);
+    if (colonMatch) {
+      const sName = colonMatch[1].trim();
+      const dText = colonMatch[2].trim().replace(/^["“](.*)["”]$/s, '$1');
+      return {
+        speaker: sName,
+        text: dText || chunk,
+      };
+    }
+
+    // Match "[Speaker] Dialogue" or "(Speaker) Dialogue"
+    const bracketMatch = chunk.match(/^[\[\(]([A-Za-z0-9\s_'-]{1,30})[\]\)]\s*[:：]?\s*(.+)$/s);
+    if (bracketMatch) {
+      const sName = bracketMatch[1].trim();
+      const dText = bracketMatch[2].trim().replace(/^["“](.*)["”]$/s, '$1');
+      return {
+        speaker: sName,
+        text: dText || chunk,
+      };
+    }
+
+    // Fallback: if multiple chunks, attribute to cast members in turn; otherwise defaultSpeaker
+    let fallbackSpeaker = defaultSpeaker || 'Narrator';
+    if (rawChunks.length > 1 && characters.length > 0) {
+      fallbackSpeaker = characters[idx % characters.length]?.name || fallbackSpeaker;
+    }
+    const cleanText = chunk.replace(/^["“](.*)["”]$/s, '$1');
+    return {
+      speaker: fallbackSpeaker,
+      text: cleanText,
+    };
+  });
+}
+
 // ── Component ──────────────────────────────────────────────────────────
 const BoardStoryStage = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
@@ -89,18 +194,147 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     return out;
   }, [poolItems]);
 
-  // ── Story pages (relational first, frozen fallback) ──────────────────
-  const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
-  const pages = (relPages.length > 0 ? relPages : data.pages) || [];
-  const characters = data.characters || [];
+  // Helper to extract image URL from any known property variant (including book crops/cutouts)
+  const resolvePageImageUrl = useCallback((p: any): string | undefined => {
+    if (!p) return undefined;
+    const url =
+      p.imageUrl ||
+      p.image_url ||
+      p.image ||
+      p.image_url_book_crop ||
+      p.cropUrl ||
+      p.crop_url ||
+      p.url ||
+      undefined;
+    return typeof url === 'string' && url.trim().length > 0 ? url : undefined;
+  }, []);
 
   // ── Character portraits (live bundle first, frozen plan fallback) ────
   const liveChars = useMemo(() => getCharacters(state.activeUnit?.manifest) || [], [state.activeUnit?.manifest]);
-  const charByName = useMemo(() => new Map(liveChars.map((c: any) => [String(c.name || '').toLowerCase(), c])), [liveChars]);
+  const characters = useMemo(() => {
+    if (Array.isArray(data?.characters) && data.characters.length > 0) return data.characters;
+    if (liveChars.length > 0) return liveChars;
+    const manifestChars = (state.activeUnit?.manifest as any)?.characters;
+    if (Array.isArray(manifestChars) && manifestChars.length > 0) return manifestChars;
+    return [];
+  }, [data?.characters, liveChars, state.activeUnit?.manifest]);
+
+  const charByName = useMemo(() => new Map<string, any>(characters.map((c: any) => [String(c.name || '').toLowerCase(), c])), [characters]);
   const portraitOf = (c: any, name?: string) => {
-    const live = charByName.get(String(name || c?.name || '').toLowerCase());
-    return live?.image_url || c?.imageUrl || c?.image_url || null;
+    const found = charByName.get(String(name || c?.name || '').toLowerCase());
+    return found?.image_url || found?.imageUrl || c?.imageUrl || c?.image_url || null;
   };
+
+  // ── Live-screen asset recovery: fetch relational bundle or story_pages if images missing ──
+  const [dbPages, setDbPages] = useState<any[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!unitId) return;
+
+    (async () => {
+      // 1. Try get_unit_bundle RPC (attaches _relational so all normalizers work)
+      try {
+        const { data: bundle } = await supabase.rpc('get_unit_bundle', { p_unit_id: unitId });
+        if (cancelled) return;
+        if (bundle && Array.isArray(bundle.story_pages) && bundle.story_pages.length > 0) {
+          if (state.activeUnit?.manifest && !(state.activeUnit.manifest as any)._relational) {
+            try {
+              Object.defineProperty(state.activeUnit.manifest, '_relational', {
+                value: bundle,
+                enumerable: false,
+                configurable: true,
+              });
+            } catch {
+              (state.activeUnit.manifest as any)._relational = bundle;
+            }
+          }
+          setDbPages(bundle.story_pages);
+          return;
+        }
+      } catch {
+        // Fallback to direct query if RPC unavailable
+      }
+
+      // 2. Direct query to story_pages joining assets table
+      try {
+        const { data: rows } = await supabase
+          .from('story_pages')
+          .select('id, page_number, text, speaker, image_asset_id, assets:image_asset_id(public_url)')
+          .eq('unit_id', unitId)
+          .order('page_number');
+        if (cancelled) return;
+        if (rows && rows.length > 0) {
+          setDbPages(
+            rows.map((r: any) => ({
+              text: r.text,
+              speaker: r.speaker,
+              imageUrl: r.assets?.public_url || undefined,
+              image_url: r.assets?.public_url || undefined,
+            }))
+          );
+        }
+      } catch {
+        // Best-effort
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [unitId, state.activeUnit]);
+
+  // ── Story pages (relational first, frozen fallback, merged with asset resolution) ──
+  const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
+  const flowPages = useMemo(() => {
+    const flow = state.activeUnit?.flow || [];
+    const storyStep = flow.find(
+      (s: any) =>
+        (s.type === 'STORY_STAGE' || s.type === 'STORY_STAGE_AG') &&
+        Array.isArray(s.data?.pages) &&
+        s.data.pages.length > 0
+    );
+    return storyStep?.data?.pages || [];
+  }, [state.activeUnit?.flow]);
+
+  const dataPages = useMemo(() => (Array.isArray(data?.pages) ? data.pages : []), [data?.pages]);
+
+  const pages = useMemo(() => {
+    const baseList =
+      (relPages.length > 0 ? relPages : null) ||
+      (flowPages.length > 0 ? flowPages : null) ||
+      (dataPages.length > 0 ? dataPages : null) ||
+      (dbPages.length > 0 ? dbPages : []) ||
+      [];
+
+    return baseList.map((p: any, idx: number) => {
+      const rel = relPages[idx] || {};
+      const flow = flowPages[idx] || {};
+      const dt = dataPages[idx] || {};
+      const db = dbPages[idx] || {};
+
+      const text = p.text || rel.text || flow.text || dt.text || db.text || '';
+      const speaker = p.speaker || rel.speaker || flow.speaker || dt.speaker || db.speaker;
+      const audio = (p as any)?.audio || (p as any)?.audio_url || (rel as any)?.audio || (rel as any)?.audio_url || flow.audio || dt.audio || db.audio;
+
+      const img =
+        resolvePageImageUrl(p) ||
+        resolvePageImageUrl(rel) ||
+        resolvePageImageUrl(flow) ||
+        resolvePageImageUrl(dt) ||
+        resolvePageImageUrl(db);
+
+      return {
+        ...dt,
+        ...flow,
+        ...rel,
+        ...db,
+        ...p,
+        text,
+        speaker,
+        audio,
+        imageUrl: img,
+        image_url: img,
+      };
+    });
+  }, [relPages, flowPages, dataPages, dbPages, resolvePageImageUrl]);
 
   // ── Vocab for highlighting target words ──────────────────────────────
   const vocab = useMemo(() => getVocabulary(state.activeUnit?.manifest), [state.activeUnit?.manifest]);
@@ -121,16 +355,64 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   // 2nd-miss comprehension reveal: correct option amber-ringed + explanation.
   const [revealedAnswer, setRevealedAnswer] = useState(false);
 
+  // Active dialogue line index within the current page (for comic panels with multiple bubbles)
+  const [activeLineIdx, setActiveLineIdx] = useState(0);
+
   // ── Lifecycle refs (the 4 must-dos) ──────────────────────────────────
   const mistakesRef = useRef(0);
   const awardedRef = useRef(false);
-  // Consecutive-correct streak across comprehension questions (4th
-  // scoreForAttempt arg; resets on a miss or a new turn).
   const streakRef = useRef(0);
 
   const totalContentPanels = pages.length;
   const hasComprehension = comprehensionItems.length > 0;
   const endCardPanel = totalContentPanels; // index of "The End" card
+
+  const isHook = activePanel === -1;
+  const isPage = activePanel >= 0 && activePanel < totalContentPanels;
+  const isEndCard = activePanel === endCardPanel;
+  const isComprehension = activePanel > endCardPanel && !slideDone;
+  const current = isPage ? pages[activePanel] : null;
+
+  // Resolves story image URL from any known key (imageUrl, image_url, image_url_book_crop, etc.)
+  const currentImageUrl = useMemo(() => {
+    if (!current) return undefined;
+    return (
+      resolvePageImageUrl(current) ||
+      resolvePageImageUrl(dataPages[activePanel]) ||
+      resolvePageImageUrl(flowPages[activePanel]) ||
+      resolvePageImageUrl(dbPages[activePanel]) ||
+      undefined
+    );
+  }, [current, dataPages, flowPages, dbPages, activePanel, resolvePageImageUrl]);
+
+  // Reset activeLineIdx when navigating between pages
+  useEffect(() => {
+    setActiveLineIdx(0);
+  }, [activePanel]);
+
+  // ── Parse page dialogue lines (splits multiple speech bubbles) ───────
+  const parsedLines = useMemo(() => {
+    return parseDialogueLines(current?.text, current?.speaker, characters);
+  }, [current?.text, current?.speaker, characters]);
+
+  const activeLine = parsedLines[activeLineIdx] || parsedLines[0] || {
+    speaker: current?.speaker || 'Narrator',
+    text: current?.text || '',
+  };
+
+  const defaultSpeakerChar = current ? (characters.find((c: any) => c.name === current.speaker) || characters[0]) : null;
+  const activeSpeakerName = activeLine.speaker || current?.speaker || defaultSpeakerChar?.name || 'Narrator';
+  const activeSpeakerChar = characters.find((c: any) => c.name?.toLowerCase() === activeSpeakerName.toLowerCase()) || defaultSpeakerChar;
+  const activeSpeakerPortrait = portraitOf(activeSpeakerChar, activeSpeakerName);
+
+  // ── Character color lookup ───────────────────────────────────────────
+  const getCharColor = (name: string) => {
+    const idx = characters.findIndex((c: any) => c.name?.toLowerCase() === name?.toLowerCase());
+    if (idx >= 0 && characters[idx]?.color) return characters[idx].color;
+    return FALLBACK_COLORS[idx >= 0 ? idx % FALLBACK_COLORS.length : 0];
+  };
+
+  const activeSpeakerColor = getCharColor(activeSpeakerName);
 
   // ── Dual-write helper ────────────────────────────────────────────────
   const doDualWrite = useCallback((opts: {
@@ -163,7 +445,6 @@ const BoardStoryStage = ({ data }: { data: any }) => {
 
   // ── Question advancement ─────────────────────────────────────────────
   const advanceQuestion = useCallback((idx: number) => {
-    // Mark the current question as asked for coordination
     const currentItem = comprehensionItems[idx];
     if (currentItem) {
       markComprehensionAsked(currentItem.objective_id, [currentItem.id]);
@@ -237,6 +518,35 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     }
   }, [comprehensionItems, qIndex, selectedOption, storyObjectiveId, doDualWrite, advanceQuestion, showAlreadyScored, triggerConfetti]);
 
+  // ── Local panel nav ──────────────────────────────────────────────────
+  const nextPanel = () => setActivePanel(p => {
+    if (p < totalContentPanels) return p + 1;
+    if (p === totalContentPanels && hasComprehension) return p + 1;
+    return p;
+  });
+  const prevPanel = () => setActivePanel(p => Math.max(p - 1, -1));
+
+  // Step line-by-line within a page, or advance page when all lines read
+  const handleNext = () => {
+    if (isPage && parsedLines.length > 1 && activeLineIdx < parsedLines.length - 1) {
+      const nextIdx = activeLineIdx + 1;
+      setActiveLineIdx(nextIdx);
+      playAudioUrl(undefined, parsedLines[nextIdx].text);
+    } else {
+      nextPanel();
+    }
+  };
+
+  const handlePrev = () => {
+    if (isPage && parsedLines.length > 1 && activeLineIdx > 0) {
+      const prevIdx = activeLineIdx - 1;
+      setActiveLineIdx(prevIdx);
+      playAudioUrl(undefined, parsedLines[prevIdx].text);
+    } else {
+      prevPanel();
+    }
+  };
+
   // ── Remote/commander action listener ─────────────────────────────────
   useEffect(() => {
     const a = state.lastAction;
@@ -244,15 +554,33 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     switch (a.type) {
       case 'NEXT_PANEL':
       case 'NEXT_CARD':
-        setActivePanel(p => {
-          if (p < totalContentPanels) return p + 1;
-          if (p === totalContentPanels && hasComprehension) return p + 1;
-          return p;
-        });
+        if (isPage && parsedLines.length > 1 && activeLineIdx < parsedLines.length - 1) {
+          const nextIdx = activeLineIdx + 1;
+          setActiveLineIdx(nextIdx);
+          playAudioUrl(undefined, parsedLines[nextIdx].text);
+        } else {
+          setActivePanel(p => {
+            if (p < totalContentPanels) return p + 1;
+            if (p === totalContentPanels && hasComprehension) return p + 1;
+            return p;
+          });
+        }
         break;
       case 'PREV_PANEL':
       case 'PREV_CARD':
-        setActivePanel(p => Math.max(p - 1, -1));
+        if (isPage && parsedLines.length > 1 && activeLineIdx > 0) {
+          const prevIdx = activeLineIdx - 1;
+          setActiveLineIdx(prevIdx);
+          playAudioUrl(undefined, parsedLines[prevIdx].text);
+        } else {
+          setActivePanel(p => Math.max(p - 1, -1));
+        }
+        break;
+      case 'PLAY_AUDIO':
+        if (isPage) {
+          const audioUrl = parsedLines.length === 1 ? current?.audio : undefined;
+          playAudioUrl(audioUrl, activeLine.text);
+        }
         break;
       case 'RESET_GAME':
         setActivePanel(-1);
@@ -261,6 +589,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         setEliminatedOptions([]);
         setRevealedAnswer(false);
         setSlideDone(false);
+        setActiveLineIdx(0);
         mistakesRef.current = 0;
         awardedRef.current = false;
         streakRef.current = 0;
@@ -311,7 +640,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         break;
     }
     // eslint-disable-next-line
-  }, [state.lastAction]);
+  }, [state.lastAction, isPage, parsedLines, activeLineIdx, totalContentPanels, hasComprehension]);
 
   // ── Game-lifecycle: new turn → fresh refs ────────────────────────────
   const turnId = state.currentTurnId;
@@ -328,21 +657,6 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     const t = setTimeout(() => setSlideDone(false), 6000);
     return () => clearTimeout(t);
   }, [slideDone]);
-
-  // Local panel nav (same rules as NEXT_PANEL/PREV_PANEL remote actions)
-  const nextPanel = () => setActivePanel(p => {
-    if (p < totalContentPanels) return p + 1;
-    if (p === totalContentPanels && hasComprehension) return p + 1;
-    return p;
-  });
-  const prevPanel = () => setActivePanel(p => Math.max(p - 1, -1));
-
-  // ── Character color lookup ───────────────────────────────────────────
-  const getCharColor = (name: string) => {
-    const idx = characters.findIndex((c: any) => c.name === name);
-    if (idx >= 0 && characters[idx]?.color) return characters[idx].color;
-    return FALLBACK_COLORS[idx >= 0 ? idx % FALLBACK_COLORS.length : 0];
-  };
 
   // ── Render target words highlighted in dialogue ──────────────────────
   const renderText = (text: string) =>
@@ -373,13 +687,6 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     );
   }
 
-  const isHook = activePanel === -1;
-  const isPage = activePanel >= 0 && activePanel < totalContentPanels;
-  const isEndCard = activePanel === endCardPanel;
-  const isComprehension = activePanel > endCardPanel && !slideDone;
-  const current = isPage ? pages[activePanel] : null;
-  const currentSpeaker = current ? (characters.find((c: any) => c.name === current.speaker) || characters[0]) : null;
-  const speakerPortrait = currentSpeaker ? portraitOf(currentSpeaker, current.speaker || currentSpeaker.name) : null;
   const currentQuestion = isComprehension ? comprehensionItems[qIndex] : null;
 
   return (
@@ -511,20 +818,20 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                       <div
                         className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-full p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.35)] transition-transform duration-300"
                         style={{
-                          background: `linear-gradient(to top right, ${getCharColor(current.speaker || '')}, #F59E0B, #FDE68A)`,
-                          boxShadow: `0 0 18px ${getCharColor(current.speaker || '')}55`,
+                          background: `linear-gradient(to top right, ${activeSpeakerColor}, #F59E0B, #FDE68A)`,
+                          boxShadow: `0 0 18px ${activeSpeakerColor}55`,
                         }}
                       >
                         <div className="w-full h-full rounded-full bg-[#111C3D] flex items-center justify-center overflow-hidden border-2 border-[#070C18]">
-                          {speakerPortrait ? (
+                          {activeSpeakerPortrait ? (
                             <img
-                              src={speakerPortrait}
-                              alt={currentSpeaker?.name || current.speaker || 'Character'}
+                              src={activeSpeakerPortrait}
+                              alt={activeSpeakerName}
                               className="w-full h-full object-cover"
                             />
                           ) : (
                             <span className="text-lg sm:text-xl lg:text-3xl">
-                              {currentSpeaker?.emoji || currentSpeaker?.name?.charAt(0) || current.speaker?.charAt(0) || '👤'}
+                              {activeSpeakerChar?.emoji || activeSpeakerName.charAt(0) || '👤'}
                             </span>
                           )}
                         </div>
@@ -543,16 +850,16 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                       <div className="flex items-center gap-2">
                         <h2
                           className="ag-font-display text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold tracking-wide truncate leading-tight"
-                          style={{ color: getCharColor(current.speaker || '') }}
+                          style={{ color: activeSpeakerColor }}
                         >
-                          {(current.speaker || currentSpeaker?.name || 'Narrator').toUpperCase()}
+                          {activeSpeakerName.toUpperCase()}
                         </h2>
                         <span
                           className="hidden md:inline-block px-2 py-0.5 rounded ag-font-mono text-[9px] lg:text-[10px] font-bold border"
                           style={{
-                            backgroundColor: `${getCharColor(current.speaker || '')}1A`,
-                            color: getCharColor(current.speaker || ''),
-                            borderColor: `${getCharColor(current.speaker || '')}4D`,
+                            backgroundColor: `${activeSpeakerColor}1A`,
+                            color: activeSpeakerColor,
+                            borderColor: `${activeSpeakerColor}4D`,
                           }}
                         >
                           VOICE
@@ -561,39 +868,166 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                     </div>
                   </div>
 
-                  {/* Dialogue Tag */}
+                  {/* Dialogue / Turn Tag */}
                   <div className="px-2 sm:px-2.5 lg:px-3 py-1 bg-[#111C3D] border border-white/10 rounded-lg shrink-0">
                     <span className="ag-font-mono text-[9px] sm:text-[10px] lg:text-xs text-slate-300 font-bold">
-                      LINE {String(activePanel + 1).padStart(2, '0')} / {String(totalContentPanels).padStart(2, '0')}
+                      {parsedLines.length > 1
+                        ? `LINE ${activePanel + 1} · TURN ${activeLineIdx + 1}/${parsedLines.length}`
+                        : `LINE ${String(activePanel + 1).padStart(2, '0')} / ${String(totalContentPanels).padStart(2, '0')}`}
                     </span>
                   </div>
                 </div>
 
-                {/* Center Narrative Area: Very Large Type Dialogue */}
-                <div className="flex-1 min-h-0 flex flex-col justify-center py-2 sm:py-3 lg:py-6 overflow-hidden">
-                  <div className="mb-1.5 sm:mb-2 lg:mb-3 flex items-center gap-2 shrink-0">
-                    <Quote className="text-[#38BDF8] rotate-180 shrink-0" size={18} />
-                    <span className="ag-font-mono text-[9px] sm:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
-                      Target Speech Chant
-                    </span>
-                  </div>
+                {/* Center Narrative Area: Multi-character Dialogue or Single Large Blockquote */}
+                {parsedLines.length > 1 ? (
+                  /* Multi-character dialogue: distinct speech cards with individual audio play on tap */
+                  <div className="flex-1 min-h-0 flex flex-col justify-center py-1 sm:py-2 lg:py-3 overflow-hidden">
+                    <div className="mb-2 flex items-center justify-between shrink-0">
+                      <div className="flex items-center gap-2">
+                        <Quote className="text-[#38BDF8] rotate-180 shrink-0" size={16} />
+                        <span className="ag-font-mono text-[9px] sm:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
+                          Dialogue ({parsedLines.length} Speakers)
+                        </span>
+                      </div>
+                      <span className="ag-font-mono text-[9px] sm:text-[10px] text-slate-400">
+                        Tap any character to listen
+                      </span>
+                    </div>
 
-                  {/* The Dialogue Line in Extra Large, Chunky Rounded Type */}
-                  <blockquote className="ag-font-display text-[20px] sm:text-[24px] md:text-[30px] lg:text-[38px] xl:text-[44px] leading-[1.18] font-bold text-white ag-dialogue-glow tracking-tight select-text overflow-y-auto max-h-full">
-                    &ldquo;{renderText(current.text || '')}&rdquo;
-                  </blockquote>
-                </div>
+                    <div className="flex-1 min-h-0 space-y-2 sm:space-y-2.5 overflow-y-auto pr-1">
+                      {parsedLines.map((line, idx) => {
+                        const isSelected = idx === activeLineIdx;
+                        const lineColor = getCharColor(line.speaker);
+                        const lineChar = characters.find((c: any) => c.name?.toLowerCase() === line.speaker.toLowerCase());
+                        const linePortrait = portraitOf(lineChar, line.speaker);
+
+                        return (
+                          <motion.div
+                            key={idx}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={() => {
+                              setActiveLineIdx(idx);
+                              playAudioUrl(undefined, line.text);
+                            }}
+                            className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden ${
+                              isSelected
+                                ? 'bg-[#111C3D] border-[#38BDF8] shadow-[0_0_20px_rgba(56,189,248,0.25)] ring-2 ring-[#38BDF8]/20'
+                                : 'bg-[#0E1733]/70 hover:bg-[#111C3D] border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            {/* Left speaker accent bar */}
+                            <div
+                              className="absolute left-0 top-0 bottom-0 w-1.5"
+                              style={{ backgroundColor: lineColor }}
+                            />
+
+                            <div className="flex items-start gap-2.5 pl-1.5">
+                              {/* Mini avatar with colored halo */}
+                              <div className="relative shrink-0 mt-0.5">
+                                <div
+                                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full p-0.5 flex items-center justify-center overflow-hidden"
+                                  style={{
+                                    background: `linear-gradient(to top right, ${lineColor}, #F59E0B)`,
+                                    boxShadow: isSelected ? `0 0 12px ${lineColor}88` : undefined,
+                                  }}
+                                >
+                                  <div className="w-full h-full rounded-full bg-[#070C18] flex items-center justify-center overflow-hidden">
+                                    {linePortrait ? (
+                                      <img src={linePortrait} alt={line.speaker} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-xs sm:text-sm font-bold text-white">
+                                        {lineChar?.emoji || line.speaker.charAt(0) || '👤'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#10B981]"></span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Speaker Name + Spoken Text */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                  <span
+                                    className="ag-font-display text-xs sm:text-sm font-bold uppercase tracking-wide truncate"
+                                    style={{ color: lineColor }}
+                                  >
+                                    {line.speaker}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-md flex items-center gap-1 text-[10px] font-bold ag-font-mono transition-colors ${
+                                      isSelected
+                                        ? 'bg-[#38BDF8]/20 text-[#38BDF8] border border-[#38BDF8]/40'
+                                        : 'bg-white/5 text-slate-400 border border-white/10'
+                                    }`}
+                                  >
+                                    <Volume2 size={11} className={isSelected ? 'animate-pulse' : ''} />
+                                    <span>{isSelected ? 'Now Reading' : 'Tap to Read'}</span>
+                                  </span>
+                                </div>
+
+                                {/* Dialogue quote */}
+                                <p
+                                  className={`ag-font-display leading-snug tracking-tight ${
+                                    parsedLines.length <= 2
+                                      ? 'text-base sm:text-lg lg:text-2xl font-bold'
+                                      : 'text-sm sm:text-base lg:text-lg font-bold'
+                                  } ${isSelected ? 'text-white ag-dialogue-glow' : 'text-slate-200'}`}
+                                >
+                                  &ldquo;{renderText(line.text)}&rdquo;
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* Single speaker narrative: extra large blockquote */
+                  <div className="flex-1 min-h-0 flex flex-col justify-center py-2 sm:py-3 lg:py-6 overflow-hidden">
+                    <div className="mb-1.5 sm:mb-2 lg:mb-3 flex items-center gap-2 shrink-0">
+                      <Quote className="text-[#38BDF8] rotate-180 shrink-0" size={18} />
+                      <span className="ag-font-mono text-[9px] sm:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
+                        Target Speech Chant
+                      </span>
+                    </div>
+
+                    <blockquote
+                      onClick={() => {
+                        const audioUrl = current.audio;
+                        playAudioUrl(audioUrl, activeLine.text);
+                      }}
+                      className="ag-font-display text-[20px] sm:text-[24px] md:text-[30px] lg:text-[38px] xl:text-[44px] leading-[1.18] font-bold text-white ag-dialogue-glow tracking-tight select-text overflow-y-auto max-h-full cursor-pointer hover:text-sky-100 transition-colors"
+                      title="Tap to read sentence"
+                    >
+                      &ldquo;{renderText(activeLine.text)}&rdquo;
+                    </blockquote>
+                  </div>
+                )}
 
                 {/* Bottom Controls: Sky Audio Replay Pill + Chunk Book-Page Progress Strip (28px dots) */}
                 <div className="border-t border-white/10 pt-2 sm:pt-3 lg:pt-5 space-y-2 sm:space-y-3 lg:space-y-4 shrink-0">
-                  {/* Sky Audio Pill to Replay Line */}
+                  {/* Sky Audio Pill to Replay Active Line */}
                   <button
                     type="button"
-                    onClick={() => playAudioUrl(current.audio, current.text)}
+                    onClick={() => {
+                      const audioUrl = parsedLines.length === 1 ? current.audio : undefined;
+                      playAudioUrl(audioUrl, activeLine.text);
+                    }}
                     className="w-full flex items-center justify-center gap-2 sm:gap-2.5 lg:gap-3 py-2 sm:py-2.5 lg:py-3.5 px-4 lg:px-6 rounded-xl bg-[#38BDF8]/15 border-2 border-[#38BDF8] text-[#38BDF8] ag-font-display text-sm sm:text-base lg:text-lg font-bold hover:bg-[#38BDF8] hover:text-[#070C18] transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]"
                   >
                     <Volume2 size={20} className="animate-pulse shrink-0" />
-                    <span>REPLAY AUDIO LINE</span>
+                    <span>
+                      {parsedLines.length > 1
+                        ? `REPLAY ${activeSpeakerName.toUpperCase()}'S LINE`
+                        : 'REPLAY AUDIO LINE'}
+                    </span>
                   </button>
 
                   {/* Book-Page Progress Strip with Chunky 28px Numbered Dots */}
@@ -666,17 +1100,27 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 </div>
 
                 {/* Center Art Container: Clean Rounded Card with Full-Bleed Object-Contain (Never Cropped) */}
-                <div className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-2 sm:p-3 relative overflow-hidden shadow-inner group">
+                <div
+                  onClick={() => {
+                    const audioUrl = parsedLines.length === 1 ? current.audio : undefined;
+                    playAudioUrl(audioUrl, activeLine.text);
+                  }}
+                  className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-2 sm:p-3 relative overflow-hidden shadow-inner group cursor-pointer"
+                  title="Click to replay active speaker"
+                >
                   {/* Subtle Ambient Backlight Matching Savanna Artwork */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-sky-500/10 pointer-events-none" />
 
                   {/* The Story Illustration: Full-bleed object-contain, crisp and never cropped */}
-                  {current.imageUrl ? (
+                  {currentImageUrl ? (
                     <img
-                      src={current.imageUrl}
-                      alt={current.speaker || 'Story illustration'}
+                      src={currentImageUrl}
+                      alt={activeSpeakerName || 'Story illustration'}
                       className="w-full h-full object-contain rounded-lg drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)] transition-transform duration-300 group-hover:scale-[1.01]"
-                      onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0')}
+                      onError={(e) => {
+                        console.warn('[BoardStoryStage] Story image failed to load:', currentImageUrl);
+                        ((e.target as HTMLImageElement).style.opacity = '0');
+                      }}
                     />
                   ) : (
                     <div
@@ -704,7 +1148,9 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                     <span className="text-amber-400 text-sm sm:text-base shrink-0">💡</span>
                     <span className="ag-font-mono text-[9px] sm:text-xs text-slate-300 truncate">
                       <strong className="text-white">Teacher Cue:</strong>{' '}
-                      {current.speaker
+                      {parsedLines.length > 1
+                        ? `Speaking: ${activeSpeakerName}. Tap any character card on the left to read their sentence.`
+                        : current.speaker
                         ? `Listen to ${current.speaker}, then repeat choral echo together.`
                         : 'Listen carefully, then repeat the sentence aloud.'}
                     </span>
@@ -718,7 +1164,9 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               {/* Left Navigation Guidance */}
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-[#0B132B] rounded-lg border border-white/10 text-slate-400 ag-font-mono text-xs">
-                  <span className="font-bold text-slate-200">Line {activePanel + 1}</span>
+                  <span className="font-bold text-slate-200">
+                    {parsedLines.length > 1 ? `Line ${activePanel + 1}.${activeLineIdx + 1}` : `Line ${activePanel + 1}`}
+                  </span>
                   <span>of</span>
                   <span className="font-bold text-slate-200">{totalContentPanels}</span>
                 </div>
@@ -727,24 +1175,28 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               {/* Right Primary Action Cluster (Single Hot-Pink Primary) */}
               <div className="flex items-center gap-2 sm:gap-3 ml-auto">
                 {/* Secondary Back Action */}
-                {activePanel > 0 && (
+                {(activePanel > 0 || (parsedLines.length > 1 && activeLineIdx > 0)) && (
                   <button
                     type="button"
-                    onClick={prevPanel}
+                    onClick={handlePrev}
                     className="px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 lg:py-2.5 rounded-xl bg-[#0B132B] border border-white/15 text-slate-300 ag-font-display font-bold text-xs sm:text-sm hover:text-white hover:border-white/30 transition-all active:scale-95"
                   >
-                    Back to Line {activePanel}
+                    {parsedLines.length > 1 && activeLineIdx > 0
+                      ? `Back to ${parsedLines[activeLineIdx - 1].speaker}`
+                      : `Back to Line ${activePanel}`}
                   </button>
                 )}
 
-                {/* Hot Pink Single Primary Action: Next Line */}
+                {/* Hot Pink Single Primary Action: Next Line / Next Speaker */}
                 <button
                   type="button"
-                  onClick={nextPanel}
+                  onClick={handleNext}
                   className="px-4 sm:px-6 lg:px-7 py-1.5 sm:py-2 lg:py-2.5 rounded-xl bg-[#FF2E79] text-white ag-font-display font-bold text-xs sm:text-sm lg:text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-1.5 sm:gap-2"
                 >
                   <span>
-                    {activePanel + 1 < totalContentPanels
+                    {parsedLines.length > 1 && activeLineIdx < parsedLines.length - 1
+                      ? `Next: ${parsedLines[activeLineIdx + 1].speaker}`
+                      : activePanel + 1 < totalContentPanels
                       ? 'Next Line'
                       : hasComprehension
                       ? 'Comprehension Quiz →'
