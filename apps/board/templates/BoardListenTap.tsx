@@ -88,11 +88,27 @@ const BoardListenTap = ({ data }: { data: any }) => {
   const whisperTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Current item ──────────────────────────────────────────────────────
-  const poolItem = poolItems[round % Math.max(1, poolItems.length)];
+  // games-v3 audit (§2 "asked 'animal' five times"): dedupe the pool per
+  // objective so multi-type pools don't re-serve one word in every variant
+  // slot — the rotation then walks DISTINCT words.
+  const distinctPoolItems = useMemo(() => {
+    const seen = new Set<string>();
+    const out: typeof poolItems = [];
+    for (const it of poolItems) {
+      if (seen.has(it.objective_id)) continue;
+      seen.add(it.objective_id);
+      out.push(it);
+    }
+    return out;
+  }, [poolItems]);
+  const poolItem = distinctPoolItems[round % Math.max(1, distinctPoolItems.length)];
   const roundKind: RoundKind = (poolItem?.exercise_type as RoundKind) || 'LISTEN_SELECT';
 
   const currentItem = useMemo(() => {
-    if (frozenOptions.length > 0) {
+    // games-v3 audit (§2): the frozen orchestration-era options previously
+    // BYPASSED the pool entirely (single frozen word served forever). The
+    // pool is primary; frozen options survive only as a no-pool fallback.
+    if (frozenOptions.length > 0 && distinctPoolItems.length === 0) {
       return {
         audioUrl: data?.audioUrl,
         promptText: data?.targetWord || '',

@@ -173,7 +173,14 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   //    minimal pairs in the pool, shuffled so the answer isn't positional.
   const currentWords: string[] = useMemo(() => {
     if (!currentItem || currentRound === 3) return [];
-    if (currentRound === 1) return [currentItem.word1, currentItem.word2];
+    // games-v3 audit (P1 exploit): generation stamps correct_index 0 and
+    // this row used to return [word1, word2] UNshuffled — the audio always
+    // named the LEFT tablet, so "always tap left" scored 100% without
+    // listening. Shuffle with the same seeded pattern as round 2 (validation
+    // is by word text, so shuffling is safe).
+    if (currentRound === 1) {
+      return shuffle([currentItem.word1, currentItem.word2], makeRng(seedBase, currentItem.poolItem.id, currentRound, 'options'));
+    }
     // Round 2: gather candidate distractors from every other minimal pair.
     const others = [...round1Items, ...round2Items]
       .filter((it) => it.poolItem.id !== currentItem.poolItem.id)

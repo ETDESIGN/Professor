@@ -241,7 +241,10 @@ const BoardUnscramble = ({ data }: { data: any }) => {
     roundMissesRef.current = 0; // per-round reveal counter (round change / new turn / reset)
     setRevealTiles(null);
     if (!r) { setTray([]); setPlaced([]); return; }
-    setTray(shuffle(r.trayTiles, makeRng(seedBase, r.id, 'tray')).map((w, i) => ({ id: `t-${i}-${w}`, text: w })));
+    // games-v3 audit: the tray seed lacked the turn token — a re-dealt round
+    // was pixel-identical ("Skip did nothing" perception). Still deterministic
+    // per turn (every tab deals the same tray), but varies across picks.
+    setTray(shuffle(r.trayTiles, makeRng(seedBase, r.id, state.currentTurnId ?? 'practice', 'tray')).map((w, i) => ({ id: `t-${i}-${w}`, text: w })));
     setPlaced([]);
     setOutcome(null);
     setLastRatio(0);

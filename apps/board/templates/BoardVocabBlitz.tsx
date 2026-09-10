@@ -26,7 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Timer } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
-import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
+import { scoreForAttempt, MISTAKE_PENALTY, MAX_QUESTION_POINTS } from './scoringDefaults';
 import { usePickedStudent } from './usePickedStudent';
 import { logAttempt } from './scoreAttempt';
 import { playCue } from './playCue';
@@ -328,7 +328,10 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
       }
       const picked = state.quickWheelWinner;
       const basePoints = scoreForAttempt(mistakesRef.current, difficulty, retryUsed ? 0.5 : 1.0, newStreak);
-      const points = basePoints * bet;
+      // games-v3 audit F2: the ×2 bet was applied AFTER scoreForAttempt's
+      // cap, so 2× awards reached 10 — contradicting scoringDefaults' own
+      // documented contract that MAX_QUESTION_POINTS covers the bet.
+      const points = Math.min(MAX_QUESTION_POINTS, basePoints * bet);
       if (picked && !awardedRef.current) {
         awardedRef.current = true;
         if (points > 0) addPoints(picked, points);
@@ -494,7 +497,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
       playCue('correct');
     }
     const picked = state.quickWheelWinner;
-    const points = scoreForAttempt(mistakesRef.current, currentQuestion.poolItem.difficulty || 1, 1.0, newStreak) * bet;
+    const points = Math.min(MAX_QUESTION_POINTS, scoreForAttempt(mistakesRef.current, currentQuestion.poolItem.difficulty || 1, 1.0, newStreak) * bet);
     awardedRef.current = true;
     if (picked) {
       if (points > 0) addPoints(picked, points);

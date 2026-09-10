@@ -332,13 +332,20 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   }, [state.quickWheelWinner, state.activeClassId, state.students, addPoints, unitId, pushToRemediation]);
 
   // ── Match attempt handler ─────────────────────────────────────────────
-  const handleMatch = useCallback((pairId: string, leftId: string, rightId: string) => {
-    const pair = matchPairs.find(p => p.id === pairId);
+  const handleMatch = useCallback((_pairId: string, leftId: string, rightId: string) => {
     const leftItem = leftItems.find(l => l.id === leftId);
     const rightItem = rightItems.find(r => r.id === rightId);
-    if (!pair || !leftItem || !rightItem) return;
+    if (!leftItem || !rightItem) return;
 
-    const correct = pairId === pair.id && rightItem.pairId === pair.id;
+    // games-v3 audit F1 (P1): the old check compared `pairId === pair.id`
+    // (a tautology — pair was FOUND by that id) and handleRightClick passed
+    // the CLICKED RIGHT tile's own pairId, so any left-then-right click
+    // validated the right tile against itself and always locked "correct".
+    // Correctness is pair membership of BOTH tiles; the scored pair is the
+    // LEFT (prompt/word) tile's pair.
+    const pair = matchPairs.find(p => p.id === leftItem.pairId);
+    if (!pair) return;
+    const correct = leftItem.pairId === rightItem.pairId;
 
     if (correct) {
       if (awardedPairsRef.current.has(pair.id)) return; // duplicate guard
