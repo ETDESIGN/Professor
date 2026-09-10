@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="dark h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Classroom ESL Spelling Bee — Presentation Beat</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800;900&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "secondary-fixed": "#c0fff4",
+            "surface": "#0f0f1a",
+            "tertiary-fixed-dim": "#ffe04a",
+            "tertiary-container": "#665200",
+            "surface-container-low": "#111118",
+            "primary-container": "#b3004e",
+            "surface-container-high": "#1e1e30",
+            "on-primary-fixed": "#3d0020",
+            "secondary": "#00ffcc",
+            "on-tertiary": "#1a1000",
+            "on-secondary": "#001a1a",
+            "on-error": "#1a0000",
+            "primary-fixed-dim": "#ff80aa",
+            "on-tertiary-fixed": "#1a1000",
+            "on-primary-container": "#ffe0ec",
+            "on-surface-variant": "#a098b0",
+            "on-background": "#e8e0f0",
+            "inverse-surface": "#e8e0f0",
+            "surface-dim": "#0f0f1a",
+            "error-container": "#3d0f0f",
+            "error": "#ff4444",
+            "surface-tint": "#ff2d78",
+            "primary-fixed": "#ffe0ec",
+            "on-error-container": "#ffa0a0",
+            "on-secondary-container": "#c0fff4",
+            "surface-container-lowest": "#0a0a12",
+            "surface-container": "#141422",
+            "inverse-primary": "#8c0038",
+            "tertiary-fixed": "#fff0c0",
+            "secondary-fixed-dim": "#00e6b8",
+            "primary": "#ff2d78",
+            "surface-variant": "#1e1e30",
+            "on-tertiary-fixed-variant": "#665200",
+            "surface-container-highest": "#28283e",
+            "on-surface": "#e8e0f0",
+            "outline-variant": "#302840",
+            "on-secondary-fixed-variant": "#004d4d",
+            "inverse-on-surface": "#0a0a12",
+            "background": "#0a0a12",
+            "on-secondary-fixed": "#001a1a",
+            "on-primary": "#1a0010",
+            "outline": "#5a5068",
+            "on-tertiary-container": "#fff0c0",
+            "surface-bright": "#1a1a2e",
+            "on-primary-fixed-variant": "#8c0038",
+            "secondary-container": "#004d3d",
+            "tertiary": "#ffe04a"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    /* Neon glow micro-utilities */
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(0, 255, 204, 0.25), inset 0 0 12px rgba(0, 255, 204, 0.08);
+    }
+    .glow-pink-btn {
+      box-shadow: 0 0 24px rgba(255, 45, 120, 0.45);
+    }
+    .glow-pink-btn:hover {
+      box-shadow: 0 0 36px rgba(255, 45, 120, 0.7);
+    }
+    .glow-text-word {
+      text-shadow: 0 0 18px rgba(232, 224, 240, 0.5), 0 0 30px rgba(0, 255, 204, 0.25);
+    }
+    
+    /* Projector Grid Backing */
+    .projector-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+
+    /* Soundwave animation heights */
+    @keyframes wavePulse {
+      0%, 100% { height: 8px; }
+      50% { height: 38px; }
+    }
+    .wave-bar {
+      animation: wavePulse 1.2s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.6s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.35s; }
+    .wave-bar:nth-child(8) { animation-delay: 0.5s; }
+    .wave-bar:nth-child(9) { animation-delay: 0.25s; }
+    .wave-bar:nth-child(10) { animation-delay: 0.4s; }
+    .wave-bar:nth-child(11) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(12) { animation-delay: 0.55s; }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body h-screen w-screen overflow-hidden select-none flex flex-col justify-between projector-grid antialiased">
+<!-- ========================================================================= -->
+<!-- HEADER BAR (Overscan safe, h-16, fixed projection calibration)            -->
+<!-- ========================================================================= -->
+<header class="w-full h-16 px-8 flex items-center justify-between border-b border-outline-variant/60 bg-surface-container-lowest/90 backdrop-blur-md z-30 shrink-0">
+<!-- Left Region: Fixed 200px Phase Indicator Pill -->
+<div class="flex items-center gap-6">
+<div class="w-52 h-10 px-3.5 bg-surface-container-high border border-secondary/40 rounded-full flex items-center justify-center gap-2.5 glow-cyan">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse shadow-[0_0_8px_#00ffcc]"></span>
+<span class="font-label text-xs tracking-wider font-bold text-secondary uppercase">PHASE: LOOK &amp; LISTEN</span>
+</div>
+<!-- Main Title Cluster (Inset from boundary for overscan safety) -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-2xl drop-shadow-[0_0_8px_rgba(255,224,74,0.6)]" data-icon="bolt">bolt</span>
+<span class="font-headline text-lg font-black tracking-widest text-on-surface">SPELLING BEE</span>
+</div>
+<span class="text-outline-variant font-bold text-lg">•</span>
+<span class="font-label text-xs font-bold uppercase tracking-wider text-on-surface-variant bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant">
+          Round 1 of 5 · Starter Word
+        </span>
+<!-- Active Turn Pill -->
+<div class="flex items-center gap-2 bg-surface-container-high px-3 py-1 rounded-full border border-outline">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span class="font-label text-xs font-bold text-on-surface">Alice Walker (Table 3)</span>
+</div>
+<!-- Hot Streak -->
+<div class="flex items-center gap-1.5 bg-tertiary-container/30 border border-tertiary/40 px-3 py-1 rounded-full">
+<span class="text-sm">🔥</span>
+<span class="font-label text-xs font-bold text-tertiary tracking-wider uppercase">3 IN A ROW</span>
+</div>
+</div>
+</div>
+<!-- Right Corner Telemetry -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant">
+<span class="material-symbols-outlined text-secondary text-base" data-icon="volume_up">volume_up</span>
+<span class="font-label text-xs text-on-surface-variant font-bold">100% PA</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-high border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
+<span class="font-label text-xs font-bold text-on-surface-variant tracking-wider">Live Synced</span>
+</div>
+</div>
+</header>
+<!-- ========================================================================= -->
+<!-- MAIN ARENA CANVAS (Calm Teaching Beat, 16:9 optimized for 5-8m viewing)     -->
+<!-- ========================================================================= -->
+<main class="flex-1 w-full max-w-[1720px] mx-auto px-8 py-3 flex flex-col justify-between overflow-hidden">
+<!-- Top Context Prompt Banner -->
+<div class="w-full flex items-center justify-between bg-surface-container/70 border border-outline-variant/60 rounded-xl px-6 py-2.5 backdrop-blur-sm shrink-0">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center border border-secondary/30">
+<span class="material-symbols-outlined text-secondary text-xl" data-icon="headphones">headphones</span>
+</div>
+<span class="font-headline text-base font-bold tracking-wide text-on-surface">
+          Listen carefully to the word and look at the picture
+        </span>
+</div>
+<div class="flex items-center gap-2.5 bg-tertiary/10 border border-tertiary/30 px-4 py-1.5 rounded-full">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="lightbulb">lightbulb</span>
+<span class="font-label text-xs font-bold text-tertiary tracking-wide uppercase">
+          Teacher Tip: Have class repeat word aloud before spelling!
+        </span>
+</div>
+</div>
+<!-- Center Stage: Hero 2-Column Presentation Unit -->
+<div class="grid grid-cols-12 gap-8 items-center my-auto py-2">
+<!-- Left Hero Image Card (4:3 Uncropped High Definition Wildlife Frame) -->
+<div class="col-span-6 flex justify-center items-center">
+<div class="relative w-full max-w-[540px] aspect-[4/3] rounded-2xl overflow-hidden bg-surface-container border-2 border-outline-variant shadow-2xl p-2.5 glow-cyan">
+<!-- Category Chip Overlay -->
+<div class="absolute top-5 left-5 z-20 flex items-center gap-2 bg-surface-container-lowest/85 backdrop-blur-md px-3.5 py-1.5 rounded-lg border border-secondary/40">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label text-xs font-bold text-secondary tracking-wider">TARGET #01 · WILDLIFE</span>
+</div>
+<!-- The Wildlife Photograph -->
+<div class="w-full h-full rounded-xl overflow-hidden relative bg-black">
+<img alt="Crisp sharp studio wildlife photography of a magnificent Bengal tiger looking forward, bright clear lighting, dark neutral background, vibrant vivid colors, educational flashcard photo" class="w-full h-full object-contain transform hover:scale-105 transition-transform duration-700 ease-out" src="https://lh3.googleusercontent.com/aida/AEtjO1WrPpmwaNeDfqX-Sk0KHo6-0uUmBERulu5qGIb7ksMp2134u0Yx-agUrcB6zZG2-EebRKOyVnIctpLMUcW9eSAgJo_aOZSQZ5-uMRvARju6r2VXs17AcSCd1Yvsf9TjTSx0iFRyd0WDMyKc0KdflESC-xSS9WVB__XLIt1o-XrSZUodhZxuAWTDs_H5doKkhN7bUsuFTK49oa638nJAxlaM7iVYDWqOQga_ehe12BzIKGrf9aj3JkfKNnY"/>
+</div>
+<!-- Subtle bottom projection vignette text -->
+<div class="absolute bottom-5 right-5 z-20 px-3 py-1 bg-surface-container-lowest/80 backdrop-blur-sm rounded-md border border-outline-variant font-label text-[10px] text-on-surface-variant font-bold">
+            ZOOLOGY FLASHCARD #45
+          </div>
+</div>
+</div>
+<!-- Right Interactive Listening Station -->
+<div class="col-span-6 flex flex-col justify-center gap-5 pl-2">
+<div class="bg-surface-container/90 border-2 border-secondary/30 rounded-2xl p-7 flex flex-col gap-6 shadow-xl relative overflow-hidden backdrop-blur-md">
+<!-- Decorative Background Ambient Glow -->
+<div class="absolute -right-16 -top-16 w-52 h-52 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Audio Waveform + Audio Control Master -->
+<div class="flex items-center gap-6">
+<!-- Big Circular Sky Blue Audio Button -->
+<button aria-label="Hear Word audio playback" class="w-24 h-24 rounded-2xl bg-secondary-container border-2 border-secondary text-secondary flex flex-col items-center justify-center gap-1 shadow-[0_0_24px_rgba(0,255,204,0.35)] hover:bg-secondary hover:text-on-secondary hover:scale-105 active:scale-95 transition-all duration-200 group cursor-pointer shrink-0" id="audio-play-btn" type="button">
+<span class="material-symbols-outlined text-4xl group-hover:scale-110 transition-transform" data-icon="volume_up">volume_up</span>
+<span class="font-label text-[10px] font-bold tracking-widest uppercase">PLAY</span>
+</button>
+<!-- Soundwave Visualization Strip -->
+<div class="flex-1 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<span class="font-label text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="graphic_eq">graphic_eq</span>
+                  Acoustic Phonics Stream
+                </span>
+<span class="font-label text-[11px] font-bold text-on-surface-variant">44.1 kHz Studio Master</span>
+</div>
+<!-- Pulsing audio bars container -->
+<div class="h-16 bg-surface-container-lowest/90 border border-outline-variant rounded-xl px-5 flex items-center justify-between gap-1.5 overflow-hidden">
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+<div class="w-2 bg-secondary rounded-full wave-bar"></div>
+</div>
+</div>
+</div>
+<!-- Speed Selectors + Syllable + IPA Row -->
+<div class="grid grid-cols-2 gap-4 pt-1">
+<!-- Left sub-card: Syllables -->
+<div class="bg-surface-container-high/70 border border-outline-variant rounded-xl p-3.5 flex flex-col justify-between">
+<span class="font-label text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">Syllable Division</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-headline text-lg font-extrabold text-secondary tracking-widest">TI · GER</span>
+<span class="font-label text-xs bg-secondary/15 text-secondary px-2 py-0.5 rounded border border-secondary/30 font-bold">2 SYLLABLES</span>
+</div>
+</div>
+<!-- Right sub-card: IPA Pronunciation -->
+<div class="bg-surface-container-high/70 border border-outline-variant rounded-xl p-3.5 flex flex-col justify-between">
+<span class="font-label text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">IPA Phonetics</span>
+<div class="flex items-center gap-2 mt-1">
+<span class="font-label text-lg font-bold text-on-surface tracking-wider">/'taɪ.ɡər/</span>
+<span class="font-label text-[10px] bg-surface-container px-2 py-0.5 rounded border border-outline text-on-surface-variant font-bold">US/UK Standard</span>
+</div>
+</div>
+</div>
+<!-- Audio Speed Toggle Bar -->
+<div class="flex items-center justify-between bg-surface-container-lowest/80 border border-outline-variant rounded-xl px-4 py-2.5">
+<span class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">Playback Speed:</span>
+<div class="flex items-center gap-2">
+<button class="px-3.5 py-1.5 rounded-lg font-label text-xs font-bold bg-secondary text-on-secondary shadow-[0_0_10px_rgba(0,255,204,0.4)]" type="button">
+                1.0x Normal
+              </button>
+<button class="px-3.5 py-1.5 rounded-lg font-label text-xs font-bold bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-outline-variant transition-colors" type="button">
+                0.8x Slow (Phonics)
+              </button>
+</div>
+<span class="font-label text-xs font-bold text-outline uppercase tracking-wider">[Press SPACE to listen]</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Below Stage Word Display (The Teaching Word Reveal Beat) -->
+<div class="w-full bg-surface-container/80 border border-outline-variant rounded-2xl p-4 flex flex-col items-center justify-center gap-3 backdrop-blur-sm shrink-0">
+<!-- Big Glowing Word Typography -->
+<div class="flex items-center justify-center">
+<h1 class="font-display text-5xl md:text-6xl font-black text-on-surface tracking-[0.35em] uppercase glow-text-word pl-4">
+          T I G E R
+        </h1>
+</div>
+<!-- Preview Letter Tile Slots for ESL visual scaffolding -->
+<div class="flex items-center justify-center gap-4">
+<div class="w-14 h-14 rounded-xl border-2 border-dashed border-secondary/70 bg-surface-container-highest/40 flex items-center justify-center shadow-[0_0_12px_rgba(0,255,204,0.15)]">
+<span class="font-headline text-2xl font-black text-secondary">T</span>
+</div>
+<div class="w-14 h-14 rounded-xl border-2 border-dashed border-secondary/70 bg-surface-container-highest/40 flex items-center justify-center shadow-[0_0_12px_rgba(0,255,204,0.15)]">
+<span class="font-headline text-2xl font-black text-secondary">I</span>
+</div>
+<div class="w-14 h-14 rounded-xl border-2 border-dashed border-secondary/70 bg-surface-container-highest/40 flex items-center justify-center shadow-[0_0_12px_rgba(0,255,204,0.15)]">
+<span class="font-headline text-2xl font-black text-secondary">G</span>
+</div>
+<div class="w-14 h-14 rounded-xl border-2 border-dashed border-secondary/70 bg-surface-container-highest/40 flex items-center justify-center shadow-[0_0_12px_rgba(0,255,204,0.15)]">
+<span class="font-headline text-2xl font-black text-secondary">E</span>
+</div>
+<div class="w-14 h-14 rounded-xl border-2 border-dashed border-secondary/70 bg-surface-container-highest/40 flex items-center justify-center shadow-[0_0_12px_rgba(0,255,204,0.15)]">
+<span class="font-headline text-2xl font-black text-secondary">R</span>
+</div>
+</div>
+<!-- Phonetics, Part of Speech & Definition -->
+<div class="flex items-center gap-4 text-center">
+<span class="font-label text-xs font-black uppercase tracking-wider bg-surface-container-high text-tertiary px-3 py-1 rounded border border-tertiary/30">
+          NOUN · CARNIVORE
+        </span>
+<p class="font-body text-sm font-medium text-on-surface-variant max-w-2xl">
+          "A large orange and black striped wild cat that can run fast and roar loud."
+        </p>
+</div>
+</div>
+</main>
+<!-- ========================================================================= -->
+<!-- BOTTOM PROJECTOR HUD BAR (Slim, fixed h-16 bottom calibration)            -->
+<!-- ========================================================================= -->
+<footer class="w-full h-16 px-8 border-t border-outline-variant/60 bg-surface-container-lowest/95 backdrop-blur-md flex items-center justify-between z-30 shrink-0">
+<!-- Left: Projector metadata & score bank -->
+<div class="flex items-center gap-5">
+<span class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">
+        16:9 Scale (Optimal at 5–8m)
+      </span>
+<span class="text-outline-variant font-bold">•</span>
+<div class="flex items-center gap-2 bg-surface-container px-3.5 py-1.5 rounded-lg border border-outline-variant">
+<span class="material-symbols-outlined text-tertiary text-base" data-icon="stars">stars</span>
+<span class="font-label text-xs font-bold text-on-surface">Class Bank: 520 PTS</span>
+<span class="font-label text-[11px] font-bold text-[#10b981] ml-1">(+50 PTS on spell)</span>
+</div>
+</div>
+<!-- Center: 5-step round progress indicators -->
+<div class="flex items-center gap-3">
+<span class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider mr-2">Round Progress:</span>
+<!-- Step 1: Active -->
+<div class="flex items-center gap-1.5 bg-primary/20 border border-primary px-3 py-1 rounded-full shadow-[0_0_10px_rgba(255,45,120,0.3)]">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label text-xs font-extrabold text-primary">#1 TIGER</span>
+</div>
+<!-- Steps 2-5: Inactive/Upcoming -->
+<div class="w-3 h-3 rounded-full bg-surface-container-highest border border-outline"></div>
+<div class="w-3 h-3 rounded-full bg-surface-container-highest border border-outline"></div>
+<div class="w-3 h-3 rounded-full bg-surface-container-highest border border-outline"></div>
+<div class="w-3 h-3 rounded-full bg-surface-container-highest border border-outline"></div>
+</div>
+<!-- Right: Single Luminous Hot Pink Primary Action (Strictly NO keyboard shown) -->
+<div>
+<button class="h-11 px-7 rounded-xl bg-primary text-on-primary font-headline text-sm font-black tracking-wider uppercase flex items-center gap-3 glow-pink-btn hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer" type="button">
+<span>Ready to spell →</span>
+<span class="font-label text-xs font-bold bg-on-primary/20 px-2 py-0.5 rounded text-on-primary">[ENTER]</span>
+</button>
+</div>
+</footer>
+<!-- Micro-interaction Keyboard shortcuts listener (Space for audio, Enter for Next beat) -->
+<script>
+    document.addEventListener('keydown', function(event) {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        const playBtn = document.getElementById('audio-play-btn');
+        if (playBtn) {
+          playBtn.classList.add('scale-95', 'bg-secondary', 'text-on-secondary');
+          setTimeout(() => {
+            playBtn.classList.remove('scale-95', 'bg-secondary', 'text-on-secondary');
+          }, 200);
+        }
+      }
+    });
+  </script>
+</body></html>

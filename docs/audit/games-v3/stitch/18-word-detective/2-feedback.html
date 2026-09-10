@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom ESL Word Detective — Correct Feedback State</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Sora:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Sora', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            night: {
+              base: '#070C18',
+              surface: '#0B132B',
+              card: '#111C3D',
+              border: '#1E2D5A'
+            },
+            hotpink: '#FF2E79',
+            emerald: {
+              400: '#34D399',
+              500: '#10B981',
+              glow: 'rgba(16, 185, 129, 0.4)'
+            },
+            sky: {
+              400: '#38BDF8',
+              500: '#0EA5E9'
+            },
+            amber: {
+              400: '#FBBF24',
+              500: '#F59E0B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070C18;
+      color: #F1F5F9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow: hidden;
+    }
+    .neon-emerald-glow {
+      box-shadow: 0 0 35px rgba(16, 185, 129, 0.45), 0 0 12px rgba(16, 185, 129, 0.6);
+    }
+    .neon-pink-glow {
+      box-shadow: 0 0 25px rgba(255, 46, 121, 0.45);
+    }
+    .neon-sky-glow {
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+    }
+    .bg-grid-subtle {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    }
+    @keyframes autoAdvanceProgress {
+      0% { width: 15%; }
+      100% { width: 100%; }
+    }
+    .animate-progress {
+      animation: autoAdvanceProgress 3.5s linear forwards;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between p-6 bg-night-base bg-grid-subtle select-none">
+
+  <!-- TOP BAR (200px clear safety margin top-left for projector, balanced with game header cluster) -->
+  <header class="w-full flex items-center justify-between h-14 shrink-0 px-2">
+    <!-- Top-left: Phase Badge with explicit 200px offset container -->
+    <div class="flex items-center" style="min-width: 220px;">
+      <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-night-surface border border-sky-400/30 text-sky-400 text-xs font-mono font-bold tracking-wider uppercase shadow-inner">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+        PHASE: WORD DETECTIVE
+      </div>
+    </div>
+
+    <!-- Center-Right Header Cluster: Game title & Classroom Session Pills -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-xl font-display font-black text-white tracking-wide">Word Detective</span>
+        <span class="text-xs px-2.5 py-1 rounded-md bg-night-card border border-night-border text-slate-400 font-mono">CLUE 2/4</span>
+      </div>
+
+      <!-- Streak & Finder Chip -->
+      <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-night-surface border border-emerald-500/40 text-emerald-400 text-sm font-semibold">
+        <span class="text-base">🔥</span>
+        <span>STREAK: 4</span>
+      </div>
+
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-night-surface border border-night-border text-slate-300 text-sm font-semibold">
+        <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-hotpink to-amber-400 flex items-center justify-center text-xs font-black text-white">A</div>
+        <span>Alice's turn</span>
+      </div>
+    </div>
+
+    <!-- Far-Right: Audio & Teacher Console Sync -->
+    <div class="flex items-center gap-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-night-surface/90 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        Teacher Sync Live
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-night-surface border border-night-border flex items-center justify-center text-slate-400 hover:text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+      </div>
+      <div class="w-9 h-9 rounded-xl bg-night-surface border border-night-border flex items-center justify-center text-slate-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT ARENA: Perfectly proportioned for 16:9 without any vertical clipping -->
+  <main class="w-full flex-1 flex flex-col justify-center max-w-[1720px] mx-auto px-4 py-2 gap-4">
+
+    <!-- CELEBRATION BANNER ABOVE ROW -->
+    <div class="w-full bg-gradient-to-r from-night-card/90 via-night-surface to-night-card/90 border border-emerald-500/40 rounded-2xl px-6 py-3.5 flex items-center justify-between shadow-2xl relative overflow-hidden">
+      <!-- Ambient Glow Behind Word -->
+      <div class="absolute left-1/4 -top-8 w-64 h-24 bg-emerald-500/15 blur-3xl pointer-events-none"></div>
+
+      <!-- Left Clue Context & Solved Target Word -->
+      <div class="flex items-center gap-5">
+        <div class="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400 text-xl font-bold">
+          ✓
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="text-xs uppercase tracking-widest font-mono font-semibold text-emerald-400">Solved Mystery Clue</span>
+            <span class="text-xs text-slate-400 font-sans">• "A fierce striped big cat that roars in the jungle"</span>
+          </div>
+          <div class="flex items-baseline gap-4 mt-0.5">
+            <h1 class="text-4xl lg:text-5xl font-display font-black text-white tracking-tight drop-shadow-[0_2px_12px_rgba(16,185,129,0.3)]">
+              TIGER
+            </h1>
+            <span class="text-xl font-mono font-medium text-emerald-400">/ˈtaɪ.ɡər/</span>
+            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 uppercase">Noun</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center-Right: Sky Audio Replay Pill + '+3 pts' Chip -->
+      <div class="flex items-center gap-4">
+        <!-- Sky Audio Replay Pill -->
+        <button class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-sky-500/15 border border-sky-400/60 text-sky-400 text-sm font-bold tracking-wide hover:bg-sky-500/25 transition-all neon-sky-glow cursor-pointer">
+          <svg class="w-5 h-5 text-sky-400 fill-current" viewBox="0 0 24 24">
+            <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5 9.77l-4-4H4v6h3.5l4 4v-6zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+          </svg>
+          <span>HEAR WORD PRONUNCIATION</span>
+          <span class="text-xs font-mono px-2 py-0.5 rounded bg-sky-950/80 text-sky-300 border border-sky-800">SPACE</span>
+        </button>
+
+        <!-- '+3 pts' Award Chip -->
+        <div class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border border-amber-400/50 text-amber-300 font-display font-black text-lg shadow-lg">
+          <span>+3</span>
+          <span class="text-xs font-sans font-bold uppercase tracking-wider text-amber-200">PTS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1x4 LANDSCAPE PHOTO CARD ROW (Chosen Card glows emerald with 'MATCHED' pill + big check; other 3 cards dim to 40% grayscale) -->
+    <div class="grid grid-cols-4 gap-5 w-full items-stretch">
+
+      <!-- CARD 1: TIGER (CHOSEN MATCHED CARD) - Glowing Emerald, Matched Pill, Big Checkmark -->
+      <div class="relative rounded-2xl overflow-hidden bg-night-card border-2 border-emerald-400 neon-emerald-glow flex flex-col transform transition-transform duration-300 scale-[1.02] shadow-2xl">
+        <!-- Card Landscape Aspect Frame (wider than tall ~4:3) -->
+        <div class="relative w-full aspect-[4/3] bg-black overflow-hidden">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1WrPpmwaNeDfqX-Sk0KHo6-0uUmBERulu5qGIb7ksMp2134u0Yx-agUrcB6zZG2-EebRKOyVnIctpLMUcW9eSAgJo_aOZSQZ5-uMRvARju6r2VXs17AcSCd1Yvsf9TjTSx0iFRyd0WDMyKc0KdflESC-xSS9WVB__XLIt1o-XrSZUodhZxuAWTDs_H5doKkhN7bUsuFTK49oa638nJAxlaM7iVYDWqOQga_ehe12BzIKGrf9aj3JkfKNnY" 
+            alt="Bengal tiger" 
+            class="w-full h-full object-cover object-center brightness-105 contrast-105"
+          />
+          <!-- Emerald Ambient Vignette Gradient -->
+          <div class="absolute inset-0 bg-gradient-to-t from-night-card via-transparent to-transparent opacity-90"></div>
+
+          <!-- Top Status: Option Badge & 'MATCHED' Pill -->
+          <div class="absolute top-3 inset-x-3 flex items-center justify-between z-10">
+            <span class="px-2.5 py-1 rounded-lg bg-night-base/85 backdrop-blur-md border border-emerald-400/50 text-emerald-400 font-mono font-bold text-xs">
+              OPTION A
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500 text-slate-950 font-display font-black text-xs uppercase tracking-wider shadow-lg">
+              <svg class="w-3.5 h-3.5 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              MATCHED
+            </span>
+          </div>
+
+          <!-- Central Big Animated Emerald Checkmark -->
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div class="w-20 h-20 rounded-full bg-emerald-500/90 border-4 border-white shadow-2xl flex items-center justify-center text-slate-950 text-4xl font-black neon-emerald-glow transform scale-110">
+              ✓
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Footprint & Vocabulary Label (Large 8m legible type) -->
+        <div class="p-4 bg-night-card border-t border-emerald-500/30 flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-display font-black text-white tracking-wide">TIGER</h2>
+            <p class="text-xs font-mono text-emerald-400">TARGET DISCOVERED</p>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 font-bold">
+            ✓
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: LION (DIMMED 40% GRAYSCALE) -->
+      <div class="relative rounded-2xl overflow-hidden bg-night-card border border-night-border/40 opacity-40 grayscale flex flex-col">
+        <div class="relative w-full aspect-[4/3] bg-black overflow-hidden">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1ULTlWtgK7GCdtJCMeQwzRHrJprZVgJcChJKntE8K2AOBSYK6c1TlQUrIasiYr7Us-O10Mwb-I4UddjjHJHoylU6E6G88JBeuiUX2h2CSsSibX68FeiUQyirufF5nUUG3ztG6jefzFWIgzfW673-gCIV8smqAs7fFup1L_sZ9clo31F92TweJDhbSCDxu6M4ShD9Jf0SgCRn4hBw7e5nPDEUSceZlDLRZCl6b5a0u95bgPW1RhwLU4hlCax" 
+            alt="African lion" 
+            class="w-full h-full object-cover object-center"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-night-card via-transparent to-transparent"></div>
+          <div class="absolute top-3 left-3 z-10">
+            <span class="px-2.5 py-1 rounded-lg bg-night-base/80 border border-night-border text-slate-400 font-mono text-xs">
+              OPTION B
+            </span>
+          </div>
+        </div>
+        <div class="p-4 bg-night-card border-t border-night-border/40 flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-display font-bold text-slate-300 tracking-wide">LION</h2>
+            <p class="text-xs font-mono text-slate-500">/ˈlaɪ.ən/</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: MONKEY (DIMMED 40% GRAYSCALE) -->
+      <div class="relative rounded-2xl overflow-hidden bg-night-card border border-night-border/40 opacity-40 grayscale flex flex-col">
+        <div class="relative w-full aspect-[4/3] bg-black overflow-hidden">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1Uj0BS6szb8tmIDNnK77ir3g0cW6igoIARnYf3zzban9VOutZBeEsH78Pz0q9HtTdyKfwoqu9_8cHCQc1bJIrsguZV3TCXowtbkcWyXq00CJlNrbFgDMNomWhKSaYyh8YRBcnbrBX4LcgVc81t08K0-jNQoOLHGHY71B814fJmrN_Plfj2nhC4BdIp6O7jFA5CphyAeB7vcnT4DZ8NPqRnoMAnDM92cjh60mgyjCHx4xlMh4C-e2YH1jWYJ" 
+            alt="Chimpanzee baby monkey" 
+            class="w-full h-full object-cover object-center"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-night-card via-transparent to-transparent"></div>
+          <div class="absolute top-3 left-3 z-10">
+            <span class="px-2.5 py-1 rounded-lg bg-night-base/80 border border-night-border text-slate-400 font-mono text-xs">
+              OPTION C
+            </span>
+          </div>
+        </div>
+        <div class="p-4 bg-night-card border-t border-night-border/40 flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-display font-bold text-slate-300 tracking-wide">MONKEY</h2>
+            <p class="text-xs font-mono text-slate-500">/ˈmʌŋ.ki/</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: ELEPHANT (DIMMED 40% GRAYSCALE) -->
+      <div class="relative rounded-2xl overflow-hidden bg-night-card border border-night-border/40 opacity-40 grayscale flex flex-col">
+        <div class="relative w-full aspect-[4/3] bg-black overflow-hidden">
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1W7VzRlURjOIoGnJWcCkX9q-BoCO6zgh_oY_HbpwY7Xcw9r7VQFcilK5bXDyONacWuFI-Mxy_K_wyLwcOVXBwAmSm-vrO51HsSvqyTj1eh9FU5RgwkH4nDXBxLp8caCs8USu4--je0Hm0ZtU5eV_QsjnROLS9Zuq0fjTTOuFBqWVtcGJvR1C-1p-kOfGw2d8L_WER5WOtxVoY7TGsP6_a1dKylTdoFeVslplxWxFvtzuaHnpKinD35i4OT4" 
+            alt="African elephant" 
+            class="w-full h-full object-cover object-center"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-night-card via-transparent to-transparent"></div>
+          <div class="absolute top-3 left-3 z-10">
+            <span class="px-2.5 py-1 rounded-lg bg-night-base/80 border border-night-border text-slate-400 font-mono text-xs">
+              OPTION D
+            </span>
+          </div>
+        </div>
+        <div class="p-4 bg-night-card border-t border-night-border/40 flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-display font-bold text-slate-300 tracking-wide">ELEPHANT</h2>
+            <p class="text-xs font-mono text-slate-500">/ˈel.ɪ.fənt/</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TEACHER FACILITATION & CHORAL CALL-OUT PROMPT (Warm Amber Tip) -->
+    <div class="w-full flex items-center justify-between px-2 text-sm text-slate-400">
+      <div class="flex items-center gap-2 font-medium">
+        <span class="text-amber-400 font-bold">💡 Teacher Cue:</span>
+        <span>Lead whole-class choral repetition: <strong class="text-white font-bold">"T-I-G-E-R... Tiger!"</strong> before advancing.</span>
+      </div>
+      <div class="flex items-center gap-3 font-mono text-xs text-slate-400">
+        <span>CLASS ACCURACY: <strong class="text-emerald-400">100%</strong></span>
+        <span>•</span>
+        <span>SCORE: <strong class="text-white">680 PTS</strong></span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM BAR: Thin hands-free auto-advance progress bar labeled 'Next clue…' + Hot Pink Override CTA -->
+  <footer class="w-full h-16 shrink-0 bg-night-surface/90 border-t border-night-border/80 rounded-2xl px-6 flex items-center justify-between gap-6 shadow-2xl">
+    
+    <!-- Left: Hands-free Auto-Advance Status & Progress Track -->
+    <div class="flex-1 flex items-center gap-4 max-w-2xl">
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase">Auto-Advancing</span>
+      </div>
+
+      <!-- Thin Progress Bar Labeled 'Next clue…' -->
+      <div class="flex-1 flex flex-col gap-1.5">
+        <div class="flex justify-between items-center text-xs">
+          <span class="font-bold text-slate-300 tracking-wide flex items-center gap-1.5">
+            <span>Next clue…</span>
+            <span class="text-slate-400 font-mono text-[11px]">(2.4s)</span>
+          </span>
+          <span class="font-mono text-slate-400 text-[11px]">CLUE 3 OF 4</span>
+        </div>
+        <div class="w-full h-2 bg-night-base rounded-full overflow-hidden border border-night-border/60">
+          <div class="h-full bg-gradient-to-r from-emerald-500 via-sky-400 to-emerald-400 rounded-full animate-progress shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle: 4-Step Round Progress Tokens -->
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-400 flex items-center justify-center font-mono text-xs font-bold">✓</div>
+      <div class="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-mono text-xs font-black neon-emerald-glow">2</div>
+      <div class="w-7 h-7 rounded-lg bg-night-card border border-night-border text-slate-500 flex items-center justify-center font-mono text-xs">3</div>
+      <div class="w-7 h-7 rounded-lg bg-night-card border border-night-border text-slate-500 flex items-center justify-center font-mono text-xs">4</div>
+    </div>
+
+    <!-- Right: Single Hot Pink Primary CTA Button (Instant Next Clue Override) -->
+    <div class="flex items-center gap-3 shrink-0">
+      <button class="px-6 py-2.5 rounded-xl bg-hotpink text-white font-display font-black text-sm tracking-wider uppercase flex items-center gap-2 neon-pink-glow hover:opacity-95 active:scale-95 transition-all cursor-pointer">
+        <span>Next Clue</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+      </button>
+    </div>
+
+  </footer>
+
+</body>
+</html>

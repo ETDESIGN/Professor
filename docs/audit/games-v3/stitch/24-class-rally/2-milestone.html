@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEON ARENA - Milestone Celebration State</title>
+<!-- Google Fonts: Sora, Inter, Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800;900&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary": "#ffe04a",
+            "primary-fixed-dim": "#ff80aa",
+            "tertiary-container": "#665200",
+            "on-primary-fixed": "#3d0020",
+            "primary": "#ff2d78",
+            "on-secondary-fixed": "#001a1a",
+            "on-error": "#1a0000",
+            "on-primary-container": "#ffe0ec",
+            "surface-dim": "#0f0f1a",
+            "surface-container-low": "#111118",
+            "tertiary-fixed": "#fff0c0",
+            "on-secondary-container": "#c0fff4",
+            "inverse-primary": "#8c0038",
+            "secondary-container": "#004d3d",
+            "on-tertiary-fixed-variant": "#665200",
+            "on-tertiary-container": "#fff0c0",
+            "surface-tint": "#ff2d78",
+            "outline": "#5a5068",
+            "on-tertiary-fixed": "#1a1000",
+            "error": "#ff4444",
+            "surface-container": "#141422",
+            "primary-container": "#b3004e",
+            "secondary-fixed-dim": "#00e6b8",
+            "tertiary-fixed-dim": "#ffe04a",
+            "secondary": "#00ffcc",
+            "primary-fixed": "#ffe0ec",
+            "on-tertiary": "#1a1000",
+            "surface-bright": "#1a1a2e",
+            "inverse-surface": "#e8e0f0",
+            "background": "#0a0a12",
+            "on-surface-variant": "#a098b0",
+            "outline-variant": "#302840",
+            "on-primary": "#1a0010",
+            "on-background": "#e8e0f0",
+            "inverse-on-surface": "#0a0a12",
+            "error-container": "#3d0f0f",
+            "on-error-container": "#ffa0a0",
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-secondary": "#001a1a",
+            "on-primary-fixed-variant": "#8c0038",
+            "secondary-fixed": "#c0fff4",
+            "surface-container-high": "#1e1e30",
+            "surface": "#0f0f1a",
+            "surface-container-highest": "#28283e",
+            "surface-variant": "#1e1e30",
+            "surface-container-lowest": "#0a0a12",
+            "on-surface": "#e8e0f0"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill {
+      font-variation-settings: 'FILL' 1;
+    }
+    /* Subdued cyberpunk grid & scanlines for projector visibility */
+    .bg-grid-cyber {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+    }
+    /* Glow highlights */
+    .glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 255, 204, 0.7);
+    }
+    .glow-pink {
+      text-shadow: 0 0 12px rgba(255, 45, 120, 0.7);
+    }
+    .glow-amber {
+      text-shadow: 0 0 12px rgba(255, 224, 74, 0.7);
+    }
+    .box-glow-pink {
+      box-shadow: 0 0 24px rgba(255, 45, 120, 0.45);
+    }
+    .box-glow-cyan {
+      box-shadow: 0 0 24px rgba(0, 255, 204, 0.35);
+    }
+    /* Confetti float animation keyframes */
+    @keyframes subtle-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.03); opacity: 1; }
+    }
+    .animate-rally-trophy {
+      animation: subtle-pulse 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body w-[1920px] h-[1080px] max-w-[1920px] max-h-[1080px] overflow-hidden select-none m-0 p-0 relative flex flex-col justify-between bg-grid-cyber">
+<!-- BACKGROUND AMBIENT RADIAL LIGHTS (Projector high dynamic range) -->
+<div class="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[140px] pointer-events-none"></div>
+<div class="absolute -bottom-20 right-1/4 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[140px] pointer-events-none"></div>
+<div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-secondary-container/20 rounded-full blur-[160px] pointer-events-none"></div>
+<!-- SHARED TOP NAVBAR (Docked Full-Width, Projector Safe Margins) -->
+<header class="w-full flex justify-between items-center px-8 py-3 bg-surface-container-lowest border-b border-outline-variant shadow-[0_0_16px_rgba(255,45,120,0.15)] shrink-0 z-50">
+<div class="flex items-center gap-6">
+<!-- Projector overscan clearance pill & brand name -->
+<div class="flex items-center gap-3">
+<span class="font-headline text-2xl font-black tracking-widest text-secondary drop-shadow-[0_0_8px_rgba(0,255,204,0.6)]">NEON ARENA</span>
+<span class="bg-surface-container-high text-secondary border border-secondary/30 text-xs px-3 py-1 rounded-full font-label font-bold tracking-wider flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+          PHASE: CLASS RALLY · MILESTONE COMPLETE
+        </span>
+</div>
+<!-- Navigation Tabs strictly adhering to active/inactive styling -->
+<nav class="hidden md:flex items-center gap-6 ml-6 text-sm">
+<span class="text-primary border-b-2 border-primary pb-1 font-label font-bold tracking-wider flex items-center gap-1 cursor-default">
+<span class="material-symbols-outlined text-base">bolt</span> Speed Arena
+        </span>
+<span class="text-on-surface-variant hover:text-secondary transition-colors duration-150 font-label tracking-wider flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined text-base">leaderboard</span> Leaderboard
+        </span>
+<span class="text-on-surface-variant hover:text-secondary transition-colors duration-150 font-label tracking-wider flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined text-base">military_tech</span> Class Badges
+        </span>
+<span class="text-on-surface-variant hover:text-secondary transition-colors duration-150 font-label tracking-wider flex items-center gap-1 cursor-pointer">
+<span class="material-symbols-outlined text-base">hub</span> Mission Hub
+        </span>
+</nav>
+</div>
+<!-- Active HUD Telemetry + Trailing Actions & Profile -->
+<div class="flex items-center gap-6">
+<!-- Streak & Target Trackers (Big projector-legible) -->
+<div class="flex items-center gap-3">
+<div class="bg-surface-container-high/90 border border-tertiary/40 px-3.5 py-1 rounded-full flex items-center gap-2 shadow-[0_0_10px_rgba(255,224,74,0.2)]">
+<span class="material-symbols-outlined text-tertiary fill text-sm">local_fire_department</span>
+<span class="font-label font-bold text-xs text-tertiary tracking-wider glow-amber">STREAK: 12 IN A ROW</span>
+</div>
+<div class="bg-surface-container-high/90 border border-secondary/40 px-3.5 py-1 rounded-full flex items-center gap-2 shadow-[0_0_10px_rgba(0,255,204,0.2)]">
+<span class="material-symbols-outlined text-secondary fill text-sm">check_circle</span>
+<span class="font-label font-bold text-xs text-secondary tracking-wider glow-cyan">TARGET: 12/12 (+120 PTS)</span>
+</div>
+</div>
+<!-- Turn Indicator -->
+<div class="flex items-center gap-3 pl-4 border-l border-outline-variant">
+<div class="relative">
+<img class="w-9 h-9 rounded-full object-cover border-2 border-primary shadow-[0_0_8px_rgba(255,45,120,0.5)]" data-alt="Cyberpunk high-contrast stylized avatar of student Alice with neon glowing visor and headphones on deep purple cyber background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD7QowPTXD0H3WRWqymQqSpq3jPfu9MA19ByOubCfjJU7v2JfBdkBGk7XmJ6YOikiyFmnqnRa-AruOpNjRkffZ-IulEtShI_28KzsJL9rapahv-nZVWz01Qp75Dm5e-ebOavYFNMXSQj7KwKaZUV7pYw63FRq50gXZVtIWFmZc4GJ1lS6GsWVGjrUNjXpYjb4A96la0Z2hd0Xv5XPXlC5GdTzQ9sTcI6qBKQZnrvofXug9q-Y1udqRZa8R0OjNF1QXSC3iuRG4jaVs"/>
+<span class="absolute -bottom-1 -right-1 bg-secondary text-surface-dim text-[9px] font-black px-1 rounded-full">2X</span>
+</div>
+<div class="text-left hidden lg:block">
+<p class="font-headline text-xs font-bold text-on-surface leading-tight">Alice Walker</p>
+<p class="font-label text-[10px] text-secondary font-semibold uppercase tracking-wider">Rank #1 • 2X MULTIPLIER</p>
+</div>
+</div>
+<!-- Trailing Icon Actions from JSON -->
+<div class="flex items-center gap-2 text-on-surface-variant">
+<button class="p-1.5 hover:text-secondary active:scale-95 transition-all" title="Timer">
+<span class="material-symbols-outlined text-lg">timer</span>
+</button>
+<button class="p-1.5 hover:text-secondary active:scale-95 transition-all" title="Volume">
+<span class="material-symbols-outlined text-lg">volume_up</span>
+</button>
+<button class="p-1.5 hover:text-secondary active:scale-95 transition-all" title="Fullscreen">
+<span class="material-symbols-outlined text-lg">fullscreen</span>
+</button>
+</div>
+</div>
+</header>
+<!-- 100% COMPLETE RADIANT RALLY PROGRESS BAR -->
+<section class="px-12 pt-3 pb-1 shrink-0">
+<div class="flex justify-between items-end mb-1.5">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-secondary fill text-xl">energy_savings_leaf</span>
+<span class="font-headline font-extrabold text-sm tracking-widest text-secondary glow-cyan uppercase">
+          RALLY COMPLETE: CLASSROOM JACKPOT UNLOCKED!
+        </span>
+</div>
+<div class="flex items-center gap-3">
+<span class="font-label font-bold text-xs text-on-surface-variant tracking-wider">12 OF 12 WORDS ACCUMULATED</span>
+<span class="bg-secondary text-surface-dim font-headline font-black text-xs px-2.5 py-0.5 rounded-full shadow-[0_0_12px_rgba(0,255,204,0.6)] animate-pulse">
+          JACKPOT UNLOCKED! 🔥
+        </span>
+</div>
+</div>
+<!-- Radiant Progress Track -->
+<div class="w-full h-4 bg-surface-container-high rounded-full p-0.5 border border-secondary/40 shadow-[0_0_18px_rgba(0,255,204,0.25)] relative overflow-hidden">
+<!-- 100% Fill with emerald to cyan glow -->
+<div class="h-full w-full rounded-full bg-gradient-to-r from-[#10B981] via-secondary to-[#38BDF8] flex items-center justify-between px-2 relative">
+<!-- Sparkle accents along bar -->
+<span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+<span class="w-2 h-2 rounded-full bg-white opacity-80"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-white opacity-90 animate-pulse"></span>
+<span class="w-2 h-2 rounded-full bg-white"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-white opacity-95"></span>
+</div>
+</div>
+</section>
+<!-- MAIN PROJECTOR CANVAS: BENTO HERO STAGE (No Scroll, 1920x1080 Fitted) -->
+<main class="flex-1 px-12 py-3 grid grid-cols-12 gap-6 items-stretch min-h-0">
+<!-- LEFT COLUMN: Final Mastered Deck Spotlight Token (Wildlife Deck Tiger) -->
+<div class="col-span-4 bg-surface-container/80 backdrop-blur-md rounded-xl border border-secondary/30 p-6 flex flex-col justify-between relative overflow-hidden shadow-[inset_0_0_20px_rgba(0,255,204,0.06)]">
+<!-- Ambient light behind card -->
+<div class="absolute -top-16 -left-16 w-44 h-44 bg-secondary/15 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Header badge -->
+<div class="flex items-center justify-between relative z-10">
+<span class="inline-flex items-center gap-1.5 bg-secondary/20 text-secondary border border-secondary/50 font-label font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider">
+<span class="material-symbols-outlined text-sm fill">workspace_premium</span>
+          DECK MASTERED
+        </span>
+<span class="font-label text-xs text-on-surface-variant tracking-wider font-semibold">Wildlife Deck #41</span>
+</div>
+<!-- Mastered Subject Visual (Tiger Reference) -->
+<div class="my-auto relative group">
+<div class="w-full h-56 rounded-lg overflow-hidden border border-outline relative shadow-2xl bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="Magnificent close-up studio portrait of a majestic Siberian tiger sitting alert against a dark moody black backdrop, intense amber eyes illuminated with warm rim lighting and hyper-detailed fur textures, high resolution wildlife photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQw8tYw55qoHntP06TBynIM9tQqOYrgTdYuwSLPS7b0Fdq0SkuHXaPL9gBovSbBEHYudGSRE6QWdqvu6heixxn9tgkxsoSVXd5T6lWBFm5xeIb5KXNstsOtIdW9yCYy_if8AAb6p18RygqHFX3n64aEiT7BFSDid3A_drhRWp8U4EAJ07jAyEjPM5tfFWMSJCDe1cJxv94intkoPBuxWGbGBwwE7VyH99w9N41vXgig23AlgSlSxqiJd3BIzvHGlqc3dQd-ackn04L"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-dim via-transparent to-transparent opacity-80"></div>
+<div class="absolute bottom-3 left-4 right-4 flex items-end justify-between">
+<div>
+<p class="font-headline font-black text-2xl text-on-surface tracking-wide">TIGER</p>
+<p class="font-label text-xs text-secondary font-bold tracking-widest">/ˈtaɪ.ɡər/ · NOUN</p>
+</div>
+<div class="bg-primary text-on-primary font-label font-black text-xs px-2.5 py-1 rounded shadow-[0_0_10px_rgba(255,45,120,0.6)]">
+              ROUND 12 WINNER
+            </div>
+</div>
+</div>
+</div>
+<!-- Mastery Statistics Footnote -->
+<div class="grid grid-cols-3 gap-2 pt-3 border-t border-outline-variant text-center relative z-10">
+<div class="bg-surface-container-high/60 p-2 rounded">
+<p class="font-label text-[10px] text-on-surface-variant font-bold">ACCURACY</p>
+<p class="font-headline font-bold text-secondary text-base">100%</p>
+</div>
+<div class="bg-surface-container-high/60 p-2 rounded">
+<p class="font-label text-[10px] text-on-surface-variant font-bold">SPEED RECORD</p>
+<p class="font-headline font-bold text-tertiary text-base">1.4s / WRD</p>
+</div>
+<div class="bg-surface-container-high/60 p-2 rounded">
+<p class="font-label text-[10px] text-on-surface-variant font-bold">CLASS SYNERGY</p>
+<p class="font-headline font-bold text-primary text-base">MAX</p>
+</div>
+</div>
+</div>
+<!-- CENTER-RIGHT HERO STAGE: CLASS RALLY COMPLETE TROPHY CELEBRATION CARD -->
+<div class="col-span-8 bg-surface-container/90 backdrop-blur-lg rounded-2xl border border-secondary/40 p-8 flex flex-col justify-between relative overflow-hidden box-glow-cyan">
+<!-- Background Ambient Glow & Starburst Accents -->
+<div class="absolute -right-24 -top-24 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -left-20 -bottom-20 w-80 h-80 bg-secondary/20 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Floating Confetti Decorative Elements -->
+<div class="absolute top-8 left-12 text-tertiary opacity-40 font-headline font-bold text-xl select-none">✦</div>
+<div class="absolute top-16 right-20 text-secondary opacity-50 font-headline font-bold text-2xl select-none animate-bounce">★</div>
+<div class="absolute bottom-20 left-16 text-primary opacity-40 font-headline font-bold text-lg select-none">◆</div>
+<div class="absolute top-36 right-48 text-tertiary opacity-30 text-sm select-none">✦</div>
+<!-- Trophy Crest & Huge Projector Headline -->
+<div class="text-center pt-2 relative z-10 flex flex-col items-center">
+<!-- Golden / Emerald Trophy Emblem -->
+<div class="w-24 h-24 rounded-2xl bg-surface-container-high/80 border-2 border-tertiary/70 shadow-[0_0_30px_rgba(255,224,74,0.4)] flex items-center justify-center mb-3 animate-rally-trophy relative">
+<span class="material-symbols-outlined text-tertiary fill text-5xl drop-shadow-[0_0_12px_rgba(255,224,74,0.8)]">military_tech</span>
+<span class="absolute -top-2 -right-2 bg-secondary text-surface-dim font-headline font-black text-[10px] px-2 py-0.5 rounded-full border border-surface-container shadow-[0_0_8px_rgba(0,255,204,0.8)]">12/12</span>
+</div>
+<!-- 8-Meter Projector-Legible Headline -->
+<h1 class="font-headline font-black text-5xl tracking-tight text-on-surface mb-2 drop-shadow-[0_0_20px_rgba(0,255,204,0.3)]">
+          CLASS RALLY COMPLETE!
+        </h1>
+<p class="font-body text-base text-on-surface-variant max-w-2xl text-center leading-relaxed">
+          Outstanding teamwork! The whole room powered through all 12 words together with flawless rhythm and vocal mastery.
+        </p>
+<!-- Huge Bonus Score Callout Chip -->
+<div class="mt-4 inline-flex items-center gap-3 bg-secondary-container/60 border-2 border-secondary px-8 py-2.5 rounded-full shadow-[0_0_24px_rgba(0,255,204,0.4)]">
+<span class="material-symbols-outlined text-secondary fill text-2xl">stars</span>
+<span class="font-headline font-black text-2xl text-secondary tracking-wider glow-cyan">+500 CLASS BONUS PTS</span>
+<span class="bg-secondary/20 text-secondary text-xs font-label font-bold px-2 py-0.5 rounded">UNLOCKED</span>
+</div>
+</div>
+<!-- Whole-Class Avatar Squad Row (10 avatars, 100% Participation) -->
+<div class="bg-surface-container-high/70 border border-outline-variant rounded-xl p-4 mt-4 relative z-10">
+<div class="flex items-center justify-between mb-3 px-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-sm">groups</span>
+<span class="font-label font-bold text-xs uppercase tracking-wider text-on-surface">Whole Class Rally Squad · 100% Participation</span>
+</div>
+<span class="font-label font-semibold text-xs text-tertiary">All 10 Students Contributed</span>
+</div>
+<!-- 10 Student Chips -->
+<div class="grid grid-cols-10 gap-2">
+<!-- Alice -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-primary p-0.5 shadow-[0_0_8px_rgba(255,45,120,0.5)]">
+<img class="w-full h-full rounded-full object-cover" data-alt="Close up face profile avatar of student Alice with neon glasses in deep violet retrofuturistic style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHcedJy3gHL7KxdEZCX08WDk7DWJBO-z7J9bdCa4GSjjCTjNtUSzm1Rzt-9oCwP30HLbmsgojQ0JOOnWu83s-yPpoNs2SHoTitsq_3tXWhK6sqVQmKaECtLtVeNAhn0qSIdm1MkRNDxLoMEcXQSK0KgTinDt8scqelZBF9eMlePzM-paTnLMuV4OiuH3JqWPsG0srRseCEY8N2hcTl3iEFFsRkEK2YvRBgxuPzcJ844IkJNSpYx7WUbhFHeEi-lEdifd4gi1GmTY7W"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Alice</span>
+</div>
+<!-- Ben -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-secondary p-0.5 shadow-[0_0_8px_rgba(0,255,204,0.4)]">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar boy Ben wearing futuristic bright cyan headband in modern neon graphic anime style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDq-1G1YzR6TBfjCTSLXunUhqaqXzUTQredYc0cUOSt2VQQKnSPwbrUJEKe3P-0DnqXAs-iMjv9LEzvsO3ATB5fFsBULmL1SZL7wZASRPudaMAvPgaRdeq8co5gFOr4zzCV0MQrS4jWxJ2Hf7SXWxhZ4WFcoL2ma45ZAtbqiBRzFPaPrSquuQjDhbih-1Vq84u0zig-etMGNfWoBuFC0IXeQ2hWnNFIsH5IjfUwd6_UOmiRL9cfjWkpPpWyl3qyhgNbiSqjAObdOznc"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Ben</span>
+</div>
+<!-- Coco -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-tertiary p-0.5 shadow-[0_0_8px_rgba(255,224,74,0.4)]">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar girl Coco smiling with warm yellow cyber hair clips and dark background portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6rbV-fv_UVonHeX7v_gKsz3zwx2hQ-sc1mG6nVDg36-LILz5aYE7HXSuMe5niGpxdLggIuCCoOeq32L3BHWAThQYXDvIlQrw73GqZGXyerWzDtKl2Wm1RINVh-YgpHoiQxEcLpen0GNTw_xupwI0qmOPD_F1xn61R_hMOFJTYpdlh3f4cceG5Kco3QFDm7PjCtICURzlnjwjp5nOKIs5cgH9Exl4cs8tJxZ1U9ikeU16OKV1b8puIL1keJrwfy4c7wgZuU8Pr-CPm"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Coco</span>
+</div>
+<!-- Dudu -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-secondary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar boy Dudu with neon green holographic visor in sleek cyberpunk lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAleP4ployfFOaDOpwKD-bw_TouP2vLE3QlceVrCUCfyQRfW7-cxekzpPMNi9tdtrM2ZYsfZ6WmplcwodujRsOXy1ujswcxeir657DmKFhkHir3dSOrMvCQaKHu_OGQkaZFYWiw50pe8I6QnOp9LcKPyY3vOPUiEYIU4YmHGn8ZkcAKulidgHXwbMItc88dDrUr66e6eXyos_M7q4OymiOXVIpPwj_0EJXp1tK8Sdpy21FoxGHrzQCtH-DpFH-DRbGZb1x3pWstrUmi"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Dudu</span>
+</div>
+<!-- Emma -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-primary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar girl Emma with magenta glowing headphones in stylized digital portrait aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWlCN_xvDCetFBtVs9HW4i9e2lgKIzMLlsWUC9xIOiLx3xcZFO-9vgrCikqoPK4Z6P4ahNTTcPihp_e1owpI6bIdeTus25dGJXlax3ymRCkL9ZVwZ-7rXJzKJx7Mj03InGWKUh4PrljpkGQVbqN7KVXTKJx1dH_D8rRtEYrLOJpjEkYdgHrCK9yrzINP61CNPuPm2bQ0MFyltyul-7YOMASlG_cl3penJ8xD4rTQ57_kTrEwVNXkcNXYbgl4cddvoz7I4ISXnlVcfZ"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Emma</span>
+</div>
+<!-- Fang -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-secondary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar boy Fang with sharp cyber punk haircut and turquoise collar on dark background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWkmPVfOeiCPxnS1WQ90g1rstMAVqZFSvtXc2REpyX91TBYASEyQqnT93n745pNWtM5QMT0lOnmrq78_7IMwsi1UBgW0GaOn4IlSDS0iuWxQ99NJxzbIC0kjHfo4nqWkTCSngyor2_azudSvAsJmYLP4QKEcUWpn_IQzZFGtR6I1A_5qxDRas38964_oWb6vbTrASXvdhjme7_sCOz-yd4-Yaw-zoNugZCXuNYdgLdVBUwieLgnPYQU1HS_y6lPVXW6ORso5hNObdU"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Fang</span>
+</div>
+<!-- Leo -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-tertiary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar boy Leo with cheerful expression and warm gold badge emblem in dark modern styling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDo0bHpaIvz1BEgs1Z0vknvFqwIjULnRoE2hfLKgpolMbHsbzNWu9poZz0pr9nPwMSR0FhTsS5L-RJc0BWe4v8RLAhifiCJr_bEGKuaKQx67XhbZDdP5nb7gsBZi0_x_IFOfRT0-NB8tEzfqX8krs1TbT8Ce2q-xX6JnEmZS-MFSIfb3i9tiE2_sT7FeieEWUZ-28UhS5XR6MEUw0H7otMBXrc8ho12yY9WB9tLv8ti8uEHCB60h1i3q7PUF2zBw1K6sUI_YTnxHdvG"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Leo</span>
+</div>
+<!-- Maya -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-primary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar girl Maya with braided hair and glowing neon ear cuff in deep blue ambient lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCK0AEXO9ElvreYcXAL5whmdQXomvC7oI9oZUk97ngRVobRMr6bhUBv6O11gxlr5BpOJ3zFJ_Um8di0LuglGw8OkgitVpSbhntLuac-ulnNKHo_dsa46nNwu__PyxIn1nVMNoLqVJgufhNU4g1otmdjPAygaagNSWFa3JYP9Eh5otCnbBuEojUu7fKX6o1FefLoZ6tNm74XNi_TWICDPuOQlKrm9tdfZX9qzl_Wo442GEnDON_QBczSW4pIc9YLl8hMPp-vgPSFHNhP"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Maya</span>
+</div>
+<!-- Noah -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-secondary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar boy Noah wearing high-tech glasses with illuminated cyan reflections" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4QkpXVxtSPqpyNmbRjHhvt4zgLbkPbot-ybu2NQJSjJ45xHdxrBQvLjMD-0f7mncQ0vqNMD1o7gsPNUHjdXjjDjYPIPgKGnbjLvTpAgc90PyvHvUSsuHeBZ66Y6OPBsaXMamqCX9FzQGr9x03zqN9hPQ83d-Rcymk3zC3pYMBlLgr-zZTaGv7vSGObDk57UuqBVOOzuFj5dwxtntLwnKMVN3vt8iWIJHWdgLYKn2czpwe4SIy7zNdVE_VJzCUlhqe9eFmfYLRqEIp"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Noah</span>
+</div>
+<!-- Chloe -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-12 h-12 rounded-full border-2 border-tertiary p-0.5">
+<img class="w-full h-full rounded-full object-cover" data-alt="Student avatar girl Chloe smiling enthusiastically with subtle neon yellow rim light on dark slate backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3tSvoSivXKa3IZ7R-S-l7kKzQn3LjT0uuCo8U4Tmge9YZBudfxCZSuia7RZJaTrApQtcBeGvRz5T_WyH6UrrehrIabRPizQ22A3Z9kOQqjdmkoc1bAad4cq6t8A2Zj9CSQGjCmzpajFgtlFYGXmtH8RIZu8lLzbwEodKkcTIBR6YqLVpDTlCGO2boTc5EnKhE6xuQu-EPLfFmHKi3mEXWrJOQahqXHunrDWQ3mhkl38Jk1e85sdq0TnTItRJqdG8glvS9W3AlbGBe"/>
+</div>
+<span class="font-label text-[11px] font-bold text-on-surface truncate">Chloe</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BOTTOM ACTION BAR & TEACHER CUE BAR (Projector Safe Floor) -->
+<footer class="w-full px-12 py-3.5 bg-surface-container-lowest/95 border-t border-outline-variant flex items-center justify-between shrink-0 z-40">
+<!-- Updated Class Score Meter -->
+<div class="flex items-center gap-4">
+<div class="bg-surface-container-high border border-outline-variant px-5 py-2 rounded-xl flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-primary-container/30 border border-primary/40 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary fill text-xl">toll</span>
+</div>
+<div>
+<span class="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider block">CLASS SCORE TOTAL</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline font-black text-2xl text-on-surface">1,580</span>
+<span class="font-label text-xs font-bold text-secondary glow-cyan">(+500 BONUS)</span>
+</div>
+</div>
+</div>
+<!-- Quick Word Review Trigger -->
+<button class="bg-surface-container-high hover:bg-surface-container-highest text-on-surface-variant hover:text-secondary border border-outline-variant px-4 py-2.5 rounded-xl font-label font-bold text-xs tracking-wider flex items-center gap-2 transition-all active:scale-95">
+<span class="material-symbols-outlined text-base">history_edu</span>
+        Review 12 Words
+      </button>
+</div>
+<!-- Center Teacher Cue Prompt Pill -->
+<div class="flex items-center gap-2 bg-tertiary-container/30 border border-tertiary/40 px-5 py-2 rounded-full shadow-[0_0_12px_rgba(255,224,74,0.15)]">
+<span class="material-symbols-outlined text-tertiary text-lg animate-bounce">lightbulb</span>
+<p class="font-body text-xs font-semibold text-tertiary tracking-wide">
+        Teacher Cue: Lead whole-class high five chant, then tap Next to continue!
+      </p>
+</div>
+<!-- Primary Celebration CTAs -->
+<div class="flex items-center gap-4">
+<button class="bg-surface-container-high hover:border-outline text-on-surface-variant hover:text-on-surface border border-outline-variant px-4 py-2.5 rounded-xl font-label font-bold text-xs tracking-wider flex items-center gap-1.5 transition-all active:scale-95">
+<span class="material-symbols-outlined text-base">replay</span>
+        Replay Round
+      </button>
+<!-- Hot-Pink Primary Hero CTA -->
+<button class="bg-surface-container-highest text-primary border-2 border-primary hover:bg-primary hover:text-on-primary font-headline font-extrabold text-sm px-8 py-3 rounded-xl box-glow-pink tracking-wider flex items-center gap-3 transition-all duration-200 active:scale-95">
+<span>CLAIM REWARDS &amp; NEXT</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+</footer>
+</body></html>

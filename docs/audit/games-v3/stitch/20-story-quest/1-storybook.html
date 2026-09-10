@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Story Quest — Classroom ESL Projector View</title>
+<!-- Material Symbols & Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#070C18",
+            "surface": "#0B132B",
+            "surface-container": "#111C3D",
+            "surface-container-high": "#182652",
+            "surface-container-highest": "#20326B",
+            "surface-bright": "#1a1a2e",
+            "surface-container-low": "#090F21",
+            "surface-container-lowest": "#050812",
+            "primary": "#FF2D78",
+            "primary-container": "#B3004E",
+            "secondary": "#00FFCC",
+            "secondary-container": "#004D3D",
+            "tertiary": "#FFE04A",
+            "tertiary-container": "#665200",
+            "background": "#070C18",
+            "on-background": "#E8E0F0",
+            "on-surface": "#F1F5F9",
+            "on-surface-variant": "#94A3B8",
+            "outline": "#334155",
+            "outline-variant": "#1E293B",
+            "sky-accent": "#38BDF8",
+            "emerald-accent": "#10B981"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Subtle high-tech classroom grid backdrop */
+    .classroom-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+    }
+
+    /* Projection-tuned neon glows */
+    .active-turn-glow {
+      box-shadow: 0 0 24px -2px rgba(56, 189, 248, 0.35), inset 0 0 16px -4px rgba(56, 189, 248, 0.15);
+    }
+    .btn-primary-glow {
+      box-shadow: 0 0 20px rgba(255, 45, 120, 0.5);
+    }
+    .btn-primary-glow:hover {
+      box-shadow: 0 0 30px rgba(255, 45, 120, 0.85);
+    }
+    .pulse-indicator {
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+  </style>
+</head>
+<body class="bg-surface-dim text-on-surface font-body w-screen h-screen overflow-hidden select-none flex flex-col classroom-grid">
+<!-- TOP APP BAR & PROJECTOR COMMAND HEADER -->
+<header class="h-20 w-full flex-shrink-0 flex items-center justify-between px-8 bg-surface-container-low/90 backdrop-blur-md z-30">
+<!-- Left Region: Fixed 200px Phase Pill + Quest Branding -->
+<div class="flex items-center gap-6">
+<!-- Top-left 200px clear margin / area for Phase Pill -->
+<div class="w-[200px] flex items-center justify-start flex-shrink-0">
+<div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-surface-container border border-sky-accent/40 text-sky-accent font-label text-xs tracking-wider font-bold">
+<span class="w-2 h-2 rounded-full bg-sky-accent pulse-indicator"></span>
+<span>PHASE: STORY QUEST</span>
+</div>
+</div>
+<!-- Inset Top Header Section -->
+<div class="flex items-center gap-4 border-l border-outline-variant/80 pl-6">
+<div class="flex items-center gap-3">
+<span class="w-8 h-8 rounded-lg bg-primary/20 border border-primary/50 flex items-center justify-center text-primary font-headline font-bold text-lg">Q</span>
+<h1 class="font-headline font-bold text-2xl tracking-wide text-on-surface">
+            Word Search <span class="text-on-surface-variant font-normal text-lg ml-1">· Story Quest</span>
+</h1>
+</div>
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-surface-container-high text-tertiary font-label text-xs font-semibold border border-tertiary/20">
+<span class="material-symbols-outlined text-sm">auto_stories</span>
+          Chapter 2: The Brave Savanna Adventure
+        </div>
+</div>
+</div>
+<!-- Right Controls: Student Turn Badge + Trailing Controls -->
+<div class="flex items-center gap-5">
+<!-- Turn / Choral indicator -->
+<div class="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-surface-container border border-emerald-accent/40 text-emerald-accent font-label text-sm font-semibold">
+<span class="material-symbols-outlined text-base">group</span>
+<span>Choral Read Mode · All Students</span>
+</div>
+<!-- Round & Starter Action -->
+<span class="text-on-surface-variant font-label text-sm tracking-wider uppercase bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant">
+        Round 1 · Starter
+      </span>
+<!-- Trailing Action Icons with Projector controls -->
+<div class="flex items-center gap-2 text-on-surface-variant">
+<button class="w-10 h-10 rounded-xl bg-surface-container hover:text-primary transition-all duration-200 active:scale-95 flex items-center justify-center border border-outline-variant" title="Mute/Unmute Audio">
+<span class="material-symbols-outlined" data-icon="volume_up">volume_up</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-surface-container hover:text-primary transition-all duration-200 active:scale-95 flex items-center justify-center border border-outline-variant" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-surface-container hover:text-primary transition-all duration-200 active:scale-95 flex items-center justify-center border border-outline-variant" title="Full Screen View">
+<span class="material-symbols-outlined" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+<!-- ESL Avatar Badge -->
+<div class="flex items-center gap-2 pl-2 border-l border-outline-variant">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-sky-accent p-[2px] flex-shrink-0">
+<div class="w-full h-full bg-surface-container rounded-[10px] flex items-center justify-center text-on-surface font-label font-bold text-xs" title="Classroom ESL Avatar">
+            ESL
+          </div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN 16:9 TWO-COLUMN WORKSPACE -->
+<main class="flex-1 w-full p-6 grid grid-cols-12 gap-6 min-h-0">
+<!-- ==============================================
+         LEFT COLUMN: DIALOGUE SCRIPT (~40% width / 5 Cols)
+         ============================================== -->
+<section class="col-span-5 flex flex-col bg-surface rounded-2xl border border-outline-variant p-6 min-h-0 justify-between">
+<!-- Script Header Bar -->
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-full bg-sky-accent"></span>
+<h2 class="font-label text-sm uppercase tracking-widest text-on-surface-variant font-bold">
+            SCENE 02 · DIALOGUE SCRIPT
+          </h2>
+</div>
+<button class="flex items-center gap-1.5 text-sky-accent hover:text-sky-300 transition-colors font-label text-xs font-semibold px-2.5 py-1 rounded bg-surface-container border border-sky-accent/30">
+<span class="material-symbols-outlined text-sm">replay</span>
+          Replay Scene
+        </button>
+</div>
+<!-- Dialogue Turns Feed -->
+<div class="flex-1 flex flex-col justify-center gap-4 py-4 min-h-0 overflow-hidden">
+<!-- Turn 1 (Past Turn - Dimmed 50%) -->
+<article class="opacity-50 transition-all duration-300 rounded-xl p-4 bg-surface-container-low border border-outline-variant/60 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded text-[11px] font-label font-bold tracking-wider uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                LEO THE LION
+              </span>
+<span class="text-xs text-on-surface-variant font-label">Previous Line</span>
+</div>
+<span class="material-symbols-outlined text-emerald-accent text-lg" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<p class="font-body text-base text-on-surface-variant leading-relaxed">
+            “Look ahead, friends! The golden grass is shining.”
+          </p>
+</article>
+<!-- Turn 2 (ACTIVE TURN - Sky Blue Luminous Highlight) -->
+<article class="active-turn-glow rounded-2xl p-5 bg-surface-container border-2 border-sky-accent transition-all duration-300 relative flex flex-col gap-3">
+<!-- Active Pill Indicator & Replay Trigger -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded text-xs font-label font-bold tracking-wider uppercase bg-emerald-accent/20 text-emerald-accent border border-emerald-accent/50 shadow-sm flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-accent animate-pulse"></span>
+                MIMI MONKEY
+              </span>
+<span class="text-xs text-sky-accent font-label font-semibold tracking-wide uppercase flex items-center gap-1">
+<span class="material-symbols-outlined text-sm animate-spin">graphic_eq</span>
+                Active Speaker
+              </span>
+</div>
+<button class="w-9 h-9 rounded-lg bg-sky-accent/20 text-sky-accent hover:bg-sky-accent hover:text-surface-dim transition-all flex items-center justify-center border border-sky-accent/40" title="Play Mimi's Audio Line">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</button>
+</div>
+<!-- Main Dialogue Text (Legible 5-8 Meters) -->
+<p class="font-headline font-bold text-2xl lg:text-[26px] text-on-surface leading-tight tracking-tight">
+            “We can run <span class="text-sky-accent underline decoration-sky-accent/60 underline-offset-4 decoration-2">fast</span> together across the open field!”
+          </p>
+<!-- Phonics & TPR Action Cue Pill for Classroom Kids -->
+<div class="mt-1 flex items-center gap-2 p-2.5 rounded-xl bg-surface-container-high/90 border border-sky-accent/30 text-on-surface">
+<div class="w-6 h-6 rounded-md bg-sky-accent/20 text-sky-accent flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-base">psychology</span>
+</div>
+<div class="text-xs font-label text-on-surface-variant flex items-center flex-wrap gap-x-2">
+<span class="text-sky-accent font-bold">Target Word: FAST /fɑːst/</span>
+<span class="text-outline">·</span>
+<span class="text-tertiary font-medium">Action: Run in place!</span>
+</div>
+</div>
+</article>
+<!-- Turn 3 (Upcoming Turn - Dimmed 40%) -->
+<article class="opacity-40 transition-all duration-300 rounded-xl p-4 bg-surface-container-low border border-outline-variant/60 flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded text-[11px] font-label font-bold tracking-wider uppercase bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                BARNABY BEAR
+              </span>
+<span class="text-xs text-on-surface-variant font-label">Next Line</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-base">hourglass_empty</span>
+</div>
+<p class="font-body text-base text-on-surface-variant leading-relaxed">
+            “Wait for me! I am right behind you!”
+          </p>
+</article>
+</div>
+<!-- Action Buttons Row (Classroom CTAs) -->
+<div class="pt-4 border-t border-outline-variant flex items-center gap-3">
+<!-- Prominent Hot Pink Primary CTA -->
+<button class="flex-1 py-4 px-6 rounded-xl bg-primary text-on-primary font-headline font-bold text-lg tracking-wide btn-primary-glow hover:bg-primary/95 transition-all duration-200 active:scale-98 flex items-center justify-center gap-2">
+<span>Next Line</span>
+<span class="material-symbols-outlined font-bold text-xl">arrow_forward</span>
+</button>
+<!-- Secondary Neutral Audio Replay -->
+<button class="py-4 px-5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-label font-semibold text-sm border border-outline hover:border-sky-accent transition-all duration-200 flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">volume_up</span>
+<span>Replay Line <kbd class="ml-1 text-xs bg-surface-container-highest px-1.5 py-0.5 rounded text-on-surface-variant font-mono">[Space]</kbd></span>
+</button>
+</div>
+</section>
+<!-- ==============================================
+         RIGHT COLUMN: UNCRIPPED WIDESCREEN ARTWORK (~60% width / 7 Cols)
+         ============================================== -->
+<section class="col-span-7 flex flex-col bg-surface rounded-2xl border border-outline-variant p-6 min-h-0 justify-between">
+<!-- Top Card Framing Header -->
+<div class="flex items-center justify-between pb-3">
+<div class="flex items-center gap-3">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-surface-container border border-outline-variant font-label text-xs font-bold text-sky-accent tracking-wider uppercase">
+<span class="material-symbols-outlined text-sm">image</span>
+            SCENE 02: THE GOLDEN SAVANNA
+          </span>
+<span class="text-xs text-on-surface-variant font-label">Visual Target: Animals on sunny adventure stage</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-[11px] font-label text-emerald-accent border border-emerald-accent/30 font-semibold">
+            Audio Sync: Active
+          </span>
+</div>
+</div>
+<!-- Uncropped Full Illustration Container -->
+<div class="flex-1 w-full bg-surface-container-lowest rounded-2xl border border-outline-variant/80 relative flex items-center justify-center overflow-hidden p-2 min-h-0">
+<!-- Visual Clue Pill Overlay (Top Right) -->
+<div class="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-surface-dim/80 backdrop-blur-md border border-tertiary/40 text-tertiary font-label text-xs font-semibold flex items-center gap-2 shadow-lg">
+<span class="material-symbols-outlined text-sm text-tertiary">lightbulb</span>
+          Look: Leo, Mimi &amp; Barnaby together
+        </div>
+<!-- Illustration (Uncropped object-contain) -->
+<img class="w-full h-full object-contain rounded-xl" data-alt="A vibrant, cheerful 3D animated children's storybook illustration showing Leo the lion, Mimi the monkey in a yellow dress, and Barnaby the bear dancing on a colorful wooden rainbow stage under sunny skies with green trees, flowers, and floating musical notes. The style is luminous, clean, and modern 3D cartoon with rich high-contrast colors suited for young learners." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPTQUhdZ5Yzy2_eVh32mvj3rHRmiea4zJ-9qdP_9zMdkeJBB31-8aNaR0oEad53rNOxGy-HgzM46mZ8t4A27plVRmBMF_NHqnN7T5xKGJU_aN7kzdsDWIy3IQOrGpJ8u-UzAE9GL-piqzdDHgAoALgbvYy1RyzR1U4nCiH7I-n0Gh7-MH6EdgPeNybMMacdS1Ugkap06L5rUWpZpcjlUMsi1yQkHo93eEp2-z4JvlwqYHyfIV6xPmPmntozqr1K0IYpZFdhnEXOt3p"/>
+</div>
+<!-- Bottom Card Metadata: Chapter Progress + Teacher Cue Bar -->
+<div class="pt-4 flex flex-col gap-3">
+<!-- Chapter Progress Strip with Chunky 28px Dots -->
+<div class="flex items-center justify-between px-4 py-2 rounded-xl bg-surface-container-low border border-outline-variant">
+<div class="flex items-center gap-3">
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Story Path:</span>
+<!-- 6 Chunky Progress Steps -->
+<div class="flex items-center gap-2">
+<!-- Dot 1: Completed -->
+<div class="w-7 h-7 rounded-full bg-emerald-accent/20 border-2 border-emerald-accent flex items-center justify-center text-emerald-accent" title="Step 1: Introduction (Done)">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<div class="w-4 h-0.5 bg-emerald-accent"></div>
+<!-- Dot 2: Completed -->
+<div class="w-7 h-7 rounded-full bg-emerald-accent/20 border-2 border-emerald-accent flex items-center justify-center text-emerald-accent" title="Step 2: Meeting Friends (Done)">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+<div class="w-4 h-0.5 bg-sky-accent"></div>
+<!-- Dot 3: Active Glow -->
+<div class="w-7 h-7 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center text-primary font-label font-bold text-xs shadow-[0_0_12px_rgba(255,45,120,0.8)]" title="Step 3: Savanna Dash (Active)">
+                3
+              </div>
+<div class="w-4 h-0.5 bg-outline-variant"></div>
+<!-- Dot 4: Upcoming -->
+<div class="w-7 h-7 rounded-full border-2 border-outline-variant text-on-surface-variant/40 flex items-center justify-center font-label text-xs">
+                4
+              </div>
+<div class="w-4 h-0.5 bg-outline-variant"></div>
+<!-- Dot 5: Upcoming -->
+<div class="w-7 h-7 rounded-full border-2 border-outline-variant text-on-surface-variant/40 flex items-center justify-center font-label text-xs">
+                5
+              </div>
+<div class="w-4 h-0.5 bg-outline-variant"></div>
+<!-- Dot 6: Upcoming -->
+<div class="w-7 h-7 rounded-full border-2 border-outline-variant text-on-surface-variant/40 flex items-center justify-center font-label text-xs">
+                6
+              </div>
+</div>
+</div>
+<!-- Projector Spec Tag -->
+<div class="font-label text-[11px] text-on-surface-variant/80 flex items-center gap-2">
+<span class="inline-block w-2 h-2 rounded-full bg-emerald-accent"></span>
+            16:9 1080p · Projector Calibrated (5-8m)
+          </div>
+</div>
+<!-- Teacher Prompt Cue Bar -->
+<div class="px-4 py-2.5 rounded-xl bg-surface-container border border-tertiary/30 flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="text-tertiary text-base font-bold">💡</span>
+<p class="font-body text-xs md:text-sm text-on-surface">
+<strong class="text-tertiary font-semibold">Teacher Cue:</strong> Ask students “Who says run fast?” then chant the phrase together!
+            </p>
+</div>
+<div class="hidden lg:flex items-center gap-2 font-label text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-sm text-sky-accent">volume_down</span>
+            Stereo Classroom Audio
+          </div>
+</div>
+</div>
+</section>
+</main>
+<!-- Keyboard Shortcuts & Quick Interactive Script for Classroom Teachers -->
+<script>
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const replayBtn = document.querySelector('button[title*="Replay"]');
+        if (replayBtn) {
+          replayBtn.classList.add('scale-95');
+          setTimeout(() => replayBtn.classList.remove('scale-95'), 150);
+        }
+      } else if (e.code === 'ArrowRight') {
+        const nextBtn = document.querySelector('button:has(.material-symbols-outlined:contains("arrow_forward"))') || document.querySelector('.btn-primary-glow');
+        if (nextBtn) {
+          nextBtn.classList.add('scale-95');
+          setTimeout(() => nextBtn.classList.remove('scale-95'), 150);
+        }
+      }
+    });
+  </script>
+</body></html>

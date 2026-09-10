@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Grammar Lab · Interactive Classroom Projector</title>
+<!-- Google Fonts: Sora, Inter, Space Grotesk -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-fixed-dim": "#ff80aa",
+            "secondary": "#00ffcc",
+            "tertiary-container": "#665200",
+            "secondary-fixed-dim": "#00e6b8",
+            "primary": "#ff2d78",
+            "on-surface": "#e8e0f0",
+            "surface-variant": "#1e1e30",
+            "error-container": "#3d0f0f",
+            "surface-container-low": "#111118",
+            "surface": "#0f0f1a",
+            "on-background": "#e8e0f0",
+            "on-surface-variant": "#a098b0",
+            "surface-bright": "#1a1a2e",
+            "on-tertiary-container": "#fff0c0",
+            "inverse-primary": "#8c0038",
+            "secondary-fixed": "#c0fff4",
+            "on-primary-fixed": "#3d0020",
+            "background": "#0a0a12",
+            "on-error-container": "#ffa0a0",
+            "tertiary-fixed": "#fff0c0",
+            "on-tertiary-fixed-variant": "#665200",
+            "inverse-on-surface": "#0a0a12",
+            "on-secondary-fixed": "#001a1a",
+            "error": "#ff4444",
+            "inverse-surface": "#e8e0f0",
+            "surface-container-lowest": "#0a0a12",
+            "surface-container": "#141422",
+            "primary-fixed": "#ffe0ec",
+            "on-primary-container": "#ffe0ec",
+            "primary-container": "#b3004e",
+            "surface-container-highest": "#28283e",
+            "on-error": "#1a0000",
+            "outline-variant": "#302840",
+            "secondary-container": "#004d3d",
+            "tertiary": "#ffe04a",
+            "surface-dim": "#0f0f1a",
+            "tertiary-fixed-dim": "#ffe04a",
+            "on-secondary-fixed-variant": "#004d4d",
+            "surface-container-high": "#1e1e30",
+            "on-secondary-container": "#c0fff4",
+            "on-tertiary": "#1a1000",
+            "on-tertiary-fixed": "#1a1000",
+            "outline": "#5a5068",
+            "on-primary": "#1a0010",
+            "on-secondary": "#001a1a",
+            "on-primary-fixed-variant": "#8c0038",
+            "surface-tint": "#ff2d78"
+          },
+          borderRadius: {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 28;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 28;
+    }
+    /* Grid background layer */
+    .cyber-grid {
+      background-size: 48px 48px;
+      background-image: 
+        linear-gradient(to right, rgba(48, 40, 64, 0.35) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(48, 40, 64, 0.35) 1px, transparent 1px);
+    }
+    /* Neon Glows */
+    .glow-pink-btn {
+      box-shadow: 0 0 20px rgba(255, 45, 120, 0.45), 0 4px 0 #b3004e;
+    }
+    .glow-pink-btn:hover {
+      box-shadow: 0 0 28px rgba(255, 45, 120, 0.7), 0 4px 0 #b3004e;
+    }
+    .glow-sky {
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+    }
+    .glow-green {
+      box-shadow: 0 0 16px rgba(0, 255, 204, 0.25);
+    }
+    .glow-violet {
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.25);
+    }
+    .slot-dash-green {
+      background-image: repeating-linear-gradient(0deg, #00ffcc, #00ffcc 12px, transparent 12px, transparent 24px), repeating-linear-gradient(90deg, #00ffcc, #00ffcc 12px, transparent 12px, transparent 24px), repeating-linear-gradient(180deg, #00ffcc, #00ffcc 12px, transparent 12px, transparent 24px), repeating-linear-gradient(270deg, #00ffcc, #00ffcc 12px, transparent 12px, transparent 24px);
+      background-size: 2px 100%, 100% 2px, 2px 100%, 100% 2px;
+      background-position: 0 0, 0 0, 100% 0, 0 100%;
+      background-repeat: no-repeat;
+    }
+  </style>
+</head>
+<body class="bg-[#070C18] text-on-surface font-body select-none overflow-hidden antialiased">
+<!-- 16:9 Fixed Screen Shell for 1080p Classroom Projection -->
+<div class="relative w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto flex flex-col justify-between p-6 cyber-grid border border-outline-variant/40 overflow-hidden">
+<!-- TOP SECTION: System Anchors & Mission Reference Plate -->
+<header class="w-full flex flex-col gap-3">
+<!-- Topmost HUD Bar -->
+<div class="flex justify-between items-center w-full px-8 py-4 max-w-full bg-surface-dim dark:bg-surface-dim border-b border-outline-variant dark:border-outline-variant rounded-2xl shadow-sm">
+<!-- Left: ~200px offset area for safe projector overscan + Phase Pill -->
+<div class="flex items-center gap-4">
+<div class="w-48 flex items-center">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant text-[11px] font-label font-semibold text-secondary tracking-widest uppercase">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+              PHASE: GRAMMAR LAB
+            </span>
+</div>
+<!-- Product / System Anchor from Shared Component JSON -->
+<div class="font-headline font-bold text-2xl text-primary dark:text-primary tracking-wide flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">science</span>
+            Word Search
+          </div>
+<!-- Round & Turn Badges -->
+<div class="flex items-center gap-2 pl-4 border-l border-outline-variant">
+<span class="px-3 py-1 bg-surface-container-highest/60 border border-outline-variant rounded-lg font-label text-xs font-semibold text-tertiary tracking-wider uppercase">
+              Round 1 · Starter
+            </span>
+<div class="flex items-center gap-2 px-3 py-1 bg-[#1A1A36] border border-violet-500/40 rounded-lg">
+<span class="w-2 h-2 rounded-full bg-violet-400"></span>
+<span class="font-label text-xs font-bold text-violet-200 tracking-wider uppercase">ALICE'S TURN</span>
+</div>
+</div>
+</div>
+<!-- Right: Actions specified in Shared Components JSON -->
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95" title="Volume">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95" title="Settings">
+<span class="material-symbols-outlined text-xl">settings</span>
+</button>
+<button class="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-200 active:scale-95" title="Projector Fullscreen">
+<span class="material-symbols-outlined text-xl">fullscreen</span>
+</button>
+</div>
+</div>
+<!-- Reference Plate & Transformation Mission -->
+<div class="bg-surface-container border border-outline-variant/60 rounded-2xl p-5 flex items-center justify-between gap-6 shadow-lg relative overflow-hidden">
+<!-- Subtle Neon Glow bar on left edge -->
+<div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#38BDF8] via-secondary to-[#A855F7]"></div>
+<!-- Clue Thumbnail & Listen Button -->
+<div class="flex items-center gap-4 pl-3">
+<div class="relative w-24 h-20 rounded-xl overflow-hidden border border-outline-variant bg-surface-container-highest shrink-0 shadow-inner">
+<img class="w-full h-full object-cover" data-alt="A vibrant digital illustration of a playful friendly monkey sitting on a jungle vine holding a bright yellow ripe banana, bathed in colorful futuristic bioluminescent rainforest light with subtle cyan and magenta neon highlights, designed specifically for a high-contrast educational classroom display." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfp2k-ATInEIxjzi92iu-ey2seXw_S1EspB5u53bLTJUKUiqagJv0jTZwQS0Dfcecq4ohPmms3hhUgTYpjuKyXzdkeujAAaPlyJLGCpY2Ka0tZJOwAnbfujJkywT7KiYCR76je8txHdQtdvEzgVBls09kQLU8ShnAXdOOpCIrkM4mBUvNZjleHpE6bqH4lLD1Yq0xeEAqIG618bUlFl-SFA2EJVeOjZawQZm5DU9VP7GXBDcuNZ1a95SRPkFpMM7ULDK6t6l_QZk8J"/>
+<div class="absolute bottom-1 right-1 bg-surface-container-lowest/80 px-1.5 py-0.5 rounded text-[10px] font-label text-secondary">
+              CLUE
+            </div>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-label uppercase tracking-widest text-[#38BDF8] font-bold">TASK OBJECTIVE</span>
+<span class="text-xs font-label text-on-surface-variant/80">· Past Simple Conversion</span>
+</div>
+<h2 class="font-headline font-extrabold text-2xl text-on-surface tracking-tight leading-tight">
+              Build the past tense sentence:
+            </h2>
+</div>
+</div>
+<!-- Inset Original Sentence Card -->
+<div class="flex-1 max-w-2xl bg-surface-container-low border border-outline-variant/70 rounded-xl p-3.5 px-6 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="text-[11px] font-label uppercase text-on-surface-variant tracking-wider font-semibold">Base Sentence (Present Tense)</span>
+<p class="font-headline font-bold text-xl text-on-surface/90 italic tracking-wide">
+              "The friendly monkey <span class="text-secondary underline decoration-2 underline-offset-4">eats</span> a yellow banana."
+            </p>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-container-high border border-outline hover:border-secondary text-secondary font-label text-xs font-bold tracking-wider transition-all duration-150 active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-lg">volume_up</span>
+            LISTEN CLUE
+          </button>
+</div>
+<!-- Pattern Formula Pill -->
+<div class="flex items-center gap-2 bg-[#0B132B] border border-outline-variant px-4 py-3 rounded-xl">
+<span class="font-label text-xs uppercase font-bold text-[#38BDF8]">Subject</span>
+<span class="text-outline text-xs">+</span>
+<span class="font-label text-xs uppercase font-bold text-secondary">Verb (Past)</span>
+<span class="text-outline text-xs">+</span>
+<span class="font-label text-xs uppercase font-bold text-[#A855F7]">Object</span>
+</div>
+</div>
+</header>
+<!-- MIDDLE SECTION: Interactive Sentence Runway (Target Drop Slots) -->
+<main class="w-full flex-1 flex flex-col justify-center my-3 px-4">
+<div class="w-full bg-surface-container/80 border border-outline-variant rounded-3xl p-8 backdrop-blur-sm relative">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#38BDF8]">view_column</span>
+<span class="font-label font-bold text-xs uppercase tracking-widest text-on-surface-variant">Sentence Assembly Runway</span>
+</div>
+<span class="font-label text-xs text-on-surface-variant">Drag or tap word blocks into the numbered positions</span>
+</div>
+<!-- Grid Runway Slots -->
+<div class="grid grid-cols-12 gap-6 items-stretch min-h-[170px]">
+<!-- SLOT 1: SUBJECT (FILLED & LOCKED) -->
+<div class="col-span-4 flex flex-col gap-2.5">
+<!-- Syntax Tag -->
+<div class="flex items-center justify-between px-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#38BDF8]/15 border border-[#38BDF8]/50 text-[#38BDF8] font-label font-bold text-xs uppercase tracking-wider glow-sky">
+<span class="w-1.5 h-1.5 rounded-full bg-[#38BDF8]"></span>
+                1. SUBJECT
+              </span>
+<span class="flex items-center gap-1 font-label text-[11px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined fill-icon text-sm">lock</span>
+                SNAPPED
+              </span>
+</div>
+<!-- Filled Physical Block Slot -->
+<div class="flex-1 bg-surface-container-high border-2 border-amber-400/80 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.2)] relative group">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center font-label font-bold text-sm">
+                  ✓
+                </div>
+<div class="flex flex-col">
+<span class="text-[10px] font-label font-bold uppercase tracking-wider text-[#38BDF8]">Actor / Noun Phrase</span>
+<span class="font-headline font-extrabold text-2xl text-amber-200 tracking-wide">The monkey</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-highest text-on-surface-variant hover:text-white flex items-center justify-center transition-colors" title="Change word">
+<span class="material-symbols-outlined text-base">cached</span>
+</button>
+</div>
+</div>
+<!-- SLOT 2: VERB (ACTIVE DROP TARGET AWAITING USER) -->
+<div class="col-span-3 flex flex-col gap-2.5">
+<!-- Syntax Tag -->
+<div class="flex items-center justify-between px-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/15 border border-secondary/60 text-secondary font-label font-bold text-xs uppercase tracking-wider glow-green">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>
+                2. VERB (PAST)
+              </span>
+<span class="font-label text-[11px] font-semibold text-secondary animate-pulse">
+                ACTIVE TARGET
+              </span>
+</div>
+<!-- Awaiting Drop Slot -->
+<div class="flex-1 bg-surface-container-low/60 rounded-2xl p-4 flex flex-col items-center justify-center border-2 border-dashed border-secondary/70 hover:border-secondary bg-secondary/5 transition-all duration-200 cursor-pointer group">
+<div class="w-10 h-10 rounded-full bg-secondary/10 border border-secondary/40 flex items-center justify-center text-secondary mb-2 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-2xl">add</span>
+</div>
+<span class="font-headline font-bold text-lg text-secondary tracking-wide">
+                [ + DROP VERB HERE ]
+              </span>
+<span class="font-label text-[11px] text-on-surface-variant mt-0.5">Which word shows past action?</span>
+</div>
+</div>
+<!-- SLOT 3: OBJECT (PENDING) -->
+<div class="col-span-4 flex flex-col gap-2.5">
+<!-- Syntax Tag -->
+<div class="flex items-center justify-between px-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#A855F7]/15 border border-[#A855F7]/50 text-[#A855F7] font-label font-bold text-xs uppercase tracking-wider glow-violet">
+<span class="w-1.5 h-1.5 rounded-full bg-[#A855F7]"></span>
+                3. OBJECT
+              </span>
+<span class="font-label text-[11px] text-on-surface-variant">Step 3</span>
+</div>
+<!-- Empty Dashed Target -->
+<div class="flex-1 bg-surface-container-low/40 rounded-2xl p-4 flex flex-col items-center justify-center border-2 border-dashed border-outline-variant hover:border-[#A855F7]/60 transition-all cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface-variant mb-2">
+<span class="material-symbols-outlined text-xl">radio_button_unchecked</span>
+</div>
+<span class="font-headline font-bold text-lg text-on-surface-variant tracking-wide">
+                [ 3 · OBJECT SLOT ]
+              </span>
+<span class="font-label text-[11px] text-on-surface-variant/70 mt-0.5">What did the monkey eat?</span>
+</div>
+</div>
+<!-- PUNCTUATION ENDING SLOT -->
+<div class="col-span-1 flex flex-col gap-2.5 items-center justify-end pb-2">
+<span class="font-label text-[10px] uppercase font-bold text-on-surface-variant">End</span>
+<div class="w-16 h-16 rounded-2xl bg-surface-container border border-outline-variant flex items-center justify-center font-headline font-black text-3xl text-secondary shadow-inner">
+              .
+            </div>
+</div>
+</div>
+</div>
+</main>
+<!-- BOTTOM SECTION: Word-Bank Tray + HUD Controls -->
+<footer class="w-full flex flex-col gap-3">
+<!-- Tactile Word Bank Tray -->
+<div class="bg-surface-container-low border border-outline-variant/80 rounded-2xl p-5 shadow-2xl relative">
+<div class="flex items-center justify-between mb-3 px-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-lg">apps</span>
+<span class="font-label font-bold text-xs uppercase tracking-widest text-on-surface-variant">Word Bank Tiles</span>
+<span class="text-[11px] font-label text-on-surface-variant/70">(Tap to place into active slot)</span>
+</div>
+<span class="text-xs font-label text-tertiary font-medium">⚡ 2 Distractor Words Present</span>
+</div>
+<!-- Draggable / Tappable 3D Word Blocks -->
+<div class="grid grid-cols-6 gap-4">
+<!-- Block 1: "ate" (CORRECT VERB PAST) -->
+<button class="group bg-[#111C3D] hover:bg-[#16244f] border-2 border-secondary rounded-xl p-3.5 flex flex-col items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.6)] transition-all cursor-pointer relative overflow-hidden">
+<div class="absolute top-1.5 left-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label text-[9px] font-bold text-secondary tracking-wider uppercase">VERB</span>
+</div>
+<span class="font-headline font-extrabold text-2xl text-white group-hover:text-secondary transition-colors mt-2 tracking-wide">
+              ate
+            </span>
+<span class="font-label text-[10px] text-on-surface-variant mt-0.5">past tense</span>
+</button>
+<!-- Block 2: "a yellow banana" (CORRECT OBJECT) -->
+<button class="group bg-[#111C3D] hover:bg-[#16244f] border border-[#A855F7]/60 rounded-xl p-3.5 flex flex-col items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.6)] transition-all cursor-pointer relative">
+<div class="absolute top-1.5 left-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#A855F7]"></span>
+<span class="font-label text-[9px] font-bold text-[#A855F7] tracking-wider uppercase">OBJECT</span>
+</div>
+<span class="font-headline font-extrabold text-xl text-white group-hover:text-purple-300 transition-colors mt-2 tracking-wide">
+              a yellow banana
+            </span>
+<span class="font-label text-[10px] text-on-surface-variant mt-0.5">noun phrase</span>
+</button>
+<!-- Block 3: "climbed" (DISTRACTOR VERB) -->
+<button class="group bg-[#111C3D] hover:bg-[#16244f] border border-outline-variant rounded-xl p-3.5 flex flex-col items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.6)] transition-all cursor-pointer relative">
+<div class="absolute top-1.5 left-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label text-[9px] font-bold text-on-surface-variant tracking-wider uppercase">VERB</span>
+</div>
+<span class="font-headline font-extrabold text-2xl text-on-surface-variant group-hover:text-white transition-colors mt-2 tracking-wide">
+              climbed
+            </span>
+<span class="font-label text-[10px] text-on-surface-variant/70 mt-0.5">past tense</span>
+</button>
+<!-- Block 4: "the tall tree" (DISTRACTOR OBJECT) -->
+<button class="group bg-[#111C3D] hover:bg-[#16244f] border border-outline-variant rounded-xl p-3.5 flex flex-col items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.6)] transition-all cursor-pointer relative">
+<div class="absolute top-1.5 left-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label text-[9px] font-bold text-on-surface-variant tracking-wider uppercase">OBJECT</span>
+</div>
+<span class="font-headline font-extrabold text-xl text-on-surface-variant group-hover:text-white transition-colors mt-2 tracking-wide">
+              the tall tree
+            </span>
+<span class="font-label text-[10px] text-on-surface-variant/70 mt-0.5">noun phrase</span>
+</button>
+<!-- Block 5: "eats" (DISTRACTOR PRESENT VERB) -->
+<button class="group bg-[#111C3D] hover:bg-[#16244f] border border-outline-variant rounded-xl p-3.5 flex flex-col items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.6)] transition-all cursor-pointer relative opacity-80 hover:opacity-100">
+<div class="absolute top-1.5 left-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label text-[9px] font-bold text-on-surface-variant tracking-wider uppercase">VERB</span>
+</div>
+<span class="font-headline font-extrabold text-2xl text-on-surface-variant group-hover:text-white transition-colors mt-2 tracking-wide">
+              eats
+            </span>
+<span class="font-label text-[10px] text-on-surface-variant/70 mt-0.5">present tense</span>
+</button>
+<!-- Block 6: "sweet mangoes" (DISTRACTOR NOUN) -->
+<button class="group bg-[#111C3D] hover:bg-[#16244f] border border-outline-variant rounded-xl p-3.5 flex flex-col items-center justify-center shadow-[0_6px_0_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_rgba(0,0,0,0.6)] transition-all cursor-pointer relative opacity-80 hover:opacity-100">
+<div class="absolute top-1.5 left-2 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-label text-[9px] font-bold text-on-surface-variant tracking-wider uppercase">OBJECT</span>
+</div>
+<span class="font-headline font-extrabold text-xl text-on-surface-variant group-hover:text-white transition-colors mt-2 tracking-wide">
+              sweet mangoes
+            </span>
+<span class="font-label text-[10px] text-on-surface-variant/70 mt-0.5">noun phrase</span>
+</button>
+</div>
+</div>
+<!-- Classroom HUD Bottom Bar -->
+<div class="flex items-center justify-between px-2 pt-1">
+<!-- Classroom Score & Gamification HUD -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-3 bg-surface-container border border-outline-variant px-4 py-2.5 rounded-xl">
+<span class="material-symbols-outlined fill-icon text-tertiary text-2xl">stars</span>
+<div>
+<div class="font-label text-[10px] uppercase font-bold text-on-surface-variant">CLASS SCORE</div>
+<div class="font-headline font-extrabold text-xl text-on-surface tracking-wider leading-none">
+                520 <span class="text-xs text-secondary font-label font-bold">+50 NEXT</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-orange-950/40 border border-orange-500/40">
+<span class="text-lg">🔥</span>
+<span class="font-label font-bold text-xs uppercase tracking-wider text-orange-300">3 STREAK!</span>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface-container-high border border-outline-variant text-on-surface-variant hover:text-on-surface text-xs font-label font-semibold">
+<span class="material-symbols-outlined text-base">restart_alt</span>
+            Reset Board
+          </button>
+</div>
+<!-- Teacher Clue Prompt (Center-Right) -->
+<div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0B132B] border border-cyan-500/20 max-w-lg">
+<span class="text-secondary text-base">💡</span>
+<p class="text-xs font-body text-cyan-100/90 leading-snug">
+<strong class="font-semibold text-secondary font-label uppercase text-[11px]">Teacher Tip:</strong> 
+            Ask <span class="italic">"Did the monkey eat before, or is it eating now?"</span> to trigger the past form <strong class="text-white">ate</strong>.
+          </p>
+</div>
+<!-- Strict Hot Pink Action Button (Bottom-Right) -->
+<button class="glow-pink-btn px-10 py-3.5 rounded-xl bg-primary text-on-primary-container font-headline font-black text-xl tracking-wider uppercase flex items-center gap-3 transition-all duration-150 active:scale-95 active:translate-y-1">
+          Check Sentence
+          <span class="material-symbols-outlined font-black text-2xl">arrow_forward</span>
+</button>
+</div>
+</footer>
+</div>
+<!-- Inline Vanilla Micro-Interaction for Word Placement Click Simulation -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const activeSlot = document.querySelector('.slot-dash-green') || document.querySelector('.border-dashed.border-secondary\\/70');
+      const verbBlock = document.querySelectorAll('button.group')[0];
+
+      if (verbBlock && activeSlot) {
+        verbBlock.addEventListener('click', () => {
+          activeSlot.classList.remove('border-dashed', 'border-secondary/70', 'bg-secondary/5');
+          activeSlot.classList.add('bg-surface-container-high', 'border-2', 'border-secondary', 'glow-green');
+          activeSlot.innerHTML = `
+            <div class="flex items-center justify-between w-full px-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-secondary/20 text-secondary flex items-center justify-center font-label font-bold text-sm">✓</div>
+                <div class="flex flex-col text-left">
+                  <span class="text-[10px] font-label font-bold uppercase tracking-wider text-secondary">Past Verb</span>
+                  <span class="font-headline font-extrabold text-2xl text-secondary tracking-wide">ate</span>
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-on-surface-variant hover:text-white cursor-pointer text-lg">close</span>
+            </div>
+          `;
+          verbBlock.classList.add('opacity-30', 'pointer-events-none');
+        });
+      }
+    });
+  </script>
+</body></html>

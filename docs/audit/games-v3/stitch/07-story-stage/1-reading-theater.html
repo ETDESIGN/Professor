@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom ESL Story Stage - Reading Theater State</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@500;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,600,0,0" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            night: '#070C18',
+            surface: '#0B132B',
+            'surface-card': '#111C3D',
+            'surface-elevated': '#16234D',
+            pink: {
+              accent: '#FF2E79',
+              glow: 'rgba(255, 46, 121, 0.35)',
+            },
+            sky: {
+              accent: '#38BDF8',
+              glow: 'rgba(56, 189, 248, 0.3)',
+            },
+            emerald: {
+              accent: '#10B981',
+              glow: 'rgba(16, 185, 129, 0.35)',
+            }
+          },
+          fontFamily: {
+            sora: ['Sora', 'sans-serif'],
+            display: ['Fredoka', 'Sora', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070C18;
+      color: #F8FAFC;
+      font-family: 'Sora', sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .neon-border-pink {
+      box-shadow: 0 0 24px rgba(255, 46, 121, 0.22), inset 0 0 12px rgba(255, 46, 121, 0.1);
+    }
+    .neon-border-sky {
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
+    }
+    .grid-pattern {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    }
+    .dialogue-glow {
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.12);
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between p-6 bg-night grid-pattern relative box-border">
+
+  <!-- TOP BAR (Fixed 16:9 Projector Safe Area) -->
+  <header class="w-full flex items-center justify-between h-14 z-20 shrink-0">
+    
+    <!-- Left Section: 200px Clear Safe Area For Phase Pill + Title Cluster -->
+    <div class="flex items-center gap-4">
+      <!-- Top-left Phase Pill (200px width anchor) -->
+      <div class="w-[200px] flex items-center gap-2.5 px-4 py-2 bg-surface border border-sky-accent/40 rounded-full shadow-[0_0_16px_rgba(56,189,248,0.18)]">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-accent animate-pulse"></span>
+        <span class="font-mono text-xs font-bold tracking-wider text-sky-accent uppercase">PHASE: STORY READ</span>
+      </div>
+
+      <!-- App / Activity Title -->
+      <div class="flex items-center gap-3 pl-2">
+        <div class="w-9 h-9 rounded-xl bg-pink-accent flex items-center justify-center font-display font-bold text-white text-xl shadow-[0_0_16px_rgba(255,46,121,0.5)]">
+          S
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-display text-2xl font-bold tracking-wide text-white">Story Stage</h1>
+            <span class="px-2 py-0.5 rounded bg-surface-elevated border border-white/10 font-mono text-[11px] font-bold text-slate-300">READING THEATER</span>
+          </div>
+          <p class="font-mono text-[10px] text-slate-400 tracking-wider">CHAPTER 2 · THE BRAVE SAVANNA ADVENTURE</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center/Right Status Chips -->
+    <div class="flex items-center gap-3">
+      <!-- Active Turn / Mode -->
+      <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface border border-white/10">
+        <span class="material-symbols-outlined text-emerald-accent text-base">record_voice_over</span>
+        <span class="font-mono text-xs text-slate-300">Chorus Mode: <strong class="text-white font-bold">Repeat After Leo</strong></span>
+      </div>
+
+      <!-- Teacher Console Live Sync -->
+      <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface border border-emerald-accent/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+        <span class="w-2 h-2 rounded-full bg-emerald-accent animate-ping"></span>
+        <span class="font-mono text-xs font-bold text-emerald-accent">TEACHER CONSOLE SYNCED</span>
+      </div>
+
+      <!-- System Controls -->
+      <div class="flex items-center gap-1.5 ml-2">
+        <button class="w-9 h-9 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:border-white/20 transition-all">
+          <span class="material-symbols-outlined text-lg">volume_up</span>
+        </button>
+        <button class="w-9 h-9 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:border-white/20 transition-all">
+          <span class="material-symbols-outlined text-lg">settings</span>
+        </button>
+        <button class="w-9 h-9 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:border-white/20 transition-all">
+          <span class="material-symbols-outlined text-lg">fullscreen</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN STAGE: TWO-COLUMN 16:9 VIEWPORT (LEFT 38% / RIGHT 62%) -->
+  <main class="w-full flex-1 flex gap-6 my-4 overflow-hidden items-stretch">
+
+    <!-- LEFT COLUMN (~38%): HIGH-CONTRAST READING THEATER -->
+    <section class="w-[38%] flex flex-col justify-between bg-surface border border-white/10 rounded-2xl p-7 relative shadow-2xl overflow-hidden">
+      
+      <!-- Top Section: Speaker Identity & Role -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-5">
+        <div class="flex items-center gap-4">
+          <!-- Active Speaker's Round Avatar with Signature Color Halo -->
+          <div class="relative">
+            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-amber-400 via-orange-500 to-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.4)]">
+              <div class="w-full h-full rounded-full bg-surface-card flex items-center justify-center overflow-hidden border-2 border-night">
+                <span class="material-symbols-outlined text-amber-400 text-3xl">smart_toy</span>
+              </div>
+            </div>
+            <!-- Speaking Pulse Pill -->
+            <span class="absolute -bottom-1 -right-1 flex h-4 w-4">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-accent opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-accent border-2 border-night"></span>
+            </span>
+          </div>
+
+          <div>
+            <span class="font-mono text-xs uppercase tracking-widest text-slate-400 font-semibold block">SPEAKING NOW</span>
+            <div class="flex items-center gap-2">
+              <h2 class="font-display text-3xl font-bold text-amber-400 tracking-wide">LEO THE LION</h2>
+              <span class="px-2 py-0.5 rounded bg-amber-400/10 text-amber-300 font-mono text-[10px] font-bold border border-amber-400/30">MAIN HERO</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dialogue Tag -->
+        <div class="px-3 py-1 bg-surface-card border border-white/10 rounded-lg">
+          <span class="font-mono text-xs text-slate-300 font-bold">LINE 03 / 06</span>
+        </div>
+      </div>
+
+      <!-- Center Narrative Area: Very Large Type Dialogue (2 lines max, 8m-legible) -->
+      <div class="flex-1 flex flex-col justify-center py-6">
+        <div class="mb-3 flex items-center gap-2">
+          <span class="material-symbols-outlined text-sky-accent text-xl">format_quote</span>
+          <span class="font-mono text-xs font-bold text-sky-accent uppercase tracking-wider">Target Speech Chant</span>
+        </div>
+
+        <!-- The Dialogue Line in Extra Large, Chunky Rounded Type -->
+        <blockquote class="font-display text-[44px] leading-[1.18] font-bold text-white dialogue-glow tracking-tight">
+          “Look ahead, friends! We can run <span class="text-emerald-accent underline decoration-emerald-accent/50 underline-offset-8">fast together</span> across the field!”
+        </blockquote>
+
+        <!-- Supportive Phonics / Expression Guide -->
+        <div class="mt-5 flex items-center gap-3">
+          <div class="px-2.5 py-1 bg-surface-card rounded-md border border-white/10">
+            <span class="font-mono text-xs text-slate-400 font-semibold">Emphasis: <strong class="text-white">“RUN FAST”</strong></span>
+          </div>
+          <div class="px-2.5 py-1 bg-surface-card rounded-md border border-white/10">
+            <span class="font-mono text-xs text-slate-400 font-semibold">Mood: <strong class="text-amber-300">Excited & Brave</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Controls: Sky Audio Replay Pill + Chunk Book-Page Progress Strip (28px dots) -->
+      <div class="border-t border-white/10 pt-5 space-y-5">
+        
+        <!-- Sky Audio Pill to Replay Line -->
+        <div class="flex items-center justify-between gap-4">
+          <button class="flex-1 flex items-center justify-center gap-3 py-3.5 px-6 rounded-xl bg-sky-accent/15 border-2 border-sky-accent text-sky-accent font-display text-lg font-bold hover:bg-sky-accent hover:text-night transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]">
+            <span class="material-symbols-outlined text-2xl animate-pulse">volume_up</span>
+            <span>REPLAY AUDIO LINE</span>
+            <span class="font-mono text-xs px-2 py-0.5 rounded bg-sky-accent/20 border border-sky-accent/40 font-bold ml-1">SPACEBAR</span>
+          </button>
+
+          <!-- Secondary Pronunciation Drill Button -->
+          <button class="w-14 h-14 rounded-xl bg-surface-card border border-white/10 flex items-center justify-center text-slate-300 hover:text-white hover:border-white/20 transition-all">
+            <span class="material-symbols-outlined text-2xl">speed</span>
+          </button>
+        </div>
+
+        <!-- Book-Page Progress Strip with Chunky 28px Numbered Dots -->
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="font-mono text-xs text-slate-400 font-bold uppercase tracking-wider">STORY PROGRESS (PAGE 3 OF 6)</span>
+            <span class="font-mono text-xs text-emerald-accent font-bold">50% COMPLETED</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 p-3 bg-surface-card rounded-xl border border-white/5">
+            <!-- Dot 1: Completed -->
+            <div class="flex items-center justify-center w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-emerald-accent text-night font-mono text-xs font-black shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+              ✓
+            </div>
+            <div class="flex-1 h-1 bg-emerald-accent/50 rounded-full"></div>
+
+            <!-- Dot 2: Completed -->
+            <div class="flex items-center justify-center w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-emerald-accent text-night font-mono text-xs font-black shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+              ✓
+            </div>
+            <div class="flex-1 h-1 bg-emerald-accent/50 rounded-full"></div>
+
+            <!-- Dot 3: Active Line (Luminous Pink Highlight) -->
+            <div class="flex items-center justify-center w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-pink-accent text-white font-mono text-xs font-black shadow-[0_0_16px_rgba(255,46,121,0.6)] ring-4 ring-pink-accent/25 animate-pulse">
+              3
+            </div>
+            <div class="flex-1 h-1 bg-white/10 rounded-full"></div>
+
+            <!-- Dot 4: Upcoming -->
+            <div class="flex items-center justify-center w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-surface border border-white/20 text-slate-400 font-mono text-xs font-bold">
+              4
+            </div>
+            <div class="flex-1 h-1 bg-white/10 rounded-full"></div>
+
+            <!-- Dot 5: Upcoming -->
+            <div class="flex items-center justify-center w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-surface border border-white/20 text-slate-400 font-mono text-xs font-bold">
+              5
+            </div>
+            <div class="flex-1 h-1 bg-white/10 rounded-full"></div>
+
+            <!-- Dot 6: Upcoming -->
+            <div class="flex items-center justify-center w-7 h-7 min-w-[28px] min-h-[28px] rounded-full bg-surface border border-white/20 text-slate-400 font-mono text-xs font-bold">
+              6
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN (~62%): STORY ART STAGE (UNCROPPED OBJECT-CONTAIN) -->
+    <section class="w-[62%] flex flex-col justify-between bg-surface border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+      
+      <!-- Top Stage HUD Strip -->
+      <div class="w-full flex items-center justify-between mb-4 px-2">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 px-3 py-1 bg-surface-card rounded-lg border border-white/10">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span class="font-mono text-xs text-slate-300 font-bold">SCENE 02: THE GOLDEN SAVANNA</span>
+          </div>
+          <span class="font-mono text-xs text-slate-400">Visual Clue #03</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-xs text-emerald-accent bg-emerald-accent/10 border border-emerald-accent/20 px-3 py-1 rounded-lg font-bold">
+            16:9 NATIVE VIEW
+          </span>
+          <span class="font-mono text-xs text-slate-400 bg-surface-card px-2.5 py-1 rounded-lg border border-white/10">
+            UNCROPPED
+          </span>
+        </div>
+      </div>
+
+      <!-- Center Art Container: Clean Rounded Card with Full-Bleed Object-Contain (Never Cropped) -->
+      <div class="flex-1 w-full bg-surface-card border-2 border-white/10 rounded-xl flex items-center justify-center p-3 relative overflow-hidden shadow-inner group">
+        
+        <!-- Subtle Ambient Backlight Matching Savanna Artwork -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-sky-500/10 pointer-events-none"></div>
+
+        <!-- The Story Illustration: Full-bleed object-contain, crisp and never cropped -->
+        <img 
+          src="https://lh3.googleusercontent.com/aida/AEtjO1U1yJv5x30s1lDQN8iu8mB6LbkELiFuVFf4Kk0bnlAFvt2rbPk0yj_dKfSQSXhOP0gpk0DIOGBhFfzaU-Sk-BO2D2YdrYP3xyEjY8z0BThtCCuaufJaiMbLWmzQNynBurLVsdkg5J9GVDewvNdG9rP_kU7az2sPpBrfnMFgOW9X3RsiognP0q3Qe8tR6UnvTR8zeTiTn1Fc3DnnGT5bjh48qYGS7Et_3YWlW2td9myOI-ZW9wdoDYtaxtaK" 
+          alt="Pride of majestic lions running and prowling across the African savanna at golden hour" 
+          class="w-full h-full object-contain rounded-lg drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)] transition-transform duration-300 group-hover:scale-[1.01]"
+        />
+
+        <!-- Non-intrusive Stage Watermark / Distance Anchor -->
+        <div class="absolute bottom-6 right-6 px-3 py-1.5 bg-night/85 backdrop-blur border border-white/15 rounded-lg flex items-center gap-2 shadow-lg pointer-events-none">
+          <span class="material-symbols-outlined text-amber-400 text-sm">visibility</span>
+          <span class="font-mono text-[11px] font-bold text-slate-200 uppercase tracking-wider">Savanna Pride Expedition</span>
+        </div>
+      </div>
+
+      <!-- Interactive Scene Guidance / Classroom Prompt -->
+      <div class="mt-4 flex items-center justify-between px-2 pt-1">
+        <div class="flex items-center gap-2 text-slate-300">
+          <span class="material-symbols-outlined text-amber-400 text-lg">lightbulb</span>
+          <span class="font-mono text-xs text-slate-300"><strong class="text-white">Teacher Cue:</strong> Ask students: “Who is running fast with Leo in the golden grass?”</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-xs text-slate-400">Class Response Meter:</span>
+          <div class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-accent"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-accent"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-accent"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- BOTTOM ACTION & NAVIGATION BAR -->
+  <footer class="w-full flex items-center justify-between h-14 z-20 shrink-0 border-t border-white/10 pt-3">
+    
+    <!-- Left Projection & Audio Status -->
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2 text-slate-400 font-mono text-xs">
+        <span class="material-symbols-outlined text-slate-400 text-base">tv</span>
+        <span>16:9 Classroom Stage · 8m Distance Optimized</span>
+      </div>
+      <div class="h-3.5 w-[1px] bg-white/10"></div>
+      <div class="flex items-center gap-2 text-slate-400 font-mono text-xs">
+        <span class="material-symbols-outlined text-sky-accent text-base">graphic_eq</span>
+        <span>Studio Audio Track · 48kHz Stereo</span>
+      </div>
+    </div>
+
+    <!-- Center Shortcuts Guidance -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 px-3 py-1 bg-surface rounded-lg border border-white/10 text-slate-400 font-mono text-xs">
+        <kbd class="px-1.5 py-0.5 rounded bg-surface-card text-slate-200 border border-white/15 font-bold">←</kbd>
+        <span>Previous Line</span>
+      </div>
+      <div class="flex items-center gap-2 px-3 py-1 bg-surface rounded-lg border border-white/10 text-slate-400 font-mono text-xs">
+        <kbd class="px-1.5 py-0.5 rounded bg-surface-card text-slate-200 border border-white/15 font-bold">→</kbd>
+        <span>Next Line</span>
+      </div>
+    </div>
+
+    <!-- Right Primary Action Cluster (Single Hot-Pink Primary) -->
+    <div class="flex items-center gap-3">
+      <!-- Secondary Back Action -->
+      <button class="px-5 py-2.5 rounded-xl bg-surface border border-white/15 text-slate-300 font-display font-bold text-sm hover:text-white hover:border-white/30 transition-all">
+        Back to Line 2
+      </button>
+
+      <!-- Hot Pink Single Primary Action: Next Line -->
+      <button class="px-7 py-2.5 rounded-xl bg-pink-accent text-white font-display font-bold text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-2">
+        <span>Next Line</span>
+        <span class="material-symbols-outlined text-lg">arrow_forward</span>
+      </button>
+    </div>
+
+  </footer>
+
+</body>
+</html>

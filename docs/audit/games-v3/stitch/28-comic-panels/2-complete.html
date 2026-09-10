@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>Classroom ESL Comic Panels — Story Complete Reveal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,0,0" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            night: '#070C18',
+            surface: {
+              card: '#0B132B',
+              tile: '#111C3D',
+              border: '#1E293B',
+              active: '#1E2F5D'
+            },
+            accent: {
+              pink: '#FF2E79',
+              sky: '#38BDF8',
+              emerald: '#10B981',
+              amber: '#F59E0B'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['Sora', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          boxShadow: {
+            'glow-emerald': '0 0 24px -4px rgba(16, 185, 129, 0.45)',
+            'glow-pink': '0 0 28px -4px rgba(255, 46, 121, 0.55)',
+            'glow-sky': '0 0 20px -4px rgba(56, 189, 248, 0.4)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #070C18;
+      color: #F8FAFC;
+      user-select: none;
+      overflow: hidden;
+      width: 1920px;
+      height: 1080px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .grid-bg {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    }
+    .text-shadow-glow {
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+    .text-pink-glow {
+      text-shadow: 0 0 16px rgba(255, 46, 121, 0.5);
+    }
+  </style>
+</head>
+<body class="relative w-[1920px] h-[1080px] bg-night grid-bg flex flex-col justify-between p-7 antialiased">
+
+  <!-- TOP APP BAR / HEADER -->
+  <header class="w-full flex items-center justify-between h-14 relative z-20">
+    <!-- Top-Left Overscan Clearance (200px clear for classroom projector alignment) -->
+    <div class="flex items-center gap-4 min-w-[200px]">
+      <div class="flex items-center gap-2.5 px-4 py-2 rounded-full bg-surface-card border border-surface-border text-xs font-mono font-semibold tracking-wider text-accent-sky uppercase">
+        <span class="w-2.5 h-2.5 rounded-full bg-accent-emerald animate-pulse"></span>
+        <span>PHASE: STORY COMPLETE</span>
+      </div>
+    </div>
+
+    <!-- Center App Brand & Quest Context -->
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-accent-sky/10 border border-accent-sky/30 flex items-center justify-center text-accent-sky">
+        <span class="material-symbols-Rounded text-2xl">auto_stories</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="font-display font-extrabold text-xl tracking-tight text-white uppercase">REBUILD THE STORY</h1>
+          <span class="px-2.5 py-0.5 rounded-full bg-surface-tile border border-surface-border text-[11px] font-mono text-slate-400">LEO'S SAVANNA QUEST · CHAPTER 1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Right Controls & Meta -->
+    <div class="flex items-center gap-3">
+      <!-- Status Chip -->
+      <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-card border border-surface-border">
+        <span class="material-symbols-Rounded text-accent-emerald text-lg">check_circle</span>
+        <span class="text-xs font-mono font-bold text-accent-emerald tracking-wide">6 / 6 PANELS LOCKED</span>
+      </div>
+      <!-- Classroom Speaker Audio -->
+      <button class="w-10 h-10 rounded-xl bg-surface-card border border-surface-border hover:border-slate-600 flex items-center justify-center text-slate-300 transition-colors">
+        <span class="material-symbols-Rounded text-xl">volume_up</span>
+      </button>
+      <!-- Fullscreen indicator -->
+      <div class="w-10 h-10 rounded-xl bg-surface-card border border-surface-border flex items-center justify-center text-slate-400">
+        <span class="material-symbols-Rounded text-xl">fullscreen</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CELEBRATION HERO BANNER -->
+  <section class="w-full flex items-center justify-between px-8 py-4 rounded-2xl bg-gradient-to-r from-surface-card via-surface-tile to-surface-card border border-accent-emerald/40 shadow-glow-emerald relative overflow-hidden my-1">
+    <!-- Ambient glowing backdrop effect -->
+    <div class="absolute -left-20 -top-20 w-64 h-64 bg-accent-emerald/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -right-20 -bottom-20 w-64 h-64 bg-accent-pink/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Left: Star badge + Celebration Message -->
+    <div class="flex items-center gap-5 relative z-10">
+      <div class="w-14 h-14 rounded-2xl bg-accent-emerald/20 border-2 border-accent-emerald flex items-center justify-center text-accent-emerald shadow-lg">
+        <span class="material-symbols-Rounded text-3xl">military_tech</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="px-2.5 py-0.5 rounded-full bg-accent-emerald/20 text-accent-emerald border border-accent-emerald/40 font-mono text-xs font-bold uppercase tracking-wider">Story Solved!</span>
+          <span class="text-slate-400 text-xs font-mono">100% Sequence Accuracy</span>
+        </div>
+        <h2 class="font-display font-black text-3xl text-white tracking-tight mt-0.5">
+          Fantastic job, <span class="text-accent-emerald text-shadow-glow">Alice</span> & Table 2!
+        </h2>
+      </div>
+    </div>
+
+    <!-- Center: Stars rating / Trophy -->
+    <div class="flex items-center gap-2 relative z-10 px-6 py-2 rounded-xl bg-surface-card/70 border border-surface-border">
+      <span class="material-symbols-Rounded text-accent-amber text-3xl">star</span>
+      <span class="material-symbols-Rounded text-accent-amber text-3xl">star</span>
+      <span class="material-symbols-Rounded text-accent-amber text-3xl">star</span>
+      <span class="material-symbols-Rounded text-accent-amber text-3xl">star</span>
+      <span class="material-symbols-Rounded text-accent-amber text-3xl">star</span>
+    </div>
+
+    <!-- Right: Student points + Class score badge -->
+    <div class="flex items-center gap-4 relative z-10">
+      <div class="text-right">
+        <div class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Points Awarded</div>
+        <div class="font-display font-extrabold text-2xl text-accent-emerald">+120 PTS</div>
+      </div>
+      <div class="h-10 w-px bg-surface-border"></div>
+      <div class="flex items-center gap-3 px-4 py-2 rounded-xl bg-surface-tile border border-surface-border">
+        <div class="w-8 h-8 rounded-full bg-accent-sky/20 border border-accent-sky/50 flex items-center justify-center text-accent-sky font-bold font-mono text-xs">
+          A
+        </div>
+        <div class="text-left">
+          <div class="text-[11px] font-mono text-slate-400 leading-none">Class Total</div>
+          <div class="font-display font-bold text-base text-white leading-tight">640 PTS</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPLETE HORIZONTAL FILMSTRIP RUNWAY (6 CONNECTED PANELS) -->
+  <main class="w-full flex-1 flex flex-col justify-center my-1 relative">
+    <div class="w-full flex items-center justify-between gap-2.5 px-1 py-1">
+
+      <!-- PANEL 01 -->
+      <div class="flex-1 flex flex-col bg-surface-card rounded-2xl p-2 border-2 border-accent-emerald/60 shadow-lg relative group">
+        <!-- Top Panel Label & Lock -->
+        <div class="flex items-center justify-between px-2 py-1 mb-1.5">
+          <span class="font-mono font-bold text-xs text-accent-emerald flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-accent-emerald text-night flex items-center justify-center font-bold text-[11px]">1</span>
+            START
+          </span>
+          <span class="material-symbols-Rounded text-accent-emerald text-base">check_circle</span>
+        </div>
+        <!-- Panel Image (Landscape 3:2) -->
+        <div class="w-full aspect-[3/2] rounded-xl overflow-hidden relative border border-slate-700/60 bg-slate-900">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1WV09zwqybC3h0MGqSKDI60YGCoACWrS6C4yFbHX7z_lYzrRdYNV1xeSt_15SdGNBWfAS-Wdf7DdawcJNYpRAz1DmeqnkIxvWrkASb5SAIkrEypSynRBqGcb3rGriWtaMw24zFlxBTwWVn-OfC26qa4RCw9iiRGR0qsWBViSyX8UAQy7IHjdq0F7WQev3j2kxi5ac-jP-mUAwf1FqX2H-dWSPa9p5515lUQm3B6uhDX8jwqSAX3Zv4Wb9ta" alt="Comic Panel 1 - Let's explore the jungle!" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-4">
+            <p class="text-xs font-bold text-white text-center leading-tight">"Let's explore the jungle!"</p>
+          </div>
+        </div>
+        <!-- Tagline below image -->
+        <div class="mt-1.5 text-center">
+          <span class="text-[10px] font-mono uppercase tracking-wide text-slate-400">The Map Discovery</span>
+        </div>
+      </div>
+
+      <!-- CONNECTOR 1 -> 2 -->
+      <div class="flex flex-col items-center justify-center px-0.5">
+        <div class="w-7 h-7 rounded-full bg-accent-emerald/20 border-2 border-accent-emerald flex items-center justify-center text-accent-emerald shadow-glow-emerald">
+          <span class="material-symbols-Rounded text-base">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- PANEL 02 -->
+      <div class="flex-1 flex flex-col bg-surface-card rounded-2xl p-2 border-2 border-accent-emerald/60 shadow-lg relative group">
+        <div class="flex items-center justify-between px-2 py-1 mb-1.5">
+          <span class="font-mono font-bold text-xs text-accent-emerald flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-accent-emerald text-night flex items-center justify-center font-bold text-[11px]">2</span>
+            THE RIVER
+          </span>
+          <span class="material-symbols-Rounded text-accent-emerald text-base">check_circle</span>
+        </div>
+        <div class="w-full aspect-[3/2] rounded-xl overflow-hidden relative border border-slate-700/60 bg-slate-900">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1XyBAFPsTopODpGNXR-UGVNjc3YICU7ixwIb52zwoS6I2d-XHPI9-OCTPTTankjValzudVVcwb5EZJxi5faqkl6S9oCYLDwJJaUad-JqiQiCSlhcCJhG0UFr19NmtxaGYAJkTlkApD2Bse2QlYnMQtfkD37KtEelD0m6i7ppK45xNo6wFSl0CY8PFr953yMC1lxyhxvrIjBtQrfaJWMLIcSGnYgafGYnOegCwFm-QZKd-R8YiWb__PTtwD2" alt="Comic Panel 2 - The water is fast!" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-4">
+            <p class="text-xs font-bold text-white text-center leading-tight">"The water is fast!"</p>
+          </div>
+        </div>
+        <div class="mt-1.5 text-center">
+          <span class="text-[10px] font-mono uppercase tracking-wide text-slate-400">At The Riverbank</span>
+        </div>
+      </div>
+
+      <!-- CONNECTOR 2 -> 3 -->
+      <div class="flex flex-col items-center justify-center px-0.5">
+        <div class="w-7 h-7 rounded-full bg-accent-emerald/20 border-2 border-accent-emerald flex items-center justify-center text-accent-emerald shadow-glow-emerald">
+          <span class="material-symbols-Rounded text-base">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- PANEL 03 -->
+      <div class="flex-1 flex flex-col bg-surface-card rounded-2xl p-2 border-2 border-accent-emerald/60 shadow-lg relative group">
+        <div class="flex items-center justify-between px-2 py-1 mb-1.5">
+          <span class="font-mono font-bold text-xs text-accent-emerald flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-accent-emerald text-night flex items-center justify-center font-bold text-[11px]">3</span>
+            CROSSING
+          </span>
+          <span class="material-symbols-Rounded text-accent-emerald text-base">check_circle</span>
+        </div>
+        <div class="w-full aspect-[3/2] rounded-xl overflow-hidden relative border border-slate-700/60 bg-slate-900">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1UqJL5jGRrl2KJnj3G-Fchjf45erEdsVtm3lIqb1slyYnd7aXuJZRzOYUclgFISuCQXM_dqo6NOyL285mSF-DO96g-AJbHnOC3q9p7o78xHHCMSFHNus3lli3btLfG2NqVI8MMql15AHUq1wCfwAjwEsFoFOtcz9s1NzDbAaG1Mm2iBu6W7tmEd3Awz9YschTWGELAZPBgXXIKJ6dDVRAW0TuTAHDpSSM0AQlvVgD1azlda2Mpn4X5g9ck-" alt="Comic Panel 3 - One, two, three, jump!" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-4">
+            <p class="text-xs font-bold text-white text-center leading-tight">"One, two, three, jump!"</p>
+          </div>
+        </div>
+        <div class="mt-1.5 text-center">
+          <span class="text-[10px] font-mono uppercase tracking-wide text-slate-400">Stepping Stones</span>
+        </div>
+      </div>
+
+      <!-- CONNECTOR 3 -> 4 -->
+      <div class="flex flex-col items-center justify-center px-0.5">
+        <div class="w-7 h-7 rounded-full bg-accent-emerald/20 border-2 border-accent-emerald flex items-center justify-center text-accent-emerald shadow-glow-emerald">
+          <span class="material-symbols-Rounded text-base">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- PANEL 04 -->
+      <div class="flex-1 flex flex-col bg-surface-card rounded-2xl p-2 border-2 border-accent-emerald/60 shadow-lg relative group">
+        <div class="flex items-center justify-between px-2 py-1 mb-1.5">
+          <span class="font-mono font-bold text-xs text-accent-emerald flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-accent-emerald text-night flex items-center justify-center font-bold text-[11px]">4</span>
+            THE TREE
+          </span>
+          <span class="material-symbols-Rounded text-accent-emerald text-base">check_circle</span>
+        </div>
+        <div class="w-full aspect-[3/2] rounded-xl overflow-hidden relative border border-slate-700/60 bg-slate-900">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1XsaN07srzWBzNM80UKI1oQZG9ZclVpL_x-kyKIkS1sM8ZUeimLv_dL4n3b9BuVOCSR-m8IBFBtV-wIrbP4Mau5XawmLcqkAWe8okx9PqYomccCI1l8Dd8FjUMg7X84jZK9nf4BgkPOfcsQs3-hs4EDqzRDTRMglvR2ulYvIYPb4QH4N7M3k0j6Xp9HHqOBcnFqzzXbgsthjTqe2Uz44I5qrZTPXPgoHPtRs-PpkTHv2t3Qg0U0stjvk8s" alt="Comic Panel 4 - We found the treasure tree!" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-4">
+            <p class="text-xs font-bold text-white text-center leading-tight">"We found the treasure tree!"</p>
+          </div>
+        </div>
+        <div class="mt-1.5 text-center">
+          <span class="text-[10px] font-mono uppercase tracking-wide text-slate-400">Secret Grove</span>
+        </div>
+      </div>
+
+      <!-- CONNECTOR 4 -> 5 -->
+      <div class="flex flex-col items-center justify-center px-0.5">
+        <div class="w-7 h-7 rounded-full bg-accent-emerald/20 border-2 border-accent-emerald flex items-center justify-center text-accent-emerald shadow-glow-emerald">
+          <span class="material-symbols-Rounded text-base">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- PANEL 05 -->
+      <div class="flex-1 flex flex-col bg-surface-card rounded-2xl p-2 border-2 border-accent-emerald/60 shadow-lg relative group">
+        <div class="flex items-center justify-between px-2 py-1 mb-1.5">
+          <span class="font-mono font-bold text-xs text-accent-emerald flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-accent-emerald text-night flex items-center justify-center font-bold text-[11px]">5</span>
+            TREEHOUSE
+          </span>
+          <span class="material-symbols-Rounded text-accent-emerald text-base">check_circle</span>
+        </div>
+        <div class="w-full aspect-[3/2] rounded-xl overflow-hidden relative border border-slate-700/60 bg-slate-900">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1Uh4TVCaCjAcevMjSb9gIp0kiwOQXLmF_q2E1NfL5wAMqIj3S0RvNy0n4IcMPkOZHVxj0ZxKEsGhHcYbQxvRIdMWDhuY-Q4xf2qfOrAEZAZ9iqPbFoHdhG10kbWIPUAgBxA8KsseS1BpZwd71-2JfTAlZcxUuifCPFlZD3BQ9dIq0_8_x0A-OnhXwF_HJm745woh-0URYtidT6kn3QmaMs7zKpzY6BkxqkcfqDqloDHr8xCwKCxVt-MbOc" alt="Comic Panel 5 - What a great adventure!" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-4">
+            <p class="text-xs font-bold text-white text-center leading-tight">"What a great adventure!"</p>
+          </div>
+        </div>
+        <div class="mt-1.5 text-center">
+          <span class="text-[10px] font-mono uppercase tracking-wide text-slate-400">Home Safe</span>
+        </div>
+      </div>
+
+      <!-- CONNECTOR 5 -> 6 -->
+      <div class="flex flex-col items-center justify-center px-0.5">
+        <div class="w-7 h-7 rounded-full bg-accent-emerald/20 border-2 border-accent-emerald flex items-center justify-center text-accent-emerald shadow-glow-emerald">
+          <span class="material-symbols-Rounded text-base">arrow_forward</span>
+        </div>
+      </div>
+
+      <!-- PANEL 06 (FINALE) -->
+      <div class="flex-1 flex flex-col bg-surface-card rounded-2xl p-2 border-2 border-accent-pink/80 shadow-glow-pink relative group">
+        <div class="flex items-center justify-between px-2 py-1 mb-1.5">
+          <span class="font-mono font-bold text-xs text-accent-pink flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-accent-pink text-white flex items-center justify-center font-bold text-[11px]">6</span>
+            CELEBRATE!
+          </span>
+          <span class="material-symbols-Rounded text-accent-pink text-base">celebration</span>
+        </div>
+        <div class="w-full aspect-[3/2] rounded-xl overflow-hidden relative border border-accent-pink/40 bg-slate-900">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvuinHOoe8PGJkL-ZcFHkRG-M6Kxo4un0HC2-IRkjwXcNT0fJhStleJLO52I7rU90onO6tVzpOrk_rjc5jhIZFb8quecUkNo2tY8g72HU69iiA9ZfHvhw8VClFggl6rF4WkF-qPeJx2Ob0zcFqA5JzA93oczLNEKUe70w5aWSkOD7ijI14Hg9IbDgZUewqGCuFkZPwGNKwOwCLMWvHnvJ5dEtmsUEPYRkS3RoV9pfIRz6_JZfLlfk3vElmEqjWc8v4wc4E-3wN6F3A" alt="Comic Panel 6 - We did it together!" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-4">
+            <p class="text-xs font-bold text-accent-pink text-center leading-tight text-pink-glow">"We did it together!"</p>
+          </div>
+        </div>
+        <div class="mt-1.5 text-center">
+          <span class="text-[10px] font-mono uppercase tracking-wide text-accent-pink font-bold">Grand Finale</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- STORY RECAP BANNER: FIRST... THEN... FINALLY... (8M CLASSROOM READABLE TYPE) -->
+  <section class="w-full px-7 py-3 rounded-2xl bg-surface-card border border-surface-border flex items-center justify-between gap-6 my-1">
+    <div class="flex items-center gap-3 min-w-max">
+      <div class="w-9 h-9 rounded-xl bg-accent-sky/20 border border-accent-sky/40 flex items-center justify-center text-accent-sky">
+        <span class="material-symbols-Rounded text-xl">record_voice_over</span>
+      </div>
+      <div>
+        <span class="text-[11px] font-mono uppercase tracking-wider text-accent-sky font-bold block">Whole-Class Oral Chant</span>
+        <span class="text-sm font-bold text-white">The Story:</span>
+      </div>
+    </div>
+
+    <!-- Big high-contrast narrative sentence for 8m distance -->
+    <div class="flex-1 text-center bg-surface-tile/80 px-6 py-2 rounded-xl border border-surface-border/80">
+      <p class="font-display text-xl md:text-2xl font-bold tracking-tight text-white leading-snug">
+        <span class="text-accent-sky font-extrabold uppercase">First,</span> Leo explored the jungle with his map.
+        <span class="text-accent-amber font-extrabold uppercase ml-2">Then,</span> they crossed the river stones to the golden tree.
+        <span class="text-accent-pink font-extrabold uppercase ml-2">Finally,</span> all the friends celebrated together!
+      </p>
+    </div>
+
+    <!-- Oral Read-Aloud Action Button -->
+    <button class="px-4 py-2 rounded-xl bg-surface-tile hover:bg-slate-800 border border-slate-700 text-slate-200 flex items-center gap-2 text-xs font-mono font-bold transition-colors">
+      <span class="material-symbols-Rounded text-accent-sky text-lg">play_circle</span>
+      <span>PLAY AUDIO</span>
+    </button>
+  </section>
+
+  <!-- BOTTOM HUD / CONTROLS & TEACHER CUE -->
+  <footer class="w-full flex items-center justify-between h-14 relative z-20 pt-1">
+    <!-- Teacher Cue -->
+    <div class="flex items-center gap-3 px-5 py-2 rounded-xl bg-surface-card border border-surface-border text-sm">
+      <span class="material-symbols-Rounded text-accent-amber text-lg">lightbulb</span>
+      <span class="text-slate-300 font-medium text-xs">
+        <strong class="text-accent-amber font-bold">Teacher Cue:</strong> Guide students to choral-read each connective word (<span class="text-accent-sky font-bold">First</span>, <span class="text-accent-amber font-bold">Then</span>, <span class="text-accent-pink font-bold">Finally</span>) aloud as a room!
+      </span>
+    </div>
+
+    <!-- Right: Secondary & Single Hot Pink Primary Accent Button -->
+    <div class="flex items-center gap-4">
+      <button class="px-5 py-2.5 rounded-xl bg-surface-card hover:bg-surface-tile border border-surface-border text-slate-300 font-bold font-display text-sm flex items-center gap-2 transition-all">
+        <span class="material-symbols-Rounded text-base">replay</span>
+        <span>Replay Story</span>
+      </button>
+
+      <!-- Hot Pink (#FF2E79) single primary action -->
+      <button class="px-7 py-2.5 rounded-xl bg-accent-pink hover:bg-[#ff176b] text-white font-display font-extrabold text-base tracking-wide flex items-center gap-2.5 shadow-glow-pink active:scale-95 transition-all">
+        <span>NEXT CHAPTER</span>
+        <span class="material-symbols-Rounded text-lg">arrow_forward</span>
+      </button>
+    </div>
+  </footer>
+
+</body>
+</html>

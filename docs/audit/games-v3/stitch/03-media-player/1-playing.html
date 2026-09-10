@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html class="dark h-full w-full overflow-hidden" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sing &amp; Move — Classroom ESL Media Player</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-lowest": "#070c18",
+            "surface-dim": "#0a0a12",
+            "surface": "#0b132b",
+            "surface-container": "#111c3d",
+            "surface-container-high": "#182449",
+            "surface-container-highest": "#24345b",
+            "outline": "#303e68",
+            "outline-variant": "#1e293b",
+            "background": "#070c18",
+            "primary": "#ff2e79",
+            "primary-container": "#b3004e",
+            "on-primary": "#1a0010",
+            "on-primary-container": "#ffe0ec",
+            "secondary": "#38bdf8",
+            "secondary-container": "#0369a1",
+            "on-secondary": "#001a24",
+            "tertiary": "#ffe04a",
+            "tertiary-container": "#665200",
+            "on-tertiary": "#1a1000",
+            "on-surface": "#f1f5f9",
+            "on-surface-variant": "#94a3b8",
+            "error": "#ff4444"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "2xl": "1rem",
+            "full": "9999px"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .neon-pink-glow {
+      box-shadow: 0 0 24px rgba(255, 46, 121, 0.45), 0 0 8px rgba(255, 46, 121, 0.3);
+    }
+    .neon-cyan-glow {
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+    }
+    .neon-text-glow {
+      text-shadow: 0 0 14px rgba(255, 46, 121, 0.75), 0 0 24px rgba(56, 189, 248, 0.4);
+    }
+    .pulse-dot {
+      animation: pulseBounce 1s infinite alternate ease-in-out;
+    }
+    @keyframes pulseBounce {
+      0% { transform: translateY(0px) scale(1); opacity: 0.9; }
+      100% { transform: translateY(-5px) scale(1.25); opacity: 1; filter: drop-shadow(0 0 6px #ff2e79); }
+    }
+  </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body w-screen h-screen overflow-hidden select-none flex flex-col justify-between antialiased">
+<!-- TOP BAR / CLASSROOM PROJECTOR HUD HEADER -->
+<header class="h-16 flex items-center justify-between px-6 bg-surface-dim/95 border-b border-outline-variant shrink-0 z-30">
+<!-- Left Cluster (with 180px safe projector overscan offset) -->
+<div class="flex items-center gap-4 pl-4">
+<div class="flex items-center gap-2 bg-surface-container px-3.5 py-1.5 rounded-full border border-secondary/40 text-secondary font-label text-xs tracking-wider font-bold uppercase">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+        PHASE: WARM-UP SONG
+      </div>
+<div class="h-5 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="music_note" style="font-variation-settings: 'FILL' 1;">music_note</span>
+<span class="font-headline font-extrabold text-xl text-on-surface tracking-tight">Sing &amp; Move</span>
+</div>
+<span class="bg-surface-container-highest/60 text-tertiary px-3 py-1 rounded-full text-xs font-label tracking-wide border border-tertiary/20 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="flag">flag</span>
+        SESSION 01 · ACTION DANCE
+      </span>
+</div>
+<!-- Center-Right & System Status Indicators -->
+<div class="flex items-center gap-3 pr-4">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#06241b] border border-[#10b981]/40 text-[#34d399] font-label text-xs font-bold tracking-wide">
+<span class="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span>
+        TEACHER REMOTE SYNCED
+      </div>
+<div class="px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant text-secondary font-label text-xs font-semibold flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="equalizer">equalizer</span>
+        HQ STEREO 48k
+      </div>
+<div class="flex items-center gap-1 border-l border-outline-variant pl-3">
+<button class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container transition-colors" title="Classroom Speakers">
+<span class="material-symbols-outlined" data-icon="volume_up">volume_up</span>
+</button>
+<button class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container transition-colors" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button class="w-9 h-9 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-secondary hover:bg-surface-container transition-colors" title="Full Projector Screen">
+<span class="material-symbols-outlined" data-icon="fullscreen">fullscreen</span>
+</button>
+<span class="text-[11px] font-label text-on-surface-variant/80 ml-1 px-2 py-0.5 rounded bg-surface-container">16:9 PROJ</span>
+</div>
+</div>
+</header>
+<!-- MAIN STAGE (Widescreen 70% / 30% Split for Classroom Distance Visibility) -->
+<main class="flex-1 w-full max-h-[calc(100vh-136px)] grid grid-cols-12 gap-5 p-5 overflow-hidden">
+<!-- LEFT VIDEO STAGE (~70% Width: 8 of 12 columns) -->
+<section class="col-span-8 flex flex-col justify-center items-center h-full min-h-0 bg-surface rounded-2xl border border-surface-container-highest overflow-hidden relative shadow-2xl">
+<!-- Top Video Pill & Live Badge Overlay -->
+<div class="absolute top-4 left-4 z-20 flex items-center gap-2">
+<div class="bg-surface-dim/85 backdrop-blur-md border border-secondary/40 text-secondary text-xs font-label px-3 py-1 rounded-full flex items-center gap-2 shadow-lg">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+          LIVE VIDEO STREAM
+        </div>
+<div class="bg-surface-dim/85 backdrop-blur-md border border-outline-variant text-on-surface-variant text-xs font-label px-2.5 py-1 rounded-full">
+          1080p 60FPS
+        </div>
+</div>
+<!-- Watermark/Logo Pill on Upper Right -->
+<div class="absolute top-4 right-4 z-20 bg-surface-dim/80 backdrop-blur-md px-3 py-1 rounded-lg border border-outline-variant text-xs font-headline font-bold text-on-surface/80">
+        ESL KIDS BEATS
+      </div>
+<!-- Uncropped Dance Video Container (Preserving Exact Aspect & Full Body Movements) -->
+<div class="w-full h-full flex items-center justify-center bg-black relative">
+<img alt="ESL Kids Warm-up Song Dance Activity" class="w-full h-full object-contain pointer-events-none select-none block" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgChoPR7kFdNiSLl9umwb5cDc_m4SoqbQ7Y999JROHNSVZ8NUHZ2rMUlSKrDZX085lnnxAOUAo8fILvRBxlQPMFYJh1sLWYzY6MmJmW6Nc1cXu3idNgWhJdBcm2jatqqPbnPJx9me5ltJk9V9ScL6ovZAWtm3MPqoryOFnnbgwLC1MAKVp3n7tE1O3oByl0-PtKyPRRiq1mqCSbn6a2WD5r6RGStUX_BNVuIkwnJsVeXKPst9grUw0Aldwxmqyim_I6En7pc56ClIk"/>
+</div>
+<!-- Subtitle/Movement Overlay on bottom edge of video -->
+<div class="absolute bottom-3 inset-x-6 z-20 flex items-center justify-between pointer-events-none">
+<div class="bg-surface-dim/90 backdrop-blur-md px-4 py-2 rounded-xl border border-primary/30 text-white flex items-center gap-3 shadow-lg">
+<span class="w-3 h-3 rounded-full bg-primary animate-ping"></span>
+<span class="font-headline font-bold text-sm tracking-wide text-on-primary-container">CURRENT DANCE STEP: <span class="text-secondary font-extrabold uppercase">CLAP 3 TIMES &amp; JUMP!</span></span>
+</div>
+<div class="bg-surface-dim/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-outline-variant text-on-surface-variant font-label text-xs">
+          KIDS CHORUS ENGAGEMENT: <span class="text-tertiary font-bold">100%</span>
+</div>
+</div>
+</section>
+<!-- RIGHT RAIL (~30% Width: 4 of 12 columns) -->
+<section class="col-span-4 h-full flex flex-col justify-between bg-surface rounded-2xl border border-surface-container-highest p-5 overflow-hidden relative shadow-xl">
+<!-- Song Header Panel -->
+<div class="bg-surface-container rounded-xl p-4 border border-outline-variant/60 shrink-0">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-label font-bold text-secondary tracking-wider uppercase flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="graphic_eq">graphic_eq</span>
+            KIDS ESL BEATS · 128 BPM
+          </span>
+<span class="text-[11px] font-label px-2 py-0.5 rounded bg-surface-container-highest text-tertiary border border-tertiary/30 font-semibold">
+            Action Verbs
+          </span>
+</div>
+<h1 class="font-headline font-extrabold text-2xl text-white tracking-tight leading-tight">
+          CLAP YOUR HANDS &amp; ROAR!
+        </h1>
+<p class="text-xs font-body text-on-surface-variant mt-1">Theme: Physical Energy, Animals &amp; Number Counting</p>
+</div>
+<!-- Large High-Contrast Karaoke Lyrics Section (Readable 5-8 meters) -->
+<div class="flex-1 flex flex-col justify-center my-3 py-2 px-1 relative min-h-0">
+<div class="text-[11px] font-label uppercase tracking-widest text-secondary/80 font-bold mb-3 flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          SING-ALONG TELEPROMPTER
+        </div>
+<!-- Active Lyric Line with Bouncing Dot and Neon Fill -->
+<div class="relative mb-5">
+<div class="inline-flex items-center gap-2 mb-2">
+<span class="pulse-dot w-3.5 h-3.5 rounded-full bg-primary inline-block"></span>
+<span class="text-xs font-label text-primary uppercase font-bold tracking-widest">Active Line</span>
+</div>
+<div class="font-headline font-extrabold text-2xl lg:text-3xl text-white leading-snug tracking-tight neon-text-glow">
+            “CLAP YOUR HANDS,<br/>
+<span class="text-primary font-black">ONE,</span>
+<span class="text-secondary font-black">TWO,</span>
+<span class="text-tertiary font-black">THREE!”</span>
+</div>
+</div>
+<!-- Upcoming Line (40% Opacity) -->
+<div class="opacity-40 mb-3 border-l-2 border-outline pl-3">
+<span class="text-[11px] font-label uppercase text-on-surface-variant font-bold block mb-0.5">NEXT UP</span>
+<p class="font-headline font-bold text-lg text-on-surface leading-snug">
+            “Now jump up high like a monkey in a tree!”
+          </p>
+</div>
+<!-- Third Line (20% Opacity) -->
+<div class="opacity-20 border-l-2 border-transparent pl-3">
+<p class="font-headline font-semibold text-base text-on-surface-variant leading-snug">
+            “Roar like a lion, wild and free!”
+          </p>
+</div>
+</div>
+<!-- Action Prompt / Teacher Cue Box & Mini Progress -->
+<div class="shrink-0 space-y-3">
+<!-- Physical Movement Teacher Cue -->
+<div class="bg-surface-container-high/90 border border-tertiary/40 rounded-xl p-3 flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-tertiary/20 flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-lg" data-icon="front_hand">front_hand</span>
+</div>
+<div>
+<div class="text-[10px] font-label font-bold text-tertiary tracking-wider uppercase">TEACHER CUE</div>
+<div class="font-headline font-bold text-sm text-white">Everyone stand up and clap!</div>
+</div>
+</div>
+<!-- Song Progress Tracker -->
+<div class="bg-surface-container rounded-xl p-3 border border-outline-variant/60">
+<div class="flex items-center justify-between text-xs font-label font-bold mb-2">
+<span class="text-secondary flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+              01:24
+            </span>
+<span class="text-on-surface-variant">02:45</span>
+</div>
+<!-- Progress bar -->
+<div class="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden relative flex items-center">
+<div class="h-full bg-gradient-to-r from-secondary to-primary rounded-full" style="width: 51%;"></div>
+<div class="absolute w-3.5 h-3.5 bg-white border-2 border-primary rounded-full shadow-[0_0_8px_#ff2e79] cursor-pointer" style="left: calc(51% - 7px);"></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BOTTOM TRANSPORT BAR (Always visible, giant interactive targets) -->
+<footer class="h-20 bg-surface border-t border-outline-variant px-8 flex items-center justify-between shrink-0 z-30 shadow-2xl">
+<!-- Left: Replay Button & Classroom Audio Meter -->
+<div class="flex items-center gap-5">
+<button class="flex items-center gap-2.5 bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant hover:border-secondary/50 px-5 py-3 rounded-xl font-headline font-bold text-sm tracking-wide transition-all active:scale-95 shadow-md">
+<span class="material-symbols-outlined text-secondary text-2xl" data-icon="replay_10">replay_10</span>
+<span>REPLAY SONG (10s back)</span>
+</button>
+<div class="hidden xl:flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-xs font-label">
+<span class="material-symbols-outlined text-primary text-base" data-icon="mic">mic</span>
+<span class="text-on-surface-variant">CLASSROOM AUDIO:</span>
+<span class="text-secondary font-bold">82 dB</span>
+<span class="text-[10px] text-tertiary bg-tertiary/10 px-1.5 py-0.5 rounded font-bold">ACTIVE CHANT</span>
+</div>
+</div>
+<!-- Center: Main Playback Controls (Touch-Optimized for Big Display) -->
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface hover:text-secondary transition-all active:scale-95" title="Previous Track">
+<span class="material-symbols-outlined text-2xl" data-icon="skip_previous">skip_previous</span>
+</button>
+<!-- Primary Hot-Pink Hero Button: PAUSE -->
+<button class="bg-primary hover:bg-primary-fixed-dim text-white font-headline font-extrabold text-base px-8 py-3.5 rounded-xl flex items-center gap-3 neon-pink-glow transition-all active:scale-95 cursor-pointer">
+<span class="material-symbols-outlined text-2xl font-bold" data-icon="pause" style="font-variation-settings: 'FILL' 1;">pause</span>
+<span class="tracking-wider">PAUSE</span>
+</button>
+<!-- Next Song Button -->
+<button class="flex items-center gap-2 bg-surface-container hover:bg-surface-container-high border border-outline-variant hover:border-outline text-on-surface px-5 py-3 rounded-xl font-headline font-bold text-sm tracking-wide transition-all active:scale-95">
+<span>NEXT TRACK</span>
+<span class="material-symbols-outlined text-xl" data-icon="skip_next">skip_next</span>
+</button>
+</div>
+<!-- Right: Volume & Playback Speed -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-2 bg-surface-container px-3.5 py-2 rounded-xl border border-outline-variant">
+<span class="text-xs font-label text-on-surface-variant font-medium">SPEED:</span>
+<button class="bg-surface-container-highest text-secondary text-xs font-label font-bold px-2 py-0.5 rounded border border-secondary/30">1.0X NORMAL</button>
+</div>
+<div class="flex items-center gap-3 bg-surface-container px-4 py-2.5 rounded-xl border border-outline-variant">
+<span class="material-symbols-outlined text-secondary text-2xl" data-icon="volume_up">volume_up</span>
+<div class="flex flex-col">
+<div class="flex justify-between items-center text-[10px] font-label font-bold text-on-surface-variant mb-1">
+<span>VOLUME</span>
+<span class="text-secondary">85%</span>
+</div>
+<div class="w-24 h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 85%;"></div>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

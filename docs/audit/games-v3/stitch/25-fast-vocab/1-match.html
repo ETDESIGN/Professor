@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<html class="dark h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEON ARENA — Fast Vocab Match</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800;900&amp;family=Space+Grotesk:wght@500;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN with forms & container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary": "#1a0010",
+            "surface-container-high": "#1e1e30",
+            "outline": "#5a5068",
+            "inverse-primary": "#8c0038",
+            "on-tertiary-container": "#fff0c0",
+            "on-secondary-fixed-variant": "#004d4d",
+            "surface-bright": "#1a1a2e",
+            "on-surface-variant": "#a098b0",
+            "surface-dim": "#0f0f1a",
+            "tertiary": "#ffe04a",
+            "primary-fixed": "#ffe0ec",
+            "on-secondary-container": "#c0fff4",
+            "on-tertiary": "#1a1000",
+            "on-error": "#1a0000",
+            "on-tertiary-fixed-variant": "#665200",
+            "background": "#0a0a12",
+            "surface-container-low": "#111118",
+            "secondary": "#00ffcc",
+            "primary-fixed-dim": "#ff80aa",
+            "error": "#ff4444",
+            "on-primary-fixed": "#3d0020",
+            "secondary-fixed-dim": "#00e6b8",
+            "surface-container-lowest": "#0a0a12",
+            "secondary-fixed": "#c0fff4",
+            "on-surface": "#e8e0f0",
+            "on-secondary-fixed": "#001a1a",
+            "on-secondary": "#001a1a",
+            "primary": "#ff2d78",
+            "inverse-on-surface": "#0a0a12",
+            "surface-variant": "#1e1e30",
+            "error-container": "#3d0f0f",
+            "on-primary-fixed-variant": "#8c0038",
+            "tertiary-fixed-dim": "#ffe04a",
+            "tertiary-fixed": "#fff0c0",
+            "tertiary-container": "#665200",
+            "on-tertiary-fixed": "#1a1000",
+            "primary-container": "#b3004e",
+            "on-primary-container": "#ffe0ec",
+            "surface-tint": "#ff2d78",
+            "secondary-container": "#004d3d",
+            "surface-container": "#141422",
+            "on-error-container": "#ffa0a0",
+            "surface": "#0f0f1a",
+            "inverse-surface": "#e8e0f0",
+            "outline-variant": "#302840",
+            "surface-container-highest": "#28283e",
+            "on-background": "#e8e0f0"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Sora", "sans-serif"],
+            "display": ["Sora", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Space Grotesk", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-fill {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Classroom projector blueprint dot grid */
+    .blueprint-grid {
+      background-color: #070C18;
+      background-image: radial-gradient(rgba(56, 189, 248, 0.12) 1.2px, transparent 1.2px);
+      background-size: 28px 28px;
+    }
+    /* High-contrast projector glow accents */
+    .glow-cyan {
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.35), inset 0 0 14px rgba(56, 189, 248, 0.15);
+    }
+    .glow-pink-btn {
+      box-shadow: 0 0 24px rgba(255, 46, 121, 0.45);
+    }
+    .text-glow-secondary {
+      text-shadow: 0 0 10px rgba(0, 255, 204, 0.65);
+    }
+    .text-glow-primary {
+      text-shadow: 0 0 12px rgba(255, 45, 120, 0.7);
+    }
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 0.9; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.03); }
+    }
+    .pulse-target {
+      animation: pulse-ring 2.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body h-screen w-screen overflow-hidden blueprint-grid flex flex-col justify-between select-none">
+<!-- ==================== TOP NAVIGATION & CLASSROOM STATUS BAR ==================== -->
+<header class="w-full flex justify-between items-center px-8 py-3 bg-surface-container-lowest border-b border-outline-variant shadow-[0_0_16px_rgba(255,45,120,0.15)] flex-shrink-0 z-30">
+<!-- Brand Anchor & Phase Identifiers -->
+<div class="flex items-center gap-5">
+<!-- Brand Logo Anchor from JSON -->
+<div class="font-headline text-2xl font-black tracking-widest text-secondary drop-shadow-[0_0_8px_rgba(0,255,204,0.6)] flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span>NEON ARENA</span>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- High-contrast Glowing Phase Pill (Legible 8m Away) -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0B132B] border border-cyan-400/50 shadow-[0_0_12px_rgba(56,189,248,0.3)]">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-label text-xs font-bold tracking-wider text-secondary uppercase">⚡ FAST VOCAB</span>
+</div>
+<!-- Prominent Phase Banner -->
+<div class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-surface-container border border-outline-variant">
+<span class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider">PHASE 1</span>
+<span class="text-outline-variant font-bold">·</span>
+<h1 class="font-headline text-base font-extrabold text-on-surface tracking-wide flex items-center gap-2">
+<span>MATCH THE PAIRS</span>
+<span class="text-xs px-2 py-0.5 rounded bg-secondary/15 text-secondary font-label font-bold border border-secondary/30">3 PAIRS</span>
+</h1>
+</div>
+</div>
+<!-- Center Classroom Progress Tokens -->
+<div class="flex items-center gap-3">
+<!-- Round Info Pill -->
+<div class="px-3.5 py-1.5 rounded-full bg-[#0B132B] border border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-base text-on-surface-variant">timer</span>
+<span class="font-label text-xs font-bold text-on-surface tracking-wider">ROUND 1 OF 3</span>
+</div>
+<!-- Active Student Turn Pill -->
+<div class="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/40 flex items-center gap-2.5 shadow-[0_0_12px_rgba(255,45,120,0.2)]">
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label text-xs font-bold text-primary tracking-wider uppercase">ALICE'S TURN</span>
+</div>
+<!-- Streak Pill -->
+<div class="px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-tertiary/40 flex items-center gap-1.5">
+<span class="text-tertiary font-bold text-sm">🔥</span>
+<span class="font-label text-xs font-bold text-tertiary tracking-wider">STREAK: 4</span>
+</div>
+</div>
+<!-- Right Controls: Teacher Sync & Trailing Icons from JSON -->
+<div class="flex items-center gap-4">
+<div class="hidden xl:flex items-center gap-2 px-3 py-1 rounded bg-surface-container border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span class="font-label text-xs text-on-surface-variant font-semibold">TEACHER SYNC ACTIVE</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<!-- Trailing Icon Actions: timer, volume_up, fullscreen -->
+<button class="p-2 rounded hover:bg-surface-container hover:text-secondary transition-colors active:scale-95 duration-150" title="Session Timer">
+<span class="material-symbols-outlined text-xl">timer</span>
+</button>
+<button class="p-2 rounded hover:bg-surface-container hover:text-secondary transition-colors active:scale-95 duration-150" title="Audio Volume">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</button>
+<button class="p-2 rounded hover:bg-surface-container hover:text-secondary transition-colors active:scale-95 duration-150" title="Fullscreen Toggle">
+<span class="material-symbols-outlined text-xl">fullscreen</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- Avatar from JSON: Student Alice -->
+<div class="flex items-center gap-2.5 pl-1">
+<div class="w-8 h-8 rounded-full border border-secondary/60 bg-[#111C3D] flex items-center justify-center text-secondary font-headline font-bold text-xs shadow-[0_0_8px_rgba(0,255,204,0.4)]" title="Avatar of student Alice wearing neon goggles">
+          AW
+        </div>
+<div class="hidden lg:block text-left">
+<div class="font-headline text-xs font-bold text-on-surface leading-tight">Alice Walker</div>
+<div class="font-label text-[10px] text-secondary tracking-wide">Rank #1 · 2X</div>
+</div>
+</div>
+</div>
+</header>
+<!-- ==================== MAIN GAME ARENA (16:9 PROJECTION CANVAS) ==================== -->
+<main class="flex-1 w-full max-w-[1760px] mx-auto px-8 py-4 flex items-center justify-between gap-8 relative z-10 overflow-hidden">
+<!-- LEFT COLUMN: 3 Chunky Word Cards -->
+<section class="w-5/12 h-full flex flex-col justify-center gap-4 max-h-[640px]">
+<div class="flex items-center justify-between px-2">
+<span class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          English Vocabulary Cards
+        </span>
+<span class="font-label text-xs text-on-surface-variant font-medium">STEP 1: SELECT WORD</span>
+</div>
+<!-- Word Card 1: TIGER -->
+<div class="group relative rounded-2xl bg-[#0B132B]/90 border-2 border-[#1E293B] hover:border-secondary/60 p-5 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_0_18px_rgba(0,255,204,0.2)] flex items-center justify-between min-h-[110px]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant font-headline font-extrabold text-lg border border-outline-variant">
+            1
+          </div>
+<div>
+<div class="flex items-center gap-3">
+<h2 class="font-headline text-3xl font-extrabold tracking-wider text-on-surface group-hover:text-secondary transition-colors">
+                TIGER
+              </h2>
+<span class="px-2.5 py-0.5 rounded-md text-[11px] font-label font-bold bg-[#141422] text-amber-300 border border-amber-400/20">
+                WILD CAT
+              </span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-on-surface-variant font-label text-sm">
+<span class="text-cyan-400/90 font-mono tracking-wide">/ˈtaɪ.ɡər/</span>
+<span>•</span>
+<span class="text-xs text-on-surface-variant">2 syllables (ti·ger)</span>
+</div>
+</div>
+</div>
+<button class="w-11 h-11 rounded-xl bg-surface-container hover:bg-secondary/15 hover:text-secondary text-on-surface-variant border border-outline-variant flex items-center justify-center transition-all duration-150 active:scale-95" title="Listen pronunciation">
+<span class="material-symbols-outlined text-2xl">volume_up</span>
+</button>
+</div>
+<!-- Word Card 2: FOX (ACTIVE SELECTION STATE) -->
+<div class="relative rounded-2xl bg-[#0F1D42] border-2 border-sky-400 glow-cyan p-5 transition-all duration-200 cursor-pointer flex items-center justify-between min-h-[110px] transform scale-[1.02]">
+<!-- Right Arrow Pointer toward connection line -->
+<div class="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rotate-45 bg-[#0F1D42] border-t-2 border-r-2 border-sky-400 z-20"></div>
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-sky-400/20 text-sky-400 flex items-center justify-center font-headline font-black text-xl border border-sky-400/40">
+            2
+          </div>
+<div>
+<div class="flex items-center gap-3">
+<h2 class="font-headline text-3xl font-extrabold tracking-wider text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]">
+                FOX
+              </h2>
+<span class="px-2.5 py-0.5 rounded-md text-[11px] font-label font-bold bg-sky-400/20 text-sky-300 border border-sky-400/40 animate-pulse">
+                SELECTED
+              </span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-sky-100/80 font-label text-sm">
+<span class="text-sky-300 font-mono tracking-wide">/fɒks/</span>
+<span>•</span>
+<span class="text-xs text-sky-200/70">1 syllable (fox)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-11 h-11 rounded-xl bg-sky-400/25 text-sky-300 border border-sky-400/50 flex items-center justify-center transition-all duration-150 active:scale-95 shadow-[0_0_10px_rgba(56,189,248,0.4)]" title="Listen FOX">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">volume_up</span>
+</button>
+</div>
+</div>
+<!-- Word Card 3: PANDA -->
+<div class="group relative rounded-2xl bg-[#0B132B]/90 border-2 border-[#1E293B] hover:border-secondary/60 p-5 transition-all duration-200 cursor-pointer shadow-lg hover:shadow-[0_0_18px_rgba(0,255,204,0.2)] flex items-center justify-between min-h-[110px]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant font-headline font-extrabold text-lg border border-outline-variant">
+            3
+          </div>
+<div>
+<div class="flex items-center gap-3">
+<h2 class="font-headline text-3xl font-extrabold tracking-wider text-on-surface group-hover:text-secondary transition-colors">
+                PANDA
+              </h2>
+<span class="px-2.5 py-0.5 rounded-md text-[11px] font-label font-bold bg-[#141422] text-emerald-300 border border-emerald-400/20">
+                BAMBOO FOREST
+              </span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-on-surface-variant font-label text-sm">
+<span class="text-cyan-400/90 font-mono tracking-wide">/ˈpæn.də/</span>
+<span>•</span>
+<span class="text-xs text-on-surface-variant">2 syllables (pan·da)</span>
+</div>
+</div>
+</div>
+<button class="w-11 h-11 rounded-xl bg-surface-container hover:bg-secondary/15 hover:text-secondary text-on-surface-variant border border-outline-variant flex items-center justify-center transition-all duration-150 active:scale-95" title="Listen pronunciation">
+<span class="material-symbols-outlined text-2xl">volume_up</span>
+</button>
+</div>
+</section>
+<!-- CENTER CONNECTION BEAM & INTERACTIVE INSTRUCTION -->
+<div class="w-1/12 flex flex-col items-center justify-center relative py-8 select-none pointer-events-none">
+<!-- Animated Dotted SVG Connection Beam between Card 2 and Target B -->
+<svg class="w-full h-44 overflow-visible" preserveaspectratio="none" viewbox="0 0 100 100">
+<path class="animate-pulse" d="M 0,50 C 50,50 50,50 100,50" fill="none" opacity="0.9" stroke="#38BDF8" stroke-dasharray="8 6" stroke-linecap="round" stroke-width="3.5"></path>
+<circle cx="95" cy="50" fill="#38BDF8" r="5"></circle>
+</svg>
+<div class="bg-[#0B132B] border border-sky-400/50 rounded-full px-3 py-1 text-center shadow-[0_0_12px_rgba(56,189,248,0.3)] whitespace-nowrap -mt-3 z-10">
+<span class="font-label text-[11px] font-bold text-sky-300 tracking-wider uppercase flex items-center gap-1.5">
+<span class="material-symbols-outlined text-xs">touch_app</span>
+          Tap to pair
+        </span>
+</div>
+</div>
+<!-- RIGHT COLUMN: 3 Landscape Photo Cards (Target A, B, C) -->
+<section class="w-6/12 h-full flex flex-col justify-center gap-4 max-h-[640px]">
+<div class="flex items-center justify-between px-2">
+<span class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          Photo Match Targets (Shuffled)
+        </span>
+<span class="font-label text-xs text-on-surface-variant font-medium">STEP 2: CONFIRM PHOTO</span>
+</div>
+<!-- Photo Card A: PANDA (Shuffled Target A) -->
+<div class="group relative rounded-2xl overflow-hidden bg-[#0B132B] border-2 border-[#1E293B] hover:border-secondary/70 h-[175px] transition-all duration-200 cursor-pointer flex items-center shadow-lg">
+<div class="w-1/2 h-full relative overflow-hidden">
+<img alt="Panda bear eating fresh bamboo stems on a wooden table" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1VSLJVZOyZlKr7lhKxoPkPpiCVRn2MJQrib2IzDt9Z3F8QxxXgtR09uj7FtEwIBq-neamygP7XeBUIzOBo9RRVEEpUOij9CKpAvxhIc1xA1KnxFsXsYDLnFYZgjcoF7YT4QDu7TtikOS14LQzU-cH0LwLyN8Et5fHStYhEmd_23JqqDFLYw5UW_uH1kn1g4Sn4iC8BLbe8e0TRv8VkUarNboZxLAMW8ewD6VZ48iogUgeKVoN9cc6RWHASK"/>
+<div class="absolute inset-0 bg-gradient-to-r from-transparent to-[#0B132B]/90"></div>
+</div>
+<div class="w-1/2 p-4 flex flex-col justify-between h-full relative z-10">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-lg bg-surface-container text-on-surface font-label text-xs font-bold border border-outline-variant">
+              TARGET A
+            </span>
+<span class="text-xs font-label text-on-surface-variant">Habitat: Forest</span>
+</div>
+<div>
+<p class="font-headline font-bold text-base text-on-surface group-hover:text-secondary transition-colors">
+              Giant Black &amp; White Bear
+            </p>
+<p class="font-body text-xs text-on-surface-variant mt-0.5 line-clamp-1">
+              Chewing fresh green bamboo shoots.
+            </p>
+</div>
+<div class="flex items-center justify-between text-xs font-label text-on-surface-variant pt-2 border-t border-outline-variant/40">
+<span>READY TO MATCH</span>
+<span class="material-symbols-outlined text-sm text-outline group-hover:text-secondary transition-colors">radio_button_unchecked</span>
+</div>
+</div>
+</div>
+<!-- Photo Card B: RED FOX (Shuffled Target B - Target for active word "FOX") -->
+<div class="relative rounded-2xl overflow-hidden bg-[#0B132B] border-2 border-sky-400 h-[175px] transition-all duration-200 cursor-pointer flex items-center shadow-[0_0_24px_rgba(56,189,248,0.28)] pulse-target">
+<!-- Target indicator flag -->
+<div class="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.4)]">
+<span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+<span class="font-label text-[11px] font-bold text-sky-200">AWAITING CONFIRMATION</span>
+</div>
+<div class="w-1/2 h-full relative overflow-hidden">
+<img alt="Alert red fox looking directly forward against dark studio backdrop" class="w-full h-full object-cover scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1V2khgn_24rEodE4VaxF8jDrmhvEOKhzPgCnlhI-g-HE9-doyINI9hacAk1ApywZ0m2A2NPvPvBtEpR2SzAdHgAXRHsHl9W7OWrLUtIx4kz1xa6Nr1JGRhpZha-jqLyBLwMumOn0WNvQXobaqqkDoZwZkvLbcZfKLqHuso0lz-WtPjxY-GOiESyy6XePhGNMjv8ESKHt5ydLF7gpNkhrqXAKJPKUi7WOD7rzZItLCxfbLvu53MiC8ypldgz"/>
+<div class="absolute inset-0 bg-gradient-to-r from-transparent to-[#0B132B]"></div>
+</div>
+<div class="w-1/2 p-4 flex flex-col justify-between h-full relative z-10">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-label text-xs font-black border border-sky-400/50">
+              TARGET B
+            </span>
+</div>
+<div>
+<p class="font-headline font-bold text-lg text-sky-200">
+              Clever Red Animal
+            </p>
+<p class="font-body text-xs text-sky-100/70 mt-0.5">
+              Bushy white-tipped tail and sharp ears.
+            </p>
+</div>
+<div class="flex items-center justify-between text-xs font-label text-sky-300 font-bold pt-2 border-t border-sky-400/30">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">link</span>
+              LINKED TO "FOX"
+            </span>
+<span class="material-symbols-outlined text-base text-sky-400" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+<!-- Photo Card C: TIGER (Shuffled Target C) -->
+<div class="group relative rounded-2xl overflow-hidden bg-[#0B132B] border-2 border-[#1E293B] hover:border-secondary/70 h-[175px] transition-all duration-200 cursor-pointer flex items-center shadow-lg">
+<div class="w-1/2 h-full relative overflow-hidden">
+<img alt="Regal Bengal tiger sitting proudly against dark studio backdrop" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" src="https://lh3.googleusercontent.com/aida/AEtjO1WrPpmwaNeDfqX-Sk0KHo6-0uUmBERulu5qGIb7ksMp2134u0Yx-agUrcB6zZG2-EebRKOyVnIctpLMUcW9eSAgJo_aOZSQZ5-uMRvARju6r2VXs17AcSCd1Yvsf9TjTSx0iFRyd0WDMyKc0KdflESC-xSS9WVB__XLIt1o-XrSZUodhZxuAWTDs_H5doKkhN7bUsuFTK49oa638nJAxlaM7iVYDWqOQga_ehe12BzIKGrf9aj3JkfKNnY"/>
+<div class="absolute inset-0 bg-gradient-to-r from-transparent to-[#0B132B]/90"></div>
+</div>
+<div class="w-1/2 p-4 flex flex-col justify-between h-full relative z-10">
+<div class="flex items-center justify-between">
+<span class="px-3 py-1 rounded-lg bg-surface-container text-on-surface font-label text-xs font-bold border border-outline-variant">
+              TARGET C
+            </span>
+<span class="text-xs font-label text-on-surface-variant">Apex Predator</span>
+</div>
+<div>
+<p class="font-headline font-bold text-base text-on-surface group-hover:text-secondary transition-colors">
+              Striped Orange Predator
+            </p>
+<p class="font-body text-xs text-on-surface-variant mt-0.5 line-clamp-1">
+              Powerful paws and distinct black stripes.
+            </p>
+</div>
+<div class="flex items-center justify-between text-xs font-label text-on-surface-variant pt-2 border-t border-outline-variant/40">
+<span>READY TO MATCH</span>
+<span class="material-symbols-outlined text-sm text-outline group-hover:text-secondary transition-colors">radio_button_unchecked</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- ==================== BOTTOM CLASSROOM ACTION HUD BAR ==================== -->
+<footer class="w-full bg-[#0A0A12] border-t border-outline-variant px-8 py-3.5 flex items-center justify-between flex-shrink-0 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+<!-- Left Progress Tracker (Matches 0 of 3) -->
+<div class="flex items-center gap-4">
+<div class="flex flex-col">
+<span class="font-label text-[11px] font-bold text-on-surface-variant tracking-wider uppercase">PAIRS MATCHED</span>
+<span class="font-headline text-lg font-black text-on-surface tracking-tight">0 OF 3 COMPLETED</span>
+</div>
+<div class="flex items-center gap-2 pl-2">
+<!-- Pip 1 (Active/pulsing) -->
+<div class="w-6 h-6 rounded-full bg-sky-400/20 border-2 border-sky-400 flex items-center justify-center shadow-[0_0_8px_rgba(56,189,248,0.5)]">
+<span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+</div>
+<!-- Pip 2 (Pending) -->
+<div class="w-6 h-6 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+</div>
+<!-- Pip 3 (Pending) -->
+<div class="w-6 h-6 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+</div>
+</div>
+</div>
+<!-- Center Classroom Cue & Live Score -->
+<div class="flex items-center gap-6">
+<!-- Teacher Cue Banner -->
+<div class="hidden md:flex items-center gap-2.5 px-4 py-2 rounded-xl bg-[#111C3D] border border-cyan-400/30 text-on-surface shadow-[0_0_12px_rgba(0,255,204,0.15)]">
+<span class="text-secondary font-bold text-base">💡</span>
+<span class="font-body text-sm font-medium">
+<strong class="text-secondary font-semibold">Teacher Cue:</strong> "Find the clever red animal! Alice, tap your answer."
+        </span>
+</div>
+<!-- Class Score Indicator -->
+<div class="px-4 py-1.5 rounded-xl bg-surface-container border border-outline-variant flex items-center gap-2.5">
+<span class="material-symbols-outlined text-tertiary text-lg" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+<div class="text-left">
+<div class="font-label text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">CLASS SCORE</div>
+<div class="font-headline text-sm font-extrabold text-on-surface">
+            620 PTS <span class="text-emerald-400 font-label text-xs font-bold">(+50 PTS)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Primary CTA: Sole Hot Pink Accent (#FF2E79) -->
+<div class="flex items-center gap-3">
+<button class="px-7 py-3 rounded-xl bg-primary text-white font-headline font-extrabold text-base tracking-wider flex items-center gap-3 border border-pink-400/60 glow-pink-btn hover:brightness-110 active:scale-95 transition-all duration-150 cursor-pointer">
+<span>CHECK MATCH</span>
+<span class="material-symbols-outlined font-black text-xl">arrow_forward</span>
+</button>
+</div>
+</footer>
+</body></html>

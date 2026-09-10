@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+
+<html class="dark h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Classroom ESL Spelling Bee — Typing State</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Sora:wght@600;700;800&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#0f0f1a",
+            "secondary-fixed-dim": "#00e6b8",
+            "on-primary": "#1a0010",
+            background: "#0a0a12",
+            "surface-variant": "#1e1e30",
+            "surface-container-low": "#111118",
+            "on-secondary-fixed": "#001a1a",
+            "secondary-container": "#004d3d",
+            "surface-bright": "#1a1a2e",
+            "error-container": "#3d0f0f",
+            "on-primary-fixed": "#3d0020",
+            "secondary-fixed": "#c0fff4",
+            "on-tertiary-fixed-variant": "#665200",
+            "on-surface": "#e8e0f0",
+            "on-secondary-fixed-variant": "#004d4d",
+            "on-tertiary-fixed": "#1a1000",
+            "on-primary-fixed-variant": "#8c0038",
+            "tertiary-fixed-dim": "#ffe04a",
+            "on-secondary-container": "#c0fff4",
+            "on-error-container": "#ffa0a0",
+            "on-error": "#1a0000",
+            "primary-container": "#b3004e",
+            "surface-container-highest": "#28283e",
+            "inverse-surface": "#e8e0f0",
+            "surface-tint": "#ff2d78",
+            secondary: "#00ffcc",
+            "primary-fixed": "#ffe0ec",
+            tertiary: "#ffe04a",
+            "inverse-on-surface": "#0a0a12",
+            "primary-fixed-dim": "#ff80aa",
+            "tertiary-container": "#665200",
+            "surface-container-lowest": "#0a0a12",
+            "outline-variant": "#302840",
+            "on-tertiary": "#1a1000",
+            primary: "#ff2d78",
+            "on-secondary": "#001a1a",
+            error: "#ff4444",
+            "surface-container": "#141422",
+            "on-tertiary-container": "#fff0c0",
+            "on-surface-variant": "#a098b0",
+            "on-background": "#e8e0f0",
+            "inverse-primary": "#8c0038",
+            "surface-container-high": "#1e1e30",
+            outline: "#5a5068",
+            "tertiary-fixed": "#fff0c0",
+            "on-primary-container": "#ffe0ec",
+            "surface-dim": "#0f0f1a",
+            /* Classroom projector specific palette extensions */
+            "proj-bg": "#070C18",
+            "proj-card": "#0B132B",
+            "proj-card-alt": "#111C3D",
+            "proj-border": "#1E293B",
+            "proj-border-light": "#334155",
+            "neon-cyan": "#38BDF8",
+            "neon-emerald": "#10B981",
+            "neon-amber": "#F59E0B",
+            "neon-pink": "#FF2E79"
+          },
+          borderRadius: {
+            DEFAULT: "0.125rem",
+            lg: "0.25rem",
+            xl: "0.5rem",
+            "2xl": "1rem",
+            "3xl": "1.5rem",
+            full: "9999px"
+          },
+          fontFamily: {
+            headline: ["Sora", "sans-serif"],
+            display: ["Sora", "sans-serif"],
+            body: ["Inter", "sans-serif"],
+            label: ["Space Grotesk", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+    
+    /* Projector Grid Texture */
+    .projector-grid {
+      background-color: #070C18;
+      background-image: 
+        radial-gradient(circle at 50% 25%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 85% 80%, rgba(255, 46, 121, 0.06) 0%, transparent 50%),
+        linear-gradient(rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+    }
+
+    /* Glow utilities */
+    .glow-cyan-card {
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25), inset 0 0 15px rgba(56, 189, 248, 0.12);
+    }
+    .glow-amber-active {
+      box-shadow: 0 0 28px rgba(245, 158, 11, 0.45), inset 0 0 16px rgba(245, 158, 11, 0.2);
+    }
+    .glow-pink-btn {
+      box-shadow: 0 0 24px rgba(255, 46, 121, 0.45);
+    }
+    .key-cap-bevel {
+      box-shadow: 0 6px 0 #080e1e, 0 10px 18px rgba(0, 0, 0, 0.6);
+    }
+    .key-cap-bevel:active {
+      box-shadow: 0 2px 0 #080e1e, 0 4px 8px rgba(0, 0, 0, 0.4);
+      transform: translateY(4px);
+    }
+    .key-pink-bevel {
+      box-shadow: 0 6px 0 #8c0038, 0 10px 20px rgba(255, 46, 121, 0.4);
+    }
+    .key-pink-bevel:active {
+      box-shadow: 0 2px 0 #8c0038, 0 4px 8px rgba(255, 46, 121, 0.3);
+      transform: translateY(4px);
+    }
+  </style>
+</head>
+<body class="bg-proj-bg text-on-surface font-body h-screen w-screen overflow-hidden select-none m-0 p-0 projector-grid flex items-center justify-center">
+<!-- 16:9 Cinema Container (1920x1080 scalable viewport anchor) -->
+<main class="w-full h-full max-w-[1920px] max-h-[1080px] flex flex-col justify-between px-8 py-4 relative">
+<!-- 1. TOP HEADER APP BAR (Shared Anchor + Classroom HUD) -->
+<header class="w-full flex items-center justify-between h-14 shrink-0 border-b border-outline-variant/60 pb-3">
+<!-- Left Anchor & Overscan Offset Zone (200px clear safeguard) -->
+<div class="flex items-center gap-4 min-w-[280px]">
+<!-- Overscan-safe Stage Mode Pill -->
+<div class="flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/70 border border-neon-cyan/50 text-neon-cyan text-xs font-label tracking-wider shadow-[0_0_12px_rgba(56,189,248,0.25)]">
+<span class="w-2 h-2 rounded-full bg-neon-cyan animate-ping"></span>
+<span>PHASE: SPELL IT</span>
+</div>
+<!-- Brand Name from Source Shared Components JSON -->
+<div class="flex items-center gap-2 font-headline font-bold text-2xl text-primary tracking-wide">
+<span class="material-symbols-outlined fill-icon text-primary text-2xl" data-icon="school">school</span>
+<span>Word Search</span>
+<span class="text-xs font-label uppercase px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant tracking-normal font-medium">Classroom ESL</span>
+</div>
+</div>
+<!-- Center Live Badges -->
+<div class="flex items-center gap-3">
+<!-- Round Badge from Shared Component JSON trailing_secondary_action -->
+<div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-proj-card border border-proj-border text-sm font-label text-on-surface">
+<span class="material-symbols-outlined text-secondary text-base" data-icon="sports_score">sports_score</span>
+<span class="font-bold text-secondary tracking-wide">Round 1 · Starter</span>
+<span class="text-xs text-on-surface-variant/80 font-normal">of 5</span>
+</div>
+<!-- Student Turn Active Card -->
+<div class="flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-proj-card to-proj-card-alt border border-neon-cyan/40 text-sm">
+<span class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-cyan opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-neon-cyan"></span>
+</span>
+<span class="text-on-surface-variant font-label text-xs uppercase">Speaker:</span>
+<span class="font-headline font-bold text-white tracking-wide">Alice Walker</span>
+<span class="text-xs px-2 py-0.5 rounded-full bg-surface-variant text-neon-cyan font-label">Table 3</span>
+</div>
+<!-- Streak Badge -->
+<div class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-950/40 border border-neon-amber/50 text-neon-amber text-xs font-label font-bold">
+<span class="text-sm">🔥</span>
+<span>3 IN A ROW</span>
+</div>
+<!-- Class Score -->
+<div class="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-proj-card border border-proj-border-light text-xs font-label">
+<span class="text-on-surface-variant">ROOM SCORE</span>
+<span class="font-headline font-extrabold text-base text-neon-emerald">520 PTS</span>
+</div>
+</div>
+<!-- Trailing System Actions from Shared Components JSON -->
+<div class="flex items-center gap-2 min-w-[220px] justify-end">
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-label mr-2">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+<span>Live Synced</span>
+</div>
+<!-- Trailing Icon Actions from JSON: ["volume_up", "settings", "fullscreen"] -->
+<button aria-label="Audio volume" class="p-2 rounded-xl bg-proj-card border border-proj-border hover:border-neon-cyan/50 text-on-surface-variant hover:text-primary transition-all active:scale-95" title="Audio volume">
+<span class="material-symbols-outlined text-xl" data-icon="volume_up">volume_up</span>
+</button>
+<button aria-label="Settings" class="p-2 rounded-xl bg-proj-card border border-proj-border hover:border-neon-cyan/50 text-on-surface-variant hover:text-primary transition-all active:scale-95" title="Settings">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+<button aria-label="Toggle Fullscreen" class="p-2 rounded-xl bg-proj-card border border-proj-border hover:border-neon-cyan/50 text-on-surface-variant hover:text-primary transition-all active:scale-95" title="Toggle Fullscreen">
+<span class="material-symbols-outlined text-xl" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</header>
+<!-- 2. COMPACT DISAMBIGUATION SECTION (Projector Optimized Visual Clue) -->
+<section class="w-full h-32 shrink-0 my-2 px-2 flex items-center justify-between">
+<div class="w-full h-full bg-proj-card/90 rounded-2xl border border-proj-border flex items-center p-3 gap-6 shadow-lg backdrop-blur-sm relative overflow-hidden">
+<!-- Left Thumbnail: Crisp Target Animal (Using User-Provided Image Placeholder) -->
+<div class="relative h-full aspect-[16/10] rounded-xl overflow-hidden border border-proj-border-light/80 shrink-0 shadow-inner group">
+<img alt="Bengal Tiger Target Clue" class="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500" src="https://lh3.googleusercontent.com/aida/AEtjO1WrPpmwaNeDfqX-Sk0KHo6-0uUmBERulu5qGIb7ksMp2134u0Yx-agUrcB6zZG2-EebRKOyVnIctpLMUcW9eSAgJo_aOZSQZ5-uMRvARju6r2VXs17AcSCd1Yvsf9TjTSx0iFRyd0WDMyKc0KdflESC-xSS9WVB__XLIt1o-XrSZUodhZxuAWTDs_H5doKkhN7bUsuFTK49oa638nJAxlaM7iVYDWqOQga_ehe12BzIKGrf9aj3JkfKNnY"/>
+<div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-1.5 flex items-center justify-between">
+<span class="text-[10px] font-label font-bold text-neon-cyan tracking-wider px-1.5 py-0.5 rounded bg-black/60 border border-neon-cyan/30">TARGET #01</span>
+<span class="text-[10px] font-label text-slate-300 font-medium tracking-wide">WILDLIFE</span>
+</div>
+</div>
+<!-- Center: Pronunciation & Auditory Assistance -->
+<div class="flex flex-col justify-center gap-2 flex-grow max-w-2xl">
+<div class="flex items-center gap-3">
+<!-- Spacebar Audio Replay Pill -->
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-950/50 hover:bg-sky-900/60 border border-neon-cyan/60 text-neon-cyan hover:text-white font-label font-bold text-sm tracking-wide transition-all shadow-[0_0_12px_rgba(56,189,248,0.2)] active:scale-95">
+<span class="material-symbols-outlined fill-icon text-lg" data-icon="volume_up">volume_up</span>
+<span>REPLAY SOUND</span>
+<span class="text-[10px] px-1.5 py-0.5 rounded bg-neon-cyan/20 border border-neon-cyan/40 text-white font-mono">[SPACE]</span>
+</button>
+<!-- Syllable breakdown badge -->
+<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-proj-card-alt border border-proj-border text-xs font-label">
+<span class="text-on-surface-variant uppercase text-[10px]">Syllables:</span>
+<span class="font-headline font-bold text-white tracking-widest text-sm">TI · GER</span>
+<span class="text-[10px] text-emerald-400 font-semibold">(2)</span>
+</div>
+<!-- IPA Phonetic chip -->
+<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-proj-card-alt border border-proj-border text-xs font-mono text-neon-cyan">
+<span class="text-on-surface-variant font-label text-[10px]">IPA:</span>
+<span class="font-semibold text-sm tracking-wider">/ˈtaɪ.ɡər/</span>
+</div>
+</div>
+<!-- Child-Friendly ESL Clue Sentence -->
+<p class="text-sm lg:text-base text-slate-200 font-body leading-snug flex items-center gap-2">
+<span class="material-symbols-outlined text-neon-amber text-lg shrink-0" data-icon="lightbulb">lightbulb</span>
+<span>Clue: <strong class="text-white font-semibold">"A large orange and black striped wild cat that can run fast and roar loud."</strong></span>
+</p>
+</div>
+<!-- Right: Progress Meter inside Round -->
+<div class="hidden xl:flex flex-col items-end justify-center pr-4 pl-6 border-l border-proj-border shrink-0 min-w-[200px]">
+<div class="text-[11px] font-label text-on-surface-variant uppercase tracking-wider mb-1">Target Word Length</div>
+<div class="flex items-baseline gap-1">
+<span class="font-headline font-extrabold text-3xl text-neon-cyan tracking-tight">5</span>
+<span class="font-label text-slate-400 text-sm">Letters</span>
+</div>
+<div class="flex gap-1.5 mt-2">
+<span class="w-3 h-1.5 rounded-full bg-neon-cyan"></span>
+<span class="w-3 h-1.5 rounded-full bg-neon-cyan"></span>
+<span class="w-3 h-1.5 rounded-full bg-neon-amber animate-pulse"></span>
+<span class="w-3 h-1.5 rounded-full bg-slate-700"></span>
+<span class="w-3 h-1.5 rounded-full bg-slate-700"></span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. CENTER — LETTER SLOT RUNWAY (Massive Classroom Projector Scale) -->
+<section class="flex flex-col items-center justify-center py-2 shrink-0">
+<!-- Letter Slots Row: T - I - G - _ - _ -->
+<div aria-label="Word spelling slots" class="flex items-center justify-center gap-4 lg:gap-6" role="region">
+<!-- Slot 1: 'T' (Locked/Confirmed Neon Cyan) -->
+<div class="w-24 h-28 lg:w-28 lg:h-32 rounded-2xl bg-proj-card-alt border-2 border-neon-cyan flex flex-col items-center justify-center relative glow-cyan-card transition-all">
+<span class="absolute top-2 left-2 text-[10px] font-label font-bold text-neon-cyan/80">01</span>
+<span class="font-headline font-extrabold text-5xl lg:text-6xl text-white tracking-wider">T</span>
+<div class="absolute -bottom-2.5 px-2 py-0.5 rounded-full bg-neon-cyan text-on-secondary text-[10px] font-label font-extrabold tracking-wider flex items-center gap-0.5 shadow-sm">
+<span class="material-symbols-outlined text-xs" data-icon="check">check</span>
+<span>LOCKED</span>
+</div>
+</div>
+<!-- Slot 2: 'I' (Locked/Confirmed Neon Cyan) -->
+<div class="w-24 h-28 lg:w-28 lg:h-32 rounded-2xl bg-proj-card-alt border-2 border-neon-cyan flex flex-col items-center justify-center relative glow-cyan-card transition-all">
+<span class="absolute top-2 left-2 text-[10px] font-label font-bold text-neon-cyan/80">02</span>
+<span class="font-headline font-extrabold text-5xl lg:text-6xl text-white tracking-wider">I</span>
+<div class="absolute -bottom-2.5 px-2 py-0.5 rounded-full bg-neon-cyan text-on-secondary text-[10px] font-label font-extrabold tracking-wider flex items-center gap-0.5 shadow-sm">
+<span class="material-symbols-outlined text-xs" data-icon="check">check</span>
+<span>LOCKED</span>
+</div>
+</div>
+<!-- Slot 3: 'G' (JUST TYPED! Energetic Amber Snap Glow) -->
+<div class="w-24 h-28 lg:w-28 lg:h-32 rounded-2xl bg-amber-950/40 border-2 border-neon-amber flex flex-col items-center justify-center relative glow-amber-active scale-105 transition-all">
+<span class="absolute top-2 left-2 text-[10px] font-label font-bold text-neon-amber">03</span>
+<span class="font-headline font-extrabold text-5xl lg:text-6xl text-neon-amber tracking-wider animate-pulse">G</span>
+<div class="absolute -top-3.5 px-2.5 py-0.5 rounded-full bg-neon-amber text-black text-[10px] font-label font-black tracking-wider flex items-center gap-0.5 shadow-md">
+<span>NEW!</span>
+</div>
+<div class="absolute -bottom-2.5 px-2.5 py-0.5 rounded-full bg-neon-amber text-black text-[10px] font-label font-black tracking-wider flex items-center gap-1 shadow-md">
+<span class="w-1.5 h-1.5 rounded-full bg-black animate-ping"></span>
+<span>ACTIVE</span>
+</div>
+</div>
+<!-- Slot 4: '_' (Current Active Target Slot: Pulsing dashed sky border) -->
+<div class="w-24 h-28 lg:w-28 lg:h-32 rounded-2xl bg-proj-card/60 border-2 border-dashed border-neon-cyan/80 flex flex-col items-center justify-center relative shadow-[0_0_20px_rgba(56,189,248,0.18)] animate-pulse">
+<span class="absolute top-2 left-2 text-[10px] font-label font-bold text-neon-cyan/70">04</span>
+<!-- Blinking cursor bar for typing state -->
+<span class="w-8 h-1.5 rounded-full bg-neon-cyan animate-bounce"></span>
+<span class="absolute bottom-2 text-[11px] font-label text-neon-cyan font-bold tracking-wider">NEXT</span>
+</div>
+<!-- Slot 5: '_' (Empty Pending Slot: Subtle muted border) -->
+<div class="w-24 h-28 lg:w-28 lg:h-32 rounded-2xl bg-proj-card/30 border-2 border-dashed border-proj-border flex flex-col items-center justify-center relative">
+<span class="absolute top-2 left-2 text-[10px] font-label font-medium text-slate-600">05</span>
+<span class="w-6 h-1 rounded-full bg-slate-700"></span>
+</div>
+</div>
+<!-- Instruction Helper Caption (Legible from 8 meters) -->
+<div class="flex items-center gap-2 mt-4 text-slate-400 font-label text-sm tracking-wide">
+<span class="material-symbols-outlined text-base text-neon-cyan" data-icon="touch_app">touch_app</span>
+<span>Tap on-screen letters or physical keyboard to spell</span>
+<span class="text-slate-600 font-bold">•</span>
+<span>Press <span class="px-2 py-0.5 rounded bg-proj-card border border-proj-border text-slate-300 font-mono text-xs">[BACKSPACE]</span> to undo</span>
+</div>
+</section>
+<!-- 4. BOTTOM — FULL-WIDTH TOUCH QWERTY KEYBOARD (Classroom Projector Scale) -->
+<section class="w-full max-w-[1720px] mx-auto bg-proj-card/85 p-3.5 rounded-3xl border border-proj-border/90 shadow-2xl backdrop-blur-md shrink-0 mb-1">
+<div class="flex flex-col gap-2.5 w-full items-center">
+<!-- ROW 1: 10 Keys (Q W E R T Y U I O P) -->
+<div class="flex justify-center gap-2 lg:gap-3 w-full">
+<!-- Key Q -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            Q
+          </button>
+<!-- Key W -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            W
+          </button>
+<!-- Key E -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            E
+          </button>
+<!-- Key R -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            R
+          </button>
+<!-- Key T (Used / Locked in slot 1) -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#0B2A4A] to-[#051C33] border-2 border-neon-cyan text-neon-cyan font-headline font-extrabold text-2xl lg:text-3xl flex flex-col items-center justify-center key-cap-bevel relative shadow-[0_0_12px_rgba(56,189,248,0.3)]">
+<span>T</span>
+<span class="w-1.5 h-1.5 rounded-full bg-neon-cyan mt-0.5"></span>
+</button>
+<!-- Key Y -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            Y
+          </button>
+<!-- Key U -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            U
+          </button>
+<!-- Key I (Used / Locked in slot 2) -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#0B2A4A] to-[#051C33] border-2 border-neon-cyan text-neon-cyan font-headline font-extrabold text-2xl lg:text-3xl flex flex-col items-center justify-center key-cap-bevel relative shadow-[0_0_12px_rgba(56,189,248,0.3)]">
+<span>I</span>
+<span class="w-1.5 h-1.5 rounded-full bg-neon-cyan mt-0.5"></span>
+</button>
+<!-- Key O -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            O
+          </button>
+<!-- Key P -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            P
+          </button>
+</div>
+<!-- ROW 2: 9 Keys Centered (A S D F G H J K L) -->
+<div class="flex justify-center gap-2 lg:gap-3 w-full">
+<!-- Key A -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            A
+          </button>
+<!-- Key S -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            S
+          </button>
+<!-- Key D -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            D
+          </button>
+<!-- Key F -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            F
+          </button>
+<!-- Key G (JUST PRESSED! Hot Amber Active Keycap) -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#3D2605] to-[#241500] border-2 border-neon-amber text-neon-amber font-headline font-extrabold text-2xl lg:text-3xl flex flex-col items-center justify-center key-cap-bevel scale-105 shadow-[0_0_18px_rgba(245,158,11,0.5)]">
+<span>G</span>
+<span class="w-1.5 h-1.5 rounded-full bg-neon-amber mt-0.5 animate-ping"></span>
+</button>
+<!-- Key H -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            H
+          </button>
+<!-- Key J -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            J
+          </button>
+<!-- Key K -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            K
+          </button>
+<!-- Key L -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            L
+          </button>
+</div>
+<!-- ROW 3: Backspace + 7 Letters (Z X C V B N M) + Primary CHECK Hot-Pink Key -->
+<div class="flex justify-center gap-2 lg:gap-3 w-full">
+<!-- Backspace Key (Wide tactile action) -->
+<button class="flex-[1.5] max-w-[210px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#1E293B] to-[#0F172A] border border-slate-600 hover:border-slate-400 text-slate-200 font-label font-bold text-base lg:text-lg flex items-center justify-center gap-2 key-cap-bevel transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="backspace">backspace</span>
+<span>ERASE</span>
+</button>
+<!-- Key Z -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            Z
+          </button>
+<!-- Key X -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            X
+          </button>
+<!-- Key C -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            C
+          </button>
+<!-- Key V -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            V
+          </button>
+<!-- Key B -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            B
+          </button>
+<!-- Key N -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            N
+          </button>
+<!-- Key M -->
+<button class="flex-1 max-w-[136px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-[#162244] to-[#0D1630] border border-proj-border-light hover:border-neon-cyan text-white font-headline font-bold text-2xl lg:text-3xl flex items-center justify-center key-cap-bevel transition-transform">
+            M
+          </button>
+<!-- Hot Pink Primary Accent CHECK Key (#FF2E79 / primary) -->
+<button class="flex-[1.8] max-w-[250px] h-14 lg:h-16 rounded-2xl bg-gradient-to-b from-primary to-[#b3004e] border border-primary-fixed text-white font-headline font-extrabold text-lg lg:text-xl flex items-center justify-center gap-2 key-pink-bevel glow-pink-btn active:scale-95 transition-all">
+<span class="material-symbols-outlined fill-icon text-2xl" data-icon="check_circle">check_circle</span>
+<span>CHECK WORD</span>
+<span class="text-xs px-2 py-0.5 rounded bg-black/30 font-label tracking-wide">[ENTER]</span>
+</button>
+</div>
+</div>
+</section>
+<!-- 5. FOOTER HUD (Slim Bottom Bar ~h-12) -->
+<footer class="w-full flex items-center justify-between h-12 shrink-0 border-t border-outline-variant/60 pt-2 px-2 text-xs font-label">
+<!-- Left: Teacher Cue Prompt -->
+<div class="flex items-center gap-2 text-slate-300">
+<span class="flex items-center justify-center w-6 h-6 rounded-lg bg-amber-500/20 text-neon-amber">
+<span class="material-symbols-outlined text-sm" data-icon="tips_and_updates">tips_and_updates</span>
+</span>
+<span>
+<strong class="text-neon-amber font-bold">Teacher Cue:</strong> Have Alice pronounce each phoneme <strong class="text-white font-semibold">/t/ - /aɪ/ - /ɡ/</strong> out loud as she keys in!
+        </span>
+</div>
+<!-- Center: Device / Interactive Whiteboard Status -->
+<div class="hidden md:flex items-center gap-4 text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span>1080p SmartBoard Mode</span>
+</div>
+<span>•</span>
+<div class="flex items-center gap-1">
+<span>Latency:</span>
+<span class="text-neon-cyan font-mono font-bold">12ms</span>
+</div>
+</div>
+<!-- Right: Classroom Keyboard Shortcut Legend -->
+<div class="flex items-center gap-3 text-slate-400">
+<div class="flex items-center gap-1">
+<kbd class="px-1.5 py-0.5 rounded bg-proj-card border border-proj-border text-slate-200 font-mono text-[11px]">[A-Z]</kbd>
+<span>Type</span>
+</div>
+<span>•</span>
+<div class="flex items-center gap-1">
+<kbd class="px-1.5 py-0.5 rounded bg-proj-card border border-proj-border text-slate-200 font-mono text-[11px]">[BACKSPACE]</kbd>
+<span>Erase</span>
+</div>
+<span>•</span>
+<div class="flex items-center gap-1">
+<kbd class="px-1.5 py-0.5 rounded bg-primary text-white border border-primary-fixed font-mono text-[11px]">[ENTER]</kbd>
+<span class="text-primary font-bold">Submit</span>
+</div>
+</div>
+</footer>
+</main>
+<!-- Lightweight Micro-Interactions Script for Classroom Demonstration -->
+<script>
+    document.addEventListener('keydown', (e) => {
+      // Audio spacebar feedback mock
+      if (e.code === 'Space') {
+        e.preventDefault();
+        const replayBtn = document.querySelector('button:has(.material-symbols-outlined[data-icon="volume_up"])');
+        if (replayBtn) {
+          replayBtn.classList.add('scale-95', 'ring-2', 'ring-neon-cyan');
+          setTimeout(() => {
+            replayBtn.classList.remove('scale-95', 'ring-2', 'ring-neon-cyan');
+          }, 180);
+        }
+      }
+    });
+  </script>
+</body></html>

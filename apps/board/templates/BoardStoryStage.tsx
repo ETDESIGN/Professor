@@ -355,6 +355,14 @@ const BoardStoryStage = ({ data }: { data: any }) => {
     return () => clearTimeout(t);
   }, [slideDone]);
 
+  // Local panel nav (same rules as the NEXT_PANEL/PREV_PANEL remote cases)
+  const nextPanel = () => setActivePanel(p => {
+    if (p < totalContentPanels) return p + 1;
+    if (p === totalContentPanels && hasComprehension) return p + 1;
+    return p;
+  });
+  const prevPanel = () => setActivePanel(p => Math.max(p - 1, -1));
+
   // ── Character color lookup ───────────────────────────────────────────
   const getCharColor = (name: string) => {
     const idx = characters.findIndex((c: any) => c.name === name);
@@ -368,7 +376,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
       const cleaned = tok.replace(/[^a-zA-Z']/g, '').toLowerCase();
       const v = vocabMap.get(cleaned);
       if (v && cleaned) {
-        return <span key={i} className="font-bold text-amber-300 underline decoration-amber-500/50 decoration-2 underline-offset-4">{tok}</span>;
+        return <span key={i} className="font-bold text-emerald-400 underline decoration-emerald-400/50 underline-offset-8">{tok}</span>;
       }
       return <span key={i}>{tok}</span>;
     });
@@ -436,59 +444,162 @@ const BoardStoryStage = ({ data }: { data: any }) => {
           </motion.div>
         )}
 
-        {/* ═══ STORY PAGE (full-bleed scene + floating dialogue) ═══ */}
+        {/* ═══ STORY PAGE — Reading Theater per stitch/07-story-stage/1-reading-theater
+              (owner-directed two-column: 38% dialogue panel / 62% uncropped art) ═══ */}
         {isPage && current && (
           <motion.div key={`page-${activePanel}`} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="absolute inset-0">
-            <div className="absolute inset-0">
-              {current.imageUrl ? (
-                <img src={current.imageUrl} className="w-full h-full object-cover" alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
-              ) : (
-                <div className="w-full h-full" style={{ background: 'linear-gradient(160deg, #3A2A16, #1F1408)' }} />
-              )}
-              <div className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: 'linear-gradient(to top, rgba(20,14,8,.92), rgba(20,14,8,.5) 60%, transparent)' }} />
-              {/* Right-edge vignette: the neighbouring-bubble sliver of the
-                  full-bleed scene crop reads as a deliberate fade. */}
-              <div className="absolute inset-y-0 right-0 w-[12%] bg-gradient-to-l from-[rgba(20,14,8,0.55)] to-transparent pointer-events-none" />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-6 pb-8">
-              <div className="max-w-3xl mx-auto flex items-end gap-4">
-                {currentSpeaker && (
-                  <div className="flex flex-col items-center shrink-0 -mb-2">
-                    {speakerPortrait ? (
-                      <img src={speakerPortrait} alt={currentSpeaker.name} className="w-16 h-16 rounded-2xl object-cover shadow-xl" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-xl"
-                        style={{ background: `${getCharColor(current.speaker)}25`, border: `2px solid ${getCharColor(current.speaker)}` }}>
-                        {currentSpeaker.emoji || currentSpeaker.name?.charAt(0) || '👤'}
-                      </div>
-                    )}
-                    <span className="font-display text-xs font-bold mt-1" style={{ color: getCharColor(current.speaker) }}>
-                      {current.speaker || currentSpeaker.name}
-                    </span>
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute inset-0 flex flex-col p-2 lg:p-6 bg-[#070C18] ss-grid">
+            <style>{`
+              .ss-grid { background-size: 36px 36px; background-image: linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px); }
+              .ss-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+              .ss-glow { text-shadow: 0 2px 14px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.12); }
+            `}</style>
+
+            {/* Header — the design's title cluster; starts clear of BoardShell's phase pill */}
+            <header className="w-full flex items-center justify-between gap-3 pl-40 lg:pl-48 pr-1 h-10 lg:h-12 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#FF2E79] flex items-center justify-center font-bold text-white text-base lg:text-xl shadow-[0_0_16px_rgba(255,46,121,0.5)] shrink-0">S</div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-bold text-lg lg:text-2xl tracking-wide text-white truncate">Story Stage</h1>
+                    <span className="px-2 py-0.5 rounded bg-[#16234D] border border-white/10 ss-mono text-[10px] lg:text-[11px] font-bold text-slate-300 shrink-0">READING THEATER</span>
                   </div>
-                )}
-                <div className="flex-1 backdrop-blur-md rounded-2xl px-6 py-4" style={{ background: 'rgba(36,26,16,.7)', borderLeft: `3px solid ${getCharColor(current.speaker)}` }}>
-                  <p className="font-display text-3xl font-bold text-amber-50 leading-snug">
-                    "{renderText(current.text || '')}"
-                  </p>
-                  <button onClick={() => playAudioUrl(current.audio, current.text)} className="mt-2 inline-flex items-center gap-2 text-sm font-bold text-amber-300/70 active:scale-95">
-                    <Volume2 size={16} /> Read Page
-                  </button>
+                  <p className="ss-mono text-[9px] lg:text-[10px] text-slate-400 tracking-wider truncate uppercase">{data.title || 'Story'}</p>
                 </div>
               </div>
-            </div>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-              {pages.map((_: any, i: number) => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-all ${i === activePanel ? 'bg-amber-400 scale-150' : i < activePanel ? 'bg-amber-600' : 'bg-white/20'}`} />
-              ))}
-            </div>
-            {activePanel < totalContentPanels - 1 && pages[activePanel + 1] && (
-              <div className="absolute top-4 right-4 max-w-[200px] opacity-40">
-                <p className="text-xs text-amber-400/50 uppercase tracking-widest mb-1">Next…</p>
-                <p className="text-sm text-slate-400 italic truncate">{pages[activePanel + 1].text || '...'}</p>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B] border border-white/10">
+                  <span className="ss-mono text-[10px] lg:text-xs text-slate-300">
+                    {pickedStudent ? <>{pickedStudent.name}: <strong className="text-white">read this line</strong></> : <>Chorus: <strong className="text-white">repeat together</strong></>}
+                  </span>
+                </div>
               </div>
-            )}
+            </header>
+
+            {/* MAIN — two-column 38/62 */}
+            <main className="w-full flex-1 min-h-0 flex flex-col sm:flex-row gap-2 lg:gap-6 lg:my-4">
+              {/* LEFT 38%: reading theater */}
+              <section className="sm:w-[38%] flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-3 lg:p-7 shadow-2xl overflow-hidden min-h-0">
+                {/* Speaker identity */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-3 lg:pb-5 gap-2">
+                  <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+                    <div className="relative shrink-0">
+                      <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-full p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+                        style={{ background: `linear-gradient(to top right, ${getCharColor(current.speaker)}, #F59E0B)` }}>
+                        <div className="w-full h-full rounded-full bg-[#111C3D] flex items-center justify-center overflow-hidden border-2 border-[#070C18]">
+                          {speakerPortrait ? (
+                            <img src={speakerPortrait} alt={currentSpeaker?.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-xl lg:text-3xl">{currentSpeaker?.emoji || currentSpeaker?.name?.charAt(0) || '👤'}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 lg:h-4 lg:w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 lg:h-4 lg:w-4 bg-emerald-500 border-2 border-[#070C18]" />
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="ss-mono text-[9px] lg:text-xs uppercase tracking-widest text-slate-400 font-semibold block leading-tight">SPEAKING NOW</span>
+                      <h2 className="font-bold text-lg lg:text-2xl xl:text-3xl tracking-wide truncate leading-tight"
+                        style={{ color: getCharColor(current.speaker) }}>
+                        {(current.speaker || currentSpeaker?.name || 'Narrator').toUpperCase()}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-1 bg-[#111C3D] border border-white/10 rounded-lg shrink-0">
+                    <span className="ss-mono text-[9px] lg:text-xs text-slate-300 font-bold">LINE {String(activePanel + 1).padStart(2, '0')} / {String(totalContentPanels).padStart(2, '0')}</span>
+                  </div>
+                </div>
+
+                {/* Dialogue — the design's extra-large chant line */}
+                <div className="flex-1 min-h-0 flex flex-col justify-center py-3 lg:py-6">
+                  <div className="mb-2 lg:mb-3 flex items-center gap-2">
+                    <span className="ss-mono text-[9px] lg:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">Say it together</span>
+                  </div>
+                  <blockquote className="font-bold text-[22px] sm:text-[26px] lg:text-[36px] xl:text-[44px] leading-[1.18] text-white ss-glow tracking-tight">
+                    &ldquo;{renderText(current.text || '')}&rdquo;
+                  </blockquote>
+                </div>
+
+                {/* Replay + book-page progress strip (the design's chunky 28px dots) */}
+                <div className="border-t border-white/10 pt-3 lg:pt-5 space-y-3 lg:space-y-5 shrink-0">
+                  <button onClick={() => playAudioUrl(current.audio, current.text)}
+                    className="w-full flex items-center justify-center gap-2.5 py-2.5 lg:py-3.5 px-4 rounded-xl bg-[#38BDF8]/15 border-2 border-[#38BDF8] text-[#38BDF8] font-bold text-sm lg:text-lg hover:bg-[#38BDF8] hover:text-[#070C18] transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]">
+                    <Volume2 size={20} className="animate-pulse" />
+                    <span>REPLAY AUDIO LINE</span>
+                  </button>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="ss-mono text-[9px] lg:text-xs text-slate-400 font-bold uppercase tracking-wider">STORY PROGRESS</span>
+                      <span className="ss-mono text-[9px] lg:text-xs text-emerald-400 font-bold">{Math.round(((activePanel + 1) / totalContentPanels) * 100)}% COMPLETED</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-1.5 p-2 lg:p-3 bg-[#111C3D] rounded-xl border border-white/5">
+                      {pages.map((_: any, i: number) => (
+                        <React.Fragment key={i}>
+                          <div className={`flex items-center justify-center w-6 h-6 lg:w-7 lg:h-7 rounded-full ss-mono text-[10px] font-black shrink-0
+                            ${i < activePanel ? 'bg-emerald-500 text-[#070C18] shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                              : i === activePanel ? 'bg-[#FF2E79] text-white shadow-[0_0_16px_rgba(255,46,121,0.6)] ring-4 ring-[#FF2E79]/25 animate-pulse'
+                              : 'bg-[#0B132B] border border-white/20 text-slate-400 font-bold'}`}>
+                            {i < activePanel ? '✓' : i + 1}
+                          </div>
+                          {i < pages.length - 1 && (
+                            <div className={`flex-1 h-1 rounded-full ${i < activePanel ? 'bg-emerald-500/50' : 'bg-white/10'}`} />
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* RIGHT 62%: story art — UNCROPPED object-contain (owner rule) */}
+              <section className="sm:w-[62%] flex-1 flex flex-col bg-[#0B132B] border border-white/10 rounded-2xl p-2 lg:p-6 shadow-2xl overflow-hidden min-h-0">
+                <div className="flex items-center justify-between mb-2 lg:mb-4 px-1 shrink-0">
+                  <div className="flex items-center gap-2 px-2.5 py-1 bg-[#111C3D] rounded-lg border border-white/10">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="ss-mono text-[9px] lg:text-xs text-slate-300 font-bold uppercase">SCENE {String(activePanel + 1).padStart(2, '0')}</span>
+                  </div>
+                  <span className="ss-mono text-[9px] lg:text-xs text-slate-400 bg-[#111C3D] px-2.5 py-1 rounded-lg border border-white/10 hidden sm:block">UNCROPPED</span>
+                </div>
+                <div className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-1.5 lg:p-3 relative overflow-hidden shadow-inner group">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-sky-500/10 pointer-events-none" />
+                  {current.imageUrl ? (
+                    <img src={current.imageUrl} alt=""
+                      className="w-full h-full object-contain rounded-lg drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)]"
+                      onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0')} />
+                  ) : (
+                    <div className="w-full h-full rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(160deg, #3A2A16, #1F1408)' }}>
+                      <span className="font-bold text-2xl lg:text-4xl text-amber-300/70">{data.title || 'Story'}</span>
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 right-2 lg:bottom-6 lg:right-6 px-2.5 py-1.5 bg-[#070C18]/85 backdrop-blur border border-white/15 rounded-lg shadow-lg pointer-events-none">
+                    <span className="ss-mono text-[9px] lg:text-[11px] font-bold text-slate-200 uppercase tracking-wider">{data.title || 'Story Stage'}</span>
+                  </div>
+                </div>
+              </section>
+            </main>
+
+            {/* Footer — the design's nav cluster (real prev/next) */}
+            <footer className="w-full flex items-center justify-between gap-3 h-10 lg:h-12 shrink-0 border-t border-white/10 pt-2 lg:pt-3">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#0B132B] rounded-lg border border-white/10 ss-mono text-[10px] text-slate-400">
+                <span>←</span><span>Previous Line</span>
+              </div>
+              <div className="flex items-center gap-2 lg:gap-3 ml-auto">
+                {activePanel > 0 && (
+                  <button onClick={prevPanel}
+                    className="px-3 lg:px-5 py-1.5 lg:py-2.5 rounded-xl bg-[#0B132B] border border-white/15 text-slate-300 font-bold text-xs lg:text-sm hover:text-white hover:border-white/30 transition-all">
+                    Back to Line {activePanel}
+                  </button>
+                )}
+                <button onClick={nextPanel}
+                  className="px-4 lg:px-7 py-1.5 lg:py-2.5 rounded-xl bg-[#FF2E79] text-white font-bold text-sm lg:text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-2">
+                  <span>Next Line</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </footer>
           </motion.div>
         )}
 

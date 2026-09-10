@@ -156,6 +156,10 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/07-story-stage/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes — ZCODE VERSION (head-to-head round 1)
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**IMPLEMENTED 2026-09-11 (reading state of `BoardStoryStage.tsx`)** — first game under the follow-the-design rule from `_WAVE1_RETRO.md`: implementation STARTS from `stitch/07-story-stage/1-reading-theater.html`. The page state (hook / end-card / comprehension states unchanged this round) now renders the design's Reading Theater: 38/62 split, speaker halo + SPEAKING NOW + LINE n/N, 44px chant blockquote with emerald vocab underline, sky REPLAY pill, chunky 28px progress dots, uncropped object-contain art card + ambient gradient, footer Back/hot-pink Next Line (real `nextPanel`/`prevPanel`).
+
+**Fidelity:** design colors/typography adopted verbatim (`#070C18/#0B132B/#111C3D/#16234D`, `#FF2E79`, `#38BDF8`, `#10B981`; Fredoka/Sora/JetBrains Mono via `ss-mono` + app display stack). Stripped: Console-Synced pill, system icon cluster, SPACEBAR tag, Emphasis/Mood chips (no data), response meter, projection-status footer text. Substituted: speaker avatar → `speakerPortrait`/emoji fallback in the design's halo; scene HUD → `SCENE n` (no scene-title data); watermark → story title. Anti-Gravity is implementing its own version into `BoardStoryStage.ag.tsx` (prompt: `prompts/antigravity-07-story-stage.md`) — owner compares, the winner's approach becomes the template.
+
+**Gauntlet:** tsc clean · 762/762 vitest · build clean. Board-capture scripts ready (`scripts/testing/games-v3-ss-shots.ts`); live-session capture pending (fixture board needed an active commander connection — to re-verify in-app with the owner watching).
