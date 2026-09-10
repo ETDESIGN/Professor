@@ -189,6 +189,25 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 **§5 STITCH-RETURNED + QA 2026-09-10** — exported `stitch/22-phonics-arena/{1-sound-duel,2-metered-replay}.{png,html}`. QA verdict: **PASS** (HTML/structural QA; vision spot-checks flaked server-side — final visual gate happens via Playwright board screenshots during implementation, per the F0 process). Structure: two-sided sound duel grid + tier ladder (TIER 2 SOUND ARENA / TIER 3 VOICE CHAMPION) + amber meter for the replay cost. Zero CJK, v3 palette. Implementation may proceed.
 
 *(history: submitted 2026-09-10 via Stitch CLI into project 17415096891547227013.)*
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**IMPLEMENTED 2026-09-10 (v3 redesign of `BoardPhonicsArena.tsx`)** — rebuilt from `stitch/22-phonics-arena/{1-sound-duel,2-metered-replay}`. Logic preserved verbatim incl. the wave-1 round-1 option shuffle (P1 tap-left exploit fix).
+
+**Behavior changes shipped (audit-justified):**
+- **Auto-play once per item** (§3 F2 / §4 rec): target audio plays ~650ms after a rounds-1/2 item appears; free.
+- **Metered replay (§2 owner rule, §3 F3 / §4 P1, Sound Lab parity):** every manual replay after the free auto-play docks the picked student −1 pt (resource cost — NOT a logged attempt). Cumulative cost surfaces as the scarlet "−N pts" pill on the replay core (design #2). Reset per item / turn / reset.
+- **PLAY_AUDIO from commander + remote (§3 F4 / §4 P1):** new Audio button in the PHONICS_ARENA contextual set routes into the same metered playAudio.
+
+**Fidelity log (Stitch → shipped):**
+| # | Design element | Shipped | Note |
+|---|---|---|---|
+| 1 | Header tier strip (TIER 1 SOUND DUEL / 2 SOUND ARENA / 3 VOICE CHAMPION) | ✅ | Maps to rounds 1/2/3; active tier pink-underlined, past tiers emerald |
+| 2 | Acoustic hub: ripple rings + central Listen button + EQ bars + instruction pill | ✅ | Rings/EQ animate continuously; replay core carries the −N pt pill |
+| 3 | Two massive tablets (OPTION A/B, corner decals, TAP TO CHOOSE banner) | ✅ | Round 2 renders the same tablet in a 2×2 grid (4 options from the pool's other pairs) |
+| 4 | Phoneme-letter highlight (SH**EE**P vs SH**I**P) + IPA tag | ✗ | Content model has no phoneme-span or IPA metadata — plain display word (future: generator emits phoneme span) |
+| 5 | Turn avatar chip / streak pill / sync pill in header | ✅ partial | Streak pill ✅; turn + sync live in BoardShell (no dup); header uses `pl-40/lg:pl-48` |
+| 6 | "Replay −1 pt" penalty pill (design #2) | ✅ | Shows cumulative −N after each paid replay |
+| 7 | Round 3 (design shows tier button only) | ✅ v3-styled | Voice Champion: big target word, pink mic-live pulse, transcript card w/ match % |
+| 8 | Sora/Inter + cyan #00ffcc | mapped → Fredoka/JetBrains Mono + sky #38BDF8 | App v3 stack; pink #FF2E79 = brand accent + mic-live |
+
+**Gauntlet:** tsc clean · 762/762 vitest · build clean · Playwright capture (`screenshots/22-phonics-v3-{duel,metered,floor}.png`) with 6 synthetic MINIMAL_PAIR items injected into the throwaway fixture pool (sheep/ship, beach… — the generator emits none for this unit's vocab); DOM-verified: 2 tablets, replay button, metering pill after 2 replays, no overflow at 700×320.

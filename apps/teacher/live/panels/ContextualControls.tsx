@@ -213,6 +213,7 @@ export const renderContextualControls = (
     case 'PHONICS_ARENA':
       return (
         <div className="flex gap-2">
+          <button onClick={() => triggerAction('PLAY_AUDIO')} className="h-12 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Volume2 size={18} /> Audio</button>
           <button onClick={() => triggerAction('NEXT_ITEM')} className="h-12 px-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><SkipForward size={18} /> Next</button>
           <button onClick={() => triggerAction('MARK_CORRECT')} className="h-12 px-4 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><Check size={18} /> Correct</button>
           <button onClick={() => triggerAction('RESET_GAME')} className="h-12 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 active:scale-95"><RefreshCw size={18} /> Redo</button>
