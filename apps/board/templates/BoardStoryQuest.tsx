@@ -350,7 +350,14 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
   if (!loading && storyPanels.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-amber-50 to-orange-50 p-8 text-center">
-        <div className="text-7xl mb-6">📚</div>
+        <motion.div
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 220, damping: 16 }}
+          className="w-52 h-52 rounded-full bg-white shadow-xl border-4 border-amber-200 flex items-center justify-center text-[6rem] leading-none mb-8"
+        >
+          📚
+        </motion.div>
         <h2 className="text-4xl font-bold text-orange-900 mb-3">Story Quest</h2>
         <div className="text-xl text-gray-500 max-w-xl">
           This unit has no story pages yet — skip to the next slide.
