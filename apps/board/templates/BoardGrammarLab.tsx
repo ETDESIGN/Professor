@@ -484,6 +484,7 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
     completeRef.current = true;
     clearSteal(); // forced End during a steal: tear it down + kill pending holds
     playCue('win');
+    triggerConfetti(); // game-complete celebration — the board previously went still here
     setPhase('complete');
     if (broadcast) triggerAction('SLIDE_COMPLETE', { forced: false });
   };
@@ -923,8 +924,22 @@ const BoardGrammarLab = ({ data }: { data: any }) => {
         {phase === 'complete' && (
           <motion.div key="complete" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="text-8xl mb-6">🏆</div>
-              <h2 className="text-5xl font-bold text-indigo-900 mb-4">Grammar Lab Complete!</h2>
+              <motion.div
+                initial={{ scale: 0, rotate: -10 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                className="text-[11rem] leading-none mb-8 drop-shadow-[0_12px_24px_rgba(109,40,217,0.25)]"
+              >
+                🏆
+              </motion.div>
+              <motion.h2
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="text-6xl font-bold text-indigo-900 mb-4"
+              >
+                Grammar Lab Complete!
+              </motion.h2>
               <div className="text-2xl text-gray-600">All {TOTAL_ROUNDS} rounds practiced</div>
             </div>
           </motion.div>

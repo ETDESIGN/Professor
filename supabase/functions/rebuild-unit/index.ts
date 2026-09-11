@@ -124,17 +124,17 @@ serve(async (req) => {
       }, { onConflict: 'unit_id,stage' }).then(() => undefined, () => undefined);
     };
 
-    // Already-scanned pages are the resume state — but only rows stamped with
-    // the CURRENT extractor version count as done (version-aware resume).
-    // Rows from older extractors are re-scanned: the upgraded contract (e.g.
-    // scan-v7's per-paragraph scene anchors) must reach the owner's existing
-    // units through the same "Rebuild from pages" button.
+    // Already-scanned pages are the resume state — but only SETTLED rows
+    // stamped with the CURRENT extractor version count as done
+    // (version-aware resume). Failed pages stay retryable: a scan that died
+    // mid-rebuild (e.g. credits ran out) must not pin the page to the failed
+    // row forever — the next rebuild deletes and re-scans it.
     const { data: donePages } = await sb.from('book_pages')
       .select('id, public_url, status, extractor_version')
       .eq('unit_id', unitId);
     const allPages = donePages || [];
     const doneUrls = new Set(allPages
-      .filter((p: any) => p.extractor_version === EXTRACTOR_VERSION)
+      .filter((p: any) => p.extractor_version === EXTRACTOR_VERSION && p.status !== 'failed')
       .map((p: any) => p.public_url));
     const rowsByUrl = new Map<string, any[]>();
     for (const p of allPages) {
