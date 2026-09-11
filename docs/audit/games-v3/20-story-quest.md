@@ -1,6 +1,6 @@
 # Story Quest — v3 Quality Audit (`STORY_QUEST`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **implemented** — Rebuilt from Stitch designs `1-storybook.html` and `2-choice.html` with uncropped art, speaker dialogue turns, A/B/C/D letter plates, and owner celebration. Tests passing.
 > **Screenshots:** `screenshots/20-story-quest-idle.png` — empty state (no story pages in fixture) — cropping/dialogue findings are code-anchored.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -192,6 +192,14 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/20-story-quest/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented from Stitch screens `1-storybook.html` (Reading Theater state) and `2-choice.html` (Prediction & Comprehension Choice states) on 2026-09-12.
+
+### Implementation Summary
+1. **Uncropped Story Art (F1, §2):** Right column (7 cols / 60% widescreen) features dedicated `object-contain` container inside `#050812` background, eliminating destructive 256px square crop.
+2. **Structured Speaker Dialogue (F2, §2):** `parseDialogueLines` segments multi-speaker strings into individual speech bubbles with character-attributed color chips (`getCharColor`), active speaker highlighting (`active-turn-glow`), and interactive vocabulary audio tap overlay.
+3. **Prediction & Comprehension Choice Plates (F3, §4.d):** High-contrast options with prominent A, B, C, D letter badges; 2-miss reveal logic with teaching hold preserved.
+4. **Full-Bleed Stage & Clearance:** Full-bleed 16:9 widescreen layout with `pl-40 lg:pl-48` header clearance ensuring zero collision with BoardShell navigation controls.
+5. **Owner Celebration Animation:** Preserved owner's animated 📚 trophy celebration (`scale: 0`, `rotate: -10` spring bounce) on story completion and empty state.
+6. **Lifecycle & Verification:** Preserves `RESET_GAME`, `NEXT_PANEL`, `REVEAL_HINT`, `MARK_CORRECT`, `SLIDE_COMPLETE`. Verified with dedicated unit test suite `test/BoardStoryQuest.test.tsx` (4 tests passing) and 3-step gauntlet.

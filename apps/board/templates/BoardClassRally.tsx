@@ -1,21 +1,30 @@
-// BoardClassRally — Collaborative class game (NEW GEN)
+// BoardClassRally v3 — Collaborative class game (PRACTICE)
+// Rebuilt from Stitch designs:
+//   • stitch/24-class-rally/1-rally.html (co-op neon arena rally state)
+//   • stitch/24-class-rally/2-milestone.html (milestone & rally complete state)
 //
-// Entirely new concept (MASTER_ROADMAP.md Game 9): the FIRST cooperative game.
-// The whole class works toward a shared goal instead of competing.
-//
-// Pedagogical loop:
-//   SHARED RALLY BAR (class goal = N correct answers) → picked student answers a
-//   mixed question → CORRECT fills the bar (+1) & individual points → WRONG
-//   never penalizes the class (just doesn't fill) → MILESTONES at 25/50/75%
-//   celebrate → 100% = class victory + bonus XP for the answering streak.
-//
-// Lifecycle: NEW_TURN reset on currentTurnId (per-question attempt refs),
-// remote controls via state.lastAction (RESET_GAME / SKIP_ITEM).
-// Zero teacher typing.
+// Key enhancements (fixing §3 F1-F8, §4 co-work audit, §2 owner comments):
+//   1. Strip visible word labels from image option cards (F1, §2) — pure recall on IMAGE_SELECT
+//   2. Glowing high-voltage arcade rally bar with leading-edge flame glyph & milestone star nodes (P2, §4.a)
+//   3. Flat cyberpunk surfaces (#070C18, #141422), eliminating double-nested white card structures (P2, §4.a)
+//   4. Robust fallback prompts for audio-led questions (F3, §4.c)
+//   5. Landscape-ratio option plates with A/B/C/D letter badges (F2, §4.d)
+//   6. Whole-class choral round ("ALL ANSWER") with high-energy megaphone banner & dual teacher hotplates
+//   7. Preserves owner's animated 🏆 trophy celebration on completion
+//   8. Header starts with pl-40 lg:pl-48 clearance for BoardShell phase pill
+//   9. Full lifecycle, remote action handlers (RESET_GAME, SKIP_ITEM, MARK_CORRECT, CHORAL_ROUND), and scoring verbatim.
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2 } from 'lucide-react';
+import {
+  Volume2,
+  Flame,
+  Star,
+  CheckCircle2,
+  RotateCcw,
+  Megaphone,
+  Sparkles,
+} from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { useBoardPool } from '../useBoardPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
@@ -44,8 +53,9 @@ interface RallyQuestion {
 
 const TARGET_CORRECT = 12; // class goal: 12 correct answers fill the bar
 const MILESTONES = [0.25, 0.5, 0.75, 1];
+const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-const BoardClassRally = ({ data }: { data: any }) => {
+const BoardClassRally = ({ data }: { data?: any }) => {
   const { state, addPoints, pushToRemediation, triggerAction, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const mistakesRef = useRef(0);
@@ -88,8 +98,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
     const qs: RallyQuestion[] = [];
     for (const pi of poolItems) {
       const content = pi.content as any;
-      // Keep image_url — IMAGE_SELECT renders image cards, never a
-      // stringified "[object Object]".
+      // Keep image_url — IMAGE_SELECT renders image cards, never a stringified "[object Object]".
       const options: RallyOption[] = Array.isArray(content.options)
         ? content.options
             .map((o: any) =>
@@ -100,7 +109,15 @@ const BoardClassRally = ({ data }: { data: any }) => {
       if (options.length < 2 || typeof content.correct_index !== 'number') continue;
       qs.push({
         poolItem: pi,
-        prompt: content.sentence || content.prompt || content.sentence_with_blank || content.prompt_text || '',
+        // Fallback prompt guards against audio-led questions with no text (F3)
+        prompt:
+          content.sentence ||
+          content.prompt ||
+          content.sentence_with_blank ||
+          content.prompt_text ||
+          (content.audio_url || content.prompt_audio
+            ? 'Listen and choose the matching card 🎧'
+            : 'Choose the correct answer:'),
         options,
         correctIndex: content.correct_index,
         audioUrl: content.audio_url || content.prompt_audio,
@@ -178,7 +195,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
       setLastMilestone(top);
       setShowMilestone(top);
       if (typeof triggerConfetti === 'function') triggerConfetti();
-      // Dead-time compression: celebration overlay ≤900ms (was 2500ms).
+      // Dead-time compression: celebration overlay ≤900ms.
       setTimeout(() => setShowMilestone(null), 900);
     }
   };
@@ -222,7 +239,7 @@ const BoardClassRally = ({ data }: { data: any }) => {
     setTotalCorrect(newTotal);
     checkMilestone(newTotal);
     setPhase('feedback');
-    // Dead-time compression: celebration beat ≤900ms (was 1800ms).
+    // Dead-time compression: celebration beat ≤900ms.
     setTimeout(() => {
       if (newTotal >= TARGET_CORRECT) {
         setPhase('victory');
@@ -339,17 +356,27 @@ const BoardClassRally = ({ data }: { data: any }) => {
   // ── Loading / empty states ──────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-fuchsia-50 to-purple-50">
-        <div className="text-2xl text-gray-400">Loading rally questions…</div>
+      <div className="flex items-center justify-center h-full bg-[#070C18]">
+        <div className="text-2xl font-bold text-[#00FFCC] animate-pulse">Loading rally questions…</div>
       </div>
     );
   }
+
   if (!currentQuestion) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-fuchsia-50 to-purple-50 p-8 text-center">
-        <div className="text-7xl mb-6">🤝</div>
-        <h2 className="text-4xl font-bold text-fuchsia-900 mb-3">Class Rally</h2>
-        <div className="text-xl text-gray-500 max-w-xl">
+      <div className="flex flex-col items-center justify-center h-full bg-[#070C18] p-8 text-center select-none">
+        <motion.div
+          initial={{ scale: 0, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+          className="text-8xl mb-6 drop-shadow-[0_8px_20px_rgba(0,255,204,0.3)]"
+        >
+          🤝
+        </motion.div>
+        <h2 className="text-4xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.6)] mb-3">
+          Class Rally
+        </h2>
+        <div className="text-lg text-[#A098B0] max-w-xl">
           No rally questions ready for this unit yet. Run the exercise generator for this unit, or
           skip to the next slide.
         </div>
@@ -358,279 +385,453 @@ const BoardClassRally = ({ data }: { data: any }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-fuchsia-50 to-purple-50 p-8">
-      {/* Header */}
-      <div className="text-center mb-4">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-fuchsia-900 mb-1"
-        >
-          Class Rally
-        </motion.h1>
-        <div className="text-sm text-gray-500">
-          Work together — fill the bar as a class! {totalCorrect} / {TARGET_CORRECT}
-        </div>
-      </div>
+    <div className="relative flex flex-col h-full w-full bg-[#070C18] text-[#E8E0F0] select-none overflow-hidden">
+      <style>{`
+        @media (max-height: 450px) {
+          .rally-compact-hide { display: none !important; }
+          .rally-compact-pad { padding: 4px 8px !important; }
+          .rally-compact-h { height: 75px !important; }
+        }
+      `}</style>
 
-      {/* Rally bar with milestone nodes */}
-      <div className="mb-6 max-w-4xl w-full mx-auto">
-        <div className="relative h-10 bg-white/70 rounded-full border-2 border-fuchsia-200 overflow-visible">
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-purple-500"
-            animate={{ width: `${progress * 100}%` }}
-            transition={{ type: 'spring', stiffness: 80, damping: 18 }}
-          />
-          {MILESTONES.map((m) => (
-            <div
-              key={m}
-              className={`absolute top-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                progress >= m ? 'bg-yellow-400 border-yellow-500 text-yellow-900' : 'bg-gray-100 border-gray-300 text-gray-400'
-              }`}
-              style={{ left: `calc(${m * 100}% - 14px)` }}
-            >
-              {progress >= m ? '★' : '☆'}
+      {/* ═══ TOP APP BAR (Shared Anchor with pl-40 lg:pl-48 Clearance) ═══ */}
+      <header className="w-full flex items-center justify-between pl-40 lg:pl-48 pr-4 sm:pr-8 py-2 bg-[#0A0A12]/95 border-b border-[#302840] shrink-0 z-20 shadow-[0_0_16px_rgba(255,45,120,0.15)]">
+        {/* Left: Brand & Phase Pill */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <span className="font-headline text-lg sm:text-xl font-black tracking-widest text-[#00FFCC] drop-shadow-[0_0_8px_rgba(0,255,204,0.6)]">
+            NEON ARENA
+          </span>
+          <div className="flex items-center gap-2 px-3 py-0.5 bg-[#141422] rounded-full border border-[#00FFCC]/40 shadow-[0_0_10px_rgba(0,255,204,0.2)]">
+            <span className="w-2 h-2 rounded-full bg-[#00FFCC] animate-ping" />
+            <span className="font-label font-bold text-xs uppercase tracking-wider text-[#00FFCC]">
+              PHASE: CLASS RALLY · CO-OP
+            </span>
+          </div>
+          {pickedStudent && (studentStreaksRef.current[pickedStudent.id] || 0) >= 3 && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-0.5 bg-[#1E1E30] rounded-full border border-[#FFE04A]/50 text-[#FFE04A]">
+              <Flame className="w-3.5 h-3.5 fill-[#FFE04A]" />
+              <span className="font-label font-bold text-xs tracking-wider">
+                STREAK: {studentStreaksRef.current[pickedStudent.id]} IN A ROW
+              </span>
             </div>
-          ))}
+          )}
         </div>
-      </div>
 
-      {/* Milestone celebration overlay */}
+        {/* Right: Target Score Summary & Active Student */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-xl border border-[#00FFCC]/30">
+            <span className="font-label text-xs uppercase tracking-widest text-[#A098B0] font-bold">TARGET:</span>
+            <span className="font-headline text-base sm:text-lg font-black text-[#00FFCC]">
+              {totalCorrect} / {TARGET_CORRECT}
+            </span>
+            <span className="font-label text-xs text-[#FFE04A] font-bold ml-1">+{totalCorrect * 10} PTS</span>
+          </div>
+          {pickedStudent && (
+            <div className="flex items-center gap-2.5 pl-3 border-l border-[#302840]">
+              <div className="text-right hidden sm:block">
+                <div className="font-headline font-bold text-xs text-[#E8E0F0] leading-tight">
+                  {pickedStudent.name}
+                </div>
+                <div className="font-label text-[10px] text-[#00FFCC] font-bold tracking-wider">
+                  RESPONDER
+                </div>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-[#1E1E30] border-2 border-[#FF2D78] overflow-hidden flex items-center justify-center relative shadow-[0_0_8px_rgba(255,45,120,0.4)] text-sm font-bold text-[#FF2D78]">
+                {pickedStudent.avatar || pickedStudent.name[0]}
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ═══ HERO RALLY BAR (Big energetic thick power bar with leading-edge flame) ═══ */}
+      <section className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-2.5 pb-1.5 shrink-0">
+        <div className="flex items-center justify-between gap-4 mb-1.5">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2.5 py-0.5 rounded bg-[#FF2D78] text-[#1A0010] font-label font-bold text-[11px] sm:text-xs tracking-wider">
+              COLLECTIVE ENERGY
+            </span>
+            <h2 className="font-headline text-xs sm:text-sm font-extrabold text-[#E8E0F0] tracking-tight">
+              {totalCorrect >= TARGET_CORRECT ? (
+                <span className="text-[#00FFCC] drop-shadow-[0_0_8px_rgba(0,255,204,0.7)]">
+                  CLASSROOM JACKPOT UNLOCKED! 🔥
+                </span>
+              ) : (
+                <>
+                  RALLY LEVEL 1:{' '}
+                  <span className="text-[#00FFCC] drop-shadow-[0_0_8px_rgba(0,255,204,0.7)]">
+                    {TARGET_CORRECT - totalCorrect} MORE WORDS
+                  </span>{' '}
+                  TO UNLOCK JACKPOT!
+                </>
+              )}
+            </h2>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-label font-bold text-[#A098B0]">
+            <span>CLASS GOAL:</span>
+            <span className="text-[#00FFCC]">{TARGET_CORRECT} CORRECT</span>
+          </div>
+        </div>
+
+        {/* Progress Fill Track */}
+        <div className="relative w-full h-8 sm:h-10 bg-[#0A0A12] rounded-full p-1 border border-[#302840] overflow-visible flex items-center shadow-[inset_0_0_12px_rgba(0,0,0,0.8)]">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-[#00FFCC] via-[#00E6B8] to-[#FF2D78] relative transition-all shadow-[0_0_16px_rgba(0,255,204,0.5)]"
+            animate={{ width: `${Math.max(progress * 100, 2)}%` }}
+            transition={{ type: 'spring', stiffness: 80, damping: 18 }}
+          >
+            {/* Flame Glyph Riding The Edge */}
+            {progress > 0 && progress < 1 && (
+              <div className="absolute -right-4 sm:-right-5 -top-2.5 sm:-top-3.5 z-20 flex items-center justify-center">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#0A0A12] border-2 border-[#FF2D78] flex items-center justify-center shadow-[0_0_15px_rgba(255,45,120,0.8)] animate-pulse">
+                  <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFE04A] fill-[#FFE04A]" />
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Milestone Star Nodes on Track */}
+          {MILESTONES.map((m) => {
+            const reached = progress >= m;
+            return (
+              <div
+                key={m}
+                className={`absolute top-1/2 -translate-y-1/2 -ml-3 sm:-ml-3.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 z-10 ${
+                  reached
+                    ? 'bg-[#FFE04A] border-[#FFF0C0] text-[#1A1000] shadow-[0_0_12px_rgba(255,224,74,0.8)] scale-110'
+                    : 'bg-[#141422] border-[#5A5068] text-[#5A5068]'
+                }`}
+                style={{ left: `${m * 100}%` }}
+              >
+                <Star className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${reached ? 'fill-current' : ''}`} />
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ═══ MILESTONE CELEBRATION OVERLAY (≤900ms) ═══ */}
       <AnimatePresence>
         {showMilestone !== null && (
           <motion.div
             initial={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6 }}
-            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4"
           >
-            <div className="bg-white rounded-3xl shadow-2xl px-12 py-8 text-center border-4 border-yellow-400">
-              <div className="text-6xl mb-2">🎊</div>
-              <div className="text-3xl font-bold text-fuchsia-800">
-                {showMilestone >= 1 ? 'RALLY COMPLETE!' : `${Math.round(showMilestone * 100)}% milestone!`}
+            <div className="bg-[#141422]/95 backdrop-blur-xl rounded-3xl shadow-[0_0_50px_rgba(0,255,204,0.4)] px-8 sm:px-14 py-6 sm:py-8 text-center border-4 border-[#00FFCC] max-w-lg">
+              <div className="text-6xl sm:text-7xl mb-2">
+                {showMilestone >= 1 ? '🏆' : showMilestone >= 0.75 ? '🚀' : showMilestone >= 0.5 ? '🔥' : '⚡'}
               </div>
-              <div className="text-lg text-gray-500">Great teamwork, class!</div>
+              <div className="text-2xl sm:text-3xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.7)] mb-1 uppercase tracking-wide">
+                {showMilestone >= 1
+                  ? 'RALLY COMPLETE!'
+                  : showMilestone >= 0.75
+                  ? '75% SUPERCHARGE!'
+                  : showMilestone >= 0.5
+                  ? '50% HALFWAY POWER SURGE!'
+                  : '25% POWER SURGE!'}
+              </div>
+              <div className="text-base sm:text-lg font-bold text-[#E8E0F0]">
+                Great teamwork, class! Keep charging!
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
-        {phase === 'choral' && (
-          <motion.div
-            key={`choral-${questionIdx}`}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
+      {/* ═══ MAIN STAGE AREA ═══ */}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 py-2 flex flex-col justify-between min-h-0 overflow-hidden">
+        <AnimatePresence>
+          {/* ── 1. CHORAL MODE ("ALL ANSWER") ── */}
+          {phase === 'choral' && (
             <motion.div
-              animate={{ scale: [1, 1.06, 1] }}
-              transition={{ repeat: Infinity, duration: 1.2 }}
-              className="mb-4 px-10 py-3 bg-gradient-to-r from-fuchsia-600 to-purple-600 rounded-full text-white text-4xl font-black tracking-widest shadow-xl"
+              key={`choral-${questionIdx}`}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="flex-1 flex flex-col items-center justify-center w-full min-h-0"
             >
-              📣 EVERYONE!
-            </motion.div>
-            <div className="text-xl text-fuchsia-800 font-bold mb-4">The whole class answers together!</div>
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl w-full mb-6">
-              <div className="text-center text-3xl text-gray-800 mb-4">{currentQuestion.prompt}</div>
-              {currentQuestion.audioUrl && (
-                <div className="text-center">
-                  <button
-                    onClick={playAudio}
-                    className="px-6 py-3 bg-fuchsia-500 hover:bg-fuchsia-600 text-white rounded-xl font-bold inline-flex items-center gap-2"
-                  >
-                    <Volume2 size={20} /> Listen again
-                  </button>
-                </div>
-              )}
-            </div>
-            {revealedIdx === null ? (
-              <div className="flex gap-6">
-                <motion.button
-                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  onClick={() => resolveChoral(true)}
-                  className="px-10 py-6 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-2xl font-black shadow-lg"
-                >
-                  ✓ CLASS NAILED IT
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  onClick={() => resolveChoral(false)}
-                  className="px-10 py-6 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-2xl font-black shadow-lg"
-                >
-                  ✗ NEEDS PRACTICE
-                </motion.button>
-              </div>
-            ) : (
-              <div className="text-2xl font-bold text-amber-700">
-                The answer was: {currentQuestion.options[currentQuestion.correctIndex]?.label}
-              </div>
-            )}
-            {currentQuestion.explanation && revealedIdx !== null && (
-              <div className="mt-3 p-3 bg-amber-50 border-2 border-amber-200 rounded-xl text-amber-900 max-w-2xl text-center">
-                {currentQuestion.explanation}
-              </div>
-            )}
-            {/* Options visible so the class can read them while answering together */}
-            <div className="mt-6 grid grid-cols-2 gap-3 opacity-80 pointer-events-none">
-              {currentQuestion.options.map((option, idx) => (
-                <div
-                  key={`choral-${idx}`}
-                  className={`rounded-xl p-4 border-2 text-lg font-semibold ${
-                    revealedIdx === idx
-                      ? 'bg-amber-100 border-amber-400 ring-4 ring-amber-400'
-                      : 'bg-white border-gray-200 text-gray-800'
-                  }`}
-                >
-                  {option.imageUrl ? (
-                    <span className="flex items-center gap-3">
-                      <img src={option.imageUrl} alt={option.label || ''} className="w-14 h-14 object-cover rounded-lg" />
-                      {option.label && <span>{option.label}</span>}
-                    </span>
-                  ) : (
-                    option.label
-                  )}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-        {phase === 'question' && (
-          <motion.div
-            key={`q-${questionIdx}`}
-            initial={{ opacity: 0, x: 60 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -60 }}
-            className="flex-1 flex flex-col items-center justify-center"
-          >
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl w-full">
-              <div className="text-center mb-6">
-                <div className="text-2xl text-gray-800 mb-3">{currentQuestion.prompt}</div>
-                {currentQuestion.audioUrl && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={playAudio}
-                    className="px-6 py-3 bg-fuchsia-500 hover:bg-fuchsia-600 text-white rounded-xl font-bold inline-flex items-center gap-2"
-                  >
-                    <Volume2 size={20} /> Listen
-                  </motion.button>
-                )}
-              </div>
-              {/* Options — image cards for IMAGE_SELECT, text otherwise */}
-              <div className="grid grid-cols-2 gap-4">
-                {currentQuestion.options.map((option, idx) => (
-                  <motion.button
-                    key={`${questionIdx}-${idx}`}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleOptionSelect(idx)}
-                    className={`rounded-xl text-xl font-semibold transition-all ${
-                      option.imageUrl ? 'aspect-square p-2 border-4 overflow-hidden' : 'p-5 border-2'
-                    } ${
-                      selectedOption === idx
-                        ? idx === currentQuestion.correctIndex
-                          ? 'bg-green-500 text-white border-green-600'
-                          : 'bg-red-500 text-white border-red-600'
-                        : revealedIdx === idx
-                        ? 'bg-amber-100 text-gray-800 border-amber-400 ring-4 ring-amber-400'
-                        : option.imageUrl
-                        ? 'bg-gray-50 border-gray-200 hover:border-fuchsia-400'
-                        : 'bg-gray-50 hover:bg-fuchsia-50 text-gray-800 border-gray-200'
-                    }`}
-                  >
-                    {option.imageUrl ? (
-                      <span className="w-full h-full flex flex-col items-center justify-center gap-2">
-                        <img
-                          src={option.imageUrl}
-                          alt={option.label || `Option ${idx + 1}`}
-                          className="flex-1 min-h-0 w-full object-cover rounded-lg"
-                        />
-                        {option.label && <span className="text-sm text-gray-700">{option.label}</span>}
-                      </span>
-                    ) : (
-                      option.label
-                    )}
-                  </motion.button>
-                ))}
+              {/* Golden Megaphone Banner */}
+              <motion.div
+                animate={{ scale: [1, 1.04, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="mb-2 px-6 sm:px-8 py-2 bg-gradient-to-r from-[#FF2D78] via-purple-600 to-[#00FFCC] rounded-full text-white text-xl sm:text-2xl font-black tracking-widest shadow-[0_0_24px_rgba(255,45,120,0.4)] flex items-center gap-2.5"
+              >
+                <Megaphone className="w-6 h-6" />
+                <span>📣 EVERYONE!</span>
+              </motion.div>
+              <div className="text-sm sm:text-base text-[#00FFCC] font-bold mb-3 tracking-wide">
+                The whole class answers together!
               </div>
 
-              {/* Reveal-on-wrong teaching beat: the why behind the answer. */}
-              {revealedIdx !== null && currentQuestion.explanation && (
-                <div className="mt-4 p-3 bg-amber-50 border-2 border-amber-200 rounded-xl text-center text-base text-amber-900">
+              {/* Prompt Card */}
+              <div className="bg-[#141422] rounded-2xl border border-[#00FFCC]/40 p-4 sm:p-6 w-full max-w-3xl mb-3 shadow-[0_0_24px_rgba(0,255,204,0.1)] text-center">
+                <div className="text-2xl sm:text-3xl font-extrabold text-[#E8E0F0] mb-2 leading-snug">
+                  {currentQuestion.prompt}
+                </div>
+                {currentQuestion.audioUrl && (
+                  <button
+                    onClick={playAudio}
+                    className="px-4 py-2 bg-[#1E1E30] hover:bg-[#28283E] border border-[#00FFCC]/50 text-[#00FFCC] rounded-xl font-bold inline-flex items-center gap-2 transition-colors shadow-md text-sm active:scale-95"
+                  >
+                    <Volume2 className="w-4 h-4" /> Listen again
+                  </button>
+                )}
+              </div>
+
+              {/* Teacher Validation Buttons */}
+              {revealedIdx === null ? (
+                <div className="flex flex-wrap items-center justify-center gap-4 my-2">
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => resolveChoral(true)}
+                    className="px-6 sm:px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-headline font-black text-lg sm:text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center gap-2.5 transition-all"
+                  >
+                    <CheckCircle2 className="w-6 h-6" />
+                    <span>✓ CLASS NAILED IT (+1 Bar)</span>
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => resolveChoral(false)}
+                    className="px-5 sm:px-7 py-3 rounded-2xl bg-[#1E1E30] hover:bg-[#28283E] border-2 border-amber-500/60 text-amber-300 font-headline font-bold text-base sm:text-lg shadow-[0_0_16px_rgba(245,158,11,0.2)] flex items-center gap-2.5 transition-all"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    <span>✗ NEEDS PRACTICE</span>
+                  </motion.button>
+                </div>
+              ) : (
+                <div className="text-lg sm:text-xl font-bold text-amber-300 my-2">
+                  The answer was: {currentQuestion.options[currentQuestion.correctIndex]?.label}
+                </div>
+              )}
+
+              {/* Reveal explanation */}
+              {currentQuestion.explanation && revealedIdx !== null && (
+                <div className="mt-2 p-2.5 bg-amber-950/70 border-2 border-amber-400/80 rounded-xl text-amber-200 text-xs sm:text-sm max-w-2xl text-center">
                   {currentQuestion.explanation}
                 </div>
               )}
-              <div className="text-center text-sm text-gray-400 mt-4">
+
+              {/* Non-interactive Options Preview (IMAGE ONLY for image cards) */}
+              <div className="mt-3 grid grid-cols-2 gap-2.5 w-full max-w-3xl opacity-85 pointer-events-none">
+                {currentQuestion.options.map((option, idx) => (
+                  <div
+                    key={`choral-${idx}`}
+                    className={`rounded-xl p-2.5 border-2 text-center text-sm sm:text-base font-semibold flex items-center justify-center ${
+                      revealedIdx === idx
+                        ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400 text-amber-200'
+                        : 'bg-[#141422] border-[#302840] text-[#E8E0F0]'
+                    }`}
+                  >
+                    {option.imageUrl ? (
+                      <div className="h-14 sm:h-16 w-full flex items-center justify-center p-1">
+                        <img
+                          src={option.imageUrl}
+                          alt={option.label || `Option ${OPTION_LETTERS[idx] || idx + 1}`}
+                          className="h-full max-w-full object-contain rounded-lg"
+                        />
+                      </div>
+                    ) : (
+                      option.label
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── 2. QUESTION MODE (Individual Picked Student Turn) ── */}
+          {phase === 'question' && (
+            <motion.div
+              key={`q-${questionIdx}`}
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              className="flex-1 flex flex-col justify-between min-h-0 w-full max-w-4xl mx-auto"
+            >
+              {/* Question Card Header */}
+              <div className="bg-[#141422] rounded-2xl border border-[#302840] p-4 sm:p-5 shadow-[0_0_24px_rgba(0,255,204,0.06)] shrink-0 mb-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="text-lg sm:text-2xl font-extrabold text-[#E8E0F0] leading-snug">
+                    {currentQuestion.prompt}
+                  </div>
+                  {currentQuestion.audioUrl && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={playAudio}
+                      className="px-4 py-2 rounded-xl bg-[#1E1E30] border border-[#302840] hover:border-[#00FFCC] text-[#00FFCC] font-bold text-sm flex items-center gap-2 shrink-0 transition-colors shadow-[0_0_12px_rgba(0,255,204,0.15)]"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span>Listen</span>
+                    </motion.button>
+                  )}
+                </div>
+              </div>
+
+              {/* 2×2 Options Grid (IMAGE ONLY for IMAGE_SELECT — F1, §2) */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 my-auto flex-1 min-h-0 items-stretch">
+                {currentQuestion.options.map((option, idx) => {
+                  const isSelected = selectedOption === idx;
+                  const isCorrect = idx === currentQuestion.correctIndex;
+                  const isRevealed = revealedIdx === idx;
+                  const letter = OPTION_LETTERS[idx] || String(idx + 1);
+
+                  let borderAndBg =
+                    'bg-[#141422] border-[#302840] hover:border-[#00FFCC]/60 hover:bg-[#1E1E30] text-[#E8E0F0]';
+                  if (isSelected) {
+                    if (isCorrect) {
+                      borderAndBg =
+                        'bg-emerald-500/20 text-emerald-300 border-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.5)]';
+                    } else {
+                      borderAndBg =
+                        'bg-rose-500/20 text-rose-300 border-rose-400 shadow-[0_0_16px_rgba(244,63,94,0.5)]';
+                    }
+                  } else if (isRevealed) {
+                    borderAndBg =
+                      'bg-amber-500/20 text-amber-300 border-amber-400 ring-2 ring-amber-400/80 shadow-[0_0_16px_rgba(245,158,11,0.5)]';
+                  }
+
+                  return (
+                    <motion.button
+                      key={`${questionIdx}-${idx}`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleOptionSelect(idx)}
+                      className={`relative rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden rally-compact-h ${
+                        option.imageUrl ? 'h-32 sm:h-40 md:h-44' : 'p-4 sm:p-5 min-h-[3.5rem] sm:min-h-[4.5rem]'
+                      } ${borderAndBg}`}
+                    >
+                      {/* Option Letter Badge */}
+                      <span className="absolute top-2 left-2 z-10 w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#0A0A12]/90 border border-[#302840] text-[#00FFCC] font-black text-xs flex items-center justify-center shadow-md">
+                        {letter}
+                      </span>
+
+                      {/* Content: Image ONLY (F1) or Text Label */}
+                      {option.imageUrl ? (
+                        <div className="w-full h-full flex items-center justify-center p-2">
+                          <img
+                            src={option.imageUrl}
+                            alt={option.label || `Option ${letter}`}
+                            className="w-full h-full object-contain rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-base sm:text-xl font-bold text-center px-6">
+                          {option.label}
+                        </span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* Reveal-on-wrong teaching explanation */}
+              {revealedIdx !== null && currentQuestion.explanation && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 p-2.5 bg-amber-950/70 border-2 border-amber-400/80 rounded-xl text-center text-xs sm:text-sm text-amber-200 shrink-0"
+                >
+                  {currentQuestion.explanation}
+                </motion.div>
+              )}
+
+              {/* Non-punitive co-op reminder */}
+              <div className="text-center text-xs text-[#A098B0] mt-2 shrink-0 rally-compact-hide">
                 Wrong answers never shrink the bar — keep trying, team!
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
 
-        {phase === 'feedback' && (
-          <motion.div
-            key="feedback"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="flex-1 flex items-center justify-center"
-          >
-            <div className="text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 200 }}
-                className="text-8xl mb-4"
-              >
-                💪
-              </motion.div>
-              <h2 className="text-4xl font-bold text-green-600 mb-2">
-                {pickedStudent ? `${pickedStudent.name} filled the bar!` : 'The class filled the bar!'}
-              </h2>
-              <div className="text-2xl text-gray-600">{totalCorrect} / {TARGET_CORRECT} — keep going!</div>
-            </div>
-          </motion.div>
-        )}
-
-        {phase === 'victory' && (
-          <motion.div key="victory" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <motion.div
-                initial={{ scale: 0, rotate: -10 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 14 }}
-                className="text-[11rem] leading-none mb-8 drop-shadow-[0_12px_24px_rgba(112,26,117,0.25)]"
-              >
-                🏆
-              </motion.div>
-              <motion.h2
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="text-6xl font-bold text-fuchsia-900 mb-4"
-              >
-                RALLY COMPLETE!
-              </motion.h2>
-              <div className="text-2xl text-gray-600">
-                The whole class hit {TARGET_CORRECT} correct answers together! 🎉
+          {/* ── 3. FEEDBACK BURST (≤900ms) ── */}
+          {phase === 'feedback' && (
+            <motion.div
+              key="feedback"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex-1 flex items-center justify-center select-none"
+            >
+              <div className="text-center bg-[#141422] border border-[#00FFCC]/40 rounded-3xl p-6 sm:p-10 shadow-[0_0_36px_rgba(0,255,204,0.2)] max-w-md">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200 }}
+                  className="text-6xl sm:text-7xl mb-3"
+                >
+                  💪
+                </motion.div>
+                <h2 className="text-xl sm:text-3xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.5)] mb-2">
+                  {pickedStudent ? `${pickedStudent.name} filled the bar!` : 'The class filled the bar!'}
+                </h2>
+                <div className="text-base sm:text-xl font-bold text-[#E8E0F0]">
+                  {totalCorrect} / {TARGET_CORRECT} — keep going!
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
 
-      {/* Turn footer */}
+          {/* ── 4. VICTORY CELEBRATION (Preserves owner's animated 🏆 trophy) ── */}
+          {phase === 'victory' && (
+            <motion.div
+              key="victory"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex-1 flex items-center justify-center select-none p-4"
+            >
+              <div className="text-center max-w-2xl">
+                {/* Owner's committed trophy animation preserved verbatim */}
+                <motion.div
+                  initial={{ scale: 0, rotate: -10 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+                  className="text-[8rem] sm:text-[11rem] leading-none mb-4 drop-shadow-[0_12px_32px_rgba(255,45,120,0.4)]"
+                >
+                  🏆
+                </motion.div>
+                <motion.h2
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="text-3xl sm:text-6xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_16px_rgba(0,255,204,0.6)] mb-2 uppercase tracking-wider"
+                >
+                  RALLY COMPLETE!
+                </motion.h2>
+                <div className="text-lg sm:text-2xl font-bold text-[#E8E0F0] mb-3">
+                  The whole class hit {TARGET_CORRECT} correct answers together! 🎉
+                </div>
+                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#1E1E30] border border-[#FFE04A]/50 text-[#FFE04A] font-bold text-sm sm:text-base shadow-[0_0_16px_rgba(255,224,74,0.25)]">
+                  <Sparkles className="w-5 h-5 text-[#FFE04A]" />
+                  <span>Class Team Bonus: +{totalCorrect * 10} XP</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      {/* ═══ TURN FOOTER (Question Phase Only) ═══ */}
       {pickedStudent && phase === 'question' && (
-        <div className="mt-4 text-center">
-          <div className="inline-flex items-center gap-3 bg-white rounded-full px-6 py-3 shadow-lg">
-            <div className="w-10 h-10 rounded-full bg-fuchsia-500 flex items-center justify-center text-white font-bold">
-              {pickedStudent.name[0]}
+        <footer className="shrink-0 text-center pb-2.5 pt-1 z-10">
+          <div className="inline-flex items-center gap-3 bg-[#141422] border border-[#302840] rounded-full px-5 py-1.5 shadow-lg">
+            <div className="w-7 h-7 rounded-full bg-[#FF2D78] text-[#1A0010] flex items-center justify-center font-bold text-xs">
+              {pickedStudent.avatar || pickedStudent.name[0]}
             </div>
-            <div className="text-xl font-semibold text-gray-800">{pickedStudent.name}'s turn</div>
+            <div className="text-xs sm:text-sm font-bold text-[#E8E0F0]">
+              <span className="text-[#00FFCC]">{pickedStudent.name}'s</span> turn — Choose the right card!
+            </div>
+            {(studentStreaksRef.current[pickedStudent.id] || 0) >= 2 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#FFE04A]/20 border border-[#FFE04A]/50 text-[#FFE04A] text-xs font-bold flex items-center gap-1">
+                <Flame className="w-3 h-3 fill-current" />
+                Streak: {studentStreaksRef.current[pickedStudent.id]}
+              </span>
+            )}
           </div>
-        </div>
+        </footer>
       )}
     </div>
   );

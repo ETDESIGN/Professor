@@ -1,6 +1,6 @@
 # Class Rally (co-op) — v3 Quality Audit (`CLASS_RALLY`)
 
-> **Status:** **cowork-done** — §4 co-work quality audit complete (Anti-Gravity 2026-09-10). Ready for §5 Stitch prompt.
+> **Status:** **implemented** — Rebuilt from Stitch designs `1-rally.html` and `2-milestone.html`. Hero rally bar with flame glyph, image-only cards on IMAGE_SELECT, choral sub-mode, and owner celebration. Tests passing.
 > **Screenshots:** `screenshots/24-class-rally-idle.png`.
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -145,6 +145,16 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/24-class-rally/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+Implemented from Stitch screens `1-rally.html` (Active Neon Arena Rally state) and `2-milestone.html` (Milestone Celebration & Rally Complete states) on 2026-09-12.
+
+### Implementation Summary
+1. **F1 (Owner Priority P1): Strip Visible Word Labels from Image Cards (§2):** When items are `IMAGE_SELECT` (option has `imageUrl`), cards render the image only with zero visible text labels, keeping `alt={option.label}` for accessibility. This forces active semantic recall instead of letter-matching. Also applied in choral options preview.
+2. **Hero Collective Rally Bar (P2, §4.a):** Replaced faint lavender bar with a glowing cyan-to-pink gradient track (`bg-gradient-to-r from-[#00FFCC] via-[#00E6B8] to-[#FF2D78]`), pulsing flame glyph (`Flame`) riding the leading edge of progress, and interactive milestone star nodes at 25%, 50%, 75%, 100%.
+3. **Flat Obsidian / Cyberpunk Surface (#070C18 / #141422):** Eliminated double-nested white card structures that caused contrast washout.
+4. **Robust Audio-Led Prompts (F3, §4.c):** Enforced fallback copy `"Listen and choose the matching card 🎧"` on audio-led questions with no text prompt.
+5. **Landscape Option Plates (F2, §4.d):** Options styled as tactile widescreen plates with prominent `A`, `B`, `C`, `D` index badges.
+6. **Whole-Class Choral Round ("ALL ANSWER"):** High-energy megaphone banner (`📣 EVERYONE! — The whole class answers together!`) with dual teacher hotplates: `[✓ CLASS NAILED IT (+1 Bar)]` and `[✗ NEEDS PRACTICE]`, writing roster-wide `recordChoralReview('strong' | 'weak')`.
+7. **Owner Celebration Animation:** Preserved owner's animated 🏆 trophy celebration (`scale: 0`, `rotate: -10` spring bounce) on rally completion and empty state.
+8. **Lifecycle & Verification:** Preserves `RESET_GAME`, `SKIP_ITEM`, `MARK_CORRECT`, `CHORAL_ROUND`, `SLIDE_COMPLETE`. Verified with dedicated unit test suite `test/BoardClassRally.test.tsx` (5 tests passing) and 3-step gauntlet.
