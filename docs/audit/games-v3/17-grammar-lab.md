@@ -1,6 +1,6 @@
 # Grammar Lab — v3 Quality Audit (`GRAMMAR_LAB`)
 
-> **Status:** **cowork-done** — §4 audited (Anti-Gravity). Ready for Stitch prompt §5.
+> **Status:** **implemented** — §0–§6 complete. Verified via 3-step gauntlet (0 tsc errors, 803/804 passing vitest tests, clean build in 14.73s).
 > **Screenshots:** `screenshots/17-grammar-lab-idle.png` — captured in the empty state — the §2 symptom itself (bilingual fix point in §3).
 
 ## SHARED PRELUDE (read first — identical in every game file)
@@ -197,6 +197,32 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Line refs are `apps/bo
 
 Two key screens per game per the §4 brief (briefs in `prompts/wave2-stitch.json`, submitted into project 17415096891547227013; all 26 accepted by the API). Screens materialize asynchronously in Stitch's generation queue — ZCode verifies against the QA list, exports to `stitch/17-grammar-lab/`, then implements with the wave-2 logic fixes (already deployed `bfd78ab`).
 
-## §6 ⬜ Stitch output & implementation notes
+## §6 ✅ Stitch output & implementation notes
 
-*(Owner drops the Stitch export into `stitch/<NN>-<game>/`; ZCode records implementation + deploy.)*
+**Implemented:** 2026-09-12
+**Design Sources:**
+- `docs/audit/games-v3/stitch/17-grammar-lab/1-building.html` (Syntax runway + 3D blocks)
+- `docs/audit/games-v3/stitch/17-grammar-lab/2-warming.html` (Bubbling test tube holding card)
+
+**Primary Files Modified/Created:**
+- `apps/board/templates/BoardGrammarLab.tsx`
+- `test/BoardGrammarLab.test.tsx`
+
+**Resolved Audit Defects:**
+1. **F5 (P1) Jargon Empty State Replaced by Warming-Up Holding State:** Replaced developer text with the exact craft bubbling test tube SVG illustration from design #2, bilingual English/Chinese holding copy ("Grammar Lab is warming up! 语法实验准备中…"), friendly instruction, and quiet skip button.
+2. **F6 (P2) Monospace Syntax Formula Typography Replaced:** Replaced monospace formula with high-contrast color-coded syntax pills (cyan Subject, green/emerald Verb, purple Object, amber Complement) during the 2s pattern beat with Chinese rule subtitle gloss.
+3. **F1 & F2 (P1) Clarified Error-Spot Prompt Framing:** Reused Grammar Forge dynamic prompt framing: checks whether options represent incorrect words to spot (`"Spot the wrong word in this sentence:"`) or corrections to fix (`"Sentence with mistake — choose the correct word to fix it:"`), paired with high-contrast A/B/C/D letter badges.
+4. **F7 (P3) Dead "Hear It" Button Resolved:** Wired audio playback to `playAudioUrl` with fallback to native Web Speech TTS via `browserSpeak(fullTargetSentence)`, guaranteeing the read-aloud button always speaks aloud.
+5. **Tactile 3D Syntax Runway:** Built the full-canvas numbered runway with dashed drop targets, active word slot `[ + NEXT WORD ]`, and 3D tactile word blocks with drop shadows and active states.
+6. **Phone-Landscape Floor (700×320):** Added responsive `@media (max-height: 450px)` styling scaling container, cards, runway, dropzones, and buttons, guaranteeing zero scrollbars.
+7. **Header Clearance (P2):** Top HUD bar starts with `pl-40 lg:pl-48` to clear left commander/leaderboard rails.
+8. **Owner Celebration Preserved:** Retained the owner's animated 🏆 celebration (`scale: 0`, `rotate: -10` spring damping: 14) and confetti on complete.
+
+**Out of Scope (Flagged for Future Upstream Pass):**
+- `supabase/functions/generate-exercises/**`: Upstream ERROR_SPOT distractor quality and pair validation (`wrong !== correct`) live in the edge function and prompt generation.
+- `apps/board/BoardShell.tsx`: Global leaderboard rail retraction in empty/choral modes.
+
+**Verification:**
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+- `npx vitest run`: 803 passed | 1 skipped across 80 test files (including 5 tests in `test/BoardGrammarLab.test.tsx`).
+- `npm run build`: Clean production build in 14.73s.
