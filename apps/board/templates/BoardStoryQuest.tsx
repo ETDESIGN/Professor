@@ -138,7 +138,11 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
   const roster = state.students?.map((s: any) => s.id).filter(Boolean) || [];
 
   // ── Story panels: relational manifest first, frozen data.pages fallback ──
-  const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
+  // CONTENT GROUPS (spec 2026-09-13): scoped to THIS story when tagged.
+  const relPages = useMemo(
+    () => getStory(state.activeUnit?.manifest, Array.isArray(data?.structure_ids) ? data.structure_ids : null).pages || [],
+    [state.activeUnit?.manifest, data?.structure_ids?.join(',')],
+  );
   const storyPanels: StoryPanel[] = useMemo(() => {
     const raw = (relPages.length > 0 ? relPages : data?.pages) || [];
     return raw.map((p: any, i: number) => ({

@@ -100,7 +100,13 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   }, [poolItems]);
 
   // ── Story pages (relational first, frozen fallback) ──────────────────
-  const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
+  // CONTENT GROUPS (spec 2026-09-13): a tagged story block scopes the
+  // relational read to ITS story's pages — a multi-story unit no longer
+  // concatenates every page into one story.
+  const relPages = useMemo(
+    () => getStory(state.activeUnit?.manifest, Array.isArray(data?.structure_ids) ? data.structure_ids : null).pages || [],
+    [state.activeUnit?.manifest, data?.structure_ids?.join(',')],
+  );
   const pages = (relPages.length > 0 ? relPages : data.pages) || [];
   const characters = data.characters || [];
 

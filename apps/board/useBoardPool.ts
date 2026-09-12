@@ -11,6 +11,7 @@ import { classWeakObjectives } from '../../services/boardLearner';
 import { useSession } from '../../store/SessionContext';
 import { makeRng, seededShuffle } from '../../services/seededRandom';
 import { denseWeakRanks } from './lessonDirector';
+import { filterPoolByGroup, blockGroupId } from './blockScope';
 
 interface Options {
   unitId: string;
@@ -54,6 +55,10 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
     const ids = state.activeClassPlan?.content_index?.objective_ids;
     return Array.isArray(ids) && ids.length > 0 ? ids : null;
   })();
+  // CONTENT GROUPS (spec 2026-09-13): a group-tagged block (per-series wave,
+  // per-story quest) plays ONLY its group's items. Derived from the block
+  // being played so no game component needs changes.
+  const groupId = blockGroupId(state.activeSlideData?.data);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,6 +91,10 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       if (queryError || !data) { setItems([]); setError(true); setLoading(false); return; }
 
       let pool = data.map(toPoolItem).filter((p): p is PoolItem => p !== null);
+      // Group scope (spec 2026-09-13): filter BEFORE shuffle/weak-rank so the
+      // deal draws only from this block's series/story (falls back to the
+      // full list for pre-stamp pools — see blockScope.ts).
+      pool = filterPoolByGroup(pool, groupId);
 
       // Session variety (NEWGEN_AUDIT §3.7): the DB returns insertion order and
       // the weak-rank sort below is stable — without a shuffle, every session
@@ -120,7 +129,7 @@ export function useBoardPool({ unitId, exerciseTypes, classWeak, roster, limit, 
       }
     })();
     return () => { cancelled = true; };
-  }, [unitId, sessionId, scopeObjectiveIds?.join(','), exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
+  }, [unitId, sessionId, scopeObjectiveIds?.join(','), groupId, exerciseTypes?.join(','), classWeak, roster?.join(','), limit, refreshKey]);
 
   return { items, loading, error, weakOrder };
 }

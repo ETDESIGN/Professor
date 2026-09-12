@@ -132,7 +132,7 @@ const BoardStorySequencing = ({ data }: { data: any }) => {
     if (Array.isArray(data?.cards) && data.cards.length > 0) {
       return data.cards.map((c: any, i: number) => ({ ...c, id: c.id || `frozen-${i}`, order: i }));
     }
-    const pages = getStory(state.activeUnit?.manifest).pages || [];
+    const pages = getStory(state.activeUnit?.manifest, Array.isArray(data?.structure_ids) ? data.structure_ids : null).pages || [];
     return pages
       .map((p: any, i: number) => ({ id: `story-${i}`, image: p.image || '', text: p.text || '', order: i }))
       .filter((c: StoryCard) => c.text);

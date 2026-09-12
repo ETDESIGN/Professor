@@ -282,17 +282,24 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   }, [unitId, state.activeUnit]);
 
   // ── Story pages (relational first, frozen fallback, merged with asset resolution) ──
-  const relPages = useMemo(() => getStory(state.activeUnit?.manifest).pages || [], [state.activeUnit?.manifest]);
+  // CONTENT GROUPS (spec 2026-09-13): a tagged story block scopes the
+  // relational read + the flow-step lookup to ITS story — a multi-story unit
+  // no longer concatenates every page into one story.
+  const relPages = useMemo(
+    () => getStory(state.activeUnit?.manifest, Array.isArray(data?.structure_ids) ? data.structure_ids : null).pages || [],
+    [state.activeUnit?.manifest, data?.structure_ids?.join(',')],
+  );
   const flowPages = useMemo(() => {
     const flow = state.activeUnit?.flow || [];
     const storyStep = flow.find(
       (s: any) =>
         (s.type === 'STORY_STAGE' || s.type === 'STORY_STAGE_AG') &&
         Array.isArray(s.data?.pages) &&
-        s.data.pages.length > 0
+        s.data.pages.length > 0 &&
+        (data?.group_id ? s.data?.group_id === data.group_id : true)
     );
     return storyStep?.data?.pages || [];
-  }, [state.activeUnit?.flow]);
+  }, [state.activeUnit?.flow, data?.group_id]);
 
   const dataPages = useMemo(() => (Array.isArray(data?.pages) ? data.pages : []), [data?.pages]);
 

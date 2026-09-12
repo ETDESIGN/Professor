@@ -211,12 +211,27 @@ export interface CanonicalStory {
 }
 
 /** The unit's story (title/setting + pages with text/image/comprehension). */
-export function getStory(manifest: any): CanonicalStory {
+export function getStory(manifest: any, structureIds?: string[] | null): CanonicalStory {
   // C.4: prefer relational story_pages (via _relational), keeping title/setting
   // from the manifest; fall back to the manifest story for unmigrated units.
+  // CONTENT GROUPS (spec 2026-09-13): structureIds (a story block's member
+  // structures) narrows the relational read to THAT story's pages — a
+  // multi-story unit no longer concatenates every page into one story.
   const base = normalizeManifest(manifest).story;
   const rel = manifest?._relational;
-  if (rel && Array.isArray(rel.story_pages) && rel.story_pages.length > 0) {
+  const wantedSids = Array.isArray(structureIds) && structureIds.length > 0
+    ? new Set(structureIds.map(String))
+    : null;
+  const relPages = rel && Array.isArray(rel.story_pages) ? rel.story_pages : [];
+  const scopedPages = wantedSids
+    ? relPages.filter((p: any) => p?.source_structure_id && wantedSids.has(String(p.source_structure_id)))
+    : relPages;
+  if (scopedPages.length === 0 && relPages.length > 0 && wantedSids) {
+    // Scope matched nothing (pre-group data): keep the full relational read
+    // rather than an empty story — the frozen block pages win at render time.
+    scopedPages.push(...relPages);
+  }
+  if (rel && scopedPages.length > 0) {
     // Build a lookup of comprehension questions by story_page_id.
     const questions: any[] = Array.isArray(rel.story_questions) ? rel.story_questions : [];
     const qByPageId = new Map<string, any[]>();
@@ -237,7 +252,7 @@ export function getStory(manifest: any): CanonicalStory {
     return {
       title: base.title,
       setting: base.setting,
-      pages: rel.story_pages.map((p: any, i: number) => {
+      pages: scopedPages.map((p: any, i: number) => {
         // Attach comprehension questions: match by story_page_id, fallback to
         // order_index-based assignment for questions with null story_page_id.
         const matched = qByPageId.get(p.id) || [];

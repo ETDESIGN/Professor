@@ -26,6 +26,7 @@ import {
 import { dealForTurn } from './turnDeal';
 import type { PoolItem } from '../../types/exercise';
 import { useSession } from '../../store/SessionContext';
+import { blockStructureIds } from './blockScope';
 import { makeRng } from '../../services/seededRandom';
 
 export interface UseEscalatingPoolInput {
@@ -88,6 +89,11 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
     return Array.isArray(ids) && ids.length > 0 ? ids : null;
   })();
   const scopeKey = scopeObjectiveIds?.join(',') ?? '';
+  // CONTENT GROUPS (spec 2026-09-13): a group-tagged block escalates ONLY its
+  // group's objectives (vocab series / story) — objectives.source_structure_id
+  // is stamped per word/story by generate-exercises.
+  const scopeStructureIds = blockStructureIds(state.activeSlideData?.data);
+  const structureKey = scopeStructureIds?.join(',') ?? '';
 
   // ── 1. Objectives for this unit (id + type), cached per unitId. ────────
   const [objectives, setObjectives] = useState<{ id: string; type: ObjectiveType }[]>([]);
@@ -100,6 +106,7 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
         .select('id, type')
         .eq('unit_id', unitId);
       if (scopeObjectiveIds) objQuery = objQuery.in('id', scopeObjectiveIds);
+      if (scopeStructureIds) objQuery = objQuery.in('source_structure_id', scopeStructureIds);
       const { data, error } = await objQuery;
       if (cancelled) return;
       if (error || !data) { setObjectives([]); return; }
@@ -110,7 +117,7 @@ export function useEscalatingPool(input: UseEscalatingPoolInput): UseEscalatingP
       })));
     })();
     return () => { cancelled = true; };
-  }, [unitId, scopeKey]);
+  }, [unitId, scopeKey, structureKey]);
 
   // ── 2. Class-weak ordering + SRS state, cached per (unitId, roster). ───
   // classWeakObjectives returns [{objective_id, retrievability, states: ObjectiveState[]}].
