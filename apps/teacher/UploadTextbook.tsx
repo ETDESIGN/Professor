@@ -8,6 +8,7 @@ import { sanitizeUnitTitle } from '../../services/unitTitle';
 import { useBookScan } from '../../hooks/useBookScan';
 import ExtractionReview from './ExtractionReview';
 import UnitizationEditor from './UnitizationEditor';
+import UnitSplitConfirm from './UnitSplitConfirm';
 
 // FIXPLAN_F P2.3 — new-flow upload (doc 10 §4, owner decision 2026-08-26:
 // hard switch for new uploads; legacy units keep the old read path).
@@ -41,6 +42,10 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
    const draftOrderIndexRef = useRef<number>(0);
    const [creatingUnit, setCreatingUnit] = useState(false);
    const [showUnitization, setShowUnitization] = useState(false);
+   // UNITIZATION GATE (spec 2026-09-13): a single-unit upload never sees the
+   // split editor; a multi-unit upload gets the simple confirm screen first.
+   const [splitProposal, setSplitProposal] = useState<any | null>(null);
+   const [proposing, setProposing] = useState(false);
    const fileInputRef = useRef<HTMLInputElement>(null);
    const navigate = useNavigate();
 
@@ -128,6 +133,41 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
       }
    };
 
+   // UNITIZATION GATE (spec 2026-09-13): propose first — exactly ONE group
+   // means a single-unit upload: apply it directly (zero decisions). Two or
+   // more groups open the simple confirm screen; the full editor stays
+   // reachable from there ("Adjust manually").
+   const startUnitization = async () => {
+      if (!draftUnitId || proposing) return;
+      setProposing(true);
+      try {
+         const { data, error } = await supabase.functions.invoke('propose-unitization', { body: { unitId: draftUnitId } });
+         if (error || data?.success === false || !Array.isArray(data?.groups)) {
+            // Proposal unavailable — the full editor is the safe fallback.
+            setShowUnitization(true);
+            return;
+         }
+         if (data.groups.length <= 1) {
+            const payload = data.groups.map((g: any) => ({ title: g.title, is_setup: g.is_setup, pageIds: g.pageIds }));
+            const { data: applied, error: applyErr } = await supabase.functions.invoke('apply-unitization', {
+               body: { unitId: draftUnitId, groups: payload },
+            });
+            if (applyErr || applied?.success === false) {
+               toast.error(`Creating the unit failed: ${applyErr?.message || applied?.error || 'unknown'}`);
+               setShowUnitization(true);
+               return;
+            }
+            toast.success(`${applied.created?.length ?? 1} unit created from your pages`);
+            navigate('/teacher/units');
+            if (onFinish) onFinish();
+            return;
+         }
+         setSplitProposal(data);
+      } finally {
+         setProposing(false);
+      }
+   };
+
    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!e.target.files || e.target.files.length === 0) return;
       const newFiles = Array.from(e.target.files);
@@ -154,6 +194,24 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
          supabase.from('units').update({ title: t }).eq('id', unitId).then(() => undefined, () => undefined);
       }
    };
+
+   if (splitProposal && draftUnitId) {
+      return (
+         <UnitSplitConfirm
+            sourceUnitId={draftUnitId}
+            proposal={splitProposal}
+            onBack={() => setSplitProposal(null)}
+            onDone={() => {
+               navigate('/teacher/units');
+               if (onFinish) onFinish();
+            }}
+            onAdjustManually={() => {
+               setSplitProposal(null);
+               setShowUnitization(true);
+            }}
+         />
+      );
+   }
 
    if (showUnitization && draftUnitId) {
       return (
@@ -235,7 +293,7 @@ const UploadTextbook: React.FC<UploadTextbookProps> = ({ onFinish, onBack }) => 
                unitId={draftUnitId}
                unitTitle={unitTitle || 'this unit'}
                scanState={scanState}
-               onConfirm={() => setShowUnitization(true)}
+               onConfirm={startUnitization}
             />
          ) : (
             <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-8">
