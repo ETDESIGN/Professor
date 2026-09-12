@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Exit Confirmation Dialog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-fredoka: 'Fredoka', -apple-system, sans-serif;
+      --font-nunito: 'Nunito', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    body {
+      font-family: var(--font-nunito);
+      background-color: #EAE0D0;
+      color: #264653;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-fredoka { font-family: var(--font-fredoka); }
+    .font-nunito { font-family: var(--font-nunito); }
+    .font-mono { font-family: var(--font-mono); }
+
+    /* Tactile 3D Bevel Buttons */
+    .btn-3d-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+
+    .btn-3d-neutral {
+      background-color: #FDFBF7;
+      border: 2px solid #E2D7C3;
+      box-shadow: 0 3px 0 #D5C7B0;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-neutral:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D5C7B0;
+    }
+
+    .card-bevel {
+      box-shadow: 0 4px 0 #D8CDBC, 0 12px 24px -6px rgba(38, 70, 83, 0.08);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-6 bg-[#EAE0D0]">
+
+  <!-- Mobile Screen Canvas (390 x 844 px portrait viewport shell) -->
+  <div class="relative w-[390px] h-[844px] bg-[#EAE0D0] rounded-[36px] shadow-2xl overflow-hidden flex flex-col border-[6px] border-[#D8CDBC]">
+
+    <!-- ========================================================= -->
+    <!-- BACKGROUND SHELL & ACTIVE LESSON (DIMMED & BLURRED SCENE) -->
+    <!-- ========================================================= -->
+
+    <!-- Top Shell Header (64px) -->
+    <header class="h-16 px-4 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center justify-between z-0 shrink-0">
+      <!-- Exit Button (pressed state) -->
+      <button class="w-10 h-10 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center justify-center text-[#264653] shadow-[0_2px_0_#D5C7B0] active:translate-y-0.5" aria-label="Close">
+        <svg class="w-5 h-5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Progress Meter (3/6 Completed) -->
+      <div class="flex-1 mx-4 max-w-[190px]">
+        <div class="h-3 w-full bg-[#EAE0D0] rounded-full p-0.5 overflow-hidden flex">
+          <div class="h-full bg-[#E91E63] rounded-full w-[50%] transition-all duration-300 shadow-[0_1px_2px_rgba(233,30,99,0.3)]"></div>
+        </div>
+        <div class="flex justify-between items-center px-1 mt-1">
+          <span class="text-[10px] font-bold text-[#8C7A68]">Step 3 of 6</span>
+          <span class="text-[10px] font-bold text-[#E91E63]">50%</span>
+        </div>
+      </div>
+
+      <!-- Hearts Pill (4 Lives remaining) -->
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#FFF1F2] border-2 border-[#FFE4E6] shadow-sm">
+        <svg class="w-4 h-4 text-[#FF4B4B] fill-[#FF4B4B] animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-sm text-[#FF4B4B]">4</span>
+      </div>
+    </header>
+
+    <!-- Dimmed Active Lesson Stage (Subway Vocab Card) -->
+    <main class="flex-1 px-4 pt-5 pb-6 flex flex-col items-center justify-between filter blur-[1px] opacity-75 select-none pointer-events-none">
+      <!-- Lesson Tag -->
+      <div class="px-3.5 py-1 rounded-full bg-[#FDFBF7] border border-[#E2D7C3] text-[11px] font-bold text-[#8C7A68] tracking-wide flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-[#2A9D8F]"></span>
+        <span>CITY TRAVEL • LESSON 1</span>
+      </div>
+
+      <!-- Main Vocabulary Target Card -->
+      <div class="w-full max-w-[340px] bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-3xl p-5 card-bevel flex flex-col items-center my-auto">
+        <!-- Audio speaker button & prompt -->
+        <div class="flex items-center justify-between w-full mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-[#8C7A68]">Listen & Match</span>
+          </div>
+          <div class="w-9 h-9 rounded-2xl bg-[#1CB0F6] text-white flex items-center justify-center shadow-[0_2px_0_#0284C7]">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Illustration placeholder in card -->
+        <div class="w-full h-32 bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl flex flex-col items-center justify-center mb-3">
+          <span class="text-4xl mb-1">🚇</span>
+          <span class="font-fredoka font-bold text-lg text-[#1D3557]">subway</span>
+          <span class="text-xs text-[#8C7A68]">地铁 (dìtiě)</span>
+        </div>
+
+        <!-- Dummy Answer Options (Blurred) -->
+        <div class="w-full grid grid-cols-2 gap-2 mt-1">
+          <div class="h-12 rounded-xl bg-white border-2 border-[#2A9D8F] flex items-center justify-center text-sm font-bold text-[#2A9D8F]">
+            A. 地铁
+          </div>
+          <div class="h-12 rounded-xl bg-white border-2 border-[#E2D7C3] flex items-center justify-center text-sm font-bold text-[#8C7A68]">
+            B. 公共汽车
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom action bar behind overlay -->
+      <div class="w-full pt-2">
+        <div class="w-full h-12 rounded-2xl bg-[#D8CDBC] opacity-50 flex items-center justify-center text-sm font-bold text-[#8C7A68]">
+          CHECK ANSWER
+        </div>
+      </div>
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- SEMI-TRANSPARENT MIST OVERLAY SCRIM                       -->
+    <!-- rgba(38, 70, 83, 0.48) with backdrop-blur                 -->
+    <!-- ========================================================= -->
+    <div class="absolute inset-0 bg-[#264653]/55 backdrop-blur-[2px] z-10 flex flex-col justify-end transition-opacity duration-200">
+
+      <!-- Top Dimmed Banner Area (Tappable dismiss context) -->
+      <div class="flex-1 w-full flex items-start justify-center pt-8 px-6">
+        <div class="px-3 py-1.5 rounded-full bg-[#1D3557]/60 text-white/90 text-xs font-medium tracking-wide flex items-center gap-1.5 backdrop-blur-sm">
+          <span>Solo Lesson paused</span>
+          <span class="text-white/40">•</span>
+          <span class="text-[#E9C46A]">Tap outside or resume</span>
+        </div>
+      </div>
+
+      <!-- ======================================================= -->
+      <!-- EXIT CONFIRMATION MODAL CARD (BOTTOM SHEET DIALOG)     -->
+      <!-- ======================================================= -->
+      <div class="relative w-full bg-[#FDFBF7] border-t-[3px] border-x-[3px] border-[#E2D7C3] rounded-t-[36px] px-5 pt-7 pb-6 shadow-[0_-12px_32px_rgba(0,0,0,0.22)] z-20 flex flex-col items-center">
+
+        <!-- Top Drag Indicator Pill -->
+        <div class="w-12 h-1.5 bg-[#E2D7C3] rounded-full absolute top-3"></div>
+
+        <!-- Mascot Illustration: Sad/Caring Professor Owl peeking out with gentle eyes -->
+        <div class="relative mb-3 mt-1">
+          <!-- Soft aura backglow -->
+          <div class="absolute -inset-2 bg-[#F7F3E8] rounded-full blur-sm"></div>
+
+          <!-- Owl Mascot SVG (Custom Detailed Vector) -->
+          <svg class="relative w-28 h-28 drop-shadow-md" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Feet -->
+            <ellipse cx="48" cy="112" rx="7" ry="4" fill="#E76F51" />
+            <ellipse cx="72" cy="112" rx="7" ry="4" fill="#E76F51" />
+            
+            <!-- Body -->
+            <ellipse cx="60" cy="74" rx="42" ry="38" fill="#2A9D8F" />
+            
+            <!-- Belly Feather Shield -->
+            <path d="M38 78C38 64 82 64 82 78C82 96 73 108 60 108C47 108 38 96 38 78Z" fill="#F4A261" opacity="0.3" />
+            <ellipse cx="60" cy="84" rx="24" ry="20" fill="#FDFBF7" />
+            <!-- Soft belly scalloped markings -->
+            <path d="M52 82C54 85 58 85 60 82C62 85 66 85 68 82" stroke="#E2D7C3" stroke-width="2" stroke-linecap="round"/>
+            <path d="M55 90C57 93 61 93 63 90" stroke="#E2D7C3" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Wings (Drooped gently in sadness/caring pose) -->
+            <path d="M19 66C15 76 20 92 28 94C30 84 27 72 23 64C21 64 20 65 19 66Z" fill="#1E6F5C" />
+            <path d="M101 66C105 76 100 92 92 94C90 84 93 72 97 64C99 64 100 65 101 66Z" fill="#1E6F5C" />
+
+            <!-- Ear Tufts -->
+            <path d="M26 38L38 46L24 50Z" fill="#1E6F5C" />
+            <path d="M94 38L82 46L96 50Z" fill="#1E6F5C" />
+
+            <!-- Head & Feather Outline -->
+            <ellipse cx="60" cy="50" rx="36" ry="28" fill="#2A9D8F" />
+
+            <!-- Professor Explorer Hat / Academic Cap -->
+            <ellipse cx="60" cy="28" rx="30" ry="7" fill="#E9C46A" stroke="#D4A346" stroke-width="1.5" />
+            <path d="M42 27C42 16 78 16 78 27Z" fill="#F4A261" stroke="#D4A346" stroke-width="1.5" />
+            <circle cx="60" cy="18" r="3" fill="#E76F51" />
+
+            <!-- Giant Eyeglass Rim (Glasses) -->
+            <circle cx="44" cy="52" r="17" fill="#FDFBF7" stroke="#E76F51" stroke-width="3" />
+            <circle cx="76" cy="52" r="17" fill="#FDFBF7" stroke="#E76F51" stroke-width="3" />
+            <!-- Bridge of glasses -->
+            <path d="M60 52C58 49 62 49 60 52" stroke="#E76F51" stroke-width="3" stroke-linecap="round" />
+
+            <!-- Eyes (Sad / Caring Expression: Pupil looking slightly up with subtle drooping eyelid) -->
+            <!-- Soft sad eyelids -->
+            <path d="M28 47C33 43 45 44 59 47" stroke="#2A9D8F" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M61 47C75 44 87 43 92 47" stroke="#2A9D8F" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Pupils with caring large shiny reflections -->
+            <circle cx="45" cy="54" r="7.5" fill="#1D3557" />
+            <circle cx="75" cy="54" r="7.5" fill="#1D3557" />
+            <!-- Highlights (moist, sparkling caring eyes) -->
+            <circle cx="43" cy="51.5" r="3" fill="#FFFFFF" />
+            <circle cx="48" cy="55.5" r="1.5" fill="#FFFFFF" />
+            <circle cx="73" cy="51.5" r="3" fill="#FFFFFF" />
+            <circle cx="78" cy="55.5" r="1.5" fill="#FFFFFF" />
+
+            <!-- Cute Teardrop / Caring Sweatmark -->
+            <path d="M96 55C97 58 95 61 93 61C91 61 90 58 93 54C94 53 95.5 53.5 96 55Z" fill="#1CB0F6" opacity="0.85" />
+
+            <!-- Orange Beak (Small sad curve) -->
+            <path d="M56 60L60 67L64 60C62 59 58 59 56 60Z" fill="#E76F51" />
+            <!-- Cheeks blush -->
+            <ellipse cx="32" cy="62" rx="4" ry="2.5" fill="#FF8A80" opacity="0.6" />
+            <ellipse cx="88" cy="62" rx="4" ry="2.5" fill="#FF8A80" opacity="0.6" />
+          </svg>
+
+          <!-- Floating Question Bubble / Soft Star Badge -->
+          <div class="absolute -top-1 -right-2 w-7 h-7 rounded-full bg-[#FFE4E6] border-2 border-[#FFCCD5] flex items-center justify-center text-xs shadow-sm">
+            🥺
+          </div>
+        </div>
+
+        <!-- Headline: Bold 22px Fredoka in inkDeep #1D3557 -->
+        <h2 class="font-fredoka font-bold text-[22px] leading-tight text-[#1D3557] text-center tracking-tight">
+          Leave lesson already?
+        </h2>
+
+        <!-- Body Warning: 15px Nunito in ink #264653 -->
+        <p class="font-nunito font-semibold text-[15px] leading-snug text-[#264653] text-center mt-1.5 px-3">
+          If you leave now, you will lose your progress and stars for this lesson.
+        </p>
+
+        <!-- Chinese Support Subtitle: 13px Nunito in muted #8C7A68 -->
+        <p class="font-nunito font-medium text-[13px] text-[#8C7A68] text-center mt-1">
+          现在退出将丢失本次课时的所有星星和进度哦！
+        </p>
+
+        <!-- Loss Prevention Chips Card (Mist #F7F3E8, Border #E2D7C3) -->
+        <div class="w-full mt-4 bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3 flex items-center justify-around shadow-inner">
+          <!-- Star Stat -->
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⭐</span>
+            <div class="flex flex-col">
+              <span class="font-fredoka font-bold text-sm text-[#1D3557] leading-none">2 Stars</span>
+              <span class="text-[11px] font-semibold text-[#8C7A68] mt-0.5">earned so far</span>
+            </div>
+          </div>
+
+          <div class="w-[1px] h-8 bg-[#E2D7C3]"></div>
+
+          <!-- XP Stat -->
+          <div class="flex items-center gap-2">
+            <span class="text-xl">✨</span>
+            <div class="flex flex-col">
+              <span class="font-fredoka font-bold text-sm text-[#2A9D8F] leading-none">+15 XP</span>
+              <span class="text-[11px] font-semibold text-[#8C7A68] mt-0.5">pending bonus</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio cue tag marker -->
+        <div class="flex items-center gap-1.5 mt-3 text-[11px] font-mono text-[#8C7A68] bg-[#EAE0D0]/50 px-2.5 py-1 rounded-md border border-[#E2D7C3]/60">
+          <svg class="w-3.5 h-3.5 text-[#2A9D8F]" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414z"/>
+          </svg>
+          <span>Sound Cue: <span class="font-bold text-[#1D3557]">[playCue: prompt_warning]</span></span>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- ACTION BUTTONS (THUMB-REACHABLE BOTTOM STACK)          -->
+        <!-- ======================================================= -->
+        <div class="w-full flex flex-col gap-3 mt-4">
+          
+          <!-- Primary CTA: KEEP LEARNING (54px height, vibrant teal, tactile bevel) -->
+          <div class="w-full flex flex-col">
+            <button class="w-full h-[54px] rounded-[20px] btn-3d-teal text-white flex items-center justify-center gap-2 cursor-pointer font-fredoka font-bold text-[18px] tracking-wide" onclick="console.log('Keep Learning tapped')">
+              <span>KEEP LEARNING</span>
+              <svg class="w-5 h-5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </button>
+            <span class="text-[9.5px] font-mono text-[#8C7A68] text-center mt-1">
+              🔊 [playCue: tap_resume] plays encouraging uplift chime
+            </span>
+          </div>
+
+          <!-- Secondary Action: Quit Lesson (54px height, soft paper #FDFBF7, neutral bevel) -->
+          <div class="w-full flex flex-col">
+            <button class="w-full h-[54px] rounded-[20px] btn-3d-neutral text-[#8C7A68] flex items-center justify-center gap-2 cursor-pointer font-nunito font-bold text-[16px] hover:text-[#E76F51] transition-colors" onclick="console.log('Quit Lesson tapped')">
+              <span>Quit Lesson</span>
+            </button>
+            <span class="text-[9.5px] font-mono text-[#8C7A68] text-center mt-1">
+              🔊 [playCue: tap_exit] plays soft exit thud
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

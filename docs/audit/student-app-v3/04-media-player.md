@@ -1,6 +1,6 @@
 # Media Player — Video & Song Step — v3 Quality Audit (`MEDIA_PLAYER (passive)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -118,15 +118,45 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 5. **[P3] Harmonize container design with Wonder Atlas tokens:** Frame the player with warm paper cards and clear transport buttons.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the light-themed media player frame and video error fallback card.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Media Player Sing-Along (`04-media-player.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Media Player Karaoke Sing-Along Video + 48px Transport Scrubber**
+   - **Stitch Screen ID:** `c2f6d77a18174b2cbecabbdd7e0bc657`
+   - **Title:** `Professor ESL - Media Player (Karaoke Sing-Along)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1Xu91mKwecL1Oc9re2Y46UBOSIZULnoSWdKSWlccz7f6kjdIHRkjCaQIPcwMBZrfClkX-5jHybkrrjR_6byRQxQxXY4XRaw3kVXCzF4GL6wXthi3fhwFJWharU3x8jLinYb8pP5ldL0bV-h1MhOteKypLOZExcaHI9Ft8oLjc78MuEMerfY2kJpVWilvSbgpUVBq_m1hmbVdzOSBQF7aSIBKae0M0UabE1RO2tL62hSNctV85amF_-4H-A`
+   - **Prompt Summary:** Mobile portrait (390×844) video karaoke sing-along step. Shell header shows Step 1 in Duolingo pink `#E91E63` and 4 hearts. Main stage features 16:9 widescreen video at 100% full opacity and vibrant color (no darkening scrim or 0.6 opacity degradation) depicting school children walking across a crosswalk with clear mouth articulation. Over lower video sits a glassmorphic karaoke bar with current spoken words highlighted in glowing Duolingo pink `#E91E63` (*\"across the crosswalk\"*) and upcoming line preview. Accessible 48px transport scrubber card features 8px track in Duolingo blue `#1CB0F6`, 22px terracotta `#E76F51` thumb handle, timestamps `01:14 / 02:45`, mute toggle, 60px teal play/pause circular FAB (`#2A9D8F`, bevel `0 4px 0 #1E6F5C`), and restart button. Anchored footer CTA `CONTINUE TO LESSON →`.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: tap_pause]` on play/pause FAB toggle
+     - `[🔊 playCue: song_stream]` streaming vocal audio
+     - `[🔊 playCue: tap_next]` on footer continue tap
+   - **Design Contract:** Wonder Atlas tokens × Duolingo accents, Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Media Player Offline / No-Media Error Recovery Fallback State**
+   - **Stitch Screen ID:** `9a298de8bad049d0b2c97b121c951527`
+   - **Title:** `Professor ESL - Media Player (Offline Fallback & Song Audio Mode)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XvPSfMxi2M-SY-XYNh_W_z6v5xGr6Xp-DcLeAW_18qyz1HVA-c-y7M4Mb5YoRKxTRVpKMVjaYuJix5XGuno01L74hlLwBl0ZWnhEOGkAraPYhwdwZBrvXD2IZEDRxbEu3DVU-m36BGV_ryurY1IvW4RHN03Zx-HBz8XvZLO4IHtxHXWd06iJRz9Hw5GJ-FhM5IycCi6VzcgAmMsx_ucJYBB-rQexgOcYgcZeOpwyoGCNRJVt_qCFUqZuk`
+   - **Prompt Summary:** Mobile portrait (390×844) error recovery state when external video embed fails to load. Mist `#F7F3E8` alert banner informs student that video is offline, seamlessly switching to Song Audio Mode with Chinese support chip `视频离线中，已为您切换为高品质音频伴唱模式`. Showcase card features animated vinyl record illustration, song metadata (*\"The City Rhythm Song\"*), bouncing equalizer waveform bars in teal and pink, 48px seek bar, and 64px Duolingo blue play FAB (`#1CB0F6`, bevel `0 4px 0 #0284C7`). Printable lyric reader slide displays song verses clearly. Anchored footer features guaranteed skip/advance CTA `CONTINUE TO LESSON →` in terracotta `#E76F51` (`0 4px 0 #C4553B` bevel), ensuring child is never blocked.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: song_audio]` on play FAB tap
+     - `[🔊 playCue: tap_next]` on footer continue tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch directive — no per-game gate). Project `6865954475041880496`. Screens 1-2 exported — PASS: karaoke hero + the offline/audio-mode fallback state (solves F1's dead embed). Sound moments marked per the owner's sound directive; implementation wires `playCue`.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive, verbatim):** "I review every screen in Stitch right now so please implement them all right away without waiting for my approval. I will verify everything tomorrow… in case some designs are too much off, we will modify them afterward." — revisions, if any, follow the edit_screens loop after his review.
 
 ## §7 Implementation notes & design-fidelity log
 

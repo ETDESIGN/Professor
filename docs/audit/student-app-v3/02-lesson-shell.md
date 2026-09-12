@@ -1,6 +1,6 @@
 # Solo Lesson Player Shell — v3 Quality Audit (`PLAYER SHELL + INTRO_SPLASH`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -122,15 +122,44 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Refs are `apps/student
 5. **[P2] Harmonize header shell typography and token palette:** Align passive, engine, and battery step headers to the Wonder Atlas × Duolingo light system (paper card `#FDFBF7`, ink text, crisp progress segments).
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the unified lesson shell header and exit confirmation modal.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Lesson Player Shell & INTRO_SPLASH (`02-lesson-shell.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Shell + INTRO_SPLASH (Unit Intro Moment + Shell Header/Footer System)**
+   - **Stitch Screen ID:** `b2f964b164444aceb5f595b120e7d245`
+   - **Title:** `Professor ESL - Solo Lesson Player Shell (Intro Splash)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1Wlw9izTHRh8DXl6h1UmV7NToyys7wfIEMBjjnSHIDGWHQzPumFE1eJGgvzUlgewufQTZRNZWe-VPXVxk3wzgIPPXijYmbDCQIHg1_NP78nVOg5CASwmP81U9gp1M6X5eMm6JQUEnh7BGUQltN31RcdMRTODA7GflLuF5R_RtE5MMFc-UCRSg6WJs424XkMdyV2s2UQ8ipsNpO_6VBBEml5I5jvnypKTn1zofK1tNZKg2k5VVNATZRqMQ`
+   - **Prompt Summary:** Mobile portrait (390×844) lesson player shell with unit intro splash card. Universal 64px header on paper `#FDFBF7` with 48px close '✕' button, 6-segment progress tracker (Step 1 active in Duolingo pink `#E91E63`), and real hearts counter (4 hearts in `#FF4B4B`). Main stage features central hero card on cream `#EAE0D0` with Unit 3 badge (`UNIT 3 • LESSON 1`), headline `In the City`, Chinese subtitle `城市探索 • 探索城市中的新单词与故事`, custom SVG illustration of Professor Owl in safari hat with magnifying glass, and 3 learning roadmap chips (5 New Words, Story, Speed Quiz). Anchored 80px footer with disabled Back button and 54px tactile CTA `START LESSON →` in teal `#2A9D8F` (`0 4px 0 #1E6F5C` bevel).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: intro_fanfare]` on unit splash entrance
+     - `[🔊 playCue: tap_start]` on Start Lesson tap
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Shell Exit Confirmation Sheet / Modal (Accidental Data Loss Protection)**
+   - **Stitch Screen ID:** `30610c4d8de141689c0bd8e0637e64e2`
+   - **Title:** `Professor ESL - Solo Lesson Player Shell (Exit Confirmation)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UlIzAbzV5FvmHcFFMJa4pq-Mm1kXQGFkslF3TJb1CqsyVSpy9od5CvCPXA6qyNa6O8j5lLlqAgkIveXys1rlCG9YOFadk7-MyffIRNZVUXSdyyu95UovRYZnQxmLoEOAmooDyT8Mbm8H2Nt8Axpu2N8l5SwDmLc4ZBRP8QhvEsXgtYylUyWvSQxrji5iqrbwyfbIzXW63PutgOAydTUjhzcfeVcmRBj27ZC86zixe5Dlt2RXKl4q6mMw`
+   - **Prompt Summary:** Mobile portrait (390×844) exit confirmation sheet anchored over dimmed/blurred active lesson stage (`rgba(38, 70, 83, 0.55)`). Shell header visible behind scrim with 3/6 progress and 4 hearts. Warm paper `#FDFBF7` sheet with rounded-t-[36px] dialog, top grab-handle, and caring Professor Owl mascot with moist eyes asking the child to stay. Headline `Leave lesson already?` in Fredoka inkDeep `#1D3557`, body warning in ink `#264653`, and Chinese subtitle `现在退出将丢失本次课时的所有星星和进度哦！`. Loss prevention chip displays `⭐ 2 Stars earned so far` and `✨ +15 XP pending bonus`. Vertical thumb-zone button stack: Primary 54px tactile `KEEP LEARNING` button in teal `#2A9D8F` (`0 4px 0 #1E6F5C` bevel) and secondary 54px `Quit Lesson` button in paper `#FDFBF7` (`0 3px 0 #D5C7B0` bevel).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: prompt_warning]` on modal display
+     - `[🔊 playCue: tap_resume]` on Keep Learning tap
+     - `[🔊 playCue: tap_exit]` on Quit Lesson tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch directive — no per-game gate). Project `6865954475041880496`. Screens 1-2 exported to `stitch/02-lesson-shell/` — PASS: shell+intro system and the exit-confirm flow per §4.f log; mobile portrait, token palette, ≥48px targets, Chinese on support surfaces only. Sound moments marked per the owner's sound directive; implementation wires `playCue`.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive, verbatim):** "I review every screen in Stitch right now so please implement them all right away without waiting for my approval. I will verify everything tomorrow… in case some designs are too much off, we will modify them afterward." — revisions, if any, follow the edit_screens loop after his review.
 
 ## §7 Implementation notes & design-fidelity log
 

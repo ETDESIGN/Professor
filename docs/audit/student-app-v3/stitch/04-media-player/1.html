@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Media Player Karaoke Sing-Along</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    /* Bevel and 3D kid-friendly button styles */
+    .btn-3d-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .btn-3d-mist {
+      background-color: #FDFBF7;
+      border: 2px solid #E2D7C3;
+      box-shadow: 0 3px 0 #D4C6AF;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-mist:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D4C6AF;
+    }
+    .scrubber-thumb {
+      box-shadow: 0 3px 0 #B85038, 0 1px 4px rgba(0,0,0,0.15);
+    }
+    /* Dot pattern background for desktop container frame */
+    .bg-dot-pattern {
+      background-image: radial-gradient(#D6C6B0 1.2px, transparent 1.2px);
+      background-size: 16px 16px;
+    }
+    /* Karaoke highlight glowing underline */
+    .lyric-highlight {
+      position: relative;
+      display: inline-block;
+      color: #E91E63;
+      font-weight: 700;
+    }
+    .lyric-highlight::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -2px;
+      width: 100%;
+      height: 3px;
+      background-color: #E91E63;
+      border-radius: 9999px;
+      box-shadow: 0 0 8px rgba(233, 30, 99, 0.45);
+    }
+  </style>
+</head>
+<body class="bg-[#EAE0D0] bg-dot-pattern p-0 sm:p-4">
+
+  <!-- Mobile Screen Container (390 x 844 px portrait shell) -->
+  <main class="w-[390px] h-[844px] bg-[#EAE0D0] relative flex flex-col overflow-hidden shadow-2xl rounded-[36px] border-[6px] border-[#D8CCB9]">
+    
+    <!-- ==================== UNIVERSAL SHELL HEADER (64px) ==================== -->
+    <header class="h-16 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between shrink-0 z-30">
+      <!-- Left: 48px Close '✕' button -->
+      <button 
+        type="button" 
+        class="w-12 h-12 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center justify-center text-[#264653] font-fredoka font-bold text-xl hover:bg-[#EFE9DA] active:scale-95 transition-transform"
+        aria-label="Exit Lesson"
+        title="[🔊 playCue: tap_exit]"
+      >
+        ✕
+      </button>
+
+      <!-- Center: 6-Step Progress Bar (Step 1 of 6 active) -->
+      <div class="flex-1 mx-3 flex flex-col items-center">
+        <div class="w-full flex items-center gap-1.5 h-3 px-1">
+          <!-- Step 1: Active Duolingo Pink #E91E63 -->
+          <div class="h-2.5 flex-1 bg-[#E91E63] rounded-full shadow-inner ring-2 ring-[#F8BBD0]/50"></div>
+          <!-- Steps 2-6: Inactive muted tracks -->
+          <div class="h-2 flex-1 bg-[#E2D7C3] rounded-full"></div>
+          <div class="h-2 flex-1 bg-[#E2D7C3] rounded-full"></div>
+          <div class="h-2 flex-1 bg-[#E2D7C3] rounded-full"></div>
+          <div class="h-2 flex-1 bg-[#E2D7C3] rounded-full"></div>
+          <div class="h-2 flex-1 bg-[#E2D7C3] rounded-full"></div>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-[#E91E63]"></span>
+          <span class="font-fredoka text-[11px] font-semibold text-[#8C7A68] tracking-wider uppercase">Step 1 of 6 • Sing &amp; Learn</span>
+        </div>
+      </div>
+
+      <!-- Right: Hearts counter (4 hearts #FF4B4B, bold '4') -->
+      <div class="h-11 px-3 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center gap-1.5 shadow-sm">
+        <svg class="w-5 h-5 fill-[#FF4B4B] drop-shadow-sm animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-base text-[#264653] leading-none pt-0.5">4</span>
+      </div>
+    </header>
+
+    <!-- ==================== MAIN STAGE: VIDEO KARAOKE & TRANSPORT ==================== -->
+    <div class="flex-1 overflow-y-auto px-4 py-3 flex flex-col justify-start">
+      
+      <!-- Lesson Context Badge -->
+      <div class="flex items-center justify-between mb-2">
+        <div class="inline-flex items-center gap-1.5 bg-[#FDFBF7] border border-[#E2D7C3] px-2.5 py-1 rounded-full shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-[#2A9D8F] animate-ping"></span>
+          <span class="font-fredoka text-xs font-semibold text-[#1D3557] tracking-wide">KARAOKE SONG LAB</span>
+        </div>
+        <div class="flex items-center gap-1 bg-[#F7F3E8] border border-[#E2D7C3] px-2 py-0.5 rounded-lg text-[11px] font-bold text-[#8C7A68]">
+          <svg class="w-3.5 h-3.5 text-[#E76F51]" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
+          Unit 3: City Travel
+        </div>
+      </div>
+
+      <!-- Video Player Frame (16:9 widescreen, 100% full opacity, vibrant cartoon) -->
+      <div class="relative w-full rounded-[24px] bg-[#FDFBF7] border-2 border-[#E2D7C3] overflow-hidden shadow-md shrink-0">
+        
+        <!-- 16:9 Aspect Ratio Video Box -->
+        <div class="relative w-full aspect-video bg-[#4A6B82] overflow-hidden">
+          
+          <!-- Full opacity vibrant reference illustration embedded without dimming or scrim -->
+          <img 
+            src="https://lh3.googleusercontent.com/aida/AEtjO1VQdYcl7A8k2qh0LLKOwgM7vxE9Qm8ZgBcK_H7blaPet8i-yT9A1yPSOJDnHZuldf0mUkfK05HVKQXtTaqHSNO-b6eg258ns3hStyX7fWx98fodGRGOWJoucBpo67WS_y8p-y-C6BhE9bx-q2_HIjlaB9hAUA0PwyxSwnaVSBLjcRbN3teXaNJQQbaXZGa2OqsAc7kzjSl347mOSqgGniCjCn3mlgSvRBZYSChTKzS3zWw8oUdbZ97BIvw" 
+            alt="Children singing and walking across the pedestrian crosswalk in a colorful city" 
+            class="w-full h-full object-cover object-center transform scale-105"
+            style="opacity: 1.0; filter: contrast(105%) saturate(110%);"
+          />
+
+          <!-- Live Singing Tag & Equalizer Icon (Top Left Overlay) -->
+          <div class="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-[#1D3557]/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-full border border-white/20 shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-[#FF4B4B] animate-pulse"></span>
+            <span class="font-fredoka text-[11px] font-bold tracking-wider">LIVE SING-ALONG</span>
+            <div class="flex items-end gap-0.5 h-3 ml-1">
+              <span class="w-0.5 h-2 bg-emerald-400 animate-[bounce_0.8s_infinite]"></span>
+              <span class="w-0.5 h-3 bg-emerald-400 animate-[bounce_0.6s_infinite_0.2s]"></span>
+              <span class="w-0.5 h-1.5 bg-emerald-400 animate-[bounce_0.7s_infinite_0.4s]"></span>
+            </div>
+          </div>
+
+          <!-- Video Quality Pill (Top Right Overlay) -->
+          <div class="absolute top-2.5 right-2.5 bg-[#1D3557]/70 backdrop-blur-sm text-white text-[10px] font-fredoka font-semibold px-2 py-0.5 rounded-md border border-white/20">
+            HD 1080p
+          </div>
+
+          <!-- Synchronized Karaoke Bar (Anchored over lower 28% with soft glassmorphic backdrop rgba(253, 251, 247, 0.94)) -->
+          <div class="absolute bottom-0 inset-x-0 bg-[#FDFBF7]/95 backdrop-blur-md border-t-2 border-[#E2D7C3] px-3.5 py-2.5 flex flex-col justify-center">
+            
+            <!-- Phonics / Lyrics guide icon -->
+            <div class="flex items-center justify-between mb-0.5">
+              <div class="flex items-center gap-1 text-[11px] font-fredoka font-bold text-[#2A9D8F] tracking-wide uppercase">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                </svg>
+                Current Lyric (Chorus)
+              </div>
+              <span class="text-[10px] font-bold text-[#8C7A68] bg-[#EAE0D0] px-1.5 py-0.5 rounded">Tempo: 110 BPM</span>
+            </div>
+
+            <!-- Current Active Spoken Line (Bold 20px Fredoka in inkDeep #1D3557, highlight Duolingo pink #E91E63) -->
+            <p class="font-fredoka text-[18px] leading-tight text-[#1D3557] font-semibold text-center my-0.5">
+              We walk <span class="lyric-highlight">across the crosswalk</span>, one, two, three!
+            </p>
+
+            <!-- Next Lyric Line (Upcoming: 13px Nunito text-muted #8C7A68) -->
+            <p class="text-[13px] font-extrabold text-[#8C7A68] text-center italic tracking-tight">
+              Next: &ldquo;Stop on red, wait on yellow, go on green!&rdquo;
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ==================== TRANSPORT CONTROLS & KID-FRIENDLY SCRUBBER ==================== -->
+      <section class="bg-[#F7F3E8] rounded-2xl p-3.5 mt-3 border-2 border-[#E2D7C3] shadow-sm flex flex-col gap-2 shrink-0">
+        
+        <!-- Accessible 48px Scrubber Transport Bar -->
+        <div class="w-full flex flex-col justify-center">
+          
+          <!-- Timestamps Row -->
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-fredoka font-bold text-sm text-[#264653] tracking-wide flex items-center gap-1">
+              <span class="w-2 h-2 rounded-full bg-[#1CB0F6]"></span>
+              01:14
+            </span>
+            <span class="text-[11px] font-extrabold text-[#8C7A68] uppercase tracking-wider font-fredoka">Song Progress</span>
+            <span class="font-fredoka font-bold text-sm text-[#8C7A68] tracking-wide">
+              02:45
+            </span>
+          </div>
+
+          <!-- 48px Touch-Target Scrubber Container -->
+          <div class="relative h-12 flex items-center cursor-pointer group" role="slider" aria-label="Audio scrubber" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+            <!-- Background Track (8px height in Paper #FDFBF7, border #E2D7C3) -->
+            <div class="w-full h-2.5 bg-[#FDFBF7] rounded-full border-2 border-[#E2D7C3] overflow-hidden relative shadow-inner">
+              <!-- Filled Progress (45% played Duolingo blue #1CB0F6) -->
+              <div class="h-full bg-[#1CB0F6] rounded-full transition-all duration-150 relative" style="width: 45%;">
+                <div class="absolute inset-0 bg-white/20"></div>
+              </div>
+            </div>
+
+            <!-- Tactile 22px Drag Thumb in terracotta #E76F51 with hard bevel, centered at 45% -->
+            <div 
+              class="absolute w-[22px] h-[22px] rounded-full bg-[#E76F51] border-2 border-white scrubber-thumb top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-110 active:scale-95 transition-transform"
+              style="left: 45%;"
+              title="Scrub position: 01:14"
+            >
+              <span class="w-2 h-2 rounded-full bg-white/90"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Media Action Bar (Mute/Unmute, Center Play/Pause FAB, Restart Track) -->
+        <div class="flex items-center justify-between pt-1 border-t border-[#E2D7C3]/60">
+          
+          <!-- Left: Mute/Unmute toggle (48x48px) + Volume Chip 'Vol: Mid' -->
+          <div class="flex items-center gap-2">
+            <button 
+              type="button"
+              class="w-12 h-12 rounded-full bg-[#FDFBF7] border-2 border-[#E2D7C3] flex items-center justify-center text-[#264653] btn-3d-mist group active:scale-95"
+              aria-label="Toggle Mute"
+              title="Mute / Unmute"
+            >
+              <!-- Sound icon -->
+              <svg class="w-6 h-6 text-[#2A9D8F] group-hover:scale-105 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+            <div class="hidden sm:flex flex-col">
+              <span class="font-fredoka text-[11px] font-bold text-[#1D3557]">Volume</span>
+              <span class="bg-[#FDFBF7] border border-[#E2D7C3] px-2 py-0.5 rounded-full text-[10px] font-extrabold text-[#2A9D8F]">Vol: Mid</span>
+            </div>
+          </div>
+
+          <!-- Center: Primary Play/Pause FAB (60x60px circular in teal #2A9D8F with 0 4px 0 #1E6F5C bevel) -->
+          <button 
+            type="button"
+            class="w-[60px] h-[60px] rounded-full btn-3d-teal flex items-center justify-center text-white cursor-pointer active:scale-95 focus:outline-none focus:ring-4 focus:ring-[#2A9D8F]/30"
+            aria-label="Pause Sing-Along"
+            title="🔊 Sound Cue: [playCue: tap_pause] plays audio click on toggle"
+          >
+            <!-- White Pause Icon (Currently Playing) -->
+            <svg class="w-7 h-7 fill-current drop-shadow-sm" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+          </button>
+
+          <!-- Right: Restart Track button (48x48px circle, bg-paper #FDFBF7, border #E2D7C3) -->
+          <div class="flex items-center gap-2">
+            <button 
+              type="button"
+              class="w-12 h-12 rounded-full bg-[#FDFBF7] border-2 border-[#E2D7C3] flex items-center justify-center text-[#264653] btn-3d-mist group active:scale-95"
+              aria-label="Restart Track from Beginning"
+              title="Restart Video & Lyrics"
+            >
+              <!-- Reload / Replay icon -->
+              <svg class="w-5 h-5 text-[#E76F51] group-hover:-rotate-45 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Audio Note Marker -->
+        <div class="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-fredoka font-medium text-[#8C7A68] bg-[#FDFBF7]/80 py-1 px-3 rounded-lg border border-[#E2D7C3]/80">
+          <span>🔊</span>
+          <span class="truncate">Sound Cue: <code class="text-[#1D3557] font-semibold">[playCue: song_stream]</code> stereo audio active</span>
+        </div>
+
+      </section>
+
+      <!-- Practice tip hint pill -->
+      <div class="mt-2.5 flex items-center gap-2 bg-[#FDFBF7] rounded-xl px-3 py-2 border border-[#E2D7C3]">
+        <div class="w-6 h-6 rounded-full bg-[#E9C46A]/30 text-[#E76F51] flex items-center justify-center shrink-0 font-bold text-xs">
+          💡
+        </div>
+        <p class="text-[12px] font-bold text-[#264653] leading-snug">
+          Sing loud with Professor Owl! Match the pink words to get bonus XP.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ==================== ANCHORED FOOTER (80px) ==================== -->
+    <footer class="h-20 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-4 flex items-center justify-between shrink-0 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      <!-- Left: 'Back' button (disabled) -->
+      <button 
+        type="button" 
+        disabled
+        class="h-12 px-5 rounded-2xl bg-[#EFE9DA] border-2 border-[#D8CCB9] text-[#A89988] font-fredoka font-bold text-base cursor-not-allowed opacity-75"
+        aria-disabled="true"
+      >
+        &lt; Back
+      </button>
+
+      <!-- Right: Primary Continue CTA ('CONTINUE TO LESSON →' in teal #2A9D8F with hard 0 4px 0 #1E6F5C bevel) -->
+      <button 
+        type="button" 
+        class="h-12 px-6 rounded-2xl btn-3d-teal text-white font-fredoka font-bold text-base tracking-wide flex items-center gap-2 hover:bg-[#248B7F] active:scale-98"
+        title="[🔊 playCue: tap_next]"
+      >
+        <span>CONTINUE TO LESSON</span>
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+        </svg>
+      </button>
+    </footer>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Story Stage (STORY_STAGE)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    /* Tactile button 3D push styles */
+    .btn-3d-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .btn-3d-secondary {
+      background-color: #F7F3E8;
+      border: 2px solid #E2D7C3;
+      box-shadow: 0 3px 0 #D4C5AD;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-secondary:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D4C5AD;
+    }
+    .btn-3d-read {
+      background-color: #2A9D8F;
+      box-shadow: 0 3px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-read:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    /* Vocabulary word interactive tags */
+    .vocab-pill-orange {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      margin: 0 2px;
+      border-radius: 10px;
+      background-color: #FFF7ED;
+      border-bottom: 2px solid #E76F51;
+      color: #E76F51;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .vocab-pill-orange:active {
+      transform: scale(0.96);
+      background-color: #FED7AA;
+    }
+    .vocab-pill-teal {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      margin: 0 2px;
+      border-radius: 10px;
+      background-color: #E6F4F1;
+      border-bottom: 2px solid #2A9D8F;
+      color: #2A9D8F;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .vocab-pill-teal:active {
+      transform: scale(0.96);
+      background-color: #B2DFDB;
+    }
+    /* Custom paper texture pattern */
+    .bg-dot-pattern {
+      background-image: radial-gradient(#D3C4AF 1.2px, transparent 1.2px);
+      background-size: 16px 16px;
+    }
+  </style>
+</head>
+<body class="w-[390px] h-[844px] max-h-[844px] mx-auto relative flex flex-col bg-dot-pattern overflow-hidden shadow-2xl border-x border-[#E2D7C3]">
+
+  <!-- Universal Shell Header (Height: 64px) -->
+  <header class="h-[64px] bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between shrink-0 z-30">
+    <!-- Close button (48px tap target) -->
+    <button class="w-10 h-10 rounded-full flex items-center justify-center bg-[#F7F3E8] border border-[#E2D7C3] text-[#264653] font-fredoka font-bold text-lg hover:bg-[#EAE0D0] active:scale-95 transition-transform" title="[playCue: tap_exit]">
+      ✕
+    </button>
+
+    <!-- Progress Indicator Bar (Step 3 of 6 active, Duolingo Pink #E91E63) -->
+    <div class="flex flex-col items-center gap-1">
+      <div class="flex items-center gap-1.5">
+        <div class="w-7 h-2.5 rounded-full bg-[#E91E63]"></div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E91E63]"></div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E91E63] relative">
+          <span class="absolute -top-1 -right-1 flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E91E63] opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-[#E91E63]"></span>
+          </span>
+        </div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E2D7C3]"></div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E2D7C3]"></div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E2D7C3]"></div>
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#E91E63]"></span>
+        <span class="text-[10px] font-fredoka font-bold uppercase tracking-wider text-[#8C7A68]">Step 3 of 6 • Story Stage</span>
+      </div>
+    </div>
+
+    <!-- Hearts Counter (Red #FF4B4B) -->
+    <div class="flex items-center gap-1.5 px-2.5 py-1 bg-[#F7F3E8] border border-[#E2D7C3] rounded-full">
+      <svg class="w-5 h-5 text-[#FF4B4B] fill-current" viewBox="0 0 24 24">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+      <span class="font-fredoka font-bold text-sm text-[#264653]">4</span>
+    </div>
+  </header>
+
+  <!-- Main Stage: Illustrated Story Reader Stage (Cream Canvas) -->
+  <main class="flex-1 px-4 py-3 flex flex-col justify-center overflow-hidden">
+    
+    <!-- Storybook Card Container (Warm Paper #FDFBF7, Rounded 24px) -->
+    <div class="bg-[#FDFBF7] rounded-[24px] border-2 border-[#E2D7C3] p-3.5 shadow-sm flex flex-col justify-between h-full max-h-[660px]">
+
+      <!-- Top Story Header Tag -->
+      <div class="flex items-center justify-between pb-2 border-b border-[#F0E8DC]">
+        <div class="flex items-center gap-1.5 bg-[#FFF4E8] text-[#E76F51] px-2.5 py-0.5 rounded-full border border-[#FCD5B5]">
+          <span class="w-2 h-2 rounded-full bg-[#E76F51]"></span>
+          <span class="font-fredoka text-xs font-bold uppercase tracking-wide">Story Stage • Reader</span>
+        </div>
+        <div class="flex items-center gap-1 text-[11px] font-fredoka text-[#8C7A68] bg-[#F7F3E8] px-2 py-0.5 rounded-full border border-[#E2D7C3]">
+          <span>Page 2 of 4</span>
+        </div>
+      </div>
+
+      <!-- Scene Illustration: City street with Lily & Professor Owl -->
+      <div class="relative w-full h-[220px] rounded-2xl overflow-hidden border-2 border-[#E2D7C3] bg-[#DFF1F5] mt-2 shadow-inner">
+        <!-- Visual story graphic -->
+        <img 
+          src="https://lh3.googleusercontent.com/aida/AEtjO1VQdYcl7A8k2qh0LLKOwgM7vxE9Qm8ZgBcK_H7blaPet8i-yT9A1yPSOJDnHZuldf0mUkfK05HVKQXtTaqHSNO-b6eg258ns3hStyX7fWx98fodGRGOWJoucBpo67WS_y8p-y-C6BhE9bx-q2_HIjlaB9hAUA0PwyxSwnaVSBLjcRbN3teXaNJQQbaXZGa2OqsAc7kzjSl347mOSqgGniCjCn3mlgSvRBZYSChTKzS3zWw8oUdbZ97BIvw" 
+          alt="Lily, Professor Owl and school friends crossing a sunny city crosswalk with skyscrapers and bakery"
+          class="w-full h-full object-cover object-center"
+        />
+
+        <!-- Scene Badge Indicator -->
+        <div class="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full border border-[#E2D7C3] flex items-center gap-1.5 shadow-xs">
+          <span class="text-xs">🏙️</span>
+          <span class="font-fredoka text-[11px] font-bold text-[#264653]">Sunny Avenue Crossing</span>
+        </div>
+
+        <!-- Tap to Listen Scene Audio Badge -->
+        <div class="absolute bottom-2.5 right-2.5 bg-[#264653]/85 backdrop-blur-sm px-2.5 py-1 rounded-full flex items-center gap-1.5 text-white text-[11px] font-fredoka">
+          <span>🎧 Sound FX on</span>
+        </div>
+      </div>
+
+      <!-- Character Dialog Row -->
+      <div class="flex items-center gap-3 pt-2.5 pb-1 px-1">
+        <!-- Speaker Avatar: Lily with red scarf & border -->
+        <div class="relative shrink-0">
+          <div class="w-11 h-11 rounded-full bg-[#FFE5DF] border-2 border-[#E76F51] flex items-center justify-center text-xl shadow-xs overflow-hidden">
+            <!-- Child stylized girl face avatar -->
+            <svg class="w-8 h-8 text-[#E76F51]" viewBox="0 0 36 36" fill="currentColor">
+              <circle cx="18" cy="18" r="14" fill="#FDE2CD"/>
+              <!-- Hair buns / pigtails -->
+              <circle cx="9" cy="11" r="5" fill="#5D4037"/>
+              <circle cx="27" cy="11" r="5" fill="#5D4037"/>
+              <circle cx="18" cy="13" r="10" fill="#5D4037"/>
+              <circle cx="18" cy="18" r="7" fill="#FDE2CD"/>
+              <!-- Cheeks -->
+              <circle cx="14" cy="20" r="1.5" fill="#FF8A80"/>
+              <circle cx="22" cy="20" r="1.5" fill="#FF8A80"/>
+              <!-- Eyes -->
+              <circle cx="15" cy="17" r="1.2" fill="#264653"/>
+              <circle cx="21" cy="17" r="1.2" fill="#264653"/>
+              <!-- Happy Smile -->
+              <path d="M15 21 Q18 24 21 21" stroke="#264653" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+              <!-- Red scarf -->
+              <path d="M12 26 C12 23, 24 23, 24 26 L23 30 L13 30 Z" fill="#E76F51"/>
+            </svg>
+          </div>
+          <!-- Voice bubble mini icon -->
+          <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#E76F51] rounded-full flex items-center justify-center text-[9px] text-white border border-white">💬</span>
+        </div>
+
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="font-fredoka font-bold text-[16px] text-[#E76F51]">Lily says:</span>
+            <span class="text-[10px] bg-[#FFF0EB] text-[#E76F51] px-1.5 py-0.2 rounded font-bold">Dialog</span>
+          </div>
+          <p class="text-[10px] font-fredoka text-[#8C7A68] truncate">🔊 Sound Cue: [playCue: page_turn] paper flutter on switch</p>
+        </div>
+      </div>
+
+      <!-- Story Text Container (18px Nunito, 1.8 Line Height, ink #264653) -->
+      <div class="bg-[#FAF7F0] rounded-xl border border-[#E2D7C3] p-3.5 my-1 relative">
+        <p class="text-[17px] leading-[1.8] font-bold text-[#264653] tracking-wide">
+          “Look up!” shouted Lily. “The giant 
+          <button class="vocab-pill-orange inline-flex items-center gap-1 focus:outline-none" title="[playCue: word_tap]">
+            <span>skyscraper</span>
+            <span class="text-[11px] opacity-75">🏙️</span>
+          </button> 
+          touches the clouds! Let’s wait here at the 
+          <button class="vocab-pill-teal inline-flex items-center gap-1 focus:outline-none ring-2 ring-[#2A9D8F]/20 animate-pulse" title="[playCue: word_tap]">
+            <span>crosswalk</span>
+            <span class="text-[11px] opacity-75">🚸</span>
+          </button> 
+          until the light turns green.”
+        </p>
+
+        <!-- Tap vocabulary hint chip -->
+        <div class="mt-2.5 pt-2 border-t border-[#EAE0D0] flex items-center justify-between text-[11px] text-[#8C7A68]">
+          <div class="flex items-center gap-1 font-semibold">
+            <span class="text-amber-500">✨</span>
+            <span>Tap colored words for phonics &amp; meaning</span>
+          </div>
+          <span class="text-[10px] bg-[#EAE0D0] px-1.5 py-0.5 rounded text-[#264653] font-bold">[playCue: word_tap]</span>
+        </div>
+      </div>
+
+      <!-- Reading Interaction Bar -->
+      <div class="pt-2.5 border-t border-[#E2D7C3] flex items-center justify-between gap-2 shrink-0">
+        <!-- Read Along Synchronized Audio Button (48px tactile height) -->
+        <button class="h-12 btn-3d-read px-3.5 rounded-2xl text-white font-fredoka font-bold text-[14px] flex items-center gap-2 shadow-sm" title="[playCue: read_along_narration]">
+          <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">🔊</span>
+          <span>Read Along</span>
+        </button>
+
+        <!-- Page Navigation Controls -->
+        <div class="flex items-center gap-1.5">
+          <!-- Previous Page Button (44x44px rounded tactile) -->
+          <button class="w-11 h-11 rounded-xl btn-3d-secondary flex items-center justify-center text-[#264653] font-fredoka font-bold text-lg" title="Previous page">
+            ←
+          </button>
+
+          <!-- 4 Page Dots Indicator (sand #E9C46A active) -->
+          <div class="flex items-center gap-1 px-2 py-1.5 bg-[#F7F3E8] rounded-full border border-[#E2D7C3]">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#E2D7C3]"></span>
+            <span class="w-3.5 h-2.5 rounded-full bg-[#E9C46A] border border-[#D1A639] shadow-xs"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-[#E2D7C3]"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-[#E2D7C3]"></span>
+          </div>
+
+          <!-- Next Page Button (44x44px rounded tactile) -->
+          <button class="w-11 h-11 rounded-xl btn-3d-secondary flex items-center justify-center text-[#264653] font-fredoka font-bold text-lg" title="Next page">
+            →
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Anchored Footer (Height: 80px, paper #FDFBF7, border-t #E2D7C3) -->
+  <footer class="h-[80px] bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-4 flex items-center justify-between shrink-0 z-30">
+    <!-- Back Button -->
+    <button class="h-12 px-5 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] text-[#8C7A68] font-fredoka font-bold text-base hover:bg-[#EAE0D0] active:translate-y-0.5 transition-all">
+      ‹ Back
+    </button>
+
+    <!-- Continue CTA Button (Teal #2A9D8F with 3D Bevel #1E6F5C) -->
+    <button class="h-12 flex-1 ml-3 max-w-[240px] btn-3d-teal rounded-2xl text-white font-fredoka font-bold text-lg tracking-wide flex items-center justify-center gap-2" title="[playCue: tap_next]">
+      <span>CONTINUE</span>
+      <span class="text-xl">→</span>
+    </button>
+  </footer>
+
+</body>
+</html>

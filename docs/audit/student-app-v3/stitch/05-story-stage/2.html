@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Story Stage (Word Popup Definition Modal)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderCream: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            muted: '#8C7A68',
+            tealAccent: '#2A9D8F',
+            tealShadow: '#1E6F5C',
+            terracotta: '#E76F51',
+            terracottaShadow: '#C45136',
+            sandAccent: '#E9C46A',
+            duoPink: '#E91E63',
+            duoBlue: '#1CB0F6',
+            duoBlueShadow: '#0284C7',
+            heartRed: '#FF4B4B'
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          boxShadow: {
+            'modal': '0 20px 40px -12px rgba(29, 53, 87, 0.28), 0 0 0 1px rgba(42, 157, 143, 0.2)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #D9CDB8;
+      background-image: radial-gradient(#C6B89E 1.5px, transparent 1.5px);
+      background-size: 18px 18px;
+    }
+    .btn-bevel-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.15s ease;
+    }
+    .btn-bevel-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .btn-bevel-blue {
+      box-shadow: 0 4px 0 #0284C7;
+      transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .btn-bevel-blue:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #0284C7;
+    }
+    .btn-bevel-cream {
+      box-shadow: 0 3px 0 #D4C6AF;
+      transition: all 0.15s ease;
+    }
+    .btn-bevel-cream:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D4C6AF;
+    }
+    @keyframes pulse-ring {
+      0%, 100% {
+        box-shadow: 0 0 0 3px #2A9D8F, 0 0 12px rgba(42, 157, 143, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 0 5px #2A9D8F, 0 0 18px rgba(42, 157, 143, 0.65);
+      }
+    }
+    .active-vocab-glow {
+      animation: pulse-ring 2.2s infinite ease-in-out;
+    }
+    @keyframes popIn {
+      0% {
+        transform: scale(0.94) translateY(10px);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+    .popup-enter {
+      animation: popIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-6 text-ink">
+
+  <!-- Mobile Screen Frame (390px x 844px exact viewport) -->
+  <div class="relative w-[390px] h-[844px] bg-cream shadow-2xl overflow-hidden flex flex-col border-[5px] border-[#D4C6AF] rounded-[44px]">
+
+    <!-- ==================== BACKGROUND STORY READER LAYER ==================== -->
+    <div class="absolute inset-0 flex flex-col pointer-events-none select-none">
+      
+      <!-- Top Shell Header (Lesson Progress) -->
+      <header class="bg-paper border-b border-borderCream px-4 pt-4 pb-3 flex items-center justify-between z-0">
+        <!-- Close / Exit Button -->
+        <div class="w-10 h-10 rounded-2xl bg-mist border border-borderCream flex items-center justify-center text-ink cursor-pointer shadow-sm">
+          <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </div>
+
+        <!-- Segmented Step Progress Bar -->
+        <div class="flex-1 mx-3 flex flex-col items-center">
+          <div class="flex items-center gap-1.5 w-full max-w-[190px]">
+            <div class="h-2.5 flex-1 rounded-full bg-duoPink"></div>
+            <div class="h-2.5 flex-1 rounded-full bg-duoPink"></div>
+            <div class="h-2.5 flex-1 rounded-full bg-duoPink relative">
+              <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-white ring-2 ring-duoPink"></span>
+            </div>
+            <div class="h-2.5 flex-1 rounded-full bg-[#DFD5C2]"></div>
+            <div class="h-2.5 flex-1 rounded-full bg-[#DFD5C2]"></div>
+            <div class="h-2.5 flex-1 rounded-full bg-[#DFD5C2]"></div>
+          </div>
+          <div class="flex items-center gap-1 mt-1 text-[11px] font-bold text-inkDeep">
+            <span class="w-2 h-2 rounded-full bg-duoPink inline-block"></span>
+            <span class="tracking-wide uppercase">Step 3 of 6 • Story Stage</span>
+          </div>
+        </div>
+
+        <!-- Hearts Counter -->
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-mist border border-borderCream">
+          <svg class="w-4 h-4 fill-heartRed text-heartRed" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <span class="font-fredoka font-bold text-sm text-inkDeep">4</span>
+        </div>
+      </header>
+
+      <!-- Scrollable Story Content Stage (Underlay) -->
+      <main class="flex-1 overflow-hidden px-4 py-3 flex flex-col gap-3">
+        
+        <!-- Story Stage Card Container -->
+        <div class="bg-paper border border-borderCream rounded-2xl p-3.5 shadow-sm flex flex-col gap-2.5">
+          
+          <!-- Reader Title Pill & Page Indicator -->
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-mist border border-borderCream">
+              <span class="w-2 h-2 rounded-full bg-terracotta inline-block"></span>
+              <span class="font-fredoka font-semibold text-terracotta tracking-wide text-[11px] uppercase">Story Stage • Reader</span>
+            </div>
+            <span class="font-bold text-muted text-[11px] bg-mist px-2.5 py-0.5 rounded-full border border-borderCream">Page 2 of 4</span>
+          </div>
+
+          <!-- Story Illustration Frame -->
+          <div class="relative w-full h-[155px] rounded-xl overflow-hidden border border-borderCream shadow-inner">
+            <img 
+              src="https://lh3.googleusercontent.com/aida/AEtjO1VQdYcl7A8k2qh0LLKOwgM7vxE9Qm8ZgBcK_H7blaPet8i-yT9A1yPSOJDnHZuldf0mUkfK05HVKQXtTaqHSNO-b6eg258ns3hStyX7fWx98fodGRGOWJoucBpo67WS_y8p-y-C6BhE9bx-q2_HIjlaB9hAUA0PwyxSwnaVSBLjcRbN3teXaNJQQbaXZGa2OqsAc7kzjSl347mOSqgGniCjCn3mlgSvRBZYSChTKzS3zWw8oUdbZ97BIvw" 
+              alt="Sunny Avenue Crossing" 
+              class="w-full h-full object-cover object-center"
+            />
+            <div class="absolute top-2 left-2 bg-paper/90 backdrop-blur-sm px-2 py-0.5 rounded-lg border border-borderCream text-[10px] font-bold text-inkDeep flex items-center gap-1">
+              🏙️ Sunny Avenue Crossing
+            </div>
+            <div class="absolute bottom-2 right-2 bg-inkDeep/75 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
+              <svg class="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.8.4l-3 4A1 1 0 007 13h1v3a1 1 0 002 0v-3h1a1 1 0 00.8-1.6l-3-4A1 1 0 0010 7z"/></svg>
+              Sound FX on
+            </div>
+          </div>
+
+          <!-- Character Dialogue Tag -->
+          <div class="flex items-center gap-2 pt-0.5">
+            <div class="w-7 h-7 rounded-full bg-[#E9C46A]/30 border border-[#E9C46A] flex items-center justify-center text-sm">
+              👧
+            </div>
+            <div class="flex items-baseline gap-1.5">
+              <span class="font-fredoka font-bold text-inkDeep text-sm">Lily says:</span>
+              <span class="text-[11px] text-muted font-bold uppercase tracking-wider bg-mist px-1.5 py-0.2 rounded border border-borderCream">Dialog</span>
+            </div>
+          </div>
+
+          <!-- Story Text with Highlighted Vocab Words -->
+          <div class="text-ink text-[15px] leading-relaxed font-nunito bg-mist/60 p-3 rounded-xl border border-borderCream/80 space-y-2">
+            <p>
+              “Look up!” shouted Lily. “The giant 
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md font-bold bg-[#E76F51]/15 text-terracotta border border-terracotta/30">
+                skyscraper 🏙️
+              </span> 
+              touches the clouds! Let’s wait here at the 
+              <!-- Glowing Active Target Word -->
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-lg font-bold bg-teal-100 text-teal-800 border-2 border-tealAccent active-vocab-glow">
+                crosswalk ✨
+              </span>
+              until the light turns green.”
+            </p>
+          </div>
+
+          <!-- Interaction Hint & Audio Cue Box -->
+          <div class="flex items-center justify-between text-[11px] bg-mist rounded-lg px-2.5 py-1.5 border border-borderCream text-muted">
+            <div class="flex items-center gap-1.5">
+              <span>✨ Tap colored words for phonics & meaning</span>
+            </div>
+            <div class="font-mono text-[10px] text-muted/80 bg-paper px-1.5 py-0.5 rounded border border-borderCream">
+              [playCue: word_tap]
+            </div>
+          </div>
+
+          <!-- Audio Read Along Button Bar -->
+          <div class="flex items-center justify-between pt-1">
+            <div class="flex items-center gap-2 bg-tealAccent text-white px-3.5 py-1.5 rounded-xl font-fredoka font-medium text-xs shadow-sm">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+              <span>Read Along</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-7 h-7 rounded-lg bg-mist border border-borderCream flex items-center justify-center text-muted font-bold text-xs">←</div>
+              <div class="flex gap-1 px-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-borderCream"></span>
+                <span class="w-2.5 h-1.5 rounded-full bg-sandAccent"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-borderCream"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-borderCream"></span>
+              </div>
+              <div class="w-7 h-7 rounded-lg bg-mist border border-borderCream flex items-center justify-center text-muted font-bold text-xs">→</div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ==================== BACKDROP SOFTENING OVERLAY ==================== -->
+    <!-- Dimmer overlay with subtle blur and translucent deep navy/teal tint (rgba(38, 70, 83, 0.38)) -->
+    <div class="absolute inset-0 bg-[#264653]/38 backdrop-blur-[2.5px] z-10 transition-opacity"></div>
+
+    <!-- ==================== VOCABULARY DEFINITION MODAL CARD ==================== -->
+    <!-- Anchored Modal Container positioned center-bottom over the reader -->
+    <div class="absolute inset-x-0 bottom-[86px] px-4 z-20 popup-enter flex flex-col items-center">
+      
+      <!-- Sound Cue Diagnostic Chip (Floating just above card) -->
+      <div class="mb-2 px-3 py-1 rounded-full bg-[#1D3557]/90 text-[#FDFBF7] text-[10.5px] font-medium backdrop-blur-sm border border-white/20 shadow-md flex items-center gap-1.5">
+        <span class="text-sm">🔊</span>
+        <span>Sound Cue: <span class="font-mono text-sandAccent">[playCue: popup_open]</span> plays cheerful pop sound</span>
+      </div>
+
+      <!-- Main Vocabulary Modal Card -->
+      <div class="w-full bg-paper border-[2.5px] border-tealAccent rounded-3xl p-4 shadow-modal flex flex-col relative">
+
+        <!-- Top Row: English Headword + Category Badge + Dismiss Chip -->
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-fredoka font-bold text-[25px] leading-none text-inkDeep tracking-wide">
+                crosswalk
+              </h2>
+              <span class="text-[11px] font-fredoka font-semibold px-2 py-0.5 rounded-full bg-mist text-muted border border-borderCream uppercase">
+                noun
+              </span>
+            </div>
+
+            <!-- Phonetics & IPA Bar -->
+            <div class="flex items-center gap-2 mt-1.5">
+              <span class="font-mono text-xs text-muted bg-mist px-2.5 py-0.5 rounded-md border border-borderCream tracking-wider">
+                [ˈkrɔːs.wɑːk]
+              </span>
+              <span class="text-[11px] font-semibold text-muted/80">US / UK</span>
+            </div>
+          </div>
+
+          <!-- Dismiss Chip (36x36px rounded-full) -->
+          <button 
+            type="button" 
+            aria-label="Close definition popup"
+            class="w-9 h-9 rounded-full bg-mist border border-borderCream text-muted hover:text-inkDeep hover:bg-[#EAE0D0] flex items-center justify-center transition-colors shadow-sm active:scale-95"
+          >
+            <svg class="w-4 h-4 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Audio Pronunciation & Chinese L1 Section -->
+        <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-borderCream/70">
+          
+          <!-- Chinese L1 Translation Support -->
+          <div>
+            <span class="text-[10px] font-bold text-muted uppercase tracking-wider block mb-0.5">Chinese Meaning (L1)</span>
+            <div class="font-fredoka font-bold text-[18px] text-terracotta leading-tight tracking-wide flex items-center gap-1.5">
+              人行横道 <span class="text-sm text-terracotta/70 font-normal">/</span> 斑马线
+            </div>
+          </div>
+
+          <!-- Pronunciation FAB Button (Duolingo Blue 48x48px with 0 4px 0 bevel) -->
+          <div class="flex flex-col items-center">
+            <button 
+              type="button" 
+              class="w-12 h-12 rounded-full bg-duoBlue text-white flex items-center justify-center btn-bevel-blue active:scale-95 transition-all shadow-md group"
+              title="Listen to native pronunciation"
+            >
+              <svg class="w-6 h-6 fill-current transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+            <span class="text-[10px] font-bold text-duoBlue mt-1">Pronounce</span>
+          </div>
+        </div>
+
+        <!-- Sound Cue Note for Teacher / Player Engine -->
+        <div class="mt-1.5 text-[10px] font-mono text-muted/90 bg-mist px-2 py-0.5 rounded border border-borderCream/80 flex items-center gap-1">
+          <span>🔊</span>
+          <span>[playCue: word_pronounce] plays native English audio</span>
+        </div>
+
+        <!-- Kid-Friendly Definition Box -->
+        <div class="bg-mist rounded-xl p-3 border border-borderCream mt-2.5">
+          <div class="flex items-center gap-1 text-[11px] font-bold text-tealAccent uppercase tracking-wide mb-1">
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/></svg>
+            Kid-Friendly Meaning
+          </div>
+          <p class="text-[13.5px] text-ink font-nunito leading-snug font-semibold">
+            A specially marked path where you can cross the road safely.
+          </p>
+        </div>
+
+        <!-- Quick Context Sentence from the Story -->
+        <div class="mt-2 px-1">
+          <p class="text-[12.5px] text-muted italic leading-tight">
+            “Always use the <strong class="text-tealAccent not-italic font-bold">crosswalk</strong> when walking to school.”
+          </p>
+        </div>
+
+        <!-- Interaction Tip Footer -->
+        <div class="mt-3 pt-2 border-t border-borderCream/60 flex items-center justify-center gap-1.5 text-[11.5px] text-muted font-medium text-center">
+          <span class="text-xs">👆</span>
+          <span>Tap anywhere outside or <strong class="text-inkDeep font-bold">✕</strong> to return to the story</span>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ==================== ANCHORED STICKY BOTTOM FOOTER ==================== -->
+    <footer class="mt-auto h-[80px] bg-paper border-t border-borderCream px-4 flex items-center justify-between z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      
+      <!-- Back Button -->
+      <button 
+        type="button" 
+        class="h-12 px-5 rounded-2xl bg-mist border-2 border-borderCream font-fredoka font-bold text-sm text-muted flex items-center gap-1.5 btn-bevel-cream active:scale-95"
+      >
+        <span>‹ Back</span>
+      </button>
+
+      <!-- Primary Continue Action CTA (3D Beveled Teal #2A9D8F) -->
+      <button 
+        type="button" 
+        class="h-12 px-7 rounded-2xl bg-tealAccent border-2 border-[#208377] font-fredoka font-bold text-base text-white tracking-wide uppercase flex items-center gap-2 btn-bevel-teal shadow-md"
+      >
+        <span>CONTINUE →</span>
+      </button>
+
+    </footer>
+
+  </div>
+
+</body>
+</html>

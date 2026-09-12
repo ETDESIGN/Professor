@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Solo Lesson Intro Splash</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderCream: '#E2D7C3',
+            borderDark: '#D5C7B0',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            mutedBrown: '#8C7A68',
+            tealBrand: '#2A9D8F',
+            tealShadow: '#1E6F5C',
+            terracotta: '#E76F51',
+            terracottaShadow: '#C4553B',
+            sandGold: '#E9C46A',
+            sandShadow: '#C99E32',
+            pinkAccent: '#E91E63',
+            blueAccent: '#1CB0F6',
+            heartRed: '#FF4B4B',
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
+            nunito: ['Nunito', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .btn-tactile-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-tactile-teal:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1E6F5C;
+    }
+    .btn-tactile-close {
+      box-shadow: 0 3px 0 #D5C7B0;
+      transition: all 0.1s ease;
+    }
+    .btn-tactile-close:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D5C7B0;
+    }
+    .card-shadow {
+      box-shadow: 0 10px 25px -4px rgba(71, 55, 38, 0.10), 0 4px 6px -2px rgba(71, 55, 38, 0.05);
+    }
+    .chip-shadow {
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
+    }
+    /* Gloss reflection on active progress bar */
+    .gloss-bar::before {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 2px;
+      right: 2px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.45);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-0 sm:p-4 bg-[#EAE0D0]">
+
+  <!-- Mobile Screen Container: 390x844 strict portrait viewport -->
+  <div class="relative w-[390px] h-[844px] max-w-[390px] max-h-[844px] bg-[#EAE0D0] flex flex-col justify-between overflow-hidden shadow-2xl rounded-[36px] border-[3px] border-[#D5C7B0]">
+
+    <!-- ================= UNIVERSAL SHELL HEADER ================= -->
+    <header class="w-full h-[64px] bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-3.5 flex items-center justify-between z-20 shrink-0">
+      
+      <!-- Left Action: Close Button (48x48px) -->
+      <button 
+        type="button" 
+        data-cue="tap_exit"
+        onclick="console.log('[🔊 playCue: tap_exit]')"
+        title="Exit Lesson"
+        aria-label="Exit Lesson"
+        class="w-12 h-12 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] btn-tactile-close flex items-center justify-center text-[#264653] hover:bg-[#FAF7EE] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/40"
+      >
+        <svg class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Center: 6-Segment Progress Tracker -->
+      <div class="flex items-center gap-1.5 px-2 flex-1 max-w-[190px]" aria-label="Progress: Step 1 of 6">
+        <!-- Segment 1: Active with #E91E63 + gloss -->
+        <div class="relative h-3 flex-1 rounded-full bg-[#E91E63] border border-[#C2185B] gloss-bar overflow-hidden shadow-sm"></div>
+        <!-- Segments 2-6: Inactive with #F7F3E8 + #E2D7C3 -->
+        <div class="h-3 flex-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3]"></div>
+        <div class="h-3 flex-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3]"></div>
+        <div class="h-3 flex-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3]"></div>
+        <div class="h-3 flex-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3]"></div>
+        <div class="h-3 flex-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3]"></div>
+      </div>
+
+      <!-- Right Indicator: Real Hearts Counter Pill -->
+      <div class="flex items-center gap-1.5 h-10 px-3 bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-full shadow-sm" aria-label="4 Hearts remaining">
+        <!-- Heart Icon -->
+        <svg class="w-5 h-5 text-[#FF4B4B] fill-current drop-shadow-[0_1px_1px_rgba(255,75,75,0.3)] animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka text-[17px] font-bold text-[#264653] leading-none">4</span>
+      </div>
+
+    </header>
+
+    <!-- ================= MAIN STAGE: UNIT INTRO SPLASH ================= -->
+    <main class="flex-1 w-full bg-[#EAE0D0] p-3.5 flex flex-col justify-center items-center overflow-y-auto">
+      
+      <!-- Central Hero Card -->
+      <div class="w-full bg-[#FDFBF7] rounded-[24px] border-2 border-[#E2D7C3] card-shadow px-4 py-4 flex flex-col items-center text-center relative overflow-hidden">
+        
+        <!-- Decorative subtle confetti / stars in corners -->
+        <div class="absolute top-3 left-3 text-[#E76F51] opacity-70 text-xs font-bold select-none">✦</div>
+        <div class="absolute top-4 right-4 text-[#E9C46A] opacity-80 text-sm font-bold select-none">★</div>
+        <div class="absolute bottom-16 right-3 text-[#2A9D8F] opacity-70 text-xs font-bold select-none">◆</div>
+
+        <!-- Unit Badge Pill Chip -->
+        <div class="inline-flex items-center px-3.5 py-1 rounded-full bg-[#E76F51] text-white text-[11px] font-fredoka font-bold tracking-wider uppercase shadow-sm mb-1.5">
+          UNIT 3 • LESSON 1
+        </div>
+
+        <!-- Unit Title (Bold Fredoka 26px in inkDeep) -->
+        <h1 class="font-fredoka text-[26px] font-bold text-[#1D3557] leading-tight tracking-tight mt-0.5">
+          In the City
+        </h1>
+
+        <!-- Chinese Support Subtitle -->
+        <p class="text-[13px] font-semibold text-[#8C7A68] mt-0.5 tracking-wide">
+          城市探索 • 探索城市中的新单词与故事
+        </p>
+
+        <!-- Hero Illustration: Professor Owl with Glasses & Explorer Hat in Storybook City -->
+        <div class="w-full max-w-[270px] h-[168px] my-2 relative flex items-center justify-center">
+          <svg class="w-full h-full" viewBox="0 0 300 190" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background Sky & Sunlight Glow -->
+            <rect x="5" y="5" width="290" height="180" rx="18" fill="#F4EFE6"/>
+            <circle cx="150" cy="110" r="82" fill="#EAE0D0" opacity="0.6"/>
+
+            <!-- Storybook City Backdrop -->
+            <!-- Back Row Buildings -->
+            <rect x="32" y="55" width="34" height="100" rx="4" fill="#C9D6DF"/>
+            <rect x="40" y="65" width="6" height="8" rx="1" fill="#FFFFFF"/>
+            <rect x="52" y="65" width="6" height="8" rx="1" fill="#FFFFFF"/>
+            <rect x="40" y="80" width="6" height="8" rx="1" fill="#FFFFFF"/>
+            <rect x="52" y="80" width="6" height="8" rx="1" fill="#FFFFFF"/>
+
+            <rect x="234" y="62" width="36" height="92" rx="4" fill="#E8D5C4"/>
+            <rect x="242" y="74" width="7" height="9" rx="1" fill="#FAF3EB"/>
+            <rect x="254" y="74" width="7" height="9" rx="1" fill="#FAF3EB"/>
+            <rect x="242" y="90" width="7" height="9" rx="1" fill="#FAF3EB"/>
+            <rect x="254" y="90" width="7" height="9" rx="1" fill="#FAF3EB"/>
+
+            <!-- Middle Row Pastel Buildings -->
+            <path d="M68 85 L85 68 L102 85 V155 H68 V85Z" fill="#F4A261" opacity="0.85"/>
+            <rect x="76" y="95" width="7" height="10" rx="1.5" fill="#FFF"/>
+            <rect x="87" y="95" width="7" height="10" rx="1.5" fill="#FFF"/>
+
+            <rect x="198" y="75" width="38" height="80" rx="5" fill="#2A9D8F" opacity="0.4"/>
+            <rect x="206" y="86" width="8" height="10" rx="1" fill="#FFF" opacity="0.9"/>
+            <rect x="218" y="86" width="8" height="10" rx="1" fill="#FFF" opacity="0.9"/>
+
+            <!-- Playful Traffic Light on Left -->
+            <line x1="22" y1="100" x2="22" y2="155" stroke="#7D6F61" stroke-width="3" stroke-linecap="round"/>
+            <rect x="15" y="82" width="14" height="28" rx="4" fill="#264653"/>
+            <circle cx="22" cy="89" r="2.8" fill="#E76F51"/>
+            <circle cx="22" cy="96" r="2.8" fill="#E9C46A"/>
+            <circle cx="22" cy="103" r="2.8" fill="#2A9D8F"/>
+
+            <!-- Playful Little Tree on Right -->
+            <rect x="272" y="125" width="6" height="30" rx="2" fill="#8C7A68"/>
+            <circle cx="275" cy="115" r="14" fill="#2A9D8F"/>
+            <circle cx="275" cy="110" r="10" fill="#52B788"/>
+
+            <!-- Paved ground / street -->
+            <rect x="10" y="152" width="280" height="26" rx="8" fill="#D5C7B0"/>
+            <!-- Road dash lines -->
+            <line x1="25" y1="165" x2="45" y2="165" stroke="#FDFBF7" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="60" y1="165" x2="80" y2="165" stroke="#FDFBF7" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="220" y1="165" x2="240" y2="165" stroke="#FDFBF7" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="255" y1="165" x2="275" y2="165" stroke="#FDFBF7" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- ================= PROFESSOR OWL MASCOT ================= -->
+            <!-- Mascot Shadow -->
+            <ellipse cx="150" cy="155" rx="36" ry="7" fill="#7D6F61" opacity="0.22"/>
+
+            <!-- Owl Body (Round friendly shape) -->
+            <ellipse cx="150" cy="120" rx="38" ry="34" fill="#6B4F3A"/>
+            <!-- Tummy Feather Patch (Cream) -->
+            <ellipse cx="150" cy="126" rx="24" ry="22" fill="#F4EFE6"/>
+            <path d="M142 120 C146 123 154 123 158 120" stroke="#CBBBA6" stroke-width="2" stroke-linecap="round"/>
+            <path d="M140 128 C145 132 155 132 160 128" stroke="#CBBBA6" stroke-width="2" stroke-linecap="round"/>
+            <path d="M144 136 C147 139 153 139 156 136" stroke="#CBBBA6" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- Owl Wings / Arms -->
+            <!-- Left Wing resting on hip -->
+            <path d="M115 116 C110 126 114 138 122 142 C125 138 126 126 124 118 Z" fill="#583F2E"/>
+            <!-- Right Wing holding magnifying glass -->
+            <path d="M182 118 C188 122 196 120 200 112 C194 108 186 112 182 118 Z" fill="#583F2E"/>
+
+            <!-- Owl Feet (Cute yellow talons) -->
+            <ellipse cx="140" cy="153" rx="7" ry="3.5" fill="#E9C46A"/>
+            <ellipse cx="160" cy="153" rx="7" ry="3.5" fill="#E9C46A"/>
+
+            <!-- Big Expressive Eyes -->
+            <!-- Eye Whites -->
+            <circle cx="136" cy="110" r="14" fill="#FFFFFF"/>
+            <circle cx="164" cy="110" r="14" fill="#FFFFFF"/>
+            <!-- Eye Iris & Pupils (Warm Blue/Teal) -->
+            <circle cx="137" cy="110" r="8" fill="#1D3557"/>
+            <circle cx="163" cy="110" r="8" fill="#1D3557"/>
+            <!-- Eye Highlights (Friendly gleam) -->
+            <circle cx="135" cy="107" r="3.2" fill="#FFFFFF"/>
+            <circle cx="140" cy="113" r="1.4" fill="#FFFFFF"/>
+            <circle cx="161" cy="107" r="3.2" fill="#FFFFFF"/>
+            <circle cx="166" cy="113" r="1.4" fill="#FFFFFF"/>
+
+            <!-- Cute Beak -->
+            <polygon points="150,114 144,124 156,124" fill="#E76F51"/>
+
+            <!-- Professor Round Tortoiseshell / Teal Glasses -->
+            <circle cx="136" cy="110" r="16.5" stroke="#2A9D8F" stroke-width="3" fill="none"/>
+            <circle cx="164" cy="110" r="16.5" stroke="#2A9D8F" stroke-width="3" fill="none"/>
+            <path d="M149 110 L151 110" stroke="#2A9D8F" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Glasses reflection arc -->
+            <path d="M125 104 A 12 12 0 0 1 138 98" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+
+            <!-- Explorer / Safari Hat (Professor Gear) -->
+            <!-- Hat brim -->
+            <ellipse cx="150" cy="92" rx="42" ry="9" fill="#E9C46A"/>
+            <ellipse cx="150" cy="91" rx="39" ry="7" fill="#F4A261"/>
+            <!-- Hat crown -->
+            <path d="M130 90 C130 73 170 73 170 90 Z" fill="#E9C46A"/>
+            <!-- Hat band in terracotta -->
+            <rect x="130" y="85" width="40" height="5" rx="1.5" fill="#E76F51"/>
+            <!-- Small feather in hat -->
+            <path d="M165 85 C169 75 174 72 176 68 C174 74 171 80 167 86" stroke="#2A9D8F" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Magnifying Glass held in wing -->
+            <!-- Handle -->
+            <line x1="195" y1="116" x2="208" y2="132" stroke="#6B4F3A" stroke-width="4.5" stroke-linecap="round"/>
+            <circle cx="206" cy="130" r="2.5" fill="#E9C46A"/>
+            <!-- Rim -->
+            <circle cx="190" cy="108" r="15" stroke="#E9C46A" stroke-width="3.5" fill="#EAE0D0" fill-opacity="0.35"/>
+            <!-- Glass highlight gleam -->
+            <path d="M182 102 A 11 11 0 0 1 195 99" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <!-- Roadmap Header Title -->
+        <div class="w-full flex items-center justify-center gap-2 mb-1.5">
+          <span class="h-[1px] bg-[#E2D7C3] flex-1"></span>
+          <span class="font-fredoka text-[12px] font-bold text-[#8C7A68] tracking-wider uppercase">What we'll do today</span>
+          <span class="h-[1px] bg-[#E2D7C3] flex-1"></span>
+        </div>
+
+        <!-- Learning Roadmap Chips (Vertical stack, rounded-xl) -->
+        <div class="w-full space-y-2 mb-2.5">
+          <!-- Chip 1: Sand #E9C46A bg -->
+          <div class="w-full py-2 px-3 bg-[#E9C46A] text-[#1D3557] rounded-xl flex items-center gap-2.5 chip-shadow border border-[#D5B055]">
+            <span class="text-base leading-none">📚</span>
+            <span class="font-fredoka text-[14px] font-semibold tracking-wide text-left">5 New Words <span class="text-[12px] font-normal opacity-85">(Word Lab)</span></span>
+            <span class="ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-white/40 text-[#1D3557]">Step 1-2</span>
+          </div>
+
+          <!-- Chip 2: Teal #2A9D8F bg, text white -->
+          <div class="w-full py-2 px-3 bg-[#2A9D8F] text-white rounded-xl flex items-center gap-2.5 chip-shadow border border-[#1E6F5C]">
+            <span class="text-base leading-none">📖</span>
+            <span class="font-fredoka text-[14px] font-semibold tracking-wide text-left">City Adventure Story</span>
+            <span class="ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-black/15 text-white">Step 3-4</span>
+          </div>
+
+          <!-- Chip 3: Pink #E91E63 bg, text white -->
+          <div class="w-full py-2 px-3 bg-[#E91E63] text-white rounded-xl flex items-center gap-2.5 chip-shadow border border-[#B7154A]">
+            <span class="text-base leading-none">⚡</span>
+            <span class="font-fredoka text-[14px] font-semibold tracking-wide text-left">Speed Quiz Challenge</span>
+            <span class="ml-auto text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-black/15 text-white">Step 5-6</span>
+          </div>
+        </div>
+
+        <!-- Sound Cue Marker: Small discreet developer speaker note pill -->
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F7F3E8] border border-[#E2D7C3] rounded-full text-[10px] font-semibold text-[#8C7A68]">
+          <span class="text-xs">🔊</span>
+          <span>Sound Cue: <span class="font-mono text-[#264653] font-bold">[playCue: intro_fanfare]</span></span>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- ================= UNIVERSAL SHELL FOOTER ================= -->
+    <footer class="w-full h-[80px] bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-4 py-3 flex items-center justify-between gap-3 z-20 shrink-0">
+      
+      <!-- Left: 'Back' button (disabled state, rounded 16px, bg #F7F3E8, text muted #8C7A68, border #E2D7C3) -->
+      <button 
+        type="button" 
+        disabled
+        aria-label="Back"
+        class="h-[54px] px-4 rounded-[16px] bg-[#F7F3E8] text-[#8C7A68] border-2 border-[#E2D7C3] font-fredoka font-semibold text-sm opacity-60 cursor-not-allowed flex items-center justify-center gap-1 shrink-0"
+      >
+        <svg class="w-4 h-4 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span>Back</span>
+      </button>
+
+      <!-- Right: Primary CTA Button (Full-width flex-1 54px tactile in teal #2A9D8F with hard 0 4px 0 #1E6F5C bevel) -->
+      <button 
+        type="button"
+        data-cue="tap_start"
+        onclick="console.log('[🔊 playCue: tap_start]')"
+        class="flex-1 h-[54px] rounded-[18px] btn-tactile-teal flex items-center justify-center gap-2 text-white font-fredoka text-[18px] font-bold tracking-wide focus:outline-none focus:ring-4 focus:ring-[#2A9D8F]/30"
+      >
+        <span>START LESSON</span>
+        <svg class="w-5 h-5 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </button>
+
+    </footer>
+
+  </div>
+
+</body>
+</html>

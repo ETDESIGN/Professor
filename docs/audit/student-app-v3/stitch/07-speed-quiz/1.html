@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Speed Quiz (MCQ Correct Feedback State)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #E6DCB8;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    /* Duolingo tactile 3D button bevel effects */
+    .btn-bevel-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-bevel-teal:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1E6F5C;
+    }
+    .btn-bevel-blue {
+      background-color: #1CB0F6;
+      box-shadow: 0 3px 0 #0284C7;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-bevel-blue:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0284C7;
+    }
+    .option-correct-bevel {
+      background-color: #E6F4F1;
+      border: 2.5px solid #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+    .option-dimmed-bevel {
+      background-color: #FDFBF7;
+      border: 2px solid #E2D7C3;
+      box-shadow: 0 3px 0 #D4C5AD;
+    }
+    .btn-neutral-bevel {
+      background-color: #FDFBF7;
+      border: 2px solid #E2D7C3;
+      box-shadow: 0 3px 0 #D4C5AD;
+    }
+    .paper-card-shadow {
+      box-shadow: 0 4px 0 #D4C5AD;
+    }
+    /* Subtle bounce animation for correct celebration */
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .correct-pop {
+      animation: pulse-subtle 0.6s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-6 bg-[#E6DCB8]">
+
+  <!-- Mobile Screen Frame (390 x 844) -->
+  <div class="w-[390px] h-[844px] max-h-[844px] bg-[#EAE0D0] rounded-[36px] overflow-hidden flex flex-col shadow-2xl relative border-4 border-[#D9CBB7]">
+
+    <!-- 1. Universal Shell Header (Height: 64px, Paper #FDFBF7, Border-b #E2D7C3) -->
+    <header class="h-[64px] min-h-[64px] bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between z-20">
+      <!-- Left: 48px Close '✕' button -->
+      <button class="w-10 h-10 rounded-2xl bg-[#F7F3E8] border border-[#E2D7C3] text-[#8C7A68] hover:text-[#264653] flex items-center justify-center font-bold text-lg transition active:scale-95 shadow-sm" aria-label="Exit Lesson" title="Sound cue: [playCue: tap_exit]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Center: 6-Segment Step Progress Bar (Step 5 of 6 Active: Pink #E91E63) -->
+      <div class="flex items-center gap-1.5 px-2">
+        <div class="w-5 h-2.5 rounded-full bg-[#E91E63]"></div>
+        <div class="w-5 h-2.5 rounded-full bg-[#E91E63]"></div>
+        <div class="w-5 h-2.5 rounded-full bg-[#E91E63]"></div>
+        <div class="w-5 h-2.5 rounded-full bg-[#E91E63]"></div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E91E63] ring-2 ring-[#E91E63]/30"></div>
+        <div class="w-5 h-2.5 rounded-full bg-[#E2D7C3]"></div>
+      </div>
+
+      <!-- Right: Real Hearts Counter Pill -->
+      <div class="h-9 px-3 rounded-full bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center gap-1.5 shadow-xs">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#FF4B4B] fill-[#FF4B4B] animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-base text-[#264653] leading-none pt-0.5">4</span>
+      </div>
+    </header>
+
+    <!-- 2. Main Stage Content Area (Scrollable within bounds) -->
+    <main class="flex-1 overflow-y-auto px-4 py-3.5 flex flex-col justify-between">
+      
+      <div>
+        <!-- Subheader Badge Chip -->
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E76F51] text-[#FDFBF7] font-fredoka font-bold text-xs uppercase tracking-wider shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+            SPEED QUIZ • QUESTION 3 OF 5
+          </span>
+          <span class="text-xs font-extrabold text-[#8C7A68] bg-[#F7F3E8] px-2.5 py-1 rounded-full border border-[#E2D7C3]">
+            ⚡ Unit 3 Review
+          </span>
+        </div>
+
+        <!-- Question Box Card -->
+        <div class="bg-[#FDFBF7] rounded-[24px] border-2 border-[#E2D7C3] p-4 mb-3 paper-card-shadow relative">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <h2 class="font-fredoka font-bold text-[19px] text-[#1D3557] leading-tight">
+                Where should pedestrians walk when crossing the street?
+              </h2>
+              <p class="text-[13px] font-bold text-[#8C7A68] mt-1.5">
+                行人在过马路时应该走哪里？
+              </p>
+            </div>
+            
+            <!-- Question Speaker FAB (Duolingo Blue with 3D Bevel) -->
+            <button class="w-11 h-11 min-w-[44px] rounded-full btn-bevel-blue text-white flex items-center justify-center flex-shrink-0 active:scale-95" title="🔊 Sound Cue: [playCue: question_audio] reads question prompt aloud">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Sound Cue Hint Chip -->
+          <div class="mt-2.5 pt-2 border-t border-[#F2EADB] flex items-center gap-1.5 text-[11px] text-[#8C7A68] font-semibold">
+            <span class="text-sm">🔊</span>
+            <span>Sound Cue: <code class="bg-[#F0EAE1] text-[#E76F51] px-1 py-0.5 rounded text-[10px]">[playCue: question_audio]</code> read aloud</span>
+          </div>
+        </div>
+
+        <!-- 4 Stacked Option Cards (Option B is evaluated Correct) -->
+        <div class="space-y-2.5">
+          
+          <!-- Option A (Dimmed) -->
+          <div class="h-[54px] rounded-[20px] option-dimmed-bevel px-3.5 flex items-center justify-between opacity-60">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center font-fredoka font-bold text-[#8C7A68] text-sm">
+                A
+              </div>
+              <span class="font-fredoka font-semibold text-[15px] text-[#8C7A68]">
+                On the highway
+              </span>
+            </div>
+            <span class="text-xs text-[#A89A88] font-bold">公路</span>
+          </div>
+
+          <!-- Option B (CORRECT SELECTED STATE) -->
+          <div class="h-[56px] rounded-[20px] option-correct-bevel px-3.5 flex items-center justify-between correct-pop relative overflow-hidden">
+            <!-- Left shine accent -->
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#2A9D8F]"></div>
+
+            <div class="flex items-center gap-3 pl-1">
+              <div class="w-8 h-8 rounded-xl bg-[#2A9D8F] text-white flex items-center justify-center font-fredoka font-bold text-sm shadow-xs">
+                B
+              </div>
+              <div>
+                <span class="font-fredoka font-bold text-[16px] text-[#2A9D8F] leading-tight block">
+                  On the crosswalk
+                </span>
+                <span class="text-[11px] font-extrabold text-[#1E6F5C]">
+                  斑马线 / 人行横道 ✓
+                </span>
+              </div>
+            </div>
+
+            <!-- Checkmark Indicator Badge -->
+            <div class="w-7 h-7 rounded-full bg-[#2A9D8F] flex items-center justify-center text-white shadow-xs">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Sound Cue indicator for B -->
+          <div class="px-2 -mt-1 flex items-center gap-1.5 text-[10.5px] text-[#2A9D8F] font-bold">
+            <span>✨</span>
+            <span>Cue: <code class="bg-[#D1EFEA] text-[#1E6F5C] px-1 rounded">[playCue: correct_chime]</code> crisp ascending chime</span>
+          </div>
+
+          <!-- Option C (Dimmed) -->
+          <div class="h-[54px] rounded-[20px] option-dimmed-bevel px-3.5 flex items-center justify-between opacity-60">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center font-fredoka font-bold text-[#8C7A68] text-sm">
+                C
+              </div>
+              <span class="font-fredoka font-semibold text-[15px] text-[#8C7A68]">
+                Behind the tall bus
+              </span>
+            </div>
+            <span class="text-xs text-[#A89A88] font-bold">高大巴士后面</span>
+          </div>
+
+          <!-- Option D (Dimmed) -->
+          <div class="h-[54px] rounded-[20px] option-dimmed-bevel px-3.5 flex items-center justify-between opacity-60">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center font-fredoka font-bold text-[#8C7A68] text-sm">
+                D
+              </div>
+              <span class="font-fredoka font-semibold text-[15px] text-[#8C7A68]">
+                In the middle of the road
+              </span>
+            </div>
+            <span class="text-xs text-[#A89A88] font-bold">马路正中央</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Streak & Reward Card (Anchored directly above footer) -->
+      <div class="my-2 p-3 rounded-[20px] bg-[#E6F4F1] border-2 border-[#2A9D8F] flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🎉</span>
+          <div>
+            <div class="font-fredoka font-bold text-[14px] text-[#2A9D8F] leading-tight">
+              Awesome! +1 XP earned!
+            </div>
+            <div class="text-[11px] font-extrabold text-[#1E6F5C]">
+              Great speed! Keep moving forward!
+            </div>
+          </div>
+        </div>
+
+        <!-- Flame streak chip -->
+        <div class="flex flex-col items-end">
+          <div class="flex items-center gap-1 bg-white text-[#E76F51] border border-[#E76F51]/30 px-2.5 py-1 rounded-full font-fredoka font-bold text-xs shadow-xs">
+            <span>🔥</span>
+            <span>3 in a Row!</span>
+          </div>
+          <span class="text-[9px] text-[#8C7A68] font-bold mt-0.5">[playCue: streak_fire]</span>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 3. Anchored Footer (Height: 80px, Background #FDFBF7, Border-t #E2D7C3) -->
+    <footer class="h-[80px] min-h-[80px] bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-4 flex items-center justify-between z-20">
+      <!-- Left: Back Button (Disabled during active quiz evaluation) -->
+      <button class="h-12 px-4 rounded-2xl btn-neutral-bevel text-[#8C7A68] font-fredoka font-bold text-sm flex items-center gap-1.5 opacity-50 cursor-not-allowed" disabled title="Disabled during quiz">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Back</span>
+      </button>
+
+      <!-- Right: Primary Action CTA ('CONTINUE →') -->
+      <button class="h-12 flex-1 ml-3 rounded-2xl btn-bevel-teal text-white font-fredoka font-bold text-[17px] tracking-wide flex items-center justify-center gap-2" title="Sound cue: [playCue: tap_next]">
+        <span>CONTINUE</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+    </footer>
+
+  </div>
+
+</body>
+</html>

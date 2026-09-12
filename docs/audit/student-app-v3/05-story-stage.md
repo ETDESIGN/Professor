@@ -1,6 +1,6 @@
 # Story Stage — In-Lesson Reader — v3 Quality Audit (`STORY_STAGE (passive reading)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -116,15 +116,46 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 5. **[P3] Refresh story reader typography:** Increase font scale to 18px with relaxed line height on a warm paper `#FDFBF7` storybook surface.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the story reader card and synchronized reading state.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Story Stage In-Lesson Reader (`05-story-stage.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Story Stage Illustrated Story Reader + Tappable Vocab + Read Along**
+   - **Stitch Screen ID:** `aa25200bd53a4d74a65a4faf7327fb0e`
+   - **Title:** `Professor ESL - Story Stage (Illustrated Story Reader)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UkLYwRKDj5emBzzr_rYyagPmgj9ypnTRcACPOd0aFrFaqj2VtgvJrx_-tCEggJvpQ3ZnuoqGwaeZBBbQ5qk1peRwVQ0xhW-fDZx9Jf2BgHh_EtsmYSF4xMQD2m1u9Ta2Bdj5aOUltbyMQ98Sgbc_RxpDQrt-a5-nFZpnTxR71_bAaR8LtVzhsDxWlHAyENzX19cnnmgQujFKbpRA8PlfamUSg6tG25CNlVO62pufeQR3iDREErUGQ976Q`
+   - **Prompt Summary:** Mobile portrait (390×844) story reader screen showing Page 2 of 4. Shell header displays Step 3 in Duolingo pink `#E91E63` and 4 hearts. Main stage presents an illustrated paper card `#FDFBF7` with colorful storybook scene of school children and Lily crossing a city street. Character row features circular portrait avatar of Lily with terracotta border `#E76F51` and speech tag `Lily says:`. Story text is set in spacious 18px Nunito (1.8 line height) with tappable vocabulary words padded in tactile pill spans (`skyscraper` in soft orange pill, `crosswalk` in teal glowing pill). Interaction bar includes beveled `🔊 Read Along` audio narration button in teal `#2A9D8F`, previous/next 48px navigation arrow buttons, and 4-dot indicator with Page 2 active in sand `#E9C46A`. Anchored footer CTA `CONTINUE →`.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: page_turn]` on page flip arrow tap
+     - `[🔊 playCue: word_tap]` on tapping underlined vocabulary word
+     - `[🔊 playCue: read_along_narration]` on Read Along narration tap
+     - `[🔊 playCue: tap_next]` on footer continue tap
+   - **Design Contract:** Wonder Atlas tokens, Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Word Popup Definition Modal Card (Interactive Touch Lexicon)**
+   - **Stitch Screen ID:** `3f990bff2ffb40178f40075e5b10b5bd`
+   - **Title:** `Professor ESL - Story Stage (Word Popup Definition & Audio Modal)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1U5bVtkoXJAfi45vncIa_sNKBQgDXXKKgwIeDSuuuoOtAy7gNZjujwJHQv_ekOrGoU2DY5vhxRUIMKo3lDPMjFXRa9sYw1UeBc2zV511CPL8_sluhaHr6XRKGaMEtXJTAwt_o-kZsvEn5XHIHa1ynuv3Jr27gJkQpQCKMc2d54_bxrEaR6DD-LWm24FETIcz68pmgNGQAnthP9aneItU_Ppa3suJVy4mCGLMJvQkd8zNoEn8UmrvZwPxcE`
+   - **Prompt Summary:** Mobile portrait (390×844) vocabulary definition popup card anchored over softly dimmed story reader (`rgba(38, 70, 83, 0.38)`). Tapped word `crosswalk` glows with active animated teal ring in the background. Elevated paper card `#FDFBF7` features 2.5px teal `#2A9D8F` border, headword `crosswalk` in 24px Fredoka, IPA pill `[ˈkrɔːs.wɑːk]`, 36px dismiss chip `✕`, 48px Duolingo blue `#1CB0F6` pronunciation FAB (`0 4px 0 #0284C7` bevel), bold terracotta `#E76F51` translation `人行横道 / 斑马线`, kid-friendly English definition in mist box, and contextual example sentence with outside-tap dismiss instruction. Anchored footer with `CONTINUE →`.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: popup_open]` on modal appearance
+     - `[🔊 playCue: word_pronounce]` on audio speaker FAB tap
+     - `[🔊 playCue: tap_next]` on footer continue tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch directive — no per-game gate). Project `6865954475041880496`. Screens 1-2 exported — PASS: storybook spread with tappable vocab pills + the definition popup (solves F1 tap-target finding). Sound moments marked per the owner's sound directive; implementation wires `playCue`.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive, verbatim):** "I review every screen in Stitch right now so please implement them all right away without waiting for my approval. I will verify everything tomorrow… in case some designs are too much off, we will modify them afterward." — revisions, if any, follow the edit_screens loop after his review.
 
 ## §7 Implementation notes & design-fidelity log
 

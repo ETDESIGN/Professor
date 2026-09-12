@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Speed Quiz (MCQ Wrong Answer & Acoustic Correction)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #E6DCCD;
+      margin: 0;
+      padding: 0;
+      color: #264653;
+      user-select: none;
+    }
+    .font-display {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .font-mono-cue {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Playful 3D Button Press & Bevel Utilities */
+    .btn-bevel-red {
+      box-shadow: 0 4px 0 #DC2626;
+    }
+    .btn-bevel-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+    .btn-bevel-terracotta {
+      box-shadow: 0 4px 0 #C4553B;
+    }
+    .btn-bevel-sand {
+      box-shadow: 0 4px 0 #D4A345;
+    }
+    .btn-bevel-paper {
+      box-shadow: 0 3px 0 #D7CABB;
+    }
+    .btn-bevel-white {
+      box-shadow: 0 2px 0 #E2D7C3;
+    }
+
+    /* Sound Cue badge styling */
+    .sound-cue-pill {
+      background: rgba(29, 53, 87, 0.06);
+      border: 1px dashed rgba(29, 53, 87, 0.25);
+    }
+
+    /* Subtle pulse animation for audio speaker */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .audio-pulse {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+
+  <!-- Mobile Portrait Shell (390px x 844px exact viewport) -->
+  <div class="w-full max-w-[390px] h-[844px] bg-[#EAE0D0] rounded-[36px] shadow-2xl border-4 border-[#DDD2C0] flex flex-col overflow-hidden relative">
+
+    <!-- 1. Universal Shell Header (64px, paper #FDFBF7, border-b #E2D7C3) -->
+    <header class="h-16 px-4 bg-[#FDFBF7] border-b border-[#E2D7C3] flex items-center justify-between shrink-0 z-20">
+      <!-- Left: 48px Close '✕' button with playCue comment -->
+      <div class="relative group">
+        <button 
+          type="button"
+          aria-label="Exit Lesson" 
+          class="w-10 h-10 rounded-2xl bg-[#F7F3E8] border border-[#E2D7C3] btn-bevel-paper flex items-center justify-center text-[#8C7A68] hover:text-[#264653] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer"
+          title="playCue: tap_exit"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Center: Segmented Progress Bar (Step 4 of 5 active, Duolingo Pink #E91E63) -->
+      <div class="flex items-center gap-1.5 flex-1 max-w-[150px] mx-3" aria-label="Progress: Question 4 of 5">
+        <div class="h-2.5 flex-1 rounded-full bg-[#E91E63]"></div>
+        <div class="h-2.5 flex-1 rounded-full bg-[#E91E63]"></div>
+        <div class="h-2.5 flex-1 rounded-full bg-[#E91E63]"></div>
+        <div class="h-2.5 flex-1 rounded-full bg-[#E91E63] relative">
+          <!-- Active step indicator pill -->
+          <div class="absolute -top-1 -right-0.5 w-1.5 h-1.5 rounded-full bg-white ring-2 ring-[#E91E63]"></div>
+        </div>
+        <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]/80"></div>
+      </div>
+
+      <!-- Right: Hearts HUD with penalty state (-1 heart floating indicator) -->
+      <div class="flex items-center gap-1.5 relative">
+        <!-- Floating Red Heart Decrement Chip -->
+        <div class="absolute -top-3.5 -left-4 bg-[#FF4B4B] text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border-2 border-white flex items-center gap-0.5 font-display">
+          -1 <span>❤️</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-[#F7F3E8] px-2.5 py-1.5 rounded-2xl border border-[#E2D7C3] shadow-sm">
+          <!-- Heart icons: 3 solid vibrant, 1 cracked/faded -->
+          <div class="flex items-center -space-x-1">
+            <svg class="w-4 h-4 text-[#FF4B4B] fill-current" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <svg class="w-4 h-4 text-[#FF4B4B] fill-current" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <svg class="w-4 h-4 text-[#FF4B4B] fill-current" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <!-- Faded / Lost Heart -->
+            <svg class="w-4 h-4 text-[#D7CABB] fill-current opacity-60" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <span class="font-display font-bold text-sm text-[#FF4B4B] ml-0.5">3</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Sub-header Breadcrumb / Quiz State Banner -->
+    <div class="px-4 py-2 bg-[#F3ECE0] border-b border-[#E2D7C3]/60 flex items-center justify-between shrink-0 text-xs">
+      <div class="flex items-center gap-1.5 font-bold text-[#E76F51]">
+        <span class="w-2 h-2 rounded-full bg-[#FF4B4B] animate-ping"></span>
+        <span class="font-display tracking-wide uppercase text-[11px]">SPEED QUIZ • QUESTION 4 OF 5</span>
+      </div>
+      <div class="flex items-center gap-1 bg-white/70 px-2 py-0.5 rounded-full border border-[#E2D7C3] text-[11px] font-bold text-[#8C7A68]">
+        <span>⚡</span>
+        <span>Unit 3: City Travel</span>
+      </div>
+    </div>
+
+    <!-- Scrollable Main Stage -->
+    <main class="flex-1 overflow-y-auto px-4 pt-3 pb-2 flex flex-col">
+
+      <!-- Question Card Container -->
+      <div class="bg-[#FDFBF7] rounded-3xl p-4 border border-[#E2D7C3] btn-bevel-paper mb-3 relative">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1">
+            <h1 class="font-display text-[19px] leading-tight font-bold text-[#1D3557]">
+              What does a red traffic light mean?
+            </h1>
+            <p class="text-[13px] font-semibold text-[#8C7A68] mt-1">
+              红色的交通信号灯是什么意思？
+            </p>
+          </div>
+          <!-- Question Audio Button -->
+          <button 
+            type="button"
+            class="w-10 h-10 rounded-2xl bg-[#1CB0F6] text-white flex items-center justify-center shadow-md active:translate-y-0.5 transition-transform shrink-0"
+            title="playCue: question_audio"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Inline audio cue tag -->
+        <div class="mt-2.5 pt-2 border-t border-[#E2D7C3]/60 flex items-center gap-1.5 text-[10px] text-[#8C7A68] font-mono-cue">
+          <span>🔊</span>
+          <span class="text-[#E76F51] font-bold">[playCue: question_audio]</span>
+          <span>read aloud</span>
+        </div>
+      </div>
+
+      <!-- 4 Stacked Option Cards -->
+      <div class="flex flex-col gap-2.5">
+
+        <!-- Option A (INCORRECT PICKED) -->
+        <div class="relative">
+          <button 
+            type="button"
+            class="w-full min-h-[56px] px-3.5 py-2.5 rounded-[20px] bg-[#FEF2F2] border-[2.5px] border-[#FF4B4B] btn-bevel-red flex items-center justify-between transition-all text-left"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-xl bg-[#FF4B4B] text-white font-display font-bold text-sm flex items-center justify-center shrink-0">
+                A
+              </span>
+              <div class="flex flex-col">
+                <span class="font-display font-bold text-[16px] text-[#FF4B4B] line-through decoration-2">
+                  Go fast
+                </span>
+                <span class="text-[11px] font-semibold text-[#FF4B4B]/80">快速通行</span>
+              </div>
+            </div>
+            <!-- Red '✕' Badge -->
+            <div class="w-7 h-7 rounded-full bg-[#FF4B4B] text-white flex items-center justify-center shadow-sm shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </div>
+          </button>
+          <!-- Acoustic Sound Cue Badge for Option A -->
+          <div class="mt-1 px-2 py-0.5 flex items-center gap-1 text-[10.5px] text-[#FF4B4B] font-mono-cue">
+            <span>🔊 Sound Cue:</span>
+            <span class="font-bold bg-[#FF4B4B]/10 px-1 rounded text-[#DC2626]">[playCue: wrong_buzzer]</span>
+            <span class="text-[10px] text-[#8C7A68]">gentle error buzzer</span>
+          </div>
+        </div>
+
+        <!-- Option B (REVEALED CORRECT) -->
+        <div class="relative">
+          <button 
+            type="button"
+            class="w-full min-h-[56px] px-3.5 py-2.5 rounded-[20px] bg-[#E6F4F1] border-[2.5px] border-[#2A9D8F] btn-bevel-teal flex items-center justify-between transition-all text-left"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-xl bg-[#2A9D8F] text-white font-display font-bold text-sm flex items-center justify-center shrink-0">
+                B
+              </span>
+              <div class="flex flex-col">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-display font-bold text-[16px] text-[#1E6F5C]">
+                    Stop and wait
+                  </span>
+                  <span class="bg-[#2A9D8F] text-white text-[9px] font-black px-1.5 py-0.2 rounded uppercase font-display">Correct</span>
+                </div>
+                <span class="text-[11px] font-semibold text-[#2A9D8F]">停下等待 ✓</span>
+              </div>
+            </div>
+            <!-- Emerald Checkmark Badge -->
+            <div class="w-7 h-7 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center shadow-sm shrink-0">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="3.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+              </svg>
+            </div>
+          </button>
+          <!-- Acoustic Sound Cue Badge for Option B -->
+          <div class="mt-1 px-2 py-0.5 flex items-center gap-1 text-[10.5px] text-[#1E6F5C] font-mono-cue">
+            <span>✨ Sound Cue:</span>
+            <span class="font-bold bg-[#2A9D8F]/10 px-1 rounded text-[#1E6F5C]">[playCue: correct_reveal_tone]</span>
+            <span class="text-[10px] text-[#8C7A68]">pleasant harmonic chord</span>
+          </div>
+        </div>
+
+        <!-- Option C (Dimmed Neutral) -->
+        <button 
+          type="button"
+          disabled
+          class="w-full min-h-[50px] px-3.5 py-2 rounded-[20px] bg-[#FDFBF7]/80 border border-[#E2D7C3] btn-bevel-paper flex items-center justify-between opacity-55 text-left cursor-not-allowed"
+        >
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-xl bg-[#EAE0D0] text-[#8C7A68] font-display font-bold text-xs flex items-center justify-center shrink-0">
+              C
+            </span>
+            <div class="flex flex-col">
+              <span class="font-display font-semibold text-[15px] text-[#264653]">
+                Turn around
+              </span>
+              <span class="text-[11px] text-[#8C7A68]">掉头返回</span>
+            </div>
+          </div>
+        </button>
+
+        <!-- Option D (Dimmed Neutral) -->
+        <button 
+          type="button"
+          disabled
+          class="w-full min-h-[50px] px-3.5 py-2 rounded-[20px] bg-[#FDFBF7]/80 border border-[#E2D7C3] btn-bevel-paper flex items-center justify-between opacity-55 text-left cursor-not-allowed"
+        >
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-xl bg-[#EAE0D0] text-[#8C7A68] font-display font-bold text-xs flex items-center justify-center shrink-0">
+              D
+            </span>
+            <div class="flex flex-col">
+              <span class="font-display font-semibold text-[15px] text-[#264653]">
+                Honk the car horn
+              </span>
+              <span class="text-[11px] text-[#8C7A68]">按喇叭鸣笛</span>
+            </div>
+          </div>
+        </button>
+
+      </div>
+
+      <!-- Acoustic Corrective Teaching Drawer (Bottom Section Inside Stage) -->
+      <div class="mt-3 bg-[#FEF2F2] border-t-2 border-[#FF4B4B] rounded-2xl p-3.5 shadow-md flex flex-col gap-2 relative">
+        
+        <!-- Header Row with Error Icon + Encouraging Pedagogical Heading -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full bg-[#FF4B4B] text-white flex items-center justify-center text-xs font-black shrink-0">
+              ✕
+            </div>
+            <h2 class="font-display font-bold text-[15px] text-[#1D3557]">
+              Remember for next time!
+            </h2>
+          </div>
+          <!-- Spaced Repetition Tag -->
+          <div class="bg-[#E9C46A]/40 text-[#8C5D00] border border-[#E9C46A] px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 font-mono-cue">
+            <span>🔄</span>
+            <span>Retry at round end</span>
+          </div>
+        </div>
+
+        <!-- Acoustic Narration Bar (Mist #F7F3E8 card) -->
+        <div class="bg-[#F7F3E8] rounded-xl p-2.5 border border-[#E2D7C3] flex items-center justify-between gap-2.5">
+          <div class="flex-1">
+            <p class="text-[11px] uppercase tracking-wider font-extrabold text-[#2A9D8F] font-display flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#2A9D8F] animate-pulse"></span>
+              Correct Sentence Narration
+            </p>
+            <p class="font-display font-bold text-[14.5px] text-[#1D3557] mt-0.5 leading-snug">
+              “Red light means stop and wait!”
+            </p>
+            <p class="text-[11px] text-[#8C7A68] mt-0.5">
+              红灯亮起时必须停下等待，绿灯才可以通行。
+            </p>
+          </div>
+
+          <!-- Active Audio Speaker FAB (44x44px teal #2A9D8F) -->
+          <div class="relative shrink-0">
+            <div class="absolute inset-0 rounded-full bg-[#2A9D8F] audio-pulse"></div>
+            <button 
+              type="button"
+              class="relative w-11 h-11 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center shadow-md active:scale-95 transition-transform"
+              title="playCue: corrective_sentence_tts"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.757 3.63 8.25 4.51 8.25H6.75z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Audio cue metadata notation -->
+        <div class="flex items-center gap-1.5 text-[10px] text-[#8C7A68] font-mono-cue px-1">
+          <span>🔊 Cue:</span>
+          <span class="text-[#2A9D8F] font-bold">[playCue: corrective_sentence_tts]</span>
+          <span>speaks model sentence aloud</span>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Anchored Universal Footer (Height: ~76px, Paper #FDFBF7, Border-t #E2D7C3) -->
+    <footer class="h-[76px] px-4 bg-[#FDFBF7] border-t border-[#E2D7C3] flex items-center justify-between shrink-0 z-20">
+      <!-- Left: 'Back' button (disabled in quiz feedback state) -->
+      <button 
+        type="button" 
+        disabled
+        class="h-12 px-4 rounded-2xl bg-[#EAE0D0]/50 border border-[#E2D7C3] text-[#8C7A68]/60 font-display font-bold text-sm flex items-center gap-1 cursor-not-allowed"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+        Back
+      </button>
+
+      <!-- Right: Action CTA 'GOT IT →' in terracotta #E76F51 -->
+      <button 
+        type="button"
+        class="h-12 flex-1 ml-3 rounded-2xl bg-[#E76F51] text-white font-display font-bold text-[17px] tracking-wide flex items-center justify-center gap-2 btn-bevel-terracotta active:translate-y-0.5 active:shadow-none transition-all cursor-pointer shadow-md"
+        title="playCue: tap_next"
+      >
+        <span>GOT IT</span>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        </svg>
+      </button>
+    </footer>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Word Lab (Card Back Details)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderCream: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            muted: '#8C7A68',
+            tealBrand: '#2A9D8F',
+            tealBevel: '#1E6F5C',
+            terracotta: '#E76F51',
+            sand: '#E9C46A',
+            duoPink: '#E91E63',
+            duoBlue: '#1CB0F6',
+            duoBlueBevel: '#0284C7',
+            heartRed: '#FF4B4B',
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
+            nunito: ['Nunito', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            'bevel-teal': '0 4px 0 #1E6F5C',
+            'bevel-blue': '0 3px 0 #0284C7',
+            'bevel-sand': '0 3px 0 #D4A338',
+            'bevel-card': '0 4px 14px rgba(38, 70, 83, 0.08), 0 2px 0 #E2D7C3',
+            'tactile': '0 3px 0 #D7CBB3',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .tap-press:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.15) !important;
+    }
+    .card-glow {
+      box-shadow: 0 6px 20px -2px rgba(42, 157, 143, 0.2), 0 3px 0 #2A9D8F;
+    }
+    /* Subtle background map road contours for aesthetic continuity with screen 1 */
+    .bg-pattern {
+      background-color: #EAE0D0;
+      background-image: radial-gradient(#DECEB7 1.5px, transparent 1.5px), radial-gradient(#DECEB7 1.5px, #EAE0D0 1.5px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+  </style>
+</head>
+<body class="flex justify-center items-center min-h-screen p-0 sm:p-4 bg-pattern">
+
+  <!-- Mobile Portrait Shell (390 x 844) -->
+  <main class="w-[390px] h-[844px] bg-[#EAE0D0] relative flex flex-col justify-between overflow-hidden shadow-2xl rounded-[36px] border-[6px] border-[#D8CBB5]">
+
+    <!-- ================= UNIVERSAL SHELL HEADER (Height 64px) ================= -->
+    <header class="h-16 px-4 bg-paper border-b border-borderCream flex items-center justify-between z-20 shrink-0">
+      <!-- 48px Close '✕' button -->
+      <button class="w-12 h-12 rounded-2xl bg-mist border border-borderCream flex items-center justify-center text-muted font-fredoka font-bold text-xl tap-press hover:bg-[#F0EBE0] transition-colors"
+              title="Close Lesson [🔊 playCue: tap_exit]" aria-label="Exit Lesson">
+        ✕
+      </button>
+
+      <!-- Center Progress Bar (Step 2 of 6 active, DuoPink) -->
+      <div class="flex-1 mx-3 flex items-center gap-1.5 px-2">
+        <!-- Step 1 Complete -->
+        <div class="h-2.5 flex-1 rounded-full bg-duoPink"></div>
+        <!-- Step 2 Active (Current) -->
+        <div class="h-2.5 flex-1 rounded-full bg-duoPink relative">
+          <span class="absolute -top-1 right-0 w-4 h-4 bg-duoPink border-2 border-paper rounded-full animate-ping opacity-60"></span>
+        </div>
+        <!-- Step 3 -->
+        <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        <!-- Step 4 -->
+        <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        <!-- Step 5 -->
+        <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        <!-- Step 6 -->
+        <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]"></div>
+      </div>
+
+      <!-- Right Hearts Counter -->
+      <div class="h-10 px-3 bg-mist border border-borderCream rounded-2xl flex items-center gap-1.5 font-fredoka font-bold">
+        <span class="text-heartRed text-lg leading-none">❤️</span>
+        <span class="text-ink text-base leading-none pt-0.5">4</span>
+      </div>
+    </header>
+
+    <!-- Subheader Banner: Step pill & status indicator -->
+    <section class="px-4 pt-2.5 pb-1 flex items-center justify-between shrink-0">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-terracotta text-white rounded-full font-fredoka font-bold text-xs tracking-wide shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        WORD LAB • VOCABULARY STUDY
+      </div>
+      <div class="flex items-center gap-1 font-fredoka font-bold text-xs text-inkDeep bg-paper/90 px-2.5 py-1 rounded-full border border-borderCream">
+        <span class="text-sand text-sm leading-none">★</span>
+        <span>3 / 5 Studied</span>
+      </div>
+    </section>
+
+    <!-- ================= MAIN STAGE: FLIPPED CARD BACK ================= -->
+    <section class="flex-1 px-4 py-1 flex flex-col justify-center overflow-y-auto z-10">
+      
+      <!-- Flipped Card Container with completed teal border highlight -->
+      <article class="bg-paper border-2 border-tealBrand rounded-[24px] p-4.5 card-glow relative flex flex-col gap-3">
+        
+        <!-- Top Metadata strip: Category Tag & Word Position Indicator -->
+        <div class="flex items-center justify-between border-b border-borderCream/70 pb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 bg-mist text-muted font-fredoka font-bold text-[11px] rounded-lg border border-borderCream uppercase tracking-wider">
+              City Travel • Card 2 of 5
+            </span>
+          </div>
+          <!-- Milestone Status Completed Note -->
+          <span class="text-[11px] font-fredoka font-bold text-tealBrand flex items-center gap-1">
+            <span>✨</span> Card Mastered!
+          </span>
+        </div>
+
+        <!-- Header Row: Headword, Phonetic IPA & Pronunciation FAB -->
+        <div class="flex items-center justify-between">
+          <div class="flex flex-col">
+            <div class="flex items-baseline gap-2">
+              <h1 class="font-fredoka font-bold text-[28px] text-inkDeep leading-tight tracking-tight">
+                crosswalk
+              </h1>
+              <span class="text-[12px] font-semibold text-muted bg-mist px-1.5 py-0.5 rounded border border-borderCream">
+                noun
+              </span>
+            </div>
+            <!-- Phonetic IPA Chip -->
+            <div class="mt-0.5 inline-flex items-center gap-1.5 self-start px-2 py-0.5 bg-mist border border-borderCream rounded-lg">
+              <span class="text-xs font-mono font-bold text-muted">[ˈkrɔːs.wɑːk]</span>
+              <span class="text-[10px] text-muted font-bold opacity-75">US / UK</span>
+            </div>
+          </div>
+
+          <!-- 48x48 Duolingo Blue Audio Replay FAB -->
+          <button class="w-12 h-12 rounded-2xl bg-duoBlue shadow-bevel-blue text-white flex items-center justify-center tap-press shrink-0 hover:bg-[#18A0E0] transition-colors"
+                  title="Play pronunciation [🔊 playCue: word_pronounce]" aria-label="Listen to word crosswalk">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.29 6.71H3c-.55 0-1 .45-1 1v8.58c0 .55.45 1 1 1h3.29l5.21 4.71c.67.61 1.75.14 1.75-.77V2.77c0-.91-1.08-1.38-1.75-.77zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Chinese L1 Meaning (Primary child learning support surface) -->
+        <div class="bg-amber-50/70 border border-amber-200/80 rounded-xl px-3.5 py-2 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs px-1.5 py-0.5 rounded font-fredoka font-bold bg-terracotta text-white text-[10px]">
+              中文释义
+            </span>
+            <span class="font-fredoka font-bold text-[19px] text-terracotta tracking-wide">
+              人行横道 / 斑马线
+            </span>
+          </div>
+          <span class="text-xs text-muted font-bold">L1 Support</span>
+        </div>
+
+        <!-- Definition Box -->
+        <div class="bg-mist border border-borderCream rounded-2xl p-3 flex flex-col gap-1">
+          <div class="flex items-center justify-between">
+            <span class="font-fredoka font-bold text-[11px] uppercase tracking-wider text-muted flex items-center gap-1">
+              📖 Meaning
+            </span>
+            <span class="text-[11px] font-semibold text-muted">A1-A2 Level</span>
+          </div>
+          <p class="text-[14px] leading-snug font-bold text-ink font-nunito">
+            A marked part of a road where pedestrians have right of way to cross safely.
+          </p>
+        </div>
+
+        <!-- Example Sentence Card with Embedded Sentence Audio Player -->
+        <div class="bg-paper border-2 border-borderCream rounded-2xl p-3.5 flex flex-col gap-2 shadow-sm">
+          <div class="flex items-center justify-between">
+            <span class="font-fredoka font-bold text-[11px] uppercase tracking-wider text-tealBrand flex items-center gap-1">
+              💡 Example Sentence
+            </span>
+            <span class="text-[11px] font-fredoka font-bold text-muted">Tap to hear 🎧</span>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <!-- 40x40px Teal Audio Button -->
+            <button class="w-10 h-10 rounded-full bg-tealBrand shadow-bevel-teal text-white flex items-center justify-center tap-press shrink-0 hover:bg-[#238b7e] transition-colors"
+                    title="Play sentence audio [🔊 playCue: sentence_audio]" aria-label="Listen to example sentence">
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+              </svg>
+            </button>
+
+            <!-- English Sentence with Target Word Highlighted -->
+            <div class="flex-1">
+              <p class="text-[14px] font-extrabold text-inkDeep leading-snug">
+                “Look both ways before stepping onto the <span class="text-tealBrand underline decoration-wavy decoration-tealBrand/60">crosswalk</span>.”
+              </p>
+              <p class="text-[12px] font-semibold text-muted mt-0.5">
+                在踏上斑马线之前，先看两边。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual 'Studied' Milestone Badges (Both Completed!) -->
+        <div class="bg-white/80 border border-borderCream rounded-2xl px-3 py-2 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <!-- Badge 1: Listened -->
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-tealBrand text-white rounded-xl font-fredoka font-bold text-xs shadow-sm">
+              <span class="text-sm">👂</span>
+              <span>Listened ✔</span>
+            </div>
+
+            <!-- Badge 2: Flipped -->
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sand text-inkDeep rounded-xl font-fredoka font-bold text-xs shadow-sm border border-[#D4A338]">
+              <span class="text-sm">🔄</span>
+              <span>Flipped ✔</span>
+            </div>
+          </div>
+
+          <!-- Sound cue indicator note -->
+          <div class="text-right">
+            <span class="text-[10px] font-fredoka font-bold text-tealBrand block leading-tight">Unlocked!</span>
+            <span class="text-[10px] text-muted font-bold block leading-tight">Ready to pass</span>
+          </div>
+        </div>
+
+        <!-- Flip Back to Front Action Button -->
+        <button class="w-full h-11 rounded-xl bg-mist border-2 border-borderCream text-ink font-fredoka font-bold text-sm flex items-center justify-center gap-2 shadow-tactile tap-press hover:bg-[#EEE7D8] transition-colors"
+                title="Flip card back to picture front face" aria-label="Flip back to front card">
+          <span class="text-base">↩</span>
+          <span>Flip to Front (Picture View)</span>
+        </button>
+
+      </article>
+
+      <!-- Mini Study Deck Tracker Strip (Indicating card 2 is now marked studied) -->
+      <div class="mt-2.5 px-1 flex items-center justify-between">
+        <span class="text-[11px] font-fredoka font-bold text-muted uppercase tracking-wider">
+          Cards in Deck:
+        </span>
+        <div class="flex items-center gap-2">
+          <!-- Card 1: Subway (Done) -->
+          <div class="w-6 h-6 rounded-lg bg-tealBrand text-white flex items-center justify-center text-[11px] font-fredoka font-bold" title="subway (completed)">
+            ✓
+          </div>
+          <!-- Card 2: Crosswalk (Active & Completed) -->
+          <div class="w-6 h-6 rounded-lg bg-sand text-inkDeep border-2 border-tealBrand flex items-center justify-center text-[11px] font-fredoka font-bold ring-2 ring-tealBrand/30" title="crosswalk (just completed)">
+            ★
+          </div>
+          <!-- Card 3: Traffic Light -->
+          <div class="w-6 h-6 rounded-lg bg-paper border border-borderCream text-muted flex items-center justify-center text-[11px] font-fredoka font-bold" title="traffic light">
+            3
+          </div>
+          <!-- Card 4: Skyscraper -->
+          <div class="w-6 h-6 rounded-lg bg-paper border border-borderCream text-muted flex items-center justify-center text-[11px] font-fredoka font-bold" title="skyscraper">
+            4
+          </div>
+          <!-- Card 5: Convenience Store -->
+          <div class="w-6 h-6 rounded-lg bg-paper border border-borderCream text-muted flex items-center justify-center text-[11px] font-fredoka font-bold" title="convenience store">
+            5
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= ANCHORED FOOTER (Height 80px) ================= -->
+    <footer class="h-20 px-4 bg-paper border-t border-borderCream flex items-center justify-between gap-3 shrink-0 z-20">
+      
+      <!-- Left: Back Button -->
+      <button class="h-12 px-5 rounded-2xl bg-mist border border-borderCream font-fredoka font-bold text-muted text-sm flex items-center gap-1.5 tap-press hover:bg-[#EFE9DC] transition-colors"
+              title="Return to previous screen" aria-label="Go Back">
+        <span>‹</span>
+        <span>Back</span>
+      </button>
+
+      <!-- Right: Active Continue CTA with hard 0 4px 0 bevel and White Fredoka text -->
+      <button class="flex-1 h-12 rounded-2xl bg-tealBrand shadow-bevel-teal text-white font-fredoka font-bold text-base tracking-wide flex items-center justify-center gap-2 tap-press hover:bg-[#248B7E] transition-all"
+              title="Continue lesson [🔊 playCue: tap_next]" aria-label="Continue to next card">
+        <span>CONTINUE (3/5 CARDS)</span>
+        <span class="text-lg leading-none">→</span>
+      </button>
+
+    </footer>
+
+  </main>
+
+</body>
+</html>
