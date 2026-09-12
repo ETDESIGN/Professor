@@ -275,7 +275,9 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
         setStreak(0);
         setWrongLetter(letter);
         later(() => setWrongLetter((w) => (w === letter ? null : w)), WRONG_FLASH_MS);
-        clock.penalize(); // the original's −1 time unit per wrong letter
+        if (!settingsRef.current.noClockPenalty) {
+          clock.penalize(); // the original's −1 time unit per wrong letter
+        }
         eventsRef.current.onWrongLetter(word, { letter, streak: 0 });
       }
     },

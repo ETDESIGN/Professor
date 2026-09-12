@@ -1,6 +1,6 @@
 # Spelling Bee — In-Lesson Step — v3 Quality Audit (`SPELLING_BEE (engine)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -172,4 +172,26 @@ Refs are `apps/student/steps/SpellingBeeStep.tsx` unless noted.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### Scope & files touched
+- `components/games/spellingBee/types.ts`: Added additive optional `noClockPenalty?: boolean` to `SpellingBeeSettings`.
+- `components/games/spellingBee/useSpellingBeeTurn.ts`: Wrapped `clock.penalize()` in `if (!settingsRef.current.noClockPenalty)` (additive-only, board/standalone default untouched).
+- `components/games/spellingBee/SpellingBeeStage.tsx`: Added additive optional `lightTheme?: boolean` defaulting to `false` (renders pixel-identical dark theme by default; renders Wonder Atlas paper cards, honey-amber letter slots, and light QWERTY keycaps when `true`).
+- `apps/student/steps/SpellingBeeStep.tsx`: Full reskin to Wonder Atlas light theme. Set `DEFAULT_TIMER = 20`. Passed `noClockPenalty: true` and `lightTheme: true`. Implemented the new non-punitive in-lesson timeout rule: on `r.timedOut`, records `recordAnswer(false)` + full word spelling reveal with audio pronunciation, preserving hearts and advancing to the next word.
+
+### Scoring & data-write verification
+- `recordAnswer(true)` on successful word completion preserved verbatim.
+- `recordAnswer(false)` on timeout preserved verbatim.
+- `scoreForAttempt(0, word.difficulty, 1.0, streak)` math preserved verbatim.
+- Sound cues (`correct`, `wrong`, `streak`, `win`, `reveal`) and `playAudioUrl` calls preserved verbatim.
+
+### Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors
+- `npx vitest run`: 826 passed | 1 skipped (827 total across 83 test files)
+- `npm run build`: Clean production build (dist/ with PWA service worker)
+
+### Design-fidelity log per Stitch screen
+- **Screen 1 (Active Typing & Adaptive Paper Keyboard): Followed.**
+  - Wonder Atlas honey-amber theme (`lightTheme: true`), 20s countdown clock without penalty on wrong letters, warm paper stage card, honey-amber letter slots with 3D bevels, tactile adaptive keyboard keys.
+- **Screen 2 (Timeout Word-Cost & Audio Reveal Recovery State): Followed.**
+  - The new in-lesson rule: on timeout, marks the single word incorrect, triggers acoustic full-word pronunciation with letter slot reveal, keeps hearts intact, and advances smoothly to the next word.
+

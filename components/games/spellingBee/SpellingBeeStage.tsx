@@ -28,6 +28,8 @@ export interface SpellingBeeStageProps {
   onReplayAudio: () => void;
   /** Compact variant for the student app. */
   compact?: boolean;
+  /** Light theme reskin for the student app (defaults to false so the BOARD surface renders pixel-identical). */
+  lightTheme?: boolean;
 }
 
 const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
@@ -41,6 +43,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
   onType,
   onReplayAudio,
   compact = false,
+  lightTheme = false,
 }) => {
   const slots = React.useMemo(() => slotLayout(word.word), [word.word]);
   const presenting = status === 'presenting'; // Look & listen beat — clock paused, no keyboard
@@ -197,24 +200,30 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
     >
       {/* ── Top Clue & Replay Banner ── */}
       <div
-        className={`w-full bg-[#0B132B]/90 border border-slate-700/80 rounded-2xl p-2.5 sm:p-3 flex items-center justify-between gap-3 sm:gap-4 shadow-lg backdrop-blur-sm relative overflow-hidden ${
-          compact ? 'h-20' : 'h-20 sm:h-24'
-        }`}
+        className={`w-full rounded-2xl p-2.5 sm:p-3 flex items-center justify-between gap-3 sm:gap-4 relative overflow-hidden ${
+          lightTheme
+            ? 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-md'
+            : 'bg-[#0B132B]/90 border border-slate-700/80 shadow-lg backdrop-blur-sm'
+        } ${compact ? 'h-20' : 'h-20 sm:h-24'}`}
       >
         {/* Left Thumbnail */}
         <div
-          className={`h-full aspect-[4/3] rounded-xl overflow-hidden border border-slate-700 shrink-0 bg-black/60 flex items-center justify-center relative ${
-            solved ? 'border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.3)]' : ''
+          className={`h-full aspect-[4/3] rounded-xl overflow-hidden shrink-0 flex items-center justify-center relative ${
+            lightTheme
+              ? 'border-2 border-[#E2D7C3] bg-[#F7F3E8]'
+              : 'border border-slate-700 bg-black/60'
+          } ${
+            solved ? (lightTheme ? 'border-[#2A9D8F] ring-2 ring-[#2A9D8F]/30' : 'border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.3)]') : ''
           }`}
         >
           {word.imageUrl ? (
             <img src={word.imageUrl} alt="" className="w-full h-full object-contain" draggable={false} />
           ) : (
-            <Volume2 size={24} className="text-cyan-400" />
+            <Volume2 size={24} className={lightTheme ? 'text-[#1CB0F6]' : 'text-cyan-400'} />
           )}
           {solved && (
-            <div className="absolute inset-0 bg-emerald-950/40 flex items-center justify-center">
-              <Check size={28} className="text-emerald-400 font-bold drop-shadow" />
+            <div className={`absolute inset-0 flex items-center justify-center ${lightTheme ? 'bg-[#2A9D8F]/20' : 'bg-emerald-950/40'}`}>
+              <Check size={28} className={`${lightTheme ? 'text-[#2A9D8F]' : 'text-emerald-400'} font-bold drop-shadow`} />
             </div>
           )}
         </div>
@@ -226,35 +235,45 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
               type="button"
               onClick={onReplayAudio}
               aria-label="Replay audio"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-400/60 text-cyan-300 hover:text-white font-mono font-bold text-xs tracking-wide transition-all shadow-[0_0_10px_rgba(56,189,248,0.2)] active:scale-95 cursor-pointer shrink-0"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono font-bold text-xs tracking-wide transition-all active:scale-95 cursor-pointer shrink-0 ${
+                lightTheme
+                  ? 'bg-[#1CB0F6] hover:bg-[#0284C7] text-white shadow-[0_3px_0_#0284C7] active:translate-y-0.5'
+                  : 'bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-400/60 text-cyan-300 hover:text-white shadow-[0_0_10px_rgba(56,189,248,0.2)]'
+              }`}
             >
               <Volume2 size={16} />
               <span>REPLAY SOUND</span>
-              <span className="text-[10px] px-1 py-0.2 rounded bg-cyan-400/20 text-cyan-200">[SPACE]</span>
+              <span className={`text-[10px] px-1 py-0.2 rounded ${lightTheme ? 'bg-white/25 text-white' : 'bg-cyan-400/20 text-cyan-200'}`}>[SPACE]</span>
             </button>
 
             {word.meaning && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 font-headline font-bold text-xs">
+              <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl font-headline font-bold text-xs ${
+                lightTheme
+                  ? 'bg-[#FCE8B2] border border-[#E9C46A] text-[#8C6D1F]'
+                  : 'bg-amber-500/15 border border-amber-400/40 text-amber-300'
+              }`}>
                 <span>💡 {word.meaning}</span>
               </div>
             )}
 
-            <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-mono text-xs">
+            <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-xs ${
+              lightTheme ? 'bg-[#F7F3E8] border border-[#E2D7C3] text-[#264653]' : 'bg-slate-800 text-slate-300'
+            }`}>
               <span>{word.letters.length} Letters</span>
             </div>
           </div>
         </div>
 
         {/* Right Status / Prompt */}
-        <div className="hidden md:flex flex-col items-end justify-center pr-2 shrink-0 font-mono text-xs text-slate-400">
+        <div className="hidden md:flex flex-col items-end justify-center pr-2 shrink-0 font-mono text-xs">
           {solved ? (
-            <span className="text-emerald-400 font-bold flex items-center gap-1 text-sm">
+            <span className={`${lightTheme ? 'text-[#2A9D8F]' : 'text-emerald-400'} font-bold flex items-center gap-1 text-sm`}>
               <Check size={16} /> SOLVED!
             </span>
           ) : revealed ? (
-            <span className="text-amber-400 font-bold text-sm">WORD REVEALED</span>
+            <span className={`${lightTheme ? 'text-[#E76F51]' : 'text-amber-400'} font-bold text-sm`}>WORD REVEALED</span>
           ) : (
-            <span className="text-slate-400 text-xs">Type or Tap to Spell</span>
+            <span className={lightTheme ? 'text-[#8C7A68] text-xs' : 'text-slate-400 text-xs'}>Type or Tap to Spell</span>
           )}
         </div>
       </div>
@@ -265,7 +284,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
           {slots.map((slot, i) => {
             if (slot.letterIndex < 0) {
               return (
-                <span key={i} className="inline-block w-2 sm:w-4 text-center font-black text-slate-500 text-2xl">
+                <span key={i} className={`inline-block w-2 sm:w-4 text-center font-black text-2xl ${lightTheme ? 'text-[#8C7A68]' : 'text-slate-500'}`}>
                   {slot.char === ' ' ? '' : slot.char}
                 </span>
               );
@@ -275,6 +294,30 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
             const isJustTyped = typing && slot.letterIndex === typedCount - 1;
             const showLetter = filled || revealed;
             const slotNum = String(slot.letterIndex + 1).padStart(2, '0');
+
+            const slotStyle = lightTheme
+              ? solved
+                ? 'bg-[#E6F4F1] border-2 border-[#2A9D8F] text-[#1E6F5C] shadow-[0_3px_0_#1E6F5C]'
+                : revealed
+                  ? 'bg-[#FCE8B2] border-2 border-[#E9C46A] text-[#8C6D1F] shadow-[0_3px_0_#C99E32]'
+                  : filled
+                    ? 'bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] shadow-[0_3px_0_#C99E32]'
+                    : isCursor
+                      ? 'bg-[#FDFBF7] border-2 border-[#E9C46A] text-[#1D3557] ring-4 ring-[#E9C46A]/30 shadow-[0_2px_0_#D5C7B0]'
+                      : 'bg-[#FDFBF7] border-2 border-dashed border-[#E2D7C3] text-transparent shadow-[0_2px_0_#D5C7B0]'
+              : solved
+                ? 'bg-emerald-950/50 border-2 border-emerald-400 text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.45)]'
+                : revealed
+                  ? filled
+                    ? 'bg-slate-800 border-2 border-slate-600 text-white'
+                    : 'bg-amber-500/15 border-2 border-amber-400 text-amber-300'
+                  : filled
+                    ? isJustTyped
+                      ? 'bg-amber-950/40 border-2 border-amber-400 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.45)]'
+                      : 'bg-[#111C3D] border-2 border-cyan-400 text-white shadow-[0_0_15px_rgba(56,189,248,0.25)]'
+                    : isCursor
+                      ? 'bg-slate-800/60 border-2 border-dashed border-cyan-400/90 text-transparent shadow-[0_0_18px_rgba(56,189,248,0.2)] animate-pulse'
+                      : 'bg-slate-800/30 border-2 border-dashed border-slate-700 text-transparent';
 
             return (
               <motion.div
@@ -286,34 +329,22 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                   compact
                     ? 'w-12 h-16 sm:w-14 sm:h-18 text-2xl'
                     : 'w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 text-3xl sm:text-4xl md:text-5xl'
-                } ${
-                  solved
-                    ? 'bg-emerald-950/50 border-2 border-emerald-400 text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.45)]'
-                    : revealed
-                      ? filled
-                        ? 'bg-slate-800 border-2 border-slate-600 text-white'
-                        : 'bg-amber-500/15 border-2 border-amber-400 text-amber-300'
-                      : filled
-                        ? isJustTyped
-                          ? 'bg-amber-950/40 border-2 border-amber-400 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.45)]'
-                          : 'bg-[#111C3D] border-2 border-cyan-400 text-white shadow-[0_0_15px_rgba(56,189,248,0.25)]'
-                        : isCursor
-                          ? 'bg-slate-800/60 border-2 border-dashed border-cyan-400/90 text-transparent shadow-[0_0_18px_rgba(56,189,248,0.2)] animate-pulse'
-                          : 'bg-slate-800/30 border-2 border-dashed border-slate-700 text-transparent'
-                }`}
+                } ${slotStyle}`}
               >
                 {/* Slot index label */}
                 <span
                   className={`spelling-slot-tag absolute top-1.5 left-2 font-mono text-[10px] font-bold ${
-                    solved
-                      ? 'text-emerald-400'
-                      : filled
-                        ? isJustTyped
-                          ? 'text-amber-400'
-                          : 'text-cyan-400/80'
-                        : isCursor
-                          ? 'text-cyan-400'
-                          : 'text-slate-600'
+                    lightTheme
+                      ? 'text-[#8C7A68]'
+                      : solved
+                        ? 'text-emerald-400'
+                        : filled
+                          ? isJustTyped
+                            ? 'text-amber-400'
+                            : 'text-cyan-400/80'
+                          : isCursor
+                            ? 'text-cyan-400'
+                            : 'text-slate-600'
                   }`}
                 >
                   {slotNum}
@@ -321,7 +352,9 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
 
                 {/* Letter character */}
                 <span className="font-headline font-black tracking-wider">
-                  {showLetter ? slot.char : isCursor ? <span className="w-6 h-1 rounded-full bg-cyan-400 animate-bounce inline-block" /> : ''}
+                  {showLetter ? slot.char : isCursor ? (
+                    <span className={`w-6 h-1 rounded-full animate-bounce inline-block ${lightTheme ? 'bg-[#E76F51]' : 'bg-cyan-400'}`} />
+                  ) : ''}
                 </span>
 
                 {/* Status pill under slot */}
@@ -355,7 +388,11 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
       </div>
 
       {/* ── On-Screen QWERTY Keyboard with Tactile 3D Arcade Keys ── */}
-      <div className="w-full bg-[#0B132B]/85 p-2 sm:p-3 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-2xl backdrop-blur-md shrink-0">
+      <div className={`w-full p-2 sm:p-3 rounded-2xl sm:rounded-3xl shrink-0 ${
+        lightTheme
+          ? 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-md'
+          : 'bg-[#0B132B]/85 border border-slate-800 shadow-2xl backdrop-blur-md'
+      }`}>
         <div className="flex flex-col gap-1.5 sm:gap-2 w-full items-center">
           {QWERTY_ROWS.map((row, rowIdx) => (
             <div key={rowIdx} className="flex justify-center gap-1 sm:gap-2 w-full">
@@ -374,6 +411,22 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                   const isHint = hintKey === letter;
                   const isTarget = targetLetters.has(letter);
 
+                  const keyClass = lightTheme
+                    ? isWrong
+                      ? 'bg-[#FF4B4B] border-2 border-[#DC2626] text-white animate-sb-shake shadow-[0_3px_0_#B91C1C]'
+                      : isHint
+                        ? 'bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] ring-4 ring-[#E9C46A]/50 shadow-[0_3px_0_#C99E32]'
+                        : isTarget && typing
+                          ? 'bg-[#E6F4F1] border-2 border-[#2A9D8F] hover:bg-[#D4ECE7] text-[#1D3557] shadow-[0_3px_0_#1E6F5C]'
+                          : 'bg-[#FDFBF7] border-2 border-[#E2D7C3] hover:bg-[#F7F3E8] text-[#264653] shadow-[0_3px_0_#D5C7B0] active:translate-y-[2px] active:shadow-[0_1px_0_#D5C7B0]'
+                    : isWrong
+                      ? 'bg-gradient-to-b from-rose-500 to-rose-700 border-rose-400 text-white animate-sb-shake shadow-[0_4px_0_#881337]'
+                      : isHint
+                        ? 'bg-gradient-to-b from-amber-400 to-amber-500 border-amber-300 text-slate-950 ring-4 ring-amber-300/70 shadow-[0_4px_0_#78350f]'
+                        : isTarget && typing
+                          ? 'bg-gradient-to-b from-[#162a52] to-[#0d1c3a] border-cyan-500/60 hover:border-cyan-400 text-cyan-200 hover:text-white shadow-[0_4px_0_#06142a]'
+                          : 'bg-gradient-to-b from-[#151f38] to-[#0d1424] border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white shadow-[0_4px_0_#060a12]';
+
                   return (
                     <motion.button
                       key={letter}
@@ -390,21 +443,15 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                       whileTap={typing ? { scale: 0.92 } : undefined}
                       onClick={() => typing && onType(letter)}
                       disabled={!typing}
-                      className={`spelling-key-btn flex-1 max-w-[136px] h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border font-headline font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none key-cap-bevel ${
-                        compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl md:text-3xl'
+                      className={`spelling-key-btn flex-1 max-w-[136px] h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border font-headline font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none ${
+                        lightTheme ? '' : 'key-cap-bevel'
                       } ${
-                        isWrong
-                          ? 'bg-gradient-to-b from-rose-500 to-rose-700 border-rose-400 text-white animate-sb-shake shadow-[0_4px_0_#881337]'
-                          : isHint
-                            ? 'bg-gradient-to-b from-amber-400 to-amber-500 border-amber-300 text-slate-950 ring-4 ring-amber-300/70 shadow-[0_4px_0_#78350f]'
-                            : isTarget && typing
-                              ? 'bg-gradient-to-b from-[#162a52] to-[#0d1c3a] border-cyan-500/60 hover:border-cyan-400 text-cyan-200 hover:text-white shadow-[0_4px_0_#06142a]'
-                              : 'bg-gradient-to-b from-[#151f38] to-[#0d1424] border-slate-700 hover:border-slate-500 text-slate-200 hover:text-white shadow-[0_4px_0_#060a12]'
-                      }`}
+                        compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl md:text-3xl'
+                      } ${keyClass}`}
                     >
                       <span>{letter}</span>
                       {isTarget && !isWrong && !isHint && typing && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 mt-0.5" />
+                        <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${lightTheme ? 'bg-[#2A9D8F]' : 'bg-cyan-400/80'}`} />
                       )}
                     </motion.button>
                   );

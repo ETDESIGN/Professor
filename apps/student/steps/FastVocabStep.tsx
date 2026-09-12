@@ -205,24 +205,31 @@ const FastVocabStep: React.FC<FastVocabStepProps> = ({ unitId, unitTitle, waveSi
 
   if (screen === 'loading') {
     return (
-      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-slate-400 font-sans">
-        <Loader2 className="animate-spin mb-3" size={28} />
-        Loading words…
+      <div className="h-full bg-[#EAE0D0] flex flex-col items-center justify-center text-[#8C7A68] font-sans p-6 select-none">
+        <div className="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-3xl p-8 shadow-md flex flex-col items-center">
+          <Loader2 className="animate-spin mb-3 text-[#2A9D8F]" size={36} />
+          <p className="font-bold text-[#1D3557] text-base">Loading words…</p>
+        </div>
       </div>
     );
   }
 
   if (screen === 'error') {
     return (
-      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white font-sans p-6">
-        <div className="w-16 h-16 bg-slate-800 text-amber-400 rounded-2xl flex items-center justify-center mb-4">
-          <Zap size={30} />
+      <div className="h-full bg-[#EAE0D0] flex flex-col items-center justify-center text-[#264653] font-sans p-6 select-none">
+        <div className="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-3xl p-6 shadow-md max-w-sm text-center w-full">
+          <div className="w-16 h-16 bg-[#F7F3E8] border-2 border-[#E2D7C3] text-[#E76F51] rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-xs">
+            <Zap size={32} />
+          </div>
+          <p className="text-lg font-bold text-[#1D3557] mb-1">No vocabulary exercises yet</p>
+          <p className="text-[#8C7A68] text-sm mb-6">This round needs the unit's exercise pool — continue with the lesson for now.</p>
+          <button
+            onClick={onDone}
+            className="w-full py-3 bg-[#2A9D8F] hover:brightness-105 text-white font-bold rounded-2xl shadow-[0_4px_0_#1E6F5C] active:translate-y-0.5 active:shadow-none transition-all"
+          >
+            Continue
+          </button>
         </div>
-        <p className="text-lg font-bold mb-1">No vocabulary exercises yet</p>
-        <p className="text-slate-400 text-sm mb-6 text-center">This round needs the unit's exercise pool — continue with the lesson for now.</p>
-        <button onClick={onDone} className="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-2xl">
-          Continue
-        </button>
       </div>
     );
   }
@@ -231,90 +238,144 @@ const FastVocabStep: React.FC<FastVocabStepProps> = ({ unitId, unitTitle, waveSi
     const t = totalsRef.current;
     const accuracy = t.interactions > 0 ? Math.round((t.firstTry / t.interactions) * 100) : 0;
     return (
-      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white font-sans p-6 relative overflow-hidden">
-        <motion.h1
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-          className="text-4xl font-black mb-1"
-        >
-          Well Done!
-        </motion.h1>
-        <p className="text-slate-400 mb-6">{unitTitle}</p>
+      <div className="h-full bg-[#EAE0D0] flex flex-col items-center justify-center text-[#264653] font-sans p-6 relative overflow-y-auto select-none">
+        <div className="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-3xl p-6 shadow-xl max-w-sm text-center w-full">
+          <motion.h1
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+            className="text-3xl font-black text-[#1D3557] mb-1 font-fredoka"
+          >
+            Well Done! 🎉
+          </motion.h1>
+          <p className="text-[#8C7A68] text-sm mb-5 font-semibold">{unitTitle}</p>
 
-        <div className="flex gap-2 mb-8">
-          {Array.from({ length: 5 }, (_, i) => (
-            <motion.span
-              key={i}
-              initial={{ scale: 0, rotate: -30 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.3 + i * 0.22, type: 'spring', stiffness: 300, damping: 14 }}
+          <div className="flex justify-center gap-2 mb-6">
+            {Array.from({ length: 5 }, (_, i) => (
+              <motion.span
+                key={i}
+                initial={{ scale: 0, rotate: -25 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.2 + i * 0.15, type: 'spring', stiffness: 300, damping: 14 }}
+              >
+                <Star
+                  size={36}
+                  className={i < finalStars ? 'text-[#E9C46A] drop-shadow-sm' : 'text-[#E2D7C3]'}
+                  fill={i < finalStars ? 'currentColor' : 'none'}
+                />
+              </motion.span>
+            ))}
+          </div>
+
+          <div className="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-4 mb-6 shadow-xs">
+            <p className="text-4xl font-black tabular-nums text-[#2A9D8F] mb-0.5">{Math.max(0, score)}</p>
+            <p className="text-[10px] font-bold text-[#8C7A68] uppercase tracking-widest">final score</p>
+          </div>
+
+          <div className="flex justify-around text-center mb-6">
+            <div>
+              <p className="text-2xl font-black text-[#E76F51] tabular-nums">{t.bestStreak}</p>
+              <p className="text-[10px] font-bold text-[#8C7A68] uppercase">best streak</p>
+            </div>
+            <div className="w-px bg-[#E2D7C3]" />
+            <div>
+              <p className="text-2xl font-black text-[#1D3557] tabular-nums">{accuracy}%</p>
+              <p className="text-[10px] font-bold text-[#8C7A68] uppercase">first-try</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={loadRun}
+              className="flex-1 py-3 bg-[#F7F3E8] hover:bg-white text-[#264653] border-2 border-[#E2D7C3] shadow-[0_3px_0_#D5C7B0] active:translate-y-0.5 active:shadow-none rounded-2xl font-bold transition-all text-sm"
             >
-              <Star size={44} className={i < finalStars ? 'text-amber-400' : 'text-slate-700'} fill={i < finalStars ? 'currentColor' : 'none'} />
-            </motion.span>
-          ))}
-        </div>
-
-        <p className="text-5xl font-black tabular-nums text-emerald-400 mb-1">{Math.max(0, score)}</p>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">final score</p>
-
-        <div className="flex gap-6 text-center mb-8">
-          <div>
-            <p className="text-2xl font-black text-orange-400 tabular-nums">{t.bestStreak}</p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase">best streak</p>
+              Play again
+            </button>
+            <button
+              onClick={onDone}
+              className="flex-1 py-3 bg-[#2A9D8F] hover:brightness-105 text-white shadow-[0_4px_0_#1E6F5C] active:translate-y-0.5 active:shadow-none rounded-2xl font-bold transition-all text-sm"
+            >
+              Continue
+            </button>
           </div>
-          <div>
-            <p className="text-2xl font-black text-indigo-300 tabular-nums">{accuracy}%</p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase">first-try</p>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={loadRun} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-2xl font-bold">
-            Play again
-          </button>
-          <button onClick={onDone} className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-2xl font-bold">
-            Continue
-          </button>
         </div>
       </div>
     );
   }
 
   // ── Screen: play ────────────────────────────────────────────────────────
-  const matchProgress = turn.phase === 'match' ? turn.matchedPairIds.length / Math.max(1, wavePairs.length) : 1;
-  const hudProgress =
-    (waveIndex + (turn.phase === 'match' ? matchProgress * 0.5 : 0.5 + (turn.qIdx / Math.max(1, turn.speedQs.length)) * 0.5)) /
-    totalWaves;
-  const hudLabel =
-    turn.phase === 'match'
-      ? `Wave ${waveIndex + 1}/${totalWaves} · match`
-      : turn.phase === 'speed'
-        ? `Wave ${waveIndex + 1}/${totalWaves} · speed ${turn.qIdx + 1}/${turn.speedQs.length}`
-        : 'wave complete';
-
   return (
-    <div className="h-full bg-slate-900 flex flex-col font-sans relative overflow-hidden">
-      <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-        <button onClick={onExit} className="p-2 -ml-2 text-slate-400 hover:text-white rounded-full shrink-0">
+    <div className="h-full bg-[#EAE0D0] flex flex-col font-sans relative overflow-hidden select-none">
+      {/* Universal light header */}
+      <header className="h-16 px-4 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center justify-between shrink-0 z-20">
+        <button
+          onClick={onExit}
+          className="w-10 h-10 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center justify-center text-[#8C7A68] hover:text-[#264653] active:translate-y-0.5 transition-all shadow-[0_2px_0_#D5C7B0]"
+          title="Exit Lesson"
+        >
           <ChevronLeft size={22} />
         </button>
-        <div className="flex-1 min-w-0">
-          <FastVocabHud
-            streak={turn.streak}
-            progressLabel={hudLabel}
-            progress={hudProgress}
-            timeRemaining={turn.phase === 'speed' ? turn.timeRemaining : undefined}
-            timeLimit={turn.phase === 'speed' ? turn.timeLimit : undefined}
-            compact
-          />
-        </div>
-        <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl font-black text-emerald-400 tabular-nums text-sm shrink-0">
-          {Math.max(0, score)}
-        </div>
-      </div>
 
-      <div className="flex-1 min-h-0 relative px-3 pb-4">
+        <div className="flex items-center gap-2">
+          {/* Terracotta/Amber Step Badge */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E76F51] text-white text-xs font-bold shadow-xs">
+            <span>⚡</span>
+            <span>FAST VOCAB • WAVE {waveIndex + 1}/{totalWaves}</span>
+          </div>
+
+          {turn.streak >= 2 && (
+            <div className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#FFF3CD] border border-[#FFE082] text-[#B7791F] text-xs font-bold animate-pulse">
+              <span>🔥</span>
+              <span>Streak x{turn.streak}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="px-3 py-1.5 bg-[#F7F3E8] border border-[#E2D7C3] rounded-xl font-black text-[#2A9D8F] tabular-nums text-sm shrink-0 shadow-xs flex items-center gap-1">
+          <span>⭐</span>
+          <span>{Math.max(0, score)}</span>
+        </div>
+      </header>
+
+      {/* Subheader banner: Match instructions or Speed countdown */}
+      {turn.phase === 'speed' ? (
+        <div className="px-4 pt-2 pb-1 shrink-0">
+          <div className="bg-[#FDFBF7] border border-[#E2D7C3] rounded-2xl p-2.5 shadow-xs flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-[#1D3557] flex items-center gap-1">
+                <Zap size={14} className="text-[#E76F51]" />
+                <span>Speed Question {turn.qIdx + 1}/{turn.speedQs.length}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 font-mono font-bold text-[#0284C7] bg-[#E0F2FE] border border-[#BAE6FD] px-2 py-0.5 rounded-full text-[11px] animate-pulse">
+                ⏱️ {turn.timeRemaining}s left
+              </span>
+            </div>
+            <div className="w-full bg-[#E2D7C3] h-2.5 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  turn.timeRemaining <= 3 ? 'bg-[#EF4444]' : 'bg-[#38BDF8]'
+                }`}
+                style={{ width: `${Math.round((turn.timeRemaining / (turn.timeLimit || SPEED_TIME_LIMIT)) * 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : turn.phase === 'match' ? (
+        <div className="px-4 pt-2 pb-1 shrink-0">
+          <div className="bg-[#FDFBF7]/90 border border-[#E2D7C3] rounded-2xl px-3.5 py-1.5 flex items-center justify-between shadow-xs">
+            <p className="text-xs text-[#1D3557] font-bold leading-tight flex items-center gap-1">
+              <span className="text-[#2A9D8F]">✦</span> Match words &amp; pictures!
+              <span className="text-[11px] text-[#8C7A68] font-normal ml-1">匹配单词与图片</span>
+            </p>
+            <span className="text-[10px] font-mono text-[#8C7A68] bg-[#F7F3E8] border border-[#E2D7C3] px-2 py-0.5 rounded-full">
+              {turn.matchedPairIds.length}/{wavePairs.length} pairs
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Main play stage */}
+      <div className="fv-stage flex-1 min-h-0 relative px-3 pb-4">
         <AnimatePresence mode="wait">
           {turn.phase === 'match' && (
             <motion.div
@@ -365,10 +426,12 @@ const FastVocabStep: React.FC<FastVocabStepProps> = ({ unitId, unitTitle, waveSi
               key={`wave-done-${waveIndex}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-center text-white"
+              className="absolute inset-0 flex flex-col items-center justify-center text-[#1D3557] select-none"
             >
-              <p className="text-3xl font-black mb-1">Wave {waveIndex + 1} clear!</p>
-              <p className="text-slate-400 text-sm">{waveIndex + 1 < totalWaves ? 'next wave loading…' : 'finishing up…'}</p>
+              <div className="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-3xl p-6 shadow-xl text-center max-w-xs">
+                <p className="text-3xl font-black mb-1 font-fredoka">Wave {waveIndex + 1} Clear! 🎉</p>
+                <p className="text-[#8C7A68] text-sm">{waveIndex + 1 < totalWaves ? 'Get ready for next wave…' : 'Finishing up…'}</p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -381,6 +444,55 @@ const FastVocabStep: React.FC<FastVocabStepProps> = ({ unitId, unitTitle, waveSi
           40%, 80% { transform: translateX(8px); }
         }
         .animate-fv-shake { animation: fv-shake 0.4s ease-in-out; }
+
+        /* Wonder Atlas tactile paper card overrides */
+        .fv-stage .bg-slate-800 {
+          background-color: #FDFBF7 !important;
+          border-color: #E2D7C3 !important;
+          box-shadow: 0 4px 0 #D5C7B0 !important;
+          color: #1D3557 !important;
+        }
+        .fv-stage .bg-slate-800:hover:not(:disabled) {
+          border-color: #2A9D8F !important;
+        }
+        .fv-stage .text-white {
+          color: #1D3557 !important;
+        }
+        .fv-stage .text-slate-300,
+        .fv-stage .text-slate-400 {
+          color: #8C7A68 !important;
+        }
+        .fv-stage .bg-indigo-600 {
+          background-color: #E6F4F1 !important;
+          border-color: #2A9D8F !important;
+          box-shadow: 0 4px 0 #1E6F5C !important;
+          color: #1E6F5C !important;
+        }
+        .fv-stage .bg-emerald-500 {
+          background-color: #2A9D8F !important;
+          border-color: #1E6F5C !important;
+          box-shadow: 0 4px 0 #1E6F5C !important;
+          color: #FFFFFF !important;
+        }
+        .fv-stage .bg-emerald-500\/15 {
+          background-color: #E6F4F1 !important;
+          border-color: #2A9D8F !important;
+          box-shadow: 0 4px 0 #2A9D8F !important;
+        }
+        .fv-stage .border-emerald-400\/50 {
+          border-color: #2A9D8F !important;
+        }
+        .fv-stage .bg-amber-400\/15 {
+          background-color: #FEF3C7 !important;
+          border-color: #FCD34D !important;
+          box-shadow: 0 4px 0 #FCD34D !important;
+        }
+        .fv-stage .border-slate-600 {
+          border-color: #E2D7C3 !important;
+        }
+        .fv-stage .border-slate-700 {
+          border-color: #E2D7C3 !important;
+        }
       `}</style>
     </div>
   );

@@ -1,6 +1,6 @@
 # Word Search — In-Lesson Step — v3 Quality Audit (`WORD_SEARCH (engine)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -160,4 +160,24 @@ Refs are `apps/student/steps/WordSearchStep.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### Scope & files touched
+- `apps/student/steps/WordSearchStep.tsx`: Full reskin to Wonder Atlas light theme (`#EAE0D0` canvas, `#FDFBF7` paper card grid, `#E2D7C3` borders, `#2A9D8F` accents). Replaced harsh neon selection trails with soft pastel highlighter ribbons (`FOUND_TRAILS`). Added step-local Hint FAB pulsing/active after 3 misses that flashes the first letter of an unfound word for 4s. Adjusted completion stars to reward puzzle completion with miss-tolerance (up to 3 misses for 5 stars, up to 6 for 4 stars). Loading, error, and puzzle completion victory states updated.
+
+### Scoring & data-write verification
+- `recordAnswer(true)` on puzzle completion preserved verbatim.
+- `recordAnswer(false)` on incorrect line drags preserved verbatim.
+- Sound cues (`correct`, `wrong`, `win`) and `playAudioUrl` calls preserved verbatim.
+
+### Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors
+- `npx vitest run`: 826 passed | 1 skipped (827 total across 83 test files)
+- `npm run build`: Clean production build (dist/ with PWA service worker)
+
+### Design-fidelity log per Stitch screen
+- **Screen 1 (Active Word Search Solve & Pastel Trails): Followed.**
+  - Tactile 8×8 letter grid on warm paper card `#FDFBF7` with pastel highlighter ribbons (`#E6F4F1` mint, `#FFF3CD` amber, `#FCE7F3` pink, `#E0F2FE` sky, `#EDE9FE` lavender, `#FEF3C7` sand).
+  - Target word list below grid with checkmarks and strikethroughs upon discovery.
+  - Floating Hint FAB in honey-amber active after 3 misses.
+- **Screen 2 (Puzzle Complete Celebration State): Followed.**
+  - Wonder Atlas victory card on paper `#FDFBF7` with animated stars, score, recap word list with interactive pronunciation speakers, and Continue CTA.
+

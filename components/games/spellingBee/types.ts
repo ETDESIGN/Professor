@@ -36,6 +36,8 @@ export interface SpellingBeeSettings {
   timerSeconds: number;
   /** Adaptive distractor-key elimination (the original's "Remove letters"). */
   letterRemoval: boolean;
+  /** Optional flag to disable the 1s wrong-letter clock penalty (defaults to false/undefined). */
+  noClockPenalty?: boolean;
 }
 
 /** Emitted on every wrong letter (the surface decides the penalty). */

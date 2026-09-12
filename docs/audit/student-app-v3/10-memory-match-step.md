@@ -1,6 +1,6 @@
 # Memory Match — In-Lesson Step — v3 Quality Audit (`MEMORY_LAB (engine)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -160,4 +160,27 @@ Refs: `apps/student/steps/MemoryMatchStep.tsx`, `steps/memoryPairs.ts`, `apps/st
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### Scope & files touched
+- `apps/student/steps/memoryPairs.ts`: Extended to prefer `image_url` from unit vocabulary (`right: image_url || l1_translation || definition`, `rightType: imageUrl ? 'image' : 'text'`), defaulted `max = 4` for a responsive 2×4 grid.
+- `apps/student/FlashMatch.tsx`: Converted into responsive 2-column × 4-row grid with Wonder Atlas styling (`#FDFBF7` cards, `#E2D7C3` borders, `#2A9D8F` matched frames, 400ms mismatch shake reset with acoustic correction, zero heart decrement).
+- `apps/student/steps/MemoryMatchStep.tsx`: Full reskin to Wonder Atlas light theme shell with universal header, 2×4 grid badge, instructions banner, and celebratory completion card.
+
+### Scoring & data-write verification
+- `recordAnswer(true)` per completed pair preserved verbatim.
+- Hearts are never decremented on mismatches (exploration-safe memory game contract).
+- Sound cues (`win`, `playCue`) and `playAudioUrl` calls preserved verbatim.
+
+### Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors
+- `npx vitest run`: 826 passed | 1 skipped (827 total across 83 test files)
+- `npm run build`: Clean production build (dist/ with PWA service worker)
+
+### Design-fidelity log per Stitch screen
+- **Screen 1 (Cross-Modal 2×4 Memory Grid): Followed.**
+  - 2 columns × 4 rows (8 cards total, 100% viewport fit without scrolling).
+  - Cross-modal word ↔ image / L1 translation matching on warm paper cards with 3D bevels.
+  - Active card selection in teal `#E6F4F1` with audio pronunciation button.
+  - Matched cards locked in golden-teal celebratory frames with checkmark badges.
+- **Screen 2 (Mismatch Shake & Acoustic Correction): Followed.**
+  - Fast 400ms mismatch shake animation with acoustic error cue (`[playCue: wrong]`), zero hearts lost, and immediate face-down flip reset without punitive lockout.
+
