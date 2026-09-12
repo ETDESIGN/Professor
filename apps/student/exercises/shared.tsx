@@ -32,7 +32,7 @@ export function textMatches(input: string, accepted: string[]): boolean {
   return accepted.some((a) => normalizeForCompare(a) === n);
 }
 
-/** A speaker button that plays an audio_url (or a text fallback via TTS). */
+/** A speaker button that plays an audio_url (or a text fallback via TTS). Snapped to #1CB0F6. */
 export const AudioButton: React.FC<{
   url?: string;
   fallbackText?: string;
@@ -50,8 +50,8 @@ export const AudioButton: React.FC<{
     <button
       type="button"
       onClick={handle}
-      className={`flex items-center justify-center rounded-2xl bg-duo-blue text-white shadow-md active:scale-95 transition-transform ${
-        large ? 'w-20 h-20' : 'w-12 h-12'
+      className={`flex items-center justify-center rounded-2xl bg-[#1CB0F6] text-white shadow-[0_4px_0_#0284C7] active:translate-y-[2px] active:shadow-[0_2px_0_#0284C7] transition-transform cursor-pointer shrink-0 ${
+        large ? 'w-[72px] h-[72px] shadow-[0_5px_0_#0284C7]' : 'w-12 h-12'
       }`}
       aria-label="Play audio"
     >
@@ -60,29 +60,31 @@ export const AudioButton: React.FC<{
   );
 };
 
-/** Immediate feedback banner shown after a submit. */
+/** Immediate feedback banner shown after a submit (used by non-redesigned exercises). */
 export const FeedbackBanner: React.FC<{ feedback: Feedback }> = ({ feedback }) => {
   if (feedback === 'idle') return null;
   const correct = feedback === 'correct';
   return (
     <div
-      className={`mt-4 rounded-2xl p-4 flex items-center gap-3 ${
-        correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+      className={`mt-4 rounded-2xl p-4 flex items-center gap-3 border ${
+        correct
+          ? 'bg-[#E6F4F1] border-[#2A9D8F] text-[#1D3557]'
+          : 'bg-[#FEF2F2] border-[#FF4B4B] text-[#991B1B]'
       }`}
     >
       <div
         className={`w-9 h-9 rounded-full flex items-center justify-center text-white ${
-          correct ? 'bg-green-500' : 'bg-red-500'
+          correct ? 'bg-[#2A9D8F]' : 'bg-[#FF4B4B]'
         }`}
       >
-        {correct ? <Check size={20} strokeWidth={4} /> : <X size={20} strokeWidth={4} />}
+        {correct ? <Check size={20} strokeWidth={3.5} /> : <X size={20} strokeWidth={3} />}
       </div>
-      <span className="font-bold text-lg">{correct ? 'Correct!' : 'Try again next time'}</span>
+      <span className="font-bold text-lg">{correct ? 'Nicely done!' : 'Try again next time'}</span>
     </div>
   );
 };
 
-/** Option button base styling with correct/wrong reveal states. */
+/** Option button base styling with Wonder Atlas × Duolingo correct/wrong reveal states. */
 export function optionClasses(
   index: number,
   selected: number | null,
@@ -91,10 +93,10 @@ export function optionClasses(
 ): string {
   if (!revealed) {
     return index === selected
-      ? 'bg-duo-blue/20 border-2 border-duo-blue text-slate-800'
-      : 'bg-white border-2 border-slate-200 text-slate-800 hover:border-duo-blue/60';
+      ? 'bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_4px_0_#1E6F5C] text-[#1D3557]'
+      : 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-[0_4px_0_#E2D7C3] text-[#264653] hover:brightness-[1.02] active:translate-y-[2px] active:shadow-[0_2px_0_#E2D7C3]';
   }
-  if (index === correctIndex) return 'bg-green-100 border-2 border-green-400 text-green-800';
-  if (index === selected) return 'bg-red-100 border-2 border-red-300 text-red-700';
-  return 'bg-slate-50 border-2 border-slate-200 text-slate-400';
+  if (index === correctIndex) return 'bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_4px_0_#1E6F5C] text-[#1D3557] ring-1 ring-[#2A9D8F]/30';
+  if (index === selected) return 'bg-[#FEF2F2] border-2 border-[#FF4B4B] shadow-[0_4px_0_#DC2626] text-[#991B1B]';
+  return 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-[0_4px_0_#E2D7C3] text-[#264653] opacity-40 cursor-not-allowed';
 }

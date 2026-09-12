@@ -1,6 +1,6 @@
 # Exercise Battery Runner — In-Lesson Core — v3 Quality Audit (`EXERCISE_RUNNER (pool shell)`)
 
-> **Current status:** owner-approved
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -168,4 +168,48 @@ Refs are `apps/student/exercises/ExerciseRunner.tsx` unless noted.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Shell & HUD (`apps/student/exercises/ExerciseRunner.tsx`):**
+  - Full Wonder Atlas warmth (`#EAE0D0` canvas, `#FDFBF7` cards, `#E2D7C3` borders) × Duolingo accents (`#E91E63`, `#1CB0F6`, `#FF4B4B`, `#2A9D8F`).
+  - Top HUD with 48×48px tap-target X button, center gloss-pill progress bar in Duolingo pink (`#E91E63`), and live hearts counter (`#FF4B4B` SVG heart, Fredoka bold count, disabled `—` fallback when DB unread).
+  - Context subtitle chip with teal dot and uppercase title, font size bumped to `>=12px` (`text-xs font-extrabold`).
+- **Summary Screen (`phase === 'summary'`):**
+  - Golden trophy badge (`#FEF3C7` / `#E9C46A` with sparkle and star badges) on floating paper card (`#FDFBF7`).
+  - Headline `Round Complete!` with dynamic accuracy encouragement subtitle.
+  - 3 Honest Metric Summary Tiles: `CORRECT` (correct/total), `ACCURACY` (percentage in teal `#2A9D8F`), and `STRENGTHENED` (familiar/mastered count in Duolingo pink `#E91E63`), with labels bumped to `>=12px`.
+  - Re-queue retrieval note banner (`🔄 N tricky word(s) mastered in the Review Round!`).
+  - Heart recovery economy chip (`+1 Heart Restored ❤️` in `#E8F8F5`).
+  - Full-width 56px primary CTA button `GOT IT` in teal (`#2A9D8F`, bevel `#1E6F5C`), preserving `finish(results)` verbatim.
+- **Out of Hearts & Empty Items Screens:**
+  - Reskinned into the light paper card theme with clear kid-friendly feedback, preserving all finish and exit flows.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-battery-shell.html` — LISTEN_SELECT / ExerciseRunner Shell):**
+  - *Followed:* Header HUD layout with 48px X close button, glossy progress bar, live hearts counter with real `#FF4B4B` SVG heart, and context pill chip; paper prompt card `#FDFBF7` with border `#E2D7C3`; audio prompt integration.
+  - *Adapted:* Stripped phone-frame wrapper chrome (device simulator bezels removed so component flexes seamlessly on both phone and tablet); bumped 10–11px eyebrow text to `>=12px` (`text-xs font-extrabold`); snapped drifted blue to brief token `#1CB0F6`.
+  - *Deviated:* None.
+- **Screen 4 (`4-round-complete.html` — Battery Summary Screen):**
+  - *Followed:* Floating paper celebration card with golden trophy hero and sparkles; headline `Round Complete!`; 3 summary stat tiles; P-D re-queue note banner; heart recovery chip; full-width beveled `GOT IT` CTA button.
+  - *Adapted:* Stripped phone simulator shell; bumped stat tile labels from 10px to `>=12px` (`text-xs font-black`); dynamic accuracy feedback message.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- **UnknownType skip false-success write (P2 F1 / §3 F1 / §4 F6):** Fixed in `apps/student/exercises/ExerciseRunner.tsx`. Changed the unknown exercise type skip handler from `handleComplete({ success: true, ... })` to `handleComplete({ success: false, record: false, time_taken_ms: 0, attempts: 0 })`. With `record: false`, `handleComplete` completely skips `Engine.recordAttempt`, `Engine.loseHeart`, and `GamificationService`, advancing the queue without corrupting the FSRS spaced repetition memory model.
+
+### 7.d Data-write discipline check
+- `Engine.recordAttempt` call parameters and error handling: **VERBATIM**
+- `Engine.loseHeart` on productive error with `heartsUnavailable` guard: **VERBATIM**
+- `Engine.restoreHeart` on session finish: **VERBATIM**
+- `GamificationService.awardXP` and `updateQuestProgress` (both `EARN_XP` and `REACH_FAMILIAR`): **VERBATIM**
+- Re-queue once logic (`retried.current` ref + append `-retry`): **VERBATIM**
+- `finish()` award sequence and payload: **VERBATIM**
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **825 passed | 1 skipped (826 tests across 83 test files — PASS)**
+- `npm run build`: **Clean production build in 29.28s (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/ExerciseRunner.tsx`, `apps/student/exercises/ChoiceExercise.tsx`, `apps/student/exercises/shared.tsx`.
+- All scoring, hearts, gamification, and FSRS writes remain identical to baseline.
+- Ready for ZCode verification, screenshots, commit, and deploy.

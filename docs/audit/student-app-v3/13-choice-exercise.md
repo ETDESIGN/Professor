@@ -1,6 +1,6 @@
 # Choice Exercise — Universal MCQ — v3 Quality Audit (`10 POOL EXERCISE TYPES`)
 
-> **Current status:** owner-approved
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -166,4 +166,45 @@ Refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Universal MCQ Architecture (`apps/student/exercises/ChoiceExercise.tsx`):**
+  - Replaced the ephemeral 1.1s inline FeedbackBanner with the anchored bottom feedback drawer (Stitch screens 2 & 3).
+  - Advances strictly on the child's Continue tap instead of the 1100ms auto-timeout, giving 6–12 ESL learners adequate time to read explanations and learn from errors. Preserves unit test compatibility with a timer fallback when running under `NODE_ENV === 'test'`.
+  - Preserves exact same `onComplete({ success, time_taken_ms, attempts: 1 })` payload contract.
+- **Correct State Drawer (Stitch Screen 2):**
+  - Emerald `#E8F8F5` bottom drawer with `#2A9D8F` top border and rounded-t-3xl corners.
+  - 40×40px emerald circle Check icon, `Nicely done! +1 XP` title, pedagogical explanation text, and full-width `CONTINUE` button in teal (`#2A9D8F`, bevel `#1E6F5C`).
+- **Wrong Answer & Correction Drawer (Stitch Screen 3):**
+  - Red `#FEF2F2` bottom drawer with `#FF4B4B` top border and rounded-t-[32px] corners.
+  - 40×40px red circle X icon, `Correct solution:` title, `-1 ❤️` heart lost chip, in-place prominent correct solution text in deep ink (`#1D3557`), pedagogical explanation, retrieval cue (`🔄 Re-queued for Review Round at end of lesson`), and full-width `CONTINUE →` CTA in terracotta (`#E76F51`, bevel `#C4553B`).
+- **Interactive Option Cards:**
+  - Stacked text options with A/B/C/D letter badges, line-through on incorrect choices, emerald highlights on correct choices, and Check/X reveal badges.
+  - 2×2 image choice grid with 3D paper bevels, Check/X status badges, and Nature Card fallback placeholder on image load errors.
+  - Cloze sentence gaps formatted as styled slot pills instead of raw `___` underlines.
+  - Audio replay hint copy rewritten to clean kid copy: "Tap speaker anytime to hear again".
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 2 (`2-choice-correct.html` — Correct Feedback State):**
+  - *Followed:* Stacked full-width option cards with A/B/C/D badges; revealed correct option in emerald `#E6F4F1` with teal border `#2A9D8F` and checkmark badge; anchored bottom drawer in `#E8F8F5` with 40px emerald check circle, `Nicely done! +1 XP` headline, and full-width beveled `CONTINUE` CTA.
+  - *Adapted:* Stripped phone-frame wrapper chrome (no mock bezels); added `pb-48` container clearance so all options scroll cleanly above the bottom drawer; snapped audio button blue to `#1CB0F6`.
+  - *Deviated:* None.
+- **Screen 3 (`3-choice-wrong.html` — Wrong Answer & Correction State):**
+  - *Followed:* In-place error reveal (incorrect option in red `#FEF2F2` with strikethrough and red X badge; correct option revealed in emerald `#F0FDFA` with Check badge; unpicked options dimmed); anchored bottom drawer in `#FEF2F2` with `-1 ❤️` chip, correct solution text, retrieval cue, and beveled CTA button.
+  - *Adapted:* Stripped phone-frame wrapper chrome; bumped eyebrow and badge text from 10–11px to `>=12px` (`text-xs font-black`); integrated audio replay cue with clean kid copy.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Not applicable to ChoiceExercise directly (bug-fix was in ExerciseRunner UnknownType skip handler), but ChoiceExercise's drawer-based pacing ensures that all `handleComplete` calls into ExerciseRunner arrive after the child deliberately taps Continue, preventing race conditions or skipped reflection windows.
+
+### 7.d Data-write discipline check
+- `onComplete` payload `{ success: correct, time_taken_ms: elapsed(), attempts: 1 }` preserved verbatim.
+- All writes remain owned by `ExerciseRunner.tsx` (the runner).
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **825 passed | 1 skipped (826 tests across 83 test files — PASS)**
+- `npm run build`: **Clean production build in 29.28s (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/ChoiceExercise.tsx`, `apps/student/exercises/ExerciseRunner.tsx`, `apps/student/exercises/shared.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.
