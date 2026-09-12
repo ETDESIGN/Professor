@@ -18,6 +18,7 @@ import { GamificationService } from '../../../services/GamificationService';
 import { XP_REWARDS, QUEST_TYPES } from '../../../constants/gamification';
 import { gradeFromResult, HEARTS_MAX } from '../../../services/learnerState';
 import { getExerciseRegistry } from './registry';
+import { playCue } from '../../board/templates/playCue';
 
 export interface RunnerResult {
   total: number;
@@ -64,6 +65,11 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
       if (advanceTimer.current !== null) clearTimeout(advanceTimer.current);
     };
   }, []);
+
+  // Round-complete celebration cue (synth, zero assets, never throws).
+  useEffect(() => {
+    if (phase === 'summary') playCue('win');
+  }, [phase]);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +121,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
         if (!result.success && modality === 'productive' && !heartsUnavailable) {
           try {
             const h = await Engine.loseHeart(studentId, true);
+            playCue('wrong');
             setHearts(h.current);
             if (h.current <= 0) setOutOfHearts(true);
           } catch { /* ignore */ }

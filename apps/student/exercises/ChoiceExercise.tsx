@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Check, X, Volume2 } from 'lucide-react';
 import { BaseExerciseProps, ExerciseContent } from '../../../types/exercise';
 import { AudioButton, useElapsedMs, Feedback } from './shared';
+import { playCue } from '../../board/templates/playCue';
 
 const CHOICE_TYPES = new Set([
   'IMAGE_SELECT',
@@ -144,6 +145,7 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
     if (feedback !== 'idle') return;
     setSelected(i);
     const correct = i === correctIndex;
+    playCue(correct ? 'correct' : 'wrong');
     setFeedback(correct ? 'correct' : 'wrong');
 
     // In unit test runner (NODE_ENV === 'test'), provide a 1100ms timer fallback
