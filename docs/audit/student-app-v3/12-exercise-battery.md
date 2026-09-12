@@ -1,4 +1,6 @@
-# Exercise Battery Runner — Pool Steps — v3 Quality Audit (`ALL pool/pool-all ROUTED TYPES`)
+# Exercise Battery Runner — In-Lesson Core — v3 Quality Audit (`EXERCISE_RUNNER (pool shell)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -95,16 +97,30 @@ Refs are `apps/student/exercises/ExerciseRunner.tsx` unless noted.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Regressive progress bar jumps backwards when missed items re-queue.** (Evidence: §1, §3 F3, `ExerciseRunner.tsx:74, 146`). When an exercise item is answered incorrectly, it appends to the queue array (`queue.push(item)`). Because progress is calculated as `index / queue.length`, the visible progress bar shrinks backwards from ~80% down to ~72% at the exact moment of failure. For a 7-year-old child, seeing their hard-earned progress bar physically rewind induces acute frustration and feelings of punishment. *Recommendation: Lock the progress bar denominator to the initial queue length (e.g. 10 items) and fill it progressively. When initial items finish, transition into a dedicated, encouraging "Review Round" phase (e.g. amber badge: "Master 2 Tricky Words! 💪") with its own mini-progress bar.*
+- **F2 · P2 — Cryptic "—" dash heart counter looks like a software crash.** (Evidence: §1, §3 F4, `ExerciseRunner.tsx:238-241`). If the hearts balance cannot be read immediately from the database, the header displays a broken-looking heart icon alongside a raw dash symbol (`—`). Children and watching parents assume the app is glitching. *Recommendation: When hearts balance is unread or pending, display an animated loading heart pulse or a neutral gold shield icon, accompanied by a polite retry handler.*
+- **F3 · P3 — Summary screen misrepresents mastery metrics.** (Evidence: §3 F6, `ExerciseRunner.tsx:178-199`). The victory summary card presents a "Mastered" badge that aggregates both familiar and mastered items (`familiarSeen`). In pedagogical tracking, familiar and mastered represent distinctly different cognitive retention tiers. *Recommendation: Label the metric clearly as "Words Practiced" or "Words Strengthened" to maintain honesty in learner reporting.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F4 · P1 — Out-of-hearts screen is a dead-end maze.** (Evidence: §1, §3 F2, `ExerciseRunner.tsx:214-225`). When a student depletes their hearts, the screen advises: "Complete a review to restore one". However, the only interactive button provided is "Finish session", which abruptly dumps the child back to the HomeMap with zero guidance on how or where to conduct this review. The child cannot continue their homework and does not know what to click next. *Recommendation: Provide an explicit, high-priority CTA on the out-of-hearts modal: "Quick Heart Practice (+1 ❤️)" that immediately launches a 3-item low-stakes vocabulary review, refilling one heart and seamlessly returning the child to their lesson.*
+- **F5 · P2 — Unconfirmed X-exit discards full battery session.** (Evidence: §1, §3 F7, `ExerciseRunner.tsx:233`). Accidental taps on the top-left X unmount the battery instantly, throwing away the child's session score, accuracy, and streak. *Recommendation: Connect the X-exit button to the universal lesson exit confirmation modal.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F6 · P1 — Skipping unknown exercise types writes corrupt false successes into FSRS.** (Evidence: §1, §3 F1, `ExerciseRunner.tsx:249-262`). When an unknown exercise type is encountered, `UnknownType` renders a skip button that invokes `handleComplete({ success: true })` with `record` defaulting to `true`. This writes a spurious `Engine.recordAttempt` entry claiming the student mastered an objective they never answered! This corrupts the FSRS spaced repetition scheduling algorithm. *Recommendation: Ensure unknown-type skips strictly pass `{ success: false, record: false }` so learner state is protected.*
+- **F7 · P3 — Desensitizing XP toast spam on every answer.** (Evidence: §1, §3 F5, `ExerciseRunner.tsx:124`). Popping a generic "+1 XP" toast after every single question creates visual noise that children quickly tune out. *Recommendation: Suppress individual question XP toasts; instead, celebrate combo streaks (3x, 5x, 10x) with escalating celebratory audio-visual badges, and display total accumulated XP in the battery summary screen.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F8 · P2 — Flashy 100ms transition cuts off component-level learning reflection.** (Evidence: §1, §3 F8, `ExerciseRunner.tsx:151-157`). The runner triggers next-item transition just 100ms after `onComplete` is called, relying entirely on child components to manage their own delay holds. If any child component resolves slightly early, the screen abruptly cuts to the next item before the child can register their error. *Recommendation: Enforce a guaranteed minimum 1.2s teaching/consolidation hold inside `ExerciseRunner` whenever an attempt is marked incorrect.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Fix FSRS false-success corruption on unknown types:** Pass `record: false` on all skip and fallback handlers to protect spaced repetition memory integrity.
+2. **[P1] Fix out-of-hearts dead-end:** Add a "Quick Heart Review (+1 ❤️)" action directly on the out-of-hearts modal to allow immediate recovery without app abandonment.
+3. **[P2] Stop rewinding the progress bar on re-queued items:** Keep the main progress bar moving forward and isolate retries into an encouraging "Review Round".
+4. **[P2] Add exit-confirmation dialog:** Intercept the header X button to prevent accidental data loss.
+5. **[P2] Reskin ExerciseRunner into Wonder Atlas × Duolingo hybrid:** Clean paper card header `#FDFBF7`, warm terracotta accents, animated heart loss effects, and combo streak celebrations.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the unified Exercise Battery runner header, out-of-hearts recovery sheet, and session summary screen.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

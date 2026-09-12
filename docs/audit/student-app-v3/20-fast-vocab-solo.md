@@ -1,4 +1,6 @@
-# Fast Vocab — Standalone Game — v3 Quality Audit (`PRACTICE: /student/fast-vocab`)
+# Fast Vocab Solo — Standalone Practice — v3 Quality Audit (`PRACTICE ARENA / STANDALONE`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -92,16 +94,29 @@ Refs are `apps/student/FastVocabGame.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Disconnected dark canvas from Practice Arena hub.** (Evidence: §0, §1, `FastVocabGame.tsx`). Entering Fast Vocab from the warm, paper-themed Practice Arena (`/student/practice`) abruptly launches a pitch-black `slate-900` canvas. This jarring transition severs thematic harmony. *Recommendation: Reskin Fast Vocab Standalone in the Wonder Atlas arcade language: warm cream canvas (`#EAE0D0`), paper match cards (`#FDFBF7`), terracotta streak gauges (`#E76F51`), and crisp teal feedback highlights.*
+- **F2 · P3 — Dense, unstructured unit picker grid.** (Evidence: §1, §3 F1, `FastVocabGame.tsx:46-88`). The unit selector lists all enrolled units in a single unfilterable grid. For students in multi-term classes with 15+ units, finding the desired unit requires extensive vertical scrolling. *Recommendation: Add a horizontal category filter (e.g. "Current Unit", "Recent", "All") and display each unit's personal best star/accuracy badge directly on its card.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P2 — Unconfirmed exit completely forfeits pattern A reward payout.** (Evidence: §1, §3 F2). In standalone mode, XP, gems, and quests are self-awarded strictly upon run completion via an `awardedRef` latch. If a child accidentally taps the back arrow during wave 3 or 4, the entire session is discarded without saving any score or awards. *Recommendation: Guard the exit arrow with an explicit confirmation modal: "Leave practice? Progress will be lost!"*
+- **F4 · P2 — Abrupt jump into 10s speed round creates anxiety.** (Evidence: §1, §3 F4). Like the in-lesson twin, the transition from matching to speed questions happens without a pause or countdown, disorienting young players. *Recommendation: Insert a 1.5s visual interstitial ("Speed Round! ⚡ Ready?") before the timer initiates.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Rigid 10s timer excludes struggling readers from voluntary practice.** (Evidence: §1, §3 F4). Standalone practice should be an encouraging space for lower-confidence learners to build fluency. A mandatory, unadjustable 10s timer causes anxiety and turns away slow decoders. *Recommendation: Add a "Pacing" toggle on the start screen allowing children to select between "Standard (10s)", "Relaxed (20s)", or "No Timer (Untimed)".*
+- **F6 · P3 — LocalStorage personal best locks progress to a single device.** (Evidence: §3 F5). High scores do not sync if a child switches from a phone to a family tablet. *Recommendation: Store personal bests in the student profile metadata or learner state table when network is available, using localStorage purely as an offline fallback.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Subdued celebration for beating personal best.** (Evidence: §1). When a student achieves a new personal high score, the results screen simply updates the text label. *Recommendation: Trigger an ecstatic high-score fanfare with a golden trophy animation and celebratory gem shower to make breaking records feel extraordinary.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Add a 3-2-1 countdown interstitial before speed rounds:** Ensure children are mentally ready before the countdown begins.
+2. **[P2] Add exit-confirmation modal to protect pattern A awards:** Prevent accidental loss of earned XP and gems.
+3. **[P2] Introduce a "Relaxed Mode" timer setting:** Allow solo learners to practice at their own pace without panic.
+4. **[P2] Reskin into Wonder Atlas arcade light palette:** Unify the standalone game with the warm paper aesthetic of the Practice Arena.
+5. **[P3] Enhance unit selector with personal best badges and category filtering:** Make choosing practice units intuitive and rewarding.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the Wonder Atlas unit selection deck and the personal-best victory celebration screen.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

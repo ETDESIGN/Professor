@@ -1,4 +1,5 @@
 # Daily Practice — SRS Review — v3 Quality Audit (`PRACTICE: /student/srs`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +92,46 @@ Refs: `apps/student/SpacedRepetition.tsx`, `StudentApp.tsx:234`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Clinical "RotateCcw" iconography and sterile card aesthetic.**
+  - *Evidence:* `SpacedRepetition.tsx:97-99` uses an orange `RotateCcw` browser-refresh icon inside an orange circle. In a child's eyes, a circular reload arrow signals "undo" or "reset", not an exciting daily memory challenge.
+  - *Recommendation:* Replace the refresh icon with a gamified "Memory Brain" or "Sprout / Garden" motif (e.g. `Sparkles`, `Brain`, or `Zap`). Reskin the start card with a vibrant progress ring and playful mascot art celebrating daily habit formation.
+- **F2 · P2 — Palette fragmentation between launcher and runner.**
+  - *Evidence:* `SpacedRepetition.tsx:87-105` mixes orange header text, an orange circle, an `indigo-500` start button, and then transitions into the standard exercise runner which uses blue/emerald/rose accents.
+  - *Recommendation:* Harmonize the daily review palette into the Wonder Atlas warm paper / vibrant amber & purple theme (`wa-cream`, deep navy, amber star/streak highlights).
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Fixed 18-item marathon creates pacing fatigue for younger children.**
+  - *Evidence:* `SpacedRepetition.tsx:35` hardcodes `selectPracticeItems(user.id, 18)` (`F3`). For ages 6–8, working through 18 multi-step exercise battery items (dictation, word building, listening) takes 10–14 minutes of intense cognitive focus. When children get tired, their only option is the top-left `X` button, which aborts the session without a sense of closure.
+  - *Recommendation:* Introduce selectable session size pills on the start card: `Quick (6 cards • ~3m)`, `Standard (12 cards • ~6m, Recommended)`, and `Challenge (18 cards • ~10m)`.
+- **F4 · P2 — Disconnected completion flow with discarded reward payload.**
+  - *Evidence:* `SpacedRepetition.tsx:115-124` calculates `{ xp, accuracy, time }` and updates the `REVIEW_WORDS` quest, but `StudentApp.tsx:234` immediately executes `() => navigate('/student')`, discarding the result object. The runner's internal summary is bypassed or abruptly exited with no streak celebration or quest-claim ceremony.
+  - *Recommendation:* Route `handleDone` through the flagship `LessonComplete` celebration or present a dedicated "Daily Goal Complete!" modal highlighting: XP gained, streak flame extended (+1 day), words strengthened, and quest completed with an interactive `[Claim Reward]` button.
+- **F5 · P3 — Caught-up empty state offers no alternative practice for eager students.**
+  - *Evidence:* `SpacedRepetition.tsx:70-80` displays "You're all caught up! No words to review right now" with only a "Back to Map" button. A child who logged in specifically wanting to practice is turned away.
+  - *Recommendation:* Add secondary actions in the empty state: `[Practice Recent Words Anyway]` or `[Try Phonics Lab]`, turning a passive dead-end into proactive self-directed learning.
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F6 · P1 — Depleting hearts in Daily Practice breaks the core retention & recovery loop.**
+  - *Evidence:* `SpacedRepetition.tsx:128-134` delegates directly to `ExerciseRunner`, which subjects the child to standard heart loss on errors. In language learning economies, Spaced Review is supposed to be the *safe haven* where students review weak items to *recover* hearts. Punishing a child who is intentionally reviewing their weakest words by locking them out when hearts hit zero causes rage-quitting.
+  - *Recommendation:* Disable heart deduction in Daily Practice (treat errors as formative review with immediate acoustic correction and end-of-session repeat), and award `+1 Heart Restored` upon completing the daily session!
+- **F7 · P2 — Schema disorientation from cross-unit item jumps without context tags.**
+  - *Evidence:* `selectPracticeItems` selects due items across all completed units. A child might encounter an animal word, then a kitchen verb, then a classroom question with zero schema priming.
+  - *Recommendation:* Display a subtle top unit chip (e.g., `From Unit 2: At the Zoo`) above each prompt. Activating the relevant situational context reduces retrieval interference for ESL children.
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F8 · P2 — Missing "Word Strengthened" memory-state feedback.**
+  - *Evidence:* The child answers an exercise correctly, but receives only standard XP/emerald feedback. They do not see that this specific word has been strengthened in their memory.
+  - *Recommendation:* Show a satisfying "+1 Memory Shield" or "Word Mastered! 🌱 ➔ 🌿" visual tag on the success drawer, reinforcing the value of spaced repetition.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Disable Heart Loss & Enable Heart Restoration in Practice (P1):** Ensure daily review is a safe learning zone where errors do not deplete hearts, and completing practice restores +1 heart.
+2. **Session Length Selector on Start Card (P1):** Provide 6-card (Quick), 12-card (Standard), and 18-card (Challenge) options to prevent kid cognitive overload.
+3. **Dedicated Daily Practice Celebration & Quest Pop (P2):** Celebrate daily streak advancement, display words strengthened, and show quest progress rather than abruptly navigating home.
+4. **Reskin Start Card with Mascot / Memory Theme (P2):** Replace the mechanical `RotateCcw` reload icon with a vibrant brain/sparkle memory motif and warm palette.
+5. **Context Breadcrumb Pill on Exercises (P2):** Display the origin unit/theme on each question to activate relevant situational schema during mixed-topic recall.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Daily Practice (SRS Review) will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

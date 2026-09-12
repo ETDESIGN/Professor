@@ -1,4 +1,6 @@
-# Dictation — v3 Quality Audit (`DICTATION`)
+# Dictation — Listen & Type — v3 Quality Audit (`DICTATION (productive)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +93,29 @@ Refs are `apps/student/exercises/Dictation.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Cold generic input field lacks playful scaffolding.** (Evidence: §1, `Dictation.tsx:36-44`). Dictation renders as a raw HTML text `<input>` on a bare background, looking like a login form. For a child, typing into an unformatted box provides zero visual feedback on word structure. *Recommendation: Style the input as a tactile Wonder Atlas writing slate (`wa-paper` `#FDFBF7`, 2px solid `#E2D7C3`, rounded-2xl, generous 24px Fredoka typography) with subtle letter-slot dashes below the cursor.*
+- **F2 · P3 — Virtual keyboard squishes mobile play area.** (Evidence: §1, §3 F4). When the software keyboard deploys on mobile devices, vertical viewport height shrinks dramatically (<360px). The large audio button, input field, and Check button can collide or scroll. *Recommendation: Ensure compact vertical stacking when keyboard is open: reduce audio button to 44px pill and anchor the input field directly above the keyboard.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Missing audio auto-play on exercise mount.** (Evidence: §1, `Dictation.tsx:10-20`). When dictation loads, the screen sits silent waiting for the child to realize they must tap the speaker button. In dictation, the prompt IS the sound. *Recommendation: Automatically play the target audio prompt once upon mount (respecting browser autoplay rules with a clear pulsating speaker fallback).*
+- **F4 · P2 — Premature empty submissions burn hearts.** (Evidence: §1, `Dictation.tsx:21-34`). Tapping the Check button while the input field is empty immediately scores an incorrect attempt, penalizing the student with a heart deduction (`Engine.loseHeart`). *Recommendation: Disable the Check button until at least 1 character is typed.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Lack of "Slow Audio" toggle traps struggling listeners.** (Evidence: §1, §3 F1). Primary ESL learners frequently struggle to separate connected speech in native-speed audio clips (e.g., "pick it up" sounding like one word). Without a slow-speed playback option, they cannot isolate individual phonemes. *Recommendation: Add a dedicated "Turtle / Slow 🐢" audio button that replays the clip at 0.75x speed with pitch preservation.*
+- **F6 · P2 — Flat failure banner conceals character-level accuracy.** (Evidence: §1, §3 F3, `Dictation.tsx:45`). When a child types "elefant" instead of "elephant", the component marks the attempt as a complete failure and displays the target word. The child does not see which letters they got right. *Recommendation: Render a character-by-character diff in the feedback card: show correctly spelled letters in emerald and misspelled/missing letters in terracotta with corrective letter indicators.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Letter-count slot scaffolding for primary tiers.** (Evidence: §3 F2). Young kids frequently drop silent letters ("lamb" -> "lam"). Displaying subtle letter-count placeholder dashes (`_ _ _ _`) gives solo learners the necessary structural boundary to check their own spelling before submitting. *Recommendation: Provide an optional letter-count slot scaffold based on objective difficulty.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Auto-play target audio on mount with a Slow Audio 🐢 (0.75x) toggle:** Ensure acoustic modeling is immediate and accessible to early listeners.
+2. **[P2] Disable Check button when input is blank:** Prevent accidental loss of database hearts from empty submissions.
+3. **[P2] Provide character-level visual feedback on spelling errors:** Highlight correct letters green and typos terracotta so children learn from near-misses.
+4. **[P2] Add letter-count slot guidance:** Display subtle letter-count guides below the input field to scaffold word length.
+5. **[P3] Reskin to Wonder Atlas writing slate with keyboard-adaptive layout:** Prevent input collision and viewport squishing when the mobile virtual keyboard is active.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the mobile dictation writing slate and the character-diff feedback drawer.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

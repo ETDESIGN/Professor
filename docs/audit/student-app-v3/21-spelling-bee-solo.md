@@ -1,4 +1,6 @@
-# Spelling Bee — Standalone Game — v3 Quality Audit (`PRACTICE: /student/spelling-bee`)
+# Spelling Bee Solo — Standalone Practice — v3 Quality Audit (`PRACTICE ARENA / STANDALONE`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +93,32 @@ Refs are `apps/student/SpellingBeeGame.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Dark honeycomb board clashes with Practice Arena paper theme.** (Evidence: §0, §1, `SpellingBeeGame.tsx`). Plunging from the light Practice Arena into a black `slate-900` canvas jars the child's visual experience. *Recommendation: Reskin the standalone honeycomb board into Wonder Atlas light tokens: warm cream canvas (`#EAE0D0`), golden honey letter tiles (`#E9C46A`), paper card keyboard keys (`#FDFBF7`), and emerald/teal feedback states.*
+- **F2 · P3 — Hidden text-based settings toggles.** (Evidence: §1, §3 F2, `SpellingBeeGame.tsx:50-121`). Settings (timer on/off, slow mode, letter removal) are buried inside an unobtrusive text-toggle panel on the unit select screen. Most kids never notice them. *Recommendation: Elevate gameplay modes into prominent tactile mode pills on the pre-game lobby: "⚡ Arcade Run (15s)", "🐢 Relaxed (25s)", and "🧘 Untimed Practice".*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Evaluation of Standalone Tension Rule vs In-Lesson Rule.**
+  - **Context:** In standalone mode, `timeout ENDS THE RUN` (F1). Unlike the in-lesson homework step (file 11) where run termination is destructive, in standalone practice, Sudden Death is an accepted arcade survival mechanic for competitive high-score chasing.
+  - **Verdict & Recommendation:** Retain Sudden Death for the standalone game's "Arcade Run" mode, BUT:
+    1. Do not default unsuspecting 6–8 year olds into an unforgiving 15s Sudden Death run without warning.
+    2. Make the pre-game lobby explicitly allow selecting "Arcade Run (Sudden Death)" vs "Practice Mode (Continue on Timeout)".
+- **F4 · P2 — Unconfirmed back navigation wipes pattern A rewards.** (Evidence: §1, §3 F3). Tapping exit during round 2 or 3 discards all earned XP, gems, and quests without warning. *Recommendation: Intercept the back button with a confirmation modal.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Deterministic keyboard narrowing eliminates replay variety.** (Evidence: §3 F4). Narrowed keyboard distractor keys are seeded deterministically by `unitId`. Every replay of Unit 3 produces the exact same layout of keyboard letters. Children memorize spatial button taps rather than reading the letters. *Recommendation: Seed keyboard distractor selection using a random per-game session seed so replays remain cognitively fresh.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F6 · P3 — Underwhelming personal best celebration.** (Evidence: §1). Beating a high score only updates text values. In an arcade spelling game, breaking a record should feel momentous. *Recommendation: Trigger a golden honeycomb victory fanfare with flying honey drops, coin particles, and a proud mascot trophy animation.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Expose prominent pre-game mode pills (Arcade 15s vs Relaxed 25s vs Untimed):** Let kids consciously choose their tension level before launching the game.
+2. **[P2] Add exit-confirmation modal:** Protect solo players from accidental session aborts and lost pattern A rewards.
+3. **[P2] Re-seed keyboard distractor narrowing per game session:** Prevent spatial muscle-memory memorization on replays.
+4. **[P2] Reskin into Wonder Atlas golden honeycomb light palette:** Cream canvas `#EAE0D0`, warm honey tiles `#E9C46A`, and paper card keys `#FDFBF7`.
+5. **[P3] Celebrate new personal bests with animated trophy and gem fanfare:** Maximize intrinsic pride and motivation in voluntary practice.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the standalone pre-game mode lobby and the light Wonder Atlas honeycomb game board.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

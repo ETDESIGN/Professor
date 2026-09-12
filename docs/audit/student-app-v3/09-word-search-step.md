@@ -1,5 +1,7 @@
 # Word Search — In-Lesson Step — v3 Quality Audit (`WORD_SEARCH (engine)`)
 
+> **Current status:** ag-audit-done
+
 ## SHARED PRELUDE (read first — identical in every game file)
 
 **Product.** "Professor" — an ESL/EFL English product for children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options). Teachers build game-lessons from scanned textbooks and run them in class on a projector. **This app is the STUDENT app** (`/student`, `student.html` entry, `apps/student/**`): the single child's own **personal phone/tablet** for home practice and homework — solo study, no teacher present, no classmates. The kid taps directly; nobody is watching over their shoulder.
@@ -91,16 +93,29 @@ Refs are `apps/student/steps/WordSearchStep.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Sub-floor grid cell hit targets on mobile.** (Evidence: §1, §3 F3, `WordSearchStep.tsx:248-249`). A 10×10 letter grid constrained to `max-w-sm` on a 390px phone forces individual cell dimensions down to ~34px, with `text-sm` typography. Young children (ages 6–8) with developing fine motor control frequently tap adjacent letter cells when trying to mark start and end coordinates. *Recommendation: Scale the grid down to 8×8 (or 7×7 for lower primary tiers), raising individual cell sizes to ≥42px with rounded corner tiles and bold Fredoka lettering.*
+- **F2 · P3 — Dark matrix board clashes with light storybook theme.** (Evidence: §0, §1). The dark `slate-900` grid feels severe and clinical compared to the rest of the student app. *Recommendation: Reskin the puzzle as an illustrated Wonder Atlas explorer's word slate: warm cream letter tiles on a paper card `#FDFBF7`, with cheerful translucent pastel marker ribbons (teal, coral, sun-gold) for discovered words.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Absolute dead-end trap when stuck on final words.** (Evidence: §1, §3 F2). In a classroom with a teacher, stuck students raise their hand. At home alone, if a child cannot spot the last word, there is NO hint button, NO letter flash, and NO skip mechanism. The child cannot complete the lesson or advance to homework completion. *Recommendation: Introduce a friendly "Magnifying Glass" hint button that pulses after 30 seconds of inactivity or 3 failed attempts, revealing the pulsing first letter of an unfound word.*
+- **F4 · P3 — Word bank scrolling friction.** (Evidence: §1, `WordSearchStep.tsx:228-244`). Word chips are rendered in a horizontal chip container that can push off screen. Tapping a word in the bank does nothing. *Recommendation: Make word bank chips tappable: tapping an unfound word speaks its pronunciation and gently pulses its word length on the grid.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Punishing spatial scanning destroys stage completion stars.** (Evidence: §1, §3 F1, `WordSearchStep.tsx:126-128, 175-176`). The stage star formula calculates `accuracy = found / attempts`, where attempts increment on ANY non-word tap pair. Young children naturally test spatial hypotheses by tapping start/end letters. A child who finds all 8 words but makes 8 exploratory taps ends with 50% accuracy and receives 1 star. This directly violates the kid-alone fairness principle. *Recommendation: Stop calling `recordAnswer(false)` on exploratory misses. Base stage stars on completing the word list, with bonus stars for finding words without hints.*
+- **F6 · P2 — Missing acoustic vocabulary reinforcement upon discovery.** (Evidence: §1, `WordSearchStep.tsx:135-147`). When a word is successfully struck through, the game plays a generic chime. In an ESL application, every correct word discovery is a prime opportunity to reinforce phonics. *Recommendation: Immediately play the native English audio pronunciation and flash the Chinese L1 translation card when a word is locked.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Lack of interactive rubber-band line selection.** (Evidence: §1). Tapping the first letter leaves a static highlight on that single letter until the second tap. If the child taps an invalid diagonal or miscounts, the grid simply shakes for 450ms without visual feedback explaining what path was selected. *Recommendation: Draw a live rubber-band guideline connecting the first tapped letter to the child's touch focus, snapping to valid 8-directional lines.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Eliminate accuracy penalties for exploratory puzzle taps:** Base lesson star awards on found words rather than penalizing trial-and-error scanning.
+2. **[P1] Add a solo-learner Hint button:** Provide a gentle first-letter beacon when a child is stuck to prevent lesson abandonment.
+3. **[P2] Play audio pronunciation and show L1 meaning on discovery:** Transform the word search from a pure orthographic scan into a rich ESL vocabulary reinforcement.
+4. **[P2] Resize mobile grid to 8×8 for ≥42px touch targets:** Prevent fat-finger coordinate errors on small phone screens.
+5. **[P3] Reskin to Wonder Atlas paper-and-pastel explorer palette:** Frame the puzzle with warm, tactile paper styling and colorful highlighter ribbons.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the 8x8 paper grid and word-found celebration state.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

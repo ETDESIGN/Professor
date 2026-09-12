@@ -1,4 +1,5 @@
 # Reading Reader — v3 Quality Audit (`PRACTICE: /student/reading`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -92,16 +93,43 @@ Refs: `apps/student/ReadingReader.tsx`, `StudentApp.tsx:232`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P1 — Internal AI generation prompts leak into the child's storybook picture frame.**
+  - *Evidence:* `ReadingReader.tsx:136` renders `{page.image_prompt || 'No image'}` directly inside the image placeholder when an image URL is missing or failing to load (`F1`). Children see raw system prompt text (e.g., *"A watercolor illustration of a puppy finding a lost key in an enchanted park, storybook style, soft lighting"*), exposing backend generation metadata and ruining the narrative magic.
+  - *Recommendation:* Never display prompt text to students. Replace with a beautiful storybook cover placeholder featuring a warm pastel palette, a gentle book illustration, and an ambient chapter vignette tag.
+- **F2 · P2 — Vocabulary popup traps clicks and lacks tap-outside dismissal.**
+  - *Evidence:* `ReadingReader.tsx:188` attaches `onClick={() => setSelectedWord(null)}` directly to the popup box itself (`F4`). Tapping the text inside the popup immediately dismisses it, and there is no backdrop scrim to dismiss it when clicking outside. Crucially, unlike the in-lesson `StoryStage`, this popup lacks a speaker button to hear the vocabulary pronounced.
+  - *Recommendation:* Render the vocabulary details inside a clean bottom-sheet drawer with a subtle backdrop scrim, tap-outside dismissal, clear phonetic pronunciation, and a prominent `[🔊 Hear Word]` button.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Incorrect quest awarded: PERFECT_SPEAKING credited for reading a silent book.**
+  - *Evidence:* `StudentApp.tsx:232` checks `if (correct === total) GamificationService.updateQuestProgress(QUEST_TYPES.PERFECT_SPEAKING, 1)` (`F2`). The child read silently and tapped multiple-choice buttons without ever activating a microphone or uttering a sound, yet unlocks a speaking quest.
+  - *Recommendation:* Disconnect the speaking quest and correctly credit reading habit loops: award `QUEST_TYPES.READ_STORY` (or `PERFECT_LESSON`) and log reading time toward daily literacy milestones.
+- **F4 · P2 — Unit-bound dead-end prevents exploring other storybooks.**
+  - *Evidence:* `ReadingReader.tsx:52-65` checks `state.activeUnit`. If the active unit has no story, the child is stranded with a "No story in this unit" message and a simple "Back" button.
+  - *Recommendation:* Upgrade the launcher into a "Storybook Library" shelf where the child can select and re-read stories across all unlocked units.
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Dedicated reading mode lacks Read-Aloud audio and phonetic modeling.**
+  - *Evidence:* `ReadingReader.tsx:130-143` (`F5`). While the in-lesson `StoryStage` contains a read-along feature, this dedicated practice reading mode is completely silent. For ESL children aged 6–12 reading alone at home, lack of native audio modeling makes decoding unfamiliar vocabulary impossible and promotes fossilized mispronunciation.
+  - *Recommendation:* Add a prominent floating "Read to Me 🔊" player toolbar with natural TTS playback, speed control (0.8x / 1.0x), and synchronized sentence or word-by-word karaoke highlighting.
+- **F6 · P2 — Unassisted comprehension quiz leaves struggling readers stranded.**
+  - *Evidence:* `ReadingReader.tsx:151-175`. Comprehension questions and options are pure written English with no audio support. If a child cannot decode the written question, they guess randomly, defeating comprehension assessment.
+  - *Recommendation:* Include a speaker button next to every quiz question and answer option so learners can listen to the comprehension prompts.
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Punitive wrong-answer reveals with no ability to reference the story text.**
+  - *Evidence:* `ReadingReader.tsx:156-175` (`F3`). When a student selects an incorrect option, the tile turns red and immediately enables the "Next" button. The student is not given an explanation, cannot view the original page where the answer was stated, and missed questions are never re-tested.
+  - *Recommendation:* Add a "Peek at Story 📖" button during the quiz that opens a slide-over view of the relevant story page, and re-queue missed questions at the end of the quiz so the child achieves true comprehension before finishing.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Sanitize Missing Image Fallback (P1):** Replace raw AI prompt text (`page.image_prompt`) with an illustrated storybook bookplate placeholder.
+2. **Add "Read to Me" Audio & Karaoke Highlighting (P1):** Add an ambient read-along player with native TTS audio modeling to support solo ESL readers.
+3. **Fix Quest Misattribution (P1):** Stop awarding `PERFECT_SPEAKING` for silent reading; credit `READ_STORY` and literacy quest milestones instead.
+4. **Interactive Vocab Drawer with Pronunciation Audio (P2):** Modernize the word popover into a dismissible bottom drawer equipped with phonetic guide and pronunciation audio.
+5. **Add "Peek at Story" & Re-queue on Comprehension Quiz (P2):** Allow students to reference the story when answering questions and re-queue missed items to guarantee understanding.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Reading Reader will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

@@ -1,5 +1,7 @@
 # Home Map — Learn Tab — v3 Quality Audit (`SURFACE: /student shell`)
 
+> **Current status:** ag-audit-done
+
 ## SHARED PRELUDE (read first — identical in every game file)
 
 **Product.** "Professor" — an ESL/EFL English product for children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options). Teachers build game-lessons from scanned textbooks and run them in class on a projector. **This app is the STUDENT app** (`/student`, `student.html` entry, `apps/student/**`): the single child's own **personal phone/tablet** for home practice and homework — solo study, no teacher present, no classmates. The kid taps directly; nobody is watching over their shoulder.
@@ -96,16 +98,32 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Refs are `apps/student
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Asymmetric thumb reach on 390px phone floor.** (Evidence: §1, §3 F5, `HomeMap.tsx:300-328`). The winding path uses `translate-x-16` (64px) alternating left/right displacement for nodes alongside 80px circles (`w-20`). On standard 390px mobile viewports, extreme-offset nodes sit within 20px of the display border, creating an awkward stretch for one-handed thumb navigation for young learners (ages 6–8) and risking clipping against viewport gutters. *Recommendation: Dampen node horizontal oscillation to max `translate-x-10` (40px) on mobile viewports (<420px), centering the interactive touch corridor safely within the child's natural thumb zone.*
+- **F2 · P3 — External third-party avatar & chest SVG assets degrade offline/slow-network stability.** (Evidence: §1, §3 F6, `HomeMap.tsx:373`). Dicebear SVG URLs are loaded directly from external endpoints for the completion treasure chest and portraits. In Mainland China classroom/home networks, external CDN connections are frequently throttled or blocked, causing broken image icons, layout shift, or missing visual payoffs upon unit completion. *Recommendation: Bundle local vector SVGs for chest states (locked, open, golden) and default avatars into `apps/student/assets/` to ensure zero-latency, 100% offline-resilient visual feedback.*
+- **F3 · P3 — Redundant streak indicators induce cognitive clutter.** (Evidence: §3 F7, `StudentApp.tsx:271-273` vs `HomeMap.tsx:142-154`). The streak count is rendered simultaneously in the sticky top header pill and the daily quest summary widget below the territory banner without progressive disclosure. *Recommendation: Treat the top header pill as the persistent status indicator, and replace the quest card's static streak text with actionable streak freeze/repair status or today's streak protection milestone.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F4 · P1 — "N cracked" chip is an anxiety-inducing navigational dead-end.** (Evidence: §1, §3 F3, `HomeMap.tsx:260-268`). When a student sees an amber warning badge stating that skills in Unit X are cracked, tapping it invokes `onNavigate('practice', unit.id)`. However, `PracticeMenu.tsx` completely ignores `unitId`, dumping the child into an uncurated generic menu with 5 disconnected options. A solo child cannot identify which specific vocabulary items decayed or how to restore their crowns. *Recommendation: Pass `unitId` into the practice route or launch a direct 5-item targeted SRS review session scoped specifically to that unit's decayed items, returning the child to the home map with restored crowns immediately upon completion.*
+- **F5 · P2 — Static "Complete 2 Lessons" quest breaks daily habituation loop.** (Evidence: §1, §3 F2, `HomeMap.tsx:134-140`). The daily quest progress bar checks `completedUnitIds.length >= 2`. Once a child finishes two units in their lifetime, this quest is permanently marked 2/2 Complete on every login. The primary motivation loop for daily return is effectively dead. *Recommendation: Wire this progress bar directly to `GamificationService` daily quest state (`type === 'COMPLETE_LESSONS'` or daily session counter reset at local midnight).*
+- **F6 · P2 — Territory intro banner dominates fold on return visits.** (Evidence: §1, `HomeMap.tsx:225-240`). `TerritoryIntro` consumes over 240px of vertical space at the top of the feed. For a returning student who has already unlocked 6 nodes, the active node is pushed completely below the screen fold, requiring manual scrolling to find their current task. *Recommendation: Automatically collapse or shrink the territory header to a compact ribbon (<60px) once a unit has been started, auto-scrolling the viewport directly to the pulsing active node upon mount.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F7 · P2 — Lack of visual scaffolding on replayed stages.** (Evidence: §0, §1, `computeNodeStates`). When a child replays a previously completed stage to earn 3 stars, the UI does not indicate which specific skill was missed on previous attempts (e.g. phonics vs dictation vs speed). The child enters blindly without a clear learning target for mastery improvement. *Recommendation: In the stage preview popover, display a concise badge showing previous score breakdown (e.g., "Accuracy: 80% • Review spelling") so the child knows what to focus on.*
+- **F8 · P3 — Disconnected XP daily target vs lesson rewards.** (Evidence: §1, §3 F4, `HomeMap.tsx:41-44`). The home screen hardcodes `xpGoal = 50`, while typical lesson completion awards 30–75 XP depending on stage complexity. A single lesson can overshoot the goal instantly, while partial practice feels unrewarded. *Recommendation: Align the daily goal calculation with the student's current tier/assigned homework goals, displaying a dynamic "+15 XP to next milestone" motivator.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F9 · P2 — Startup latency caused by N+1 mastery waterfalls.** (Evidence: §1, §3 F1, `HomeMap.tsx:57-70`). The screen executes serial network requests in a loop over all enrolled units (`getUnitMasterySummary`). On a class containing 10+ units over a mobile cellular connection, the child stares at skeleton loaders or frozen path states for 3–8 seconds before unit mastery badges populate. *Recommendation: Batch mastery summaries into a single aggregate RPC or execute queries concurrently via `Promise.all` so home screen renders interactively under 500ms.*
+- **F10 · P3 — Node tap popover overlaps adjacent nodes on dense paths.** (Evidence: §1, `HomeMap.tsx:314-367`). The "START" terracotta floating popover anchors absolutely above the active node. When nodes are spaced tightly vertically on compact displays, the popover overlays the previous node's star badges, creating tap collision ambiguities. *Recommendation: Enforce minimum 100px vertical pitch between consecutive node centers and give the active START button an unambiguous z-index and tap-target exclusion radius.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Fix "N cracked" chip flow:** Route the chip directly to a targeted unit-scoped SRS blitz session rather than dumping the child into the generic Practice Menu without context.
+2. **[P2] Fix daily quest lesson counter:** Re-wire "Complete 2 Lessons" from lifetime unit count to real daily completed lessons via `GamificationService`.
+3. **[P2] Eliminate N+1 mastery loading waterfall:** Parallelize `Engine.getUnitMasterySummary` calls via `Promise.all` or a unified batch endpoint to make the home screen render instantaneously.
+4. **[P2] Focus-scroll and compact header for returning students:** Collapse `TerritoryIntro` after first play and auto-scroll directly to the pulsing active node so the child can tap and learn within 2 seconds of app launch.
+5. **[P3] Replace external Dicebear assets with local SVGs:** Remove third-party CDN image calls for chests and avatars to guarantee offline resilience and avoid firewall timeouts in China.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Home screen visual design is frozen per owner directive; no Stitch designs required for file 01.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

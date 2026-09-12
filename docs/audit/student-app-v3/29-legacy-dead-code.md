@@ -1,4 +1,5 @@
 # Legacy Dead Code — LessonSession + Embedded Trio — v3 Quality Audit (`DEAD: /student/lesson (unrouted)`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -90,17 +91,30 @@ Refs: `apps/student/LessonSession.tsx`, `ListenTap.tsx`, `SentenceScramble.tsx`.
 
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
-### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+### 4.a Architectural & code quality audit (Documentation Note)
+- **F1 · P2 — Dead code surface: Unreachable pre-battery lesson runner and obsolete exercise trio.**
+  - *Evidence:* `apps/student/LessonSession.tsx` (195 ln), `ListenTap.tsx` (223 ln), `SentenceScramble.tsx` (223 ln), and legacy embedded modes of `FlashMatch.tsx` and `PronunciationCoach.tsx` (`§1`, `§3`). Grep confirms no live route or user action navigates to `/student/lesson`. Legacy view keys (`'lesson'`, `'listen'`, `'scramble'`) in `StudentApp.tsx:354-360` explicitly redirect to the v3 `solo-lesson` (`LessonShell` / `ExerciseRunner`).
+  - *Defects Preserved in Dead Code:* Hardcoded fake HUD hearts ("5" in `FlashMatch.tsx:129`, "4" in `ListenTap.tsx:100`), dead Dicebear avatar URLs, hardcoded session scores, and an obsolete parent-Check-button harness that contradicts the unified `ExerciseRunner` contract.
+  - *Concrete Recommendation:* **Full Deletion / Archival.** Delete `LessonSession.tsx`, `ListenTap.tsx`, and `SentenceScramble.tsx`, and strip the dead `embedded` prop branches from `PronunciationCoach` and `FlashMatch`. If historical reference is required, archive under `apps/student/legacy/` with an explanatory `README.md`. Under no circumstances should this surface receive Stitch redesigns or engineering maintenance.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow
+- Unreachable. Zero impact on live learner journeys.
+
+### 4.c Pedagogical practice
+- Superseded by the v3 `ExerciseRunner` battery (`12-exercise-battery.md`, `13-choice-exercise.md`, `14-word-bank-build.md`), which properly implements FSRS memory scheduling and real hearts economy.
+
+### 4.d Game interaction
+- Obsolete.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Delete Dead Code Files (P2):** Remove `LessonSession.tsx`, `ListenTap.tsx`, and `SentenceScramble.tsx` to reduce bundle weight and prevent maintenance confusion.
+2. **Clean Up Unused Embedded Mode Props (P2):** Strip `embedded` props and parent-Check callbacks from `PronunciationCoach.tsx` and `FlashMatch.tsx`.
+3. **Remove Dead Route from Router (P3):** Clean `/student/lesson` out of `StudentApp.tsx` router configuration.
+4. **Preserve Audio / Word Bank Logic in Shared Battery (P3):** Verify that all valid exercise capabilities from legacy trio are already fully represented in `ExerciseRunner` (files 13–15).
+5. **No Stitch Designs (P3):** Mark as permanently excluded from Stitch visual generation pipeline.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*No designs required — legacy dead code scheduled for deletion/archival.*
 
 ## §5 ZCode design verification (inside Stitch)
 

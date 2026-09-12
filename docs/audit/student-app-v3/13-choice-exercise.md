@@ -1,4 +1,6 @@
-# Choice Exercise — The 10 MCQ Types — v3 Quality Audit (`IMAGE_SELECT, MEANING_MATCH, AUDIO_L1_SELECT, LISTEN_SELECT, SPELL_CLOZE, ERROR_SPOT, TRANSFORM, GRAMMAR_FILL, STORY_COMPREHENSION, WHO_SAID_IT`)
+# Choice Exercise — Universal MCQ — v3 Quality Audit (`10 POOL EXERCISE TYPES`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -93,16 +95,30 @@ Refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Flat desktop-style option cards lack tactile mobile affordance.** (Evidence: §1, `ChoiceExercise.tsx:169-192`, `exercises/shared.tsx`). Options render as flat rectangular panels with standard 1px borders that simply change border color on selection. In a kid-focused mobile app, option cards should be chunky, tactile, and fun to press. *Recommendation: Redesign option cards into Duolingo-style 3D bevel buttons (`wa-paper` background `#FDFBF7`, 0 4px 0 bottom bevel `#E2D7C3`, active:translate-y-1, active:shadow-none, bold Fredoka typography).*
+- **F2 · P3 — Raw underscore blanks in cloze exercises.** (Evidence: §1, §3 F6, `ChoiceExercise.tsx:164`). In `SPELL_CLOZE` and `GRAMMAR_FILL`, the sentence gap is rendered as literal underline text (`___`). It looks like unrendered source code. *Recommendation: Render the gap as an inviting dashed slot pill (`min-w-16 h-8 border-2 border-dashed border-wa-terracotta/60 rounded-lg inline-flex items-center justify-center bg-wa-cream/30`).*
+- **F3 · P3 — Ghost card image error state.** (Evidence: §3 F4, `ChoiceExercise.tsx:183`). When an option image fails, setting container opacity to 0.2 creates a ghostly blank card. *Recommendation: Render a clean illustrated placeholder icon (e.g. Wonder Atlas picture frame icon) so the option retains physical presence.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F4 · P1 — Fleeting 1.1s explanation window auto-advances before reading.** (Evidence: §1, §3 F2, `ChoiceExercise.tsx:130-138`). Upon tapping an answer, feedback and explanation text appear, but `onComplete` automatically fires after a fixed 1100ms timer. A 7-year-old child who got the answer wrong cannot even read the first three words of the explanation before the screen is whisked away. *Recommendation: Replace the automatic 1.1s timer with a Duolingo-style anchored bottom feedback drawer (emerald for correct, terracotta/red for wrong) displaying the full explanation and requiring the child to tap a large "Continue →" button to proceed.*
+- **F5 · P2 — Instant commit on single tap causes accidental mis-taps.** (Evidence: §1, `ChoiceExercise.tsx:130`). For sentence-level grammar and comprehension questions, tapping any option instantly locks the choice. Children resting their fingers or scrolling accidentally score errors. *Recommendation: For complex text-based MCQs, adopt a two-step pattern: tap option to select, tap bottom "Check" button to evaluate.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F6 · P1 — Mixed-modality leak bypasses listening comprehension in LISTEN_SELECT.** (Evidence: §1, §3 F1, `ChoiceExercise.tsx:177-189`, `generate-exercises/index.ts:118-126`). In `LISTEN_SELECT`, when some distractors lack images, the generator outputs a mixed set where 3 options show pictures and 1 option shows plain English text (`text: word`). Children immediately spot the text as the odd-one-out or read the English word directly, completely bypassing the auditory listening task. *Recommendation: Enforce strict modality uniformity per question: if any distractor lacks an image, degrade all options to text-only recognition, or provide an illustrated placeholder card for imageless items.*
+- **F7 · P2 — Missing auditory reinforcement on option selection.** (Evidence: §1). In vocabulary choice exercises, hearing the candidate options spoken aloud aids ESL learners who have not yet mastered orthographic decoding. *Recommendation: Add a small speaker icon on candidate text options allowing the child to hear options before or after answering.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F8 · P2 — Absence of in-place error correction.** (Evidence: §1, §3 F3). When an answer is wrong, the card turns red and disappears into the runner's end-of-session retry queue. The learning moment is severed. *Recommendation: On wrong answers, shake the incorrect card, highlight the correct card in emerald, play its native pronunciation, and show the explanation in the bottom drawer.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Eliminate LISTEN_SELECT mixed-modality leaks:** Enforce 100% uniform option presentation (all-image or all-text) to protect listening comprehension integrity.
+2. **[P1] Replace 1.1s auto-advance with anchored bottom feedback drawer:** Keep explanations visible until the child taps "Continue" so errors actually teach.
+3. **[P2] Upgrade options to tactile Duolingo-style 3D bevel buttons:** Provide chunky, responsive buttons with clear Fredoka typography and tap-down haptic feel.
+4. **[P2] Format cloze gaps as styled slot pills:** Replace raw `___` underlines with inviting dashed slot containers.
+5. **[P2] Add in-place corrective audio modeling on wrong choices:** Vocalize the correct English answer before advancing.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the tactile 2-column image choice screen and the text choice with anchored bottom feedback drawer.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

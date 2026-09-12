@@ -1,4 +1,6 @@
-# Dialogue Roleplay — v3 Quality Audit (`DIALOGUE_ROLEPLAY`)
+# Dialogue Roleplay — Turn-Taking Speech — v3 Quality Audit (`DIALOGUE_ROLEPLAY (productive speech)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +93,28 @@ Refs are `apps/student/exercises/DialogueRoleplay.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Active dialogue turn scrolls off-screen on mobile viewports.** (Evidence: §1, §3 F1, `DialogueRoleplay.tsx:126-175`). The dialogue transcript is contained inside a generic scrollable list. As lines accumulate, the active speaking prompt and the 80px mic button get pushed below the phone fold. The child has to awkwardly scroll the page while attempting to tap and speak. *Recommendation: Pin the active dialogue turn and recording controls in a dedicated bottom dock (`h-48 wa-paper` `#FDFBF7` with tactile mic), letting the past conversation history scroll smoothly in the upper half.*
+- **F2 · P3 — Faceless speaker labels eliminate character connection.** (Evidence: §1, §3 F2, `DialogueRoleplay.tsx:143-145`). Speakers are denoted by tiny uppercase text tags ("TEACHER", "STUDENT"). The unit manifest contains rich character data and avatars, yet dialogue roleplay presents a sterile theater script. *Recommendation: Render illustrated avatar bubbles for conversation partners, showing character portraits next to their speech bubbles.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Silent partner turns destroy conversational immersion.** (Evidence: §1). In a roleplay dialogue, when it is the character's turn to speak, the line appears as silent text waiting for the child to tap the audio button or move past it. Conversational English requires natural turn-taking: the partner's audio should auto-play with character voice, smoothly prompting the child: "Your turn! 🎤". *Recommendation: Automatically play the conversation partner's dialogue line upon transition, then immediately arm the student's turn.*
+- **F4 · P2 — Invisible attempt budget induces anxiety.** (Evidence: §1, §3 F4, `DialogueRoleplay.tsx:84-96`). Each dialogue line allows up to 3 attempts before advancing. However, there is zero visual indication of this 3-try budget. When the line suddenly skips after 3 misses, the child feels cut off without explanation. *Recommendation: Display 3 tactile attempt dots (⚪ ⚪ ⚪ -> 🟢) on the active turn card so the child knows their exact retry status.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Missing L1 comprehension support on partner utterances.** (Evidence: §1). Young EFL learners often freeze because they did not understand what the partner character just asked (e.g. "What did you do over the weekend?"). *Recommendation: Provide an optional Chinese L1 translation subtitle toggle under partner speech bubbles so children understand the communicative context.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F6 · P2 — Obscure pass criteria leaves completion ambiguous.** (Evidence: §1, §3 F3, `DialogueRoleplay.tsx:49-66`). The exercise completes successfully if the student passes ≥50% of the lines. However, the student has no idea whether they are winning or losing. *Recommendation: Add a conversation progress tracker (e.g. "Line 2 of 4 • 2 Passed ⭐") and display a celebratory curtain-call completion card when the dialogue finishes.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Pin the active speaking line and mic controls in a fixed bottom dock:** Guarantee that recording controls never scroll below the phone fold.
+2. **[P1] Auto-play partner dialogue lines with native audio:** Create an immersive, authentic conversational turn-taking rhythm.
+3. **[P2] Format as an illustrated messaging chat with character avatars:** Transform the cold theater script into an engaging modern chat interface.
+4. **[P2] Display 3-dot attempt indicators on each speaking turn:** Make retry budgets transparent to prevent sudden unannounced line advances.
+5. **[P3] Add dialogue progress indicator and celebratory completion card:** Clearly communicate line mastery and celebrate conversation completion.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the illustrated dialogue chat stream and pinned bottom recording console.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

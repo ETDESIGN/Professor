@@ -1,5 +1,7 @@
 # Spelling Bee — In-Lesson Step — v3 Quality Audit (`SPELLING_BEE (engine)`)
 
+> **Current status:** ag-audit-done
+
 ## SHARED PRELUDE (read first — identical in every game file)
 
 **Product.** "Professor" — an ESL/EFL English product for children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options). Teachers build game-lessons from scanned textbooks and run them in class on a projector. **This app is the STUDENT app** (`/student`, `student.html` entry, `apps/student/**`): the single child's own **personal phone/tablet** for home practice and homework — solo study, no teacher present, no classmates. The kid taps directly; nobody is watching over their shoulder.
@@ -94,16 +96,39 @@ Refs are `apps/student/steps/SpellingBeeStep.tsx` unless noted.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Saturated dark honeycomb board breaks continuity with light lesson shell.** (Evidence: §0, §1, `SpellingBeeStep.tsx:266-372`). Spelling Bee switches the display into a pitch-black `slate-900` canvas. While the amber honeycomb theme has strong personality, the heavy black container jars against the warm Wonder Atlas lesson world. *Recommendation: Translate the honeycomb motif into the Wonder Atlas light palette: warm cream canvas (`#EAE0D0`), honey-amber active letter tiles (`#E9C46A`), paper card keyboard keys (`#FDFBF7`), and crisp teal feedback badges.*
+- **F2 · P2 — Keyboard key hit targets dip below 44px on compact phones.** (Evidence: §1, `components/games/spellingBee/keyboardEngine.ts`). Although the adaptive keyboard engine narrows the key pool, lines with 8+ keys compress key widths to ~38px on a 390px viewport. Young kids tapping rapidly make frequent adjacent-key typos. *Recommendation: Enforce minimum 44px key touch targets with 2-row staggered layouts and generous vertical spacing.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Special Assignment: Evaluation of the In-Lesson Timeout Tension Rule (F1).**
+  - **Context & Problem:** The current in-lesson step executes the "SPLIT fail rule" (`SpellingBeeStep.tsx:170-174`): if the timer expires on ANY single word, it triggers `forceComplete -> finishRun(true)` after 1.8s. A child who hesitates for 15 seconds on Word 2 of Round 1 immediately sees all remaining words and rounds canceled, receiving a humiliating 1-star lesson failure. In solo study at home, this is devastating and causes immediate tears and abandonment.
+  - **Evaluation of Alternatives:**
+    1. *Hard-End (Current Code):* Catastrophic for solo home homework. Destroys planned vocabulary exposure, corrupts stage completion stars, and penalizes typing hesitation with total failure. **Verdict: Completely unacceptable for in-lesson steps.**
+    2. *Reveal + Continue (Board Model):* When the clock hits 0:00, the word is marked missed (`recordAnswer(false)`), the correct spelling is revealed with audio playback for 2.0s, and the game automatically advances to the next word in the round. **Verdict: Pedagogically sound, guarantees full unit exposure, and eliminates dead-ends.**
+    3. *Hybrids (Mercy Extensions / Re-queue):*
+       - *Mercy Overtime:* Clock pulses amber at 0s, giving +5s overtime with no speed bonus.
+       - *End-of-Round Re-queue:* Words missed via timeout re-enter a 1-chance un-timed redemption queue at the end of the round.
+  - **Anti-Gravity Concrete Recommendation:** **Adopt "Timeout Costs Word + Audio Reveal + Continue" for the in-lesson step, while reserving Hard-End / Sudden Death for the standalone practice game (file 21).**
+    - *In-Lesson Rule:* A timeout NEVER terminates the lesson step. It costs that specific word (0 score, `recordAnswer(false)`), triggers an acoustic pronunciation and visual spelling reveal hold (2.2s), and advances to the next word.
+    - *Rationale:* Lessons are curricular instruction and homework completion; practice games are arcade skill challenges. A child doing homework must never be locked out of seeing their vocabulary words because of a typing delay.
+- **F4 · P3 — Truncated word badges on round completion interstitial.** (Evidence: §3 F3, `SpellingBeeStep.tsx:283-299`). Completed word chips in the round summary use `w-12 truncate`, rendering words like "elephant" as "eleph...". *Recommendation: Allow badge chips to size dynamically to word length with `px-3 min-w-14`.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Double penalty: wrong letters burn both points and clock time.** (Evidence: §1, §3 F2, `SpellingBeeStep.tsx:42,74`). When a child taps an incorrect letter, they are penalized with `-MISTAKE_PENALTY` points AND the countdown clock is reduced by 1 second. For a 7-year-old child typing on a touchscreen, a simple typo creates compounding panic. *Recommendation: Remove the -1s clock penalty in-lesson; penalize mistakes only in score points, giving the child the full clock duration to self-correct.*
+- **F6 · P2 — Default 15s timer is too tight for beginning typists.** (Evidence: §1, §3 F2). Finding letters on an on-screen keyboard is a separate cognitive skill from knowing how to spell the word. *Recommendation: Extend default in-lesson timer to 20s, and allow teachers or students to enable "Relaxed Mode" (timer off or 30s).*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Unconfirmed exit drops all stage progress.** (Evidence: §1, §3 F4, `SpellingBeeStep.tsx:384`). Tapping the chevron exit button instantly unmounts the player and discards all completed rounds. *Recommendation: Intercept with the standard exit confirmation modal.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Abolish the in-lesson hard-end timeout rule:** Replace catastrophic run termination with the "Timeout Costs Word + Reveal + Continue" rule so no solo child is locked out of their homework.
+2. **[P2] Relax default in-lesson timer to 20s and eliminate the 1s mistake time penalty:** Decouple typing motor friction from time penalties.
+3. **[P2] Reskin honeycomb board into Wonder Atlas light theme:** Warm cream background `#EAE0D0`, honey-amber tiles `#E9C46A`, and clean paper card keys `#FDFBF7`.
+4. **[P2] Enforce ≥44px keyboard touch targets on mobile:** Ensure reliable, frustration-free letter tapping for young fingers.
+5. **[P3] Fix round badge word truncation and add exit confirmation:** Allow full word spelling visibility on victory cards and protect against accidental exits.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the light Wonder Atlas honeycomb board and the timeout teaching reveal state.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

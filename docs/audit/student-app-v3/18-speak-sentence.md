@@ -1,4 +1,6 @@
-# Speak Sentence — v3 Quality Audit (`SPEAK_SENTENCE`)
+# Speak Sentence — Voice Production — v3 Quality Audit (`SPEAK_SENTENCE (productive speech)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +93,29 @@ Refs are `apps/student/exercises/SpeakSentence.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Cold voice-assistant aesthetic intimidates shy children.** (Evidence: §1, `SpeakSentence.tsx:65-72`). The interface features an austere 96px pulsing mic button on a plain background, resembling a clinical voice memo recorder. For an ESL child speaking English alone in their bedroom, this utilitarian visual raises performance anxiety. *Recommendation: Frame the speech exercise within a friendly Wonder Atlas audio scene: an encouraging mascot character wearing headphones, an animated speech bubble holding the target sentence, and a warm terracotta mic button (`wa-terracotta` 72px FAB with 0 4px 0 bevel).*
+- **F2 · P2 — Missing acoustic visualizer leaves children in the dark.** (Evidence: §1, §3 F1, `SpeakSentence.tsx:65`). While recording, the mic button pulses uniformly regardless of whether the child is speaking loudly or whispering. Young kids have no feedback verifying whether their microphone is picking up sound or if their device is muted. *Recommendation: Integrate a live 5-bar audio volume visualizer or sound-wave ripple around the mic to give immediate visual confirmation of audio input.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Unbounded retry loop creates a dead-end in noisy rooms.** (Evidence: §1, §3 F2, `SpeakSentence.tsx:45-62`). If a child is in a noisy living room or struggles with a specific sound, the Levenshtein scorer repeatedly falls into the `<0.4` or `0.4-0.6` retry bracket. There is no maximum attempt cap. A frustrated child can be trapped indefinitely without ever reaching lesson completion. *Recommendation: Cap retries at 3 attempts: on the 3rd unsuccessful try, display a supportive "Good effort! Let's keep moving" message and unlock a Continue bypass button (always maintaining `record: false` practice-only credit).*
+- **F4 · P2 — Unused interim transcript breeds user doubt.** (Evidence: §3 F4). `SpeechService` provides interim recognition tokens, but the UI keeps the screen blank until final evaluation. Children often ask: "Did it hear me?". *Recommendation: Display live interim transcript words in soft grey below the target sentence as the child speaks.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — All-or-nothing evaluation hides specific pronunciation errors.** (Evidence: §1, `SpeakSentence.tsx:35-44`). The current feedback provides only a global score tier (Pass vs Almost vs Retry). A child who pronounced 4 out of 5 words perfectly receives the same generic "Try again" as someone who said nothing. *Recommendation: Highlight recognized words in emerald and mispronounced words in amber/terracotta across the target sentence, allowing the child to pinpoint their pronunciation error.*
+- **F6 · P2 — Missing native audio auto-modeling on mount.** (Evidence: §1). Children are asked to speak the sentence before necessarily hearing how it flows. *Recommendation: Auto-play the native reference audio once on mount so the child absorbs the cadence and stress before attempting to speak.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Subdued celebration for the hardest skill in the app.** (Evidence: §3 F3, `SpeakSentence.tsx:38`). Speaking aloud is the most emotionally demanding productive milestone for an ESL learner. Successful speech currently receives a generic toast. *Recommendation: Trigger an enthusiastic victory fanfare (sparkles burst, mascot cheer, "+XP Great Speaking!" badge) to deliver an empowering dopamine payoff.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Cap retry loop at 3 attempts with a gentle Continue bypass:** Prevent solo students from becoming hopelessly trapped in noisy home environments.
+2. **[P1] Add real-time audio volume waveform visualizer:** Reassure shy kids that the microphone is actively capturing their voice.
+3. **[P2] Word-by-word visual diagnostic feedback:** Color-code correctly spoken words in emerald and unclear words in amber so children know what to practice.
+4. **[P2] Auto-play native sentence audio on mount:** Provide fluent auditory modeling before inviting speech production.
+5. **[P3] Reskin to Wonder Atlas friendly companion interface:** Replace sterile Siri-like mic with a cheerful character scene and celebratory success feedback.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the speech studio interface with audio waveform and word-level pronunciation diagnostic card.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

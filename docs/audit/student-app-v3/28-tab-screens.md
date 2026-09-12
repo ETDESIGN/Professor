@@ -1,4 +1,5 @@
 # Tab Screens — Rank / Quests / Shop / Profile + Settings & Help — v3 Quality Audit (`CHROME (grouped)`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +92,43 @@ Grouped audit (verify per-screen during any redesign):
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P1 — Severe visual split across bottom tabs (Slate-50 utility vs Wonder Atlas).**
+  - *Evidence:* `Leaderboard.tsx` and `Profile.tsx` use sterile `slate-50` / `slate-100` styling with standard Tailwind borders, whereas `Quests.tsx` and `Shop.tsx` use the custom Wonder Atlas design system (`wa-mist`, `wa-ink`, `wa-cream`, `btn-atlas-green`). As a child taps across the bottom navigation bar, the visual identity, typography, button shapes, and background colors jarringly flip back and forth between two completely different apps.
+  - *Recommendation:* Harmonize all tab surfaces under the owner's chosen hybrid aesthetic: warm cream background (`#FDFBF7`), tactile 3D pill cards with crisp borders, expressive icons, and a unified bottom navigation bar with active tab bounce.
+- **F2 · P2 — Sub-screens strip the bottom navigation bar and create navigation traps.**
+  - *Evidence:* Opening Settings or Help Center from Profile removes the bottom tab bar and presents a fullscreen view with only a tiny top-left `<ChevronLeft>` button. Young children accustomed to persistent thumb-level tab navigation get disoriented and struggle to find their way back to the home map.
+  - *Recommendation:* Maintain the bottom navigation bar across all top-level surfaces or provide prominent bottom-docked exit controls.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Disconnected Settings toggles (decorative sound & speaking controls).**
+  - *Evidence:* `Settings.tsx:16-19, 90-100` (`F1`). The Settings screen offers user-facing toggles for "Sound Effects" and "Speaking Exercises", saving them to `localStorage['student-settings']`. However, neither `audioCueService`, `ExerciseRunner`, `SpeakSentence`, nor `PronunciationCoach` ever consults this key! Disabling "Speaking exercises" does not suppress speaking exercises in lessons, and disabling sound effects does not mute audio cues. This is a severe illusion-of-control bug that breaks trust with parents and children (e.g. studying in a library or quiet vehicle).
+  - *Recommendation:* Wire these preferences into the global state: when "Speaking exercises" is toggled off, `ExerciseRunner` must automatically bypass speech tasks (or substitute them with listening tasks), and sound effect triggers must honor the sound mute flag.
+- **F4 · P2 — Quests chest unlock lacks celebratory opening payoff.**
+  - *Evidence:* `Quests.tsx:90-95`. When a student completes all daily quests and reaches 100% on the Mystery Chest, claiming it triggers a plain text toast message (`+15 XP, +10 Gems!`). The biggest daily habit milestone in the app ends with a whimper.
+  - *Recommendation:* Implement a high-delight interactive chest-opening modal: a wobbling golden chest that bursts open on tap with sparkling confetti, spinning gems, and fanfare sound effects.
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Raw weekly XP leaderboard alienates slower or newly enrolled students.**
+  - *Evidence:* `Leaderboard.tsx:40-70`. The leaderboard ranks learners purely by gross accumulated weekly XP. A child who logs in midweek or practices a modest 10 minutes a day sees peers with 3,000+ XP and feels immediately defeated.
+  - *Recommendation:* Implement tiered league brackets (e.g. Explorer ➔ Pioneer ➔ Champion) with 20–30 peer cohorts, alongside a "Personal Daily Best" flame streak, ensuring every student has an achievable weekly promotion goal.
+- **F6 · P2 — Shop catalog lacks pedagogical utility items.**
+  - *Evidence:* `Shop.tsx:110-180`. The shop currently sells only avatar clothing and cosmetics. While fun, it misses the opportunity to reward learning diligence with educational agency.
+  - *Recommendation:* Introduce learning perks purchasable with gems: `Streak Freeze 🧊` (preserves flame if homework is missed for one day), `Secret Storybook Unlocks 📚`, and `Special Mascot Voice Packs 🎙️`.
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Avatar Builder save latency causes temporary visual desync.**
+  - *Evidence:* `AvatarBuilder.tsx:80-120`. When a child buys and equips new gear, the component initiates an asynchronous server compose RPC. If the child navigates back immediately, the home map and profile avatar temporarily flicker or revert to old equipment until the query cache refetches.
+  - *Recommendation:* Apply immediate optimistic UI updates to the local avatar state so new gear is reflected instantly across the entire application upon pressing Save.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Wire or Fix Settings Toggles (P1):** Ensure "Speaking Exercises" and "Sound Effects" actually mute audio and bypass speech exercises across the app, eliminating decorative toggles.
+2. **Unify Tab Aesthetics to Wonder Atlas + Duolingo Hybrid (P1):** Eliminate the jarring slate vs warm-paper split across tabs, bringing Leaderboard, Quests, Shop, and Profile into one cohesive design language.
+3. **Interactive Daily Quest Chest Opening Ceremony (P2):** Replace flat toast messages with an exciting animated 3D chest burst when claiming the daily quest goal.
+4. **Cohort-Based Tiered Leagues (P2):** Replace the demoralizing global XP leaderboard with small 20-student weekly leagues to motivate regular learners.
+5. **Add Educational Power-ups to Shop (P2):** Allow students to spend hard-earned gems on Streak Freezes and unlockable bonus story chapters.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Tab Screens (Leaderboard, Quests, Shop, Profile) will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

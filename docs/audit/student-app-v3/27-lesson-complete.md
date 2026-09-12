@@ -1,4 +1,5 @@
 # Lesson Complete — Reward Interstitial — v3 Quality Audit (`REWARD: /student/lesson-complete`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +92,40 @@ Refs: `apps/student/LessonComplete.tsx`, `StudentApp.tsx:181-203`, `services/sta
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P1 — False Gem Reward Promise (Phantom Gem Card).**
+  - *Evidence:* `LessonComplete.tsx:115-127` renders an unconditional green reward card: `+{GEM_REWARDS.PERFECT_LESSON} Gems [Checkmark]` (`F1`). However, `StudentApp.tsx:188-191` gates gem awarding strictly on `(sessionResults.stars ?? 0) === 5`. Because standard lesson paths use a 1–3 star scale (`starsForAccuracy` returns max 3), `stars === 5` is mathematically impossible in normal lessons! The child sees a glowing green checkmark claiming they earned 15 gems, but upon returning to the home map their gem wallet has not increased by a single gem.
+  - *Recommendation:* Synchronize the UI and business logic: only render the gem reward card when `isPerfect` is truly achieved (or align the perfection criteria so 3/3 stars on a lesson awards the perfection bonus). Never display an unfulfilled reward to a child.
+- **F2 · P2 — Somber slate-900 background clashes with daytime celebratory tone.**
+  - *Evidence:* `LessonComplete.tsx:50` wraps the entire screen in `bg-slate-900` with a dim conic blur. While meant to feel cinematic, it creates a dark, jarring contrast against the light warm paper tones of the rest of the student journey.
+  - *Recommendation:* Reskin the celebration with an uplifting Wonder Atlas palette: cream/ivory backdrop, golden sunburst radiance, colorful celebratory confetti, and a cheering mascot delivering the victory banner.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Discarded session time and missing Streak Flame habit loop.**
+  - *Evidence:* `LessonComplete.tsx:18, 90-128` (`F4`). `stats.time` (e.g. `'2:15'`) is passed as a prop from the completing session but is completely ignored in the render tree. More crucially, there is zero visual celebration of the student's daily streak! In language learning habit formation, seeing the streak flame advance (`4 Days ➔ 5 Days! 🔥`) immediately upon lesson completion is the premier psychological retention anchor.
+  - *Recommendation:* Render a comprehensive 3-stat summary row (`XP ⚡`, `Accuracy 🎯`, `Time ⏱️`), followed by an animated Streak Celebration banner (`Streak +1! 🔥`) with an explicit quest progress indicator before navigating home.
+- **F4 · P2 — Linear XP count-up delays exit on high-XP sessions.**
+  - *Evidence:* `LessonComplete.tsx:31-39` (`F3`) increments XP by 1 every 20ms. A run earning 150–200 XP forces the child to watch numbers tick up for 3–4 seconds. Tapping "Continue" during the animation can feel unresponsive.
+  - *Recommendation:* Cap the total count-up duration to a brisk 600ms using an easing function, and allow an immediate screen tap to skip directly to the final totals.
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Star scale discordance: 3-star display masks 5-star standalone logic.**
+  - *Evidence:* `LessonComplete.tsx:22` clamps all stars to `Math.min(3, stats.stars ?? 3)` (`F2`), while standalone arcade games calculate a 0–5 star scale internally. A child who achieves 5/5 stars in Fast Vocab sees only 3 stars on this screen, creating confusion about their performance.
+  - *Recommendation:* Normalize all completion surfaces to a canonical 3-star mastery tier (⭐ Completed, ⭐⭐ Proficient, ⭐⭐⭐ Mastered) consistent with the student path map nodes.
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F6 · P2 — Silent celebration: no audio fanfare or star chimes.**
+  - *Evidence:* Visual stars and confetti animate, but the component invokes no audio effects. For young children, the absence of celebratory sound (trumpet fanfare, sequential star chimes `ding! ding! ding!`) drastically diminishes the emotional payoff of completing difficult homework.
+  - *Recommendation:* Trigger celebratory SFX on mount: a joyful victory jingle accompanied by synchronized ascending chimes as each star drops into place.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Fix Phantom Gem Award Bug (P1):** Stop showing the `+15 Gems` card when 0 gems are awarded; gate display on actual gem awarding and align 3-star lessons with perfect gem rewards.
+2. **Add Animated Streak Flame & Quest Progress (P1):** Introduce a high-dopamine daily streak advancement animation (`+1 Day 🔥`) and quest completion checkmark.
+3. **Display Session Time in 3-Stat Metric Row (P2):** Utilize the passed `stats.time` to show Total XP, Accuracy %, and Completion Time together.
+4. **Reskin with Warm Celebration Palette & Fanfare SFX (P2):** Replace the dark slate background with a warm golden sunburst, colorful confetti, and joyful sound effects.
+5. **Fast Eased XP Count-up with Tap-to-Skip (P2):** Accelerate XP animations to 600ms total and permit tapping anywhere to reveal final stats instantly.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Lesson Complete will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

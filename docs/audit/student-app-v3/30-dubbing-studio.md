@@ -1,4 +1,5 @@
 # Dubbing Studio + Class Gallery — v3 Quality Audit (`FLAG-GATED: VITE_ENABLE_DUBBING (off)`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -86,17 +87,32 @@ DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge 
 
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
-### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+### 4.a Architectural & code quality audit (Documentation Note)
+- **F1 · P2 — Parked feature surface: Gated OFF in production via `VITE_ENABLE_DUBBING`.**
+  - *Evidence:* `apps/student/DubbingStudio.tsx` (680 ln), `ClassDubs.tsx` (358 ln), and `StudentApp.tsx:226` (`§0`, `§1`, `§3`). The entire route, HomeMap entry chip, and audio recording pipeline are permanently disabled in production by the build-time environment flag.
+  - *Identified Flaws Prior to Gating:*
+    1. **Hardcoded Exit Stats:** `StudentApp.tsx:226` routes completion through `handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })`. If the flag were ever toggled on without refactoring, it would award static fake stats and unearned XP regardless of actual recording quality.
+    2. **Multi-device Recording Variance:** Mobile browser MediaRecorder format compatibility (WebM vs MP4/AAC on iOS Safari) and background audio latency require significant native stabilization before solo kid use.
+  - *Concrete Recommendation:* **Keep Parked.** Exclude Dubbing Studio and Class Gallery from the current v3 redesign and Stitch screen generation. Preserve existing database migrations and storage retention crons, but do not allocate UX or visual design cycles until core learning loops (lessons, practice arena, habit loops) are deployed and verified.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow
+- Gated off. No current user flow accessible to students.
+
+### 4.c Pedagogical practice
+- While expressive dubbing has strong communicative value for EFL learners, it requires robust automated prosodic/fluency assessment to avoid rewarding silence or random noise. Park until STT edge grading is fully hardened.
+
+### 4.d Game interaction
+- Parked.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Maintain Feature Gate (P2):** Keep `VITE_ENABLE_DUBBING=false` in production environments throughout v3 rollout.
+2. **Exclude from Stitch Generation (P3):** Do not generate Stitch designs for Dubbing in this sprint.
+3. **Fix Fake Exit Stats Before Unflagging (P2):** If ever re-evaluated for future release, replace hardcoded `{xp:5, accuracy:95}` with real recorded audio scoring from `evaluate-dubbing`.
+4. **Preserve Database Migrations & Crons (P3):** Ensure existing Supabase storage schemas and cron cleanup tasks remain unharmed during cleanups.
+5. **Re-evaluate as Standalone Post-v3 (P3):** Revisit as a dedicated creative speaking feature once core curriculum and FSRS systems are stable.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*No designs required — feature parked behind VITE_ENABLE_DUBBING feature flag.*
 
 ## §5 ZCode design verification (inside Stitch)
 

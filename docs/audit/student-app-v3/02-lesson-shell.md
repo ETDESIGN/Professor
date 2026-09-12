@@ -1,5 +1,7 @@
 # Solo Lesson Player Shell — v3 Quality Audit (`PLAYER SHELL + INTRO_SPLASH`)
 
+> **Current status:** ag-audit-done
+
 ## SHARED PRELUDE (read first — identical in every game file)
 
 **Product.** "Professor" — an ESL/EFL English product for children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options). Teachers build game-lessons from scanned textbooks and run them in class on a projector. **This app is the STUDENT app** (`/student`, `student.html` entry, `apps/student/**`): the single child's own **personal phone/tablet** for home practice and homework — solo study, no teacher present, no classmates. The kid taps directly; nobody is watching over their shoulder.
@@ -96,16 +98,31 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Refs are `apps/student
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Three incompatible HUD design languages across one lesson session.** (Evidence: §1, `SoloLessonPlayer.tsx:665-704` vs `ExerciseRunner.tsx:238-241` vs `steps/SpellingBeeStep.tsx`). During a single 6-step lesson, the child experiences three distinct headers: (1) passive steps render a light slate-50 bar with fake hearts, (2) battery steps swap in an exercise HUD with real DB hearts and SRS progress segments, and (3) engine steps (Spelling Bee, Word Search) completely replace the shell with dark or saturated standalone arcade banners. This visual fragmentation destroys continuity. *Recommendation: Unify all lesson steps under a single Wonder Atlas × Duolingo header shell (warm paper surface `#FDFBF7`, Fredoka typography, consistent progress segment indicator, unified heart counter).*
+- **F2 · P2 — Video player visual degradation via dark scrim and lowered opacity.** (Evidence: §1, §3 F3, `SoloLessonPlayer.tsx:498,508`). The `MEDIA_PLAYER` component embeds video at `opacity: 0.6` over a 50% dark overlay. In classroom board v3, this was identified as severe pedagogical degradation because students could not clearly see mouth shapes or illustrated lyrics. In home solo study, this makes video lessons look disabled or broken. *Recommendation: Remove the dark scrim and `opacity: 0.6` style entirely, displaying media videos in full vibrant color with an unobtrusive play/pause HUD overlay.*
+- **F3 · P3 — Sub-48px touch targets in story navigation controls.** (Evidence: §3 F6, `SoloLessonPlayer.tsx:353-365`). In the inline `STORY_STAGE`, page turning buttons are rendered as `p-2` icon chips (~36px square). On a 390px phone held in small hands, this causes frequent mis-taps and frustrates young children trying to turn the page. *Recommendation: Expand story page navigation targets to minimum 48×48px with clear tactile bevels (`wa-terracotta` / `wa-teal`).*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F4 · P1 — Catastrophic instant lesson abort without confirmation.** (Evidence: §1, §3 F2, `SoloLessonPlayer.tsx:689`). Tapping the top-left 'X' immediately unmounts the player and navigates back to HomeMap. All accumulated stage accuracy, stars, and session points are permanently wiped. Because young children frequently tap near the top of the phone screen or experience thumb slips, this causes devastating accidental progress loss. *Recommendation: Intercept the exit action with a friendly modal sheet: "Leave lesson? Progress will be lost!" featuring two prominent buttons: "Keep Playing" (large primary action) and "Leave" (secondary text button).*
+- **F5 · P2 — Frictionless skip-through on passive presentation steps.** (Evidence: §1, §3 F8, `SoloLessonPlayer.tsx:721-740`). The footer "Continue" button is permanently active on `FOCUS_CARDS`, `STORY_STAGE`, and `GRAMMAR_SANDBOX`. A child can rapidly tap "Continue" 5 times in under 3 seconds to skip all learning content without listening to a single word or flipping a card. *Recommendation: Implement an interaction latch on presentation steps: require at least one meaningful student action (e.g. playing audio, flipping 2 flashcards, or advancing one story page) before unlocking the Continue button.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F6 · P1 — Dishonest hearts split-brain teaches learned cynicism.** (Evidence: §1, §3 F1, `SoloLessonPlayer.tsx:41,247` vs `ExerciseRunner.tsx:238-241`). The shell displays a 5-heart icon that decrements on inline speed-quiz errors but never gates the child; at 0 hearts, the child continues effortlessly. Minutes later, the child enters an `ExerciseBattery` step where mistakes cost genuine database-backed hearts and can trigger an out-of-hearts exit. Showing a fake penalty in step 1 undermines trust in the app's real game rules. *Recommendation: Remove the decorative heart counter from passive presentation steps; display hearts only when entering genuine graded practice (ExerciseRunner), and ensure the displayed count reflects real learner state.*
+- **F7 · P2 — Superficial feedback on inline speed-quiz errors.** (Evidence: §1, `SoloLessonPlayer.tsx:236-257`). When a child selects a wrong answer in the inline speed quiz, the card turns red and immediately proceeds without showing the correct English meaning or playing the correct audio pronunciation. In an EFL solo context with no teacher present, this leaves the child without error correction. *Recommendation: On wrong answers, freeze for 1.2s, highlight the correct option in emerald with an audio pronunciation playback, then allow the child to proceed.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F8 · P2 — Missing milestone pacing between lesson phases.** (Evidence: §1, `SoloLessonPlayer.tsx:142-168`). Transitions between distinct pedagogical phases (e.g., from Word Lab vocabulary study into Exercise Battery challenge) occur instantly as an unannounced screen flip. Children have no awareness of shifting from low-stakes exploration to high-stakes graded practice. *Recommendation: Introduce a brief 1-second micro-interstitial between major stage blocks (e.g., "Ready for the Quiz?", "Story Time!") with a lively mascot cheer to reset mental focus.*
+- **F9 · P3 — Generous zero-effort XP floor.** (Evidence: §3 F4, `SoloLessonPlayer.tsx:152`). Final lesson XP is computed as `max(1, score + 3) + stage.xpReward`. A student who enters, skips every step, and scores 0% still receives 3+ XP. *Recommendation: Require at least 40% accuracy or completed participation in at least half the steps to trigger the full stage XP bonus, preserving gamification integrity.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Add exit-confirmation modal:** Intercept the header 'X' with a warm confirmation dialog to prevent catastrophic progress loss from accidental taps.
+2. **[P1] Eliminate dishonest fake hearts:** Remove local decorative hearts from the passive shell header; display hearts exclusively during real graded challenge batteries where DB state is actively tracked.
+3. **[P2] Gate the Continue button on presentation steps:** Require minimal active engagement (listening to audio or tapping a card) before enabling Continue on Word Lab, Story, and Grammar steps.
+4. **[P2] Restore full brightness and clarity to Media Player:** Remove dark scrims and `opacity: 0.6` from video song playback so children can clearly observe visual phonics and modeling.
+5. **[P2] Harmonize header shell typography and token palette:** Align passive, engine, and battery step headers to the Wonder Atlas × Duolingo light system (paper card `#FDFBF7`, ink text, crisp progress segments).
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the unified lesson shell header and exit confirmation modal.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

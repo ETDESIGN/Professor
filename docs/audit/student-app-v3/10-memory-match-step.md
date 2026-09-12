@@ -1,4 +1,6 @@
-# Memory Match — In-Lesson Step — v3 Quality Audit (`MEMORY_LAB / FLASH_MATCH (engine)`)
+# Memory Match — In-Lesson Step — v3 Quality Audit (`MEMORY_LAB (engine)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -92,16 +94,28 @@ Refs: `apps/student/steps/MemoryMatchStep.tsx`, `steps/memoryPairs.ts`, `apps/st
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — 12-tile vertical layout induces view scrolling and breaks spatial memory.** (Evidence: §1, §3 F3, `FlashMatch.tsx:135-175`). In embedded mode, 6 pairs render as two vertical columns of 6 tall cards each. On a 390px mobile viewport, the 12 tiles exceed 650px in height, forcing the screen to scroll vertically. Spatial memory games rely critically on a stable visual field; forcing a 7-year-old to scroll up and down to find pairs fundamentally breaks the mechanic. *Recommendation: Cap mobile rounds to 4 pairs (8 tiles total) arranged in a neat 2×4 or 4×2 grid that fits 100% within the mobile viewport without scrolling.*
+- **F2 · P3 — Depressing disabled appearance for matched tiles.** (Evidence: §3 F5, `FlashMatch.tsx:111`). When a pair matches, both tiles simply fade to `opacity-50` with slate borders. Matching feels like an erasure rather than an achievement. *Recommendation: Style matched tiles with a vibrant golden/teal frame, a lively bounce animation, and a clear celebratory checkmark.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P2 — 800ms touch lockout on mismatch feels unresponsive.** (Evidence: §1, `FlashMatch.tsx:45-66`). When an incorrect match is tapped, both cards shake red for 800ms while all screen touches are strictly blocked. In children's rapid play, this brief freeze is interpreted as device lag, causing repeated frustrated tapping. *Recommendation: Reduce mismatch shake to 400ms and allow immediate selection of a new card without hard input locks.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F4 · P1 — Complete acoustic silence during vocabulary pairing.** (Evidence: §1, §3 F4, `MemoryMatchStep.tsx:50-56`, `steps/memoryPairs.ts:39`). Although `audioUrl` is extracted for every vocabulary item in `memoryPairs.ts`, FlashMatch never invokes audio playback! A child matches an English word to Chinese in total silence without hearing the target pronunciation. In solo EFL study, this squanders a crucial learning touchpoint. *Recommendation: Instantly trigger native audio pronunciation playback whenever an English word card is tapped or matched.*
+- **F5 · P2 — Monochromatic text-only cards ignore visual memory.** (Evidence: §1, §3 F2, `steps/memoryPairs.ts:31-32`). Pairs are strictly English text ↔ Chinese text. Early primary school learners (ages 6–8) are still developing Chinese reading fluency. Matching text to text turns a fun game into a dry translation exam. *Recommendation: Support image↔word pairs utilizing the unit manifest illustrations, providing multimodal visual scaffolding.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F6 · P2 — Synthetic 100% accuracy corrupts stage star integrity.** (Evidence: §0, §1, §3 F1, `MemoryMatchStep.tsx:54`). Upon round completion, the step invokes `recordAnswer(true)` once for every pair, regardless of how many failed attempts or mismatches occurred. A child who randomly brute-forces 20 wrong taps receives a perfect 100% session score and 3 stars. This trivializes the gamification economy and distorts student progress tracking. *Recommendation: Compute honest session accuracy based on match efficiency (e.g. `perfect_matches / total_attempts` or first-try match ratio), rewarding true concentration with 3 stars while giving 1–2 stars for persistent trial-and-error.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Play native audio pronunciation on every card tap and match:** Restore acoustic language modeling to what was previously a completely silent game.
+2. **[P1] Eliminate vertical scrolling by capping mobile rounds to 4 pairs (8 tiles):** Ensure all cards remain simultaneously visible within the phone viewport.
+3. **[P2] Incorporate unit illustrations for image↔word matching:** Allow young learners to connect English words directly to concept pictures rather than raw Chinese text.
+4. **[P2] Report honest match efficiency instead of synthetic 100% accuracy:** Calculate stage stars from actual attempt efficiency rather than unconditionally writing all-true answers.
+5. **[P3] Upgrade matched card states to celebratory Wonder Atlas tokens:** Replace `opacity-50` grey-outs with joyful golden borders, chimes, and checkmark badges.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the 8-tile mobile memory grid and audio-reactive match state.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

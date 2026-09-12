@@ -1,5 +1,7 @@
 # Speed Quiz — In-Shell MCQ Step — v3 Quality Audit (`SPEED_QUIZ / GAME_ARENA`)
 
+> **Current status:** ag-audit-done
+
 ## SHARED PRELUDE (read first — identical in every game file)
 
 **Product.** "Professor" — an ESL/EFL English product for children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options). Teachers build game-lessons from scanned textbooks and run them in class on a projector. **This app is the STUDENT app** (`/student`, `student.html` entry, `apps/student/**`): the single child's own **personal phone/tablet** for home practice and homework — solo study, no teacher present, no classmates. The kid taps directly; nobody is watching over their shoulder.
@@ -92,16 +94,29 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Cold standardized test styling lacks playful warmth.** (Evidence: §1, `SoloLessonPlayer.tsx:236-274`). The inline speed quiz renders plain white/grey option slabs with faint mono letters (`A/B/C/D font-mono opacity-60`). It evokes the dread of a sterile school exam rather than an encouraging game. *Recommendation: Redesign options as Duolingo-style bevel buttons (`wa-paper` background `#FDFBF7`, 0 4px 0 bevel `#E2D7C3`, bold 18px Fredoka typography) with vibrant circular letter badges.*
+- **F2 · P3 — Sub-floor letter badge tap zones.** (Evidence: §3 F4, `SoloLessonPlayer.tsx:253`). Option rows have sufficient height, but the A/B/C/D markers are tiny low-contrast glyphs. *Recommendation: Style option badges as prominent 32px circular pills (`wa-teal` / `wa-ink`) with crisp high-contrast letters.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P2 — Zero mis-tap protection triggers accidental penalties.** (Evidence: §1, `SoloLessonPlayer.tsx:236-250`). Tapping any option instantly locks the choice, evaluates correctness, flashes red/green, and decrements lives with zero confirmation or delay. A child adjusting their hand or scrolling accidentally commits a wrong answer. *Recommendation: Introduce a two-phase interaction: tap to select (highlight with blue/teal border), tap "Check" (or double-tap option) to confirm and evaluate.*
+- **F4 · P2 — Missed questions vanish forever without remediation.** (Evidence: §1, §3 F1). In modern exercise batteries, missed items re-queue once at the end of the round so children can master their mistakes. In Speed Quiz, a wrong tap permanently lowers stage accuracy and exits without a retry. *Recommendation: Add a simple 1-pass end-of-quiz retry pool for missed questions, allowing the child to redeem their stars through effort.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Wrong answers offer zero corrective acoustic feedback.** (Evidence: §1, §3 F1, `SoloLessonPlayer.tsx:246-257`). When a child selects a wrong option, the card turns red and waits for Continue. It does not play the correct pronunciation or highlight why the answer was correct. In solo home study without a teacher, the child internalizes confusion. *Recommendation: On wrong selection, immediately speak the full correct sentence via native TTS, highlight the correct option in emerald, and provide a 1.5s acoustic teaching pause.*
+- **F6 · P2 — Fake heart deduction confuses gamification rules.** (Evidence: §1, §3 F2, `SoloLessonPlayer.tsx:247`). Wrong answers decrement the shell's fake `lives` counter without ever enforcing an out-of-hearts gate. *Recommendation: Remove the fake lives decrement from speed quiz; award XP for correct answers without feigning life loss.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Flat reward pacing lacks streak excitement.** (Evidence: §1, `SoloLessonPlayer.tsx:241`). Correct answers trigger a dry "+1 XP" text toast. There is no combo counter, no multiplier sound effect, and no escalating excitement for answering 3 or 5 questions correctly in a row. *Recommendation: Add a visual combo streak counter ("🔥 3 In a Row!") with escalating chime pitches to spark momentum.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Add auditory error correction on wrong answers:** Play the correct English sentence via TTS so the child hears the proper syntax before advancing.
+2. **[P2] Implement two-phase tap selection or confirmation:** Prevent accidental mis-taps from instantly scoring an unrecoverable failure.
+3. **[P2] Re-queue missed questions for a redemption attempt:** Allow children to re-attempt missed questions at the end of the quiz round.
+4. **[P2] Adopt Duolingo-style tactile option bevels:** Upgrade sterile exam rows to bouncy, thumb-friendly cards with bold Fredoka typography.
+5. **[P3] Add combo streak chimes and visual momentum:** Celebrate consecutive correct answers with lively audio-visual feedback.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the tactile MCQ card options and error reveal state.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

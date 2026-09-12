@@ -1,4 +1,5 @@
 # Phonics Practice — v3 Quality Audit (`PRACTICE: /student/phonics`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -90,16 +91,43 @@ Refs are `apps/student/PhonicsPhlyer.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P1 — Acoustic discrimination mislabeled with a Microphone icon.**
+  - *Evidence:* `PhonicsPhlyer.tsx:65-67` renders a large `Mic` icon in the empty state (`<Mic size={40} className="text-duo-blue" />`) and the practice arena uses mic iconography. MinimalPairSwipe is an acoustic *listening and auditory discrimination* exercise, not speech recording or speech recognition. Displaying a microphone triggers immediate child anxiety ("Do I have to speak? My mic doesn't work! My environment is noisy!") and sets incorrect cognitive expectations.
+  - *Recommendation:* Replace `Mic` with acoustic perception iconography (`Headphones`, `Ear`, or `Volume2`). Introduce dedicated "Phonics Sound Lab" visual branding with soundwave ripples and phoneme tag chips (e.g. `[ /l/ vs /r/ ]`).
+- **F2 · P2 — Barren slate-50 wrapper with zero sonic identity.**
+  - *Evidence:* `PhonicsPhlyer.tsx:82` renders a bare `<div className="h-full bg-slate-50">` passing through directly to `ExerciseRunner`. There is no visual warmth, sound-wave theme, or gamified frame.
+  - *Recommendation:* Wrap the phonics runner in a vibrant "Sound Lab" container with friendly sky/amber accent borders, clear speaker indicators, and playful sound-bubble visual motifs matching the Wonder Atlas / Duolingo hybrid aesthetic.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Invisible precondition trap: dead-end empty state on cold entry.**
+  - *Evidence:* `PhonicsPhlyer.tsx:18, 62-76` (`F1`). If a child opens Practice Arena directly from the bottom tab after launching the app, `state.activeUnit` is empty or whatever was touched last. The user gets trapped in an empty state: "Open a unit from the map to practise its phonics minimal pairs" with a single "Back" button. The child has no way to choose a unit from here, and the button sends them back to Practice rather than guiding them to the map.
+  - *Recommendation:* Add an explicit Unit Selector dropdown/carousel (identical to `FastVocabSolo` and `SpellingBeeSolo`), defaulting to the highest unlocked unit that contains phonics items. If no unit has been played yet, change the empty state CTA from a dead "Back" button to a primary action: `[Explore Map & Unlock Phonics]` which navigates directly to the Home Map.
+- **F4 · P2 — Practice Arena tile lacks item-count / availability badge.**
+  - *Evidence:* `PhonicsPhlyer.tsx:86` (`F2`). In `PracticeMenu.tsx`, SRS displays a clear due-count badge, while Phonics displays no badge. The child taps into Phonics blindly, only to discover there may be 0 items.
+  - *Recommendation:* Compute and display an available pair count badge (e.g. "8 pairs ready") on the Practice Menu Phonics card so children know there is real content waiting before they tap.
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Single-unit scoping results in micro-sessions that fail to build phonemic mastery.**
+  - *Evidence:* `PhonicsPhlyer.tsx:31-35` queries only `unit_id = unitId`. Standard ESL curriculum units typically introduce only 1 or 2 minimal pairs (e.g. *ship / sheep*). A practice session with only 2 items lasts under 20 seconds and terminates, giving the learner virtually no auditory consolidation.
+  - *Recommendation:* Introduce an "All Mastered Phonics" practice mode option that pools minimal pairs across all unlocked units up to a standard 8–10 item session. Allow children to drill critical L1-confusable contrasts (/l/ vs /r/, /s/ vs /θ/, /b/ vs /v/, short vs long vowels) in comprehensive succession.
+- **F6 · P2 — Missing target phoneme pre-flight contrast header.**
+  - *Evidence:* `PhonicsPhlyer.tsx:83` launches `ExerciseRunner` with generic title "Phonics — Minimal Pairs". The child is immediately thrown into swiping words without knowing what sound contrast is being trained.
+  - *Recommendation:* Display a prominent contrast badge on the screen header or pre-exercise splash (e.g., `Focus Sounds: /iː/ vs /ɪ/ • "sheep" vs "ship"`). For 6–12 ESL learners, explicit phonetic awareness drastically accelerates acoustic discrimination.
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Premature heart depletion on acoustic perception exploration.**
+  - *Evidence:* `PhonicsPhlyer.tsx:83` routes through `ExerciseRunner`, which treats every wrong swipe as a productive heart-costing failure. In phonemic ear-training, subtle acoustic discrimination requires exploratory listening; penalizing an initial subtle distinction with heart loss discourages kids from attempting tricky vowel distinctions.
+  - *Recommendation:* Allow an acoustic retry with visual phoneme highlight before docking a heart, or implement a "Hear Both" contrast audio comparison immediately upon a misidentification so the child learns the acoustic difference instantly.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Add Unit Selector & Cross-Unit Practice Pool (P1):** Provide a unit picker in PhonicsPhlyer and an "All Unlocked Sounds" option to eliminate empty-state dead ends and provide full 8–10 item drill sessions.
+2. **Fix Iconography & Branding (P1):** Replace the misleading `Mic` icon with `Headphones` / `Ear` / `Volume2` acoustic perception motifs to eliminate speaking anxiety.
+3. **Smart Empty State with Actionable Map CTA (P1):** If no units have phonics items, provide an active `[Go to Map]` button rather than a passive `Back` button.
+4. **Phoneme Contrast Pre-flight Pill (P2):** Display the active sound contrast (e.g. `/iː/ vs /ɪ/`) so learners know what subtle acoustic features to listen for.
+5. **Acoustic Feedback on Misidentification (P2):** When a child chooses the wrong word in the pair, play both sounds back-to-back with highlighted phonemes so the error becomes an instant learning moment.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Phonics Practice will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

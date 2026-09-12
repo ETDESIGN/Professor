@@ -1,4 +1,6 @@
-# Word Bank Build — v3 Quality Audit (`WORD_BANK_BUILD`)
+# Word Bank Build — Sentence Builder — v3 Quality Audit (`WORD_BANK_BUILD (productive)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -92,16 +94,29 @@ Refs are `apps/student/exercises/WordBankBuild.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Sub-floor tile dimensions cause mis-taps during sentence construction.** (Evidence: §1, §3 F1, `WordBankBuild.tsx:57,67`). Placed and bank tiles are styled with `px-3 py-2` (~40px height). In tight sentence flows on a 390px phone, words are closely packed. Tapping an adjacent word accidentally removes it from the build area, forcing the child to reconstruct the entire phrase. *Recommendation: Expand tile minimum height to 48px with chunky Duolingo-style bevels (`wa-paper` `#FDFBF7`, 0 3px 0 `#CBD5E1`, rounded-xl, 16px bold Fredoka font).*
+- **F2 · P3 — Disjointed build slot presentation.** (Evidence: §1, `WordBankBuild.tsx:54`). The sentence build target is rendered as a bare dashed container box. *Recommendation: Provide visual word-slot guidelines or an underlined baseline ribbon so children clearly perceive where words will snap.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Unprotected Check button burns hearts on half-built sentences.** (Evidence: §1, §3 F5, `WordBankBuild.tsx:34-41`). The bottom "Check" button is permanently active even when only 1 out of 6 words has been placed. Because `WORD_BANK_BUILD` is a productive exercise, an accidental early tap on Check counts as a productive failure and decrements a real database heart (`Engine.loseHeart`). *Recommendation: Disable the Check button until either all bank tiles are placed or the placed count matches the target word count, displaying a subtle prompt: "Place all words to check".*
+- **F4 · P2 — Cumbersome middle-insertion editing friction.** (Evidence: §1, `WordBankBuild.tsx:25-33`). If a child realizes they forgot the second word of a 6-word sentence, they must tap and eject words 3, 4, 5, and 6 in reverse order to insert the missing token. *Recommendation: Allow tapping between placed words to insert a tile, or support touch-drag reordering of placed tokens.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — Silent tile tapping lacks acoustic reinforcement.** (Evidence: §1, §3 F2). Tapping words from the bank into the build area is completely silent. In ESL language development, auditory modeling during assembly reinforces the mental phonological loop. *Recommendation: Vocalize individual word pronunciation via TTS as each tile is tapped and placed.*
+- **F6 · P2 — Missing sentence-level fluency playback upon success.** (Evidence: §1, §3 F3, `WordBankBuild.tsx:46`). When the sentence is completed successfully, the game shows green borders but does not automatically read the full fluent sentence aloud. *Recommendation: Auto-play the complete sentence with natural native intonation upon correct assembly to model fluent syntax.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — All-or-nothing error feedback hides partial success.** (Evidence: §1, §3 F4, `WordBankBuild.tsx:85-91`). If 5 out of 6 words are placed in correct order, a single misplaced word turns the entire build area red. Children cannot identify where their syntactic error occurred. *Recommendation: Keep correctly placed tokens highlighted in emerald, highlight the misplaced token in terracotta/amber, and display the intended sentence in the feedback drawer.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Disable Check button until sentence is fully constructed:** Protect children from burning hearts on accidental premature submissions.
+2. **[P2] Upgrade tiles to ≥48px Duolingo-style 3D tactile buttons:** Prevent frustrating mis-taps with generous hit zones and bouncy press physics.
+3. **[P2] Auto-play full sentence audio upon correct assembly:** Reinforce native sentence rhythm and prosody.
+4. **[P2] Add per-tile audio playback on tap:** Speak each word as it is selected from the bank.
+5. **[P3] Isolate syntactic errors with partial-match highlights:** Keep correctly positioned tokens green and highlight misplaced words in terracotta.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the tactile sentence tile builder and the Duolingo-style success drawer.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

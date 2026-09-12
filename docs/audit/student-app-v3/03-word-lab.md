@@ -1,4 +1,6 @@
-# Word Lab — Vocabulary Study — v3 Quality Audit (`FOCUS_CARDS`)
+# Word Lab — Focus Cards Step — v3 Quality Audit (`FOCUS_CARDS (passive study)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -93,16 +95,30 @@ Refs are `apps/student/WordLab.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — 2-column mobile grid squashes card anatomy.** (Evidence: §1, `WordLab.tsx:66`). On a standard 390px mobile viewport, a 2-column layout forces card widths down to ~165px. Attempting to fit an illustration, English headword, IPA phonetic transcription, Chinese translation, definition, and example sentence within this footprint results in severe visual cramping, truncated text, and tiny button targets. *Recommendation: Adopt a single-card swipe deck or focused carousel on mobile viewports (<640px) with clear pagination dots, reserving multi-column grids exclusively for tablet viewports.*
+- **F2 · P3 — Opacity-based image error fallback leaves a ghost silhouette.** (Evidence: §1, §3 F2, `WordLab.tsx:94`). When an image URL fails to load, `onError` simply lowers container opacity to `0.15`. This presents an empty, washed-out grey box that looks like a visual rendering glitch to a 7-year-old. *Recommendation: Render an illustrated icon fallback (e.g. Wonder Atlas magnifying glass or book icon in `#E2D7C3` border) with the English word centered prominently.*
+- **F3 · P3 — Sub-floor tap targets on the audio trigger chip.** (Evidence: §1, §3 F4, `WordLab.tsx:103-107`). The card's Listen button is styled as a small chip (`px-3 py-1.5` ≈ 32px height), well below the mobile touch floor of 48px. *Recommendation: Expand the audio button into a prominent circular speaker FAB (minimum 48×48px) with a tactile bevel (`wa-teal`).*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F4 · P2 — Obscure two-factor "Studied" completion gate.** (Evidence: §1, `WordLab.tsx:28-32, 159-174`). For a card to transition into the "studied" state, the student must both flip the card AND play its audio. However, the UI does not visually explain this compound requirement. Children frequently flip all cards, see the footer still saying "Continue (study all cards first)", and become stuck or frustrated. *Recommendation: Provide two explicit visual check chips on the card footer: "👂 Listen" and "🔄 Flip", giving instant visual satisfaction when each half of the requirement is satisfied.*
+- **F5 · P3 — Overflowing card back pushes footer off-screen.** (Evidence: §3 F1, `WordLab.tsx:79-151`). When an objective includes a lengthy English definition and example sentence, the back face expands beyond the container min-height, pushing the parent container and primary "Continue" button below the phone fold without internal scrolling. *Recommendation: Constrain card height and provide internal overflow scrolling (`overflow-y-auto`) for explanatory text, ensuring the bottom action button remains anchored and thumb-reachable.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F6 · P2 — Missing audio auto-reinforcement on initial card flip.** (Evidence: §1, §3 F3, `WordLab.tsx:42-47`). In solo EFL home study, auditory modeling is the primary channel for mapping grapheme to phoneme. Requiring young learners to hunt for a secondary audio button after flipping to the back face creates unnecessary cognitive friction. *Recommendation: Auto-play the native pronunciation audio once upon the first flip to the back card face, while keeping the speaker button active for manual replays.*
+- **F7 · P3 — Advanced dictionary definitions overload beginner learners.** (Evidence: §1, `WordLab.tsx:120-135`). Displaying abstract dictionary definitions in English for primary school ESL students creates cognitive overload. *Recommendation: Emphasize the direct image + Chinese L1 meaning + clear phonetic transcription; display English definitions only when explicitly tailored for intermediate tiers.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F8 · P2 — Lack of satisfying completion payoff when all cards are mastered.** (Evidence: §1, `WordLab.tsx:159-174`). When the 5th card is studied, the footer button simply switches label text to "I'm ready — let's practice". There is no tactile haptic pulse, sound chime, or visual celebration. *Recommendation: Trigger a celebratory sparkle burst and bounce animation on the "I'm ready!" button when the 5/5 milestone is reached, motivating the child as they transition into the exercise battery.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P2] Switch mobile layout to single-card swipe carousel:** Replace the cramped 2-column grid with a focused 1-card presentation for phones under 640px.
+2. **[P2] Clarify the "Studied" gate requirements:** Show dual visual badges (👂 Heard + 🔄 Flipped) on each card so the child understands exactly what actions unlock the step.
+3. **[P2] Enlarge audio button to ≥48px and auto-play on first flip:** Guarantee clear acoustic modeling without requiring kids to hunt for small 32px targets.
+4. **[P3] Add graceful illustrated image fallback:** Replace `opacity: 0.15` grey rectangles with a warm Wonder Atlas icon placeholder when images fail.
+5. **[P3] Contain card overflow and anchor the footer:** Constrain maximum card height so lengthy definitions never push the "I'm Ready" button off-screen.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the single-card carousel and card flip/studied states.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

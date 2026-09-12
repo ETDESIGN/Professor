@@ -1,4 +1,6 @@
-# Grammar Sandbox — Rule Step — v3 Quality Audit (`GRAMMAR_SANDBOX`)
+# Grammar Sandbox — In-Lesson Step — v3 Quality Audit (`GRAMMAR_SANDBOX (passive presentation)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +93,29 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Static monochrome text blocks induce reading fatigue.** (Evidence: §1, `SoloLessonPlayer.tsx:386-415`). Grammar rules and examples are rendered as plain static text lines inside an unadorned white box. For primary school learners (ages 6–10), this presentation resembles an intimidating paper grammar drill, repelling visual engagement. *Recommendation: Structure the rule using Wonder Atlas card tokens: a friendly mascot speech bubble delivering the core concept, followed by distinct tactile example cards (`#FDFBF7`) with color-accented grammar chips.*
+- **F2 · P3 — Lack of visual syntax highlighting.** (Evidence: §3 F3, `SoloLessonPlayer.tsx:395-408`). Example sentences do not visually emphasize the target grammatical pattern (e.g. past-tense '-ed', comparative '-er', or auxiliary verbs). Children cannot isolate what pattern they are expected to observe. *Recommendation: Apply bold syntax pill styling (e.g., `wa-terracotta` text or amber background pill) to the exact target tokens in every example sentence.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P2 — Total passive dead-zone invites instant skipping.** (Evidence: §1, §3 F4, `SoloLessonPlayer.tsx:721-740`). There is zero interactive affordance on this screen; the footer "Continue" button is permanently enabled from the instant of mount. In practice, 100% of solo students tap Continue within 1 second without reading. *Recommendation: Implement an active micro-engagement latch: require tapping at least one example sentence to play its audio before enabling the Continue button.*
+- **F4 · P3 — Disjointed transition into grammar practice.** (Evidence: §1). The sandbox simply dumps the child into an exercise battery on Continue without bridging the rule to the upcoming challenge. *Recommendation: Update the footer Continue button text to read "Try 3 Examples →" to clearly communicate the transition to active practice.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Zero audio modeling creates an illiterate barrier for early readers.** (Evidence: §1, §3 F1, `SoloLessonPlayer.tsx:386-415`). Unlike Word Lab and Story Stage, Grammar Sandbox provides NO audio playback. A 7-year-old EFL child who cannot yet read multi-syllable English words receives zero instruction. An ESL app used alone at home must never require pre-existing English reading literacy to understand a lesson. *Recommendation: Add a high-visibility speaker button (≥48px) for the rule title and per-sentence audio playback for every example row via TTS/audio cache.*
+- **F6 · P2 — Missing Chinese L1 scaffolding on abstract concepts.** (Evidence: §1). Grammar terminology in English ("regular verbs", "plural nouns") is incomprehensible to young EFL learners. *Recommendation: Provide an optional Chinese L1 translation toggle or subtitle pill under the rule summary so parents and students can anchor the grammatical meaning.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Absence of interactive comprehension check.** (Evidence: §1). Because there are no interactive components, the step offers zero sense of play or accomplishment. *Recommendation: Add a 1-tap interactive preview at the bottom of the card (e.g. "Tap the verb in this sentence") that triggers a satisfying sound effect and unlocks Continue.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Provide full audio playback for rules and examples:** Add prominent speaker buttons to read rule summaries and examples aloud for young ESL learners.
+2. **[P2] Highlight target grammatical structures:** Apply color-coded syntax highlighting (terracotta pills) to the specific inflection or keyword in every example.
+3. **[P2] Gate Continue on active audio engagement:** Require the child to listen to at least one example sentence before unlocking Continue.
+4. **[P2] Add Chinese L1 translation toggles for grammar rules:** Support ESL comprehension by explaining abstract grammar concepts in the child's native language.
+5. **[P3] Re-skin with Wonder Atlas visual scaffolding:** Encase grammar patterns in warm speech bubbles and structured card plates.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the interactive grammar pattern card with audio pills.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

@@ -1,4 +1,6 @@
-# Type Translate — v3 Quality Audit (`TYPE_TRANSLATE`)
+# Type Translate — L1 to L2 Translation — v3 Quality Audit (`TYPE_TRANSLATE (productive)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -90,16 +92,29 @@ Refs are `apps/student/exercises/TypeTranslate.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Severe exam-like visual presentation of translation prompts.** (Evidence: §1, `TypeTranslate.tsx:32-46`). The Chinese prompt text sits inside a plain box, accompanied by a flat input field and an aggressive "Translate to English" command banner. It looks like a high-stakes translation exam rather than a friendly language exercise. *Recommendation: Encase the Chinese L1 prompt inside an expressive mascot speech bubble or dialogue card, rendered in Wonder Atlas paper textures with warm rounded corners (`wa-paper` `#FDFBF7`, border `#E2D7C3`).*
+- **F2 · P3 — Input field keyboard layout clipping.** (Evidence: §1, `TypeTranslate.tsx:40`). When the on-screen keyboard pops up, the distance between the L1 prompt, input box, and Check button collapses. *Recommendation: Use flex-col layout with dynamic viewport-height constraints to keep the active typing field and Check button pinned comfortably above the software keyboard.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Pre-revealed hints bypass active retrieval.** (Evidence: §1, §3 F1, `TypeTranslate.tsx:43`). When an item content includes a hint, the hint text is displayed statically on the screen before the student even attempts an answer. If the hint contains the first letter or partial word, it turns an active recall task into a trivial copying drill. *Recommendation: Conceal hints behind a tappable "Need a hint? 💡" button that only opens on demand, or reveal hints automatically only after a first failed attempt.*
+- **F4 · P2 — Unprotected Check button penalizes empty submissions.** (Evidence: §1, `TypeTranslate.tsx:22-27`). Submitting an empty input box counts as a productive failure and decrements a real database heart (`Engine.loseHeart`). *Recommendation: Disable the Check button until at least 1 letter is typed.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Zero acoustic modeling on translated English output.** (Evidence: §1, §3 F3). In an ESL learning environment, translating a Chinese prompt into English by typing should always culminate in hearing the English word spoken aloud. Currently, the screen never speaks the accepted English word! The auditory feedback loop is broken. *Recommendation: Automatically play native TTS pronunciation of the target English word/sentence upon submission (both on correct matches and error reveals).*
+- **F6 · P2 — Disproportionate cognitive load for lower-primary typists.** (Evidence: §0, §1). Children aged 6–8 who are early EFL learners struggle intensely with touchscreen QWERTY keyboards. *Recommendation: For lower-tier stages (A1/A2), automatically degrade `TYPE_TRANSLATE` to a scrambled tile-bank selection model (like Word Bank Build) or provide a letter-bank keyboard.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Truncated error feedback hides alternative accepted answers.** (Evidence: §3 F2, `TypeTranslate.tsx:56`). If an objective accepts multiple valid translations (e.g. "bicycle" and "bike"), a failed attempt displays only `accepted[0]`. *Recommendation: Display all valid accepted variants in the feedback drawer ("Also accepted: bike").*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Automatically play native English audio upon submission:** Ensure the child hears the English pronunciation of the translated word immediately.
+2. **[P1] Hide hints behind an on-demand "Hint 💡" button:** Prevent pre-revealed hints from leaking answers before the child attempts retrieval.
+3. **[P2] Disable Check button on empty input:** Protect students from burning hearts on accidental taps.
+4. **[P2] Add scrambled tile scaffolding for younger students:** Provide a word/letter bank for ages 6–8 to avoid keyboard typing frustration.
+5. **[P3] Reskin prompt into Wonder Atlas mascot speech bubble:** Replace cold exam styling with a warm, encouraging illustrated character card.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the mascot-scaffolded translation slate and audio-enabled feedback drawer.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

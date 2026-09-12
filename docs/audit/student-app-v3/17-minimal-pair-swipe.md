@@ -1,4 +1,6 @@
-# Minimal Pair Swipe — v3 Quality Audit (`MINIMAL_PAIR_SWIPE`)
+# Minimal Pair Swipe — Phonics Ear Training — v3 Quality Audit (`MINIMAL_PAIR_SWIPE (receptive)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +93,28 @@ Refs are `apps/student/exercises/MinimalPairSwipe.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Missing phonemic contrast highlighting.** (Evidence: §1, §3 F3, `MinimalPairSwipe.tsx:35-46`). The two giant word cards display whole words (e.g. "ship" and "sheep") in uniform black text. Young ESL learners cannot visually isolate the specific graphemes responsible for the sound contrast. *Recommendation: Highlight contrasting phoneme graphemes (e.g., sh**i**p vs sh**ee**p) in a vibrant terracotta/amber accent color, mirroring the board's Phonics v3 design.*
+- **F2 · P3 — Disconnected audio trigger vs option cards.** (Evidence: §1). The audio button floats as an isolated pill above two giant cards. It lacks an acoustic waveform visualizer or speaker sound-wave rings to convey that audio playback is the core challenge. *Recommendation: Frame the audio button as a lively central speaker deck (`wa-teal` with animated ripple rings during playback).*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Pre-audio sight-reading bypasses ear training.** (Evidence: §1, §3 F1, `MinimalPairSwipe.tsx:19-25`). Audio does not auto-play on mount, and the two word cards are immediately interactive. Children frequently tap one of the cards instantly based purely on sight-reading or 50/50 guessing without ever hearing the target audio! This completely defeats the purpose of phonemic ear training. *Recommendation: Auto-play the target audio immediately upon mount, and gate card selection until the initial audio playback finishes (or visually pulse the speaker).*
+- **F4 · P2 — Fleeting 1.1s flash truncates auditory reflection.** (Evidence: §1, `MinimalPairSwipe.tsx:21`). Selecting an option flashes green/red and auto-advances after 1100ms. The child has no opportunity to hear the distractor word to contrast the two sounds. *Recommendation: Hold on reveal and provide an anchored bottom drawer with an explicit "Continue" button, allowing the child to tap either card to hear and compare both pronunciations.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Missing acoustic comparison between minimal pairs.** (Evidence: §1). In phonology acquisition, true ear-training occurs when the ear compares the target sound directly against the confusable foil (e.g. short /ɪ/ vs long /iː/, or /r/ vs /l/). Currently, only the correct word has an audio clip; the distractor sound is never heard. *Recommendation: In the post-answer reveal state, allow the child to tap both cards to hear "A vs B" comparison audio, firmly establishing the phonemic boundary.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F6 · P2 — Nominal "Swipe" title offers no swipe gesture.** (Evidence: §1, §3 F4). The exercise is named `MinimalPairSwipe`, yet the interaction is strictly a 2-button tap. On mobile devices, swiping left or right to sort a central sound card creates high-kinetic engagement. *Recommendation: Implement smooth touch-swipe gesture controls (swipe left for Word A, swipe right for Word B) with spring-physics card animations, while retaining tap targets.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Auto-play audio on mount and gate selection during first playback:** Force children to listen before tapping to prevent blind sight-guessing.
+2. **[P1] Enable post-answer "Hear Both" auditory comparison:** Allow tapping both cards after reveal to contrast the target sound against the confusable foil.
+3. **[P2] Visually highlight contrasting phoneme letters:** Color-code the vowel/consonant difference (e.g. sh**i**p vs sh**ee**p) in terracotta.
+4. **[P2] Replace 1.1s auto-advance with explicit Continue drawer:** Provide time for reflection and auditory re-listening.
+5. **[P3] Implement genuine mobile swipe gestures:** Support intuitive swipe left/right card sorting on touchscreens.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the acoustic phonics cards and the "Hear Both" contrast reveal drawer.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

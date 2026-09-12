@@ -1,4 +1,5 @@
 # Pronunciation Coach — v3 Quality Audit (`PRACTICE: /student/pronounce`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -92,16 +93,43 @@ Refs: `apps/student/PronunciationCoach.tsx`, `services/SpeechService.ts`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Glitched 3D button bevel: hot-pink surface with olive-green drop-shadow.**
+  - *Evidence:* `PronunciationCoach.tsx:294` styles the primary microphone trigger as `bg-duo-pink text-white shadow-[0_8px_0_#2f6f02]` (`F3`). A bright magenta pill sitting on a swamp-green shadow is a garish CSS artifact left over from an incomplete theme merge.
+  - *Recommendation:* Fix the bevel shadow to match the pink hue family: `bg-duo-pink shadow-[0_8px_0_#be185d]` or align with the app's unified sky-blue voice theme (`bg-sky-500 shadow-[0_8px_0_#0284c7]`).
+- **F2 · P2 — Severe dark-room recording studio clashes with child app warmth.**
+  - *Evidence:* `PronunciationCoach.tsx:170-175` renders a stark, pitch-black `bg-slate-900` studio with an intimidating audio waveform. For 6–12 year olds, this aesthetic evokes a clinical audio test rather than a playful speaking adventure.
+  - *Recommendation:* Reskin into a vibrant "Echo Stage" / "Voice Studio" featuring soft deep indigo (`#0B132B`) or light warm paper canvas, neon audio wave pulses, and an encouraging mascot avatar reacting in real-time to speech amplitude.
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Hardcoded single sentence forever with zero curriculum integration.**
+  - *Evidence:* `PronunciationCoach.tsx:60` hardcodes `targetSentence = data?.targetSentence || data?.targetWord || "Let's practice English conversation!"` (`F1`). When opened standalone from Practice Arena (`/student/pronounce`), `data` is undefined. Every child in every grade practices the exact same single sentence indefinitely. There is no deck, no progression, and no connection to the child's active vocabulary.
+  - *Recommendation:* Connect Pronunciation Coach to real curriculum content: load a deck of 5–8 target words and sentences from the active unit (or `SPEAK_SENTENCE` pool items). Show top progress dots (`1/5`, `2/5`) and advance to the next card upon an acceptable attempt.
+- **F4 · P2 — Unexplained edge degradation presents technical offline status as child failure.**
+  - *Evidence:* `PronunciationCoach.tsx:268-271` (`F2`). When the edge STT service fails or the student is offline, attempts fallback to client Web Speech where `isCorrect` is forced to false for safety. The UI brutally renders: `Attempts: 5 | Correct: 0`, and pays out the 1-XP floor. The child thinks their English is broken when in reality the server is unreachable.
+  - *Recommendation:* Detect offline / fallback mode and display an empowering banner: *"🎤 Practice Mode (Mic Server Offline) — Excellent effort practicing aloud!"*, counting attempts positively without displaying an accusatory "Correct: 0".
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Lack of word-level acoustic diagnostics leaves children guessing what to fix.**
+  - *Evidence:* `PronunciationCoach.tsx:258-263` displays only a coarse overall percentage (`Similarity: 85%`) and a generic feedback string (`currentAttempt.feedback`). If a child pronounces *"I like to eat apples"* but mispronounces *"apples"*, they receive no visual clue which word failed.
+  - *Recommendation:* Implement color-coded word-level phonological feedback (green = clear, amber = muffled/close, red = missing/mispronounced). Tapping any word should play isolated native audio for targeted phonemic modeling.
+- **F6 · P2 — Missing slow native audio playback (Turtle Mode).**
+  - *Evidence:* `PronunciationCoach.tsx:184-192`. The "Listen" button plays TTS at standard 1.0x speed only. Young ESL learners struggling with fast connected speech or unfamiliar consonant clusters cannot parse the auditory details.
+  - *Recommendation:* Provide a "Turtle 🐢 (0.75x)" toggle alongside normal audio playback so learners can clearly perceive syllable boundaries before speaking.
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Static loop trap: no session goal, completion screen, or celebration.**
+  - *Evidence:* `PronunciationCoach.tsx:280-287`. The screen offers only a circular "Retry" button. There is no concept of completing a round, earning stars, or returning to the arena with a speaking badge.
+  - *Recommendation:* Structure each session as a 5-card speaking challenge. Completing the 5 cards triggers a juicy victory celebration, awards speaking XP, and progresses speaking quests.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Dynamic Curriculum Content Deck (P1):** Replace the hardcoded single sentence with a real 5-item deck sourced from active unit vocabulary and `SPEAK_SENTENCE` pool items.
+2. **Word-Level Color Diagnostics (P1):** Highlight each word green/amber/red so children immediately understand which phonemes need improvement.
+3. **Graceful Presentation for Edge Degradation (P2):** When STT is offline, celebrate speech effort in "Offline Practice Mode" instead of reporting a demoralizing "Correct: 0".
+4. **Add Slow Turtle (0.75x) Native Audio Model (P2):** Allow children to hear the target sentence at reduced speed to clearly absorb syllable stress and phonetics.
+5. **Fix Glitched 3D Shadow & Soften Studio Theme (P2):** Correct the olive-green bevel shadow under the pink mic button and create an inviting, kid-friendly voice stage.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Pronunciation Coach will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

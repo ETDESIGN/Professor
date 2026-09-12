@@ -1,5 +1,7 @@
 # Fast Vocab — In-Lesson Step — v3 Quality Audit (`FAST_VOCAB (engine)`)
 
+> **Current status:** ag-audit-done
+
 ## SHARED PRELUDE (read first — identical in every game file)
 
 **Product.** "Professor" — an ESL/EFL English product for children aged **6–12** (primary market: China; L1 is Simplified Chinese, used for translations and meaning options). Teachers build game-lessons from scanned textbooks and run them in class on a projector. **This app is the STUDENT app** (`/student`, `student.html` entry, `apps/student/**`): the single child's own **personal phone/tablet** for home practice and homework — solo study, no teacher present, no classmates. The kid taps directly; nobody is watching over their shoulder.
@@ -92,16 +94,30 @@ Refs are `apps/student/steps/FastVocabStep.tsx` unless noted.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Jarring dark-arcade visual fracture in a light-themed lesson.** (Evidence: §0, §1, `FastVocabStep.tsx:206-228`). Fast Vocab abruptly replaces the warm lesson shell with a jet-black `slate-900` canvas and neon cyan/emerald accents. On a handheld phone during daytime home study, this extreme contrast switch feels like leaving the app. *Recommendation: Reskin Fast Vocab in the Wonder Atlas × Duolingo light system (paper cards `#FDFBF7`, warm terracotta streak badges, teal match highlights, crisp ink typography).*
+- **F2 · P3 — Tile grid cramming on 390px phone floor.** (Evidence: §1, `components/games/fastVocab/MatchWave.tsx`). Displaying 6 match tiles (words and pictures) simultaneously in a 2-column layout compresses tile heights, making image details hard to decipher and creating accidental mis-taps. *Recommendation: Enforce minimum 60px tile height with generous vertical spacing and clear 3D card borders.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Sudden unannounced transition into high-stress speed rounds.** (Evidence: §1, `FastVocabStep.tsx:185-192`). The match phase seamlessly transitions into a 10s countdown speed round with zero transition warning. Young learners are caught off guard while still in relaxed matching mode, burning through 3–4 seconds of the 10s clock before realizing the mode changed. *Recommendation: Insert a lively 1.5-second "Speed Round! ⚡ 3.. 2.. 1!" interstitial banner before the timer starts.*
+- **F4 · P2 — Unconfirmed exit button drops lesson progress.** (Evidence: §1, §3 F3, `FastVocabStep.tsx:299`). Tapping the chevron exit button instantly exits to the home map without saving session progress. *Recommendation: Hook the exit button to the lesson-wide exit confirmation modal.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Mismatch exploratory taps unfairly degrade stage completion stars.** (Evidence: §1, §3 F2, `FastVocabStep.tsx:127-133`). In the pairing phase, every mismatched tap calls `recordAnswer(false)`. Tile-matching inherently encourages active recall exploration and spatial scanning. Penalizing exploratory taps causes diligent students to end the lesson with 1 star despite eventually matching 100% of the vocabulary correctly. *Recommendation: Do not record individual mismatch taps into the global stage accuracy ledger; only record binary success/failure on the final speed rounds, or record accuracy at the completed pair level.*
+- **F6 · P2 — Inflexible 10s countdown creates reading panic for early ESL learners.** (Evidence: §1, §3 F1, `FastVocabStep.tsx:41`). ESL children ages 6–8 require 4–5 seconds just to sound out English syllables before matching with an image. A hard 10-second timer forces panic clicking and random guessing. *Recommendation: Extend default in-lesson speed timer to 15s, and if the timer expires, reveal the correct pair gently without scoring failure.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P2 — Fixed 1400ms auto-advance denies reading closure.** (Evidence: §1, §3 F4, `FastVocabStep.tsx:165`). Completing a wave auto-advances the screen after 1.4 seconds. Slower readers cannot inspect their completed matches or listen to the final word audio. *Recommendation: Allow tapping anywhere to advance immediately, or pause for 2.5s with a visible "Next Wave →" tap pill.*
+- **F8 · P3 — Missing 3-tier empty-pool fallback.** (Evidence: §3 F5). If `pool_items` is empty, Fast Vocab renders an error state with a Continue button rather than falling back to `get_unit_bundle` vocabulary. *Recommendation: Implement the same robust fallback ladder used in Spelling Bee (pool → unit bundle vocabulary → graceful empty state).*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Stop penalizing exploratory mismatch taps in stage stars:** Preserve stage star integrity by removing `recordAnswer(false)` from individual tile mismatches.
+2. **[P1] Add a 3-2-1 countdown interstitial before speed rounds:** Give children a clear mental pause before launching timed challenges.
+3. **[P2] Extend speed timer from 10s to 15s in-lesson:** Eliminate panic-guessing for early elementary ESL learners.
+4. **[P2] Reskin into Wonder Atlas × Duolingo light theme:** Replace dark `slate-900` with warm paper tiles, teal accents, and terracotta highlights.
+5. **[P2] Add exit-confirmation modal:** Protect solo students from accidental progress loss when tapping exit.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the light-themed Fast Vocab match wave and speed round screen.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

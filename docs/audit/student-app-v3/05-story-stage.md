@@ -1,4 +1,6 @@
-# Story Stage — Reader Step — v3 Quality Audit (`STORY_STAGE`)
+# Story Stage — In-Lesson Reader — v3 Quality Audit (`STORY_STAGE (passive reading)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -92,16 +94,29 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Dense typography lacks storybook spaciousness.** (Evidence: §1, `SoloLessonPlayer.tsx:301-318`). Story text renders inside a compact box with standard line spacing. For early ESL readers (ages 6–8), reading dense blocks of foreign text causes visual fatigue and line skipping. *Recommendation: Increase font size to ≥18px with generous line height (`leading-relaxed` / 1.75) on a warm paper background card (`#FDFBF7`) with illustrated page borders.*
+- **F2 · P3 — Sub-floor pagination buttons.** (Evidence: §1, §3 F1, `SoloLessonPlayer.tsx:353-365`). The previous/next page navigation buttons are rendered as small ~36px circle chips. Young children with developing fine motor skills frequently tap the space adjacent to the button without triggering page turns. *Recommendation: Enlarge previous/next page controls to minimum 48×48px buttons positioned at thumb level with clear tactile borders.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P2 — Missing touch swipe navigation on mobile devices.** (Evidence: §1, `SoloLessonPlayer.tsx:345-366`). In a digital book format on a mobile phone, children instinctively swipe horizontally to flip pages. Restricting page turns to tiny directional arrow buttons frustrates natural device gestures. *Recommendation: Implement native touch swipe gesture handlers (`touchstart` / `touchend`) to allow effortless thumb-swipe page turning.*
+- **F4 · P3 — Sticky vocabulary popup modal trap.** (Evidence: §1, §3 F2, `SoloLessonPlayer.tsx:370`). When a child taps an underlined vocabulary word, a definition card appears anchored at `bottom-24`. The popup can only be dismissed by tapping directly inside the popup itself. Tapping story text or turning the page leaves the popup stranded over the content. *Recommendation: Enable backdrop tap-outside dismissal and auto-dismiss the popup whenever the child navigates to another page.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P2 — "Read Along" lacks auditory-visual synchronization.** (Evidence: §1, §3 F5, `SoloLessonPlayer.tsx:324-327`). Pressing "Read along" triggers whole-page audio playback, but the story text remains completely static. The child hears continuous speech without any indication of which sentence or word corresponds to the current sound. In solo EFL study, this breaks the reading-phonics link. *Recommendation: Synchronize audio with progressive sentence or word-level highlighting (karaoke style) so the child's eyes track the spoken text.*
+- **F6 · P2 — Sub-floor inline vocabulary word touch padding.** (Evidence: §1, §3 F1, `SoloLessonPlayer.tsx:307-314`). Tappable vocabulary words are rendered as standard unpadded text spans (`text-lg`). Tapping a short 3-letter word like "cat" or "sun" on a phone requires unrealistic fingertip precision. *Recommendation: Add invisible touch padding (`py-1 px-1.5 inline-block -my-1 rounded`) around tappable words to expand the effective hit target to ≥44px without altering typographic spacing.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F7 · P3 — Missing story completion payoff.** (Evidence: §1, `SoloLessonPlayer.tsx:345-384`). Flipping to the last page simply leaves the reader sitting on the final sentence with the static shell footer Continue button. There is no acknowledgment that the child just finished reading an entire English story. *Recommendation: Display a cheerful end-of-story badge ("Story Finished! 📖✨") on the final page with an energetic prompt guiding the child into the comprehension challenge.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P2] Add mobile touch swipe gestures for page turning:** Enable intuitive thumb swiping left/right across the reading surface.
+2. **[P2] Implement synchronized text highlighting during "Read Along":** Highlight words/sentences in teal as audio plays to reinforce reading tracking.
+3. **[P2] Expand vocabulary word hit targets:** Add generous touch padding to underlined vocabulary words and support tap-outside popup dismissal.
+4. **[P3] Enlarge page navigation arrow buttons to ≥48px:** Guarantee reliable touch response for small hands.
+5. **[P3] Refresh story reader typography:** Increase font scale to 18px with relaxed line height on a warm paper `#FDFBF7` storybook surface.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the story reader card and synchronized reading state.)*
 
 ## §5 ZCode design verification (inside Stitch)
 

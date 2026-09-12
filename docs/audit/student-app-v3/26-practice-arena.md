@@ -1,4 +1,5 @@
 # Practice Arena — v3 Quality Audit (`SURFACE: /student/practice`)
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -91,16 +92,43 @@ Refs are `apps/student/PracticeMenu.tsx`.
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P1 — Unclickable "Coming Soon" dead cards occupy prime screen real estate.**
+  - *Evidence:* `PracticeMenu.tsx:63-74, 91-102` (`F1`). The first and third cards in the 2-column grid are "Listening" and "Grammar", both permanently disabled with greyed-out opacity and tiny "Soon" chips. On mobile screens (~390px wide), half the immediately visible viewport consists of unclickable buttons. For young learners, tapping disabled buttons creates immediate confusion and the perception that the app is broken.
+  - *Recommendation:* Remove unbuilt tiles from the primary active grid. Relocate them to a subtle "In the Workshop 🚧" footer drawer or hide them entirely until routes are functional.
+- **F2 · P2 — Misleading "Feather" icon and obsolete "Phonics Fly" naming.**
+  - *Evidence:* `PracticeMenu.tsx:127-129` renders a `Feather` icon for a tile labeled "Phonics Fly". This is dead legacy nomenclature from an abandoned flying-bird mechanic. The underlying route now trains minimal-pair acoustic discrimination.
+  - *Recommendation:* Retitle to "Phonics Lab" (or "Sound Detective") and replace the feather with acoustic perception iconography (`Headphones` / `Volume2` / `Ear`).
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F3 · P1 — Invisible active unit context leads to blind navigation.**
+  - *Evidence:* `PracticeMenu.tsx:60-178` (`F3`). Tiles like Phonics, Reading, and Speaking depend on `state.activeUnit`. However, the Practice Menu displays no indicator of which unit is active. A student tapping into "Reading" has no idea what story they are about to read or if the active unit even has content.
+  - *Recommendation:* Place a persistent "Active Unit: Unit X — Title" banner at the top of the Arena with a quick-switch dropdown, allowing children to intentionally direct their practice.
+- **F4 · P2 — Missing content-readiness badges on non-SRS tiles.**
+  - *Evidence:* `PracticeMenu.tsx:168-172`. Only the SRS Review card displays a due-count badge. Phonics, Speaking, and Reading display no item counts or progress signals, forcing children to tap blindly only to encounter empty states.
+  - *Recommendation:* Display live readiness badges on all tiles (e.g. `8 pairs ready`, `1 story available`, `5 speaking cards`).
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F5 · P1 — Unstructured menu taxomony conflates daily habit, skill gym, and arcade play.**
+  - *Evidence:* `PracticeMenu.tsx:60-178`. The 2-column grid presents an undifferentiated soup of activities: memory maintenance (SRS), receptive skills (Reading), productive skills (Speaking), and arcade games (Fast Vocab, Spelling Bee). Children aged 6–12 lack the executive function to structure a balanced practice session from a flat grid.
+  - *Recommendation:* Organize the Practice Arena into three clear pedagogical tiers:
+    1. **Daily Habit (Top Priority):** SRS Spaced Review & Phonics Lab (streak & memory maintenance).
+    2. **Skill Studio:** Speaking Coach & Storybook Reader (deep literacy).
+    3. **Arcade Zone:** Fast Vocab & Spelling Bee (speed, reflexes, high-score chase).
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F6 · P2 — Absence of Arena XP incentives or daily practice milestones.**
+  - *Evidence:* `PracticeMenu.tsx:43-55`. The screen acts as a plain folder list with no gamification, streak indicators, or daily practice rewards.
+  - *Recommendation:* Introduce a "Daily Training Bonus" banner (e.g., *"Train 2 skills today for +20 XP and a Mystery Chest!"*) to stimulate proactive solo practice outside homework assignments.
 
 ### 4.e Top-5 prioritized recommendations
+1. **Remove / Relocate "Coming Soon" Dead Cards (P1):** Clear the primary grid of unclickable Listening and Grammar tiles so every visible button works.
+2. **Pedagogical Tiering (P1):** Reorganize the flat grid into Daily Habit (SRS/Phonics), Skill Studio (Speaking/Reading), and Arcade Zone (Vocab/Spelling).
+3. **Active Unit Context & Quick-Switch (P1):** Add an active unit banner showing current unit content and allowing one-tap switching.
+4. **Update Phonics Branding & Iconography (P2):** Change "Phonics Fly" and the feather icon to "Phonics Lab" with headphones/soundwave visuals.
+5. **Content Readiness Badges (P2):** Show card/story counts on all tiles so learners know what is playable before tapping.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*Stitch mobile screens for Practice Arena will be generated in the design phase following owner approval.*
 
 ## §5 ZCode design verification (inside Stitch)
 

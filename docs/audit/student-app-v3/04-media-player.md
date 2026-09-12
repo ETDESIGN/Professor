@@ -1,4 +1,6 @@
-# Media Player — Song / Karaoke Step — v3 Quality Audit (`MEDIA_PLAYER`)
+# Media Player — Video & Song Step — v3 Quality Audit (`MEDIA_PLAYER (passive)`)
+
+> **Current status:** ag-audit-done
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -93,16 +95,30 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 > **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
 
 ### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F1 · P2 — Dark scrim and 60% opacity blind visual language modeling.** (Evidence: §1, §3 F1, `SoloLessonPlayer.tsx:498,508`). The video container applies `opacity: 0.6` behind a 50% black scrim overlay to make karaoke text pop. This darkens the singer's mouth, facial expressions, and contextual illustrations. In EFL education, visual modeling of lip movement and action context is essential for comprehension. *Recommendation: Render video at 100% full opacity with no global darkening scrim. Position karaoke lyrics inside a semi-transparent subtitle card at the bottom of the screen.*
+- **F2 · P3 — Scrubbing seek-bar is an unusable 6px target.** (Evidence: §1, §3 F3, `SoloLessonPlayer.tsx:539`). The scrubber bar is only 6px tall (`h-1.5`) with tiny timestamp labels. A child trying to drag back 10 seconds to hear a tricky chorus will almost certainly miss the bar, triggering browser navigation or scrolling gestures. *Recommendation: Expand the scrubber touch target to 48px height with a visible circular thumb scrubber (`w-4 h-4 wa-terracotta`) and bold legible timestamps (≥14px).*
+- **F3 · P3 — Visual identity mismatch with the rest of the light app.** (Evidence: §0, §1). The media player plunges into a dark indigo/slate void that feels disconnected from the warm Wonder Atlas cream/paper theme. *Recommendation: Encase the video in a warm paper card frame (`#FDFBF7`) with rounded corners (20px) and warm teal/terracotta transport controls.*
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
+### 4.b Workflow & user flow (the child's own path: open → play → reward)
+- **F4 · P1 — Unhandled video embed failure leaves an unrecoverable black void.** (Evidence: §3 F6). When a YouTube or external video URL fails to load (very common in Mainland China due to network restrictions or CDN timeouts), ReactPlayer does not trigger an error recovery state. The child is stuck looking at a blank black rectangle with no fallback. *Recommendation: Implement an `onError` handler that automatically falls back to: (1) unit `audioUrl` if available with an illustrated music card, or (2) a illustrated lyric-reading slide with a friendly "Audio unavailable" notice, unlocking the Continue button so the child is never blocked.*
+- **F5 · P2 — Missing "Song Complete" state leaves child stranded.** (Evidence: §1, `SoloLessonPlayer.tsx:522-565`). When media playback reaches the end, the player pauses on the final frame without any celebratory conclusion or visual cue directing the child to the footer Continue button. *Recommendation: On playback finish, display a warm end-card overlay ("Great listening! ⭐") and pulse the bottom Continue button to smoothly guide the child into the next lesson step.*
+
+### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
+- **F6 · P2 — Lack of independent volume control.** (Evidence: §3 F2, `SoloLessonPlayer.tsx:552-554`). The player only provides a binary mute/unmute toggle. Children listening on headphones often experience ear-splitting volume jumps when switching from quiet teacher speech to loud upbeat songs. *Recommendation: Add a simple 3-stage kid-friendly volume control (Low / Medium / High) alongside the mute toggle.*
+- **F7 · P3 — Disjointed audio-only fallback experience.** (Evidence: §3 F4, `SoloLessonPlayer.tsx:530-532`). When a lesson step provides an audio file instead of a video, the screen displays a plain text label "Press play to start" inside an empty container. *Recommendation: Present a rich animated vinyl/gramophone illustration or textbook unit theme artwork during audio-only playback to maintain engagement.*
+
+### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+- **F8 · P2 — Autoplay blocking on mobile devices creates tap ambiguity.** (Evidence: §1). Mobile Safari and Chrome restrict unmuted autoplay. If the video fails to autoplay on mount, the screen sits motionless without a clear pulsating play button, leading young kids to assume the app is frozen. *Recommendation: Render a large, pulsating 64px play button centered over the video whenever playback is paused or blocked by browser policy.*
 
 ### 4.e Top-5 prioritized recommendations
+1. **[P1] Implement network error recovery fallback:** Add `onError` detection that gracefully switches to audio or lyric cards when external video embeds fail to load in China.
+2. **[P2] Remove 50% scrim and restore 100% video opacity:** Let children see full-color visual phonics and mouth modeling without murky darkening overlays.
+3. **[P2] Enlarge seek bar to 48px touch floor:** Provide a generous touch target and visible drag handle for kid-friendly song scrubbing.
+4. **[P2] Add "Song Finished" end-state celebration:** Prompt the child clearly when the song ends and highlight the Continue button.
+5. **[P3] Harmonize container design with Wonder Atlas tokens:** Frame the player with warm paper cards and clear transport buttons.
 
 ### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
+*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the light-themed media player frame and video error fallback card.)*
 
 ## §5 ZCode design verification (inside Stitch)
 
