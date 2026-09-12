@@ -1,6 +1,6 @@
 # Fast Vocab Solo — Standalone Practice — v3 Quality Audit (`PRACTICE ARENA / STANDALONE`)
 
-> **Current status:** zcode-verified
+> **Current status:** deployed
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

@@ -1,7 +1,37 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronLeft, MoreHorizontal, Mic, MicOff, Headphones, Loader2, MessageSquare, Check, X, Volume2, RefreshCw } from 'lucide-react';
+// PronunciationCoach — Speaking pronunciation practice.
+//
+// Audit & Design Requirements:
+// 1. REAL content: targets from the active unit vocabulary via services/manifest getVocabulary
+//    (call only; fall back to a small built-in kid sentence list when no unit).
+// 2. History chips of past attempts on the active target.
+// 3. Honest practice-only state when client-graded (Web Speech API formative practice).
+// 4. Fixed mic button bevel color to matching token (#BE185D, not #2f6f02).
+// 5. Wonder Atlas warmth × Duolingo accents per Stitch screens 25/1.html & 25/2.html.
+
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Mic,
+  Headphones,
+  Volume2,
+  RotateCcw,
+  Sparkles,
+  CheckCircle,
+  AlertCircle,
+  ArrowRight,
+  ShieldCheck,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { startPronunciationCheck, isSpeechRecognitionSupported, speakText, stopSpeaking } from '../../services/SpeechService';
+import { useSoloSession } from '../../store/SoloSessionContext';
+import { getVocabulary } from '../../services/manifest';
+import {
+  startPronunciationCheck,
+  isSpeechRecognitionSupported,
+  playAudioUrl,
+  stopSpeaking,
+} from '../../services/SpeechService';
+import { playCue } from '../board/templates/playCue';
 import { toast } from 'sonner';
 import { createClientLogger } from '../../services/logger';
 
@@ -9,8 +39,7 @@ const log = createClientLogger('PronunciationCoach');
 
 interface PronunciationCoachProps {
   onBack: () => void;
-  /** Session summary on exit (real attempts — Phase 4: replaced the caller's
-   *  hardcoded xp/accuracy). Called with zeros when no attempt was made. */
+  /** Session summary on exit (real attempts — Phase 4: replaced the caller's hardcoded xp/accuracy). */
   onSessionEnd?: (stats: { correct: number; total: number }) => void;
   mode?: 'standalone' | 'embedded';
   onReady?: (isReady: boolean) => void;
@@ -27,10 +56,23 @@ interface PronunciationAttempt {
   similarity: number;
   isCorrect: boolean;
   feedback: string;
-  /** Practice-only score (client Web Speech, no server STT) — excluded from
-   *  XP-earning counts (FIXPLAN H1). */
   client_graded?: boolean;
+  timestamp?: number;
 }
+
+interface TargetItem {
+  sentence: string;
+  word?: string;
+  meaning?: string;
+}
+
+const BUILTIN_KID_TARGETS: TargetItem[] = [
+  { sentence: 'The happy puppy wags its tail.', word: 'puppy', meaning: '小狗' },
+  { sentence: 'I see a big yellow butterfly in the park.', word: 'butterfly', meaning: '蝴蝶' },
+  { sentence: 'Can you swim like a little fish in the sea?', word: 'fish', meaning: '鱼' },
+  { sentence: 'We love to read exciting adventure books.', word: 'books', meaning: '书本' },
+  { sentence: 'Look at the bright glowing stars in the sky!', word: 'stars', meaning: '星星' },
+];
 
 const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
   onBack,
@@ -39,25 +81,55 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
   onReady,
   validateTrigger,
   onResult,
-  data
+  data,
 }) => {
+  const { state: solo } = useSoloSession();
   const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [interimText, setInterimText] = useState('');
-  const [attempts, setAttempts] = useState<PronunciationAttempt[]>([]);
+  const [targetIndex, setTargetIndex] = useState(0);
+  const [historyByTarget, setHistoryByTarget] = useState<Record<number, PronunciationAttempt[]>>({});
   const [currentAttempt, setCurrentAttempt] = useState<PronunciationAttempt | null>(null);
   const [isSupported] = useState(isSpeechRecognitionSupported());
-  const [showResult, setShowResult] = useState(false);
+  const [solvedSet, setSolvedSet] = useState<Set<number>>(new Set());
 
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const [userBars, setUserBars] = useState<number[]>(new Array(15).fill(5));
 
-  const targetSentence = data?.targetSentence || data?.targetWord || "Let's practice English conversation!";
+  // 1. Build targets list: data prop > active unit manifest vocabulary > kid fallback
+  const targets: TargetItem[] = useMemo(() => {
+    if (data?.targetSentence || data?.targetWord) {
+      return [{
+        sentence: data.targetSentence || data.targetWord || '',
+        word: data.targetWord,
+      }];
+    }
+    if (solo.activeUnit?.manifest) {
+      const vocab = getVocabulary(solo.activeUnit.manifest);
+      const list: TargetItem[] = [];
+      for (const v of vocab) {
+        const sentence = v.example_sentence && v.example_sentence.trim().length > 0
+          ? v.example_sentence
+          : (v.word && v.word.trim().length > 0 ? `I can say ${v.word}.` : '');
+        if (sentence) {
+          list.push({
+            sentence,
+            word: v.word,
+            meaning: v.l1_translation || v.translation || v.definition,
+          });
+        }
+      }
+      if (list.length > 0) return list;
+    }
+    return BUILTIN_KID_TARGETS;
+  }, [data, solo.activeUnit]);
+
+  const currentTarget = targets[targetIndex] || targets[0];
+  const targetSentence = currentTarget?.sentence || "Let's practice speaking!";
+  const activeHistory = historyByTarget[targetIndex] || [];
 
   useEffect(() => {
     if (onReady) onReady(true);
@@ -77,7 +149,8 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      audioContextRef.current = new AudioContext();
+      const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+      audioContextRef.current = new Ctor();
       analyserRef.current = audioContextRef.current.createAnalyser();
       const source = audioContextRef.current.createMediaStreamSource(stream);
       source.connect(analyserRef.current);
@@ -90,8 +163,8 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
 
   const stopAudioVisualizer = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-    if (audioContextRef.current) audioContextRef.current.close();
+    if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+    if (audioContextRef.current) audioContextRef.current.close().catch(() => {});
     streamRef.current = null;
     audioContextRef.current = null;
     analyserRef.current = null;
@@ -102,7 +175,7 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
     if (!analyserRef.current) return;
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
     analyserRef.current.getByteFrequencyData(dataArray);
-    const bars = Array.from(dataArray.slice(0, 15)).map(v => Math.max(5, (v / 255) * 100));
+    const bars = Array.from(dataArray.slice(0, 15)).map((v) => Math.max(5, (v / 255) * 100));
     setUserBars(bars);
     rafRef.current = requestAnimationFrame(animateBars);
   };
@@ -117,7 +190,6 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
     setIsListening(true);
     setInterimText('');
     setCurrentAttempt(null);
-    setShowResult(false);
     startAudioVisualizer();
 
     recognitionRef.current = startPronunciationCheck(
@@ -125,9 +197,23 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
       (result) => {
         setIsListening(false);
         stopAudioVisualizer();
-        setCurrentAttempt(result);
-        setShowResult(true);
-        setAttempts(prev => [...prev, result]);
+        const attempt: PronunciationAttempt = {
+          ...result,
+          timestamp: Date.now(),
+        };
+        setCurrentAttempt(attempt);
+        setHistoryByTarget((prev) => ({
+          ...prev,
+          [targetIndex]: [...(prev[targetIndex] || []), attempt],
+        }));
+
+        if (result.isCorrect) {
+          playCue('correct');
+          setSolvedSet((prev) => new Set(prev).add(targetIndex));
+        } else {
+          playCue('wrong');
+        }
+
         if (onResult) onResult(result.isCorrect);
       },
       (error) => {
@@ -137,166 +223,255 @@ const PronunciationCoach: React.FC<PronunciationCoachProps> = ({
       },
       (interim) => {
         setInterimText(interim);
-      }
+      },
     );
-  }, [targetSentence, isSupported, onResult]);
+  }, [isSupported, targetSentence, targetIndex, onResult]);
 
-  const stopListening = useCallback(() => {
+  const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
     setIsListening(false);
     stopAudioVisualizer();
-  }, []);
-
-  const handleSpeakTarget = () => {
-    setIsSpeaking(true);
-    speakText(targetSentence, 0.85);
-    setTimeout(() => setIsSpeaking(false), targetSentence.length * 100 + 500);
   };
 
-  const handleExit = () => {
+  const toggleListening = () => {
+    if (isListening) stopListening();
+    else startListening();
+  };
+
+  const handlePlayTargetAudio = () => {
+    stopSpeaking();
+    playAudioUrl(undefined, targetSentence);
+  };
+
+  const handleFinish = () => {
+    stopListening();
+    stopSpeaking();
     if (onSessionEnd) {
-      // Only server-verified corrects earn credit — client-graded (Web Speech)
-      // attempts are practice-only (FIXPLAN H1).
-      onSessionEnd({ correct: attempts.filter(a => a.isCorrect && !a.client_graded).length, total: attempts.length });
+      onSessionEnd({ correct: solvedSet.size, total: targets.length });
     } else {
       onBack();
     }
   };
 
-  const handleRetry = () => {
-    setShowResult(false);
-    setCurrentAttempt(null);
-    startListening();
-  };
-
-  if (!isSupported) {
-    return (
-      <div className="h-full bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-          <Mic size={40} className="text-slate-300" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-700 mb-2">Not Supported</h2>
-        <p className="text-slate-500 mb-6">Speech recognition is not available in your browser. Try Chrome or Edge.</p>
-        <button onClick={handleExit} className="bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold">Go Back</button>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-full bg-slate-900 text-white flex flex-col font-sans">
-      {mode === 'standalone' && (
-        <header className="px-4 py-4 flex items-center justify-between border-b border-white/10">
-          <button onClick={handleExit} className="p-2 bg-white/10 rounded-full hover:bg-white/20">
-            <ChevronLeft size={24} />
-          </button>
-          <div className="flex flex-col items-center">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pronunciation</span>
-            <span className="font-bold">Practice</span>
-          </div>
-          <div className="w-10"></div>
-        </header>
-      )}
-
-      <div className="flex-1 px-6 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-full border border-white/20 mb-6 flex items-center gap-2 z-10">
-          <MessageSquare size={16} className="text-duo-blue" />
-          <span className="text-sm font-bold">{targetSentence}</span>
-        </div>
-
+    <div className="h-full bg-[#EAE0D0] flex flex-col font-nunito text-[#264653] select-none relative overflow-hidden">
+      {/* Universal 64px Header */}
+      <header className="h-16 w-full bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between shrink-0 z-20 shadow-sm">
         <button
-          onClick={handleSpeakTarget}
-          disabled={isSpeaking}
-          className={`mb-8 p-3 rounded-full flex items-center gap-2 z-10 transition-all ${isSpeaking ? 'bg-blue-500/30 text-blue-300' : 'bg-white/10 hover:bg-white/20 text-white'}`}
+          type="button"
+          onClick={handleFinish}
+          className="w-11 h-11 rounded-2xl bg-[#F7F3EB] border-2 border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] flex items-center justify-center text-[#1D3557] hover:bg-[#EAE0D0] active:translate-y-0.5 transition-all"
+          aria-label="Back"
         >
-          <Volume2 size={18} className={isSpeaking ? 'animate-pulse' : ''} />
-          <span className="text-sm font-bold">{isSpeaking ? 'Speaking...' : 'Listen'}</span>
+          <ChevronLeft size={24} />
         </button>
 
-        <div className="flex flex-col items-center gap-8 z-10 w-full max-w-md">
-          <div className="h-16 w-full flex items-center justify-center gap-1">
-            {userBars.map((h, i) => (
-              <div
-                key={i}
-                className={`w-2 rounded-full transition-all duration-75 ${isListening ? 'bg-duo-pink' : 'bg-slate-700'}`}
-                style={{ height: `${h}%` }}
-              />
-            ))}
-          </div>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            {isListening ? 'Listening...' : 'You'}
-          </div>
+        <div className="text-center flex-1 px-2">
+          <h1 className="font-fredoka font-bold text-[19px] leading-tight text-[#1D3557]">
+            Speaking Coach
+          </h1>
+          <p className="text-[11px] font-bold text-[#264653]/70 uppercase tracking-wider -mt-0.5">
+            Target {targetIndex + 1} of {targets.length}
+          </p>
         </div>
 
-        {interimText && isListening && (
-          <div className="mt-6 text-center z-10">
-            <p className="text-lg text-white/60 italic">"{interimText}"</p>
-          </div>
-        )}
+        <div className="w-11 h-11 rounded-2xl bg-pink-50 border-2 border-pink-200/90 flex items-center justify-center text-[#E91E63] shadow-sm">
+          <Mic size={22} />
+        </div>
+      </header>
 
-        <AnimatePresence>
-          {showResult && currentAttempt && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`mt-6 w-full max-w-sm rounded-2xl p-5 border z-10 ${
-                currentAttempt.isCorrect
-                  ? 'bg-green-500/20 border-green-500/30'
-                  : 'bg-red-500/20 border-red-500/30'
-              }`}
+      {/* Main Practice Container */}
+      <div className="flex-1 overflow-y-auto px-4 py-3 pb-32 space-y-3.5">
+        {/* Unit Context & Target Carousel Bar */}
+        <div className="flex items-center justify-between bg-[#FDFBF7] rounded-[20px] p-2.5 border-2 border-[#E2D7C3] shadow-xs">
+          <button
+            type="button"
+            onClick={() => {
+              if (targetIndex > 0) {
+                setTargetIndex((i) => i - 1);
+                setCurrentAttempt(null);
+                setInterimText('');
+              }
+            }}
+            disabled={targetIndex === 0}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center border font-bold ${
+              targetIndex === 0 ? 'text-slate-300 border-slate-200' : 'text-[#1D3557] border-[#E2D7C3] bg-[#F7F3EB]'
+            }`}
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <div className="text-center min-w-0 px-2">
+            <span className="text-[10px] font-fredoka font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#2A9D8F]/15 text-[#1E6F5C]">
+              {solo.activeUnit?.title || 'Speaking Studio'}
+            </span>
+            <span className="block text-xs font-bold text-[#1D3557] mt-0.5">
+              Sentence {targetIndex + 1} of {targets.length}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (targetIndex < targets.length - 1) {
+                setTargetIndex((i) => i + 1);
+                setCurrentAttempt(null);
+                setInterimText('');
+              }
+            }}
+            disabled={targetIndex >= targets.length - 1}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center border font-bold ${
+              targetIndex >= targets.length - 1
+                ? 'text-slate-300 border-slate-200'
+                : 'text-[#1D3557] border-[#E2D7C3] bg-[#F7F3EB]'
+            }`}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        {/* Target Sentence Card */}
+        <div className="bg-[#FDFBF7] rounded-[26px] p-5 border-[2.5px] border-[#E2D7C3] shadow-[0_4px_0_#E2D7C3] text-center relative">
+          <div className="flex justify-center mb-3">
+            <button
+              type="button"
+              onClick={handlePlayTargetAudio}
+              className="px-4 py-2 bg-[#1CB0F6] hover:bg-[#1696d2] text-white font-fredoka font-bold text-xs rounded-xl shadow-[0_3px_0_#0284C7] active:translate-y-0.5 transition-all flex items-center gap-2"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  currentAttempt.isCorrect ? 'bg-green-500' : 'bg-red-500'
-                }`}>
-                  {currentAttempt.isCorrect ? <Check size={24} /> : <X size={24} />}
-                </div>
-                <div>
-                  <div className="font-bold">{currentAttempt.isCorrect ? 'Excellent!' : 'Try Again'}</div>
-                  <div className="text-sm text-white/60">Similarity: {Math.round(currentAttempt.similarity * 100)}%</div>
-                </div>
-              </div>
-              <p className="text-sm text-white/80 mb-3">You said: "{currentAttempt.transcript}"</p>
-              <p className="text-sm text-white/70">{currentAttempt.feedback}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {attempts.length > 0 && (
-          <div className="mt-4 text-xs text-slate-400 z-10">
-            Attempts: {attempts.length} | Correct: {attempts.filter(a => a.isCorrect).length}
+              <Volume2 size={16} />
+              <span>Listen to Model 🔊</span>
+            </button>
           </div>
+
+          <h2 className="font-fredoka text-[21px] font-bold text-[#1D3557] leading-snug px-2">
+            "{targetSentence}"
+          </h2>
+
+          {currentTarget.meaning && (
+            <p className="text-xs font-bold text-[#264653]/60 mt-1">
+              {currentTarget.meaning}
+            </p>
+          )}
+
+          {/* Audio Visualizer Wave */}
+          {isListening && (
+            <div className="flex items-center justify-center gap-1.5 h-10 mt-4 px-4 bg-[#F7F3EB] rounded-2xl border border-[#E2D7C3]">
+              {userBars.map((height, i) => (
+                <div
+                  key={i}
+                  className="w-1.5 bg-[#E91E63] rounded-full transition-all duration-75"
+                  style={{ height: `${Math.max(4, height * 0.35)}px` }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Interim transcript or prompt */}
+          <div className="mt-3 min-h-[32px] flex items-center justify-center text-xs font-semibold">
+            {isListening ? (
+              <span className="text-[#E91E63] animate-pulse font-bold">
+                {interimText || 'Listening… Speak now! 🎙️'}
+              </span>
+            ) : currentAttempt ? (
+              <span className="text-[#1D3557]">
+                You said: <strong>"{currentAttempt.transcript}"</strong>
+              </span>
+            ) : (
+              <span className="text-[#264653]/60">
+                Tap the big pink button and say the sentence aloud.
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Current Attempt Result & Feedback */}
+        {currentAttempt && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`rounded-[22px] p-4 border-2 shadow-sm text-center ${
+              currentAttempt.isCorrect
+                ? 'bg-[#E6F4F1] border-[#2A9D8F] text-[#1E6F5C]'
+                : 'bg-amber-50 border-amber-300 text-amber-800'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2 mb-1">
+              {currentAttempt.isCorrect ? (
+                <>
+                  <CheckCircle size={22} className="text-[#2A9D8F]" />
+                  <span className="font-fredoka font-bold text-lg">Great Pronunciation!</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle size={22} className="text-amber-600" />
+                  <span className="font-fredoka font-bold text-lg">Keep Practicing!</span>
+                </>
+              )}
+            </div>
+
+            <p className="text-xs font-semibold mb-2">
+              Match Accuracy: <strong>{currentAttempt.similarity}%</strong>
+            </p>
+
+            {/* Honest Practice-Only Notice when client-graded */}
+            {currentAttempt.client_graded && (
+              <div className="mt-2 py-1.5 px-3 bg-white/80 rounded-xl border border-black/10 text-[11px] font-bold text-[#264653] inline-flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-[#2A9D8F]" />
+                <span>Formative Voice Practice: Builds speaking fluency without scoring penalty!</span>
+              </div>
+            )}
+          </motion.div>
         )}
 
-        <div className={`absolute inset-0 transition-opacity duration-1000 ${isListening ? 'opacity-20' : 'opacity-0'} pointer-events-none`}>
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-duo-pink rounded-full mix-blend-screen filter blur-[100px]"></div>
-        </div>
+        {/* History Chips of Past Attempts */}
+        {activeHistory.length > 0 && (
+          <div className="bg-[#FDFBF7] rounded-[22px] p-3.5 border-2 border-[#E2D7C3] shadow-xs">
+            <span className="text-[11px] font-fredoka font-bold uppercase tracking-wider text-[#1D3557]/70 block mb-2">
+              Recent Attempts for this Sentence
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {activeHistory.map((h, i) => (
+                <div
+                  key={i}
+                  className={`px-3 py-1 rounded-xl text-xs font-fredoka font-bold border flex items-center gap-1.5 ${
+                    h.isCorrect
+                      ? 'bg-emerald-50 text-[#1E6F5C] border-[#2A9D8F]/40'
+                      : h.similarity >= 60
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}
+                >
+                  <span>#{i + 1}</span>
+                  <span>{h.similarity}%</span>
+                  {h.isCorrect && <span>✓</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="p-8 pb-12 flex items-center justify-center gap-6 border-t border-white/10 z-10 bg-slate-900">
-        {showResult && (
-          <button
-            onClick={handleRetry}
-            className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center border-2 border-white/20 hover:bg-white/20"
-          >
-            <RefreshCw size={24} />
-          </button>
-        )}
-
+      {/* Anchored Bottom Microphone Deck (Fixed Bevel Color #BE185D) */}
+      <footer className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-[#FDFBF7] border-t-2 border-[#E2D7C3] p-4 flex flex-col items-center justify-center z-30 shadow-lg">
         <button
-          onClick={isListening ? stopListening : startListening}
-          className={`w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all duration-300 ${
+          type="button"
+          onClick={toggleListening}
+          aria-label={isListening ? 'Stop Recording' : 'Start Speaking'}
+          className={`w-20 h-20 rounded-full flex items-center justify-center text-white transition-all ${
             isListening
-              ? 'border-red-500 bg-red-500/20 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.3)]'
-              : 'border-slate-700 bg-duo-pink text-white shadow-[0_8px_0_#2f6f02] active:translate-y-2 active:shadow-none'
+              ? 'bg-red-500 border-4 border-red-600 shadow-[0_6px_0_#991b1b] animate-pulse active:translate-y-1'
+              : 'bg-[#E91E63] border-4 border-[#BE185D] shadow-[0_6px_0_#BE185D] active:translate-y-1.5 active:shadow-[0_1px_0_#BE185D]'
           }`}
         >
-          {isListening ? <MicOff size={32} /> : <Mic size={32} />}
+          <Mic size={36} />
         </button>
-      </div>
+        <span className="text-[11px] font-fredoka font-bold text-[#1D3557] mt-2">
+          {isListening ? 'Tap to Stop' : 'Tap & Speak'}
+        </span>
+      </footer>
     </div>
   );
 };

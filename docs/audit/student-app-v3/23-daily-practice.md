@@ -1,5 +1,5 @@
 # Daily Practice — SRS Review — v3 Quality Audit (`PRACTICE: /student/srs`)
-> **Current status:** zcode-verified
+> **Current status:** deployed
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

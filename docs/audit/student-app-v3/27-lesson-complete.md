@@ -1,5 +1,5 @@
 # Lesson Complete — Reward Interstitial — v3 Quality Audit (`REWARD: /student/lesson-complete`)
-> **Current status:** zcode-verified
+> **Current status:** deployed
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

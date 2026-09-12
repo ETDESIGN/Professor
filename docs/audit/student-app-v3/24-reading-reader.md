@@ -1,5 +1,5 @@
 # Reading Reader — v3 Quality Audit (`PRACTICE: /student/reading`)
-> **Current status:** zcode-verified
+> **Current status:** deployed
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

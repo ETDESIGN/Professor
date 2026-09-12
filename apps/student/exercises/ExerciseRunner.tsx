@@ -32,11 +32,12 @@ interface ExerciseRunnerProps {
   studentId: string;
   unitId?: string;
   title?: string;
+  heartSafe?: boolean;
   onExit?: () => void;
   onDone: (result: RunnerResult) => void;
 }
 
-const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title, onExit, onDone }) => {
+const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title, heartSafe, onExit, onDone }) => {
   const { t } = useTranslation();
   const registry = useMemo(() => getExerciseRegistry(), []);
   // Mutable queue (P-D): a missed word is re-queued once (retry) so it gets
@@ -120,10 +121,12 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
         // hearts value we failed to read.
         if (!result.success && modality === 'productive' && !heartsUnavailable) {
           try {
-            const h = await Engine.loseHeart(studentId, true);
+            if (!heartSafe) {
+              const h = await Engine.loseHeart(studentId, true);
+              setHearts(h.current);
+              if (h.current <= 0) setOutOfHearts(true);
+            }
             playCue('wrong');
-            setHearts(h.current);
-            if (h.current <= 0) setOutOfHearts(true);
           } catch { /* ignore */ }
         }
 

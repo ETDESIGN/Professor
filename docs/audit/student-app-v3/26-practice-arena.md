@@ -1,5 +1,5 @@
 # Practice Arena — v3 Quality Audit (`SURFACE: /student/practice`)
-> **Current status:** zcode-verified
+> **Current status:** deployed
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

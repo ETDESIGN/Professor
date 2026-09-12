@@ -1,5 +1,5 @@
 # Pronunciation Coach — v3 Quality Audit (`PRACTICE: /student/pronounce`)
-> **Current status:** zcode-verified
+> **Current status:** deployed
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

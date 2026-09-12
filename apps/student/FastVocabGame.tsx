@@ -1,6 +1,6 @@
 // FastVocabGame — the student solo surface of the shared Fast Vocab engine
-// (components/games/fastVocab). The original single-player loop, adapted:
-// pick a unit (the original's "category select") → 4 lightning waves of
+// (components/games/fastVocab). The single-player loop:
+// pick a unit (with category filter & pacing settings) → 4 lightning waves of
 // (3-pair match wave + 2 timed speed questions) on that unit's pool →
 // star tally + score count-up + personal best.
 //
@@ -8,10 +8,13 @@
 // wrong) but stays local: recordAnswer for session accuracy, Gamification XP
 // awarded once at the end (pattern A — self-awarded, no onSessionEnd, so the
 // parent never double-awards). FSRS/analytics writes are board-only.
+//
+// Redesigned to Wonder Atlas warmth × Duolingo accents per Stitch screens
+// 20/1.html (Unit picker lobby) and 20/2.html (Mid-game play).
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Loader2, Star, Trophy, Zap } from 'lucide-react';
+import { ChevronLeft, Loader2, Star, Trophy, Zap, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { supabase } from '../../services/supabaseClient';
 import { toPoolItem, type PoolItem } from '../../types/exercise';
@@ -68,21 +71,36 @@ const readBest = (unitId: string): PersonalBest | null => {
 };
 
 type Screen = 'select' | 'loading' | 'play' | 'done';
+type CategoryTab = 'current' | 'recent' | 'all';
 
 const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
   const { state: solo, recordAnswer } = useSoloSession();
 
   const [screen, setScreen] = useState<Screen>('select');
+  const [categoryTab, setCategoryTab] = useState<CategoryTab>('current');
+  const [selectedUnitId, setSelectedUnitId] = useState<string>('');
   const [unitId, setUnitId] = useState('');
   const [unitTitle, setUnitTitle] = useState('');
   const [mode, setMode] = useState<FastVocabMode>('image');
   const [unitPairs, setUnitPairs] = useState<FastVocabPair[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   const [wavePairs, setWavePairs] = useState<FastVocabPair[]>([]);
   const [waveIndex, setWaveIndex] = useState(0); // 0-based
   const [totalWaves, setTotalWaves] = useState(WAVES_PER_RUN);
   const cursorRef = useRef(0);
+
+  // Initialize selected unit from active unit or first unit in solo session
+  useEffect(() => {
+    if (!selectedUnitId) {
+      if (solo.activeUnit?.id) {
+        setSelectedUnitId(solo.activeUnit.id);
+      } else if (solo.units && solo.units.length > 0) {
+        setSelectedUnitId(solo.units[0].id);
+      }
+    }
+  }, [solo.activeUnit, solo.units, selectedUnitId]);
 
   // "Longer cycle" game setting — 5-pair match waves instead of the 3-pair
   // lightning default. Persisted so the student's choice sticks between runs.
@@ -156,6 +174,7 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
       setTotalAttempts(0);
       totalsRef.current = { firstTry: 0, interactions: 0, bestStreak: 0 };
       awardedRef.current = false;
+      setShowExitConfirm(false);
       setScreen('play');
     },
     [waveSize],
@@ -260,6 +279,7 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
     const finalCorrect = correctCountRef.current;
     setFinalStars(stars);
     setScreen('done');
+    playCue('win');
     try {
       const prev = readBest(unitId);
       const accuracy = t.interactions > 0 ? Math.round((t.firstTry / t.interactions) * 100) : 0;
@@ -289,171 +309,370 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
     [],
   );
 
-  // ── Screen: unit select ─────────────────────────────────────────────────
+  // Filter units for the picker tabs
+  const units = solo.units || [];
+  const filteredUnits = useMemo(() => {
+    if (categoryTab === 'current') {
+      if (solo.activeUnit) return [solo.activeUnit];
+      return units.slice(0, 1);
+    }
+    if (categoryTab === 'recent') {
+      return units.slice(0, 3);
+    }
+    return units;
+  }, [units, categoryTab, solo.activeUnit]);
+
+  const activeDeckUnit = useMemo(() => {
+    return units.find((u) => u.id === selectedUnitId) || solo.activeUnit || units[0] || null;
+  }, [units, selectedUnitId, solo.activeUnit]);
+
+  // ── Screen: unit select & lobby (Stitch Screen 1) ──────────────────────
   if (screen === 'select' || screen === 'loading') {
-    const units = solo.units || [];
     return (
-      <div className="h-full bg-slate-50 flex flex-col font-sans">
-        <header className="px-4 py-3 bg-white border-b border-slate-200 sticky top-0 z-20 flex items-center gap-3">
-          <button onClick={onBack} className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full">
+      <div className="h-full bg-[#EAE0D0] flex flex-col font-nunito text-[#264653] select-none">
+        {/* Universal 64px Header */}
+        <header className="h-16 w-full bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between shrink-0 z-20 shadow-sm">
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-11 h-11 rounded-2xl bg-[#F7F3EB] border-2 border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] flex items-center justify-center text-[#1D3557] hover:bg-[#EAE0D0] active:translate-y-0.5 transition-all"
+            aria-label="Back"
+          >
             <ChevronLeft size={24} />
           </button>
-          <span className="font-bold text-slate-800">Fast Vocab</span>
-        </header>
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-amber-100 text-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-3 border-2 border-amber-200">
-              <Zap size={30} />
-            </div>
-            <h1 className="text-xl font-bold text-slate-800">Pick your words</h1>
-            <p className="text-slate-500 text-sm">
-              Match {waveSize} pairs, then beat the clock — up to {WAVES_PER_RUN} waves.
+
+          <div className="text-center flex-1 px-2">
+            <h1 className="font-fredoka font-bold text-[19px] leading-tight text-[#1D3557]">
+              Fast Vocab Solo
+            </h1>
+            <p className="text-[11px] font-bold text-[#264653]/70 uppercase tracking-wider -mt-0.5">
+              Speed Match Challenge
             </p>
-            {/* Longer-cycle game setting — same option the teacher has on the plan block. */}
-            <div className="mt-4 mx-auto max-w-xs bg-white border border-slate-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-              <div className="text-left min-w-0">
-                <p className="text-sm font-bold text-slate-800">Longer cycle</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {longWaves ? '5 images per wave' : '3 images per wave (default)'}
+          </div>
+
+          <div className="h-10 px-3 bg-amber-50 border-2 border-amber-200/90 rounded-2xl flex items-center gap-1.5 shadow-sm">
+            <span className="text-[16px] leading-none">⭐</span>
+            <span className="font-fredoka font-bold text-sm text-[#D87A29]">Solo</span>
+          </div>
+        </header>
+
+        {/* Subheader Section with Category Pills */}
+        <section className="bg-[#EAE0D0] pt-3 pb-2.5 px-4 shrink-0 border-b border-[#E2D7C3]/70">
+          <div className="flex items-center justify-between mb-2 px-0.5">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1D3557]/80 font-fredoka flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#2A9D8F] inline-block"></span> Choose Unit to Practice
+            </span>
+            <span className="text-[10px] font-bold text-[#264653]/60 bg-[#FDFBF7]/80 px-2 py-0.5 rounded-full border border-[#E2D7C3]/60">
+              {units.length} Units Ready
+            </span>
+          </div>
+
+          <div className="flex gap-2 items-center" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={categoryTab === 'current'}
+              onClick={() => setCategoryTab('current')}
+              className={`flex-1 py-2 px-3 font-fredoka font-bold text-[13px] rounded-xl border-2 transition-all flex items-center justify-center gap-1.5 ${
+                categoryTab === 'current'
+                  ? 'bg-[#2A9D8F] border-[#1E6F5C] text-white shadow-[0_3px_0_#1E6F5C]'
+                  : 'bg-[#FDFBF7] border-[#E2D7C3] text-[#264653] shadow-[0_3px_0_#E2D7C3]'
+              }`}
+            >
+              <span>Current Unit</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={categoryTab === 'recent'}
+              onClick={() => setCategoryTab('recent')}
+              className={`flex-1 py-2 px-3 font-fredoka font-bold text-[13px] rounded-xl border-2 transition-all flex items-center justify-center gap-1.5 ${
+                categoryTab === 'recent'
+                  ? 'bg-[#2A9D8F] border-[#1E6F5C] text-white shadow-[0_3px_0_#1E6F5C]'
+                  : 'bg-[#FDFBF7] border-[#E2D7C3] text-[#264653] shadow-[0_3px_0_#E2D7C3]'
+              }`}
+            >
+              <span>Recent Units</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={categoryTab === 'all'}
+              onClick={() => setCategoryTab('all')}
+              className={`py-2 px-3 font-fredoka font-bold text-[13px] rounded-xl border-2 transition-all flex items-center justify-center gap-1.5 ${
+                categoryTab === 'all'
+                  ? 'bg-[#2A9D8F] border-[#1E6F5C] text-white shadow-[0_3px_0_#1E6F5C]'
+                  : 'bg-[#FDFBF7] border-[#E2D7C3] text-[#264653] shadow-[0_3px_0_#E2D7C3]'
+              }`}
+            >
+              <span>All Units</span>
+            </button>
+          </div>
+        </section>
+
+        {/* Scrollable Main Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3.5">
+          {/* Preferences Card: Game Mode Settings */}
+          <section className="bg-[#FDFBF7] rounded-[20px] p-3.5 border-2 border-[#E2D7C3] shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#E2D7C3]/60">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-[#2A9D8F]/10 text-[#2A9D8F] flex items-center justify-center text-xs font-black">
+                  ⚙️
+                </div>
+                <h2 className="font-fredoka font-bold text-[14px] text-[#1D3557] tracking-tight">
+                  Game Mode Settings
+                </h2>
+              </div>
+              <div className="px-2.5 py-1 bg-[#F7F3EB] border border-[#E2D7C3] rounded-full text-[11px] font-extrabold text-[#1D3557]/80 font-fredoka flex items-center gap-1">
+                <span className="text-[#E76F51] text-xs">⏱</span>
+                <span>Pacing: Standard 10s</span>
+              </div>
+            </div>
+
+            {/* Toggle Row: Longer Waves */}
+            <div className="flex items-center justify-between pt-0.5">
+              <div className="pr-2">
+                <div className="text-[13px] font-bold text-[#1D3557] leading-tight flex items-center gap-1.5">
+                  <span>Longer Waves</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 bg-[#2A9D8F]/15 text-[#1E6F5C] rounded-md">
+                    PRO
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#264653]/65 font-medium leading-tight mt-0.5">
+                  {longWaves ? '5 pairs per round (Higher XP!)' : '3 pairs per round (Fast & Focused)'}
                 </p>
               </div>
+
               <button
                 type="button"
                 role="switch"
                 aria-checked={longWaves}
                 onClick={toggleLongWaves}
-                className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${longWaves ? 'bg-amber-500' : 'bg-slate-300'}`}
-                title="Toggle the match wave between 3 and 5 images"
+                className={`w-12 h-7 rounded-full p-0.5 border-2 transition-colors duration-200 relative shrink-0 ${
+                  longWaves ? 'bg-[#2A9D8F] border-[#1E6F5C]' : 'bg-[#D6CBB8] border-[#B8AA94]'
+                }`}
+                title="Toggle between 3 and 5 images per wave"
               >
                 <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${longWaves ? 'translate-x-5' : ''}`}
+                  className={`block w-5 h-5 rounded-full bg-[#FDFBF7] shadow-md transform transition-transform duration-200 border border-black/10 ${
+                    longWaves ? 'translate-x-5' : 'translate-x-0'
+                  }`}
                 />
               </button>
             </div>
-            {loadError && <p className="text-red-500 text-sm mt-3 font-medium">{loadError}</p>}
-          </div>
-          {screen === 'loading' ? (
-            <div className="flex flex-col items-center text-slate-400 py-10">
-              <Loader2 className="animate-spin mb-3" size={28} /> Loading words…
+          </section>
+
+          {loadError && (
+            <div className="p-3 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-xs font-bold flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span>{loadError}</span>
             </div>
-          ) : units.length === 0 ? (
-            <div className="bg-white rounded-2xl p-6 text-center border border-slate-100 text-slate-500">
-              No units yet — join a class or open a lesson first.
+          )}
+
+          {/* Unit Cards Label */}
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-[12px] font-fredoka font-bold uppercase tracking-wider text-[#1D3557]/80 flex items-center gap-1.5">
+              <span>📚</span> Available Lesson Decks
+            </span>
+            <span className="text-[11px] font-bold text-[#2A9D8F] font-nunito">Tap to Select</span>
+          </div>
+
+          {screen === 'loading' ? (
+            <div className="flex flex-col items-center justify-center text-[#1D3557]/60 py-12">
+              <Loader2 className="animate-spin mb-3 text-[#2A9D8F]" size={32} />
+              <span className="font-fredoka text-sm">Preparing lightning vocabulary wave…</span>
+            </div>
+          ) : filteredUnits.length === 0 ? (
+            <div className="bg-[#FDFBF7] rounded-[22px] p-6 text-center border-2 border-[#E2D7C3] text-[#264653]/70">
+              <p className="font-bold text-sm">No units in this view.</p>
+              <button
+                onClick={() => setCategoryTab('all')}
+                className="mt-3 px-4 py-2 bg-[#2A9D8F] text-white rounded-xl font-fredoka text-xs font-bold shadow-[0_3px_0_#1E6F5C]"
+              >
+                View All Units
+              </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {units.map((u) => {
+            <div className="space-y-3 pb-2">
+              {filteredUnits.map((u) => {
+                const isSelected = selectedUnitId === u.id;
                 const best = readBest(u.id);
                 return (
-                  <motion.button
+                  <article
                     key={u.id}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => startUnit(u.id, u.title)}
-                    className="w-full bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm hover:border-amber-300 flex items-center gap-4 text-left"
+                    onClick={() => setSelectedUnitId(u.id)}
+                    className={`relative bg-[#FDFBF7] rounded-[22px] p-3.5 border-[2.5px] cursor-pointer transition-all hover:translate-y-[-1px] ${
+                      isSelected
+                        ? 'border-[#2A9D8F] shadow-[0_4px_0_#2A9D8F]'
+                        : 'border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3]'
+                    }`}
                   >
-                    <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
-                      <Zap size={22} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-slate-800 truncate">{u.title}</p>
-                      <p className="text-xs text-slate-400 truncate">{u.topic ? `${u.topic} · ` : ''}{u.level || ''}</p>
-                    </div>
-                    {best && (
-                      <div className="text-right shrink-0">
-                        <div className="flex gap-0.5">
-                          {Array.from({ length: 5 }, (_, i) => (
-                            <Star key={i} size={12} className={i < best.stars ? 'text-amber-400' : 'text-slate-200'} fill={i < best.stars ? 'currentColor' : 'none'} />
-                          ))}
-                        </div>
-                        <p className="text-[10px] font-bold text-slate-400 tabular-nums">best {best.score}</p>
+                    {isSelected && (
+                      <div className="absolute -top-3 right-4 bg-[#2A9D8F] border-2 border-[#1E6F5C] text-white text-[10px] font-fredoka font-extrabold tracking-wider px-2.5 py-0.5 rounded-full shadow-[0_2px_0_#1E6F5C] flex items-center gap-1">
+                        <span>⚡</span> ACTIVE SELECTION
                       </div>
                     )}
-                  </motion.button>
+
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-12 h-12 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 ${
+                            isSelected
+                              ? 'bg-[#2A9D8F]/15 border-[#2A9D8F]/30 text-[#2A9D8F]'
+                              : 'bg-amber-50 border-amber-200 text-amber-600'
+                          }`}
+                        >
+                          <Zap size={22} />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-fredoka font-bold text-[15px] text-[#1D3557] leading-snug truncate">
+                            {u.title}
+                          </h3>
+                          <p className="text-[11px] font-bold text-[#264653]/60 truncate mt-0.5">
+                            {u.topic ? `${u.topic} · ` : ''}{u.level || 'Beginner'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {best && (
+                        <div className="text-right shrink-0">
+                          <div className="flex gap-0.5 justify-end">
+                            {Array.from({ length: 5 }, (_, i) => (
+                              <Star
+                                key={i}
+                                size={12}
+                                className={i < best.stars ? 'text-amber-400' : 'text-slate-200'}
+                                fill={i < best.stars ? 'currentColor' : 'none'}
+                              />
+                            ))}
+                          </div>
+                          <span className="inline-block mt-1 text-[10px] font-fredoka font-bold px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-[#D87A29]">
+                            Best: {best.score} pts
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </article>
                 );
               })}
             </div>
           )}
         </div>
+
+        {/* Anchored Primary CTA Footer */}
+        {activeDeckUnit && (
+          <footer className="bg-[#FDFBF7] border-t-2 border-[#E2D7C3] p-4 shrink-0 shadow-lg">
+            <button
+              type="button"
+              onClick={() => startUnit(activeDeckUnit.id, activeDeckUnit.title)}
+              className="w-full h-14 bg-[#E76F51] hover:bg-[#d65f42] border-2 border-[#C4553B] text-white font-fredoka font-bold text-[16px] rounded-2xl shadow-[0_4px_0_#C4553B] flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all"
+            >
+              <span>START FAST VOCAB ({activeDeckUnit.title.slice(0, 16)})</span>
+              <Zap size={18} />
+            </button>
+          </footer>
+        )}
       </div>
     );
   }
 
-  // ── Screen: done (star tally + count-up + rewards) ──────────────────────
+  // ── Screen: done (Wonder Atlas Celebration) ────────────────────────────
   if (screen === 'done') {
     const t = totalsRef.current;
     const accuracy = t.interactions > 0 ? Math.round((t.firstTry / t.interactions) * 100) : 0;
     const displayScore = Math.max(0, score);
+    const earnedXp = Math.max(1, correctCount);
+
     return (
-      <div className="h-full bg-slate-900 flex flex-col items-center justify-center text-white font-sans p-6 relative overflow-hidden">
-        <motion.h1
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-          className="text-4xl font-black mb-1"
-        >
-          Well Done!
-        </motion.h1>
-        <p className="text-slate-400 mb-6">{unitTitle}</p>
-
-        <div className="flex gap-2 mb-8">
-          {Array.from({ length: 5 }, (_, i) => (
-            <motion.span
-              key={i}
-              initial={{ scale: 0, rotate: -30 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: 0.3 + i * 0.22, type: 'spring', stiffness: 300, damping: 14 }}
-            >
-              <Star size={44} className={i < finalStars ? 'text-amber-400' : 'text-slate-700'} fill={i < finalStars ? 'currentColor' : 'none'} />
-            </motion.span>
-          ))}
-        </div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-5xl font-black tabular-nums text-emerald-400 mb-1"
-        >
-          {displayScore}
-        </motion.p>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">final score</p>
-
-        <div className="flex gap-6 text-center mb-8">
-          <div>
-            <p className="text-2xl font-black text-orange-400 tabular-nums">{t.bestStreak}</p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase">best streak</p>
+      <div className="h-full bg-[#EAE0D0] flex flex-col items-center justify-center p-5 font-nunito relative overflow-hidden select-none">
+        <div className="w-full max-w-sm bg-[#FDFBF7] rounded-[28px] border-[2.5px] border-[#E2D7C3] shadow-[0_6px_0_#E2D7C3] p-6 text-center relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-amber-700 text-[11px] font-fredoka font-extrabold uppercase mb-2">
+            <span>⚡</span> FAST VOCAB RUN COMPLETE
           </div>
-          <div>
-            <p className="text-2xl font-black text-indigo-300 tabular-nums">{accuracy}%</p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase">first-try</p>
-          </div>
-          <div>
-            <p className="text-2xl font-black text-lime-400 tabular-nums">+{Math.max(1, correctCount)} XP</p>
-            <p className="text-[10px] font-bold text-slate-500 uppercase">earned</p>
-          </div>
-        </div>
 
-        {finalStars === 5 && (
-          <motion.p initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.4, type: 'spring' }} className="flex items-center gap-2 text-amber-300 font-bold mb-6">
-            <Trophy size={18} /> +{GEM_REWARDS.PERFECT_LESSON} gems — perfect run!
-          </motion.p>
-        )}
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => startUnit(unitId, unitTitle)}
-            className="px-6 py-3 bg-amber-500 hover:bg-amber-400 rounded-2xl font-bold text-slate-900"
+          <motion.h1
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-3xl font-fredoka font-bold text-[#1D3557] mb-1"
           >
-            Play again
-          </button>
-          <button onClick={onBack} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-2xl font-bold">
-            Done
-          </button>
+            Well Done!
+          </motion.h1>
+          <p className="text-xs font-bold text-[#264653]/70 mb-5 truncate">{unitTitle}</p>
+
+          {/* Golden Stars Cascade */}
+          <div className="flex justify-center gap-2 mb-6">
+            {Array.from({ length: 5 }, (_, i) => (
+              <motion.span
+                key={i}
+                initial={{ scale: 0, rotate: -25 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.2 + i * 0.15, type: 'spring', stiffness: 300, damping: 14 }}
+              >
+                <Star
+                  size={36}
+                  className={i < finalStars ? 'text-amber-400' : 'text-slate-200'}
+                  fill={i < finalStars ? 'currentColor' : 'none'}
+                />
+              </motion.span>
+            ))}
+          </div>
+
+          {/* Final Score */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-6">
+            <p className="text-5xl font-fredoka font-bold text-[#2A9D8F] leading-none mb-1">
+              {displayScore}
+            </p>
+            <p className="text-[11px] font-bold text-[#264653]/60 uppercase tracking-widest font-fredoka">
+              Final Score Points
+            </p>
+          </motion.div>
+
+          {/* 3-Stat Metric Row */}
+          <div className="grid grid-cols-3 gap-2 bg-[#F7F3EB] rounded-2xl p-3 border border-[#E2D7C3] mb-6">
+            <div>
+              <p className="text-xl font-fredoka font-bold text-[#E76F51]">{t.bestStreak}</p>
+              <p className="text-[10px] font-bold text-[#264653]/60 uppercase">Best Streak</p>
+            </div>
+            <div>
+              <p className="text-xl font-fredoka font-bold text-[#1D3557]">{accuracy}%</p>
+              <p className="text-[10px] font-bold text-[#264653]/60 uppercase">First-Try</p>
+            </div>
+            <div>
+              <p className="text-xl font-fredoka font-bold text-[#2A9D8F]">+{earnedXp} XP</p>
+              <p className="text-[10px] font-bold text-[#264653]/60 uppercase">Earned</p>
+            </div>
+          </div>
+
+          {/* Perfect Run Gem Banner (Pattern A, only when 5 stars) */}
+          {finalStars === 5 && (
+            <div className="mb-6 bg-[#E6F4F1] border-2 border-[#2A9D8F] rounded-2xl p-3 flex items-center justify-center gap-2 text-[#1E6F5C] font-fredoka font-bold text-sm shadow-sm">
+              <Trophy size={18} />
+              <span>+{GEM_REWARDS.PERFECT_LESSON} Gems — Perfect Run!</span>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="space-y-2.5">
+            <button
+              onClick={() => startUnit(unitId, unitTitle)}
+              className="w-full py-3.5 bg-[#E76F51] hover:bg-[#d65f42] text-white font-fredoka font-bold text-[15px] rounded-2xl shadow-[0_4px_0_#C4553B] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
+            >
+              <span>Play Again</span>
+              <ArrowRight size={18} />
+            </button>
+            <button
+              onClick={onBack}
+              className="w-full py-3 bg-[#FDFBF7] hover:bg-[#F7F3EB] text-[#1D3557] font-fredoka font-bold text-[14px] rounded-2xl border-2 border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] active:translate-y-0.5 active:shadow-none transition-all"
+            >
+              Done & Return to Arena
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ── Screen: play ────────────────────────────────────────────────────────
+  // ── Screen: play (Stitch Screen 2) ──────────────────────────────────────
   const matchProgress = turn.phase === 'match' ? turn.matchedPairIds.length / Math.max(1, wavePairs.length) : 1;
   const hudProgress =
     (waveIndex + (turn.phase === 'match' ? matchProgress * 0.5 : 0.5 + (turn.qIdx / Math.max(1, turn.speedQs.length)) * 0.5)) /
@@ -466,11 +685,17 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
         : 'wave complete';
 
   return (
-    <div className="h-full bg-slate-900 flex flex-col font-sans relative overflow-hidden">
-      <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 -ml-2 text-slate-400 hover:text-white rounded-full shrink-0">
+    <div className="h-full bg-[#EAE0D0] flex flex-col font-nunito relative overflow-hidden select-none">
+      {/* Mid-game Header */}
+      <header className="px-4 py-3 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center gap-3 shrink-0 z-20 shadow-sm">
+        <button
+          onClick={() => setShowExitConfirm(true)}
+          className="w-10 h-10 rounded-xl bg-[#F7F3EB] border border-[#E2D7C3] shadow-[0_2px_0_#E2D7C3] text-[#1D3557] hover:bg-[#EAE0D0] flex items-center justify-center shrink-0 active:translate-y-0.5 transition-all"
+          aria-label="Exit Game"
+        >
           <ChevronLeft size={22} />
         </button>
+
         <div className="flex-1 min-w-0">
           <FastVocabHud
             streak={turn.streak}
@@ -481,21 +706,23 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
             compact
           />
         </div>
-        <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-xl font-black text-emerald-400 tabular-nums text-sm shrink-0">
-          {Math.max(0, score)}
-        </div>
-      </div>
 
-      <div className="flex-1 min-h-0 relative px-3 pb-4">
+        <div className="px-3 py-1.5 bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-xl font-fredoka font-bold text-[#E76F51] tabular-nums text-sm shrink-0 shadow-sm">
+          ⭐ {Math.max(0, score)}
+        </div>
+      </header>
+
+      {/* Main Play Arena */}
+      <div className="flex-1 min-h-0 relative px-3 pb-4 pt-2">
         <AnimatePresence mode="wait">
           {turn.phase === 'match' && (
             <motion.div
               key={`match-${waveIndex}-${wavePairs.map((p) => p.id).join(',')}`}
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
+              exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.22 }}
-              className="absolute inset-0"
+              className="absolute inset-0 p-2"
             >
               <FastVocabMatchWave
                 pairs={wavePairs}
@@ -508,14 +735,15 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
               />
             </motion.div>
           )}
+
           {turn.phase === 'speed' && turn.currentQ && (
             <motion.div
               key={`speed-${turn.currentQ.id}`}
-              initial={{ opacity: 0, x: 50 }}
+              initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
+              exit={{ opacity: 0, x: -40 }}
               transition={{ duration: 0.22 }}
-              className="absolute inset-0"
+              className="absolute inset-0 p-2"
             >
               <FastVocabSpeedRound
                 question={turn.currentQ}
@@ -532,19 +760,68 @@ const FastVocabGame: React.FC<FastVocabGameProps> = ({ onBack }) => {
               />
             </motion.div>
           )}
+
           {turn.phase === 'complete' && (
             <motion.div
               key={`wave-done-${waveIndex}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute inset-0 flex flex-col items-center justify-center text-white"
+              className="absolute inset-0 flex flex-col items-center justify-center text-[#1D3557] p-6 text-center"
             >
-              <p className="text-3xl font-black mb-1">Wave {waveIndex + 1} clear!</p>
-              <p className="text-slate-400 text-sm">{waveIndex + 1 < totalWaves ? 'next wave loading…' : 'finishing up…'}</p>
+              <div className="w-16 h-16 bg-[#2A9D8F]/15 text-[#2A9D8F] rounded-2xl border-2 border-[#2A9D8F]/30 flex items-center justify-center mb-3 text-3xl">
+                ⚡
+              </div>
+              <p className="text-3xl font-fredoka font-bold mb-1">Wave {waveIndex + 1} Clear!</p>
+              <p className="text-[#264653]/70 text-sm font-bold">
+                {waveIndex + 1 < totalWaves ? 'Get ready for the next wave…' : 'Finalizing your score…'}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Exit Confirmation Guard Modal (Protects Pattern A Sacred Award) */}
+      <AnimatePresence>
+        {showExitConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="w-full max-w-xs bg-[#FDFBF7] rounded-[24px] border-[2.5px] border-[#E2D7C3] p-6 shadow-2xl text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center mx-auto mb-3">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className="font-fredoka font-bold text-lg text-[#1D3557] mb-1">Leave Practice?</h3>
+              <p className="text-xs font-medium text-[#264653]/70 mb-5 leading-relaxed">
+                Exiting now will forfeit this run's points and XP. Are you sure you want to quit?
+              </p>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExitConfirm(false)}
+                  className="w-full py-3 bg-[#2A9D8F] hover:bg-[#23877b] text-white font-fredoka font-bold text-sm rounded-xl shadow-[0_3px_0_#1E6F5C] active:translate-y-0.5 active:shadow-none transition-all"
+                >
+                  Keep Playing
+                </button>
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="w-full py-2.5 bg-transparent hover:bg-[#EAE0D0]/50 text-[#E76F51] font-fredoka font-bold text-xs rounded-xl transition-colors"
+                >
+                  Yes, Leave Run
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes fv-shake {
