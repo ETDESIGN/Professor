@@ -1,6 +1,6 @@
 # Choice Exercise — Universal MCQ — v3 Quality Audit (`10 POOL EXERCISE TYPES`)
 
-> **Current status:** zcode-verified
+> **Current status:** owner-approved
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -162,7 +162,7 @@ Refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted.
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**APPROVED 2026-09-13 (owner, verbatim):** "in stitch, i only can see 5 design, i aprove the 5 first design, lets implement them and see the result to fullproff our workflow" — the 4 pilot screens of files 12+13 are GO. (The 5th screen visible in the Stitch UI is the project's auto-created default screen, not part of this pilot.) ZCode note: the §5 minor items (hint copy rewrite, #2F7BE8→#1CB0F6 snap, eyebrow ≥12px, strip phone-frame) are implementation-time obligations.
 
 ## §7 Implementation notes & design-fidelity log
 
