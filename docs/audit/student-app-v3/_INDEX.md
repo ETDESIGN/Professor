@@ -42,7 +42,7 @@ One game at a time. The owner tests live between games.
 - `NN-<game>.md` — one per surface, numbered in the child's journey order (home → lesson steps → exercises → practice games → rewards → chrome)
 - `_TEMPLATE.md` — the per-game file structure with the STUDENT prelude (solo model, kid-alone failure modes, sacred data-write map)
 - `_CROSS-CUTTING.md` — themes spanning multiple surfaces + open owner decisions
-- `prompts/antigravity-handover.md` — AG's instruction pack (Phase C deliverable)
+- `prompts/antigravity-handover.md` — **AG's mission pack (written 2026-09-13)** — works for manual paste OR headless `agy` launch. Contains the critic mandate, §4 rules, Stitch tooling + traps, the Wonder Atlas × Duolingo token block, the reusable-code design briefing, and implementation boundaries
 - `screenshots/` — ZCode's captures of the current app (phone viewport first)
 - `stitch/` — design exports, one subfolder per game (`<nn>-<game>/1-*.html|png`)
 
@@ -109,6 +109,12 @@ Legend for "Writes": `FSRS` = Engine.recordAttempt (memory model) · `♥` = hea
 | 29 | `29-legacy-dead-code.md` | Dead-route runner + embedded trio | `LessonSession.tsx` (+`ListenTap.tsx`, `SentenceScramble.tsx`, PronunciationCoach/FlashMatch embedded modes) | **dead** — `/student/lesson` has no navigation path; ListenTap/SentenceScramble unreachable | Fake HUD hearts (hardcoded 5/4), Spanish-era patterns. Recommend delete-or-archive decision; do NOT redesign. FlashMatch lives on via file 10. |
 | 30 | `30-dubbing-studio.md` | Dubbing Studio + Class gallery | `DubbingStudio.tsx`, `ClassDubs.tsx` (+`dubbing/useDubRecorder.ts`) | flag-gated OFF (`VITE_ENABLE_DUBBING`) | Real scans + scoring exist (edge `evaluate-dubbing`); keep parked unless owner unblocks. |
 
+### The app-level critic file (audit-only)
+
+| # | File | Surface | Owner mandate | Status |
+|---|---|---|---|---|
+| 31 | `31-app-flow-ux.md` | The whole child journey (login → home → lesson → practice → rewards) | AG's flagship §4: user flow / UX / functionality / pedagogic flow / UI critique of the app IN GENERAL | file-ready |
+
 ## Registry facts (for reference)
 
 - **Entry**: `studentEntry.tsx` → `AuthGate portal="student"` → `StudentApp.tsx` (route table above). Phone-frame shell: `max-w-md mx-auto` + fixed 5-tab bottom bar (Learn/Rank/Quests/Shop/Profile) on tab screens; full-screen flows hide the bar.
@@ -125,11 +131,12 @@ Legend for "Writes": `FSRS` = Engine.recordAttempt (memory model) · `♥` = hea
 2. ~~The owner's root PROMPT_STITCH files~~ — content checklists useful, process superseded; still owner WIP, never commit.
 3. Dead code (file 29): delete LessonSession/ListenTap/SentenceScramble or leave parked? — recommendation: delete, owner confirms.
 4. Hearts: the shell's fake hearts (file 02 F1) vs the battery's real hearts — unify? (battery model is the honest one)
-5. Spelling Bee SPLIT rule in-lesson (file 11 F1): timeout ends the run — keep the tension or soften to reveal+continue in lessons?
+5. Spelling Bee SPLIT rule in-lesson (file 11 F1): timeout ends the run — **DELEGATED to Anti-Gravity (owner 2026-09-13)** to evaluate hard-end vs reveal+continue vs hybrids and recommend with rationale in 11's §4; owner ratifies at design approval.
 6. Gems gate unreachable from lessons (file 27 F1) — intended or fix?
 7. Dubbing (file 30): stays flag-off (parked).
 
 ## Change log
 
 - 2026-09-13 — **PHASE A COMPLETE.** Folder + student prelude template + this index created; 30 per-game files generated with §0 identity filled from a full code read of `apps/student/**` (~10.4k lines: shell, player, 4 engine steps, runner, 7 exercise components, 6 standalone games, legacy + dubbing). Tag `student-app-v3-phase-a-start` pushed. Screenshots deferred to per-game §0–§3 prep (passport fixture required — first capture lands with the pilot game, same as games-v3). **Next: owner comments intake → pilot game selection.**
+- 2026-09-13 — **PHASE C PACK WRITTEN + ANTIGRAVITY CLI WIRED.** Owner delegated the spelling tension rule to AG and sharpened AG's role: CRITIC of user flow / UX / functionality / pedagogic flow / UI, app-general as well as per-game → new audit-only file `31-app-flow-ux.md` (31 files total). `prompts/antigravity-handover.md` written (mission, read-first, §4 rules incl. the spelling assignment, Stitch CLI + traps + MOBILE project, reusable-code briefing with the real wa-*/duo-* token block from `atlas/tokens.ts`, Phase-3 implementation boundaries + gauntlet). **Antigravity CLI (`agy` v1.2.2) installed at `~/.local/bin/agy` and verified headless-authed** (keychain session reuse, `agy -p` round-trip OK) — ZCode can now drive AG autonomously; owner's paste step is optional.
 - 2026-09-13 — **OWNER DIRECTION RECORDED + PHASE B (ZCode §1–§3) COMPLETE for ALL 30 surfaces.** Owner: full functionality audit of everything; theme = Wonder Atlas × Duolingo white/pink mix; home design FROZEN (functionality audit only); AG recreates screens as reusable code with owner validation before implementation; pilot game first to prove the flow. All 30 files now carry §1 verbatim mechanics + §3 numbered findings → **file-ready**. Headline findings: **P1 ×2** — Spelling Bee in-lesson timeout ends the run (11 F1, owner decision), Pronunciation Coach has NO content source — one hardcoded sentence forever (25 F1); **P2 highlights** — LISTEN_SELECT mixed-option modality leak (13 F1, verified vs generator), fake shell hearts vs real battery hearts (02 F1), no exit-confirm anywhere (02 F2/08 F3/12 F7), unknown-type Skip writes a FALSE FSRS success (12 F1), out-of-hearts advice dead-end (12 F2), Memory Match records perfect accuracy regardless of mismatches (10 F1), AI-prompt leak in Reading's missing-image fallback (24 F1), N+1 home-load queries + lifetime-units quest bar (01 F1/F2), 5★ gem gate unreachable from lessons (27 F1). **Next: pilot game selection → AG §4 + Stitch pack (Phase C).**

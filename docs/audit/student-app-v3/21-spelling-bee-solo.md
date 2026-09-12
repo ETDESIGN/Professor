@@ -81,7 +81,7 @@ The standalone Spelling Bee (`SpellingBeeGame.tsx`) — same shared engine as fi
 
 Refs are `apps/student/SpellingBeeGame.tsx`.
 
-- **F1 · P1 (owner decision) — Timeout ends the run, with mitigations available but off by default.** Timer-on + 15s is the default (`DEFAULT_SETTINGS` :55); slow-25s and timer-off exist but a kid (or parent) must find Settings. If the owner keeps the tension rule here (reasonable for the arcade standalone), the defaults are still the kid-alone question — see file 11 F1.
+- **F1 · P1 (owner decision) — Timeout ends the run, with mitigations available but off by default.** Timer-on + 15s is the default (`DEFAULT_SETTINGS` :55); slow-25s and timer-off exist but a kid (or parent) must find Settings. If the tension rule stays here (reasonable for the arcade standalone), the defaults are still the kid-alone question — see file 11 F1: **the rule decision is delegated to AG (owner 2026-09-13); the solo game may end harder than the lesson step.**
 - **F2 · P3 — Settings panel is text-toggles** — fine functionally; ensure the redesigned surface keeps them reachable pre-run (thumb zone).
 - **F3 · P3 — Same no-exit-confirm and unit-list findings as file 20 (F1/F2).**
 - **F4 · P3 — Keyboard narrowing is deterministic per unit** (inherited) — replays narrow identically; consider per-run seeds in solo for freshness (board re-seeds per turn).

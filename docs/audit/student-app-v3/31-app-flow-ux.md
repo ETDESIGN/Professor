@@ -1,4 +1,8 @@
-# Spelling Bee — In-Lesson Step — v3 Quality Audit (`SPELLING_BEE (engine)`)
+# App Flow & UX — the Whole-Journey Critic Audit (`ALL SURFACES`)
+
+> **Status:** audit-only file (no Stitch screens)
+> **Current status:** file-ready
+> **Owner priority (2026-09-13):** AG's §4 here is the flagship deliverable of the audit phase — the app-general user-flow/UX critique.
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -58,60 +62,59 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §0 Identity
 
-- **Surface / route:** SPELLING_BEE blocks inside `/student/solo-lesson` — `apps/student/steps/SpellingBeeStep.tsx` (444 ln) + shared engine `components/games/spellingBee/*` (useSpellingBeeTurn/useSpellingBeeClock/keyboardEngine/SpellingBeeStage/contentBuilder)
-- **Exercise types consumed:** pool_items IMAGE_SELECT + MEANING_MATCH + DICTATION → words; fallback `get_unit_bundle` vocabulary (RLS-safe RPC)
-- **Data sources:** pool by unitId (limit 500); 3 rounds × `wordsPerRound` (plan data, default 5); settings from plan block (timerSeconds default 15, letterRemoval default on) — NOT localStorage here (that's the standalone twin, file 21)
-- **Scoring & data writes (SACRED):** solved → `scoreForAttempt(mistakes, difficulty, 1.0, streak)` +1 speed bonus @≥50% clock, cap 5, +`recordAnswer(true)`; wrong letter → −MISTAKE_PENALTY + mistakes+1; **SPLIT fail rule: timeout ENDS THE RUN** (forceComplete → finishRun(true) after 1.8s); skip = attempted, never scored. XP pipeline-only.
-- **Reachability:** SPELLING_BEE blocks; adaptive keyboard narrowing (deterministic per unitId seed)
-- **Theme today:** slate-900 dark, amber "Well Done" interstitials w/ per-word badges, 5-star results
+- **Surface / route:** THE WHOLE STUDENT APP — the end-to-end child journey: login → home (01) → lesson loop (02–19) → practice arena (26) + games (20–25) → rewards (27) + tabs (28)
+- **Exercise types consumed:** all (this file audits FLOW, not content)
+- **Data sources:** n/a — the journey across them
+- **Scoring & data writes:** n/a — but every award-pattern boundary in the journey is in scope (see _CROSS-CUTTING #5)
+- **Reachability:** the child's real life with the app: first login, daily return, homework, lesson, practice, reward, next day
+- **Theme today:** wa-* home world → duo-* lesson world (the mix the owner wants designed)
+
+- **Surface / route:** `<route + component path>`
+- **Exercise types consumed:** `<pool exercise types / manifest fields / none>`
+- **Data sources:** `<pool_items / unit manifest via getVocabulary/getStory / get_unit_bundle / localStorage …>`
+- **Scoring & data writes:** `<exact write calls with file:line — SACRED>`
+- **Reachability:** `<how a child reaches this surface>`
+- **Theme today:** `<wa-* light | slate/duo mix | dark>`
 
 ## §1 How the game works today
 
-*(Screenshots pending.)*
+*(ZCode's map of the journey — AG audits AGAINST and BEYOND this.)*
 
-In-lesson SPELLING_BEE step (`steps/SpellingBeeStep.tsx`) on the shared board-tested engine (`components/games/spellingBee/*`). Loads pool words (IMAGE_SELECT/MEANING_MATCH/DICTATION) with `get_unit_bundle` vocabulary fallback (:91-134); 3 rounds × `wordsPerRound` (plan data, default 5). Word lifecycle (shared engine): 3.2s **presentation beat** (image + auto-audio, clock paused) → typing under the countdown (default 15s from plan) with adaptive keyboard narrowing (deterministic per unitId) → solved hold 2.6s / reveal 2.8s (useSpellingBeeTurn.ts:50-52,124-125). Scoring: board math local — `scoreForAttempt` + speed bonus, −1 per wrong letter; **the SPLIT fail rule: a timeout ENDS THE RUN** (forceComplete → results after 1.8s) (:170-174); skip = attempted, unscored (:175-178). `recordAnswer` per solved/timeout word feeds session accuracy (:163,169). Round interstitials ("Well Done" + badges + score roll) and a 5-star results screen (:266-372).
+**First run:** login (passport username/password or QR) → possibly Join Class (6-char code modal, atlas/CodeInput) → HomeMap empty state → join → units appear.
+**Daily loop:** Home (quests header, homework cards, unit path w/ locked/active/completed nodes) → tap active node → SoloLessonPlayer (INTRO_SPLASH → input steps (WordLab/Media/Story/Grammar) → practice steps (engines or battery) → …) → LessonComplete → finalize (XP/gems/quests) → home (node now starred).
+**Practice side-track:** floating Practice FAB → PracticeMenu → 6 standalone modes (Speaking/Reading/Phonics/FastVocab/SpellingBee/SRS) → own flows → mostly back to practice/menu; SRS exits straight home (no reward interstitial — 23 F2).
+**Reward loop:** Quests tab (claim), Shop (spend gems, avatar studio), Profile (stats), Leaderboard (weekly league).
+**State boundaries a child crosses:** battery real-hearts vs shell fake-hearts (02 F1); exit-anywhere-without-confirm (02 F2); stage stars only on natural completion; streak checked at app open; mastery/cracked computed at home load (01 F1).
+**Known journey gaps from my audit:** out-of-hearts advice has no action (12 F2); SRS no celebration (23 F2); Phonics needs an invisible precondition (22 F1); Pronunciation has no content (25 F1); gem gate unreachable from lessons (27 F1).
 
 ## §2 Owner comments (verbatim)
 
-> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
->
-> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
+> **(2026-09-13)** "Anti-Gravity's job is really to work as a critic, especially on the user flow / user experience part of the audit … focus very much on user flow, user experience of the app in general in terms of functionality, user flow, pedagogic flow and user interface." — the owner, defining this file's §4 mandate.
 
 ## §3 ZCode code-level findings
 
-Refs are `apps/student/steps/SpellingBeeStep.tsx` unless noted.
+ZCode's cross-cutting findings live in `_CROSS-CUTTING.md` (owner decisions + discipline rules) and per-game in each file's §3. For THIS file, do not restate per-game bugs — audit the JOURNEY: onboarding clarity, orientation ("where am I?"), recovery from failure/interruption, pacing across a session, the motivation economy (XP/gems/streaks/quests/hearts/stars/crowns — one coherent system or seven competing ones?), the handoffs between the wa-* home world and duo-* lesson world, portrait/landscape and one-handed realities, and what a tired 6-y/o at 8pm experiences versus a sharp 11-y/o.
 
-- **F1 · P1 — Timeout ends the entire run for a child alone.** The SPLIT rule (:170-174) is the standalone original's tension knob, but here it sits inside a LESSON: one expired clock kills all remaining rounds/words of the step and jumps to results. The board twin reveals + advances (teaching beat). For a 6-8 y/o at home this is the harshest single interaction in the app. **OWNER DECISION 2026-09-13: delegated to Anti-Gravity — AG studies both modes (hard end vs reveal+continue, plus hybrids: timeout costs the word but not the run, mercy extensions, age-linked defaults) and recommends the best solo-app tension rule in this file's §4 with rationale. The standalone game (file 21) may legitimately keep a harder rule than the lesson step.**
-- **F2 · P2 — 15s default clock with no solo mercy.** Plan-time setting only (:42,74); the standalone twin has timer-off + 25s slow mode (localStorage), the lesson step takes whatever the teacher planned — a plan defaulting to 15s is tight for young home spellers (each wrong letter also burns 1s).
-- **F3 · P3 — Round interstitial badge row assumes `wordsPerRound` slots** (:283-299) — fine, but badges truncate long words (`w-12 truncate`).
-- **F4 · P3 — Exit mid-round no confirmation** (:384).
-- **F5 · P3 — Empty-pool error screen text is teacher-flavored** ("continue with the lesson for now" — OK in-lesson; just noting copy tone).
+## §4 ⬜ Anti-Gravity quality audit
 
-**Works well:** the shared engine already carries the board v3 fixes (presentation beat, consolidation holds, deterministic narrowing, StrictMode-safe clock) — this surface inherits them for free.
+> **AG: this file is your APP-LEVEL critic surface — the owner's explicit priority (2026-09-13). No Stitch screens are generated from this file; it is audit-only.**
+>
+> ### 4.a The child's journey (first run → daily loop → weekly loop): friction, confusion, dead-ends
+> ### 4.b Orientation & wayfinding: does the child always know where they are, what just happened, what's next?
+> ### 4.c Motivation economy: XP / gems / streaks / quests / hearts / stars / crowns — one coherent system or competing ones?
+> ### 4.d Pedagogic arc across a session: input→practice→review rhythm, cognitive load, pacing
+> ### 4.e Theme coherence: wa-* home × duo-* lessons — how the owner's MIX should behave at every boundary
+> ### 4.f Top-10 prioritized journey fixes (cross-game, naming the games affected)
+>
+> Ground every finding in the per-game §1/§3 and the journey map above; mark anything you could not verify as "Information needed". Markdown only, no code.>
 
-## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
+## §5 Not used (audit-only file — no Stitch screens)
 
-> **AG: write your findings ONLY inside this section. Do not edit any other section of this file.**
+—>
 
-### 4.a UI & visual design
-### 4.b Workflow & user flow (the child's own path: open → play → reward)
-### 4.c Pedagogical practice (ESL ages 6–12, solo/home context)
-### 4.d Game interaction (mechanic, pacing, fairness, fun — one child alone)
+## §6 Not used (audit-only file)
 
-*(For each finding: severity P1/P2/P3, the evidence grounding it — §1, §3, or a named screenshot — and a concrete recommendation. If you need information not in this file, list it under "Information needed" instead of guessing.)*
-
-### 4.e Top-5 prioritized recommendations
-
-### 4.f Stitch design log (AG fills as it generates)
-<Which screens were requested (tool + prompt summary), expected async materialization, and the per-screen intent: states shown, actions available.>
-
-## §5 ZCode design verification (inside Stitch)
-
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
-
-## §6 Owner approval (HARD GATE)
-
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+—>
 
 ## §7 Implementation notes & design-fidelity log
 
