@@ -97,7 +97,9 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
   const push = (type: ExerciseType, content: any) => {
     // F2 (doc 11 §3): every vocab pool item carries its SERIES label so
     // consumers can filter/release by series (class plans gate what's NEW).
-    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type, ...(v.set_label ? { set_label: v.set_label } : {}) } });
+    // CONTENT GROUPS (spec 2026-09-13): group_id rides along — the block-level
+    // scope filter (apps/board/blockScope.ts) matches on it.
+    items.push({ unit_id: unitId, objective_id: objectiveId, exercise_type: type, difficulty: difficultyFor(type), content: { ...content, type, ...(v.set_label ? { set_label: v.set_label } : {}), ...(v.group_id ? { group_id: v.group_id } : {}) } });
   };
 
   // MEANING_MATCH — pick the correct Chinese meaning.
@@ -345,6 +347,7 @@ function buildStoryItems(unitId: string, objectiveId: string, questions: any[]):
         options: opts,
         correct_index: answerIdx,
         story_page_id: q.story_page_id || null,
+        ...(q.group_id ? { group_id: q.group_id } : {}), // story-group scope (spec 2026-09-13)
         ...art,
       },
     });
@@ -451,7 +454,7 @@ serve(async (req) => {
     let vocab: any[] = [];
     try {
       const { data: viRows } = await sb.from('vocabulary_items')
-        .select('word, definition, example_sentence, l1_translation, phonetic, part_of_speech, image_prompt, image_url, audio_url, example_audio_url, distractors, confusables, source_structure_id')
+        .select('word, definition, example_sentence, l1_translation, phonetic, part_of_speech, image_prompt, image_url, audio_url, example_audio_url, distractors, confusables, source_structure_id, set_label')
         .eq('unit_id', unitId)
         .order('order_index', { ascending: true });
       if (viRows && viRows.length > 0) {
@@ -463,11 +466,29 @@ serve(async (req) => {
           distractors: Array.isArray(v.distractors) ? v.distractors : [],
           confusables: Array.isArray(v.confusables) ? v.confusables : [],
           source_structure_id: v.source_structure_id ?? null,
+          set_label: v.set_label ?? null, // F2 fix (2026-09-13): was missing from the select, so the stamp below never fired
         }));
       }
     } catch { /* fall back to manifest below */ }
     if (vocab.length === 0) vocab = canonical.vocabulary;
     const grammar = canonical.grammar;
+
+    // CONTENT GROUPS (spec 2026-09-13): load the unit's groups indexed by
+    // member structure — vocab items + story objectives get their group_id so
+    // plans/games can scope by series/story. Units without groups (legacy,
+    // or enrichment not re-run yet) stamp nothing and behave exactly as before.
+    let contentGroups: any[] = [];
+    try {
+      const { data: groupRows } = await sb.from('unit_content_groups')
+        .select('id, kind, title, structure_ids')
+        .eq('unit_id', unitId)
+        .order('order_index', { ascending: true });
+      contentGroups = Array.isArray(groupRows) ? groupRows : [];
+    } catch { /* groups are optional */ }
+    const groupByStructure = new Map<string, any>();
+    for (const g of contentGroups) {
+      for (const sid of (g.structure_ids || [])) groupByStructure.set(String(sid), g);
+    }
 
     // WS-D: don't hard-reject story/dialogue-only units. Even with no vocab or
     // grammar, a unit can still drive STORY_COMPREHENSION / WHO_SAID_IT /
@@ -712,6 +733,8 @@ serve(async (req) => {
 
     try {
       for (const v of vocabWithImages) {
+        const vGroup = v.source_structure_id ? groupByStructure.get(String(v.source_structure_id)) : undefined;
+        if (vGroup) v.group_id = String(vGroup.id);
         const oid = await ensureObjective('vocabulary', String(v.word), (v as any).source_structure_id ?? undefined);
         allRows.push(...gate('vocabulary', buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word))));
       }
@@ -743,12 +766,13 @@ serve(async (req) => {
       let storyQuestions: any[] = [];
       try {
         const { data: sqRows } = await sb.from('story_comprehension_questions')
-          .select('question, options, answer_index, story_page_id, story_pages(image_asset_id)')
+          .select('question, options, answer_index, story_page_id, story_pages(image_asset_id, source_structure_id)')
           .eq('unit_id', unitId)
           .order('order_index', { ascending: true });
         storyQuestions = (Array.isArray(sqRows) ? sqRows : []).map((row: any) => ({
           ...row,
           image_asset_id: row.story_pages?.image_asset_id || null,
+          source_structure_id: row.story_pages?.source_structure_id || null, // story-group scope (spec 2026-09-13)
           story_pages: undefined,
         }));
       } catch { /* table read failed — fall back to manifest */ }
@@ -779,8 +803,28 @@ serve(async (req) => {
         } catch { /* art is optional — the questions still generate */ }
       }
       if (storyQuestions.length > 0) {
-        const oid = await ensureObjective('story', 'Story comprehension');
-        allRows.push(...gate('story', buildStoryItems(unitId, oid, storyQuestions)));
+        // CONTENT GROUPS (spec 2026-09-13): ONE story objective per story
+        // group (labeled with the group's title) so STORY_QUEST scoring +
+        // comprehension stay with THEIR story. Questions with no group (legacy
+        // units, pages without groups) keep the unit-wide story objective.
+        const UNIT_WIDE_KEY = '__unit_wide__';
+        const questionsByGroup = new Map<string, { group: any | null; questions: any[] }>();
+        for (const q of storyQuestions) {
+          const g = q.source_structure_id ? groupByStructure.get(String(q.source_structure_id)) : undefined;
+          const key = g ? String(g.id) : UNIT_WIDE_KEY;
+          let bucket = questionsByGroup.get(key);
+          if (!bucket) { bucket = { group: g || null, questions: [] }; questionsByGroup.set(key, bucket); }
+          bucket.questions.push(q);
+          if (g) q.group_id = String(g.id);
+        }
+        for (const { group, questions } of questionsByGroup.values()) {
+          const oid = await ensureObjective(
+            'story',
+            group ? String(group.title || 'Story comprehension') : 'Story comprehension',
+            group ? ((group.structure_ids || [])[0] ?? null) ?? undefined : undefined,
+          );
+          allRows.push(...gate('story', buildStoryItems(unitId, oid, questions)));
+        }
       }
 
       // Phase 1.3: dialogue exercises from the relational table (NOT the
