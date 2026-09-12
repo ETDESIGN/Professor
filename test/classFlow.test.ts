@@ -139,3 +139,48 @@ describe('WS4 freeze-time vocab-image resolution', () => {
     expect(cards[2].image).toContain('dicebear');
   });
 });
+
+// ── CONTENT GROUPS (spec 2026-09-13): group-tagged block scoping ───────────
+describe('buildClassFlow — content groups', () => {
+  const seriesFlow: any[] = [
+    { type: 'INTRO_SPLASH', phase: 'WARMUP', data: {} },
+    {
+      type: 'FOCUS_CARDS', phase: 'INPUT',
+      data: {
+        group_id: 'g1', group_kind: 'vocab_series', group_title: 'Days of the week', structure_ids: ['s1'],
+        cards: [{ front: 'monday' }, { front: 'tuesday' }, { front: 'tractor' }],
+      },
+    },
+    { type: 'FAST_VOCAB', phase: 'PRACTICE', data: { group_id: 'g1', structure_ids: ['s1'], poolDriven: true } },
+    { type: 'STORY_STAGE_AG', phase: 'OUTPUT', data: { group_id: 'g2', group_kind: 'story', structure_ids: ['s9'], pages: [{ text: 'a', speaker: 'N' }] } },
+    { type: 'STORY_QUEST', phase: 'PRACTICE', data: { group_id: 'g2', structure_ids: ['s9'], poolDriven: true } },
+    { type: 'COMIC_PANELS', phase: 'PRACTICE', data: { group_id: 'g3', structure_ids: ['s8'], panels: [{ id: 'p0' }, { id: 'p1' }, { id: 'p2' }] } },
+  ];
+  const scopedContent: ClassContent = { ...content, includedStructureIds: ['s1', 's9'] };
+
+  it('series FOCUS_CARDS keeps only cards whose words are in the class scope', () => {
+    const flow = buildClassFlow(seriesFlow, scopedContent);
+    const focus = flow.find((b: any) => b.type === 'FOCUS_CARDS');
+    expect(focus.data.cards.map((c: any) => c.front)).toEqual(['tractor']); // monday/tuesday not in class vocab
+    expect(focus.data.group_id).toBe('g1'); // tags survive
+  });
+
+  it('drops group blocks whose structures are ALL out of scope (comic g3/s8)', () => {
+    const flow = buildClassFlow(seriesFlow, scopedContent);
+    expect(flow.some((b: any) => b.type === 'COMIC_PANELS')).toBe(false);
+    expect(flow.some((b: any) => b.type === 'STORY_STAGE_AG')).toBe(true); // s9 in scope
+  });
+
+  it('keeps tagged blocks when the scope is undefined (unscoped plan); cards still respect the class word list', () => {
+    const flow = buildClassFlow(seriesFlow, content); // no includedStructureIds
+    const focus = flow.find((b: any) => b.type === 'FOCUS_CARDS');
+    expect(focus.data.cards.map((c: any) => c.front)).toEqual(['tractor']); // class words gate series cards
+    expect(flow.some((b: any) => b.type === 'COMIC_PANELS')).toBe(true); // structure gate inactive
+  });
+
+  it('STORY_STAGE_AG passes its frozen pages through verbatim', () => {
+    const flow = buildClassFlow(seriesFlow, scopedContent);
+    const stage = flow.find((b: any) => b.type === 'STORY_STAGE_AG');
+    expect(stage.data.pages).toEqual([{ text: 'a', speaker: 'N' }]);
+  });
+});

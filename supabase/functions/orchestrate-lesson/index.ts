@@ -102,24 +102,89 @@ function transformManifestToFlow(assets: any, wordImages?: Map<string, string>):
     });
   }
 
-  if (vocab.length > 0) {
+  // CONTENT GROUPS (spec 2026-09-13): one wave PER vocab series in book
+  // order — the class meets ~6-12 words at a time, never the whole unit at
+  // once. Story blocks are per story group (Story Stage 2 renderer). Units
+  // without groups keep the legacy unit-wide strands below, unchanged.
+  const groups: any[] = Array.isArray(assets?.contentGroups) ? assets.contentGroups : [];
+  const vocabSeries = groups.filter((g: any) => g.kind === 'vocab_series' && Array.isArray(g?.words) && g.words.length > 0);
+  const storyGroups = groups.filter((g: any) => g.kind === 'story' && Array.isArray(g?.pages) && g.pages.length > 0);
+  const groupTags = (g: any): Record<string, any> => ({
+    group_id: g.id,
+    structure_ids: Array.isArray(g.structure_ids) ? g.structure_ids : [],
+    group_kind: g.kind,
+    group_title: g.title,
+  });
+  const cardOf = (v: VocabItem) => {
+    const img = resolveVocabImage(v.word, v.image_url, wordImages);
+    return {
+      front: v.word,
+      back: v.definition || '',
+      context_sentence: exampleSentenceOf(v),
+      phonetic: (v as any)?.phonetic,
+      image: img.image,
+      // WS4: honest placeholder marker so the board can prefer the
+      // manifest/word-library image at render time.
+      ...(img.image_placeholder ? { image_placeholder: true } : {}),
+    };
+  };
+  const toStoryPage = (p: any) => {
+    // enrich-unit emits `speaker`; older paths used `character_name`.
+    const speakerName = p.speaker || p.character_name || chars[0]?.name || 'Narrator';
+    const matched = chars.find((c: any) => c.name === speakerName);
+    return {
+      text: p.text,
+      speaker: speakerName,
+      avatar: matched?.emoji || chars[0]?.emoji || '👤',
+      // Book crop / AI scene art resolved from image_asset_id above.
+      imageUrl: p.imageUrl || p.image_url || undefined,
+    };
+  };
+
+  if (vocabSeries.length > 0) {
+    for (let sIdx = 0; sIdx < vocabSeries.length; sIdx++) {
+      const series = vocabSeries[sIdx];
+      flow.push({
+        type: 'FOCUS_CARDS',
+        data: { title: `${series.title} — Vocabulary`, cards: series.words.map(cardOf), ...groupTags(series) },
+      });
+      // One recall/recognition shell per series, alternating for variety —
+      // the shell is pool-driven, scoped to this series at runtime by
+      // data.group_id (apps/board/blockScope.ts).
+      flow.push(sIdx % 2 === 0
+        ? { type: 'FAST_VOCAB', data: { title: `${series.title} — Fast Vocab`, ...groupTags(series) } }
+        : { type: 'WORD_DETECTIVE', data: { title: `${series.title} — Word Detective`, ...groupTags(series) } });
+    }
+    // Unit-level strand shells (pool-driven across ALL series — the review mix).
+    flow.push({ type: 'SOUND_LAB', data: { title: `${title} — Sound Lab` } });
+    flow.push({ type: 'MEMORY_LAB', data: { title: `${title} — Memory Lab` } });
+    if (title.length % 2 === 0) {
+      flow.push({ type: 'VOCAB_BLITZ', data: { title: `${title} — Vocab Blitz` } });
+    } else {
+      flow.push({
+        type: 'TEAM_BATTLE',
+        data: {
+          topic,
+          questions: vocab.slice(0, 8).map((v, i) => ({
+            id: `q${i}`,
+            text: `What does "${v.word}" mean?`,
+            image: getImg(v),
+            options: [
+              v.definition || '',
+              ...(v.distractors || []).slice(0, 3),
+            ].slice(0, 4).sort(() => Math.random() - 0.5),
+            correct: v.definition || '',
+          })),
+        },
+      });
+    }
+    flow.push({ type: 'SENTENCE_LAB', data: { title: `${title} — Sentence Lab` } });
+  } else if (vocab.length > 0) {
     flow.push({
       type: 'FOCUS_CARDS',
       data: {
         title: `${title} — Vocabulary`,
-        cards: vocab.map((v) => {
-          const img = resolveVocabImage(v.word, v.image_url, wordImages);
-          return {
-            front: v.word,
-            back: v.definition || '',
-            context_sentence: exampleSentenceOf(v),
-            phonetic: (v as any)?.phonetic,
-            image: img.image,
-            // WS4: honest placeholder marker so the board can prefer the
-            // manifest/word-library image at render time.
-            ...(img.image_placeholder ? { image_placeholder: true } : {}),
-          };
-        }),
+        cards: vocab.map(cardOf),
       },
     });
 
@@ -225,23 +290,27 @@ function transformManifestToFlow(assets: any, wordImages?: Map<string, string>):
     });
   }
 
-  if (story.length > 0) {
+  if (storyGroups.length > 0) {
+    // CONTENT GROUPS (spec 2026-09-13): one STORY_STAGE_AG + STORY_QUEST per
+    // story group — Story Stage 2 (owner's preferred renderer) is the default.
+    // Frozen pages are THAT story's own pages; the quest shell is scoped to
+    // the story by data.group_id at runtime.
+    for (const sg of storyGroups) {
+      flow.push({
+        type: 'STORY_STAGE_AG',
+        data: { title: `${sg.title} — Story`, pages: sg.pages.map(toStoryPage), ...groupTags(sg) },
+      });
+      flow.push({
+        type: 'STORY_QUEST',
+        data: { title: `${sg.title} — Story Quest`, ...groupTags(sg) },
+      });
+    }
+  } else if (story.length > 0) {
     flow.push({
       type: 'STORY_STAGE',
       data: {
         title: `${title} — Story`,
-        pages: story.map((p: any) => {
-          // enrich-unit emits `speaker`; older paths used `character_name`.
-          const speakerName = p.speaker || p.character_name || chars[0]?.name || 'Narrator';
-          const matched = chars.find((c: any) => c.name === speakerName);
-          return {
-            text: p.text,
-            speaker: speakerName,
-            avatar: matched?.emoji || chars[0]?.emoji || '👤',
-            // Book crop / AI scene art resolved from image_asset_id above.
-            imageUrl: p.imageUrl || p.image_url || undefined,
-          };
-        }),
+        pages: story.map(toStoryPage),
       },
     });
 
@@ -466,7 +535,7 @@ serve(async (req) => {
       // empty table → keep manifest). Best-effort, non-fatal.
       try {
         const [storyRes, grammarRes, dialogueRes] = await Promise.all([
-          sbClient.from('story_pages').select('page_number,text,speaker,speaker_override_name,image_prompt,image_asset_id').eq('unit_id', unitId).order('page_number', { ascending: true }),
+          sbClient.from('story_pages').select('page_number,text,speaker,speaker_override_name,image_prompt,image_asset_id,source_structure_id').eq('unit_id', unitId).order('page_number', { ascending: true }),
           sbClient.from('grammar_rules').select('rule,explanation,examples').eq('unit_id', unitId).order('order_index', { ascending: true }),
           sbClient.from('dialogue_lines').select('order_index,speaker,speaker_override_name,text,translation').eq('unit_id', unitId).order('order_index', { ascending: true }),
         ]);
@@ -481,7 +550,7 @@ serve(async (req) => {
             const { data: saRows } = await sbClient.from('assets').select('id, public_url').in('id', pageAssetIds);
             for (const a of saRows || []) if (a.public_url) storyUrlById.set(a.id, a.public_url);
           }
-          assetsForFlow.story = { ...assetsForFlow.story, pages: storyRes.data.map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name, image_prompt: p.image_prompt, imageUrl: storyUrlById.get(p.image_asset_id) || undefined })) };
+          assetsForFlow.story = { ...assetsForFlow.story, pages: storyRes.data.map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name, image_prompt: p.image_prompt, imageUrl: storyUrlById.get(p.image_asset_id) || undefined, source_structure_id: p.source_structure_id || undefined })) };
         }
         if (grammarRes.data && grammarRes.data.length > 0) {
           assetsForFlow.grammar = grammarRes.data.map((g: any) => ({ rule: g.rule, explanation: g.explanation, examples: g.examples || [] }));
@@ -548,6 +617,43 @@ serve(async (req) => {
           };
         }).filter((c: any) => c.panels.length >= 3); // skips empty/false-positive husks (audit §1.1)
         if (comics.length > 0) assetsForFlow.comics = comics;
+
+        // CONTENT GROUPS (spec 2026-09-13): per-series vocab waves + per-story
+        // blocks need the group registry. Vocab members resolve by word
+        // (structure → word via vocabulary_items → the enriched vocab object);
+        // story members resolve by source_structure_id on the flat story pages.
+        const [groupRes, viRes] = await Promise.all([
+          sbClient.from('unit_content_groups').select('id,kind,title,structure_ids,order_index').eq('unit_id', unitId).order('order_index', { ascending: true }),
+          sbClient.from('vocabulary_items').select('word,source_structure_id').eq('unit_id', unitId),
+        ]);
+        const unitGroups = (Array.isArray(groupRes.data) ? groupRes.data : []).filter((g: any) => Array.isArray(g.structure_ids));
+        if (unitGroups.length > 0) {
+          const wordsBySid = new Map<string, string[]>();
+          for (const r of (viRes.data || []) as any[]) {
+            if (!r?.source_structure_id || !r?.word) continue;
+            const key = String(r.source_structure_id);
+            const list = wordsBySid.get(key) || [];
+            list.push(String(r.word));
+            wordsBySid.set(key, list);
+          }
+          const vocabByWordLower = new Map((assetsForFlow.vocabulary || []).map((v: any) => [String(v?.word || '').toLowerCase(), v]));
+          const flatStoryPages = (assetsForFlow.story?.pages || []) as any[];
+          assetsForFlow.contentGroups = unitGroups.map((g: any) => {
+            const memberSids = (g.structure_ids || []).map(String);
+            if (g.kind === 'vocab_series') {
+              const words = memberSids
+                .flatMap((sid) => wordsBySid.get(sid) || [])
+                .map((w) => vocabByWordLower.get(w.toLowerCase()))
+                .filter(Boolean);
+              return { ...g, words };
+            }
+            if (g.kind === 'story') {
+              const pages = flatStoryPages.filter((p) => p?.source_structure_id && memberSids.includes(String(p.source_structure_id)));
+              return { ...g, pages };
+            }
+            return { ...g };
+          });
+        }
       } catch (relErr: any) {
         console.error('orchestrate-lesson relational override failed (non-fatal, manifest used):', relErr?.message || relErr);
       }
@@ -682,6 +788,11 @@ serve(async (req) => {
         : [];
       if (playableComics.length > 0 && !flow.some((b: any) => b.type === 'COMIC_PANELS')) {
         const richest = playableComics.slice().sort((a: any, b: any) => b.panels.length - a.panels.length)[0];
+        // CONTENT GROUPS (spec 2026-09-13): stamp the comic's identity so
+        // PlanComposer "In plan" matching + class-flow scoping work for the
+        // injected default too (same fields the teacher-inserted path uses).
+        const comicGroup = (assetsForFlow.contentGroups || []).find((g: any) =>
+          g.kind === 'comic' && (g.structure_ids || []).map(String).includes(String(richest.structure_id)));
         const comicBlock = {
           type: 'COMIC_PANELS',
           title: 'Rebuild the Story',
@@ -689,6 +800,8 @@ serve(async (req) => {
             title: `${fallbackTitle} — Rebuild the Story`,
             comic_label: richest.comic_label,
             panels: richest.panels,
+            structure_id: richest.structure_id,
+            ...(comicGroup ? { group_id: comicGroup.id, group_kind: 'comic', group_title: comicGroup.title, structure_ids: comicGroup.structure_ids } : {}),
           },
           phase: 'PRACTICE' as const,
         };

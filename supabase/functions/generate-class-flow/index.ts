@@ -96,6 +96,10 @@ serve(async (req) => {
         .map((p: any) => ({ text: p.text, speaker: p.speaker || p.speaker_override_name })),
       dialogue: byIdOrder(dialogueRes.data as any[], dialogueIds)
         .map((l: any) => ({ speaker: l.speaker || l.speaker_override_name, text: l.text, translation: l.translation })),
+      // CONTENT GROUPS (spec 2026-09-13): group-tagged blocks (per-series
+      // waves, per-story stages, comics) drop when the class scope excludes
+      // every member structure.
+      includedStructureIds: Array.isArray(idx.structure_ids) ? idx.structure_ids.map(String) : undefined,
     }, wordImages);
 
     if (rawFlow.length === 0) {

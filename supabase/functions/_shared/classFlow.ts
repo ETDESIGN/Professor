@@ -50,6 +50,13 @@ export interface ClassContent {
   grammar: ClassGrammarRule[];
   story: ClassStoryPage[];
   dialogue: ClassDialogueLine[];
+  /**
+   * CONTENT GROUPS (spec 2026-09-13): the class scope's structure ids (from
+   * content_index.structure_ids). Blocks tagged with data.structure_ids are
+   * dropped when NONE of their member structures is in scope. Undefined =
+   * unscoped (whole unit) — tags then pass through untouched.
+   */
+  includedStructureIds?: string[];
 }
 
 const dicebear = (seed: string) =>
@@ -128,12 +135,37 @@ export function buildClassFlow(unitFlow: any[], content: ClassContent, wordImage
     const type: string = block.type;
     const data = (block.data && typeof block.data === 'object') ? block.data : {};
 
+    // CONTENT GROUPS (spec 2026-09-13): a block scoped to a content group is
+    // dropped when the class scope excludes EVERY member structure. An
+    // undefined scope (unscoped plan / whole unit) keeps tagged blocks.
+    const blockSids = Array.isArray(data.structure_ids) ? data.structure_ids.map(String) : [];
+    if (
+      blockSids.length > 0 &&
+      Array.isArray(content.includedStructureIds) &&
+      !blockSids.some((sid) => content.includedStructureIds!.includes(sid))
+    ) {
+      continue;
+    }
+
     if (type === 'INTRO_SPLASH') {
       out.push({ ...block, data: { ...data, title: content.title, subtitle: data.subtitle ?? content.theme ?? '' } });
       continue;
     }
 
     if (type === 'FOCUS_CARDS') {
+      const isGroupScoped = !!data.group_id || blockSids.length > 0;
+      if (isGroupScoped) {
+        // Series block (spec 2026-09-13): keep ONLY the cards whose words are
+        // in the class scope; drop the block when none survive. The frozen
+        // cards already ARE this series' cards — no rebuild needed.
+        const classWords = new Set(content.vocab.map((v) => String(v.word).toLowerCase()));
+        const cards = Array.isArray(data.cards)
+          ? data.cards.filter((c: any) => c?.front && classWords.has(String(c.front).toLowerCase()))
+          : [];
+        if (cards.length === 0) continue;
+        out.push({ ...block, data: { ...data, cards } });
+        continue;
+      }
       if (content.vocab.length === 0) continue; // drop: class has no words
       out.push({
         ...block,
@@ -173,7 +205,16 @@ export function buildClassFlow(unitFlow: any[], content: ClassContent, wordImage
       continue;
     }
 
-    if (type === 'STORY_STAGE') {
+    if (type === 'STORY_STAGE' || type === 'STORY_STAGE_AG') {
+      const isGroupScoped = !!data.group_id || blockSids.length > 0;
+      if (type === 'STORY_STAGE_AG' || isGroupScoped) {
+        // Per-story blocks (spec 2026-09-13): frozen pages already ARE the
+        // selected story's own pages — pass through (the group-scope gate
+        // above drops them when the class excludes the story). The legacy
+        // untagged STORY_STAGE below is still rebuilt from the class slice.
+        out.push({ ...block });
+        continue;
+      }
       if (content.story.length === 0) continue; // drop: class has no story pages
       out.push({
         ...block,

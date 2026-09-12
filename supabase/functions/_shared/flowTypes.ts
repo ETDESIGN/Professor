@@ -39,6 +39,10 @@ export const SUPPORTED_FLOW_TYPES: ReadonlySet<string> = new Set([
   'FOCUS_CARDS',
   'GAME_ARENA',
   'STORY_STAGE',
+  // Story Stage 2 (activity-guide variant) — the owner's preferred story
+  // renderer. Registered here (spec 2026-09-13) so AI/class-flow regeneration
+  // stops silently DROPPING teacher-inserted Story Stage 2 blocks.
+  'STORY_STAGE_AG',
   'DIALOGUE_STAGE',
   'GRAMMAR_SANDBOX',
   'GRAMMAR_PRACTICE',
