@@ -196,12 +196,67 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
   };
 
   // ERROR_SPOT — one per error example.
-  for (const e of errors) {
-    const wrong = String(e?.wrong || '');
-    const correct = String(e?.correct || '');
-    if (!wrong || !correct) continue;
-    const distractors = errors.filter((x) => String(x?.correct) && String(x.correct) !== correct).map((x) => String(x.correct));
-    const c = buildChoices(correct, distractors, Math.min(4, distractors.length + 1));
+  //
+  // games-v3 audit (17-grammar-lab §3 F1, P1): distractors used to be the
+  // CORRECT sentences of sibling error examples — unrelated sentences that
+  // made the real fix trivially findable by stem-similarity (zero grammar).
+  // Distractors are now NEAR-MISS fixes of the SAME stem: the correct
+  // sentence with its corrected token(s) swapped for other error examples'
+  // wrong forms, single-transform inflection variants, and — as a last
+  // resort — plural/tense perturbations of other words in the sentence.
+  // Every option stays stem-like; only grammar knowledge separates them.
+  const diffPositions = (a: string, b: string): number[] => {
+    const A = a.split(/\s+/).filter(Boolean), B = b.split(/\s+/).filter(Boolean);
+    if (A.length !== B.length || A.length === 0) return [];
+    return A.map((w, i) => (w !== B[i] ? i : -1)).filter((i) => i >= 0);
+  };
+  // ONE transformation per variant — composed inflections produce nonsense
+  // (does → do → doed). Only forms a 6-12 y/o meets in class.
+  const inflectionVariants = (w: string): string[] => {
+    const lw = w.toLowerCase();
+    const out: string[] = [];
+    const push = (v: string) => { if (v && v !== w && v.length > 1) out.push(v); };
+    if (lw.endsWith('ies')) push(w.slice(0, -3) + 'y');
+    else if (lw.endsWith('es')) push(w.slice(0, -2));
+    else if (lw.endsWith('s') && !lw.endsWith('ss')) push(w.slice(0, -1));
+    if (lw.endsWith('e')) { push(w + 'd'); push(w.slice(0, -1) + 'ing'); push(w + 's'); }
+    else if (lw.length > 2 && !lw.endsWith('s')) { push(w + 's'); push(w + 'ed'); push(w + 'ing'); }
+    return [...new Set(out)];
+  };
+  const spotList = errors
+    .map((e: any) => {
+      const wrong = String(e?.wrong || ''), correct = String(e?.correct || '');
+      return wrong && correct ? { e, wrong, correct, pos: diffPositions(wrong, correct) } : null;
+    })
+    .filter(Boolean) as { e: any; wrong: string; correct: string; pos: number[] }[];
+  for (const { e, wrong, correct, pos } of spotList) {
+    const C = correct.split(/\s+/);
+    const distractors = new Set<string>();
+    const add = (cand: string[]) => {
+      const str = cand.join(' ');
+      if (str !== correct && str !== wrong) distractors.add(str);
+    };
+    for (const i of pos) {
+      // (a) cross-apply sibling errors' wrong forms at this stem's fix positions
+      for (const s2 of spotList) {
+        for (const j of s2.pos) {
+          const bad = String(s2.wrong.split(/\s+/)[j] || '');
+          if (bad && bad !== C[i]) { const cand = [...C]; cand[i] = bad; add(cand); }
+        }
+      }
+      // (b) single-transform inflection variants of the corrected token
+      for (const v of inflectionVariants(C[i])) { const cand = [...C]; cand[i] = v; add(cand); }
+    }
+    // (c) last resort: perturb OTHER words' plural/tense so the option stays
+    // stem-like but grammatically wrong (covers multi-token & short diffs).
+    if (distractors.size < 2) {
+      for (let k = 0; k < C.length && distractors.size < 3; k++) {
+        if (pos.includes(k)) continue;
+        for (const v of inflectionVariants(C[k])) { const cand = [...C]; cand[k] = v; add(cand); if (distractors.size >= 3) break; }
+      }
+    }
+    const list = [...distractors].slice(0, 3);
+    const c = buildChoices(correct, list, Math.min(4, list.length + 1));
     push('ERROR_SPOT', { sentence: wrong, ...c, explanation: g?.explanation });
   }
 

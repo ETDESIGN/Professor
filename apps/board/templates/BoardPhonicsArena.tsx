@@ -588,6 +588,38 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   // Word tablet (design #1's massive arcade tablets). No phoneme-letter
   // highlight — the content model carries no phoneme span or IPA (fidelity
   // log); the whole word renders in display type.
+  // games-v3 fidelity debt (audit 22 §4: "no phoneme highlighting"): derive
+  // the CONTRAST region from the pair itself — common prefix/suffix diff, no
+  // content-model change. Round-1 duels (2 options) highlight the differing
+  // middle in each word; 4-option rounds stay plain (no unique sibling).
+  const contrastSpans = useMemo(() => {
+    const map = new Map<string, { pre: string; mid: string; post: string }>();
+    if (currentWords.length !== 2) return map;
+    const [a, b] = currentWords;
+    if (!a || !b || a === b) return map;
+    let pre = 0;
+    while (pre < a.length && pre < b.length && a[pre].toLowerCase() === b[pre].toLowerCase()) pre++;
+    let post = 0;
+    while (post < a.length - pre && post < b.length - pre && a[a.length - 1 - post].toLowerCase() === b[b.length - 1 - post].toLowerCase()) post++;
+    for (const w of [a, b]) {
+      map.set(w, { pre: w.slice(0, pre), mid: w.slice(pre, w.length - post), post: w.slice(w.length - post) });
+    }
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentItem?.poolItem.id, currentRound, currentWords.length]);
+
+  const renderWordWithContrast = (word: string) => {
+    const span = contrastSpans.get(word);
+    if (!span || !span.mid) return word;
+    return (
+      <>
+        {span.pre}
+        <span className="text-[#38BDF8] underline decoration-[#38BDF8]/60 decoration-4 underline-offset-8">{span.mid}</span>
+        {span.post}
+      </>
+    );
+  };
+
   const renderTablet = (word: string, idx: number) => {
     const isSelected = selectedWord === idx;
     const isCorrect = word === currentItem.correctWord;
@@ -618,7 +650,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         <span className={`text-center font-black tracking-tight leading-none my-1 lg:my-2 [@media(max-height:450px)]:my-0.5
           ${currentWords.length > 2 ? 'text-3xl lg:text-5xl xl:text-6xl [@media(max-height:450px)]:text-xl' : 'text-5xl lg:text-7xl [@media(max-height:450px)]:text-2xl'}
           ${solved ? 'text-emerald-300' : revealed && isCorrect ? 'text-amber-300' : isSelected ? 'text-[#7DD3FC]' : 'text-white'}`}>
-          {word}
+          {renderWordWithContrast(word)}
         </span>
         <span className={`pa-mono w-full py-1.5 lg:py-2.5 rounded-lg text-[9px] lg:text-[11px] font-bold tracking-[0.16em] uppercase text-center border [@media(max-height:450px)]:hidden
           ${solved ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'

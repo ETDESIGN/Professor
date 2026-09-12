@@ -32,6 +32,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Beaker, Check, Zap, ArrowRight, RotateCcw, Flame } from 'lucide-react';
 import { useSession, useSeedBase } from '../../../store/SessionContext';
+import { useBoardPresentation } from '../boardPresentation';
 import { makeRng } from '../../../services/seededRandom';
 import { useEscalatingPool } from '../useEscalatingPool';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
@@ -504,6 +505,16 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
     );
   }
 
+  // games-v3 audit 17 §3 F9: retract the 240px leaderboard rail while the
+  // warming-up holding card shows (nothing is scored there). Kept ABOVE the
+  // early returns — hooks must run unconditionally.
+  const warmingUp = phase === 'empty' || (!loading && grammarItems.length === 0 && phase !== 'complete');
+  const { setRailHidden } = useBoardPresentation();
+  useEffect(() => {
+    setRailHidden(warmingUp);
+    return () => setRailHidden(false);
+  }, [warmingUp, setRailHidden]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full w-full bg-[#070C18] text-cyan-400 cyber-grid select-none p-6">
@@ -516,7 +527,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
   }
 
   // ── Kid-Friendly Bilingual Warming Up Holding State (from Stitch Design #2) ──
-  if (phase === 'empty' || (!loading && grammarItems.length === 0 && phase !== 'complete')) {
+  if (warmingUp) {
     return (
       <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-4 md:p-6 cyber-grid select-none overflow-hidden relative gl-container">
         {/* Ambient radial glows behind center */}

@@ -12,6 +12,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../store/SessionContext';
+import { BoardPresentationProvider } from './boardPresentation';
 import BoardSoundLayer from './templates/BoardSoundLayer';
 import Avatar from '../../components/shared/Avatar';
 
@@ -51,6 +52,11 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
   const currentPhase = (currentStep as any)?.phase || 'WARMUP';
   const currentType = (currentStep as any)?.type || '';
   const fullBleed = FULL_BLEED_TYPES.has(currentType);
+  // games-v3 audit 17 §3 F9: games may retract the leaderboard rail for
+  // specific internal states (e.g. Grammar Lab's warming-up holding card)
+  // without going full-bleed for the whole slide.
+  const [railHidden, setRailHidden] = useState(false);
+  const hideRail = fullBleed || railHidden;
 
   // ── Team scores (with bounce on change) ────────────────────────────────
   const teamsAssigned = state.students.some(s => s.team);
@@ -99,6 +105,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
   const activeCfg = PHASE_CONFIG[currentPhase] || PHASE_CONFIG.WARMUP;
 
   return (
+    <BoardPresentationProvider value={{ railHidden, setRailHidden }}>
     <div
       className="h-full w-full font-body text-slate-50 select-none overflow-hidden relative"
       style={{ background: PHASE_WASHES[currentPhase] || PHASE_WASHES.WARMUP, transition: 'background 600ms ease-in-out' }}
@@ -109,7 +116,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
       {/* ═══ MAIN GRID (stage + leaderboard rail) ═══ */}
       <main
         className="absolute top-0 left-0 right-0 bottom-0 grid gap-4 px-6 pb-[108px] pt-6 transition-all duration-500"
-        style={{ gridTemplateColumns: fullBleed ? '1fr 0px' : '1fr 240px' }}
+        style={{ gridTemplateColumns: hideRail ? '1fr 0px' : '1fr 240px' }}
       >
         {/* ── CENTER: Content Stage (children) ── */}
         <section className={`relative overflow-hidden rounded-[28px] border-2 ${activeCfg.dot.split(' ')[0]} bg-white/[.06] flex flex-col shadow-[0_0_30px_rgba(59,130,246,.15)]`}>
@@ -123,7 +130,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
         </section>
 
         {/* ── RIGHT: Leaderboard (ALL students, scrolls) + Team scores (auto-retract during full-bleed content) ── */}
-        <aside className={`flex flex-col gap-4 overflow-hidden transition-all duration-500 ${fullBleed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <aside className={`flex flex-col gap-4 overflow-hidden transition-all duration-500 ${hideRail ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <div className="flex-1 min-h-0 bg-white/[.06] border border-white/8 rounded-[20px] px-[18px] py-5 flex flex-col backdrop-blur-sm">
             <div className="font-display text-[15px] font-semibold text-slate-300/65 mb-2 uppercase tracking-wider shrink-0">🏆 Leaderboard</div>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 pr-1
@@ -184,7 +191,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
       </main>
 
       {/* ═══ WHOSE-TURN BANNER (footer) ═══ */}
-      <footer className={`absolute bottom-0 left-0 right-0 h-[100px] flex items-center justify-center pb-[18px] z-10 ${fullBleed ? 'px-6' : 'pl-6 pr-[280px]'}`}>
+      <footer className={`absolute bottom-0 left-0 right-0 h-[100px] flex items-center justify-center pb-[18px] z-10 ${hideRail ? 'px-6' : 'pl-6 pr-[280px]'}`}>
         {/* Round-mode badge */}
         <div className="absolute left-6 flex items-center gap-2 bg-white/[.06] border border-white/8 rounded-full px-5 py-2 backdrop-blur-sm">
           <span className="text-xl">{roundMode === 'INDIVIDUAL' ? '🙋' : roundMode === 'TEAM' ? '👥' : '📣'}</span>
@@ -221,6 +228,7 @@ const BoardShell: React.FC<BoardShellProps> = ({ children }) => {
       {/* Spotlight keyframe (for the conic gradient sweep) */}
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
     </div>
+    </BoardPresentationProvider>
   );
 };
 
