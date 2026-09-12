@@ -111,9 +111,13 @@ begin
     select c.*,
            coalesce(
              c.norm_title,
+             -- untitled continuation: attach to the nearest preceding TITLED passage
              (select max(p2.norm_title) from confirmed p2
               where p2.structure_type in ('reading_passage','clil_passage')
-                and p2.norm_title is not null and p2.pos < c.pos)
+                and p2.norm_title is not null and p2.pos < c.pos),
+             -- untitled with NO titled predecessor (e.g. a two-page CLIL reading
+             -- whose neither page prints a title): one opening story group.
+             '__opening__'
            ) as story_key
     from confirmed c
     where c.structure_type in ('reading_passage','clil_passage')

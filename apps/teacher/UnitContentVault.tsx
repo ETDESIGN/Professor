@@ -20,6 +20,10 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   const { unitId } = useParams<{ unitId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<VaultTab>('vocabulary');
+  // CONTENT GROUPS (spec 2026-09-13): the unit's series/stories/comics/songs
+  // as first-class groups — AI-named at enrichment, renameable here (renames
+  // set title_source='teacher' so seeding never overwrites them).
+  const [contentGroups, setContentGroups] = useState<any[]>([]);
   const [unit, setUnit] = useState<any>(null);
   // Task 13: manifest now lives in the shared Unit Studio store.
   const manifest = useUnitStudioStore(s => s.manifest);
@@ -62,6 +66,33 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
   // only on an explicit "Re-enrich" press, never on open). This is the second
   // consumer of useEnrichment (AssetWorkshop is the first).
   const { handleEnrichCategories } = useEnrichment(unitId || '', { autoLoad: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('unit_content_groups')
+          .select('id, kind, title, title_source, printed_label, structure_ids, order_index')
+          .eq('unit_id', unitId)
+          .order('order_index', { ascending: true });
+        if (!cancelled) setContentGroups(Array.isArray(data) ? data : []);
+      } catch { /* groups are additive */ }
+    };
+    if (unitId) load();
+    return () => { cancelled = true; };
+  }, [unitId]);
+
+  const renameContentGroup = async (g: any) => {
+    const next = window.prompt('Rename this group (plans and games show this name):', g.title);
+    if (next === null || !next.trim() || next.trim() === g.title) return;
+    try {
+      await supabase.from('unit_content_groups').update({ title: next.trim().slice(0, 60), title_source: 'teacher', updated_at: new Date().toISOString() }).eq('id', g.id);
+      setContentGroups((prev) => prev.map((x) => (x.id === g.id ? { ...x, title: next.trim().slice(0, 60), title_source: 'teacher' } : x)));
+    } catch (e: any) {
+      alert(`Rename failed: ${e?.message || e}`);
+    }
+  };
   const [reEnriching, setReEnriching] = useState(false);
 
   const loadLinkedCharacters = useCallback(async () => {
@@ -693,6 +724,30 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
 
               {activeTab === 'vocabulary' && (
                 <div>
+                {contentGroups.length > 0 && (
+                  <div className="mb-8 bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-1">Content groups</h3>
+                    <p className="text-[11px] text-slate-400 mb-3">What the book actually contains — these are the groups your lesson plans pick from. Click a name to rename.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {contentGroups.map((g) => (
+                        <button
+                          key={g.id}
+                          onClick={() => renameContentGroup(g)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold hover:shadow-sm transition-shadow ${
+                            g.kind === 'vocab_series' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : g.kind === 'story' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : g.kind === 'comic' ? 'bg-purple-50 text-purple-700 border-purple-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}
+                          title={g.title_source === 'teacher' ? 'Renamed by you' : g.title_source === 'ai' ? 'AI-named' : 'From the book header'}
+                        >
+                          <span className="uppercase tracking-wide opacity-70">{g.kind === 'vocab_series' ? 'series' : g.kind}</span>
+                          {g.title} ✎
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold text-slate-800">Vocabulary Words</h2>
                     <button onClick={addVocabItem} className="flex items-center gap-1 text-sm bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-100">
