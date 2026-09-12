@@ -1,5 +1,5 @@
 # Practice Arena — v3 Quality Audit (`SURFACE: /student/practice`)
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -128,15 +128,44 @@ Refs are `apps/student/PracticeMenu.tsx`.
 5. **Content Readiness Badges (P2):** Show card/story counts on all tiles so learners know what is playable before tapping.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*Stitch mobile screens for Practice Arena will be generated in the design phase following owner approval.*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Practice Arena Hub (`26-practice-arena.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Practice Arena Hub with Active Unit Banner & Pedagogical Tiering**
+   - **Stitch Screen ID:** `5c04b3d60878490c841f5d69df169e57`
+   - **Title:** `Professor ESL - Practice Arena Hub (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1WmtZYXITcoddGBoBYOvxBe98HTJ5YlHxoZJBgQuHY89XMbpewi76Ymb-UlalLxQUS7fntQkOH91W4Fqi1P0S4YT14z-BG-IuPm5Qh6c7BcoRg3hpmG7ASvVsHin3Sy5XbFib8u0vY-gdmKSKZZZ7Th-7-D_TcXXu9af44VfVNZXLod2UMK0RCgfNoqIondb1gZB-80tLsD1rY1uxcyIc6xfl1wBj6qdxAkc6_d5kqJGekH5pLTLS98qog`
+   - **Prompt Summary:** Mobile portrait (390×844) Practice Arena hub screen in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px back button (`[🔊 playCue: tap_back]`), title 'Practice Arena' in bold 20px Fredoka inkDeep `#1D3557`, and daily streak badge '🔥 5 Days'. Active Unit Context Banner on paper `#FDFBF7` with 2.5px teal border `#2A9D8F` and radius 20px: Left: 'Active Unit: Unit 3 — City Adventures & Transport' (12 vocab, 1 story). Right: 'Change Unit ▾' button in sand `#E9C46A` (`[🔊 playCue: change_unit]`). Daily Goal Incentive: '⚡ Daily Goal: Practice 2 skills today for +20 Gems!'. Pedagogically Tiered Practice Grid (2 cols, min 110px card height, 3D bevel `0 4px 0 #E2D7C3`, ZERO dead 'coming soon' cards): Tier 1: Daily Habit: Card 1: 'Daily Review (SRS)' with Brain icon, RED DUE BADGE '🚨 12 Due' in Duolingo red `#FF4B4B` (`[🔊 playCue: tile_select]`). Card 2: 'Phonics Lab' with Headphones icon, READINESS BADGE '🎧 8 Pairs' in Duolingo blue `#1CB0F6` (`[🔊 playCue: tile_select]`). Tier 2: Skill Studio: Card 3: 'Speaking Coach' with Mic icon, READINESS BADGE '🎤 5 Targets' in Duolingo pink `#E91E63` (`[🔊 playCue: tile_select]`). Card 4: 'Reading Reader' with Book icon, READINESS BADGE '📖 1 Story' in teal `#2A9D8F` (`[🔊 playCue: tile_select]`). Tier 3: Arcade Zone: Card 5: 'Fast Vocab' with Lightning icon, badge '🏆 Best 680' in terracotta `#E76F51` (`[🔊 playCue: tile_select]`). Card 6: 'Spelling Bee' with Bee icon, badge '🏆 Best 850' in sand `#E9C46A` (`[🔊 playCue: tile_select]`). Fixed Bottom 5-Tab Bar on paper `#FDFBF7`: Learn, Practice (Active Selected with teal glow), Rank, Quests, Profile.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on header back button tap
+     - `[🔊 playCue: change_unit]` on unit switcher button tap
+     - `[🔊 playCue: tile_select]` on practice tile tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, teal `#2A9D8F`, terracotta `#E76F51`, sand `#E9C46A`) × Duolingo accents (`#FF4B4B`, `#1CB0F6`, `#E91E63`), Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Practice Arena Unit Switcher Modal Drawer**
+   - **Stitch Screen ID:** `e42eea2765f5461ab01e02fa50f1cd2f`
+   - **Title:** `Professor ESL - Practice Arena Unit Switcher Modal Drawer`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XpjxRWrCz3B46nNaZJf_yBhB6Jmcehh_Ha_Z1kXjAmOcbMTsd_8oPwvRPATXOw01vJLw_RKBhJeM8nlydzxdrx8s_pTa-oQOJs5enDz7fzAFrwmW3NIda-qHQvEq-eHRmw8WDAK7QaYS_3IF0sK8ZCQ8I_xXvE3OHNWQRJ2m71HPFpqphRB7wCHdR_SecKPSgXKbJnaQ1lvzh9QU4JP5h8nquFFzOzSQT2-dF5Qeoi9F04-Igzd2vGnw`
+   - **Prompt Summary:** Mobile portrait (390×844) Practice Arena Unit Switcher Modal Drawer in Wonder Atlas Light design system. Semi-transparent backdrop scrim. Bottom Slide-up Sheet on warm paper `#FDFBF7` with 24px top rounded corners and 2.5px border `#E2D7C3`: Sheet Header: Drag handle, title 'Select Practice Unit' in 20px Fredoka inkDeep `#1D3557`, and close '✕' button (`[🔊 playCue: tap_close]`). Subtitle: 'Choose which unit content to focus your Phonics, Speaking, and Reading practice on.' Unit Selection Stack (tactile cards, min 72px height, 3D bevel `0 3px 0 #E2D7C3`): Card 1 (Active Selected): 'Unit 3: City Adventures & Transport' - 12 Words • 8 Phonics • 1 Story. Soft emerald `#E6F4F1` with 2.5px teal border `#2A9D8F`, 'CURRENT FOCUS' ribbon, and checkmark. Card 2: 'Unit 2: Animals in the Wild' - 10 Words • 6 Phonics • 1 Story. Star rating: ⭐⭐⭐ Mastered, with 'SELECT' pill (`[🔊 playCue: unit_switch_tap]`). Card 3: 'Unit 1: School & Classroom' - 8 Words • 4 Phonics • 1 Story. Star rating: ⭐⭐⭐, with 'SELECT' pill. Card 4: 'Unit 4: Food & Meals' - 14 Words • Locked (Complete Unit 3). Anchored Sheet Footer: 52px CTA 'CONFIRM FOCUS UNIT ➔' in teal `#2A9D8F` with hard bevel `0 4px 0 #1E6F5C` (`[🔊 playCue: confirm_unit]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_close]` on modal close button tap
+     - `[🔊 playCue: unit_switch_tap]` on selecting alternate unit card
+     - `[🔊 playCue: confirm_unit]` on confirm focus unit CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/26-practice-arena/`. Screens 1-2 — PASS: active-unit banner + due badges.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

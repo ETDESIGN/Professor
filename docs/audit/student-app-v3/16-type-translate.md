@@ -1,6 +1,6 @@
 # Type Translate — L1 to L2 Translation — v3 Quality Audit (`TYPE_TRANSLATE (productive)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -154,4 +154,36 @@ Refs are `apps/student/exercises/TypeTranslate.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Type Translate Architecture (`apps/student/exercises/TypeTranslate.tsx`):**
+  - **L1 Prompt Card:** Clear display of Chinese source sentence with Professor Owl avatar and supportive translation badge.
+  - **On-Demand Progressive Hint Peek:** Hint is kept strictly hidden by default behind an on-demand button (`💡 Need a hint?`) to prevent sight-reading leaks (P1 F5 solve). Tapping once displays a character/word outline; tapping again reveals keywords.
+  - **Tactile Writing Slate:** Clean input area on warm paper `#FDFBF7` with placeholder ("Type the English sentence here…"), live character counter, and gated Check CTA disabled on empty input.
+  - **TTS on Reveal & Celebration Drawer:** Upon submission, the anchored bottom drawer appears in emerald `#FDFBF7` (with `#2A9D8F` top border) and automatically plays the target English audio model, pairing visual text with immediate pronunciation reinforcement.
+  - **Accepted Alternatives Chip:** Displays alternative valid translations when available (e.g., "Also accepted: ...") so children understand English flexibility and natural variations (F7 solve).
+  - **Test Runner Compatibility:** Retains clean fallback advance timer under `NODE_ENV === 'test'` so existing automated test suites continue passing seamlessly.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-type-translate-prompt.html` — Challenge & Progressive On-Demand Hint Peek):**
+  - *Followed:* Chinese prompt card with Professor Owl, on-demand hint peek button preventing sight-reading leaks, clean writing slate with character count, and gated primary CTA.
+  - *Adapted:* Stripped mock device bezel wrapper; adapted top progress bar to inherit from parent `ExerciseRunner.tsx` shell.
+  - *Deviated:* None.
+- **Screen 2 (`2-type-translate-reveal.html` — Celebration & Acoustic Reveal State):**
+  - *Followed:* Celebration drawer with "🎉 Excellent Translation! 完美翻译" header, target sentence with auto-playing audio model, 48px Duolingo blue speaker FAB, accepted alternatives chip, and full-width beveled `CONTINUE ➔` CTA in teal `#2A9D8F`.
+  - *Adapted:* Dynamically handles single or multiple accepted translations array from exercise content.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Solved sight-reading leaks and missing acoustic feedback: hints are gated behind child-initiated peeks, and successful translation is instantly reinforced with auto-playing English audio.
+
+### 7.d Data-write discipline check
+- Preserves exact `onComplete({ success: isCorrect, time_taken_ms, attempts })` contract. All persistent learner state writes remain strictly owned by `ExerciseRunner.tsx`.
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **826 passed | 1 skipped (83 test files — PASS)**
+- `npm run build`: **Clean production build (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/TypeTranslate.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.

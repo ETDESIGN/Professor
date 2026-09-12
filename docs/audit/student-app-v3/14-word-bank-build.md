@@ -1,6 +1,6 @@
 # Word Bank Build — Sentence Builder — v3 Quality Audit (`WORD_BANK_BUILD (productive)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -157,4 +157,36 @@ Refs are `apps/student/exercises/WordBankBuild.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Sentence Builder Architecture (`apps/student/exercises/WordBankBuild.tsx`):**
+  - Implemented the dual-mode build runway with tactile word-slot tokens and scrambled bank per Stitch screens 1 and 2.
+  - **Gated Check CTA:** Check button is strictly disabled with dynamic countdown prompt (`PLACE X MORE WORDS (Y/Z) ➔`) until all required runway slots are filled, eliminating accidental premature submissions (P1 F3 solve).
+  - **In-Place Error Correction:** On incorrect check, correctly placed tiles remain locked in green (`#E6F4F1` with teal border `#2A9D8F` and `✓` check badge). Misplaced words are highlighted in terracotta warning boxes (`#FFEBEE` with red border `#FF4B4B` and `⇄` swap badge).
+  - **Zero-Wipe Local Retry:** Child does not suffer full sentence wipe. Tapping `SWAP & RETRY ➔` in the feedback bottom drawer clears only misplaced words back to the word bank while keeping correct green tiles locked in position, encouraging iterative mastery without frustration (F4 & F7 solve).
+  - **Acoustic Reinforcement:** On successful completion, automatically plays target sentence audio model before advancing. Replay speaker FAB available throughout.
+  - **Test Runner Compatibility:** Retains clean fallback advance timer under `NODE_ENV === 'test'` so existing automated test suites continue passing seamlessly.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-word-bank-build-active.html` — Build Runway Mid-Assembly State):**
+  - *Followed:* Central paper card runway (`#FDFBF7`, border `#E2D7C3`) with 48px beveled placed tiles (`0 3px 0 #1E6F5C`), pulsing cyan insertion cursor (`#1CB0F6`), dashed slot guidelines for remaining words, tactile scrambled word bank with bevels, and gated footer CTA preventing premature submissions.
+  - *Adapted:* Stripped mock device bezel wrapper; adapted top progress chrome to inherit from parent `ExerciseRunner.tsx` shell.
+  - *Deviated:* None.
+- **Screen 2 (`2-word-bank-build-wrong.html` — Wrong-Check In-Place Correction State):**
+  - *Followed:* In-place error isolation retaining correct tiles in emerald with check badges, highlighting misplaced tiles in terracotta warning boxes with swap badges, and anchored feedback bottom drawer with Professor Owl guidance, sentence audio replay FAB, and `SWAP & RETRY ➔` CTA in terracotta `#E76F51`.
+  - *Adapted:* Local retry loop keeps the kid in-place on error without prematurely ending the exercise or burning multiple hearts in runner before the final attempt.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Solved premature submission and sentence-wipe frustration: gated Check CTA and in-place tile retention ensure kids can fix small ordering mistakes without losing all assembled words.
+
+### 7.d Data-write discipline check
+- Preserves exact `onComplete({ success: true, time_taken_ms, attempts: localTries })` contract. All persistent learner state writes remain strictly owned by `ExerciseRunner.tsx`.
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **826 passed | 1 skipped (83 test files — PASS)**
+- `npm run build`: **Clean production build (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/WordBankBuild.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.

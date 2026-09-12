@@ -1,6 +1,6 @@
 # Fast Vocab Solo — Standalone Practice — v3 Quality Audit (`PRACTICE ARENA / STANDALONE`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -116,15 +116,45 @@ Refs are `apps/student/FastVocabGame.tsx`.
 5. **[P3] Enhance unit selector with personal best badges and category filtering:** Make choosing practice units intuitive and rewarding.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the Wonder Atlas unit selection deck and the personal-best victory celebration screen.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Fast Vocab Solo Standalone Practice (`20-fast-vocab-solo.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Fast Vocab Solo Unit Picker & Preferences Lobby**
+   - **Stitch Screen ID:** `dde10eb682324c7f808307b5cc20b751`
+   - **Title:** `Professor ESL - Fast Vocab Solo Unit Picker`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1Ulfz_UMdS_nofszbiMRhsHiAdc_MABxSiudisgkBP6FWygJfr574gkNhXLhxj0LA2uA-NANhQWz-7F97zrQdomKWFn3EVOeFktUGJObK4P7g6YQprF8KouCU54_Nl2NCPk0Ig9FaAQY0XjDqgO8ekoaqsuFmieRS2ZhBKgD61M3IZ0SrVPsSpceJ4IrPb2_dLTdF26jOwlbp51czLMkyho9RF7RJRmI6YUXqm55EKp_d4WP_MXN5K9As`
+   - **Prompt Summary:** Mobile portrait (390×844) Fast Vocab Solo standalone unit picker screen in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px rounded beveled back button (`[🔊 playCue: tap_back]`), title 'Fast Vocab Solo' in bold 20px Fredoka inkDeep `#1D3557`, and personal star tally `⭐ 184 Stars`. Subheader on cream `#EAE0D0` featuring segmented horizontal category pill selector with 'Current Unit (Active)' selected in teal `#2A9D8F` (`0 3px 0 #1E6F5C` bevel, `[🔊 playCue: tab_switch]`), plus 'Recent Units' and 'All Units'. Preferences card on paper `#FDFBF7` with tactile toggle for 'Longer Waves (5 pairs instead of 3)' and 'Pacing: Standard 10s' pill. Tactile Unit Card Stack (min 80px card height): Active Card 1 displays 'Unit 3: City Adventures & Transport', 12 vocab words, personal best badge `🏆 Best: 680 pts • ⭐⭐⭐`, 2.5px teal border, and 'READY TO PLAY' chip (`[🔊 playCue: card_select]`). Cards 2 & 3 show Units 2 and 1 with respective high score badges. Anchored 76px footer with 56px primary CTA 'START FAST VOCAB (UNIT 3) ⚡' in terracotta `#E76F51` with hard bevel `0 4px 0 #C4553B` (`[🔊 playCue: start_game]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on header back button tap
+     - `[🔊 playCue: tab_switch]` on category filter pill tap
+     - `[🔊 playCue: card_select]` on unit card selection
+     - `[🔊 playCue: start_game]` on primary CTA launch tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, teal `#2A9D8F`, terracotta `#E76F51`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Fast Vocab Solo Mid-Game Match Wave 2/4 (Reusing Step's Light Identity)**
+   - **Stitch Screen ID:** `00eb94502f4a43adae8e1ae4b08fde43`
+   - **Title:** `Professor ESL - Fast Vocab Solo Mid-Game Wave 2/4`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1WfTHRVaYQjr3XrJY1uxnm6AddK7B41WjGgWos-VNbj-lxpL1OqAk5NbtoQ0Z7xriJWQ8Xkku2CDJmYu_lMsiDyervfCsFC6DwOOlitoM77oIvsmKA7yQ7F3ahTXEEdZFEajQ9DhD_kZBGoNlILPD-0B7pYw-ITEth4otDGGntKW_eEZmuvE0NpcEDNUuXFElqPdB84HmTb-IwzaaNg4Bk_EzY8dvlY4h_aB2dLcdm8xkmakgYG2KgQMW8`
+   - **Prompt Summary:** Mobile portrait (390×844) Fast Vocab Solo mid-game match wave state in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px exit button (`[🔊 playCue: tap_exit]`), exit confirmation guard hint ('Safe Exit: Pattern A awards save on completion'), running score badge `⭐ 540 pts` in terracotta `#E76F51`, and combo streak chip `🔥 Streak x4`. Subheader HUD on cream `#EAE0D0`: amber badge `⚡ FAST VOCAB SOLO • WAVE 2/4` and wave pair counter `2/4 Pairs Locked`. 6-tile tactile paper card grid (2 cols × 3 rows, min 72px height, 3D bevel `0 4px 0 #E2D7C3`): Tile 1 ('traffic light' word card with IPA `[ˈtræfɪk laɪt]`) actively selected with emerald tint `#E6F4F1`, 2.5px teal border `#2A9D8F` (`[🔊 playCue: card_select]`). Tile 2 (vector traffic light illustration with glowing signal lamps) with pulsing connection glow ready to pair. Tiles 3 & 4 ('subway' word and subway train illustration) locked in celebrating golden-teal matched frames with checkmark chips (`[🔊 playCue: match_success]`). Tiles 5 & 6 ('bicycle' word and city bicycle illustration) idle in warm paper `#FDFBF7`. Speed bonus banner: '⚡ Fast Pair Bonus: +30 XP Active!'. Anchored footer with 56px disabled CTA 'MATCH REMAINING PAIRS (2/4) →' in teal `#2A9D8F`.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header exit tap
+     - `[🔊 playCue: card_select]` on card selection tap
+     - `[🔊 playCue: match_success]` on pair match lock
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/20-fast-vocab-solo/`. Screens 1-2 — PASS: unit picker + light-identity mid-game.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

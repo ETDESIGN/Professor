@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Story Quiz: Bridge Adventure</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            wonderBg: '#EFE7DA',
+            wonderPaper: '#FDFBF7',
+            wonderPaperSubtle: '#F7F3EB',
+            wonderBorder: '#E2D7C3',
+            wonderBorderDark: '#C9BBA5',
+            wonderInk: '#264653',
+            wonderInkMuted: '#687E87',
+            wonderInkDeep: '#1D3557',
+            wonderTeal: '#2A9D8F',
+            wonderTealDark: '#1E756A',
+            wonderTealLight: '#E6F4F1',
+            wonderTerracotta: '#E76F51',
+            wonderTerracottaDark: '#C4553B',
+            wonderSand: '#E9C46A',
+            wonderSandDark: '#CCA047',
+            duoBlue: '#1CB0F6',
+            duoBlueDark: '#0FA0E5',
+            duoPink: '#E91E63'
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif']
+          },
+          boxShadow: {
+            'bevel-sm': '0 3px 0 #E2D7C3',
+            'bevel-md': '0 4px 0 #E2D7C3',
+            'bevel-teal': '0 4px 0 #2A9D8F',
+            'bevel-terracotta': '0 4px 0 #C4553B',
+            'bevel-blue': '0 4px 0 #0FA0E5',
+            'bevel-sand': '0 3px 0 #CCA047',
+            'card-shadow': '0 6px 16px -3px rgba(38,70,83,0.06)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Dot grid background pattern matching Wonder Atlas System */
+    body {
+      background-color: #EFE7DA;
+      background-image: radial-gradient(#D5C7B3 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+      font-family: 'Nunito', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .app-viewport {
+      width: 390px;
+      height: 844px;
+      background-color: #F8F5EE;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(38, 70, 83, 0.25), 0 0 0 10px #2D2825;
+      border-radius: 46px;
+    }
+
+    /* Dynamic hardware notch / dynamic island mimic */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 0 28px 8px;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: -0.2px;
+      color: #264653;
+      z-index: 40;
+    }
+
+    .island-pill {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 28px;
+      background-color: #1A1A1A;
+      border-radius: 20px;
+      z-index: 50;
+    }
+
+    /* Subtle active press effects for tactile physics */
+    .tactile-btn {
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .tactile-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 currentColor !important;
+    }
+
+    /* Custom scrollbar hiding */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Audio pulse animation */
+    @keyframes subtle-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .audio-pulsing {
+      animation: subtle-pulse 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    <!-- Dynamic Island -->
+    <div class="island-pill"></div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="flex items-center gap-1.5 text-wonderInk">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l.64-.64C7.93 20.26 9.88 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7 0-1.74.64-3.34 1.7-4.57l9.87 9.87C15.34 18.36 13.74 19 12 19zm5.3-2.43L7.43 6.7C8.66 5.64 10.26 5 12 5c3.87 0 7 3.13 7 7 0 1.74-.64 3.34-1.7 4.57z"/></svg>
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"/></svg>
+        <div class="w-5 h-2.5 rounded-sm border border-wonderInk p-0.5 flex items-center">
+          <div class="w-full h-full bg-wonderInk rounded-2xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header -->
+    <header class="h-16 px-4 bg-wonderPaper border-b-[2.5px] border-wonderBorder flex items-center justify-between z-30 shrink-0">
+      <!-- 48px Exit Button -->
+      <button class="tactile-btn w-12 h-12 rounded-2xl bg-wonderPaper border-[2px] border-wonderBorder flex items-center justify-center text-wonderInk shadow-bevel-sm active:translate-y-0.5" aria-label="Exit Quiz" title="[🔊 playCue: tap_exit]">
+        <svg class="w-5 h-5 stroke-[2.8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Center Title & Segment Tracker -->
+      <div class="flex flex-col items-center justify-center">
+        <h1 class="font-fredoka text-[15px] font-bold tracking-tight text-wonderInk">
+          Story Quiz: Bridge Adventure
+        </h1>
+        <div class="flex items-center gap-2 mt-0.5">
+          <!-- Mini dot segments -->
+          <div class="flex gap-1 items-center">
+            <span class="w-4 h-1.5 rounded-full bg-wonderTeal"></span>
+            <span class="w-5 h-2 rounded-full bg-wonderTerracotta shadow-sm"></span>
+            <span class="w-4 h-1.5 rounded-full bg-wonderBorder"></span>
+          </div>
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-wonderTerracotta">
+            Question 2 of 3
+          </span>
+        </div>
+      </div>
+
+      <!-- Hearts / Streak Counter Badge -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-wonderPaperSubtle border border-wonderBorder text-xs font-black text-duoPink">
+        <svg class="w-4 h-4 fill-current animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="text-[13px] font-extrabold text-wonderInk">4</span>
+      </div>
+    </header>
+
+    <!-- Scrollable Main Content -->
+    <main class="flex-1 overflow-y-auto px-4 pt-3 pb-3 space-y-3 no-scrollbar">
+
+      <!-- Top Utility Row: Story Peek & Context Hint -->
+      <div class="flex items-center justify-between">
+        <!-- Story Peek Button -->
+        <button class="tactile-btn flex items-center gap-2 px-3.5 py-2 rounded-xl bg-wonderPaper border-[2px] border-wonderBorder shadow-bevel-sm text-wonderInk hover:bg-wonderPaperSubtle" title="[🔊 playCue: peek_story]">
+          <span class="text-base">📖</span>
+          <span class="font-fredoka text-[13px] font-bold text-wonderInkDeep tracking-tight">Peek at Story</span>
+          <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">Fact Check</span>
+        </button>
+
+        <!-- Audio Tip / Read Along Indicator -->
+        <div class="flex items-center gap-1.5 text-wonderInkMuted text-[12px] font-bold">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+          <span>Story Part 2</span>
+        </div>
+      </div>
+
+      <!-- Center Question Card -->
+      <div class="bg-wonderPaper rounded-[20px] border-[2.5px] border-wonderBorder p-4 shadow-card-shadow relative">
+        <!-- Top Metadata tag -->
+        <div class="flex items-center justify-between pb-2 border-b border-wonderBorder/70 mb-3">
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-wonderTeal bg-wonderTealLight px-2.5 py-0.5 rounded-full border border-wonderTeal/30">
+            <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Comprehension Check
+          </span>
+          <span class="text-[11px] font-bold text-wonderInkMuted">Passage: Toby's Journey</span>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <!-- 44px Blue Audio Speaker FAB -->
+          <button class="tactile-btn w-11 h-11 shrink-0 rounded-2xl bg-duoBlue border-2 border-duoBlueDark text-white flex items-center justify-center shadow-bevel-blue audio-pulsing active:translate-y-1" title="[🔊 playCue: question_audio]" aria-label="Listen to Question">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </button>
+
+          <!-- Question English & Chinese -->
+          <div class="flex-1 pt-0.5">
+            <h2 class="font-fredoka text-[17px] leading-snug font-bold text-wonderInkDeep">
+              Where do Toby and his sister walk every morning?
+            </h2>
+            <p class="text-[13px] font-semibold text-wonderInkMuted mt-1 tracking-tight">
+              托比和妹妹每天早上走过哪里？
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Tactile Option Cards -->
+      <div class="space-y-2.5 pt-1" role="radiogroup" aria-label="Comprehension Options">
+
+        <!-- Option A: Active Correct Selected -->
+        <div class="tactile-btn min-h-[72px] rounded-[18px] bg-wonderTealLight border-[2.5px] border-wonderTeal p-3.5 flex items-center justify-between shadow-bevel-teal relative transition-all" role="radio" aria-checked="true">
+          <div class="flex items-center gap-3 flex-1 pr-2">
+            <!-- Option letter pill -->
+            <div class="w-8 h-8 rounded-xl bg-wonderTeal text-white font-fredoka font-bold text-sm flex items-center justify-center shrink-0 shadow-sm">
+              A
+            </div>
+            <div class="flex flex-col">
+              <span class="font-bold text-[15px] text-wonderInkDeep leading-tight">
+                Across the tall stone bridge
+              </span>
+              <span class="text-[11px] font-bold text-wonderTealDark mt-0.5 flex items-center gap-1">
+                <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                Mentioned in paragraph 2
+              </span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <!-- Audio replay FAB for option -->
+            <button class="tactile-btn w-8 h-8 rounded-xl bg-wonderPaper border border-wonderTeal/40 text-wonderTeal flex items-center justify-center shadow-sm" title="[🔊 playCue: correct_chime]">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+            <!-- Checkmark Success Badge -->
+            <div class="w-7 h-7 rounded-full bg-wonderTeal text-white flex items-center justify-center shadow-sm">
+              <svg class="w-4 h-4 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option B: Default Paper -->
+        <div class="tactile-btn min-h-[68px] rounded-[18px] bg-wonderPaper border-[2px] border-wonderBorder p-3.5 flex items-center justify-between shadow-bevel-md hover:border-wonderBorderDark opacity-85 hover:opacity-100 transition-all cursor-pointer" role="radio" aria-checked="false">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-wonderPaperSubtle border border-wonderBorder text-wonderInkMuted font-fredoka font-bold text-sm flex items-center justify-center shrink-0">
+              B
+            </div>
+            <span class="font-bold text-[14px] text-wonderInk">
+              Through the dark subway station
+            </span>
+          </div>
+          <div class="w-6 h-6 rounded-full border-2 border-wonderBorder shrink-0 bg-wonderPaperSubtle"></div>
+        </div>
+
+        <!-- Option C: Default Paper -->
+        <div class="tactile-btn min-h-[68px] rounded-[18px] bg-wonderPaper border-[2px] border-wonderBorder p-3.5 flex items-center justify-between shadow-bevel-md hover:border-wonderBorderDark opacity-85 hover:opacity-100 transition-all cursor-pointer" role="radio" aria-checked="false">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-wonderPaperSubtle border border-wonderBorder text-wonderInkMuted font-fredoka font-bold text-sm flex items-center justify-center shrink-0">
+              C
+            </div>
+            <span class="font-bold text-[14px] text-wonderInk">
+              Around the city hospital
+            </span>
+          </div>
+          <div class="w-6 h-6 rounded-full border-2 border-wonderBorder shrink-0 bg-wonderPaperSubtle"></div>
+        </div>
+
+      </div>
+
+      <!-- Feedback Card (Rich Reward + Re-queue Assurance) -->
+      <div class="rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border-[2px] border-wonderTeal/30 p-3 shadow-sm flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🎉</span>
+            <span class="font-fredoka text-[14px] font-bold text-wonderTealDark">
+              Great comprehension!
+            </span>
+          </div>
+          <div class="flex items-center gap-1 bg-wonderSand/20 border border-wonderSand px-2 py-0.5 rounded-full">
+            <span class="text-xs">⚡</span>
+            <span class="font-fredoka text-[12px] font-bold text-amber-900">+10 XP</span>
+          </div>
+        </div>
+        
+        <!-- Re-queue note per pedagogical spec -->
+        <div class="flex items-start gap-1.5 pt-1 border-t border-wonderTeal/20">
+          <svg class="w-3.5 h-3.5 text-wonderTeal shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <p class="text-[11.5px] font-bold text-wonderInkMuted leading-tight">
+            Missed questions return at the end to guarantee mastery.
+          </p>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Anchored 76px Footer -->
+    <footer class="h-[76px] px-4 bg-wonderPaper border-t-[2.5px] border-wonderBorder flex items-center justify-center shrink-0 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      <!-- 56px Primary CTA -->
+      <button class="tactile-btn w-full h-14 rounded-2xl bg-wonderTerracotta border-[2px] border-wonderTerracottaDark text-white flex items-center justify-center gap-2 shadow-bevel-terracotta active:translate-y-1 font-fredoka text-[16px] font-bold tracking-wide uppercase" title="[🔊 playCue: next_question]">
+        <span>CONTINUE TO QUESTION 3</span>
+        <svg class="w-5 h-5 stroke-[3] translate-y-[-1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </button>
+    </footer>
+
+  </div>
+
+</body>
+</html>

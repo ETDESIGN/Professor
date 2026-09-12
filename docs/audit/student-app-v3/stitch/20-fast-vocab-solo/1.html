@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Fast Vocab Solo Unit Picker</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#FDFBF7',
+            cream: '#EAE0D0',
+            creamLight: '#F7F3EB',
+            borderWarm: '#E2D7C3',
+            borderDark: '#CEBFAC',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            tealBrand: '#2A9D8F',
+            tealDark: '#1E6F5C',
+            terracotta: '#E76F51',
+            terracottaDark: '#C4553B',
+            duoPink: '#E91E63',
+            duoBlue: '#1CB0F6',
+            sunGold: '#F4A261',
+            goldDark: '#D87A29'
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif'],
+          },
+          boxShadow: {
+            'bevel-teal': '0 3px 0 #1E6F5C',
+            'bevel-teal-sm': '0 2.5px 0 #1E6F5C',
+            'bevel-terracotta': '0 4px 0 #C4553B',
+            'bevel-paper': '0 3px 0 #E2D7C3',
+            'bevel-gold': '0 2.5px 0 #D87A29',
+            'card-lift': '0 3px 0 #E2D7C3',
+            'active-card': '0 4px 0 #2A9D8F',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #E6DCce;
+      font-family: 'Nunito', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* Tactile button active states for tactile game feel */
+    .tactile-btn {
+      transition: all 0.08s ease-in-out;
+    }
+    .tactile-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 currentColor !important;
+    }
+
+    /* Custom scroll styling */
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-0 md:p-6 text-ink">
+  <!-- Mobile Portrait Shell (390px × 844px) -->
+  <main class="w-[390px] h-[844px] max-h-[844px] bg-cream relative flex flex-col overflow-hidden rounded-[36px] shadow-2xl border-[5px] border-[#3D3A34]">
+
+    <!-- Top Status Bar Decoration (Simulated iOS Notch / Safe Area) -->
+    <div class="h-9 w-full bg-paper px-6 flex justify-between items-center z-30 shrink-0 border-b border-borderWarm/40">
+      <span class="text-xs font-bold font-fredoka text-inkDeep/70 tracking-tight">9:41</span>
+      <div class="w-20 h-4 bg-inkDeep/10 rounded-full flex items-center justify-center">
+        <div class="w-3 h-3 rounded-full bg-inkDeep/30 mx-0.5"></div>
+      </div>
+      <div class="flex items-center gap-1.5 text-inkDeep/70 text-[11px] font-extrabold">
+        <span>5G</span>
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25c-.2.2-.2.51 0 .71.1.1.23.15.35.15s.26-.05.35-.15l.64-.64C7.23 19.46 9.49 20.2 12 20.2c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header -->
+    <header class="h-16 w-full bg-paper border-b-2 border-borderWarm px-4 flex items-center justify-between shrink-0 z-20 shadow-sm">
+      <!-- 48px Back Arrow Button -->
+      <button 
+        type="button"
+        aria-label="Back to Solo Map"
+        class="w-12 h-12 rounded-2xl bg-creamLight border-2 border-borderWarm shadow-bevel-paper flex items-center justify-center tactile-btn text-inkDeep hover:bg-cream active:translate-y-0.5 focus:outline-none"
+        title="[🔊 playCue: tap_back]"
+      >
+        <svg class="w-6 h-6 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <!-- Center Title -->
+      <div class="text-center flex-1 px-2">
+        <h1 class="font-fredoka font-bold text-[20px] leading-tight text-inkDeep tracking-normal">
+          Fast Vocab Solo
+        </h1>
+        <p class="text-[10.5px] font-bold text-ink/60 uppercase tracking-wider font-nunito -mt-0.5">
+          Speed Match Challenge
+        </p>
+      </div>
+
+      <!-- Running Personal Star Counter -->
+      <div 
+        class="h-10 px-3 bg-amber-50 border-2 border-amber-200/90 rounded-2xl flex items-center gap-1.5 shadow-sm"
+        title="Personal Stars: 184"
+      >
+        <span class="text-[17px] leading-none select-none">⭐</span>
+        <span class="font-fredoka font-bold text-sm text-goldDark tracking-tight">184</span>
+      </div>
+    </header>
+
+    <!-- Subheader Section (Cream #EAE0D0) with Horizontal Category Pills -->
+    <section class="bg-cream pt-3.5 pb-3 px-4 shrink-0 border-b border-borderWarm/70">
+      <!-- Section Label & Category Selector -->
+      <div class="flex items-center justify-between mb-2 px-0.5">
+        <span class="text-[11px] font-extrabold uppercase tracking-wider text-inkDeep/70 font-fredoka flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-tealBrand inline-block"></span> Choose Unit to Practice
+        </span>
+        <span class="text-[10px] font-bold text-ink/50 bg-paper/60 px-2 py-0.5 rounded-full border border-borderWarm/40">
+          3 Units Ready
+        </span>
+      </div>
+
+      <div class="flex gap-2 items-center" role="tablist" aria-label="Unit Filter Categories">
+        <!-- Pill 1: Current Unit (Active) -->
+        <button 
+          type="button" 
+          role="tab"
+          aria-selected="true"
+          class="flex-1 py-2 px-3 bg-tealBrand border-2 border-tealDark text-paper font-fredoka font-bold text-[13px] rounded-xl shadow-bevel-teal flex items-center justify-center gap-1.5 tactile-btn cursor-pointer"
+          title="[🔊 playCue: tab_switch]"
+        >
+          <span class="w-2 h-2 rounded-full bg-emerald-200 animate-pulse"></span>
+          <span>Current Unit</span>
+        </button>
+
+        <!-- Pill 2: Recent Units -->
+        <button 
+          type="button" 
+          role="tab"
+          aria-selected="false"
+          class="flex-1 py-2 px-3 bg-paper border-2 border-borderWarm text-ink font-fredoka font-bold text-[13px] rounded-xl shadow-bevel-paper flex items-center justify-center hover:bg-creamLight tactile-btn cursor-pointer"
+          title="[🔊 playCue: tab_switch]"
+        >
+          <span>Recent Units</span>
+        </button>
+
+        <!-- Pill 3: All Units -->
+        <button 
+          type="button" 
+          role="tab"
+          aria-selected="false"
+          class="py-2 px-3 bg-paper border-2 border-borderWarm text-ink font-fredoka font-bold text-[13px] rounded-xl shadow-bevel-paper flex items-center justify-center hover:bg-creamLight tactile-btn cursor-pointer"
+          title="[🔊 playCue: tab_switch]"
+        >
+          <span>All Units</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Scrollable Main Content Area -->
+    <div class="flex-1 overflow-y-auto custom-scroll px-4 py-3 space-y-3.5">
+
+      <!-- Preferences Card: Game Mode Settings -->
+      <section class="bg-paper rounded-[20px] p-3.5 border-2 border-borderWarm shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-borderWarm/60">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-tealBrand/10 text-tealBrand flex items-center justify-center text-xs font-black">
+              ⚙️
+            </div>
+            <h2 class="font-fredoka font-bold text-[14px] text-inkDeep tracking-tight">
+              Game Mode Settings
+            </h2>
+          </div>
+          <!-- Pacing Pill -->
+          <div class="px-2.5 py-1 bg-creamLight border border-borderWarm rounded-full text-[11px] font-extrabold text-inkDeep/80 font-fredoka flex items-center gap-1">
+            <span class="text-terracotta text-xs">⏱</span>
+            <span>Pacing: Standard 10s</span>
+          </div>
+        </div>
+
+        <!-- Toggle Row: Longer Waves -->
+        <div class="flex items-center justify-between pt-0.5">
+          <div class="pr-2">
+            <div class="text-[13px] font-bold text-inkDeep leading-tight flex items-center gap-1.5">
+              <span>Longer Waves</span>
+              <span class="text-[10px] font-extrabold px-1.5 py-0.2 bg-tealBrand/15 text-tealDark rounded-md">PRO</span>
+            </div>
+            <p class="text-[11px] text-ink/65 font-medium leading-tight mt-0.5">
+              5 pairs per round instead of 3 (Higher XP!)
+            </p>
+          </div>
+
+          <!-- Tactile Duolingo-style Toggle Switch (Active in Teal) -->
+          <button 
+            type="button" 
+            role="switch" 
+            aria-checked="true"
+            class="w-12 h-7 rounded-full bg-tealBrand p-0.5 border-2 border-tealDark shadow-inner transition-colors duration-200 relative shrink-0 focus:outline-none"
+            title="[🔊 playCue: toggle_option]"
+          >
+            <span class="block w-5 h-5 rounded-full bg-paper shadow-md transform translate-x-5 transition-transform duration-200 border border-tealDark/30"></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Tactile Unit Card Grid Label -->
+      <div class="flex items-center justify-between pt-1">
+        <span class="text-[12px] font-fredoka font-bold uppercase tracking-wider text-inkDeep/70 flex items-center gap-1.5">
+          <span>📚</span> Available Lesson Decks
+        </span>
+        <span class="text-[11px] font-bold text-tealBrand font-nunito">Tap to Select</span>
+      </div>
+
+      <!-- Tactile Unit Cards -->
+      <div class="space-y-3 pb-2">
+
+        <!-- CARD 1 (Active / Selected): Unit 3 -->
+        <article 
+          class="relative bg-paper rounded-[22px] p-3.5 border-[2.5px] border-tealBrand shadow-[0_4px_0_#2A9D8F] cursor-pointer transition-all hover:translate-y-[-1px]"
+          title="[🔊 playCue: card_select]"
+        >
+          <!-- Active Unit Ribbon Badge -->
+          <div class="absolute -top-3 right-4 bg-tealBrand border-2 border-tealDark text-paper text-[10px] font-fredoka font-extrabold tracking-wider px-2.5 py-0.5 rounded-full shadow-bevel-teal-sm flex items-center gap-1">
+            <span class="text-[11px]">⚡</span> ACTIVE SELECTION
+          </div>
+
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <!-- Unit Graphic / Number Badge -->
+              <div class="w-12 h-12 rounded-2xl bg-tealBrand/15 border-2 border-tealBrand/30 flex flex-col items-center justify-center shrink-0">
+                <span class="text-[10px] font-black uppercase text-tealDark font-fredoka leading-none">UNIT</span>
+                <span class="text-xl font-black text-tealDark font-fredoka leading-tight">3</span>
+              </div>
+
+              <!-- Content Info -->
+              <div>
+                <h3 class="font-fredoka font-bold text-[15.5px] text-inkDeep leading-tight">
+                  Unit 3: City Adventures & Transport
+                </h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[11.5px] font-extrabold text-ink/70 font-nunito flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-tealBrand" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                    12 vocabulary words
+                  </span>
+                  <span class="text-borderWarm text-xs">•</span>
+                  <span class="text-[11px] font-bold text-duoBlue bg-duoBlue/10 px-1.5 py-0.5 rounded">Grade 4-5</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personal Best & Action CTA Row -->
+          <div class="mt-3 pt-2.5 border-t border-tealBrand/20 flex items-center justify-between">
+            <!-- Personal Best Badge -->
+            <div class="flex items-center gap-1.5 bg-amber-50/90 border border-amber-300/80 px-2.5 py-1 rounded-xl">
+              <span class="text-xs">🏆</span>
+              <span class="text-[11.5px] font-fredoka font-bold text-inkDeep">
+                Best: <strong class="text-goldDark">680 pts</strong>
+              </span>
+              <span class="text-[11px] tracking-tight text-amber-500">⭐⭐⭐</span>
+            </div>
+
+            <!-- Mini Ready Indicator / Button -->
+            <button 
+              type="button"
+              class="h-8 px-3 rounded-xl bg-tealBrand border-2 border-tealDark text-paper font-fredoka font-bold text-[11.5px] shadow-bevel-teal-sm flex items-center gap-1 tactile-btn"
+              title="[🔊 playCue: card_select]"
+            >
+              <span>READY TO PLAY</span>
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+          </div>
+        </article>
+
+        <!-- CARD 2: Unit 2 -->
+        <article 
+          class="bg-paper rounded-[22px] p-3.5 border-2 border-borderWarm shadow-card-lift cursor-pointer transition-all hover:bg-creamLight/50"
+          title="[🔊 playCue: card_select]"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <!-- Unit Badge -->
+              <div class="w-12 h-12 rounded-2xl bg-amber-100/70 border-2 border-borderWarm flex flex-col items-center justify-center shrink-0">
+                <span class="text-[10px] font-black uppercase text-amber-800/70 font-fredoka leading-none">UNIT</span>
+                <span class="text-xl font-black text-inkDeep font-fredoka leading-tight">2</span>
+              </div>
+
+              <!-- Content Info -->
+              <div>
+                <h3 class="font-fredoka font-bold text-[15.5px] text-inkDeep leading-tight">
+                  Unit 2: Animals in the Wild
+                </h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[11.5px] font-extrabold text-ink/70 font-nunito flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-ink/40" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                    10 vocabulary words
+                  </span>
+                  <span class="text-borderWarm text-xs">•</span>
+                  <span class="text-[11px] font-bold text-ink/50 bg-cream px-1.5 py-0.5 rounded">Completed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personal Best & Replay Button -->
+          <div class="mt-3 pt-2.5 border-t border-borderWarm/50 flex items-center justify-between">
+            <div class="flex items-center gap-1.5 bg-creamLight border border-borderWarm/80 px-2.5 py-1 rounded-xl">
+              <span class="text-xs">🏆</span>
+              <span class="text-[11.5px] font-fredoka font-bold text-inkDeep">
+                Best: <strong class="text-goldDark">520 pts</strong>
+              </span>
+              <span class="text-[11px] tracking-tight text-amber-500">⭐⭐<span class="text-gray-300">☆</span></span>
+            </div>
+
+            <span class="text-[12px] font-fredoka font-bold text-inkDeep/70 hover:text-inkDeep flex items-center gap-1">
+              Select Deck →
+            </span>
+          </div>
+        </article>
+
+        <!-- CARD 3: Unit 1 -->
+        <article 
+          class="bg-paper rounded-[22px] p-3.5 border-2 border-borderWarm shadow-card-lift cursor-pointer transition-all hover:bg-creamLight/50"
+          title="[🔊 playCue: card_select]"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <!-- Unit Badge -->
+              <div class="w-12 h-12 rounded-2xl bg-duoBlue/10 border-2 border-borderWarm flex flex-col items-center justify-center shrink-0">
+                <span class="text-[10px] font-black uppercase text-duoBlue font-fredoka leading-none">UNIT</span>
+                <span class="text-xl font-black text-inkDeep font-fredoka leading-tight">1</span>
+              </div>
+
+              <!-- Content Info -->
+              <div>
+                <h3 class="font-fredoka font-bold text-[15.5px] text-inkDeep leading-tight">
+                  Unit 1: School & Classroom
+                </h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[11.5px] font-extrabold text-ink/70 font-nunito flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-ink/40" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                    8 vocabulary words
+                  </span>
+                  <span class="text-borderWarm text-xs">•</span>
+                  <span class="text-[11px] font-bold text-duoPink bg-duoPink/10 px-1.5 py-0.5 rounded">Mastered</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personal Best & Replay Button -->
+          <div class="mt-3 pt-2.5 border-t border-borderWarm/50 flex items-center justify-between">
+            <div class="flex items-center gap-1.5 bg-creamLight border border-borderWarm/80 px-2.5 py-1 rounded-xl">
+              <span class="text-xs">🏆</span>
+              <span class="text-[11.5px] font-fredoka font-bold text-inkDeep">
+                Best: <strong class="text-goldDark">740 pts</strong>
+              </span>
+              <span class="text-[11px] tracking-tight text-amber-500">⭐⭐⭐</span>
+            </div>
+
+            <span class="text-[12px] font-fredoka font-bold text-inkDeep/70 hover:text-inkDeep flex items-center gap-1">
+              Select Deck →
+            </span>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- Encouraging Safety Banner -->
+      <div class="rounded-xl bg-tealBrand/10 border border-tealBrand/25 p-2.5 flex items-center gap-2.5 mb-1">
+        <span class="text-base">🛡️</span>
+        <div class="text-[11px] text-ink font-semibold leading-tight">
+          <strong class="text-tealDark font-fredoka font-bold">Safe Practice Zone:</strong> Rapid matching speeds give bonus points, but missed taps never lose hearts!
+        </div>
+      </div>
+    </div>
+
+    <!-- Anchored 76px Footer -->
+    <footer class="h-[76px] w-full bg-paper border-t-2 border-borderWarm px-4 flex items-center justify-center shrink-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
+      <!-- 56px Primary CTA Button -->
+      <button 
+        type="button" 
+        class="w-full h-14 bg-terracotta border-2 border-terracottaDark rounded-[18px] text-paper font-fredoka font-bold text-[16.5px] tracking-wide shadow-bevel-terracotta flex items-center justify-center gap-2 tactile-btn active:translate-y-1 hover:brightness-105 focus:outline-none"
+        title="[🔊 playCue: start_game]"
+      >
+        <span>START FAST VOCAB (UNIT 3)</span>
+        <span class="text-lg">⚡</span>
+      </button>
+    </footer>
+
+    <!-- Home Indicator Bar -->
+    <div class="h-4 w-full bg-paper flex items-center justify-center shrink-0 pb-1">
+      <div class="w-32 h-1 bg-inkDeep/20 rounded-full"></div>
+    </div>
+
+  </main>
+</body>
+</html>

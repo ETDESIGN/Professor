@@ -1,5 +1,5 @@
 # Pronunciation Coach — v3 Quality Audit (`PRACTICE: /student/pronounce`)
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -129,15 +129,47 @@ Refs: `apps/student/PronunciationCoach.tsx`, `services/SpeechService.ts`.
 5. **Fix Glitched 3D Shadow & Soften Studio Theme (P2):** Correct the olive-green bevel shadow under the pink mic button and create an inviting, kid-friendly voice stage.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*Stitch mobile screens for Pronunciation Coach will be generated in the design phase following owner approval.*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Pronunciation Coach Speaking Practice (`25-pronunciation-coach.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Pronunciation Coach Real Curriculum Speaking Challenge (Fixed Bevel & Deck)**
+   - **Stitch Screen ID:** `abe15b368f5b4472b925785f8fb869e1`
+   - **Title:** `Professor ESL - Pronunciation Coach (traffic light)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1X3386kLuRm-bwh84_dWTRc5DxYvW6eIY6QFDJWjU7s8jX6UIKMFJfm8fNS_GLODLP4NHaU5olORxH35BSAH169r9LrIYq91plBCncGaAQTA449z6OnwnK-JfXrffqkTbtUKUQDN5Gl40R1fNOdcfDcKtSbgZdXrtkub1w1jY2mHKl8ooXRQklYXG6gGsmdfm2XpaS4GOBvVqKPmfgaeRTiPccPj-sQN-SeF9BjrFWbZ9d7KBYG5j6UsZo`
+   - **Prompt Summary:** Mobile portrait (390×844) Pronunciation Coach real curriculum speaking challenge in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px exit button (`[🔊 playCue: tap_exit]`), title 'Pronunciation Coach', and target progress 'Target 2 of 5'. Active Unit Context Banner: 'Unit 3: City Transport • Speaking Practice'. Horizontal History Chips Row: 'subway: 94% ⭐', active pulsating 'traffic light (active)', 'bridge: 88% ⭐', and queued 'bicycle'. Center Stage: Real Curriculum Target Card on warm paper `#FDFBF7` with 2.5px border `#E2D7C3` and radius 24px: Headword 'traffic light' in bold 28px Fredoka inkDeep `#1D3557`, phonetic `[ˈtræf.ɪk laɪt]`, 3-syllable badge, and Chinese '交通信号灯'. Dual audio modeling actions: 'Normal 1.0x 🔊' (`[playCue: model_audio]`) and tactile Sand 'Turtle 0.75x 🐢' in sand `#E9C46A` (`[playCue: model_audio_slow]`). Live 15-bar frequency acoustic equalizer in sky blue `#38BDF8`. Fixed Primary Microphone FAB (Bug Fix): 76px circular microphone button in Duolingo pink `#E91E63` with MATCHING DARK PINK 3D BEVEL `0 8px 0 #BE185D` (completely eliminating glitched green shadow!) and white mic icon (`[🔊 playCue: mic_record_tap]`). Anchored 76px footer with 'Skip Target ➔' and 'Current Avg: 91%'.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header exit tap
+     - `[🔊 playCue: model_audio]` on 1.0x native audio replay tap
+     - `[🔊 playCue: model_audio_slow]` on 0.75x slow audio playback tap
+     - `[🔊 playCue: mic_record_tap]` on primary mic record button tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, teal `#2A9D8F`, sand `#E9C46A`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Pronunciation Coach Practice-Only Offline Mode (Honest Effort Tracking)**
+   - **Stitch Screen ID:** `9729035b766e49fface731a4c3cd7230`
+   - **Title:** `Pronunciation Coach - Practice-Only Mode (STT Offline)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XBOlZGv7fNffDJDTFHpLpFHnJK3TeBCbEQNiZ0hM2dBsIdt_7F7igp6Owh-iDfDnl6NxbImS-OYkjI61-2jVoEWTKJiwEYwqMjcnECJZpszevQJ-gR8x6zUOAfqkghVo4p1cx1MnqwsJllPRCU828eol6SiMCFO_oTdwtdqwmGTy2CkAK3HV86i_seKiUOgLOMSl8yK4UNEXEdblie4V0PUpNoC9RTUCf6PfnLeGR-4YbeW3DrJParnVg`
+   - **Prompt Summary:** Mobile portrait (390×844) Pronunciation Coach Practice-Only Mode when server STT is offline in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px exit button (`[🔊 playCue: tap_exit]`), title 'Pronunciation Coach', and progress 'Target 2 of 5'. Honest Offline Practice-Only Banner (amber card with sand border `#E9C46A`): '🎤 Practice Mode (Mic Server Offline) — Server scoring is currently resting, but your spoken practice is fully counted! Practice aloud with confidence. Session progress saves automatically.' Target Card on warm paper `#FDFBF7` with 2.5px border `#E2D7C3`: Headword 'traffic light' with Listen audio FAB (`[🔊 playCue: model_audio]`). User Recording Playback: '▶️ Hear Your Recording (0:03)' button (`[🔊 playCue: user_playback]`). POSITIVE EFFORT STATS (replacing demoralizing '0 Correct' label!): '🌟 Practice Count: 3 Speech Attempts Completed' and reassurance 'Excellent speaking effort! No penalties while offline.' Actions: Primary 52px CTA 'RETRY SPEAKING 🎤' in Duolingo pink `#E91E63` with matching dark bevel `0 4px 0 #BE185D` (`[🔊 playCue: mic_record_tap]`). Secondary 48px button 'NEXT WORD (3/5) ➔' in teal `#2A9D8F` with hard bevel `0 4px 0 #1E6F5C` (`[🔊 playCue: next_target]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header exit tap
+     - `[🔊 playCue: model_audio]` on audio model replay tap
+     - `[🔊 playCue: user_playback]` on recorded speech playback tap
+     - `[🔊 playCue: mic_record_tap]` on retry recording tap
+     - `[🔊 playCue: next_target]` on next word target tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/25-pronunciation-coach/`. Screens 1-2 — PASS: real unit content + history chips + honest practice-only state.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

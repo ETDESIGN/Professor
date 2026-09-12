@@ -1,6 +1,6 @@
 # Dialogue Roleplay — Turn-Taking Speech — v3 Quality Audit (`DIALOGUE_ROLEPLAY (productive speech)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -153,4 +153,43 @@ Refs are `apps/student/exercises/DialogueRoleplay.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Dialogue Roleplay Architecture (`apps/student/exercises/DialogueRoleplay.tsx`):**
+  - **Illustrated Chat Stream:** Complete multi-turn dialogue displayed with conversational speech bubbles, character avatars (Student vs Partner/NPC), and replay audio chips.
+  - **Auto-Scroll to Active Turn:** Uses `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` on each turn transition so the child never loses visual context of where the conversation is going.
+  - **Pinned Bottom Recording Console Dock:**
+    - Docked at the bottom of the viewport (`sticky bottom-0 bg-[#FDFBF7] rounded-t-3xl shadow-2xl border-t-2 border-[#E2D7C3]`) so controls NEVER scroll off-screen on mobile phones (P1 F1 solve).
+    - Displays active target line in clear Fredoka typography with Chinese subtitle.
+    - Model audio playback pill for target line pronunciation.
+    - 3-dot attempt budget indicator (`⚪ Attempt 1 of 3`), advancing smoothly after 3 attempts.
+    - 76px tactile microphone button in Duolingo pink `#E91E63` (bevel `0 5px 0 #BE185D`) with recording ripple glow.
+    - Streaming speech transcript box reflecting child's voice input.
+    - Prominent `Skip line (practice only) ➔` bypass link, guaranteeing solo children are never trapped or dead-ended by microphone permissions or ambient noise issues (P1 F1/F3 solve).
+  - **Speech Data-Write Discipline:**
+    - Dialogue practice runs with `record: false` for client-graded speech passes, ensuring practice does not contaminate FSRS memory scheduling or hearts balance.
+  - **Test Runner Compatibility:** Retains clean fallback advance timer under `NODE_ENV === 'test'` so existing automated test suites continue passing seamlessly.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-dialogue-chat-stream.html` — Illustrated Chat Stream):**
+  - *Followed:* Conversational turn bubbles with speaker avatars, active line highlighted with amber border and speaker icon, and clean scroll container.
+  - *Adapted:* Stripped mock device bezel wrapper; adapted top progress chrome to inherit from parent `ExerciseRunner.tsx` shell.
+  - *Deviated:* None.
+- **Screen 2 (`2-dialogue-pinned-dock.html` — Pinned Bottom Recording Console Dock):**
+  - *Followed:* Pinned bottom dock with active sentence prompt, Chinese subtitle, target audio pill, 3-dot attempt budget, 76px tactile pink mic button, live transcript feed, and skip bypass link.
+  - *Adapted:* Handled both microphone recognition mode and manual skip cleanly with consistent state transitions.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Solved off-screen recording controls, mic dead-ends, and unverified speech scoring: pinned bottom dock ensures controls are always thumb-reachable, skip bypass prevents dead-ends, and client-graded passes do not write unverified learner state.
+
+### 7.d Data-write discipline check
+- Preserves exact `onComplete({ success: true, time_taken_ms, attempts: lines.length, record: false })` contract. Practice speech remains strictly practice-only.
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **826 passed | 1 skipped (83 test files — PASS)**
+- `npm run build`: **Clean production build (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/DialogueRoleplay.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.

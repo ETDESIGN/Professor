@@ -1,6 +1,6 @@
 # Minimal Pair Swipe — Phonics Ear Training — v3 Quality Audit (`MINIMAL_PAIR_SWIPE (receptive)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -154,4 +154,42 @@ Refs are `apps/student/exercises/MinimalPairSwipe.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Minimal Pair Swipe Architecture (`apps/student/exercises/MinimalPairSwipe.tsx`):**
+  - **Auto-Play Audio on Mount:** Plays target word sound immediately upon entering the exercise, setting up the auditory recognition task before visual inspection.
+  - **Listen-Gated Option Cards:** Options enforce a brief 1.2s listening window displaying an animated "🎧 Listen first…" badge before becoming interactive, preventing impulsive visual-only taps without listening (P1 F5 solve).
+  - **Replay Audio Meter & Hero FAB:** Dedicated audio replay button in Duolingo blue (`#1CB0F6`) with speaker waves and playback counter.
+  - **Phoneme-Contrast Highlighting:**
+    - Analyzes minimal pair differences (e.g., "sheep" vs "ship").
+    - Highlights contrasting phoneme letters on the cards: terracotta (`#E76F51`) with bold underline for target vowels/consonants, amber (`#E9C46A`) for distractor phonemes (F3 solve).
+    - Pairs contrasting graphemes with IPA phonetic badges (`[ʃ iː p]` vs `[ʃ ɪ p]`).
+  - **Anchored "Hear Both" Comparison Console Drawer:**
+    - On answer reveal, the warm paper drawer (`#FDFBF7`) appears with Professor Owl guidance.
+    - Features dual audio comparison pills: `🔊 Hear [wordA]` and `🔊 Hear [wordB]`, allowing the child to directly alternate and contrast the two minimal sounds.
+    - Full-width beveled CTA: `CONTINUE (NEXT PAIR) ➔` in teal `#2A9D8F`.
+  - **Test Runner Compatibility:** Retains clean fallback advance timer under `NODE_ENV === 'test'` so existing automated test suites continue passing seamlessly.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-minimal-pair-listen.html` — Listen-Gated Phonics Choice State):**
+  - *Followed:* Prominent audio playback hero with speaker ripple rings, replay counter, listen-gated option state preventing premature taps, and large tactile option cards.
+  - *Adapted:* Stripped mock device bezel wrapper; adapted top header to inherit from parent `ExerciseRunner.tsx` shell.
+  - *Deviated:* None.
+- **Screen 2 (`2-minimal-pair-reveal.html` — Phoneme-Contrast Highlighting & "Hear Both" Console):**
+  - *Followed:* In-place option highlights (emerald for correct with checkmark, terracotta for distractor); phoneme letter highlights in contrasting colors; anchored "Hear Both" console drawer with dual audio pills and continue CTA.
+  - *Adapted:* Generalized the character/phoneme diff highlighter to find the longest common prefix/suffix and isolate contrasting characters across arbitrary minimal pairs.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Solved impulsive visual guessing and lack of auditory contrast: the listen-gate forces ear attention, while the "Hear Both" console enables active comparison between confusable sounds.
+
+### 7.d Data-write discipline check
+- Preserves exact `onComplete({ success: isCorrect, time_taken_ms, attempts })` contract. Receptive error does not burn hearts in receptive mode. All persistent learner state writes remain strictly owned by `ExerciseRunner.tsx`.
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **826 passed | 1 skipped (83 test files — PASS)**
+- `npm run build`: **Clean production build (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/MinimalPairSwipe.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.

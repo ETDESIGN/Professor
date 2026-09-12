@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Daily Practice Review Complete</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:ital,wght@0,500;0,600;0,700;0,800;0,900;1,600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#FDFBF7',
+            cream: '#EAE0D0',
+            creamLight: '#F5EFE6',
+            borderWarm: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            inkMuted: '#5C7184',
+            tealAccent: '#2A9D8F',
+            tealDark: '#1E7268',
+            tealSurface: '#E6F4F1',
+            terracotta: '#E76F51',
+            terracottaDark: '#C4553B',
+            terracottaSurface: '#FDF0EC',
+            sandGold: '#E9C46A',
+            sandDark: '#CFA438',
+            sandSurface: '#FEF8EA',
+            duoBlue: '#1CB0F6',
+            duoPink: '#E91E63'
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif'],
+          },
+          boxShadow: {
+            'bevel-terracotta': '0 4px 0 #C4553B',
+            'bevel-terracotta-active': '0 1px 0 #C4553B',
+            'bevel-teal': '0 4px 0 #1E7268',
+            'bevel-card': '0 4px 0 #E2D7C3',
+            'bevel-subtle': '0 3px 0 #E2D7C3',
+            'glow-heart': '0 0 20px rgba(233, 30, 99, 0.35)',
+            'glow-streak': '0 0 14px rgba(231, 111, 81, 0.28)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #EAE0D0;
+      font-family: 'Nunito', sans-serif;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Dot pattern background */
+    .bg-dotted {
+      background-color: #EAE0D0;
+      background-image: radial-gradient(#D6C9B4 1.5px, transparent 1.5px);
+      background-size: 18px 18px;
+    }
+
+    /* Custom scrollbar hiding */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Subtle pulse animations */
+    @keyframes gentlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .animate-heart-beat {
+      animation: gentlePulse 2s ease-in-out infinite;
+    }
+
+    @keyframes leafSway {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(4deg); }
+    }
+    .animate-sway {
+      animation: leafSway 3s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
+
+    /* Floating confetti specks */
+    @keyframes floatParticle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+      50% { transform: translateY(-8px) rotate(15deg); opacity: 1; }
+      100% { transform: translateY(0) rotate(0deg); opacity: 0.9; }
+    }
+    .particle-float {
+      animation: floatParticle 2.8s ease-in-out infinite;
+    }
+    .particle-delay-1 {
+      animation-delay: 0.7s;
+    }
+    .particle-delay-2 {
+      animation-delay: 1.4s;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-dotted flex items-center justify-center p-0 sm:p-4 md:p-6 select-none">
+
+  <!-- Mobile Portrait Frame (390px x 844px) -->
+  <div class="relative w-[390px] h-[844px] bg-paper rounded-[42px] border-[7px] border-[#2A2421] shadow-[0_22px_60px_rgba(38,70,83,0.22)] overflow-hidden flex flex-col justify-between">
+
+    <!-- Top Hardware Notch / Dynamic Island Bar -->
+    <div class="absolute top-0 left-0 right-0 h-9 z-50 flex items-center justify-between px-7 pt-1 pointer-events-none">
+      <span class="text-[13px] font-fredoka font-bold text-inkDeep tracking-tight">9:41</span>
+      <!-- Speaker Notch -->
+      <div class="w-24 h-4 bg-[#2A2421] rounded-full mx-auto -mt-1"></div>
+      <!-- Status Icons -->
+      <div class="flex items-center space-x-1.5 text-inkDeep">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8z"/></svg>
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48 1.3-.75-.85-1.48H7v-1.5H5.3l.85-1.48-1.3-.75L4 8.53l-.85-1.48-1.3.75.85 1.48H1v1.5h1.7l-.85 1.48 1.3.74zm8 0L12 11.47l.85 1.48 1.3-.75-.85-1.48H15v-1.5h-1.7l.85-1.48-1.3-.75L12 8.53l-.85-1.48-1.3.75.85 1.48H9v1.5h1.7l-.85 1.48 1.3.74zm8 0l.85-1.48.85 1.48 1.3-.75-.85-1.48H23v-1.5h-1.7l.85-1.48-1.3-.75L20 8.53l-.85-1.48-1.3.75.85 1.48H17v1.5h1.7l-.85 1.48 1.3.74z"/></svg>
+        <div class="w-5 h-2.5 border-2 border-inkDeep rounded-sm p-0.5 flex items-center">
+          <div class="h-full w-3 bg-inkDeep rounded-2xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Universal 64px Header -->
+    <header class="w-full h-16 pt-3 px-4 border-b border-borderWarm/70 bg-paper/95 backdrop-blur-sm z-30 flex items-center justify-between mt-5">
+      <!-- 48px Close '✕' Button -->
+      <button 
+        type="button"
+        title="Close & Exit" 
+        data-sound="playCue: tap_exit"
+        class="w-12 h-12 rounded-2xl bg-creamLight hover:bg-cream border-[2px] border-borderWarm shadow-[0_3px_0_#E2D7C3] active:translate-y-[2px] active:shadow-[0_1px_0_#E2D7C3] transition-all flex items-center justify-center text-inkDeep font-fredoka text-xl font-bold focus:outline-none"
+      >
+        <span class="leading-none select-none">✕</span>
+      </button>
+
+      <!-- Centered Screen Title -->
+      <div class="text-center flex-1 px-2">
+        <h1 class="font-fredoka font-bold text-[20px] text-inkDeep tracking-wide leading-tight">
+          Review Complete!
+        </h1>
+        <p class="text-[10.5px] font-nunito font-extrabold text-inkMuted tracking-wider uppercase">
+          Spaced Repetition • Unit 3
+        </p>
+      </div>
+
+      <!-- Glowing Streak Flame Badge -->
+      <div class="h-10 px-3 rounded-xl bg-terracottaSurface border-[2px] border-terracotta/40 shadow-glow-streak flex items-center space-x-1.5">
+        <span class="text-base animate-bounce">🔥</span>
+        <span class="font-fredoka font-bold text-terracotta text-sm tracking-tight whitespace-nowrap">
+          5 Days!
+        </span>
+      </div>
+    </header>
+
+    <!-- 2. Scrollable Body Content -->
+    <main class="flex-1 overflow-y-auto no-scrollbar px-4 py-3 space-y-3.5 z-20">
+
+      <!-- Central Hero Celebration Card -->
+      <section class="relative bg-paper rounded-[28px] border-[2.5px] border-borderWarm shadow-bevel-card p-4 text-center overflow-hidden">
+        
+        <!-- Decorative Ambient Background Ribbons & Sparkles -->
+        <div class="absolute -top-10 -right-10 w-28 h-28 bg-sandGold/15 rounded-full blur-xl pointer-events-none"></div>
+        <div class="absolute -bottom-8 -left-8 w-24 h-24 bg-tealAccent/15 rounded-full blur-lg pointer-events-none"></div>
+
+        <!-- Floating celebration sparkles -->
+        <span class="absolute top-4 left-5 text-sandDark text-sm particle-float select-none">✦</span>
+        <span class="absolute top-8 right-6 text-duoBlue text-base particle-float particle-delay-1 select-none">★</span>
+        <span class="absolute bottom-16 right-5 text-terracotta text-sm particle-float particle-delay-2 select-none">✨</span>
+        <span class="absolute bottom-14 left-6 text-tealAccent text-xs particle-float select-none">●</span>
+
+        <!-- Victory Pill Badge -->
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-terracottaSurface border-[1.5px] border-terracotta/30 mb-2">
+          <span class="text-xs">🎉</span>
+          <span class="font-fredoka font-bold text-[11px] text-terracotta tracking-wider uppercase">
+            DAILY GOAL ACHIEVED!
+          </span>
+        </div>
+
+        <!-- Mascot Illustration: Professor Owl with Golden Heart & Flourishing Tree -->
+        <div class="relative w-full max-w-[210px] h-[138px] mx-auto my-1 flex items-center justify-center">
+          <svg class="w-full h-full" viewBox="0 0 220 145" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Ground / Pedestal Hill -->
+            <ellipse cx="110" cy="132" rx="90" ry="11" fill="#EAE0D0" />
+            <ellipse cx="110" cy="130" rx="72" ry="7" fill="#DFD3C0" />
+
+            <!-- Flourishing Memory Tree (Left / Behind Owl) -->
+            <g class="animate-sway">
+              <!-- Trunk -->
+              <path d="M48 130 C48 105 54 85 58 75 C60 70 63 68 67 66 C65 72 63 85 62 130 Z" fill="#8D6E63" stroke="#5D4037" stroke-width="1.5" />
+              <path d="M58 85 C52 80 44 78 40 76" stroke="#5D4037" stroke-width="2" stroke-linecap="round" />
+              <!-- Foliage Tufts -->
+              <circle cx="42" cy="70" r="16" fill="#2A9D8F" />
+              <circle cx="58" cy="60" r="18" fill="#38B2A2" />
+              <circle cx="70" cy="72" r="14" fill="#2A9D8F" />
+              <!-- Memory Leaves / Vocab Fruits -->
+              <circle cx="40" cy="65" r="4" fill="#E9C46A" stroke="#CFA438" stroke-width="1"/>
+              <circle cx="62" cy="56" r="4.5" fill="#E76F51" stroke="#C4553B" stroke-width="1"/>
+              <circle cx="70" cy="75" r="3.5" fill="#1CB0F6" stroke="#0C8CC7" stroke-width="1"/>
+              <circle cx="50" cy="74" r="3.5" fill="#E91E63" stroke="#B8144D" stroke-width="1"/>
+            </g>
+
+            <!-- Small Sprout on Right -->
+            <path d="M168 130 C168 118 174 110 178 106" stroke="#2A9D8F" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M178 106 C173 100 166 102 165 106 C165 110 173 111 178 106 Z" fill="#38B2A2"/>
+            <path d="M178 108 C184 104 189 108 188 112 C186 115 180 113 178 108 Z" fill="#2A9D8F"/>
+
+            <!-- Professor Owl Mascot (Center) -->
+            <g transform="translate(72, 22)">
+              <!-- Owl Shadow -->
+              <ellipse cx="38" cy="105" rx="30" ry="6" fill="#D6C9B4"/>
+
+              <!-- Owl Body -->
+              <ellipse cx="38" cy="64" rx="32" ry="38" fill="#2A9D8F" stroke="#1E7268" stroke-width="2"/>
+              <!-- Belly / Vest -->
+              <ellipse cx="38" cy="68" rx="22" ry="26" fill="#FDFBF7"/>
+              <path d="M30 60 Q38 65 46 60" stroke="#E2D7C3" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M32 72 Q38 77 44 72" stroke="#E2D7C3" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M34 83 Q38 87 42 83" stroke="#E2D7C3" stroke-width="1.5" stroke-linecap="round"/>
+
+              <!-- Left Wing / Arm holding glowing Golden Heart -->
+              <path d="M10 60 C8 75 18 90 28 88 C26 78 20 66 14 58 Z" fill="#1E7268" stroke="#175850" stroke-width="1.5"/>
+              
+              <!-- Feet -->
+              <path d="M26 100 L24 105 M28 100 L28 106 M30 100 L32 105" stroke="#E76F51" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M46 100 L44 105 M48 100 L48 106 M50 100 L52 105" stroke="#E76F51" stroke-width="2.5" stroke-linecap="round"/>
+
+              <!-- Eyes & Glasses -->
+              <!-- Big Round Glasses Frames -->
+              <circle cx="26" cy="46" r="14" fill="#FFFFFF" stroke="#E76F51" stroke-width="3"/>
+              <circle cx="50" cy="46" r="14" fill="#FFFFFF" stroke="#E76F51" stroke-width="3"/>
+              <!-- Glasses Bridge -->
+              <path d="M38 46 L38 46" stroke="#E76F51" stroke-width="3" stroke-linecap="round"/>
+              <line x1="36" y1="46" x2="40" y2="46" stroke="#E76F51" stroke-width="3"/>
+
+              <!-- Pupils (Happy curved eyes) -->
+              <circle cx="26" cy="46" r="7" fill="#1D3557"/>
+              <circle cx="28" cy="44" r="2.5" fill="#FFFFFF"/>
+              <circle cx="50" cy="46" r="7" fill="#1D3557"/>
+              <circle cx="52" cy="44" r="2.5" fill="#FFFFFF"/>
+
+              <!-- Cute Cheeks -->
+              <ellipse cx="14" cy="54" rx="4" ry="2.5" fill="#F4A261" opacity="0.6"/>
+              <ellipse cx="62" cy="54" rx="4" ry="2.5" fill="#F4A261" opacity="0.6"/>
+
+              <!-- Golden Owl Beak -->
+              <polygon points="38,50 33,58 43,58" fill="#E9C46A" stroke="#CFA438" stroke-width="1.5"/>
+
+              <!-- Academic Graduation Cap / Beret -->
+              <path d="M16 28 L38 18 L60 28 L38 36 Z" fill="#E76F51" stroke="#C4553B" stroke-width="1.5"/>
+              <path d="M26 31 L26 38 C26 42 50 42 50 38 L50 31" fill="#C4553B"/>
+              <!-- Gold Tassel -->
+              <circle cx="38" cy="27" r="2.5" fill="#E9C46A"/>
+              <path d="M38 27 C46 30 52 35 52 40" stroke="#E9C46A" stroke-width="2" stroke-linecap="round"/>
+              <rect x="50" y="40" width="4" height="6" rx="1" fill="#E9C46A"/>
+
+              <!-- Right Wing holding up the Golden Heart Trophy -->
+              <path d="M64 58 C72 65 74 78 70 88 C64 82 60 72 58 62 Z" fill="#1E7268" stroke="#175850" stroke-width="1.5"/>
+
+              <!-- Golden Heart in Wing -->
+              <g transform="translate(62, 54) scale(0.9)" class="animate-heart-beat">
+                <!-- Aura Glow -->
+                <circle cx="12" cy="12" r="15" fill="#E9C46A" opacity="0.3"/>
+                <!-- Golden Heart SVG -->
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#E9C46A" stroke="#CFA438" stroke-width="1.5"/>
+                <!-- Heart Shine -->
+                <path d="M6.5 6 C5.5 7 5.5 8.5 6.5 9.5" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Headline & Bilingual Subtitle -->
+        <h2 class="font-fredoka font-bold text-[22px] text-inkDeep leading-snug mt-1">
+          Memory Workout Complete!
+        </h2>
+        <p class="font-nunito font-extrabold text-[13.5px] text-inkMuted mt-0.5">
+          每日复习完成！• Long-term retention locked
+        </p>
+
+        <!-- 3-Metric Stat Row -->
+        <div class="grid grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-borderWarm/70">
+          
+          <!-- Stat 1: XP -->
+          <div class="bg-sandSurface rounded-2xl p-2.5 border-[1.5px] border-sandGold/50 shadow-bevel-subtle text-center flex flex-col items-center justify-center">
+            <span class="font-fredoka font-bold text-[16px] text-[#A26D00] flex items-center justify-center gap-1">
+              ⚡ +35
+            </span>
+            <span class="font-nunito font-extrabold text-[10px] text-inkDeep/75 tracking-tight uppercase mt-0.5">
+              XP Earned
+            </span>
+          </div>
+
+          <!-- Stat 2: Words Strengthened -->
+          <div class="bg-tealSurface rounded-2xl p-2.5 border-[1.5px] border-tealAccent/40 shadow-bevel-subtle text-center flex flex-col items-center justify-center">
+            <span class="font-fredoka font-bold text-[15px] text-tealDark flex items-center justify-center gap-1">
+              🌿 12
+            </span>
+            <span class="font-nunito font-extrabold text-[10px] text-inkDeep/75 tracking-tight uppercase mt-0.5">
+              Strengthened
+            </span>
+          </div>
+
+          <!-- Stat 3: Accuracy -->
+          <div class="bg-creamLight rounded-2xl p-2.5 border-[1.5px] border-borderWarm shadow-bevel-subtle text-center flex flex-col items-center justify-center">
+            <span class="font-fredoka font-bold text-[15px] text-inkDeep flex items-center justify-center gap-1">
+              🎯 92%
+            </span>
+            <span class="font-nunito font-extrabold text-[10px] text-inkDeep/75 tracking-tight uppercase mt-0.5">
+              Accuracy
+            </span>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- PROMINENT HEART-RESTORE REWARD BANNER -->
+      <section 
+        data-sound="playCue: heart_restore_chime"
+        class="relative bg-tealSurface rounded-[24px] border-[2.5px] border-tealAccent p-3.5 shadow-bevel-teal overflow-hidden"
+      >
+        <!-- Background subtle glow & watermarks -->
+        <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-tealAccent/15 rounded-full blur-xl pointer-events-none"></div>
+        <div class="absolute -left-3 -top-3 w-16 h-16 bg-[#E91E63]/10 rounded-full blur-md pointer-events-none"></div>
+
+        <div class="flex items-start gap-3">
+          <!-- Glowing Heart Avatar Icon -->
+          <div class="relative flex-shrink-0 w-12 h-12 rounded-2xl bg-white border-[2px] border-[#E91E63]/40 shadow-glow-heart flex items-center justify-center mt-0.5">
+            <span class="text-2xl animate-heart-beat select-none">❤️</span>
+            <!-- Tiny '+1' Badge -->
+            <span class="absolute -top-1.5 -right-1.5 bg-[#E91E63] text-white font-fredoka font-bold text-[10px] px-1.5 py-0.2 rounded-full border-2 border-white shadow-sm">
+              +1
+            </span>
+          </div>
+
+          <!-- Banner Copy Content -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-1">
+              <h3 class="font-fredoka font-bold text-[16px] text-tealDark leading-tight flex items-center gap-1">
+                +1 Heart Restored!
+              </h3>
+              <!-- Status Pill: 5/5 Full -->
+              <span class="px-2 py-0.5 rounded-full bg-white/90 border border-tealAccent/50 font-fredoka font-bold text-[11px] text-tealDark shadow-2xs whitespace-nowrap">
+                Full 5/5 ❤️
+              </span>
+            </div>
+
+            <p class="font-nunito font-bold text-[12px] text-inkDeep leading-relaxed mt-1">
+              Practice replenishes your energy! Heart balance is now <span class="font-extrabold text-tealDark">5/5 ❤️</span>. Safe review pays off!
+            </p>
+            <p class="font-nunito font-semibold text-[11px] text-tealDark/90 mt-0.5">
+              复习恢复爱心！保持每日练习即可无惧答错。
+            </p>
+          </div>
+        </div>
+
+        <!-- 5-Heart Visual Meter Pip Bar -->
+        <div class="mt-3 pt-2.5 border-t border-tealAccent/25 flex items-center justify-between px-1">
+          <span class="font-nunito font-extrabold text-[10.5px] uppercase tracking-wider text-tealDark/80">
+            Energy Reserves:
+          </span>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-xs">❤️</span>
+            <span class="text-xs">❤️</span>
+            <span class="text-xs">❤️</span>
+            <span class="text-xs">❤️</span>
+            <div class="relative">
+              <span class="text-xs animate-heart-beat inline-block">❤️</span>
+              <span class="absolute -top-2 -right-2 text-[9px] text-sandDark font-black animate-ping">✨</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quest Progress Card -->
+      <section class="bg-paper rounded-[22px] border-[2px] border-borderWarm shadow-bevel-subtle px-4 py-3 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-sandSurface border-[1.5px] border-sandGold flex items-center justify-center flex-shrink-0 text-lg">
+            🏆
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="font-fredoka font-bold text-[13.5px] text-inkDeep truncate">
+                Quest: Review Words
+              </span>
+              <span class="px-1.5 py-0.2 rounded-md bg-tealSurface border border-tealAccent/40 font-fredoka font-bold text-[9px] text-tealDark uppercase">
+                COMPLETED
+              </span>
+            </div>
+            <p class="font-nunito font-bold text-[11.5px] text-inkMuted truncate">
+              Daily repetition quota satisfied!
+            </p>
+          </div>
+        </div>
+
+        <!-- Gem Reward Pill -->
+        <div class="flex-shrink-0 px-2.5 py-1 rounded-xl bg-duoBlue/10 border-[1.5px] border-duoBlue/30 font-fredoka font-bold text-[12px] text-duoBlue flex items-center gap-1">
+          <span>💎</span>
+          <span>+10</span>
+        </div>
+      </section>
+
+      <!-- Spaced Repetition Next Forecast Pill -->
+      <div class="flex items-center justify-center gap-2 py-1 text-inkMuted">
+        <span class="text-xs">⏳</span>
+        <span class="font-nunito font-bold text-[11.5px]">
+          Next 8 words scheduled for tomorrow's review
+        </span>
+      </div>
+
+    </main>
+
+    <!-- 3. Anchored 76px Footer with Primary CTA -->
+    <footer class="w-full h-[76px] px-4 py-2.5 border-t border-borderWarm/80 bg-paper/95 backdrop-blur-md z-30 flex items-center justify-center">
+      <button 
+        type="button"
+        data-sound="playCue: claim_reward"
+        class="w-full h-14 rounded-2xl bg-terracotta hover:bg-[#DE6547] active:bg-terracottaDark border-2 border-[#D4593C] shadow-bevel-terracotta active:shadow-bevel-terracotta-active active:translate-y-[3px] transition-all flex items-center justify-center gap-2 text-white font-fredoka font-bold text-[17px] tracking-wide focus:outline-none select-none"
+      >
+        <span>CLAIM REWARDS &amp; GO HOME</span>
+        <span class="text-xl leading-none">➔</span>
+      </button>
+    </footer>
+
+    <!-- Bottom Home Indicator Bar (iOS Style) -->
+    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-inkDeep/30 rounded-full z-40 pointer-events-none"></div>
+
+  </div>
+
+  <script>
+    // Audio Cue simulator for interactive testing in browser
+    document.querySelectorAll('[data-sound]').forEach(el => {
+      el.addEventListener('click', () => {
+        const cue = el.getAttribute('data-sound');
+        console.log(`[Sound Cue Triggered]: ${cue}`);
+      });
+    });
+  </script>
+</body>
+</html>

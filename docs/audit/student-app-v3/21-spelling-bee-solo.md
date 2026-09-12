@@ -1,6 +1,6 @@
 # Spelling Bee Solo — Standalone Practice — v3 Quality Audit (`PRACTICE ARENA / STANDALONE`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -118,15 +118,46 @@ Refs are `apps/student/SpellingBeeGame.tsx`.
 5. **[P3] Celebrate new personal bests with animated trophy and gem fanfare:** Maximize intrinsic pride and motivation in voluntary practice.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the standalone pre-game mode lobby and the light Wonder Atlas honeycomb game board.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Spelling Bee Solo Standalone Practice (`21-spelling-bee-solo.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Spelling Bee Solo Pre-Game Mode Selection Lobby**
+   - **Stitch Screen ID:** `dae415fe1e5d470f8e80f0110be97abc`
+   - **Title:** `Professor ESL - Spelling Bee Solo Lobby (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1U6sZu4d7JgVUBjVuEerjVQ7mqZRayzPtawqVs8qCrnfxeO0K-zoRGvZpZn7XJGcwYYbcSx3DHVAdASYTAh-_h5vdvUcp4WamgMP8PpxodZtONUewx2FV7dLQIzGuL6TMJq6wuo993w4LE1cwrU8uL6n7IJ79ebySHaZiZIUdx4-4374xta4kE79SaLGQVKvt4Bd8uiUqelqF4oL5182wW-h22uLkqajHoRh0262ebfYKGaBVNgVWy_RSI`
+   - **Prompt Summary:** Mobile portrait (390×844) Spelling Bee Solo pre-game mode selection lobby in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px back button (`[🔊 playCue: tap_back]`), title 'Spelling Bee Solo' in bold 20px Fredoka inkDeep `#1D3557`, and trophy badge `🏆 Best: 850 pts`. Active Unit Banner on paper `#FDFBF7`: 'Unit 3: City Transport' with 10 spelling words. Pre-Game Mode Selection (tactile cards with 3D bevels): Mode 1 (Active Selected): '⚡ Arcade Run (Sudden Death)' - 15s timer per word, timeout ends the run, high risk high reward (+50% bonus XP), selected with 2.5px terracotta border `#E76F51`, golden honey badge 'Arcade Rules', and checkmark (`[🔊 playCue: mode_select]`). Mode 2: '🐢 Relaxed Mode' - 25s timer per word, timeout reveals word without game over, steady learning, paper `#FDFBF7` (`[🔊 playCue: mode_select]`). Mode 3: '🧘 Untimed Practice' - Zero timers, stress-free spelling with audio hints, paper `#FDFBF7`. Settings row: Toggles for 'Narrow Keyboard (Fewer Distractors)' active in teal `#2A9D8F`. Anchored 76px footer with 56px primary CTA 'START ARCADE RUN (15s) 🐝' in terracotta `#E76F51` with hard bevel `0 4px 0 #C4553B` (`[🔊 playCue: start_game]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on header back button tap
+     - `[🔊 playCue: mode_select]` on mode card selection tap
+     - `[🔊 playCue: start_game]` on start run CTA tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, sand `#E9C46A`, terracotta `#E76F51`, teal `#2A9D8F`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Spelling Bee Solo Sudden-Death Timeout Ended State (Honest Split-Rule State)**
+   - **Stitch Screen ID:** `9cb40f7c0e76438f98e2ae48e1e1d0d2`
+   - **Title:** `Spelling Bee Solo - Sudden Death Timeout Ended State`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XUg63WSqArWPtjtnprmLyfduIkXQYxn6zVU09fBJgrBy59MgG663NL3JTqmYJRLas5svt1Vsfyeyw6SyCwkro0Xy7BqP4sfFDJe2KES-9NcTrxK384r92xEJqyxp7GnQ8QJl5RjVo06KIuCFw-e0XrjLuoeHEEbHe2UcBHQlD1mG2fzQUeq8uYkZ7x-5FhRcKCZypl0Ihse-lgFn5cdcN_HhnYdm1opDeVys8ulhgBgybzzD0f1OG3fjY`
+   - **Prompt Summary:** Mobile portrait (390×844) Spelling Bee Solo Sudden-Death Timeout Ended State in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px exit button (`[🔊 playCue: tap_exit]`), running score '420 pts', and badge `⚡ SUDDEN DEATH • RUN ENDED`. Subheader HUD: Timer expired at '⏱️ 0:00' in red `#FF4B4B` with pulse (`[🔊 playCue: timeout_alarm]`). Honest Sudden Death Card on paper `#FDFBF7` with 2.5px terracotta border `#E76F51` and soft rose tint: Headword 'traffic light' with 48px audio replay FAB (`[🔊 playCue: word_audio]`) and Chinese '交通信号灯'. Honest outcome message: 'Time Ran Out! In Arcade Sudden Death, the run concludes here. Terrific effort on Word 4 of 6!' Stat breakdown: '3 Words Spelled Perfectly • 420 Solo Score'. Pattern A Sacred Award Card: 'Rewards Saved! +42 XP Awarded to Profile • Quest Progress Logged' with green checkmark chip. Action Buttons: Primary 52px CTA 'TRY ARCADE AGAIN 🔄' in terracotta `#E76F51` with hard bevel `0 4px 0 #C4553B` (`[🔊 playCue: retry_tap]`). Secondary 48px button 'SWITCH TO RELAXED MODE 🐢' in sand `#E9C46A` with bevel `0 4px 0 #C99E32` (`[🔊 playCue: mode_switch]`). Tertiary 'BACK TO ARENA 🏠' in warm paper `#FDFBF7`.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header exit tap
+     - `[🔊 playCue: timeout_alarm]` on timer expiration alarm
+     - `[🔊 playCue: word_audio]` on pronunciation replay FAB tap
+     - `[🔊 playCue: retry_tap]` on retry arcade tap
+     - `[🔊 playCue: mode_switch]` on switch to relaxed mode tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/21-spelling-bee-solo/`. Screens 1-2 — PASS: Arcade-vs-Relaxed pre-game cards + honest sudden-death state (kept by design).-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

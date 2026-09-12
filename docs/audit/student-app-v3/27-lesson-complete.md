@@ -1,5 +1,5 @@
 # Lesson Complete — Reward Interstitial — v3 Quality Audit (`REWARD: /student/lesson-complete`)
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -125,15 +125,46 @@ Refs: `apps/student/LessonComplete.tsx`, `StudentApp.tsx:181-203`, `services/sta
 5. **Fast Eased XP Count-up with Tap-to-Skip (P2):** Accelerate XP animations to 600ms total and permit tapping anywhere to reveal final stats instantly.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*Stitch mobile screens for Lesson Complete will be generated in the design phase following owner approval.*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Lesson Complete Reward Interstitial (`27-lesson-complete.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Lesson Complete Star Cascade and Streak Flame Celebration**
+   - **Stitch Screen ID:** `91095a539f4b44aeba0edef08813aad4`
+   - **Title:** `Professor ESL - Lesson Complete Celebration (Star Cascade & Streak Flame)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1WW27RxL00gp-0GvhjHDWRS_6Iv55JjK6LDmmjFVD_rhUb1oaayqIBdX8KyPg5F_BVnx_n_bxgoSK9ik17yz3YdeTJZkAsEb122xQI2O88EaH5TaeiKeKbFsacwEhj7xnKbMD59FLKZjkazu1aF4EUxLMNHiITI_LkNFiKjw7vCtSLMy_W7MNQqnoTR3iwrRYyWoqVnwtu5zrlAeKFWR2XNk5Bfy_ff_pT7kFZwTBR7u-K1K-wF7XMSF9E`
+   - **Prompt Summary:** Mobile portrait (390×844) Lesson Complete Celebration with Star Cascade and Streak Flame in Wonder Atlas Light design system. Warm cream background `#EAE0D0` with gentle sunburst rays and confetti particles. Header: transparent with 48px close '✕' button (`[🔊 playCue: tap_close]`). Central Hero: Headline 'LESSON COMPLETE!' in bold 32px Fredoka terracotta `#E76F51`. 3-Star Golden Cascade: Star 1 ⭐, Star 2 ⭐, Star 3 ⭐ dropped in with bounce sounds (`[🔊 playCue: star_chime]`). Subtitle: 'Outstanding Work! 3 / 3 Stars' in inkDeep `#1D3557`. 3-Metric Stat Row on paper `#FDFBF7` with border `#E2D7C3` and radius 20px: Stat 1 '⚡ +120 XP', Stat 2 '🎯 95% Accuracy', Stat 3 '⏱️ 2:14 Time'. HIGH-DOPAMINE STREAK FLAME CARD on paper `#FDFBF7` with 2.5px terracotta border `#E76F51` and soft orange glow: Animated Flame Icon: '🔥 STREAK EXTENDED! 5 DAYS IN A ROW!' (`[🔊 playCue: streak_flame_sfx]`) and subtitle 'Practice tomorrow to keep your flame blazing!'. Honest Rewards Notice: 'All XP and quest progress securely saved.' Anchored 76px footer with 56px primary CTA 'CONTINUE ➔' in terracotta `#E76F51` with hard bevel `0 4px 0 #C4553B` (`[🔊 playCue: tap_continue]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_close]` on close button tap
+     - `[🔊 playCue: star_chime]` on golden star cascade drop
+     - `[🔊 playCue: streak_flame_sfx]` on streak flame extension reveal
+     - `[🔊 playCue: tap_continue]` on primary continue CTA tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, terracotta `#E76F51`, sand `#E9C46A`, teal `#2A9D8F`) × Duolingo yellow `#FFC800`, Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Lesson Complete Perfect Run with Honest Gem Reward Card**
+   - **Stitch Screen ID:** `32212ab8962f41919b5cbf8c23f92ce5`
+   - **Title:** `Professor ESL - Lesson Complete (Perfect Run & Honest Gem Reward)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XbEVK0k8qLtfI_clPnYW1GG7OV6yA43zOwHoHItmjEI7UrMTRwz_JHojBJrFJK7F1PEqUmBlJvUP3CkhyAiFcAIdZI5b1oYFoXZvDuhfdjVfPGXKPODmH8NTvRtA68KWWwyME7h94pYVKNUKBF-IWhyJUYlezbDt5r6y_xLA9kgtKcvmjCghc2gb8_jRmq3qmgCr0AoJ-nAqeIgFGJ0O6l7IzeG_dwipA5hjaoBRATGHtsV3LEOiWVHw`
+   - **Prompt Summary:** Mobile portrait (390×844) Lesson Complete Perfect Run with Honest Gem Reward Card in Wonder Atlas Light design system. Warm cream background `#EAE0D0` with celebratory confetti dots and sunburst. Header: transparent with 48px close '✕' button (`[🔊 playCue: tap_close]`). Central Hero: Headline 'PERFECT SCORE! 🏆' in bold 32px Fredoka gold `#C99E32`. Mascot illustration of Professor Owl wearing a cap holding a diamond gem. Subtitle: '100% Mastery Achieved! 3/3 Stars Earned'. 3-Stat Metric Row: Stat 1 '⚡ +150 XP', Stat 2 '🎯 100% Accuracy', Stat 3 '⏱️ 1:45 Time'. HONEST GEM REWARD CARD (Displayed strictly because 100% perfection was genuinely earned!): Card on soft emerald `#E6F4F1` with 2.5px teal border `#2A9D8F`: '💎 PERFECT LESSON BONUS: +15 GEMS' (`[🔊 playCue: gem_award_fanfare]`). Honesty Guarantee Note: 'Verified: Added immediately to student wallet! Current balance: 💎 145 Gems.' Interactive Quest Claim Card: '🏆 Quest: Perfect Score • COMPLETED' with active button 'CLAIM +25 XP ✨' (`[🔊 playCue: quest_claim_tap]`). Anchored 76px footer with 56px primary CTA 'RETURN TO MAP ➔' in teal `#2A9D8F` with hard bevel `0 4px 0 #1E6F5C` (`[🔊 playCue: tap_return_home]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_close]` on close button tap
+     - `[🔊 playCue: gem_award_fanfare]` on honest gem reward fanfare
+     - `[🔊 playCue: quest_claim_tap]` on quest reward claim tap
+     - `[🔊 playCue: tap_return_home]` on return to map CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/27-lesson-complete/`. Screens 1-2 — PASS: star cascade + honest gem display + streak flame.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

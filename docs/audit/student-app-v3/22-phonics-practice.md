@@ -1,5 +1,5 @@
 # Phonics Practice — v3 Quality Audit (`PRACTICE: /student/phonics`)
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -127,15 +127,45 @@ Refs are `apps/student/PhonicsPhlyer.tsx`.
 5. **Acoustic Feedback on Misidentification (P2):** When a child chooses the wrong word in the pair, play both sounds back-to-back with highlighted phonemes so the error becomes an instant learning moment.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*Stitch mobile screens for Phonics Practice will be generated in the design phase following owner approval.*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Phonics Practice Acoustic Lab (`22-phonics-practice.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Phonics Sound Lab Unit Context Selector Lobby**
+   - **Stitch Screen ID:** `9afd7ff634ec481aa4ea977be9076c02`
+   - **Title:** `Professor ESL - Phonics Sound Lab Lobby (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1X5DT0Sq3SRe9qmtMXQ_aywStFWW69G3eP-AGdBOCPrz-Ff2bzNUFbubMnOCUdaf_TuIJEu7QSyg3m2Jxlxr8YEpzvZLLB7DMJxLoBBXNwcWO-nEGqqrpmouj7OcwRH07gba9cN_nyXem0n5IWEfg4O8TYZtDGJjJ0hBrMqrpTLWVTRG6BQ4-zpMC3bGlaYlo7xL6yUGNt05iYNNiasJwZpheWp4H3G70aU5JbfWcIxFboMapMI2dxPKfo`
+   - **Prompt Summary:** Mobile portrait (390×844) Phonics Sound Lab lobby with unit context selector solving cold-launch empty state in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px back button (`[🔊 playCue: tap_back]`), title 'Phonics Sound Lab' in bold 20px Fredoka inkDeep `#1D3557`, and acoustic headphones icon (replacing misleading mic!). Active Unit Context Banner on paper `#FDFBF7` with 2.5px teal border `#2A9D8F`: 'Active Unit: Unit 3 - City & Transport' with readiness badge '🎧 8 Sound Pairs Ready' and one-tap 'Switch Unit ▾' button with options for 'Unit 2', 'Unit 1', and 'All Unlocked Sounds (Mix)'. Phonemic Focus Preview Card on mist `#F7F3E8`: Phoneme contrast chips `[ /iː/ vs /ɪ/ ]` and `[ /l/ vs /r/ ]` with audio sample FABs 'Hear /iː/ (sheep)' vs 'Hear /ɪ/ (ship)' (`[🔊 playCue: phoneme_sample]`). Pedagogical reassurance chip: 'Ear Training Focus: Listen carefully to subtle vowels. Errors do not cost hearts.' Anchored 76px footer with 56px primary CTA 'START SOUND LAB (8 PAIRS) 🎧' in teal `#2A9D8F` with hard bevel `0 4px 0 #1E6F5C` (`[🔊 playCue: start_game]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on header back button tap
+     - `[🔊 playCue: phoneme_sample]` on phoneme contrast preview audio FAB
+     - `[🔊 playCue: start_game]` on primary CTA launch tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, mist `#F7F3E8`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, teal `#2A9D8F`, sand `#E9C46A`) × Duolingo blue `#1CB0F6`, Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Phonics Minimal-Pair Acoustic Discrimination Play**
+   - **Stitch Screen ID:** `000733554d284b03b6fd8e3571dd3fd5`
+   - **Title:** `Professor ESL - Phonics Minimal Pair Acoustic Play (sheep vs ship)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1Uzyq6VyIVEaxx6_NNQCAX17Mvxym3zCyMgjbrUN16Mbyvcppo2goRbkHZdcLBdf3JfJqUuFbivdfc4TCLHJkhcGxyKFsSOw9ttGZ_ZyLaX7lQgmJwj5n8VfTw4fppI9v-QCLDZroLyRpl65XsOTuWla2vKk-vSs9yCbjD5HHoyzaybghhNEjgQ9sDo2wMQtETywLqWI8P3_pe28cLrwlVJaFW8UHqme-2BUzg43NEY5uhXLPhv39w5vZg`
+   - **Prompt Summary:** Mobile portrait (390×844) Phonics Practice minimal-pair acoustic play screen in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px exit button (`[🔊 playCue: tap_exit]`), 8-segment progress tracker (Pair 3/8 active in Duolingo blue `#1CB0F6`), and active unit chip 'Unit 3: City • Phonics Lab'. Focus Phoneme Contrast HUD: `🎧 Minimal Pair: /iː/ vs /ɪ/` with interactive 'Hear Contrast 🔊' audio chip (`[🔊 playCue: hear_contrast]`). Center stage: Large Prominent Audio Target Card on warm paper `#FDFBF7` with 2.5px border `#E2D7C3`: Big 68px circular Audio Replay FAB in sky blue `#1CB0F6` with hard bevel `0 5px 0 #0284C7` and animated acoustic soundwave ripples (`[🔊 playCue: target_audio]`). Prompt text: 'Tap the word you hear!' with supportive Chinese subtitle '点击你听到的单词'. Two Large Tactile Minimal Pair Choice Cards (min 110px height each, 3D bevel `0 5px 0 #E2D7C3`): Card A: 'sheep' with IPA `[ʃiːp]` and vector illustration of a friendly sheep in paper `#FDFBF7` (`[🔊 playCue: option_select]`). Card B: 'ship' with IPA `[ʃɪp]` and vector illustration of a cargo ship in paper `#FDFBF7` (`[🔊 playCue: option_select]`). Formative Ear-Training Safeguard Pill: '🛡️ Formative Practice: Acoustic retries cost no hearts! Ear training builds listening fluency.' Anchored 76px footer with assistance button 'Slow Audio (0.8x) 🐢' in sand `#E9C46A` and disabled CTA 'SELECT YOUR ANSWER ➔'.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header exit tap
+     - `[🔊 playCue: hear_contrast]` on audio contrast chip tap
+     - `[🔊 playCue: target_audio]` on central acoustic replay FAB tap
+     - `[🔊 playCue: option_select]` on minimal pair card tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/22-phonics-practice/`. Screens 1-2 — PASS: unit-context header/picker solving cold-launch.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

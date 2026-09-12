@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Daily Practice Spaced Repetition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      background-image: radial-gradient(#d6cabe 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .retro-border {
+      border: 2.5px solid #E2D7C3;
+    }
+    .retro-border-teal {
+      border: 2.5px solid #2A9D8F;
+    }
+    .bevel-button-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.15s ease;
+    }
+    .bevel-button-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .bevel-subtle {
+      box-shadow: 0 3px 0 #E2D7C3;
+    }
+    .bevel-selected {
+      box-shadow: 0 4px 0 rgba(42, 157, 143, 0.35);
+    }
+    .pulse-glow {
+      box-shadow: 0 0 16px rgba(42, 157, 143, 0.25);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 sm:p-4 text-[#264653]">
+
+  <!-- Mobile Portrait Shell (390 x 844) -->
+  <main class="w-[390px] h-[844px] bg-[#FDFBF7] rounded-[38px] shadow-2xl flex flex-col relative overflow-hidden border-[7px] border-[#264653]/15">
+    
+    <!-- iOS / Android Status Bar Shim -->
+    <div class="h-11 px-7 pt-2 flex justify-between items-center text-xs font-black text-[#1D3557]/70 select-none z-20">
+      <span>9:41</span>
+      <div class="flex items-center gap-1.5">
+        <span class="text-[10px] tracking-wider font-bold">5G</span>
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.33 19.58 10.6 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+        <div class="w-5 h-2.5 rounded-sm border border-[#1D3557]/60 p-0.5 flex items-center">
+          <div class="w-3 h-1.5 bg-[#1D3557]/80 rounded-[1px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header -->
+    <header class="h-16 px-4 flex items-center justify-between border-b border-[#E2D7C3]/80 bg-[#FDFBF7] z-10">
+      <!-- 48px Back Button with playCue -->
+      <button 
+        type="button" 
+        data-play-cue="tap_back" 
+        aria-label="Go back"
+        class="w-12 h-12 rounded-2xl bg-[#FDFBF7] retro-border bevel-subtle flex items-center justify-center text-[#1D3557] hover:bg-[#F4EFE6] active:translate-y-0.5 transition-all">
+        <svg class="w-6 h-6 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+      </button>
+
+      <!-- Title in bold 20px Fredoka inkDeep #1D3557 -->
+      <div class="text-center">
+        <h1 class="font-fredoka text-[20px] font-bold text-[#1D3557] leading-tight tracking-tight">
+          Daily Practice
+        </h1>
+        <p class="text-[10px] font-extrabold uppercase tracking-widest text-[#2A9D8F]">Wonder Memory Atlas</p>
+      </div>
+
+      <!-- Streak Badge -->
+      <div class="h-10 px-3 rounded-2xl bg-[#FFF5EB] border-2 border-[#E76F51]/30 flex items-center gap-1.5 shadow-sm">
+        <span class="text-sm">🔥</span>
+        <span class="font-fredoka font-bold text-xs text-[#E76F51]">4-Day Streak</span>
+      </div>
+    </header>
+
+    <!-- Scrollable Center Stage -->
+    <div class="flex-1 overflow-y-auto px-4 py-3 space-y-3.5 no-scrollbar">
+      
+      <!-- Daily Memory Workout Hero Card -->
+      <section class="bg-[#FDFBF7] retro-border rounded-[24px] p-4 relative overflow-hidden shadow-sm">
+        <!-- Top badge -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E9C46A]/20 border border-[#E9C46A]/60 mb-2.5">
+          <span class="text-xs">🧠</span>
+          <span class="font-bold text-[10.5px] uppercase tracking-wider text-[#1D3557]">
+            Spaced Repetition • Memory Workout
+          </span>
+        </div>
+
+        <!-- Mascot Hero Visual + Sprout Illustration -->
+        <div class="relative bg-gradient-to-b from-[#F2EFE9] to-[#F8F5EE] rounded-2xl p-3 border border-[#E2D7C3] flex items-center justify-center gap-4">
+          
+          <!-- Professor Owl nurturing glowing green memory sprout -->
+          <div class="relative flex items-center justify-center">
+            <!-- Glowing aura -->
+            <div class="absolute w-24 h-24 rounded-full bg-[#2A9D8F]/15 blur-md animate-pulse"></div>
+
+            <!-- Mascot SVG: Professor Owl -->
+            <svg class="w-20 h-20 relative z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Shadow base -->
+              <ellipse cx="50" cy="90" rx="30" ry="6" fill="#D9CEBA"/>
+              <!-- Owl Body -->
+              <ellipse cx="50" cy="54" rx="32" ry="34" fill="#2A9D8F"/>
+              <!-- Belly / Shirt pattern -->
+              <ellipse cx="50" cy="60" rx="22" ry="24" fill="#FDFBF7"/>
+              <path d="M43 56L50 63L57 56" stroke="#E9C46A" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M43 64L50 71L57 64" stroke="#E9C46A" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Wings -->
+              <ellipse cx="23" cy="56" rx="9" ry="18" fill="#1E6F5C" transform="rotate(18 23 56)"/>
+              <ellipse cx="77" cy="56" rx="9" ry="18" fill="#1E6F5C" transform="rotate(-18 77 56)"/>
+              <!-- Left Eye -->
+              <circle cx="39" cy="40" r="14" fill="#FFFFFF" stroke="#E76F51" stroke-width="3"/>
+              <circle cx="41" cy="40" r="6" fill="#1D3557"/>
+              <circle cx="43" cy="38" r="2" fill="#FFFFFF"/>
+              <!-- Right Eye -->
+              <circle cx="61" cy="40" r="14" fill="#FFFFFF" stroke="#E76F51" stroke-width="3"/>
+              <circle cx="59" cy="40" r="6" fill="#1D3557"/>
+              <circle cx="61" cy="38" r="2" fill="#FFFFFF"/>
+              <!-- Glasses Bridge -->
+              <path d="M49 39H51" stroke="#E76F51" stroke-width="3" stroke-linecap="round"/>
+              <!-- Beak -->
+              <polygon points="50,47 45,54 55,54" fill="#E9C46A"/>
+              <!-- Graduation / Academic Hat -->
+              <polygon points="50,15 28,26 50,33 72,26" fill="#1D3557"/>
+              <rect x="42" y="27" width="16" height="6" rx="2" fill="#1D3557"/>
+              <!-- Gold Tassel -->
+              <circle cx="50" cy="24" r="2.5" fill="#E9C46A"/>
+              <path d="M50 24C56 26 62 30 63 34" stroke="#E9C46A" stroke-width="2" stroke-linecap="round"/>
+              <!-- Left hand holding watering wand -->
+              <path d="M68 62C72 60 76 63 80 66" stroke="#E2D7C3" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+
+            <!-- Memory Sprout (Glowing Green) -->
+            <div class="relative z-10 -ml-3 flex flex-col items-center">
+              <div class="w-12 h-12 rounded-full bg-[#E6F4F1] border-2 border-[#2A9D8F] flex items-center justify-center pulse-glow">
+                <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none">
+                  <!-- Pot / Soil base -->
+                  <path d="M9 25h14l-2 5H11l-2-5z" fill="#D4A373"/>
+                  <path d="M8 23h16v2H8z" fill="#BC6C25" rx="1"/>
+                  <!-- Stem -->
+                  <path d="M16 23V13" stroke="#2A9D8F" stroke-width="2.5" stroke-linecap="round"/>
+                  <!-- Leaves -->
+                  <path d="M16 18c3-4 8-1 8 3-4 1-7-1-8-3z" fill="#48CAE4"/>
+                  <path d="M16 14c-3-4-8-1-8 3 4 1 7-1 8-3z" fill="#2A9D8F"/>
+                  <!-- Glowing bud / bulb -->
+                  <circle cx="16" cy="11" r="3.5" fill="#E9C46A" stroke="#FFFFFF" stroke-width="1.5"/>
+                  <!-- Sparkles -->
+                  <path d="M16 4v2M22 8l-1.5 1.5M10 8l1.5 1.5" stroke="#E9C46A" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="text-[9px] font-black uppercase text-[#2A9D8F] mt-1 bg-white px-1.5 py-0.5 rounded-full border border-[#2A9D8F]/30 shadow-xs">
+                Active Sprout
+              </span>
+            </div>
+          </div>
+
+          <!-- Due Summary Stats -->
+          <div class="flex-1 pr-1">
+            <!-- Due items headline -->
+            <h2 class="font-fredoka text-[22px] font-bold text-[#1D3557] leading-tight mb-1">
+              18 Words Due for Review
+            </h2>
+            <p class="text-xs text-[#264653]/80 font-bold leading-snug">
+              Boost your neural retention curve before memory decay sets in!
+            </p>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#1CB0F6] bg-[#E1F5FE] px-2 py-0.5 rounded-md border border-[#1CB0F6]/30">
+                <span>🔄</span> Ebbinghaus Optimized
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Heart Haven Reassurance Banner -->
+      <aside class="bg-[#E6F4F1] retro-border-teal rounded-[20px] p-3.5 flex items-start gap-3 shadow-xs">
+        <div class="w-9 h-9 rounded-2xl bg-white border border-[#2A9D8F]/40 flex items-center justify-center text-lg shrink-0 shadow-xs">
+          ❤️
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between">
+            <h3 class="font-fredoka font-bold text-[14px] text-[#1D3557]">
+              Heart Haven Reassurance
+            </h3>
+            <span class="text-[10px] font-black text-[#2A9D8F] uppercase bg-white/80 px-2 py-0.5 rounded-full border border-[#2A9D8F]/20">
+              Safe Zone
+            </span>
+          </div>
+          <p class="text-[12px] font-extrabold text-[#264653] leading-relaxed mt-0.5">
+            Reviewing weak words costs <span class="text-[#2A9D8F] underline decoration-2 font-black">0 hearts</span>! Finishing practice <span class="text-[#E76F51] font-black uppercase">restores +1 heart</span>!
+          </p>
+        </div>
+      </aside>
+
+      <!-- Session Length Selector -->
+      <section class="space-y-2">
+        <div class="flex items-center justify-between px-1">
+          <label class="font-fredoka font-bold text-sm text-[#1D3557] uppercase tracking-wide">
+            Select Session Length
+          </label>
+          <span class="text-[11px] font-bold text-[#2A9D8F]">Tactile with Half-Session Mercy</span>
+        </div>
+
+        <div class="space-y-2.5">
+          <!-- Option 1: Quick (6 cards) -->
+          <article 
+            tabindex="0"
+            role="button"
+            aria-pressed="false"
+            data-play-cue="session_size_select" 
+            class="w-full bg-[#FDFBF7] retro-border bevel-subtle rounded-[20px] p-3.5 flex items-center justify-between hover:bg-[#FAF6EE] active:scale-[0.99] transition-all cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-[#FFF9E6] border border-[#E9C46A] flex items-center justify-center text-xl shrink-0">
+                ⚡
+              </div>
+              <div class="text-left">
+                <div class="flex items-center gap-2">
+                  <h4 class="font-fredoka font-bold text-[15px] text-[#1D3557]">
+                    Quick <span class="text-xs font-semibold text-[#264653]/70">(6 cards • ~3 min)</span>
+                  </h4>
+                  <span class="text-[10px] font-extrabold text-[#E76F51] bg-[#FFF0EB] px-1.5 py-0.5 rounded-md border border-[#E76F51]/20">
+                    Mercy Mode
+                  </span>
+                </div>
+                <p class="text-[11px] font-bold text-[#264653]/75 mt-0.5">
+                  Half-session mercy for tired days • Streak counts
+                </p>
+              </div>
+            </div>
+            <div class="w-6 h-6 rounded-full border-2 border-[#E2D7C3] flex items-center justify-center">
+              <div class="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+            </div>
+          </article>
+
+          <!-- Option 2 (Active Selected): Standard (12 cards) -->
+          <article 
+            tabindex="0"
+            role="button"
+            aria-pressed="true"
+            data-play-cue="session_size_select" 
+            class="w-full bg-[#F0FAF8] retro-border-teal bevel-selected rounded-[20px] p-3.5 flex items-center justify-between relative overflow-hidden active:scale-[0.99] transition-all cursor-pointer">
+            <!-- Selected accent indicator pill -->
+            <div class="absolute top-0 right-0 bg-[#2A9D8F] text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-bl-xl tracking-wider">
+              Recommended
+            </div>
+
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-[#2A9D8F] text-white flex items-center justify-center text-xl shrink-0 shadow-sm">
+                ⭐
+              </div>
+              <div class="text-left">
+                <div class="flex items-center gap-2">
+                  <h4 class="font-fredoka font-bold text-[15px] text-[#1D3557]">
+                    Standard <span class="text-xs font-semibold text-[#1D3557]/80">(12 cards • ~6 min)</span>
+                  </h4>
+                  <span class="text-[10px] font-black text-[#2A9D8F] bg-white px-2 py-0.5 rounded-md border border-[#2A9D8F]/30">
+                    Daily Balance
+                  </span>
+                </div>
+                <p class="text-[11px] font-extrabold text-[#264653] mt-0.5">
+                  Optimal retention yield + Full lesson heart recharge
+                </p>
+              </div>
+            </div>
+            
+            <!-- Checkmark radio -->
+            <div class="w-6 h-6 rounded-full bg-[#2A9D8F] flex items-center justify-center text-white shadow-xs">
+              <svg class="w-3.5 h-3.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+              </svg>
+            </div>
+          </article>
+
+          <!-- Option 3: Challenge (18 cards) -->
+          <article 
+            tabindex="0"
+            role="button"
+            aria-pressed="false"
+            data-play-cue="session_size_select" 
+            class="w-full bg-[#FDFBF7] retro-border bevel-subtle rounded-[20px] p-3.5 flex items-center justify-between hover:bg-[#FAF6EE] active:scale-[0.99] transition-all cursor-pointer">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-[#FFEFEA] border border-[#E76F51]/40 flex items-center justify-center text-xl shrink-0">
+                🔥
+              </div>
+              <div class="text-left">
+                <div class="flex items-center gap-2">
+                  <h4 class="font-fredoka font-bold text-[15px] text-[#1D3557]">
+                    Challenge <span class="text-xs font-semibold text-[#264653]/70">(18 cards • ~10 min)</span>
+                  </h4>
+                  <span class="text-[10px] font-black text-[#E91E63] bg-[#FCE4EC] px-1.5 py-0.5 rounded-md border border-[#E91E63]/20">
+                    +20 Bonus XP
+                  </span>
+                </div>
+                <p class="text-[11px] font-bold text-[#264653]/75 mt-0.5">
+                  Full sweep of all pending items • Maximum mastery
+                </p>
+              </div>
+            </div>
+            <div class="w-6 h-6 rounded-full border-2 border-[#E2D7C3] flex items-center justify-center">
+              <div class="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Micro Audio Cue Legend / Acoustic Contract -->
+      <div class="px-2 py-1.5 flex items-center justify-between text-[10.5px] font-bold text-[#264653]/60 bg-[#F4EFE6]/60 rounded-xl">
+        <span class="flex items-center gap-1.5">
+          <span>🔊</span> Acoustic feedback active
+        </span>
+        <span class="font-mono text-[9.5px] text-[#2A9D8F] font-extrabold">[cue: session_size_select]</span>
+      </div>
+
+    </div>
+
+    <!-- Anchored 76px Footer -->
+    <footer class="h-[76px] px-4 py-2.5 bg-[#FDFBF7] border-t border-[#E2D7C3] flex items-center justify-center z-10">
+      <!-- 56px Primary CTA in teal #2A9D8F with hard bevel 0 4px 0 #1E6F5C -->
+      <button 
+        type="button" 
+        data-play-cue="start_game" 
+        class="w-full h-14 rounded-2xl bevel-button-teal text-white flex items-center justify-center gap-2 font-fredoka font-bold text-[17px] tracking-wide cursor-pointer select-none">
+        <span>START REVIEW (12 CARDS)</span>
+        <span class="text-xl leading-none">🚀</span>
+      </button>
+    </footer>
+
+    <!-- Bottom Home Indicator Bar (iOS) -->
+    <div class="h-4 pb-1 flex justify-center items-center bg-[#FDFBF7]">
+      <div class="w-32 h-1 bg-[#264653]/20 rounded-full"></div>
+    </div>
+
+  </main>
+
+  <script>
+    // Audio Cue simulation & Interactive option selection for seamless React adaptation
+    document.querySelectorAll('[data-play-cue="session_size_select"]').forEach(card => {
+      card.addEventListener('click', () => {
+        // Reset all options to unselected
+        document.querySelectorAll('[data-play-cue="session_size_select"]').forEach(c => {
+          c.classList.remove('bg-[#F0FAF8]', 'retro-border-teal', 'bevel-selected');
+          c.classList.add('bg-[#FDFBF7]', 'retro-border', 'bevel-subtle');
+          c.setAttribute('aria-pressed', 'false');
+          
+          // Remove ribbon if any
+          const ribbon = c.querySelector('.absolute.top-0.right-0');
+          if (ribbon) ribbon.remove();
+
+          // Reset radio indicator
+          const radio = c.querySelector('.w-6.h-6');
+          if (radio) {
+            radio.className = 'w-6 h-6 rounded-full border-2 border-[#E2D7C3] flex items-center justify-center';
+            radio.innerHTML = '<div class="w-2.5 h-2.5 rounded-full bg-transparent"></div>';
+          }
+        });
+
+        // Set clicked card as selected
+        card.classList.remove('bg-[#FDFBF7]', 'retro-border', 'bevel-subtle');
+        card.classList.add('bg-[#F0FAF8]', 'retro-border-teal', 'bevel-selected');
+        card.setAttribute('aria-pressed', 'true');
+
+        const radio = card.querySelector('.w-6.h-6');
+        if (radio) {
+          radio.className = 'w-6 h-6 rounded-full bg-[#2A9D8F] flex items-center justify-center text-white shadow-xs';
+          radio.innerHTML = '<svg class="w-3.5 h-3.5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>';
+        }
+
+        // Update CTA button text based on card
+        const titleText = card.querySelector('h4').innerText;
+        const ctaText = document.querySelector('[data-play-cue="start_game"] span');
+        if (titleText.includes('Quick')) {
+          ctaText.innerText = 'START REVIEW (6 CARDS)';
+        } else if (titleText.includes('Standard')) {
+          ctaText.innerText = 'START REVIEW (12 CARDS)';
+        } else if (titleText.includes('Challenge')) {
+          ctaText.innerText = 'START REVIEW (18 CARDS)';
+        }
+
+        console.log('[playCue: session_size_select] Triggered tactile option selection');
+      });
+    });
+
+    document.querySelector('[data-play-cue="start_game"]')?.addEventListener('click', () => {
+      console.log('[playCue: start_game] Commencing Daily Spaced Repetition Practice Run');
+    });
+
+    document.querySelector('[data-play-cue="tap_back"]')?.addEventListener('click', () => {
+      console.log('[playCue: tap_back] Navigating back to Arena / Main Lobby');
+    });
+  </script>
+</body>
+</html>

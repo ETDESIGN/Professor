@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Pronunciation Coach (traffic light)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-image: radial-gradient(#d3c5b0 1.2px, transparent 1.2px);
+      background-size: 18px 18px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', sans-serif;
+    }
+    /* 3D Tactile Buttons matching Professor ESL & Wonder Atlas style */
+    .btn-3d-pink {
+      background-color: #E91E63;
+      box-shadow: 0 8px 0 #BE185D, 0 12px 20px rgba(190, 24, 93, 0.35);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-3d-pink:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 #BE185D, 0 6px 10px rgba(190, 24, 93, 0.25);
+    }
+    .btn-3d-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1D6B62;
+    }
+    .btn-3d-sand {
+      background-color: #E9C46A;
+      box-shadow: 0 4px 0 #C99E39;
+    }
+    .btn-3d-light {
+      background-color: #FDFBF7;
+      box-shadow: 0 4px 0 #E2D7C3;
+    }
+    .btn-3d-light:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #E2D7C3;
+    }
+    /* Animated wave bars for the 15-bar visualizer */
+    @keyframes pulse-wave {
+      0%, 100% { transform: scaleY(0.35); }
+      50% { transform: scaleY(1); }
+    }
+    .eq-bar {
+      transform-origin: bottom;
+      animation: pulse-wave 1.2s ease-in-out infinite;
+    }
+    /* Custom scrollbar hiding for horizontal chip list */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-6">
+
+  <!-- Mobile Screen Container 390x844 Frame -->
+  <div class="w-[390px] h-[844px] bg-[#F7F3EA] rounded-[48px] shadow-[0_25px_60px_-15px_rgba(42,35,26,0.35)] border-[8px] border-[#2A231A] overflow-hidden flex flex-col relative select-none">
+    
+    <!-- Top System Status Bar (Simulated iOS) -->
+    <div class="h-10 w-full px-7 pt-2 flex items-center justify-between text-xs font-black tracking-tight text-[#264653] z-20">
+      <span>9:41</span>
+      <!-- Dynamic Island Pill -->
+      <div class="w-24 h-4 bg-[#2A231A] rounded-full mx-auto -mt-1"></div>
+      <div class="flex items-center space-x-1.5 font-bold">
+        <span class="text-[10px] tracking-wide">5G</span>
+        <svg class="w-4 h-3 inline fill-current" viewBox="0 0 16 12"><path d="M14 2h-1V1a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1h1a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM3 10V2h8v8H3zm11-3h-1V5h1v2z"/></svg>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header on paper #FDFBF7 with 48px exit button -->
+    <header class="h-16 px-4 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center justify-between z-10">
+      <!-- 48px Exit Button -->
+      <button 
+        data-playcue="tap_exit" 
+        title="Exit exercise"
+        class="w-12 h-12 rounded-2xl bg-[#F4EDE2] border-2 border-[#E2D7C3] flex items-center justify-center text-[#264653] hover:bg-[#EAE0D0] active:scale-95 transition-transform"
+      >
+        <svg class="w-5 h-5 stroke-[3] stroke-current fill-none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <!-- Center Title & Exercise Breadcrumb -->
+      <div class="flex flex-col items-center">
+        <h1 class="font-fredoka text-[17px] leading-tight text-[#1D3557] font-bold tracking-tight">Pronunciation Coach</h1>
+        <div class="flex items-center space-x-1.5 mt-0.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-[#2A9D8F] animate-pulse"></span>
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-[#2A9D8F]">Target 2 of 5</span>
+        </div>
+      </div>
+
+      <!-- Live Heart Status Indicator -->
+      <div class="w-12 h-12 rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] flex items-center justify-center space-x-1 shadow-sm">
+        <svg class="w-4 h-4 text-[#E76F51] fill-current" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka text-xs font-bold text-[#264653]">4</span>
+      </div>
+    </header>
+
+    <!-- Main Content Area: Scrollable stage with padding -->
+    <main class="flex-1 overflow-y-auto no-scrollbar px-4 pt-3 pb-3 flex flex-col space-y-3">
+
+      <!-- Active Unit Chip banner -->
+      <div class="w-full bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-2xl px-3.5 py-2 flex items-center justify-between shadow-xs">
+        <div class="flex items-center space-x-2">
+          <span class="text-base">🚦</span>
+          <div class="flex flex-col">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#2A9D8F]">Curriculum Focus</span>
+            <span class="text-xs font-extrabold text-[#1D3557] truncate max-w-[210px]">Unit 3: City Transport • Speaking Practice</span>
+          </div>
+        </div>
+        <span class="text-[10px] font-bold bg-[#E8F5E9] text-[#2E7D32] px-2 py-0.5 rounded-full border border-[#C8E6C9]">A2 Level</span>
+      </div>
+
+      <!-- History Chips Row (Target Sequence progress) -->
+      <div class="w-full flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5">
+        <!-- Target 1 completed -->
+        <div class="flex-shrink-0 px-2.5 py-1 rounded-xl bg-[#E8F8F5] border border-[#2A9D8F]/40 flex items-center space-x-1 text-[11px] font-bold text-[#1D6B62]">
+          <svg class="w-3 h-3 text-[#2A9D8F]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          <span>subway: 94% ⭐</span>
+        </div>
+        <!-- Target 2: ACTIVE TARGET -->
+        <div class="flex-shrink-0 px-3 py-1 rounded-xl bg-[#1D3557] border-2 border-[#1D3557] flex items-center space-x-1.5 text-[11px] font-bold text-white shadow-sm">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#E9C46A] animate-ping"></span>
+          <span>traffic light (active)</span>
+        </div>
+        <!-- Target 3: Prior high score -->
+        <div class="flex-shrink-0 px-2.5 py-1 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] flex items-center space-x-1 text-[11px] font-bold text-[#64748B]">
+          <span>bridge: 88% ⭐</span>
+        </div>
+        <!-- Target 4: Upcoming -->
+        <div class="flex-shrink-0 px-2.5 py-1 rounded-xl bg-[#F4EDE2] border border-[#E2D7C3] flex items-center space-x-1 text-[11px] font-semibold text-[#8C7E6A]">
+          <span>bicycle</span>
+        </div>
+      </div>
+
+      <!-- Center Stage: Real Curriculum Target Card on warm paper #FDFBF7 with 2.5px border #E2D7C3 & radius 24px -->
+      <section class="bg-[#FDFBF7] border-[2.5px] border-[#E2D7C3] rounded-[24px] p-4 flex flex-col items-center text-center relative shadow-[0_6px_0_#E2D7C3]">
+        
+        <!-- Header Pill inside Card -->
+        <div class="flex items-center justify-between w-full mb-1">
+          <span class="inline-flex items-center space-x-1 bg-[#F4EDE2] px-2.5 py-0.5 rounded-full text-[10px] font-extrabold text-[#7D6B53] border border-[#E2D7C3]">
+            <span>🎯</span>
+            <span>COMPOUND NOUN</span>
+          </span>
+          <span class="text-[11px] font-extrabold text-[#2A9D8F] flex items-center space-x-0.5">
+            <span>American Audio</span>
+            <svg class="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+          </span>
+        </div>
+
+        <!-- Word Visual Graphic Thumbnail -->
+        <div class="w-16 h-16 my-1 bg-[#F5F0E6] rounded-2xl border-2 border-[#E2D7C3] flex items-center justify-center shadow-inner relative overflow-hidden">
+          <svg class="w-10 h-10" viewBox="0 0 64 64" fill="none">
+            <rect x="22" y="6" width="20" height="42" rx="6" fill="#264653" stroke="#1D3557" stroke-width="2.5"/>
+            <rect x="29" y="48" width="6" height="12" fill="#7D6B53"/>
+            <!-- Red Light -->
+            <circle cx="32" cy="14" r="4.5" fill="#EF4444" stroke="#DC2626" stroke-width="1.5"/>
+            <!-- Yellow Light -->
+            <circle cx="32" cy="27" r="4.5" fill="#FBBF24" stroke="#D97706" stroke-width="1.5"/>
+            <!-- Green Light glowing -->
+            <circle cx="32" cy="40" r="4.5" fill="#10B981" stroke="#059669" stroke-width="1.5"/>
+            <circle cx="32" cy="40" r="6" stroke="#34D399" stroke-width="1.5" opacity="0.6"/>
+          </svg>
+        </div>
+
+        <!-- Headword in bold 28px Fredoka inkDeep #1D3557 -->
+        <h2 class="font-fredoka text-[28px] font-bold text-[#1D3557] tracking-tight leading-none mt-1">
+          traffic light
+        </h2>
+
+        <!-- Phonetic Transcription and Syllable Meter -->
+        <div class="flex items-center space-x-2 mt-1.5">
+          <span class="px-2.5 py-0.5 rounded-lg bg-[#F3ECE0] font-mono text-[13px] font-bold text-[#2A9D8F] tracking-wide border border-[#E2D7C3]">
+            [ˈtræf.ɪk laɪt]
+          </span>
+          <span class="text-[11px] font-extrabold text-[#7D6B53] bg-[#EAE0D0] px-2 py-0.5 rounded-md">3 syllables</span>
+        </div>
+
+        <!-- Chinese Meaning Translation -->
+        <div class="mt-1 font-fredoka text-[15px] font-semibold text-[#4A5568]">
+          交通信号灯
+        </div>
+
+        <!-- Audio Modeling Buttons: Normal 1.0x & Turtle 0.75x in sand #E9C46A -->
+        <div class="grid grid-cols-2 gap-2.5 w-full mt-3 pt-3 border-t border-[#EAE0D0]">
+          <!-- Normal 1.0x Button with playCue -->
+          <button 
+            data-playcue="model_audio" 
+            title="Listen to native model at regular speed"
+            class="btn-3d-light flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl border-2 border-[#E2D7C3] active:scale-95 transition-all text-[#1D3557]"
+          >
+            <span class="text-base">🔊</span>
+            <div class="flex flex-col items-start leading-none">
+              <span class="font-fredoka font-bold text-xs text-[#1D3557]">Normal 1.0x</span>
+              <span class="text-[9px] font-bold text-[#2A9D8F] uppercase tracking-wider">Native Pronounce</span>
+            </div>
+          </button>
+
+          <!-- Turtle 0.75x Button in Sand #E9C46A with playCue -->
+          <button 
+            data-playcue="model_audio_slow" 
+            title="Listen slowly with acoustic articulation"
+            class="btn-3d-sand flex items-center justify-center space-x-2 py-2.5 px-3 rounded-xl border-2 border-[#C99E39] active:scale-95 transition-all text-[#1D3557]"
+          >
+            <span class="text-base">🐢</span>
+            <div class="flex flex-col items-start leading-none">
+              <span class="font-fredoka font-bold text-xs text-[#1D3557]">Turtle 0.75x</span>
+              <span class="text-[9px] font-bold text-[#8C6B1B] uppercase tracking-wider">Slow Articulate</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Live 15-bar Frequency Visualizer in Sky Blue #38BDF8 -->
+        <div class="w-full mt-3 bg-[#F4EDE2] border border-[#E2D7C3] rounded-xl p-2.5 flex flex-col items-center">
+          <div class="flex items-center justify-between w-full px-1 mb-1.5 text-[10px] font-extrabold text-[#7D6B53]">
+            <span class="flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#38BDF8]"></span>
+              <span class="uppercase tracking-wider">Acoustic Input Ready</span>
+            </span>
+            <span class="text-[#2A9D8F] font-mono font-bold">44.1 kHz • AI Listener</span>
+          </div>
+
+          <!-- The 15 Equalizer Bars -->
+          <div class="h-9 w-full flex items-end justify-between px-2 gap-1 overflow-hidden">
+            <!-- 15 bars with staggered heights and animation delays -->
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-3" style="animation-delay: 0.1s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-5" style="animation-delay: 0.35s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-7" style="animation-delay: 0.15s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-4" style="animation-delay: 0.45s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-8" style="animation-delay: 0.25s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-6" style="animation-delay: 0.05s;"></div>
+            <div class="eq-bar w-[5px] bg-[#0284C7] rounded-full h-9" style="animation-delay: 0.4s;"></div>
+            <div class="eq-bar w-[5px] bg-[#0284C7] rounded-full h-7" style="animation-delay: 0.2s;"></div>
+            <div class="eq-bar w-[5px] bg-[#0284C7] rounded-full h-9" style="animation-delay: 0.5s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-6" style="animation-delay: 0.3s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-8" style="animation-delay: 0.12s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-5" style="animation-delay: 0.48s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-7" style="animation-delay: 0.22s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-4" style="animation-delay: 0.38s;"></div>
+            <div class="eq-bar w-[5px] bg-[#38BDF8] rounded-full h-2" style="animation-delay: 0.18s;"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Interactive Microphone Prompt & Action Zone -->
+      <div class="flex-1 flex flex-col items-center justify-center py-2 relative">
+        
+        <!-- Prompt Speech Bubble -->
+        <div class="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-2xl px-4 py-2 shadow-xs flex items-center space-x-2 mb-3">
+          <span class="text-sm">✨</span>
+          <p class="font-fredoka text-[14px] font-bold text-[#1D3557] tracking-wide">
+            Tap mic and speak clearly!
+          </p>
+          <span class="text-[10px] font-bold bg-[#F4EDE2] text-[#7D6B53] px-2 py-0.5 rounded-full border border-[#E2D7C3]">3 Tries</span>
+        </div>
+
+        <!-- FIXED PRIMARY MICROPHONE FAB (fixing glitched green-shadow bug!) -->
+        <!-- Large 76px circular microphone button in Duolingo pink #E91E63 with MATCHING DARK PINK 3D BEVEL 0 8px 0 #BE185D (zero green shadow!) -->
+        <div class="relative group cursor-pointer">
+          <!-- Subtle outer ping pulse in matching pink -->
+          <div class="absolute -inset-2 bg-[#E91E63]/20 rounded-full blur-sm animate-pulse pointer-events-none"></div>
+
+          <button 
+            data-playcue="mic_record_tap" 
+            title="Start speech evaluation"
+            class="btn-3d-pink w-[76px] h-[76px] rounded-full flex items-center justify-center text-white relative z-10 border-2 border-[#F472B6]/40 cursor-pointer"
+          >
+            <!-- Crisp White Mic Icon -->
+            <svg class="w-9 h-9 fill-current" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Bottom Feedback Assurance Tag -->
+        <div class="flex items-center space-x-1.5 mt-4 text-[11px] font-bold text-[#7D6B53]">
+          <svg class="w-3.5 h-3.5 text-[#2A9D8F]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          <span>Speaking errors never cost hearts</span>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Anchored 76px Footer on paper #FDFBF7 with 'Skip Target ➔' and 'Current Avg: 91%' -->
+    <footer class="h-[76px] px-5 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] flex items-center justify-between z-10">
+      
+      <!-- Current Session Accuracy / Average Score -->
+      <div class="flex flex-col">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#7D6B53]">Session Mastery</span>
+        <div class="flex items-center space-x-1.5">
+          <span class="font-fredoka text-[18px] font-bold text-[#2A9D8F] leading-none">91%</span>
+          <span class="text-xs font-bold text-[#1D3557]">Current Avg</span>
+          <span class="text-[10px] bg-[#E8F8F5] text-[#1D6B62] font-black px-1.5 py-0.5 rounded border border-[#2A9D8F]/30">+15 XP</span>
+        </div>
+      </div>
+
+      <!-- 'Skip Target ➔' Secondary Action Button -->
+      <button 
+        data-playcue="target_skip"
+        class="btn-3d-light flex items-center space-x-1.5 px-4 py-2.5 rounded-xl border-2 border-[#E2D7C3] font-fredoka font-bold text-[13px] text-[#7D6B53] hover:text-[#1D3557] hover:border-[#CBD5E1] active:scale-95 transition-all"
+      >
+        <span>Skip Target</span>
+        <span class="text-base text-[#2A9D8F] leading-none">➔</span>
+      </button>
+
+    </footer>
+
+    <!-- Bottom Home Indicator Bar (Simulated iOS) -->
+    <div class="h-5 w-full bg-[#FDFBF7] flex justify-center items-center pb-1">
+      <div class="w-32 h-1 bg-[#2A231A]/40 rounded-full"></div>
+    </div>
+
+  </div>
+
+</body>
+</html>

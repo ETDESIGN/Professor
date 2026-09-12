@@ -1,5 +1,5 @@
 # Daily Practice — SRS Review — v3 Quality Audit (`PRACTICE: /student/srs`)
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -131,15 +131,44 @@ Refs: `apps/student/SpacedRepetition.tsx`, `StudentApp.tsx:234`.
 5. **Context Breadcrumb Pill on Exercises (P2):** Display the origin unit/theme on each question to activate relevant situational schema during mixed-topic recall.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*Stitch mobile screens for Daily Practice (SRS Review) will be generated in the design phase following owner approval.*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Daily Practice Spaced Repetition (`23-daily-practice.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Daily Practice Start Card with Session-Length Choices**
+   - **Stitch Screen ID:** `7c2a04ae3b104b2f9fbeba33b7a2bd6e`
+   - **Title:** `Professor ESL - Daily Practice Spaced Repetition Start Card`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VS-Plh0RzkWWdPT4G_nXsirI2nsbDbx1adAGuqDGpFHszwwUg1Piq_AfqNJUjQ7ZThxAeZ7MIPNZYyoP4VXytSq5_w2j9AEBXbYYShJ2jALCCOdNpr6JUYeL99b52nNJI-ry1dudwoYvjrqfXpKgccRfYxmoMD8fnKEKA73QxzHx1RO-nMA0SewLBtJEeblPHStOccNTmNBvvl5UcZRtkNwuijD_jxQVmakkvayY9VkgjNuCguwuVARA`
+   - **Prompt Summary:** Mobile portrait (390×844) Daily Practice Spaced Repetition start card with session-length choices in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px back button (`[🔊 playCue: tap_back]`), title 'Daily Practice' in bold 20px Fredoka inkDeep `#1D3557`, and streak badge '🔥 4-Day Streak'. Center Stage: Daily Memory Workout Hero Card on warm paper `#FDFBF7` with 2.5px border `#E2D7C3` and radius 24px: Top badge '🧠 SPACED REPETITION • MEMORY WORKOUT'. Mascot illustration of Professor Owl nurturing a glowing green memory sprout. Due items headline: '18 Words Due for Review' in 22px Fredoka inkDeep `#1D3557`. Heart Haven Reassurance Banner on soft emerald `#E6F4F1` with teal border `#2A9D8F`: '❤️ Heart Haven: Reviewing weak words costs 0 hearts! Finishing practice RESTORES +1 Heart!' Session Length Selector (tactile cards with half-session mercy): Option 1: '⚡ Quick (6 cards • ~3 min)' - Half-session mercy for tired days, paper `#FDFBF7` (`[🔊 playCue: session_size_select]`). Option 2 (Active Selected): '⭐ Standard (12 cards • ~6 min)' - Recommended daily balance, selected with 2.5px teal border `#2A9D8F` and checkmark (`[🔊 playCue: session_size_select]`). Option 3: '🔥 Challenge (18 cards • ~10 min)' - Full sweep (+20 Bonus XP), paper `#FDFBF7`. Anchored 76px footer with 56px primary CTA 'START REVIEW (12 CARDS) 🚀' in teal `#2A9D8F` with hard bevel `0 4px 0 #1E6F5C` (`[🔊 playCue: start_game]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on header back button tap
+     - `[🔊 playCue: session_size_select]` on session length pill tap
+     - `[🔊 playCue: start_game]` on start review launch tap
+   - **Design Contract:** Wonder Atlas warm tokens (cream `#EAE0D0`, paper `#FDFBF7`, border `#E2D7C3`, ink `#264653`, inkDeep `#1D3557`, teal `#2A9D8F`, terracotta `#E76F51`, sand `#E9C46A`) × Duolingo accents (`#1CB0F6`, `#E91E63`), Fredoka + Nunito typography, production-grade Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Daily Practice Battery Summary with Heart-Restore Reward**
+   - **Stitch Screen ID:** `97e1abe38e0b4a18be7d407ccb1bec06`
+   - **Title:** `Professor ESL - Daily Practice Review Complete (Heart Restore)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VPhkk4sU-s0sB1iISA5zG0-ftqryjl7mfXci-3H1bUIPhyw25gee_SQic53Xk8T8L8phYskS8tnYdXzghZfUT_P8w3DtVgMsGtjZDU4BwSmYz-Ro2u6IS9dMcoGziygpTGwCKNquNddrX5DknszV-wgk-1rczzroKegC5vGaKctD4g3cJqX0xragdv7op62cVxEzQZGj6w8g1LBY9DXVbmHEXJ9Qcp8tJUb7kLNkGSex5IFPSfAj0wVg`
+   - **Prompt Summary:** Mobile portrait (390×844) Daily Practice Spaced Repetition Completion Summary Screen with Heart Restore in Wonder Atlas Light design system. Universal 64px header on paper `#FDFBF7` with 48px close '✕' button (`[🔊 playCue: tap_exit]`), title 'Review Complete!' in bold 20px Fredoka inkDeep `#1D3557`, and glowing streak flame badge '🔥 5 Days!'. Central Hero Celebration Card on warm paper `#FDFBF7` with 2.5px border `#E2D7C3`: Victory badge '🎉 DAILY GOAL ACHIEVED!' in terracotta `#E76F51`. Mascot illustration of Professor Owl holding a golden heart and flourishing memory tree. Headline 'Memory Workout Complete!' with Chinese '每日复习完成！'. 3-Metric Stat Row: Stat 1 '⚡ +35 XP', Stat 2 '🌿 12 Words Strengthened', Stat 3 '🎯 92% Accuracy'. PROMINENT HEART-RESTORE REWARD BANNER (Soft emerald `#E6F4F1` card with 2.5px teal border `#2A9D8F`): Glowing Heart Icon: '❤️ +1 Heart Restored!' (`[🔊 playCue: heart_restore_chime]`). Restorative copy: 'Practice replenishes your energy! Heart balance is now 5/5 ❤️. Safe review pays off!' Quest Progress Card: '🏆 Quest: Review Words • COMPLETED (+10 Gems)'. Anchored 76px footer with 56px primary CTA 'CLAIM REWARDS & GO HOME ➔' in terracotta `#E76F51` with hard bevel `0 4px 0 #C4553B` (`[🔊 playCue: claim_reward]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: heart_restore_chime]` on heart restore reward fanfare
+     - `[🔊 playCue: claim_reward]` on claim rewards and go home CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/23-daily-practice/`. Screens 1-2 — PASS: session-length mercy + heart-restore messaging.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

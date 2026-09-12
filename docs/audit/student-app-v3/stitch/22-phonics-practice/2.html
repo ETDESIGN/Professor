@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Minimal Pair Phonics Acoustic Play</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #E8DEC8;
+      background-image: radial-gradient(#d3c6ab 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+    }
+    .wonder-frame {
+      width: 390px;
+      height: 844px;
+      background: #F4EEDF;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px -15px rgba(42, 30, 18, 0.28), 0 0 0 10px #2A241C, 0 0 0 14px #EAD8B5;
+      border-radius: 46px;
+    }
+    /* Tactile 3D Bevel Buttons & Cards */
+    .bevel-card {
+      box-shadow: 0 5px 0 #D8CBBA;
+      transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .bevel-card:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #D8CBBA;
+    }
+    .bevel-blue-fab {
+      box-shadow: 0 6px 0 #0284C7;
+      transition: all 0.14s ease;
+    }
+    .bevel-blue-fab:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #0284C7;
+    }
+    .bevel-sand-btn {
+      box-shadow: 0 4px 0 #D0A745;
+      transition: all 0.12s ease;
+    }
+    .bevel-sand-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #D0A745;
+    }
+    .bevel-exit {
+      box-shadow: 0 3.5px 0 #D5C8B4;
+    }
+    .bevel-exit:active {
+      transform: translateY(2.5px);
+      box-shadow: 0 1px 0 #D5C8B4;
+    }
+    /* Animated Soundwave Ripple Pulse */
+    @keyframes ripplePulse {
+      0% {
+        transform: scale(0.92);
+        opacity: 0.85;
+      }
+      50% {
+        transform: scale(1.18);
+        opacity: 0.25;
+      }
+      100% {
+        transform: scale(0.92);
+        opacity: 0.85;
+      }
+    }
+    .ripple-ring-1 {
+      animation: ripplePulse 2.4s infinite ease-in-out;
+    }
+    .ripple-ring-2 {
+      animation: ripplePulse 2.4s infinite ease-in-out 0.6s;
+    }
+    .ripple-ring-3 {
+      animation: ripplePulse 2.4s infinite ease-in-out 1.2s;
+    }
+    /* Subtle sound eq bars */
+    @keyframes eqWave {
+      0%, 100% { height: 6px; }
+      50% { height: 18px; }
+    }
+    .eq-bar-1 { animation: eqWave 0.9s infinite ease-in-out; }
+    .eq-bar-2 { animation: eqWave 0.7s infinite ease-in-out 0.15s; }
+    .eq-bar-3 { animation: eqWave 1.1s infinite ease-in-out 0.3s; }
+    .eq-bar-4 { animation: eqWave 0.8s infinite ease-in-out 0.2s; }
+    .eq-bar-5 { animation: eqWave 1.0s infinite ease-in-out 0.45s; }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile Container (390 x 844 iPhone 14 / modern standard viewport) -->
+  <div class="wonder-frame">
+
+    <!-- Status Bar Safe Top -->
+    <div class="w-full h-11 pt-2.5 px-7 flex items-center justify-between z-20 shrink-0 select-none">
+      <span class="text-[13px] font-fredoka font-bold text-[#3D352E] tracking-tight">9:41</span>
+      <!-- Dynamic Island / Sensor Pill Notch Minimal -->
+      <div class="w-[84px] h-[18px] bg-[#2A241C] rounded-full mx-auto -mt-1 opacity-90"></div>
+      <div class="flex items-center space-x-1.5 text-[#3D352E]">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.23c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l.62-.62C7.93 20.26 9.88 21 12 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7 0-1.63.56-3.13 1.5-4.34l9.84 9.84C15.13 18.44 13.63 19 12 19z"/>
+        </svg>
+        <span class="text-[11px] font-fredoka font-bold text-[#3D352E]">5G</span>
+        <div class="w-5 h-2.5 border-1.5 border-[#3D352E] rounded-[3px] p-0.5 flex items-center">
+          <div class="w-full h-full bg-[#3D352E] rounded-[1px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header -->
+    <header class="h-[64px] px-4 flex items-center justify-between border-b border-[#E7DDC9] bg-[#FDFBF7] shrink-0 z-20">
+      <!-- 48px tactile exit button with acoustic tag -->
+      <button 
+        type="button"
+        title="Exit exercise"
+        class="w-11 h-11 rounded-2xl bg-[#F6EFE3] border-2 border-[#E2D7C3] bevel-exit flex items-center justify-center text-[#5C5042] hover:bg-[#EFE5D5] active:scale-95 transition"
+        onclick="console.log('[playCue: tap_exit]')"
+        data-playcue="tap_exit"
+      >
+        <svg class="w-5 h-5 stroke-[2.75]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <!-- Center: Unit Chip + 8-Segment Progress Tracker -->
+      <div class="flex-1 mx-3 flex flex-col items-center justify-center space-y-1.5">
+        <!-- Active Unit Chip -->
+        <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-[#EAE0D0] border border-[#DBD0BE]">
+          <span class="w-2 h-2 rounded-full bg-[#1CB0F6]"></span>
+          <span class="text-[11px] font-fredoka font-semibold text-[#4F4437] tracking-wide uppercase">Unit 3: City • Phonics Lab</span>
+        </div>
+
+        <!-- 8-Segment Progress Tracker (Pair 3/8 Active in Duolingo Blue #1CB0F6) -->
+        <div class="w-full max-w-[200px] flex items-center justify-between space-x-1">
+          <!-- Segment 1: Completed -->
+          <div class="h-2 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Segment 2: Completed -->
+          <div class="h-2 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Segment 3: Active (Pair 3/8 in #1CB0F6 with glowing highlight) -->
+          <div class="h-2 flex-1 rounded-full bg-[#1CB0F6] ring-2 ring-[#BAE6FD] relative">
+            <span class="absolute -top-1 -right-0.5 w-1.5 h-1.5 bg-white rounded-full"></span>
+          </div>
+          <!-- Segment 4 -->
+          <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+          <!-- Segment 5 -->
+          <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+          <!-- Segment 6 -->
+          <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+          <!-- Segment 7 -->
+          <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+          <!-- Segment 8 -->
+          <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        </div>
+      </div>
+
+      <!-- Hearts & Step Counter Pill -->
+      <div class="flex items-center space-x-1 px-2.5 py-1.5 rounded-2xl bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] select-none">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="text-xs font-fredoka font-bold">4</span>
+      </div>
+    </header>
+
+    <!-- Scrollable Body Content -->
+    <main class="flex-1 overflow-y-auto px-4 py-3.5 space-y-3 flex flex-col justify-between">
+
+      <!-- TOP HUD: Focus Phoneme Contrast HUD -->
+      <div class="w-full bg-[#FDFBF7] rounded-2xl border-2 border-[#E2D7C3] p-3 bevel-card flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-[#E0F2FE] border border-[#BAE6FD] flex items-center justify-center text-lg">
+            🎧
+          </div>
+          <div>
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[10px] uppercase font-fredoka font-bold text-[#0284C7] tracking-wider bg-[#E0F2FE] px-1.5 py-0.5 rounded">Focus Contrast</span>
+              <span class="text-[11px] font-fredoka font-semibold text-[#8C7A6B]">Pair 3 of 8</span>
+            </div>
+            <div class="text-[15px] font-fredoka font-bold text-[#1D3557] leading-tight mt-0.5">
+              Minimal Pair: <span class="text-[#0284C7] font-extrabold">/iː/</span> vs <span class="text-[#E76F51] font-extrabold">/ɪ/</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive 'Hear Contrast 🔊' Audio Chip -->
+        <button
+          type="button"
+          class="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-[#FEF3C7] border-1.5 border-[#FCD34D] text-[#92400E] hover:bg-[#FDE68A] active:scale-95 transition text-xs font-fredoka font-bold shadow-sm"
+          onclick="console.log('[playCue: hear_contrast]')"
+          data-playcue="hear_contrast"
+        >
+          <span>Hear Contrast</span>
+          <span class="text-sm">🔊</span>
+        </button>
+      </div>
+
+      <!-- CENTER STAGE: Prominent Audio Target Card with Animated Ripples -->
+      <div class="relative w-full bg-[#FDFBF7] rounded-3xl border-[2.5px] border-[#E2D7C3] p-4.5 pt-5 pb-4 bevel-card flex flex-col items-center text-center overflow-hidden">
+        
+        <!-- Decorative subtle background badge -->
+        <div class="absolute top-2.5 left-3 px-2 py-0.5 rounded-md bg-[#F4EEDF] border border-[#E7DDC9] text-[10px] font-fredoka font-bold text-[#7D6B5A] uppercase tracking-wider">
+          Acoustic Target
+        </div>
+        
+        <div class="absolute top-2.5 right-3 flex items-center space-x-1 text-[10px] font-fredoka font-bold text-[#2A9D8F] bg-[#E6F4F1] border border-[#B2DFDB] px-2 py-0.5 rounded-md">
+          <span>● Native Audio</span>
+        </div>
+
+        <!-- Animated Soundwave Ripple System + 68px Sky Blue FAB -->
+        <div class="relative w-32 h-32 my-1 flex items-center justify-center">
+          <!-- Concentric Soundwave Ripples -->
+          <div class="absolute inset-0 rounded-full border-2 border-[#38BDF8] bg-[#E0F2FE] opacity-20 ripple-ring-1"></div>
+          <div class="absolute w-24 h-24 rounded-full border-2 border-[#0EA5E9] bg-[#BAE6FD] opacity-30 ripple-ring-2"></div>
+          <div class="absolute w-20 h-20 rounded-full border-2 border-[#0284C7] bg-[#7DD3FC] opacity-40 ripple-ring-3"></div>
+
+          <!-- Big 68px Circular Audio Replay FAB in Sky Blue #1CB0F6 with hard bevel 0 5px 0 #0284C7 -->
+          <button 
+            type="button"
+            title="Replay acoustic target"
+            class="relative z-10 w-[68px] h-[68px] rounded-full bg-[#1CB0F6] border-2 border-[#38BDF8] bevel-blue-fab flex items-center justify-center text-white active:scale-95 transition group"
+            onclick="console.log('[playCue: target_audio]')"
+            data-playcue="target_audio"
+          >
+            <!-- Speaker Icon with Acoustic Arc Waveforms -->
+            <svg class="w-8 h-8 text-white drop-shadow-sm ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Audio EQ Animated Indicator + Tap Cue -->
+        <div class="flex items-center space-x-1 h-5 mb-1 text-[#0284C7]">
+          <span class="w-1 bg-[#0284C7] rounded-full eq-bar-1"></span>
+          <span class="w-1 bg-[#1CB0F6] rounded-full eq-bar-2"></span>
+          <span class="w-1 bg-[#38BDF8] rounded-full eq-bar-3"></span>
+          <span class="w-1 bg-[#1CB0F6] rounded-full eq-bar-4"></span>
+          <span class="w-1 bg-[#0284C7] rounded-full eq-bar-5"></span>
+          <span class="text-[11px] font-fredoka font-bold text-[#0284C7] ml-1.5 tracking-wide">Ready to play</span>
+        </div>
+
+        <!-- Prompt Text & Supportive Chinese Subtitle -->
+        <h2 class="text-lg font-fredoka font-bold text-[#1D3557] tracking-tight">
+          Tap the word you hear!
+        </h2>
+        <p class="text-xs font-nunito font-bold text-[#7B6E60] mt-0.5">
+          点击你听到的单词 • 仔细分辨长元音与短元音
+        </p>
+
+        <!-- Tap target cue caption -->
+        <div class="mt-2 text-[10px] font-fredoka font-semibold text-[#8C7A6B] bg-[#F5EFE4] px-2.5 py-1 rounded-full border border-[#E7DDC9]">
+          🔊 Target word playing at natural tempo (1.0x)
+        </div>
+      </div>
+
+      <!-- TWO LARGE TACTILE MINIMAL PAIR CHOICE CARDS (Min 110px height each, 3D bevel 0 5px 0 #E2D7C3) -->
+      <div class="space-y-2.5">
+
+        <!-- Choice Card A: 'sheep' with IPA [ʃiːp] -->
+        <div 
+          role="button"
+          tabindex="0"
+          class="w-full min-h-[110px] bg-[#FDFBF7] rounded-2xl border-[2.5px] border-[#E2D7C3] p-3.5 bevel-card flex items-center justify-between cursor-pointer hover:border-[#1CB0F6] hover:bg-[#F8FCFF] active:scale-[0.99] transition select-none group"
+          onclick="console.log('[playCue: option_select sheep]')"
+          data-playcue="option_select"
+        >
+          <!-- Left: Option Letter Pill + Illustration + Word Details -->
+          <div class="flex items-center space-x-3.5">
+            <!-- Badge A -->
+            <div class="w-9 h-9 rounded-xl bg-[#F4EEDF] border-2 border-[#D8CBBA] flex items-center justify-center font-fredoka font-bold text-sm text-[#4A3E31] group-hover:bg-[#E0F2FE] group-hover:border-[#38BDF8] group-hover:text-[#0284C7] transition">
+              A
+            </div>
+
+            <!-- Vector Illustration of Friendly Sheep (Wonder Atlas soft palette) -->
+            <div class="w-16 h-16 rounded-xl bg-[#F5F0E6] border border-[#E6DCCB] p-1 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition">
+              <svg class="w-14 h-14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Fluffy Sheep Body Clouds -->
+                <circle cx="50" cy="50" r="22" fill="#FFFFFF"/>
+                <circle cx="36" cy="42" r="14" fill="#FFFFFF"/>
+                <circle cx="64" cy="42" r="14" fill="#FFFFFF"/>
+                <circle cx="35" cy="58" r="13" fill="#FFFFFF"/>
+                <circle cx="65" cy="58" r="13" fill="#FFFFFF"/>
+                <circle cx="50" cy="66" r="12" fill="#FFFFFF"/>
+                <!-- Cloud texture outlines -->
+                <path d="M30 40C28 48 34 56 40 58M60 40C64 48 60 56 56 60" stroke="#E6DEC9" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Sheep Legs -->
+                <rect x="38" y="68" width="6" height="15" rx="3" fill="#473B30"/>
+                <rect x="56" y="68" width="6" height="15" rx="3" fill="#473B30"/>
+                <!-- Sheep Head -->
+                <rect x="42" y="34" width="16" height="22" rx="8" fill="#F4A261"/>
+                <!-- Ears -->
+                <ellipse cx="36" cy="38" rx="6" ry="3.5" transform="rotate(-20 36 38)" fill="#E76F51"/>
+                <ellipse cx="64" cy="38" rx="6" ry="3.5" transform="rotate(20 64 38)" fill="#E76F51"/>
+                <!-- Eyes & Cheeks -->
+                <circle cx="46" cy="42" r="2" fill="#1D3557"/>
+                <circle cx="54" cy="42" r="2" fill="#1D3557"/>
+                <ellipse cx="44" cy="46" rx="1.5" ry="1" fill="#FFB4A2"/>
+                <ellipse cx="56" cy="46" rx="1.5" ry="1" fill="#FFB4A2"/>
+                <!-- Smiling Mouth -->
+                <path d="M48 48C49.5 50 50.5 50 52 48" stroke="#473B30" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <!-- Text, IPA and Meaning -->
+            <div class="flex flex-col">
+              <div class="flex items-center space-x-2">
+                <span class="text-xl font-fredoka font-bold text-[#1D3557] group-hover:text-[#0284C7] transition">
+                  sheep
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-[#FEF3C7] border border-[#FDE68A] text-[11px] font-fredoka font-extrabold text-[#B45309]">
+                  /iː/ long
+                </span>
+              </div>
+              <div class="text-sm font-fredoka font-medium text-[#7D6E5F] mt-0.5 flex items-center space-x-1.5">
+                <span class="text-[#0284C7] font-bold tracking-wider">[ʃiːp]</span>
+                <span class="text-[#A89A88]">•</span>
+                <span class="text-[#594C3F] font-semibold text-xs">绵羊 (长音)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Radio Selector Visual -->
+          <div class="w-8 h-8 rounded-full border-2 border-[#D8CBBA] bg-[#F4EEDF] flex items-center justify-center group-hover:border-[#1CB0F6] group-hover:bg-[#E0F2FE] transition mr-1 shrink-0">
+            <div class="w-3.5 h-3.5 rounded-full bg-transparent group-hover:bg-[#1CB0F6] transition"></div>
+          </div>
+        </div>
+
+        <!-- Choice Card B: 'ship' with IPA [ʃɪp] -->
+        <div 
+          role="button"
+          tabindex="0"
+          class="w-full min-h-[110px] bg-[#FDFBF7] rounded-2xl border-[2.5px] border-[#E2D7C3] p-3.5 bevel-card flex items-center justify-between cursor-pointer hover:border-[#1CB0F6] hover:bg-[#F8FCFF] active:scale-[0.99] transition select-none group"
+          onclick="console.log('[playCue: option_select ship]')"
+          data-playcue="option_select"
+        >
+          <!-- Left: Option Letter Pill + Illustration + Word Details -->
+          <div class="flex items-center space-x-3.5">
+            <!-- Badge B -->
+            <div class="w-9 h-9 rounded-xl bg-[#F4EEDF] border-2 border-[#D8CBBA] flex items-center justify-center font-fredoka font-bold text-sm text-[#4A3E31] group-hover:bg-[#E0F2FE] group-hover:border-[#38BDF8] group-hover:text-[#0284C7] transition">
+              B
+            </div>
+
+            <!-- Vector Illustration of Cargo Ship (Wonder Atlas soft palette) -->
+            <div class="w-16 h-16 rounded-xl bg-[#F5F0E6] border border-[#E6DCCB] p-1 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition">
+              <svg class="w-14 h-14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Water Waves -->
+                <path d="M12 70C20 67 26 73 35 70C44 67 52 73 62 70C71 67 80 73 88 70V82H12V70Z" fill="#2A9D8F" opacity="0.35"/>
+                <path d="M10 74C18 72 26 76 34 74C42 72 50 76 58 74C66 72 74 76 82 74C86 73 89 74 90 75" stroke="#2A9D8F" stroke-width="3" stroke-linecap="round"/>
+                <!-- Ship Hull -->
+                <path d="M20 54H80L74 70H26L20 54Z" fill="#E76F51"/>
+                <path d="M22 54L25 62H75L78 54" stroke="#D35400" stroke-width="1.5"/>
+                <!-- Cabins & Containers -->
+                <rect x="32" y="40" width="22" height="14" rx="2" fill="#FDFBF7"/>
+                <rect x="36" y="44" width="4" height="4" rx="1" fill="#1CB0F6"/>
+                <rect x="44" y="44" width="4" height="4" rx="1" fill="#1CB0F6"/>
+                <!-- Chimney Smoke Pipe -->
+                <rect x="58" y="36" width="7" height="18" rx="2" fill="#E63946"/>
+                <rect x="57" y="34" width="9" height="3" fill="#264653"/>
+                <!-- Puffs of Smoke -->
+                <circle cx="63" cy="28" r="3.5" fill="#E5E7EB"/>
+                <circle cx="68" cy="22" r="4.5" fill="#D1D5DB"/>
+              </svg>
+            </div>
+
+            <!-- Text, IPA and Meaning -->
+            <div class="flex flex-col">
+              <div class="flex items-center space-x-2">
+                <span class="text-xl font-fredoka font-bold text-[#1D3557] group-hover:text-[#0284C7] transition">
+                  ship
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-[#E0F2FE] border border-[#BAE6FD] text-[11px] font-fredoka font-extrabold text-[#0369A1]">
+                  /ɪ/ short
+                </span>
+              </div>
+              <div class="text-sm font-fredoka font-medium text-[#7D6E5F] mt-0.5 flex items-center space-x-1.5">
+                <span class="text-[#0284C7] font-bold tracking-wider">[ʃɪp]</span>
+                <span class="text-[#A89A88]">•</span>
+                <span class="text-[#594C3F] font-semibold text-xs">海船 / 轮船 (短音)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Radio Selector Visual -->
+          <div class="w-8 h-8 rounded-full border-2 border-[#D8CBBA] bg-[#F4EEDF] flex items-center justify-center group-hover:border-[#1CB0F6] group-hover:bg-[#E0F2FE] transition mr-1 shrink-0">
+            <div class="w-3.5 h-3.5 rounded-full bg-transparent group-hover:bg-[#1CB0F6] transition"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formative Ear-Training Safeguard Pill -->
+      <div class="w-full bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-2.5 flex items-start space-x-2 text-[#166534]">
+        <div class="text-sm mt-0.5 shrink-0">🛡️</div>
+        <p class="text-[11px] font-nunito font-semibold leading-relaxed">
+          <strong class="font-fredoka font-bold">Formative Practice:</strong> Acoustic retries cost no hearts! Listening to phoneme contrast repeatedly builds natural phonics fluency.
+        </p>
+      </div>
+
+    </main>
+
+    <!-- Anchored 76px Footer -->
+    <footer class="h-[76px] px-4 bg-[#FDFBF7] border-t-2 border-[#E7DDC9] flex items-center justify-between space-x-3 shrink-0 z-20">
+      
+      <!-- Assistance Button: 'Slow Audio (0.8x) 🐢' in Sand #E9C46A -->
+      <button 
+        type="button"
+        class="h-12 px-3.5 rounded-2xl bg-[#E9C46A] border-2 border-[#D9AF4B] bevel-sand-btn flex items-center space-x-1.5 text-[#4D3A12] font-fredoka font-bold text-xs hover:bg-[#F0CF7F] active:scale-95 transition shrink-0"
+        onclick="console.log('[playCue: slow_audio_0.8x]')"
+        data-playcue="slow_audio"
+      >
+        <span class="text-sm">🐢</span>
+        <span>Slow Audio (0.8x)</span>
+      </button>
+
+      <!-- Primary Action CTA: Disabled Initial State 'SELECT YOUR ANSWER ➔' -->
+      <button 
+        type="button"
+        disabled
+        class="flex-1 h-12 rounded-2xl bg-[#D8CBBA] border-2 border-[#C6B7A4] text-[#8C7E70] font-fredoka font-bold text-sm tracking-wide flex items-center justify-center space-x-1.5 cursor-not-allowed opacity-80 select-none"
+      >
+        <span>SELECT YOUR ANSWER</span>
+        <span class="text-base font-extrabold">➔</span>
+      </button>
+    </footer>
+
+    <!-- Home Indicator Bar -->
+    <div class="w-full h-4 bg-[#FDFBF7] flex justify-center items-end pb-1 shrink-0 z-20">
+      <div class="w-32 h-1 bg-[#2A241C] rounded-full opacity-40"></div>
+    </div>
+
+  </div>
+
+</body>
+</html>

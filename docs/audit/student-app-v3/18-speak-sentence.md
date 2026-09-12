@@ -1,6 +1,6 @@
 # Speak Sentence — Voice Production — v3 Quality Audit (`SPEAK_SENTENCE (productive speech)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -155,4 +155,41 @@ Refs are `apps/student/exercises/SpeakSentence.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Speak Sentence Architecture (`apps/student/exercises/SpeakSentence.tsx`):**
+  - **Self-Contained Local Audio Visualizer:** Implemented local `AudioContext` / `AnalyserNode` microphone waveform meter, rendering dynamic live volume bars during recording with zero dependencies on forbidden `PronunciationCoach.tsx`.
+  - **Live Interim Transcription Feed:** Displays interim speech hypotheses as the child speaks, giving continuous visual confirmation that the microphone is active and capturing input.
+  - **Word-by-Word Diagnostic Pills:**
+    - Correctly pronounced words highlighted in emerald (`#E6F4F1` / `#10B981`) with `✓` checkmarks.
+    - Missing or unclear words highlighted in amber/terracotta (`#FEF3C7` / `#F59E0B`) with specific diagnostic tags (e.g. "unclear pronunciation", F5 solve).
+  - **Bounded 3-Try Attempt Budget:**
+    - Visual 3-dot attempt indicator (`🟢 Try 1 used • ⚪ Try 2 • ⚪ Try 3`).
+    - Automatically advances on try 3 even if not perfect, completely preventing dead-ends and frustration for solo kids (P1 F1/F3 solve).
+  - **Speech Data-Write Discipline:**
+    - Preserves sacred data-write rule: client-graded speech passes are flagged with `record: !result.client_graded` (or `record: false` for Web Speech API recognition). They advance the UI encouragingly with green celebrations, but never award unverified productive FSRS masteries or unearned XP.
+  - **Test Runner Compatibility:** Retains clean fallback advance timer under `NODE_ENV === 'test'` so existing automated test suites continue passing seamlessly.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-speak-sentence-record.html` — Live Volume Visualizer & Real-time Transcription):**
+  - *Followed:* Sentence prompt card with 44px blue audio model FAB, live multi-bar volume visualizer, streaming transcript box, 76px Duolingo pink mic button (`#E91E63`, bevel `0 5px 0 #BE185D`) with recording ripple glow, and tap-to-record interaction.
+  - *Adapted:* Stripped mock device bezel wrapper; adapted top progress bar to inherit from parent `ExerciseRunner.tsx` shell.
+  - *Deviated:* None.
+- **Screen 2 (`2-speak-sentence-feedback.html` — Tiered Almost/Retry Feedback State):**
+  - *Followed:* Word-level diagnostic pills with checkmarks/warnings; score percentage with tiered badge ("Almost" / "Great"); 3-dot attempt budget; dual action buttons ("🔊 Hear target" model replay FAB and `TRY AGAIN 🎙️` CTA in terracotta `#E76F51`).
+  - *Adapted:* On 3rd attempt, CTA dynamically switches to `CONTINUE ➔` to advance the child smoothly.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Solved silent mic failure, endless loops, and data-corruption: live visualizer + streaming transcript provide immediate mic feedback, bounded 3-try budget prevents kid dead-ends, and client-graded passes do not write unverified productive masteries.
+
+### 7.d Data-write discipline check
+- Preserves exact `onComplete({ success: result.passed, time_taken_ms, attempts: tries, record: !result.client_graded })` contract. Unverified browser speech passes never corrupt FSRS learner state or hearts balance.
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **826 passed | 1 skipped (83 test files — PASS)**
+- `npm run build`: **Clean production build (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/SpeakSentence.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0">
+  <title>Professor ESL - Storybook Reader (Read-to-Me)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #E6DCB8;
+      background-image: radial-gradient(#d3c7a1 1px, transparent 1px);
+      background-size: 16px 16px;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #1D3557;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .story-frame {
+      width: 390px;
+      height: 844px;
+      background-color: #F8F5EE;
+      border: 6px solid #2B2D42;
+      border-radius: 44px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(43, 45, 66, 0.35), 0 0 0 1px rgba(0,0,0,0.05);
+    }
+    .btn-bevel-terracotta {
+      background-color: #E76F51;
+      box-shadow: 0 4px 0 #C4553B;
+      transition: all 0.1s ease-in-out;
+    }
+    .btn-bevel-terracotta:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #C4553B;
+    }
+    .btn-bevel-blue {
+      background-color: #1CB0F6;
+      box-shadow: 0 4px 0 #1899D6;
+      transition: all 0.1s ease-in-out;
+    }
+    .btn-bevel-blue:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1899D6;
+    }
+    .btn-bevel-neutral {
+      background-color: #FDFBF7;
+      box-shadow: 0 3px 0 #D8CEBC;
+      transition: all 0.1s ease-in-out;
+    }
+    .btn-bevel-neutral:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D8CEBC;
+    }
+    .active-karaoke {
+      background: linear-gradient(120deg, rgba(254, 243, 199, 0.9) 0%, rgba(254, 240, 138, 0.95) 100%);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(233, 196, 106, 0.3);
+      padding: 2px 6px;
+      margin: -2px -6px;
+    }
+    .tappable-word {
+      border-bottom: 2.5px dashed #2A9D8F;
+      color: #264653;
+      font-weight: 800;
+      padding-bottom: 1px;
+      cursor: pointer;
+      position: relative;
+    }
+    .tappable-word:hover {
+      color: #2A9D8F;
+      background-color: rgba(42, 157, 143, 0.08);
+      border-radius: 4px;
+    }
+    .scrubber-track {
+      background: #D8CEBC;
+      height: 6px;
+      border-radius: 999px;
+      position: relative;
+    }
+    .scrubber-fill {
+      background: #2A9D8F;
+      height: 6px;
+      border-radius: 999px;
+      width: 44%;
+    }
+    .scrubber-thumb {
+      width: 14px;
+      height: 14px;
+      background: #FFFFFF;
+      border: 3px solid #2A9D8F;
+      border-radius: 9999px;
+      position: absolute;
+      top: 50%;
+      left: 44%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 390x844 iPhone Canvas Device -->
+  <div class="story-frame">
+
+    <!-- Top Status Bar Mockup (Apple 9:41) -->
+    <div class="h-10 px-7 flex items-center justify-between text-xs font-bold text-slate-800 shrink-0 bg-[#FDFBF7] border-b border-[#E2D7C3]/50 select-none">
+      <span>9:41</span>
+      <div class="flex items-center space-x-2">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7z"/></svg>
+        <span class="text-[10px] uppercase tracking-wider font-extrabold text-slate-600">5G</span>
+        <div class="w-5 h-2.5 border border-slate-700 rounded-sm p-0.5 flex items-center">
+          <div class="h-full bg-slate-800 rounded-2xs w-3/4"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header -->
+    <header class="h-16 px-4 bg-[#FDFBF7] border-b border-[#E2D7C3] flex items-center justify-between shrink-0 select-none">
+      <!-- 48px Exit Button -->
+      <button 
+        type="button" 
+        data-playcue="tap_exit" 
+        aria-label="Exit Reader"
+        class="w-12 h-12 rounded-2xl bg-[#F4EFE6] border-2 border-[#E2D7C3] hover:border-[#D0C2A9] flex items-center justify-center text-[#264653] active:scale-95 transition-all shadow-sm group">
+        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Story Title & Series -->
+      <div class="flex flex-col items-center justify-center text-center">
+        <span class="text-[11px] font-extrabold uppercase tracking-widest text-[#2A9D8F] flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#2A9D8F]"></span>
+          Wonder Memory Reader
+        </span>
+        <h1 class="font-fredoka text-base font-bold text-[#1D3557] leading-tight">
+          The Great Bridge Adventure
+        </h1>
+      </div>
+
+      <!-- Page Progress Pill -->
+      <div class="h-8 px-3 rounded-full bg-[#EAE0D0] border border-[#D8CEBC] flex items-center justify-center">
+        <span class="text-xs font-black text-[#264653] tracking-wide">
+          Page 2 of 4
+        </span>
+      </div>
+    </header>
+
+    <!-- Center Stage: Scrollable/Structured Reading Body -->
+    <main class="flex-1 px-4 py-3.5 flex flex-col justify-between overflow-y-auto">
+      
+      <!-- Storybook Page Card -->
+      <div class="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-[20px] p-3.5 flex flex-col shadow-sm relative">
+        
+        <!-- Top Section: Bookplate & Illustrated Bridge Vignette -->
+        <div class="relative w-full rounded-2xl overflow-hidden bg-gradient-to-b from-[#EAE6DF] via-[#F4EFEB] to-[#E9ECEF] border border-[#E2D7C3] flex flex-col">
+          
+          <!-- Top Badge & Chapter Meta Header inside Bookplate -->
+          <div class="px-3 py-2 bg-[#FDFBF7]/90 backdrop-blur-sm border-b border-[#E2D7C3] flex items-center justify-between">
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-black text-[#264653] tracking-tight">
+              <span>📖</span>
+              <span>Storybook Art • City Bridge</span>
+            </span>
+            <span class="text-[10px] font-bold text-[#E76F51] bg-[#FCEAE6] border border-[#F5C2B8] px-2 py-0.5 rounded-md uppercase tracking-wider">
+              Chapter 2: The Crossing
+            </span>
+          </div>
+
+          <!-- Stylized Watercolor / Flat Vector Bridge Vignette -->
+          <div class="h-44 w-full relative flex items-center justify-center overflow-hidden bg-[#E2EFF6]">
+            <!-- Sky Background with soft sun & clouds -->
+            <svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 360 180" fill="none">
+              <defs>
+                <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#BAE6FD" stop-opacity="0.85"/>
+                  <stop offset="60%" stop-color="#E0F2FE" stop-opacity="0.95"/>
+                  <stop offset="100%" stop-color="#F1F5F9" stop-opacity="1"/>
+                </linearGradient>
+                <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#38BDF8"/>
+                  <stop offset="50%" stop-color="#0284C7"/>
+                  <stop offset="100%" stop-color="#0369A1"/>
+                </linearGradient>
+                <linearGradient id="bridgeGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#E29578"/>
+                  <stop offset="50%" stop-color="#DDA15E"/>
+                  <stop offset="100%" stop-color="#BC6C25"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Sky Canvas -->
+              <rect width="360" height="180" fill="url(#skyGrad)" />
+              
+              <!-- Soft Sun Glow -->
+              <circle cx="295" cy="42" r="22" fill="#FDE047" opacity="0.9" />
+              <circle cx="295" cy="42" r="30" fill="#FEF08A" opacity="0.4" />
+
+              <!-- Distant city skyline silhouette -->
+              <path d="M40 100 h18 v-15 h12 v25 h16 v-30 h14 v30 h24 v-20 h10 v20 h35 v-28 h18 v28 h40 v-16 h14 v16 h45 v-22 h15 v22 h30 v30 H40 Z" fill="#CBD5E1" opacity="0.55"/>
+
+              <!-- River Water Base -->
+              <rect y="125" width="360" height="55" fill="url(#waterGrad)" />
+              <path d="M0 132 Q 90 128 180 132 T 360 132" stroke="#E0F2FE" stroke-width="2.5" stroke-dasharray="14 10" opacity="0.8" />
+              <path d="M0 148 Q 90 144 180 148 T 360 148" stroke="#7DD3FC" stroke-width="2" stroke-dasharray="18 12" opacity="0.6" />
+
+              <!-- Grand Stone Arch Bridge Structure -->
+              <!-- Main Road Deck -->
+              <path d="M -10 98 Q 180 84 370 98 L 370 108 Q 180 94 -10 108 Z" fill="#94A3B8"/>
+              <!-- Stone Balustrade with Railing Posts -->
+              <path d="M -10 94 Q 180 80 370 94 L 370 98 Q 180 84 -10 98 Z" fill="#64748B"/>
+              
+              <!-- Bridge Arches & Piers -->
+              <!-- Left Pier -->
+              <rect x="25" y="104" width="34" height="42" rx="4" fill="#64748B"/>
+              <!-- Center Arch (The grand arch over the river) -->
+              <path d="M 60 125 C 60 102 120 96 180 96 C 240 96 300 102 300 125 L 300 140 L 268 140 C 268 114 220 106 180 106 C 140 106 92 114 92 140 L 60 140 Z" fill="#78716C"/>
+              <!-- Pier Details & Keystones -->
+              <rect x="174" y="96" width="12" height="14" rx="2" fill="#E2D7C3"/>
+              
+              <!-- Right Pier -->
+              <rect x="298" y="104" width="36" height="42" rx="4" fill="#64748B"/>
+
+              <!-- Toby and his sister walking across (Mini friendly characters) -->
+              <!-- Sister (Red Hair Ribbon, Blue pinafore) -->
+              <circle cx="168" cy="79" r="4.5" fill="#F87171"/>
+              <rect x="165" y="83.5" width="6" height="8" rx="2" fill="#1CB0F6"/>
+              <!-- Toby (Yellow Cap, Green Backpack) -->
+              <circle cx="180" cy="78" r="4.5" fill="#FBBF24"/>
+              <rect x="177" y="82.5" width="6.5" height="9" rx="2" fill="#2A9D8F"/>
+              <rect x="183" y="83" width="2.5" height="5" rx="1" fill="#E76F51"/>
+
+              <!-- River Ripples & Reflection -->
+              <ellipse cx="180" cy="142" rx="42" ry="3.5" fill="#38BDF8" opacity="0.6"/>
+              <ellipse cx="180" cy="155" rx="60" ry="4" fill="#0EA5E9" opacity="0.5"/>
+            </svg>
+
+            <!-- Bookplate Corner Embellishment Tag -->
+            <div class="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-[#1D3557]/80 backdrop-blur-sm text-white text-[10px] font-bold flex items-center gap-1 shadow-sm">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#E9C46A] animate-pulse"></span>
+              Scene: Morning River Crossing
+            </div>
+
+            <!-- Audio Waveform Live Indicator -->
+            <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-[#2A9D8F] text-white text-[10px] font-black tracking-wide flex items-center gap-1 shadow-sm">
+              <svg class="w-3 h-3 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/>
+              </svg>
+              TTS Ready
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Read-to-Me 🔊 Player Toolbar -->
+        <div class="mt-3.5 bg-[#EAE0D0] border-2 border-[#2A9D8F] rounded-2xl p-2.5 flex items-center justify-between gap-3 shadow-md">
+          <!-- Play / Pause FAB in Duolingo Blue #1CB0F6 -->
+          <button 
+            type="button" 
+            data-playcue="read_to_me_play"
+            aria-label="Play Narration"
+            class="w-11 h-11 rounded-xl btn-bevel-blue flex items-center justify-center text-white shrink-0 active:scale-95 transition-transform">
+            <!-- Sound Speaker / Play Icon -->
+            <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </button>
+
+          <!-- Middle: Scrubbing & Title -->
+          <div class="flex-1 flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-[11px] font-extrabold text-[#264653]">
+              <span class="flex items-center gap-1">
+                <span>Read-to-Me 🔊</span>
+                <span class="text-[9px] bg-[#2A9D8F]/20 text-[#2A9D8F] px-1.5 py-0.2 rounded font-black">SYNC</span>
+              </span>
+              <span class="text-[#1D3557] font-mono text-[10px]">00:08 / 00:18</span>
+            </div>
+
+            <!-- Audio Progress Scrubber -->
+            <div class="scrubber-track cursor-pointer">
+              <div class="scrubber-fill"></div>
+              <div class="scrubber-thumb"></div>
+            </div>
+          </div>
+
+          <!-- Speed Toggle: 0.8x Turtle -->
+          <button 
+            type="button" 
+            data-playcue="toggle_speed"
+            class="px-2.5 py-1.5 rounded-xl bg-[#FDFBF7] border border-[#D8CEBC] hover:border-[#2A9D8F] text-[#264653] font-fredoka text-xs font-bold flex items-center gap-1 shrink-0 shadow-xs active:scale-95 transition-all">
+            <span class="text-sm">🐢</span>
+            <span>0.8x</span>
+          </button>
+        </div>
+
+        <!-- Story Narrative Text Box -->
+        <div class="mt-3.5 bg-white/75 border border-[#E2D7C3] rounded-2xl p-4 flex flex-col">
+          <div class="text-[11px] font-black uppercase tracking-wider text-[#2A9D8F] mb-1.5 flex items-center justify-between">
+            <span>Sentence 2 • Reading Aloud</span>
+            <span class="text-[#E76F51] text-[10px] font-bold">Tap dashed word for audio & hint</span>
+          </div>
+
+          <!-- Paragraph content with active highlight & vocabulary interaction -->
+          <p class="text-[17px] leading-[1.65] font-semibold text-[#1D3557] tracking-normal">
+            <!-- Passive Sentence 1 -->
+            <span class="text-slate-600 transition-colors">
+              Every morning, Toby and his sister walk across the tall stone
+            </span>
+            <!-- Highlighted Active Sentence with dashed vocabulary -->
+            <span class="active-karaoke font-bold text-[#1D3557] inline transition-all">
+              <button 
+                type="button" 
+                data-playcue="vocab_pop" 
+                class="tappable-word inline-block focus:outline-none"
+                title="Tap to hear 'bridge' pronounced with phonics breakdown">
+                bridge
+              </button>
+              <span>to reach school.</span>
+            </span>
+            <!-- Subsequent sentence -->
+            <span class="text-slate-600 ml-1">
+              Under the bridge, the river flows toward the sea.
+            </span>
+          </p>
+
+          <!-- Interactive Word Toast / Quick Phonetic Hint -->
+          <div class="mt-3 pt-2.5 border-t border-[#EAE0D0] flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg bg-[#E0F2FE] border border-[#BAE6FD] flex items-center justify-center text-xs">
+                💡
+              </span>
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-[#1D3557]">
+                  Target Word: <span class="font-fredoka text-[#2A9D8F] text-sm font-bold">bridge</span>
+                  <span class="font-mono text-[11px] text-slate-500 font-normal">/brɪdʒ/</span>
+                </span>
+                <span class="text-[10px] text-slate-500 font-semibold">
+                  A structure built over water or roads.
+                </span>
+              </div>
+            </div>
+
+            <!-- Pronounce Pill Button -->
+            <button 
+              type="button" 
+              data-playcue="vocab_pop"
+              class="px-2.5 py-1 rounded-xl bg-[#2A9D8F]/15 hover:bg-[#2A9D8F]/25 text-[#2A9D8F] text-xs font-black flex items-center gap-1 border border-[#2A9D8F]/30 active:scale-95 transition-all">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"/>
+              </svg>
+              <span>Listen</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Reading Tips / Heart Haven Mercy reassurance -->
+      <div class="flex items-center justify-between px-2 py-1 text-slate-600">
+        <span class="text-[11px] font-bold flex items-center gap-1.5">
+          <span class="text-emerald-600 text-xs">🛡️</span>
+          <span>Story practice never costs hearts</span>
+        </span>
+        <span class="text-[11px] font-extrabold text-[#E76F51]">
+          +10 Story XP
+        </span>
+      </div>
+
+    </main>
+
+    <!-- Footer Navigation Section -->
+    <footer class="p-4 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] shrink-0 select-none">
+      
+      <!-- Top Dots Pagination Row -->
+      <div class="flex items-center justify-center mb-3">
+        <div class="flex items-center gap-2 px-3 py-1 bg-[#F4EFE6] rounded-full border border-[#E2D7C3]">
+          <!-- Dot 1 (Completed) -->
+          <div class="w-2.5 h-2.5 rounded-full bg-[#2A9D8F] flex items-center justify-center">
+            <span class="w-1 h-1 rounded-full bg-white"></span>
+          </div>
+          <!-- Dot 2 (Current Active) -->
+          <div class="w-5 h-2.5 rounded-full bg-[#E76F51] shadow-xs"></div>
+          <!-- Dot 3 (Upcoming) -->
+          <div class="w-2.5 h-2.5 rounded-full bg-[#D8CEBC]"></div>
+          <!-- Dot 4 (Upcoming) -->
+          <div class="w-2.5 h-2.5 rounded-full bg-[#D8CEBC]"></div>
+        </div>
+      </div>
+
+      <!-- Actions: Previous Button + 52px Beveled Next Page CTA -->
+      <div class="flex items-center gap-3">
+        <!-- Previous Page Button -->
+        <button 
+          type="button" 
+          data-playcue="prev_page"
+          class="h-[52px] px-4 rounded-2xl btn-bevel-neutral border-2 border-[#E2D7C3] text-[#264653] font-fredoka font-bold text-sm flex items-center justify-center gap-1.5 active:scale-95">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+          <span>Prev</span>
+        </button>
+
+        <!-- 52px Primary CTA: NEXT PAGE in Terracotta #E76F51 -->
+        <button 
+          type="button" 
+          data-playcue="next_page"
+          class="flex-1 h-[52px] rounded-2xl btn-bevel-terracotta text-white font-fredoka font-bold text-base tracking-wide flex items-center justify-center gap-2 active:scale-98">
+          <span>NEXT PAGE</span>
+          <svg class="w-5 h-5 text-white animate-pulse" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Audio cue status helper for engineering / telemetry -->
+      <div class="mt-2 text-center text-[9px] font-mono text-slate-400">
+        [playCue: next_page] • [playCue: read_to_me_play] • [playCue: vocab_pop]
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>

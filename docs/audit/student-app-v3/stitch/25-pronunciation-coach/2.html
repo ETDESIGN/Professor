@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pronunciation Coach - Practice-Only Mode (STT Offline)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', 'Nunito', cursive, sans-serif;
+    }
+    /* Dot pattern background */
+    .bg-dot-pattern {
+      background-image: radial-gradient(#d4c8b5 1.5px, transparent 1.5px);
+      background-size: 18px 18px;
+    }
+    /* Duolingo / Wonder Atlas Tactile 3D Bevel Buttons */
+    .btn-bevel-pink {
+      background-color: #E91E63;
+      box-shadow: 0 4px 0 #BE185D;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .btn-bevel-pink:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #BE185D;
+    }
+    .btn-bevel-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .btn-bevel-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .btn-bevel-sand {
+      background-color: #FFFFFF;
+      box-shadow: 0 3px 0 #E2D7C3;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .btn-bevel-sand:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #E2D7C3;
+    }
+    .btn-bevel-audio {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .btn-bevel-audio:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    /* Subtle pulse animation for audio visualizer */
+    @keyframes barPulse {
+      0%, 100% { height: 6px; }
+      50% { height: 18px; }
+    }
+    .wave-bar:nth-child(1) { animation: barPulse 1.1s ease-in-out infinite 0.1s; }
+    .wave-bar:nth-child(2) { animation: barPulse 0.9s ease-in-out infinite 0.3s; }
+    .wave-bar:nth-child(3) { animation: barPulse 1.2s ease-in-out infinite 0.0s; }
+    .wave-bar:nth-child(4) { animation: barPulse 0.8s ease-in-out infinite 0.4s; }
+    .wave-bar:nth-child(5) { animation: barPulse 1.0s ease-in-out infinite 0.2s; }
+  </style>
+</head>
+<body class="min-h-screen bg-dot-pattern flex items-center justify-center p-0 md:p-6 select-none">
+
+  <!-- Mobile Screen Shell: 390px x 844px -->
+  <main class="w-[390px] h-[844px] bg-[#F7F4EC] rounded-[44px] shadow-[0_25px_60px_-15px_rgba(38,70,83,0.22)] border-[8px] border-[#264653] flex flex-col overflow-hidden relative">
+
+    <!-- Top Status Bar Simulation -->
+    <header class="h-10 px-7 pt-2 flex items-center justify-between text-[#264653] text-xs font-bold tracking-tight shrink-0">
+      <span>9:41</span>
+      <div class="flex items-center gap-1.5">
+        <span class="inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E9C46A]/30 text-[#8D6B00] border border-[#E9C46A]/50">Offline Safe</span>
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+        <div class="w-5 h-2.5 border border-[#264653] rounded-sm p-0.5 flex items-center">
+          <div class="w-3 h-full bg-[#264653] rounded-xs"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Universal 64px Header on Paper #FDFBF7 -->
+    <div class="h-16 px-4 bg-[#FDFBF7] border-b-[2px] border-[#E2D7C3] flex items-center justify-between shrink-0 z-10 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+      <!-- 48px Exit Button -->
+      <button 
+        type="button"
+        class="w-12 h-12 rounded-2xl bg-[#FFFFFF] border-[2px] border-[#E2D7C3] flex items-center justify-center text-[#264653] hover:bg-[#F7F4EC] active:translate-y-0.5 transition-all shadow-[0_2px_0_#E2D7C3]"
+        data-playcue="tap_exit"
+        aria-label="Exit lesson"
+        title="[playCue: tap_exit]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Center Title & Progress -->
+      <div class="flex flex-col items-center">
+        <h1 class="font-fredoka text-[17px] font-bold text-[#1D3557] leading-tight tracking-tight">
+          Pronunciation Coach
+        </h1>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-[#2A9D8F]"></span>
+          <span class="text-[11px] font-bold text-[#2A9D8F] tracking-wide uppercase font-fredoka">
+            Target 2 of 5
+          </span>
+        </div>
+      </div>
+
+      <!-- Energy / Safe Status Badge -->
+      <div class="flex items-center gap-1 px-2.5 py-1.5 rounded-2xl bg-[#EAE0D0]/50 border border-[#E2D7C3]">
+        <span class="text-sm">❤️</span>
+        <span class="font-fredoka text-xs font-bold text-[#264653]">4</span>
+      </div>
+    </div>
+
+    <!-- Scrollable Content Area -->
+    <div class="flex-1 px-4 py-3.5 overflow-y-auto space-y-3.5">
+
+      <!-- Progress Segments -->
+      <div class="flex items-center gap-1.5 px-1">
+        <div class="h-2 flex-1 rounded-full bg-[#2A9D8F]"></div>
+        <div class="h-2 flex-1 rounded-full bg-[#E91E63] relative overflow-hidden">
+          <div class="absolute inset-0 bg-white/25"></div>
+        </div>
+        <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        <div class="h-2 flex-1 rounded-full bg-[#E2D7C3]"></div>
+      </div>
+
+      <!-- Honest Offline Practice-Only Banner (Amber Card with Sand Border #E9C46A) -->
+      <section class="p-3.5 rounded-2xl bg-[#FFF8E7] border-[2px] border-[#E9C46A] shadow-[0_3px_0_rgba(233,196,106,0.5)] flex items-start gap-3">
+        <div class="w-9 h-9 rounded-xl bg-[#E9C46A]/30 border border-[#E9C46A] flex items-center justify-center shrink-0 text-lg">
+          🎤
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between gap-1">
+            <h2 class="font-fredoka text-[13px] font-bold text-[#B07D05] tracking-tight">
+              Practice Mode <span class="font-semibold text-xs opacity-90">(Mic Server Offline)</span>
+            </h2>
+            <span class="px-2 py-0.5 rounded-full bg-[#E9C46A]/40 text-[#8D6200] font-bold text-[9px] uppercase tracking-wider">
+              Local Audio OK
+            </span>
+          </div>
+          <p class="text-[12px] font-semibold text-[#264653] leading-snug mt-1">
+            Server scoring is currently resting, but your spoken practice is <span class="font-black text-[#1D3557]">fully counted!</span> Practice aloud with confidence. Session progress saves automatically.
+          </p>
+        </div>
+      </section>
+
+      <!-- Target Word Card on Warm Paper #FDFBF7 with 2.5px Border #E2D7C3 -->
+      <section class="p-4 rounded-3xl bg-[#FDFBF7] border-[2.5px] border-[#E2D7C3] shadow-[0_4px_0_#E2D7C3] flex flex-col items-center text-center relative overflow-hidden">
+        <!-- Top Pill -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3ECE0] border border-[#E2D7C3] text-[11px] font-bold text-[#264653]/80 uppercase tracking-wider mb-2">
+          <span>🎯</span>
+          <span>Target Phrase</span>
+        </div>
+
+        <!-- Headword with Phonetic Script & Chinese Support -->
+        <h3 class="font-fredoka text-3xl font-bold text-[#1D3557] tracking-tight mt-0.5">
+          traffic light
+        </h3>
+        
+        <div class="flex items-center gap-2 mt-1">
+          <span class="px-2.5 py-0.5 rounded-lg bg-[#EAE0D0]/60 text-xs font-mono font-bold text-[#264653]">
+            [ˈtræf.ɪk laɪt]
+          </span>
+          <span class="text-xs font-bold text-[#264653]/70">
+            交通信号灯
+          </span>
+        </div>
+
+        <!-- Audio Model Play FAB -->
+        <div class="mt-3 flex items-center justify-center gap-3">
+          <button 
+            type="button"
+            class="btn-bevel-audio h-11 px-5 rounded-2xl flex items-center gap-2 text-white font-fredoka font-bold text-sm"
+            data-playcue="model_audio"
+            title="[playCue: model_audio]">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            <span>Listen Native Model</span>
+          </button>
+        </div>
+
+        <!-- Visual Cue Graphic Divider -->
+        <div class="w-full mt-4 pt-3 border-t border-[#E2D7C3]/60 flex items-center justify-between text-xs text-[#264653]/70 px-1">
+          <span class="flex items-center gap-1 font-semibold">
+            <span class="w-2 h-2 rounded-full bg-[#E91E63]"></span>
+            Stressed: <strong class="text-[#1D3557] font-bold">TRAF</strong>-fic <strong class="text-[#1D3557] font-bold">LIGHT</strong>
+          </span>
+          <span class="text-[11px] font-bold text-[#2A9D8F] bg-[#2A9D8F]/10 px-2 py-0.5 rounded-md">
+            A1 • Transport
+          </span>
+        </div>
+      </section>
+
+      <!-- User Recording Playback Section -->
+      <section class="p-3.5 rounded-2xl bg-[#FFFFFF] border-[2px] border-[#E2D7C3] shadow-[0_2px_0_#E2D7C3] flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <!-- Play Recording Button -->
+          <button 
+            type="button"
+            class="btn-bevel-teal w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0"
+            data-playcue="user_playback"
+            aria-label="Hear your recording"
+            title="[playCue: user_playback]">
+            <svg class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </button>
+          
+          <div class="flex flex-col">
+            <span class="font-fredoka text-[13px] font-bold text-[#1D3557]">
+              Hear Your Recording
+            </span>
+            <span class="text-[11px] font-bold text-[#264653]/70">
+              Duration: 0:03 • Recorded locally
+            </span>
+          </div>
+        </div>
+
+        <!-- Dynamic Animated Waveform Simulation -->
+        <div class="flex items-center gap-1 h-6 px-2.5 py-1 bg-[#F7F4EC] rounded-lg border border-[#E2D7C3]">
+          <div class="w-1 bg-[#2A9D8F] rounded-full wave-bar"></div>
+          <div class="w-1 bg-[#2A9D8F] rounded-full wave-bar"></div>
+          <div class="w-1 bg-[#2A9D8F] rounded-full wave-bar"></div>
+          <div class="w-1 bg-[#2A9D8F] rounded-full wave-bar"></div>
+          <div class="w-1 bg-[#2A9D8F] rounded-full wave-bar"></div>
+        </div>
+      </section>
+
+      <!-- Positive Effort Stats (Replacing demoralizing '0 Correct' label!) -->
+      <section class="p-3.5 rounded-2xl bg-[#FDFBF7] border-[2px] border-[#E2D7C3] shadow-[0_2px_0_#E2D7C3]">
+        <div class="flex items-center gap-2 text-[#E9C46A] mb-1">
+          <span class="text-base">🌟</span>
+          <h4 class="font-fredoka text-[13px] font-bold text-[#1D3557]">
+            Practice Count: <span class="text-[#E91E63]">3 Speech Attempts Completed</span>
+          </h4>
+        </div>
+        
+        <!-- Reassurance badge & explanation -->
+        <div class="mt-1.5 p-2 rounded-xl bg-[#2A9D8F]/10 border border-[#2A9D8F]/30 flex items-center gap-2">
+          <span class="text-sm">🛡️</span>
+          <p class="text-[12px] font-bold text-[#1E6F5C] leading-tight">
+            Excellent speaking effort! No penalties while offline.
+          </p>
+        </div>
+
+        <!-- Audio Cue Hint -->
+        <div class="mt-2 text-right">
+          <span class="text-[10px] font-mono text-[#264653]/60 bg-[#EAE0D0]/40 px-2 py-0.5 rounded">
+            local_cache: attempt_3_stored
+          </span>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Persistent Bottom Action Area (Bevel Buttons) -->
+    <footer class="p-4 bg-[#FDFBF7] border-t-[2px] border-[#E2D7C3] space-y-2.5 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)] z-10">
+      
+      <!-- Primary 52px CTA 'RETRY SPEAKING 🎤' in Duolingo pink #E91E63 -->
+      <button 
+        type="button"
+        class="btn-bevel-pink w-full h-[52px] rounded-2xl text-white font-fredoka font-bold text-[16px] tracking-wide flex items-center justify-center gap-2 cursor-pointer"
+        data-playcue="mic_record_tap"
+        title="[playCue: mic_record_tap]">
+        <span>RETRY SPEAKING</span>
+        <span class="text-lg">🎤</span>
+      </button>
+
+      <!-- Secondary 48px Button 'NEXT WORD (3/5) ➔' in teal #2A9D8F with hard bevel -->
+      <button 
+        type="button"
+        class="btn-bevel-teal w-full h-[48px] rounded-2xl text-white font-fredoka font-bold text-[15px] tracking-wide flex items-center justify-center gap-2 cursor-pointer"
+        data-playcue="next_target"
+        title="[playCue: next_target]">
+        <span>NEXT WORD (3/5)</span>
+        <span class="text-base font-black">➔</span>
+      </button>
+
+      <!-- Safe Practice Guarantee Text -->
+      <p class="text-center text-[11px] font-semibold text-[#264653]/70 pt-0.5">
+        🔒 Practice safely saved • All speech XP credited upon sync
+      </p>
+    </footer>
+
+  </main>
+
+</body>
+</html>

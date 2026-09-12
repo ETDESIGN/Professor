@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Spelling Bee Solo Lobby</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+    }
+    /* Tactile 3D Button and Card Elevation System */
+    .btn-3d-terracotta {
+      background-color: #E76F51;
+      box-shadow: 0 4px 0 #C4553B;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-3d-terracotta:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #C4553B;
+    }
+    .btn-3d-back {
+      background-color: #FFFFFF;
+      box-shadow: 0 3px 0 #D7CCB9;
+      border: 1.5px solid #E2D7C3;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .btn-3d-back:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D7CCB9;
+    }
+    .card-3d-selected {
+      background-color: #FFFDF9;
+      border: 2.5px solid #E76F51;
+      box-shadow: 0 4px 0 #D46247, 0 8px 16px rgba(231, 111, 81, 0.12);
+    }
+    .card-3d-idle {
+      background-color: #FDFBF7;
+      border: 2px solid #E2D7C3;
+      box-shadow: 0 3.5px 0 #D9CEBC;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .card-3d-idle:hover {
+      border-color: #D3C4AA;
+      transform: translateY(-1px);
+      box-shadow: 0 4.5px 0 #CEC2AE;
+    }
+    .card-3d-idle:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D9CEBC;
+    }
+    /* Toggle switch slider */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #2A9D8F;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: #2A9D8F;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.12);
+    }
+    /* Dot pattern background subtle texture */
+    .wonder-canvas {
+      background-color: #F4EFE6;
+      background-image: radial-gradient(#DECBB6 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-0 sm:p-4 wonder-canvas">
+
+  <!-- Mobile Screen Container 390x844 max frame -->
+  <div class="relative w-full max-w-[390px] h-[844px] max-h-[844px] bg-[#F7F3EB] rounded-[38px] border-[7px] border-[#2A3439] shadow-2xl flex flex-col overflow-hidden select-none">
+    
+    <!-- iPhone Top Status Bar -->
+    <div class="w-full h-11 px-7 flex items-center justify-between text-xs font-bold text-[#264653] shrink-0 bg-[#FDFBF7] border-b border-[#EADFCB]/60">
+      <span class="font-fredoka text-[13px] tracking-tight">9:41</span>
+      <div class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 fill-[#264653]" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.28 19.64 10.59 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+        <span class="text-[11px] font-extrabold tracking-wider">5G</span>
+        <div class="w-5 h-2.5 rounded-sm border-[1.5px] border-[#264653] p-0.5 flex items-center">
+          <div class="h-full w-3.5 bg-[#264653] rounded-[1px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal 64px Header -->
+    <header class="w-full h-16 px-4 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center justify-between shrink-0 z-10">
+      <!-- 48px Back Button -->
+      <button 
+        type="button"
+        onclick="console.log('[playCue: tap_back]')"
+        class="w-12 h-12 rounded-2xl btn-3d-back flex items-center justify-center text-[#1D3557] group"
+        aria-label="Back to Solo Units"
+      >
+        <svg class="w-5 h-5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+
+      <!-- Center Title -->
+      <div class="flex flex-col items-center">
+        <h1 class="font-fredoka text-[19px] leading-tight font-bold text-[#1D3557] tracking-tight">
+          Spelling Bee Solo
+        </h1>
+        <span class="text-[10.5px] font-extrabold tracking-wider uppercase text-[#2A9D8F]">Pre-Game Lobby</span>
+      </div>
+
+      <!-- Trophy Badge -->
+      <div class="flex items-center gap-1.5 px-3 py-1.5 bg-[#FFF9E6] border-[1.5px] border-[#E9C46A] rounded-xl shadow-[0_2px_0_#DEC26E]">
+        <span class="text-sm">🏆</span>
+        <span class="font-fredoka text-[12.5px] font-bold text-[#8A5B00] whitespace-nowrap">850 pts</span>
+      </div>
+    </header>
+
+    <!-- Scrollable Body Content -->
+    <main class="flex-1 overflow-y-auto px-4 pt-3 pb-4 space-y-3.5">
+
+      <!-- Active Unit Banner -->
+      <div class="w-full bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-2xl p-3 shadow-[0_2px_0_#D9CEBC] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-[#E8F6F4] border-[1.5px] border-[#2A9D8F]/30 flex items-center justify-center text-xl shadow-[inset_0_1px_2px_rgba(42,157,143,0.15)]">
+            🚇
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-black uppercase tracking-wider text-[#2A9D8F] bg-[#E2F4F1] px-1.5 py-0.5 rounded-md">Deck Selected</span>
+              <span class="text-[10px] font-bold text-[#8A959B]">• Grade 4-5</span>
+            </div>
+            <h2 class="font-fredoka text-[15px] font-bold text-[#1D3557] mt-0.5 leading-tight">
+              Unit 3: City Transport
+            </h2>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="font-fredoka text-[14px] font-bold text-[#E76F51] block leading-none">10</span>
+          <span class="text-[9.5px] font-extrabold text-[#758A94] uppercase tracking-tight">Words</span>
+        </div>
+      </div>
+
+      <!-- Section Title & Audio Cue Hint -->
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-black text-[#1D3557] uppercase tracking-wider font-fredoka">Select Speed & Rules</span>
+          <span class="text-[10px] bg-[#E9C46A]/25 text-[#8A5B00] px-1.5 py-0.5 rounded font-bold">3 Modes</span>
+        </div>
+        <span class="text-[9.5px] font-bold text-[#718894] flex items-center gap-1">
+          <svg class="w-3 h-3 text-[#2A9D8F]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          Streak Safe
+        </span>
+      </div>
+
+      <!-- Pre-Game Mode Selection Stack -->
+      <div class="space-y-2.5" role="radiogroup" aria-label="Spelling Bee Game Modes">
+
+        <!-- Mode 1 (ACTIVE SELECTED): Arcade Run -->
+        <div 
+          role="radio" 
+          aria-checked="true"
+          tabindex="0"
+          onclick="console.log('[playCue: mode_select]')"
+          class="card-3d-selected rounded-2xl p-3.5 relative cursor-pointer group"
+        >
+          <!-- Active Floating Badge -->
+          <div class="absolute -top-2.5 right-4 bg-[#E9C46A] border-[1.5px] border-[#8A5B00] text-[#1D3557] font-fredoka text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+            <span>⚡</span>
+            <span>ARCADE RULES</span>
+          </div>
+
+          <div class="flex items-start justify-between">
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-[#FEEFEA] border-2 border-[#E76F51] flex items-center justify-center text-xl shrink-0 shadow-sm">
+                ⚡
+              </div>
+              <div class="pr-2">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-fredoka text-[16px] font-bold text-[#1D3557] leading-tight">
+                    Arcade Run
+                  </h3>
+                  <span class="text-[10px] font-extrabold text-[#E76F51] bg-[#FEEFEA] px-1.5 py-0.2 rounded border border-[#E76F51]/30 uppercase">
+                    Sudden Death
+                  </span>
+                </div>
+                <p class="text-xs font-semibold text-[#5C6E76] mt-0.5 leading-snug">
+                  15s timer per word. Timeout ends the run immediately. High risk, maximum thrills!
+                </p>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#E76F51] bg-[#FEE9E4] px-2 py-0.5 rounded-md">
+                    <span>🔥</span> +50% Bonus XP
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-[11px] font-bold text-[#73838C]">
+                    ⏱️ 15s Per Word
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Radio Check Circle -->
+            <div class="w-6 h-6 rounded-full bg-[#E76F51] flex items-center justify-center text-white shrink-0 mt-0.5 shadow-sm">
+              <svg class="w-3.5 h-3.5 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2: Relaxed Mode -->
+        <div 
+          role="radio" 
+          aria-checked="false"
+          tabindex="0"
+          onclick="console.log('[playCue: mode_select]')"
+          class="card-3d-idle rounded-2xl p-3.5 relative cursor-pointer"
+        >
+          <div class="flex items-start justify-between">
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-[#EAF5F3] border-[1.5px] border-[#2A9D8F]/40 flex items-center justify-center text-xl shrink-0">
+                🐢
+              </div>
+              <div class="pr-2">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-fredoka text-[15.5px] font-bold text-[#1D3557] leading-tight">
+                    Relaxed Mode
+                  </h3>
+                  <span class="text-[10px] font-bold text-[#2A9D8F] bg-[#E8F6F4] px-1.5 py-0.2 rounded border border-[#2A9D8F]/30 uppercase">
+                    Steady
+                  </span>
+                </div>
+                <p class="text-xs font-semibold text-[#667A83] mt-0.5 leading-snug">
+                  25s timer per word. Timeout reveals spelling without game over. Keep learning safely.
+                </p>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#2A9D8F] bg-[#E4F4F2] px-2 py-0.5 rounded-md">
+                    <span>🛡️</span> Zero Heart Cost
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-[11px] font-bold text-[#73838C]">
+                    ⏱️ 25s Per Word
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inactive Radio Circle -->
+            <div class="w-6 h-6 rounded-full border-2 border-[#C6BBA8] bg-[#F6F2EA] shrink-0 mt-0.5"></div>
+          </div>
+        </div>
+
+        <!-- Mode 3: Untimed Practice -->
+        <div 
+          role="radio" 
+          aria-checked="false"
+          tabindex="0"
+          onclick="console.log('[playCue: mode_select]')"
+          class="card-3d-idle rounded-2xl p-3.5 relative cursor-pointer"
+        >
+          <div class="flex items-start justify-between">
+            <div class="flex items-start gap-3">
+              <div class="w-11 h-11 rounded-xl bg-[#F0F4FA] border-[1.5px] border-[#1CB0F6]/30 flex items-center justify-center text-xl shrink-0">
+                🧘
+              </div>
+              <div class="pr-2">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-fredoka text-[15.5px] font-bold text-[#1D3557] leading-tight">
+                    Untimed Practice
+                  </h3>
+                  <span class="text-[10px] font-bold text-[#1CB0F6] bg-[#EAF7FD] px-1.5 py-0.2 rounded border border-[#1CB0F6]/30 uppercase">
+                    Chill
+                  </span>
+                </div>
+                <p class="text-xs font-semibold text-[#667A83] mt-0.5 leading-snug">
+                  Zero countdown clocks. Stress-free spelling with repeated audio hints & phonetic sounds.
+                </p>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#1CB0F6] bg-[#EBF7FD] px-2 py-0.5 rounded-md">
+                    <span>🎧</span> Unlimited Replays
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-[11px] font-bold text-[#73838C]">
+                    Standard XP
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inactive Radio Circle -->
+            <div class="w-6 h-6 rounded-full border-2 border-[#C6BBA8] bg-[#F6F2EA] shrink-0 mt-0.5"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Settings & Assistive Scaffolding Row -->
+      <div class="w-full bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-2xl p-3 shadow-[0_2px_0_#D9CEBC] space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-[#E8F6F4] text-[#2A9D8F] flex items-center justify-center font-bold text-sm">
+              ⌨️
+            </div>
+            <div>
+              <div class="text-[13px] font-extrabold text-[#1D3557] leading-tight">
+                Narrow Keyboard
+              </div>
+              <div class="text-[11px] font-bold text-[#718894] leading-tight">
+                Fewer Distractor Keys (Young Learner Aid)
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Toggle Switch (Teal #2A9D8F) -->
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-[#D7CCB9] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#C4B79F] after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2A9D8F] shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]"></div>
+          </label>
+        </div>
+
+        <!-- Micro Info Line -->
+        <div class="pt-2 border-t border-[#EAE0D0] flex items-center justify-between text-[10.5px] font-bold text-[#7B8B94]">
+          <span class="flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-[#2A9D8F]"></span>
+            Audio Prompts: Enabled (American Pronunciation)
+          </span>
+          <span class="text-[#E76F51] font-extrabold">Difficulty: Hard</span>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Anchored 76px Footer -->
+    <footer class="w-full h-[76px] px-4 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] flex items-center justify-center shrink-0 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      <button 
+        type="button"
+        onclick="console.log('[playCue: start_game]')"
+        class="w-full h-14 rounded-2xl btn-3d-terracotta text-white font-fredoka text-[16px] tracking-wide font-bold flex items-center justify-center gap-2 group cursor-pointer"
+        aria-label="Start Arcade Run"
+      >
+        <span>START ARCADE RUN (15s)</span>
+        <span class="text-xl transition-transform group-hover:scale-110">🐝</span>
+      </button>
+    </footer>
+
+  </div>
+
+</body>
+</html>

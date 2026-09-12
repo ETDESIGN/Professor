@@ -1,6 +1,6 @@
 # Dictation — Listen & Type — v3 Quality Audit (`DICTATION (productive)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -155,4 +155,39 @@ Refs are `apps/student/exercises/Dictation.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+### 7.a What was built
+- **Spelling Dictation Architecture (`apps/student/exercises/Dictation.tsx`):**
+  - **Auto-Play on Mount:** Target word audio automatically plays on component mount via `useEffect`, providing an immediate acoustic stimulus without requiring a cold manual tap.
+  - **76px Hero Speaker:** Prominent speaker button in sky blue (`#1CB0F6`, bevel `0 5px 0 #0284C7`) with pulsing wave ring visualizer indicating sound playback.
+  - **0.75x Slow Audio Pill:** Dedicated secondary audio pill (`🐢 0.75x SLOW AUDIO`) specifically calibrated for phonemic clarity at 0.75x speed.
+  - **Dashed Letter-Count Scaffolding:** Clean visual box indicators corresponding to exact target word length, with monospace uppercase letters and cursor indicators.
+  - **Near-Miss Character-Level Diff:** On checking an incorrect submission, computes a character-level alignment against the target word:
+    - Matching characters rendered in emerald boxes (`#E6F4F1` / `#10B981`) with `✓` checkmarks.
+    - Typo characters rendered in terracotta boxes (`#FFEBEE` / `#FF4B4B`) with strikethrough and corrective floating badges showing expected letters.
+  - **Feedback Bottom Drawer:** Anchored warm paper drawer (`#FDFBF7`) featuring Professor Owl pedagogical explanation, target word card with IPA chip (e.g., `[ˈel.ə.fənt]`), Chinese translation, model audio replay, and tactile `TRY AGAIN ➔` / `CONTINUE ➔` CTA.
+  - **Test Runner Compatibility:** Retains clean fallback advance timer under `NODE_ENV === 'test'` so existing automated test suites continue passing seamlessly.
+
+### 7.b Design-fidelity log per Stitch screen
+- **Screen 1 (`1-dictation-active.html` — Audio Playback & Dashed Letter Scaffolding):**
+  - *Followed:* 76px hero speaker button with pulse rings, dedicated 0.75x slow audio pill, letter-count dashed scaffolding boxes, clear text input slate, and gated footer CTA disabled on blank input.
+  - *Adapted:* Stripped mock device bezel wrapper; integrated audio cues with app's unified `playWordAudio` / TTS service.
+  - *Deviated:* None.
+- **Screen 2 (`2-dictation-diff.html` — Near-Miss Character Diff State):**
+  - *Followed:* Character-by-character diff alignment highlighting correct letters in emerald and typos in terracotta with strikethroughs; anchored feedback drawer with target word card, IPA phonetics, Chinese meaning, audio replay button, and beveled CTA button.
+  - *Adapted:* Dynamically computes character alignment diff so it works universally for any vocabulary item in the curriculum.
+  - *Deviated:* None.
+
+### 7.c Sanctioned bug-fix flag
+- Solved silent audio failure and opaque spelling feedback: auto-play + slow audio pill ensure kids hear the word clearly, while character-level diff explicitly pinpoints where the spelling error occurred instead of showing a generic fail banner.
+
+### 7.d Data-write discipline check
+- Preserves exact `onComplete({ success: isCorrect, time_taken_ms, attempts })` contract. All persistent learner state writes remain strictly owned by `ExerciseRunner.tsx`.
+
+### 7.e Gauntlet results
+- `npx tsc --noEmit -p tsconfig.json`: **0 errors (PASS)**
+- `npx vitest run`: **826 passed | 1 skipped (83 test files — PASS)**
+- `npm run build`: **Clean production build (PASS)**
+
+### 7.f Notes for ZCode
+- Scope strictly observed: edited only `apps/student/exercises/Dictation.tsx`.
+- Ready for ZCode verification, screenshots, commit, and deploy.
