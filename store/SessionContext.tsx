@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { Engine, LessonUnit } from '../services/SupabaseService';
+import { resolveLaunchFlow, UnitPlan } from '../services/planFlow';
 import { supabase } from '../services/supabaseClient';
 import { getTeacherStudents, getSessionRoster, awardClassPoints, StudentWithProgress } from '../services/DataService';
 import { mergePresence, filterPresent } from '../services/attendanceLogic';
@@ -94,6 +95,8 @@ interface SessionState {
    *  material). Null = whole-unit session (legacy behavior). The flow shown is
    *  class_plans.flow; content_index.objective_ids scopes every pool pull. */
   activeClassPlan: { id: string; unit_id: string; title: string; released_at: string | null; content_index: any; flow?: any[] } | null;
+  /** UNIT PLANS (spec 2026-09-13): the launched lesson plan's id (Lesson 2…). */
+  activePlanId: string | null;
   /** The open attendance occurrence for this live session (null until go-live / ensure). */
   activeOccurrenceId: string | null;
   students: any[];
@@ -307,6 +310,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     activeUnit: null,
     activeClassId: null,
     activeClassPlan: null,
+    activePlanId: null,
     activeOccurrenceId: null,
     students: [],
     pointsLog: [],
@@ -407,6 +411,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => { activeClassIdRef.current = state.activeClassId; }, [state.activeClassId]);
   /** Media resolution: which class plan drives the session (for flow refresh). */
   const classPlanIdRef = useRef<string | null>(null);
+  // UNIT PLANS (spec 2026-09-13): the launched lesson plan (Lesson 2 etc.) —
+  // its flow outranks the unit mirror, below class plans. Cached per plan id
+  // for the realtime rehydration path.
+  const activePlanIdRef = useRef<string | null>(null);
+  const unitPlanCacheRef = useRef<Map<string, UnitPlan>>(new Map());
   useEffect(() => { classPlanIdRef.current = state.activeClassPlan?.id ?? null; }, [state.activeClassPlan?.id]);
   /** Media convergence guard cooldowns: `${unitId}:${slideIdx}` → last probe ts. */
   const mediaProbeAtRef = useRef<Map<string, number>>(new Map());
@@ -752,7 +761,23 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       activeUnitRef.current = fresh;
     }
 
-    let flow = (Array.isArray(classPlan?.flow) && classPlan.flow.length > 0 ? classPlan.flow : unit.flow) || [];
+    // UNIT PLANS (spec 2026-09-13): joining tabs resolve the SAME plan the
+    // commander launched (session row plan_id) — its flow outranks the unit
+    // mirror; class plans still win.
+    let sessionPlan: UnitPlan | null = null;
+    if (row.plan_id) {
+      sessionPlan = await fetchUnitPlanCached(String(row.plan_id));
+      if (sessionPlan && sessionPlan.unitId !== row.unit_id) sessionPlan = null;
+    }
+    if (sessionPlan) {
+      activePlanIdRef.current = sessionPlan.id;
+      setState(prev => (prev.activePlanId === sessionPlan!.id ? prev : { ...prev, activePlanId: sessionPlan!.id }));
+    }
+    let flow = resolveLaunchFlow({
+      classPlanFlow: classPlan?.flow ?? null,
+      unitPlanFlow: sessionPlan?.flow ?? null,
+      unitFlow: unit.flow ?? null,
+    });
     let idx = Math.min(Math.max(0, row.current_index ?? 0), Math.max(0, flow.length - 1));
 
     // Media convergence guard (external audit 2026-09-05, finding #1): the
@@ -1250,7 +1275,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, [applySessionRow, getTeacherId]);
 
-  const setActiveUnit = async (unitId: string, classPlanId?: string) => {
+  const fetchUnitPlanCached = async (planId: string): Promise<UnitPlan | null> => {
+    const hit = unitPlanCacheRef.current.get(planId);
+    if (hit) return hit;
+    const plan = await Engine.fetchUnitPlan(planId);
+    if (plan) unitPlanCacheRef.current.set(planId, plan);
+    return plan;
+  };
+
+  const setActiveUnit = async (unitId: string, classPlanId?: string, planId?: string) => {
     // Prefer the freshest copy from the DB — the cached list in state.units can
     // be stale after the teacher edits the unit in the Unit Studio (e.g. saves a
     // new lesson plan in the Plan composer). Without this, "Launch live" would
@@ -1271,6 +1304,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!classPlan) throw new Error('Class plan could not be loaded. Try again.');
       if (classPlan.unit_id !== unitId) throw new Error('That class does not belong to this unit.');
     }
+    // UNIT PLANS (spec 2026-09-13): the launched plan's flow outranks the unit
+    // mirror (class plans still win — class scoping is stronger).
+    let unitPlan: UnitPlan | null = null;
+    if (planId) {
+      unitPlan = await withTimeout(fetchUnitPlanCached(planId), 15000, 'unit_plan_fetch');
+      if (!unitPlan || unitPlan.unitId !== unitId) throw new Error('That lesson plan could not be loaded. Try again.');
+    }
+    activePlanIdRef.current = unitPlan?.id ?? null;
+    if (unitPlan) setState(prev => (prev.activePlanId === unitPlan!.id ? prev : { ...prev, activePlanId: unitPlan!.id }));
     if (unit) {
       // C.4: attach the relational bundle (get_unit_bundle) to the manifest so the
       // getVocabulary/getStory/getDialogues normalizers read relational content
@@ -1293,9 +1335,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         // normalizers fall back to the manifest if the bundle is unavailable
       }
       activeUnitRef.current = unit;
-      const initialFlow = (classPlan && Array.isArray(classPlan.flow) && classPlan.flow.length > 0
-        ? classPlan.flow
-        : (unit.flow && unit.flow.length > 0 ? unit.flow : []));
+      const initialFlow = resolveLaunchFlow({
+        classPlanFlow: classPlan?.flow ?? null,
+        unitPlanFlow: unitPlan?.flow ?? null,
+        unitFlow: unit.flow ?? null,
+      });
       setState(prev => ({
         ...prev,
         activeUnit: unit,
@@ -1311,7 +1355,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           const { data: upserted } = await supabase
             .from('classroom_sessions')
             .upsert(
-              { teacher_id: userId, class_id: activeClassIdRef.current, unit_id: unitId, class_plan_id: classPlanId ?? null, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
+              { teacher_id: userId, class_id: activeClassIdRef.current, unit_id: unitId, class_plan_id: classPlanId ?? null, plan_id: unitPlan?.id ?? null, current_index: 0, status: 'LIVE', updated_at: new Date().toISOString() },
               { onConflict: 'teacher_id' },
             )
             .select();
@@ -1374,14 +1418,21 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       const fresh = await Engine.getUnitById(unitId);
       if (!fresh) return;
       activeUnitRef.current = fresh;
-      let flow: any[] | null = null;
+      let classFlow: any[] | null = null;
       const planId = classPlanIdRef.current;
       if (planId) {
         classPlanCacheRef.current.delete(planId);
         const plan = await fetchClassPlan(planId);
-        if (plan && Array.isArray(plan.flow) && plan.flow.length > 0) flow = plan.flow;
+        if (plan && Array.isArray(plan.flow) && plan.flow.length > 0) classFlow = plan.flow;
       }
-      if (!flow || flow.length === 0) flow = Array.isArray(fresh.flow) ? fresh.flow : [];
+      let unitPlanFlow: any[] | null = null;
+      const activePlanId = activePlanIdRef.current;
+      if (activePlanId) {
+        unitPlanCacheRef.current.delete(activePlanId);
+        const up = await Engine.fetchUnitPlan(activePlanId);
+        if (up && Array.isArray(up.flow) && up.flow.length > 0) unitPlanFlow = up.flow;
+      }
+      const flow = resolveLaunchFlow({ classPlanFlow: classFlow, unitPlanFlow, unitFlow: fresh.flow ?? null });
       if (flow.length === 0) return;
       setState(prev => {
         const idx = Math.min(Math.max(prev.currentStepIndex, 0), flow!.length - 1);
@@ -1461,6 +1512,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       drawings: [],
       activeClassId: null,          // the originally-named bug
       activeClassPlan: null,        // FIXPLAN I — class session ends with the session
+      activePlanId: null,
       activeOccurrenceId: null,
       currentTurnId: null,          // turn lifecycle
       quickWheelWinner: null,

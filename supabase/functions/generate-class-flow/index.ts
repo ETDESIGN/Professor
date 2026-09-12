@@ -15,7 +15,7 @@ serve(async (req) => {
     rateLimit: { maxRequests: 20, windowMs: 60 * 1000 },
     validationRules: [{ field: 'classPlanId', required: true, type: 'string', minLength: 10 }],
   }, async (body, auth) => {
-    const { classPlanId } = body;
+    const { classPlanId, sourcePlanId } = body;
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     if (!supabaseUrl || !serviceKey) return { success: false, error: 'Service credentials not configured.' };
@@ -87,7 +87,24 @@ serve(async (req) => {
       unit.teacher_id,
       (vocabRes.data || []).map((v: any) => String(v?.word || '')),
     );
-    const rawFlow = buildClassFlow(unit.flow || [], {
+    // UNIT PLANS (spec 2026-09-13): optional source plan — build the class
+    // flow from THAT lesson plan's blocks (sliced by the class scope) instead
+    // of the unit template. Falls back to the unit flow when the plan is
+    // missing/empty so generation never dead-ends.
+    let templateFlow: any[] = Array.isArray(unit.flow) ? unit.flow : [];
+    if (sourcePlanId) {
+      const { data: srcPlan } = await sb
+        .from('unit_plans')
+        .select('id, unit_id, flow')
+        .eq('id', String(sourcePlanId))
+        .maybeSingle();
+      if (srcPlan && srcPlan.unit_id === plan.unit_id && Array.isArray(srcPlan.flow) && srcPlan.flow.length > 0) {
+        templateFlow = srcPlan.flow;
+      } else {
+        console.warn('generate-class-flow: sourcePlanId ignored (missing/mismatched/empty) — unit flow used');
+      }
+    }
+    const rawFlow = buildClassFlow(templateFlow, {
       title: plan.title,
       theme,
       vocab: byIdOrder(vocabRes.data as any[], vocabIds),
@@ -103,7 +120,7 @@ serve(async (req) => {
     }, wordImages);
 
     if (rawFlow.length === 0) {
-      return { success: false, error: 'The unit flow is empty — publish the unit first, then generate the class flow.' };
+      return { success: false, error: 'The flow template is empty — publish the unit (or the chosen plan) first, then generate the class flow.' };
     }
 
     // Same board contract as units.flow (supported types, intro first, …).

@@ -1,6 +1,7 @@
 // SupabaseService.ts — Data persistence layer using Supabase
 
 import { supabase } from './supabaseClient';
+import { toUnitPlan, UnitPlan } from './planFlow';
 import { LessonManifest } from '../types/pipeline';
 import { StudentStage } from '../types/stage';
 import { transformManifestToFlow } from './LessonTransformer';
@@ -465,6 +466,112 @@ export const Engine = {
     updateUnit: async (id: string, updates: Partial<LessonUnit>): Promise<void> => {
         requireSupabase();
         return supabaseUpdateUnit(id, updates);
+    },
+
+    // ── UNIT PLANS (spec 2026-09-13): multiple named plans per unit ──────
+    // units.flow stays the mirror of the DEFAULT plan (write-through in
+    // saveUnitPlanFlow / setDefaultUnitPlan) so legacy consumers keep working.
+    listUnitPlans: async (unitId: string): Promise<UnitPlan[]> => {
+        requireSupabase();
+        const { data, error } = await supabase
+            .from('unit_plans')
+            .select('id, unit_id, title, flow, order_index, is_default')
+            .eq('unit_id', unitId)
+            .order('order_index', { ascending: true });
+        if (error) throw error;
+        return (data || []).map((r: any) => toUnitPlan(r));
+    },
+
+    fetchUnitPlan: async (planId: string): Promise<UnitPlan | null> => {
+        requireSupabase();
+        const { data, error } = await supabase
+            .from('unit_plans')
+            .select('id, unit_id, title, flow, order_index, is_default')
+            .eq('id', planId)
+            .maybeSingle();
+        if (error || !data) return null;
+        return toUnitPlan(data);
+    },
+
+    createUnitPlan: async (unitId: string, title: string, flow: any[] = []): Promise<UnitPlan | null> => {
+        requireSupabase();
+        const { count } = await supabase
+            .from('unit_plans')
+            .select('id', { count: 'exact', head: true })
+            .eq('unit_id', unitId);
+        const { data, error } = await supabase
+            .from('unit_plans')
+            .insert({ unit_id: unitId, title, flow, order_index: (count ?? 0) + 1, is_default: false })
+            .select('id, unit_id, title, flow, order_index, is_default')
+            .single();
+        if (error) throw error;
+        return data ? toUnitPlan(data) : null;
+    },
+
+    duplicateUnitPlan: async (planId: string, title: string): Promise<UnitPlan | null> => {
+        requireSupabase();
+        const src = await Engine.fetchUnitPlan(planId);
+        if (!src) throw new Error('Plan not found');
+        return Engine.createUnitPlan(src.unitId, title, src.flow);
+    },
+
+    renameUnitPlan: async (planId: string, title: string): Promise<void> => {
+        requireSupabase();
+        const { error } = await supabase.from('unit_plans').update({ title, updated_at: new Date().toISOString() }).eq('id', planId);
+        if (error) throw error;
+    },
+
+    /** Never the last plan: deleting the default promotes the next one (and
+     *  re-mirrors its flow to units.flow); deleting the only plan is refused. */
+    deleteUnitPlan: async (planId: string): Promise<void> => {
+        requireSupabase();
+        const plan = await Engine.fetchUnitPlan(planId);
+        if (!plan) return;
+        const all = await Engine.listUnitPlans(plan.unitId);
+        if (all.length <= 1) throw new Error('A unit keeps at least one plan.');
+        const { error } = await supabase.from('unit_plans').delete().eq('id', planId);
+        if (error) throw error;
+        if (plan.isDefault) {
+            const next = all.find((p) => p.id !== planId);
+            if (next) await Engine.setDefaultUnitPlan(next.id);
+        }
+    },
+
+    setDefaultUnitPlan: async (planId: string): Promise<void> => {
+        requireSupabase();
+        const plan = await Engine.fetchUnitPlan(planId);
+        if (!plan) throw new Error('Plan not found');
+        // Single UPDATE clearing other defaults then setting this one (the
+        // partial unique index enforces one default per unit at the DB level).
+        const { error: clearErr } = await supabase
+            .from('unit_plans')
+            .update({ is_default: false, updated_at: new Date().toISOString() })
+            .eq('unit_id', plan.unitId)
+            .eq('is_default', true)
+            .neq('id', planId);
+        if (clearErr) throw clearErr;
+        const { error } = await supabase
+            .from('unit_plans')
+            .update({ is_default: true, updated_at: new Date().toISOString() })
+            .eq('id', planId);
+        if (error) throw error;
+        // Mirror: units.flow must track the (new) default plan.
+        await supabaseUpdateUnit(plan.unitId, { flow: plan.flow } as Partial<LessonUnit>);
+    },
+
+    /** Save a plan's flow; the default plan write-through mirrors to units.flow. */
+    saveUnitPlanFlow: async (planId: string, flow: any[]): Promise<void> => {
+        requireSupabase();
+        const plan = await Engine.fetchUnitPlan(planId);
+        if (!plan) throw new Error('Plan not found');
+        const { error } = await supabase
+            .from('unit_plans')
+            .update({ flow, updated_at: new Date().toISOString() })
+            .eq('id', planId);
+        if (error) throw error;
+        if (plan.isDefault) {
+            await supabaseUpdateUnit(plan.unitId, { flow } as Partial<LessonUnit>);
+        }
     },
 
     deleteUnit: async (id: string): Promise<void> => {
