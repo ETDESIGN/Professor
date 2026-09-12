@@ -7,6 +7,7 @@ import { segmentPassageByScenes } from '../_shared/storySegments.ts';
 import { serviceRoleKey } from '../_shared/serviceKey.ts';
 import { buildPromptWithCharacter, fetchCharacterByName } from '../_shared/characterLook.ts';
 import { sanitizeUnitTitle, isOverwritableAutoTitle } from '../_shared/unitTitle.ts';
+import { buildGroupNamingPrompt, pickGroupNames, wordsByStructure, type GroupNamingInput } from '../_shared/contentGroups.ts';
 
 serve(async (req) => {
   return serveEdgeFunction(req, {
@@ -109,6 +110,26 @@ serve(async (req) => {
       basketVocab.length > 0 || basketGrammar.length > 0 || basketDialogues.length > 0 ||
       basketPassages.length > 0 || basketComics.length > 0 || basketSongs.length > 0
     );
+
+    // CONTENT GROUPS (spec 2026-09-13): the unit's vocab series / stories /
+    // comics / songs as first-class rows. Seeded + AI-named on every basket
+    // run (ensureContentGroups below, defined after callAI).
+    let contentGroups: any[] = [];
+    // Pending-review visibility: confirmed units can still hold pending
+    // structures (pages confirmed later, or skipped) — report the count so
+    // the planner can warn instead of silently missing content.
+    let pendingReviewStructures = 0;
+    try {
+      const { data: pageIds } = await sbClient.from('book_pages').select('id').eq('unit_id', unitId);
+      if (pageIds && pageIds.length > 0) {
+        const { count } = await sbClient
+          .from('page_structures')
+          .select('id', { count: 'exact', head: true })
+          .in('page_id', pageIds.map((p: any) => p.id))
+          .eq('review_status', 'pending');
+        pendingReviewStructures = count ?? 0;
+      }
+    } catch { /* count is best-effort */ }
 
     // FIXPLAN_F audit fix (2026-08-26): a unit whose pages WERE scanned but
     // whose batch was never teacher-confirmed must not silently fall back to
@@ -739,73 +760,87 @@ One output box per input box, same order. Keep every value concise so the respon
     };
 
     const buildBasketStory = async (): Promise<any> => {
-      const pages: any[] = [];
-      let title = '';
-      // Reading passages verbatim → one page per PARAGRAPH (story fidelity,
-      // doc 10 §5): each paragraph keeps its own scene illustration — the
-      // BOOK'S OWN ARTWORK is the default (a deterministic crop of the exact
-      // page region the scan captured), and the scene's exhaustive
-      // visual_description becomes image_prompt so an artist-faithful AI
-      // regeneration is always available alongside. Crops for a page image run
-      // as ONE batch (single fetch + decode) under a deadline; a failed,
-      // low-resolution, or expired crop falls back to the description — the
-      // verbatim text always lands.
+      // CONTENT GROUPS (spec 2026-09-13): stories are built PER story group
+      // (one group per book story; a story spanning pages shares one group).
+      // Comics are NO LONGER flattened into story pages — story blocks that
+      // select a comic freeze panel pages at generation time. Comics still
+      // get their PANEL CROPS here (the COMIC_PANELS game + review UI read
+      // the crop assets; without this run they would never be cropped).
       const cropSb = createClient(supabaseUrl, serviceRoleKey(), { auth: { persistSession: false } });
       const CROP_DEADLINE = Date.now() + 45_000;
-      for (const p of basketPassages) {
-        if (!title && p.title) title = String(p.title);
-        const scenes: any[] = Array.isArray(p.scene_illustrations) ? p.scene_illustrations : [];
-        const segments = segmentPassageByScenes(String(p.passage_text || ''), scenes);
+      const storyGroups = contentGroups.filter((g: any) => g.kind === 'story');
+      const stories: any[] = [];
+      for (const g of storyGroups) {
+        const memberIds = new Set((g.structure_ids || []).map(String));
+        const passages = basketPassages.filter((p: any) => memberIds.has(String(p.structure_id)));
+        if (passages.length === 0) continue;
+        const pages: any[] = [];
+        // Reading passages verbatim → one page per PARAGRAPH (story fidelity,
+        // doc 10 §5): each paragraph keeps its own scene illustration — the
+        // BOOK'S OWN ARTWORK is the default (a deterministic crop of the exact
+        // page region the scan captured), and the scene's exhaustive
+        // visual_description becomes image_prompt so an artist-faithful AI
+        // regeneration is always available alongside.
+        for (const p of passages) {
+          const scenes: any[] = Array.isArray(p.scene_illustrations) ? p.scene_illustrations : [];
+          const segments = segmentPassageByScenes(String(p.passage_text || ''), scenes);
 
-        // All of this page image's scene crops in one batch (pool 'scene').
-        const croppable: number[] = []; // segment indexes whose scene has a bbox
-        const cropItems: { structureId: string | null; bbox: number[]; pool: string }[] = [];
-        for (let si = 0; si < segments.length; si++) {
-          const seg = segments[si];
-          const scene = seg && seg.sceneIndex !== null ? scenes[seg.sceneIndex] : undefined;
-          if (scene?.bbox && p.page_id) {
-            croppable.push(si);
-            cropItems.push({ structureId: p.structure_id || null, bbox: scene.bbox, pool: 'scene' });
+          // All of this page image's scene crops in one batch (pool 'scene').
+          const croppable: number[] = []; // segment indexes whose scene has a bbox
+          const cropItems: { structureId: string | null; bbox: number[]; pool: string }[] = [];
+          for (let si = 0; si < segments.length; si++) {
+            const seg = segments[si];
+            const scene = seg && seg.sceneIndex !== null ? scenes[seg.sceneIndex] : undefined;
+            if (scene?.bbox && p.page_id) {
+              croppable.push(si);
+              cropItems.push({ structureId: p.structure_id || null, bbox: scene.bbox, pool: 'scene' });
+            }
+          }
+          const cropBySeg = new Map<number, any>();
+          if (cropItems.length > 0) {
+            try {
+              const results = await cropBookImages({
+                sb: cropSb,
+                pageId: String(p.page_id),
+                deadlineAt: CROP_DEADLINE,
+                items: cropItems,
+              });
+              croppable.forEach((si, k) => { if (results[k]) cropBySeg.set(si, results[k]); });
+            } catch { /* crops are best-effort; the text always lands */ }
+          }
+
+          for (let si = 0; si < segments.length; si++) {
+            const seg = segments[si];
+            const scene = seg && seg.sceneIndex !== null ? scenes[seg.sceneIndex] : undefined;
+            const crop = cropBySeg.get(si);
+            pages.push({
+              text: seg.text,
+              speaker: null,
+              image_prompt: scene?.visual_description ? String(scene.visual_description) : (scene?.caption ? String(scene.caption) : null),
+              image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
+              image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
+              image_url: crop?.ok && crop.url ? crop.url : null, // the key every consumer reads
+              source_structure_id: p.structure_id || null,
+              needs_questions: true,
+            });
           }
         }
-        const cropBySeg = new Map<number, any>();
-        if (cropItems.length > 0) {
-          try {
-            const results = await cropBookImages({
-              sb: cropSb,
-              pageId: String(p.page_id),
-              deadlineAt: CROP_DEADLINE,
-              items: cropItems,
-            });
-            croppable.forEach((si, k) => { if (results[k]) cropBySeg.set(si, results[k]); });
-          } catch { /* crops are best-effort; the text always lands */ }
-        }
-
-        for (let si = 0; si < segments.length; si++) {
-          const seg = segments[si];
-          const scene = seg && seg.sceneIndex !== null ? scenes[seg.sceneIndex] : undefined;
-          const crop = cropBySeg.get(si);
-          pages.push({
-            text: seg.text,
-            speaker: null,
-            image_prompt: scene?.visual_description ? String(scene.visual_description) : (scene?.caption ? String(scene.caption) : null),
-            image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
-            image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
-            image_url: crop?.ok && crop.url ? crop.url : null, // the key every consumer reads
-            source_structure_id: p.structure_id || null,
-            needs_questions: true,
-          });
-        }
+        if (pages.length === 0) continue;
+        const firstTitle = passages.map((p: any) => p.title).find(Boolean);
+        stories.push({
+          group_id: g.id,
+          structure_ids: g.structure_ids || [],
+          title: g.title_source !== 'seed' && g.title ? String(g.title) : String(firstTitle || g.title || 'Story'),
+          setting: '',
+          pages,
+        });
       }
-      // Comics → one page per panel (narration + bubbles as dialogue lines).
-      // Panels pool (doc 10 §8, brainstorm doc 12 §2): every panel is cropped
-      // from the BOOK'S OWN ARTWORK — pool 'panel', one batch per comic page
-      // under the shared crop deadline — so the comics LiveBoard game and the
-      // review UI use the book's panels, never AI art. Crops pass the comic's
-      // structure bbox + panelIndex so bookCrop's panelGeometry plan can snap
-      // over-cut boxes to the page's gutters and seed scan-box-less panels
-      // (doc 12 §7 — the "cut in the middle of the image" fix). Crops are
-      // best-effort; the verbatim text always lands on the page.
+      // Comics → PANEL CROPS ONLY (doc 10 §8 / doc 12 §2): every panel is
+      // cropped from the BOOK'S OWN ARTWORK — pool 'panel', one batch per
+      // comic page under the shared crop deadline — so the comics LiveBoard
+      // game and the review UI use the book's panels, never AI art. The
+      // panel TEXT no longer becomes story pages (spec 2026-09-13: comics
+      // and stories are separate content kinds).
       const comicStructureBoxes = new Map<string, number[] | null>();
       try {
         const comicIds = basketComics.map((c: any) => String(c.structure_id)).filter(Boolean);
@@ -848,53 +883,27 @@ One output box per input box, same order. Keep every value concise so the respon
             panelIndex: pi,
           });
         }
-        const panelCropByIndex = new Map<number, any>();
         if (cropItems.length > 0 && c.page_id) {
           try {
-            const results = await cropBookImages({
+            await cropBookImages({
               sb: cropSb,
               pageId: String(c.page_id),
               deadlineAt: CROP_DEADLINE,
               items: cropItems,
               panelLayout: structureBox ? { structureBox } : null,
             });
-            cropItems.forEach((ci, k) => { if (results[k]) panelCropByIndex.set(ci.panelIndex, results[k]); });
-          } catch { /* crops are best-effort; the text always lands */ }
-        }
-        for (let pi = 0; pi < panels.length; pi++) {
-          const panel = panels[pi];
-          const bits: string[] = [];
-          if (panel?.narration) bits.push(String(panel.narration));
-          for (const b of (Array.isArray(panel?.bubbles) ? panel.bubbles : [])) {
-            const speaker = b?.speaker ? `${b.speaker}: ` : '';
-            if (b?.text) bits.push(speaker + String(b.text));
-          }
-          const crop = panelCropByIndex.get(pi);
-          if (bits.length > 0) {
-            pages.push({
-              text: bits.join('\n'),
-              speaker: null,
-              image_prompt: null,
-              image_asset_id: crop?.ok && crop.asset_id ? crop.asset_id : null,
-              image_url_book_crop: crop?.ok && crop.url ? crop.url : null,
-              image_url: crop?.ok && crop.url ? crop.url : null, // the key every consumer reads
-              source_structure_id: c.structure_id || null,
-              needs_questions: panels.length >= 3, // panel slides are for telling, not quizzing
-            });
-          }
+          } catch { /* crops are best-effort */ }
         }
       }
-      if (pages.length === 0) return null;
+      if (stories.length === 0) return null;
 
       // Comprehension questions — generated ONLY from the actual passage
       // text, never about invented content (doc 10 §6 story basket).
-      // AUDIT FIX (2026-08-27): sequential per-page question calls ran the
-      // whole story category past the edge wall clock (owner unit: a 4.5-min
-      // story call was killed, 0 story pages landed). Questions are DERIVED
-      // content — the verbatim pages always land; questions run in parallel
-      // and are simply skipped when the budget runs out.
+      // AUDIT FIX (2026-08-27): questions run in parallel and are simply
+      // skipped when the budget runs out (the verbatim pages always land).
       const STORY_Q_DEADLINE = Date.now() + 75_000;
-      const questionTargets = pages.filter((p) => p.needs_questions);
+      const allPages = stories.flatMap((s) => s.pages);
+      const questionTargets = allPages.filter((p) => p.needs_questions);
       const qSys = `You write reading-comprehension questions for children aged 6-12.
 Questions must be answerable STRICTLY from the provided text. Never add facts.
 Return ONLY a valid JSON object.`;
@@ -915,7 +924,7 @@ answer is the 0-based index of the correct option. Keep language simple.`;
             page.comprehension_questions = Array.isArray(qRes?.questions)
               ? qRes.questions.map((q: any) => ({
                   question: String(q?.question || ''),
-                  options: Array.isArray(q?.options) ? q.options.slice(0, 4) : [],
+                  options: Array.isArray(q.options) ? q.options.slice(0, 4) : [],
                   answer: Number.isInteger(q?.answer) ? q.answer : 0,
                 }))
               : [];
@@ -923,8 +932,10 @@ answer is the 0-based index of the correct option. Keep language simple.`;
         }
       });
       await Promise.all(qWorkers);
-      for (const page of pages) delete page.needs_questions;
-      return { title: title || 'Story', setting: '', pages };
+      for (const page of allPages) delete page.needs_questions;
+      // stories[] is the multi-story truth; story keeps the FIRST story for
+      // legacy single-story consumers (never the old all-stories mix).
+      return { stories, story: stories[0] };
     };
 
     const buildBasketDialogues = (): any[] => {
@@ -992,19 +1003,110 @@ Exactly one entry in each array.`;
       const out: any = {};
       const want = (c: string) => cat === 'all' || cat === c;
       if (want('grammar')) out.grammar = await buildBasketGrammar();
-      if (want('story')) out.story = await buildBasketStory();
+      if (want('story')) {
+        const built = await buildBasketStory();
+        if (built) {
+          out.story = built.story;      // legacy single-story shape (FIRST story)
+          out.stories = built.stories;  // multi-story truth (spec 2026-09-13)
+        }
+      }
       if (want('dialogues')) out.dialogues = buildBasketDialogues();
-      if (want('media')) Object.assign(out, await buildBasketMedia());
+      if (want('media')) {
+        Object.assign(out, await buildBasketMedia());
+      } else if (basketSongs.length > 0) {
+        // MEDIA FIX (spec 2026-09-13): the book's own printed songs ride
+        // along on EVERY basket run — they were the strongest resolution key
+        // for the warm-up player and could silently never exist when the
+        // teacher only enriched story/vocabulary. Fill-only at merge time
+        // (never replaces a richer previously-merged suggestion list).
+        out.song_suggestions = basketSongs.map((s: any) => ({
+          title: s.title || 'Song',
+          topic_relevance: 'From the book (lyrics transcribed verbatim)',
+          lyrics: s.lyrics || '',
+          source: 'book',
+          structure_id: s.structure_id || null,
+        }));
+        out._media_piggyback = true;
+      }
       if (want('characters')) out.characters = buildBasketCharacters();
       out.topic = topic;
       out.gradeLevel = gradeLevel;
       return out;
     }
 
+    // ── CONTENT GROUPS (spec 2026-09-13): seed fast (RPC + load), name slow
+    // (one batched region-safe AI call, AFTER the category build so story
+    // crops/questions keep their budget — the first live run proved naming
+    // first tips the whole request past the 150s gateway limit). Naming is
+    // idempotent: groups still carrying seed titles get named on a later run
+    // if this one runs out of clock. Best-effort, non-fatal.
+    const seedContentGroups = async (): Promise<void> => {
+      try {
+        await sbClient.rpc('seed_unit_content_groups', { p_unit_id: unitId });
+        const { data: rows } = await sbClient.from('unit_content_groups').select('*').eq('unit_id', unitId).order('order_index');
+        contentGroups = Array.isArray(rows) ? rows : [];
+      } catch (e: any) {
+        console.error('enrich-unit content groups seeding failed (non-fatal):', e?.message || e);
+      }
+    };
+
+    const nameContentGroups = async (): Promise<void> => {
+      try {
+        if (Date.now() > handlerStart + 95_000) {
+          console.warn('enrich-unit GROUPS: naming skipped — out of time budget; runs on the next enrichment');
+          return;
+        }
+        const unnamed = contentGroups.filter((g: any) => g.title_source === 'seed' && g.kind !== 'song');
+        if (unnamed.length === 0) return;
+        const wordsBySid = wordsByStructure(basketVocab);
+        const excerptFor = (g: any): string => {
+          const sids = new Set((g.structure_ids || []).map(String));
+          if (g.kind === 'story') {
+            return basketPassages
+              .filter((p: any) => sids.has(String(p.structure_id)))
+              .map((p: any) => `${p.title ? String(p.title) + '. ' : ''}${String(p.passage_text || '').slice(0, 200)}`)
+              .join(' ');
+          }
+          if (g.kind === 'comic') {
+            return basketComics
+              .filter((c: any) => sids.has(String(c.structure_id)))
+              .flatMap((c: any) => (Array.isArray(c.panels) ? c.panels : []).slice(0, 4))
+              .map((panel: any) => [panel?.narration, ...(Array.isArray(panel?.bubbles) ? panel.bubbles.map((b: any) => b?.text) : [])].filter(Boolean).join(' '))
+              .join(' / ');
+          }
+          return '';
+        };
+        const inputs: GroupNamingInput[] = unnamed.map((g: any) => {
+          const sids = (g.structure_ids || []).map(String);
+          return {
+            id: String(g.id),
+            kind: g.kind,
+            printed_label: g.printed_label || null,
+            words: g.kind === 'vocab_series' ? sids.flatMap((sid) => wordsBySid.get(sid) || []) : undefined,
+            excerpt: excerptFor(g) || undefined,
+          };
+        });
+        const prompt = buildGroupNamingPrompt(inputs);
+        const res = await callAI(prompt.sys, prompt.usr, 0.3, FAST_MODELS);
+        const names = pickGroupNames(res, new Set(inputs.map((i) => i.id)));
+        for (const [id, title] of names) {
+          await sbClient.from('unit_content_groups').update({ title, title_source: 'ai' }).eq('id', id);
+          const row = contentGroups.find((g: any) => String(g.id) === id);
+          if (row) { row.title = title; row.title_source = 'ai'; }
+        }
+        console.log(`enrich-unit GROUPS: named ${names.size}/${unnamed.length} unnamed groups`);
+      } catch (e: any) {
+        console.error('enrich-unit content groups naming failed (non-fatal):', e?.message || e);
+      }
+    };
+
     // ── WS-A: vocabulary uses the batched, uncapped enrichment; all other
  //    categories keep the single-call path (their schemas fit the budget). ──
     let enriched: any;
     let vocabPresence: any = null;
+    // Content groups seed (fast, no AI) before story/vocab building; the AI
+    // naming runs AFTER the build (see below) so it can't starve the budget.
+    if (useBaskets) await seedContentGroups();
     if (category === 'vocabulary') {
       const r = await enrichVocabularyBatched();
       enriched = { vocabulary: r.words };
@@ -1050,6 +1152,18 @@ ${categoryRules}
 - Return ONLY the JSON object, nothing else.`;
 
       enriched = await callAI(enrichSystemPrompt, enrichUserPrompt, 0.7, category === 'grammar' ? FAST_MODELS : undefined);
+    }
+
+    // Name groups AFTER the build (time-guarded; idempotent) and refresh the
+    // built stories' titles so the manifest carries the final AI names.
+    if (useBaskets) {
+      await nameContentGroups();
+      if (Array.isArray(enriched.stories)) {
+        for (const s of enriched.stories) {
+          const g = contentGroups.find((x: any) => String(x.id) === String(s.group_id));
+          if (g?.title) s.title = String(g.title);
+        }
+      }
     }
 
     if (enriched._error) {
@@ -1165,9 +1279,20 @@ ${categoryRules}
     };
 
     const keysToUpdate = categoryKeyMap[category] || [category];
+    // MEDIA FIX (2026-09-13): piggybacked book songs merge even when the
+    // category map doesn't include media keys.
+    if (Array.isArray(enriched.song_suggestions) && enriched.song_suggestions.length > 0 && !keysToUpdate.includes('song_suggestions')) {
+      keysToUpdate.push('song_suggestions');
+    }
     for (const key of keysToUpdate) {
       if (key === 'story') {
-        if (enriched.story && (enriched.story.pages?.length > 0 || enriched.story.title)) {
+        // CONTENT GROUPS (2026-09-13): stories[] is the multi-story truth;
+        // legacy manifest.story keeps the FIRST story only — never the old
+        // all-stories-and-comics concatenation.
+        if (Array.isArray(enriched.stories) && enriched.stories.length > 0) {
+          mergedManifest.stories = enriched.stories;
+          if (enriched.story) mergedManifest.story = { ...currentManifest.story, ...enriched.story };
+        } else if (enriched.story && (enriched.story.pages?.length > 0 || enriched.story.title)) {
           mergedManifest.story = { ...currentManifest.story, ...enriched.story };
         }
       } else if (key === 'vocabulary') {
@@ -1184,6 +1309,13 @@ ${categoryRules}
           }
           mergedManifest.vocabulary = mergedArr;
         }
+      } else if (key === 'song_suggestions' && enriched._media_piggyback) {
+        // Fill-only: the piggybacked book songs never replace a richer
+        // previously-merged list (book + topic-matched suggestions).
+        if ((!Array.isArray(currentManifest.song_suggestions) || currentManifest.song_suggestions.length === 0) &&
+            Array.isArray(enriched[key]) && enriched[key].length > 0) {
+          mergedManifest[key] = enriched[key];
+        }
       } else if (enriched[key] !== undefined) {
         // Accept any non-empty array
         if (Array.isArray(enriched[key]) && enriched[key].length > 0) {
@@ -1194,48 +1326,58 @@ ${categoryRules}
 
     // Phase 1.2-5: also write story to the RELATIONAL tables (single emitter —
     // the tables are the canonical source; manifest stays as a read cache for
-    // legacy consumers). When the story category was generated, upsert pages +
-    // their comprehension questions. Idempotent via UNIQUE(unit_id, page_number).
-    // Best-effort, non-fatal: a failure here doesn't fail enrichment.
-    if ((category === 'story' || category === 'all') && enriched.story?.pages?.length > 0) {
+    // legacy consumers). CONTENT GROUPS (2026-09-13): story pages persist for
+    // EVERY story group, numbered unit-wide in group order; each row keeps its
+    // passage source_structure_id so stories can be split again downstream.
+    // Idempotent via UNIQUE(unit_id, page_number). Best-effort, non-fatal.
+    const storyList: any[] = Array.isArray(enriched.stories) && enriched.stories.length > 0
+      ? enriched.stories
+      : (enriched.story?.pages?.length > 0 ? [{ ...enriched.story, group_id: null, structure_ids: [] }] : []);
+    if ((category === 'story' || category === 'all') && storyList.length > 0) {
       try {
-        const pages = enriched.story.pages;
         // Resolve each speaker to a book character (continuity, advisor §7.2).
         const pageRows: any[] = [];
-        for (let i = 0; i < pages.length; i++) {
-          const p = pages[i];
-          let speakerCharId: string | null = null;
-          if (bookId && p.speaker) {
-            const ch = await fetchCharacterByName(sbClient, bookId, String(p.speaker));
-            speakerCharId = ch?.id ?? null;
+        const flatPages: { page: any; story: any }[] = [];
+        let pageNum = 0;
+        for (const story of storyList) {
+          const pages = Array.isArray(story.pages) ? story.pages : [];
+          const fallbackSid = (story.structure_ids || [])[0] || null;
+          for (const p of pages) {
+            let speakerCharId: string | null = null;
+            if (bookId && p.speaker) {
+              const ch = await fetchCharacterByName(sbClient, bookId, String(p.speaker));
+              speakerCharId = ch?.id ?? null;
+            }
+            pageRows.push({
+              unit_id: unitId, page_number: pageNum,
+              text: String(p.text || ''), speaker: p.speaker ? String(p.speaker) : null,
+              speaker_character_id: speakerCharId,
+              image_prompt: p.image_prompt ? String(p.image_prompt) : null,
+              image_asset_id: p.image_asset_id || null, // story illustrations: book crop default
+              source_structure_id: p.source_structure_id || fallbackSid, // provenance (spec 2026-09-13)
+            });
+            flatPages.push({ page: p, story });
+            pageNum++;
           }
-          pageRows.push({
-            unit_id: unitId, page_number: i,
-            text: String(p.text || ''), speaker: p.speaker ? String(p.speaker) : null,
-            speaker_character_id: speakerCharId,
-            image_prompt: p.image_prompt ? String(p.image_prompt) : null,
-            image_asset_id: p.image_asset_id || null, // story illustrations: book crop default
-            source_structure_id: p.source_structure_id || null, // FIXPLAN_F P2.2 provenance
-          });
         }
         const { data: upsertedPages } = await sbClient
           .from('story_pages')
           .upsert(pageRows, { onConflict: 'unit_id,page_number' })
           .select('id, page_number');
-        // Paragraph-level pages change the page count between runs — the
-        // upsert only rewrites rows that still exist, so drop any stale tail
-        // beyond the current set (their questions cascade with the pages).
-        if (pages.length > 0) {
-          await sbClient.from('story_pages').delete().eq('unit_id', unitId).gte('page_number', pages.length)
+        // Story sets change between runs (comic panels no longer land here;
+        // stories re-segmented) — drop any stale tail beyond the current set
+        // (their questions cascade with the pages).
+        if (pageRows.length > 0) {
+          await sbClient.from('story_pages').delete().eq('unit_id', unitId).gte('page_number', pageRows.length)
             .then(() => undefined, () => undefined);
         }
         // Comprehension questions → linked to their page by order.
         const qRows: any[] = [];
         const pageIdByNum = new Map((upsertedPages || []).map((pg: any) => [pg.page_number, pg.id]));
         let qOrder = 0;
-        for (let i = 0; i < pages.length; i++) {
+        for (let i = 0; i < flatPages.length; i++) {
           const pageId = pageIdByNum.get(i) || null;
-          for (const q of (pages[i].comprehension_questions || [])) {
+          for (const q of (flatPages[i].page.comprehension_questions || [])) {
             qRows.push({
               unit_id: unitId, story_page_id: pageId,
               question: String(q.question || ''),
@@ -1474,8 +1616,9 @@ ${categoryRules}
       presence.grammar = { category: 'grammar', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
     }
     if (category === 'story' || category === 'all') {
-      const n = mergedManifest.story?.pages?.length || 0;
-      presence.story = { category: 'story', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
+      const storiesArr = Array.isArray(mergedManifest.stories) ? mergedManifest.stories : [];
+      const n = (mergedManifest.story?.pages?.length || 0) + storiesArr.reduce((acc: number, s: any) => acc + (s?.pages?.length || 0), 0);
+      presence.story = { category: 'story', enriched_count: n, stories: storiesArr.length, status: n > 0 ? 'ok' : 'empty' };
     }
     if (category === 'dialogues' || category === 'all') {
       const n = Array.isArray(mergedManifest.dialogues) ? mergedManifest.dialogues.length : 0;
@@ -1485,6 +1628,9 @@ ${categoryRules}
       const n = Array.isArray(mergedManifest.characters) ? mergedManifest.characters.length : 0;
       presence.characters = { category: 'characters', enriched_count: n, status: n > 0 ? 'ok' : 'empty' };
     }
+    // Pending-review visibility (spec 2026-09-13): confirmed units can still
+    // hold pending structures — surface the count so the planner warns.
+    presence.pending_review = pendingReviewStructures;
 
     return {
       success: true,
