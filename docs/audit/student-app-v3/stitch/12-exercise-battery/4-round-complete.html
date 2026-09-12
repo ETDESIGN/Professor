@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Exercise Battery Runner Summary Screen</title>
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif'],
+          },
+          colors: {
+            cream: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderPaper: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            muted: '#8C7A68',
+            teal: {
+              DEFAULT: '#2A9D8F',
+              dark: '#1E6F5C',
+              light: '#E8F8F5',
+            },
+            terracotta: {
+              DEFAULT: '#E76F51',
+              dark: '#C4553B',
+            },
+            sand: {
+              DEFAULT: '#E9C46A',
+              dark: '#C99E32',
+              light: '#FEF3C7',
+            },
+            duoPink: '#E91E63',
+            duoBlue: '#1CB0F6',
+            duoRed: '#FF4B4B',
+          },
+          boxShadow: {
+            bevelTeal: '0 4px 0 #1E6F5C',
+            bevelTerracotta: '0 4px 0 #C4553B',
+            bevelSand: '0 4px 0 #C99E32',
+            tile: '0 3px 0 #E2D7C3',
+            card: '0 8px 24px -4px rgba(42, 60, 50, 0.08), 0 2px 6px -1px rgba(42, 60, 50, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #EAE0D0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-display {
+      font-family: 'Fredoka', sans-serif;
+    }
+    /* Confetti float animation */
+    @keyframes subtle-float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(3deg); }
+    }
+    @keyframes pulse-subtle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .celebrate-trophy {
+      animation: pulse-subtle 2.8s ease-in-out infinite;
+    }
+    .float-particle {
+      animation: subtle-float 3s ease-in-out infinite;
+    }
+    .cta-button {
+      box-shadow: 0 5px 0 #1E6F5C;
+      transition: all 0.12s ease;
+    }
+    .cta-button:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+  </style>
+</head>
+<body class="min-h-screen w-full flex items-center justify-center p-4 bg-[#EAE0D0]">
+
+  <!-- Mobile Simulator Container (390 x 844 target) -->
+  <main class="w-full max-w-[390px] min-h-[760px] max-h-[844px] flex flex-col justify-between items-center py-6 px-4">
+    
+    <!-- Top Spacer / App Header Micro bar -->
+    <div class="w-full flex items-center justify-between px-2 pt-1 pb-3 text-muted">
+      <!-- Session Badge -->
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5EFE3] border border-[#E2D7C3] rounded-full text-xs font-bold text-muted font-display tracking-wide">
+        <span class="w-2 h-2 rounded-full bg-teal"></span>
+        BATTERY RUNNER
+      </span>
+      <!-- Close / Back Button -->
+      <button aria-label="Close" class="w-9 h-9 flex items-center justify-center rounded-full bg-paper border border-[#E2D7C3] text-muted hover:text-inkDeep hover:bg-white active:scale-95 transition-transform shadow-sm">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Centered Floating Paper Card -->
+    <section class="w-full bg-[#FDFBF7] rounded-[28px] border-2 border-[#E2D7C3] p-6 shadow-card flex flex-col items-center text-center relative overflow-hidden my-auto">
+      
+      <!-- Ambient celebratory background confetti elements -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <!-- Sparkle 1: Top Left DuoPink -->
+        <svg class="absolute top-5 left-5 w-4 h-4 text-duoPink float-particle opacity-90" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <!-- Sparkle 2: Top Right Teal -->
+        <svg class="absolute top-7 right-7 w-3.5 h-3.5 text-teal float-particle opacity-80" style="animation-delay: 1.2s;" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <!-- Confetti dot 1: Sand -->
+        <div class="absolute top-20 left-8 w-2 h-2 rounded-full bg-sand opacity-75"></div>
+        <!-- Confetti dot 2: DuoPink -->
+        <div class="absolute top-24 right-9 w-2.5 h-2.5 rounded-full bg-duoPink opacity-65"></div>
+        <!-- Confetti star: Mid Right Sand -->
+        <svg class="absolute top-36 right-5 w-4 h-4 text-sand float-particle opacity-80" style="animation-delay: 0.6s;" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <!-- Confetti pill: Mid Left Teal -->
+        <div class="absolute top-36 left-6 w-2 h-3.5 rounded-full bg-teal opacity-60 -rotate-45"></div>
+      </div>
+
+      <!-- Trophy Badge -->
+      <div class="relative mb-4 celebrate-trophy">
+        <!-- Glow ring -->
+        <div class="w-[88px] h-[88px] bg-[#FEF3C7] border-2 border-[#E9C46A] flex items-center justify-center rounded-full shadow-sm relative z-10">
+          <!-- Golden Trophy SVG Icon -->
+          <svg class="w-12 h-12 text-[#E9C46A] filter drop-shadow-[0_2px_4px_rgba(201,158,50,0.35)]" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 4H18V3C18 2.45 17.55 2 17 2H7C6.45 2 6 2.45 6 3V4H5C3.34 4 2 5.34 2 7V8C2 10.21 3.79 12 6 12H6.18C6.9 13.75 8.43 15.11 10.3 15.65C10.74 15.78 11.2 15.89 11.67 15.95V18.1C9.64 18.39 8 19.12 8 20V21C8 21.55 8.45 22 9 22H15C15.55 22 16 21.55 16 21V20C16 19.12 14.36 18.39 12.33 18.1V15.95C12.8 15.89 13.26 15.78 13.7 15.65C15.57 15.11 17.1 13.75 17.82 12H18C20.21 12 22 10.21 22 8V7C22 5.34 20.66 4 19 4ZM5 10C4.45 10 4 9.55 4 9V7C4 6.45 4.45 6 5 6H6V10H5ZM19 10H18V6H19C19.55 6 20 6.45 20 7V9C20 9.55 19.55 10 19 10Z"/>
+          </svg>
+        </div>
+
+        <!-- Trophy Sparkle Accents -->
+        <span class="absolute -top-1 -right-1 w-5 h-5 bg-white border border-[#E9C46A] rounded-full flex items-center justify-center text-xs shadow-xs z-20">
+          ✨
+        </span>
+        <span class="absolute -bottom-1 -left-1 w-5 h-5 bg-[#E8F8F5] border border-teal rounded-full flex items-center justify-center text-[10px] text-teal font-black z-20">
+          ★
+        </span>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="font-display font-semibold text-[32px] leading-tight text-[#1D3557] tracking-tight mb-1">
+        Round Complete!
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="font-display font-bold text-[16px] text-[#E76F51] mb-6 flex items-center justify-center gap-1">
+        <span>Excellent effort! +15 XP earned</span>
+        <span>🎉</span>
+      </p>
+
+      <!-- 3-Metric Summary Tiles -->
+      <div class="grid grid-cols-3 gap-2.5 w-full mb-5">
+        <!-- Tile 1: Correct -->
+        <div class="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3 flex flex-col items-center justify-center shadow-tile">
+          <span class="font-nunito font-black text-[24px] leading-tight text-[#1D3557]">
+            10/12
+          </span>
+          <span class="text-[10px] uppercase font-nunito font-black text-[#8C7A68] tracking-wider mt-1">
+            CORRECT
+          </span>
+        </div>
+
+        <!-- Tile 2: Accuracy -->
+        <div class="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3 flex flex-col items-center justify-center shadow-tile">
+          <span class="font-nunito font-black text-[24px] leading-tight text-[#2A9D8F]">
+            83%
+          </span>
+          <span class="text-[10px] uppercase font-nunito font-black text-[#8C7A68] tracking-wider mt-1">
+            ACCURACY
+          </span>
+        </div>
+
+        <!-- Tile 3: Strengthened -->
+        <div class="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3 flex flex-col items-center justify-center shadow-tile">
+          <span class="font-nunito font-black text-[24px] leading-tight text-[#E91E63]">
+            4
+          </span>
+          <span class="text-[10px] uppercase font-nunito font-black text-[#8C7A68] tracking-wider mt-1">
+            STRENGTHENED
+          </span>
+        </div>
+      </div>
+
+      <!-- Retrieval Re-Queue Note -->
+      <div class="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3 w-full mb-4 flex items-center justify-center gap-2 text-xs font-bold text-[#264653] leading-relaxed shadow-xs">
+        <span class="text-base leading-none">🔄</span>
+        <span class="text-left font-nunito font-extrabold text-[12px] text-[#264653]">
+          2 tricky words mastered in the Review Round!
+        </span>
+      </div>
+
+      <!-- Heart Recovery Economy Chip -->
+      <div class="inline-flex items-center gap-1.5 bg-[#E8F8F5] border border-[#2A9D8F] text-[#2A9D8F] font-nunito font-extrabold text-xs px-3.5 py-1.5 rounded-full mb-6 shadow-xs">
+        <span>+1 Heart Restored</span>
+        <span class="text-sm leading-none">❤️</span>
+      </div>
+
+      <!-- Primary Action CTA -->
+      <button type="button" class="cta-button w-full h-14 bg-[#2A9D8F] text-white font-nunito font-black text-[17px] tracking-wide rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-all">
+        <span>CONTINUE TO LESSON MAP</span>
+        <svg class="w-5 h-5 font-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </button>
+
+    </section>
+
+    <!-- Bottom Lesson Progress Bar / Footer Micro Info -->
+    <footer class="w-full flex items-center justify-center pt-2 pb-1 text-center">
+      <p class="text-xs font-bold text-[#8C7A68] font-display">
+        Unit 3: Prepositions & Nature Words • Step 4 of 4
+      </p>
+    </footer>
+
+  </main>
+
+</body>
+</html>

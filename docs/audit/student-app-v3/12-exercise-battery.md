@@ -1,6 +1,6 @@
 # Exercise Battery Runner — In-Lesson Core — v3 Quality Audit (`EXERCISE_RUNNER (pool shell)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -120,11 +120,47 @@ Refs are `apps/student/exercises/ExerciseRunner.tsx` unless noted.
 5. **[P2] Reskin ExerciseRunner into Wonder Atlas × Duolingo hybrid:** Clean paper card header `#FDFBF7`, warm terracotta accents, animated heart loss effects, and combo streak celebrations.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the unified Exercise Battery runner header, out-of-hearts recovery sheet, and session summary screen.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Pilot Game Design System:** Exercise Battery Runner Shell (`12-exercise-battery.md`) & Universal Choice MCQ (`13-choice-exercise.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** All 4 screens submitted and accepted by Stitch (HTTP 200 / Exit code 0).
+- **Expected Async Arrival:** Screens materialize asynchronously into Stitch project datastore over ~10 minutes to hours. (Per handover rules, do not re-submit duplicates).
+
+#### Screens Requested & Brief Summaries:
+
+1. **Screen 1: Active Exercise Battery Shell with Audio Prompt (`LISTEN_SELECT`)**
+   - **Stitch Screen ID:** `4927bd6cc1b546fea5ae311773abd5d5`
+   - **Title:** `Professor ESL - Exercise Battery Runner (LISTEN_SELECT)`
+   - **Prompt Summary:** Mobile portrait (390×844) ExerciseRunner shell. Full HUD with 48px X close button, 45% progress bar in Duolingo pink (`#E91E63`) with gloss highlight, live hearts counter showing 4 hearts (`#FF4B4B` SVG + bold `4` in Fredoka `#264653`), and `SOUND LAB • UNIT 3` context pill chip. Paper prompt card (`#FDFBF7`) with tactile 72×72px Duolingo blue (`#1CB0F6`) audio button (0 4px 0 `#0284C7` bevel), prompt headline `Listen and choose the picture` with Chinese support subtitle `听录音，选择对应的图片`. 2×2 option grid testing long-word variant (`caterpillar`), active selected state (`butterfly` in `#F7F3E8` with `#2A9D8F` border & `#1E6F5C` bevel), and missing image fallback card (`dragonfly`). Sticky lower action bar with 54px full-width `CHECK` button in teal (`#2A9D8F`).
+   - **Design Contract:** Wonder Atlas warmth (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`, `#FF4B4B`), Fredoka + Nunito typography, production-grade Tailwind HTML + CSS style block, zero placeholder chrome.
+
+2. **Screen 2: Choice Exercise - Correct Feedback State (Anchored Drawer)**
+   - **Stitch Screen ID:** `53300edb85a44332a12cb302f9e2eed3`
+   - **Title:** `Professor ESL - Choice Exercise Correct Feedback State`
+   - **Prompt Summary:** ChoiceExercise sentence cloze challenge (`The clever fox jumped [ over ] the fence.`) inside runner shell (50% progress, 4 hearts). 4 stacked vertical cards with Option B (`over`) selected and revealed correct (emerald `#E6F4F1` fill, `#2A9D8F` border, `0 4px 0 #1E6F5C` bevel, checkmark badge); distractors dimmed. Anchored bottom feedback drawer in `#E8F8F5` with teal top border, 40px emerald check circle, `Nicely done! +1 XP` headline, pedagogical explanation with Chinese support line (`跨越障碍物上方时使用 over`), and full-width 54px `CONTINUE →` CTA in teal (`#2A9D8F`, bevel `#1E6F5C`).
+   - **Design Contract:** Reusable Tailwind HTML + small style block, exact token hexes, thumb-reachable actions.
+
+3. **Screen 3: Choice Exercise - Wrong Answer & In-Place Correction State**
+   - **Stitch Screen ID:** `6d4092c0d4784263bb06b05d55a1ce7f`
+   - **Title:** `Professor ESL - Choice Exercise (Wrong Answer & Correction State)`
+   - **Prompt Summary:** Vocabulary meaning match (`ancient` with audio speaker button) inside runner shell. Top HUD shows heart decrement: 3 hearts remaining, cracked heart icon, floating `-1 ❤️` penalty chip. 4 stacked options with Option A incorrectly picked (`very modern` in soft red `#FEF2F2`, border `#FF4B4B`, bevel `#DC2626`, red X badge) and Option B revealed correct (`very old, from long ago` in `#F0FDFA`, border `#2A9D8F`, check badge). Anchored bottom feedback drawer in `#FEF2F2` with red top border, `-1 ❤️` chip, prominent correct solution display, dual-language explanation (`“Ancient” means belonging to the very distant past. (古代的 / 远古的)`), retrieval cue (`🔄 Re-queued for Review Round at end of lesson`), and full-width `GOT IT →` CTA in terracotta (`#E76F51`, bevel `#C4553B`).
+   - **Design Contract:** Reusable Tailwind HTML + style block, exact token hexes, pedagogical learning hold.
+
+4. **Screen 4: Battery Runner Summary Screen - Round Complete Recap**
+   - **Stitch Screen ID:** `c8c44b1207144994bc3abdc3ad8b8c96`
+   - **Title:** `Professor ESL - Exercise Battery Runner Summary Screen`
+   - **Prompt Summary:** Session-end celebration card on warm cream canvas (`#EAE0D0`). Floating paper card (`#FDFBF7`, border `#E2D7C3`) with 88×88px golden trophy hero (`#FEF3C7`, `#E9C46A`) and pink/teal confetti sparkles. Headline `Round Complete!` (Fredoka 32px `#1D3557`) and subtitle `Excellent effort! +15 XP earned 🎉` (terracotta `#E76F51`). 3 honest summary metric tiles (grid-cols-3): `10/12` (Correct), `83%` (Accuracy in teal), `4` (Strengthened in Duolingo pink - honest mastery label addressing audit F3). Retrieval note banner (`🔄 2 tricky words mastered in the Review Round!`) and heart economy recovery chip (`+1 Heart Restored ❤️` in `#E8F8F5`). Full-width 56px primary CTA button `CONTINUE TO LESSON MAP →` in teal (`#2A9D8F`, bevel `#1E6F5C`).
+   - **Design Contract:** Wonder Atlas × Duolingo tokens, reusable Tailwind HTML + style block, kid-friendly honest metrics.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Project:** `6865954475041880496` "Professor Student App v3" (MOBILE). Verified 2026-09-13 via direct `get_screen` fetches (list_screens still empty — async materialization; screens ARE live by ID).
+
+- **Screen 1 — `stitch/12-exercise-battery/1-battery-shell.html|png`** (LISTEN_SELECT active state) — **PASS.** Genuine mobile-portrait single column; cream/paper palette with 45 brief-token hex hits; audio prompt banner + Chinese instruction subtitle (allowed support surface); 2×2 image options with teal selected-check; the "NATURE CARD" locked tile is an elegant missing-image variant; 56px beveled CHECK CTA; real hearts + 45% progress header. **Notes for implementation:** (a) garbled hint copy "Too slower, answer to hear again" — rewrite; (b) prompt-banner blue drifted to #2F7BE8 (brief: #1CB0F6) — snap to token; (c) eyebrow chips at 10–11px — bump to ≥12px; (d) strip the phone-frame wrapper chrome.
+- **Screen 4 — `stitch/12-exercise-battery/4-round-complete.html|png`** (summary) — **PASS.** ROUND COMPLETE trophy + 3 stat tiles (correct/accuracy/mastered) + the "1 word re-queued" note (matches the P-D retry mechanic — excellent) + GOT IT CTA; palette on-brief. **Notes:** stat captions at 10px (bump); phone-frame wrapper to strip.
+
+**Go/no-go: GO to owner approval** — minor copy/token fixes are implementation-time items, no revision round needed unless the owner dislikes the direction.
 
 ## §6 Owner approval (HARD GATE)
 

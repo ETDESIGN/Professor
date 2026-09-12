@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exercise Battery Runner - LISTEN_SELECT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-display {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+    }
+    /* 3D push tactile bevel effect */
+    .bevel-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+    .bevel-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .bevel-blue {
+      box-shadow: 0 5px 0 #0284C7;
+    }
+    .bevel-blue:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #0284C7;
+    }
+    .bevel-paper {
+      box-shadow: 0 4px 0 #E2D7C3;
+    }
+    .bevel-paper:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #E2D7C3;
+    }
+    .bevel-selected {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+
+    /* Sound pulse ripple keyframe */
+    @keyframes audioPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .pulse-ring {
+      animation: audioPulse 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#EAE0D0] text-[#264653] min-h-screen flex justify-center items-center p-0 sm:p-4 antialiased">
+
+  <!-- Mobile Device Shell (390 x 844 exact frame) -->
+  <main class="w-full max-w-[390px] h-[844px] bg-[#EAE0D0] flex flex-col justify-between relative overflow-hidden shadow-2xl sm:rounded-[40px] border-0 sm:border-8 sm:border-[#264653]/10">
+
+    <!-- Top App Safe Area & Real Exercise HUD -->
+    <header class="pt-4 pb-2 px-4 flex flex-col gap-2 shrink-0 z-20">
+      <div class="flex items-center justify-between gap-3 h-12">
+        <!-- Close button 'X' (48x48 tap target) -->
+        <button type="button" aria-label="Exit exercise" class="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-[#F7F3E8] text-[#8C7A68] active:scale-95 transition-all">
+          <svg class="w-6 h-6 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <!-- Center Progress Container -->
+        <div class="flex-1 h-3.5 bg-[#E2D7C3] rounded-full p-[2px] overflow-hidden flex items-center shadow-inner">
+          <div class="h-full bg-[#E91E63] rounded-full transition-all duration-500 relative" style="width: 45%;">
+            <!-- Gloss highlight on progress pill -->
+            <div class="absolute inset-x-1 top-0.5 h-[2px] bg-white/40 rounded-full"></div>
+          </div>
+        </div>
+
+        <!-- Live Hearts Counter -->
+        <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FDFBF7] border border-[#E2D7C3] shadow-sm">
+          <svg class="w-5 h-5 fill-[#FF4B4B] drop-shadow-sm animate-pulse" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <span class="font-display font-bold text-base text-[#264653] leading-none pt-0.5">4</span>
+        </div>
+      </div>
+
+      <!-- Context Subtitle Chip -->
+      <div class="flex justify-center -mt-1">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3] text-[#8C7A68] text-[11px] font-extrabold tracking-widest uppercase shadow-2xs">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#2A9D8F]"></span>
+          SOUND LAB • UNIT 3
+        </span>
+      </div>
+    </header>
+
+    <!-- Scrollable Exercise Body Container -->
+    <section class="flex-1 px-4 overflow-y-auto flex flex-col justify-start gap-4 pt-1 pb-4">
+      
+      <!-- Challenge Prompt Paper Card -->
+      <div class="bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] p-4 shadow-sm flex items-center gap-4 transition-all">
+        <!-- Big Audio Button (72x72px with bevel) -->
+        <button type="button" aria-label="Play sound prompt" class="w-[72px] h-[72px] rounded-2xl bg-[#1CB0F6] bevel-blue flex items-center justify-center text-white shrink-0 group transition-transform">
+          <div class="relative flex items-center justify-center">
+            <!-- Speaker Icon -->
+            <svg class="w-9 h-9 fill-current" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+            <span class="absolute -top-1 -right-1 flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-[#E9C46A]"></span>
+            </span>
+          </div>
+        </button>
+
+        <!-- Prompt Text Area -->
+        <div class="flex flex-col justify-center">
+          <h1 class="font-display font-bold text-[21px] leading-tight text-[#1D3557]">
+            Listen and choose the picture
+          </h1>
+          <div class="flex items-center gap-1.5 mt-1.5">
+            <span class="inline-block px-2 py-0.5 bg-[#F7F3E8] border border-[#E2D7C3]/80 rounded-md text-[12px] font-bold text-[#8C7A68]">
+              听录音，选择对应的图片
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2x2 Image Choice Option Cards -->
+      <div class="grid grid-cols-2 gap-3.5 w-full my-auto">
+        
+        <!-- Option 1: Selected state (butterfly) -->
+        <div role="button" aria-pressed="true" tabindex="0" class="relative bg-[#F7F3E8] rounded-3xl border-4 border-[#2A9D8F] bevel-selected p-3 flex flex-col items-center justify-between cursor-pointer transition-transform duration-100 hover:brightness-[1.02]">
+          <!-- Active Checkmark Ribbon/Badge -->
+          <div class="absolute -top-2.5 -right-2.5 w-7 h-7 bg-[#2A9D8F] text-white rounded-full flex items-center justify-center shadow-md border-2 border-[#FDFBF7]">
+            <svg class="w-4 h-4 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <!-- Image Area -->
+          <div class="w-full aspect-square max-h-[110px] flex items-center justify-center p-1">
+            <!-- Hand-crafted expressive vector: Butterfly -->
+            <svg class="w-full h-full drop-shadow-sm transition-transform group-hover:scale-105" viewBox="0 0 120 120" fill="none">
+              <!-- Left Upper Wing -->
+              <path d="M57 55C50 30 20 18 14 34C9 48 26 72 56 64" fill="#E76F51" />
+              <path d="M52 50C46 34 26 26 22 36C18 45 32 60 52 56" fill="#F4A261" />
+              <circle cx="28" cy="38" r="4" fill="#E9C46A" />
+              <!-- Right Upper Wing -->
+              <path d="M63 55C70 30 100 18 106 34C111 48 94 72 64 64" fill="#E76F51" />
+              <path d="M68 50C74 34 94 26 98 36C102 45 88 60 68 56" fill="#F4A261" />
+              <circle cx="92" cy="38" r="4" fill="#E9C46A" />
+              <!-- Left Lower Wing -->
+              <path d="M56 65C45 72 26 84 32 98C38 108 55 96 58 75" fill="#2A9D8F" />
+              <circle cx="40" cy="88" r="3.5" fill="#EAE0D0" />
+              <!-- Right Lower Wing -->
+              <path d="M64 65C75 72 94 84 88 98C82 108 65 96 62 75" fill="#2A9D8F" />
+              <circle cx="80" cy="88" r="3.5" fill="#EAE0D0" />
+              <!-- Body & Head -->
+              <path d="M60 38V85" stroke="#264653" stroke-width="6" stroke-linecap="round"/>
+              <circle cx="60" cy="35" r="5" fill="#264653"/>
+              <!-- Antennae -->
+              <path d="M58 32C52 24 45 23 44 26" stroke="#264653" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M62 32C68 24 75 23 76 26" stroke="#264653" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Label -->
+          <div class="mt-2 text-center">
+            <span class="font-display font-bold text-lg text-[#1D3557] tracking-wide">butterfly</span>
+          </div>
+        </div>
+
+        <!-- Option 2: Long-word variant (caterpillar) -->
+        <div role="button" aria-pressed="false" tabindex="0" class="relative bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] bevel-paper p-3 flex flex-col items-center justify-between cursor-pointer transition-transform duration-100 hover:brightness-[1.02]">
+          <!-- Image Area -->
+          <div class="w-full aspect-square max-h-[110px] flex items-center justify-center p-1">
+            <!-- Vector: Caterpillar -->
+            <svg class="w-full h-full drop-shadow-sm" viewBox="0 0 120 120" fill="none">
+              <!-- Leaf Base -->
+              <path d="M15 95C45 98 85 92 108 70C95 95 55 105 15 95Z" fill="#A7C957" />
+              <!-- Body segments -->
+              <circle cx="28" cy="74" r="11" fill="#2A9D8F" />
+              <circle cx="43" cy="68" r="12" fill="#52B788" />
+              <circle cx="59" cy="67" r="12" fill="#74C69D" />
+              <circle cx="75" cy="65" r="12" fill="#52B788" />
+              <!-- Head -->
+              <circle cx="91" cy="58" r="13" fill="#E76F51" />
+              <!-- Eye -->
+              <circle cx="95" cy="55" r="2.5" fill="#264653" />
+              <circle cx="96" cy="54" r="0.8" fill="white" />
+              <!-- Antenna -->
+              <path d="M96 46C100 40 106 40 106 43" stroke="#E76F51" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M92 46C92 39 88 38 87 40" stroke="#E76F51" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- Feet -->
+              <path d="M28 85V90M43 80V87M59 79V86M75 77V84" stroke="#1E6F5C" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Label with long word handling -->
+          <div class="mt-2 text-center w-full px-1">
+            <span class="font-display font-bold text-[16px] text-[#264653] tracking-tight block truncate">caterpillar</span>
+          </div>
+        </div>
+
+        <!-- Option 3: grasshopper -->
+        <div role="button" aria-pressed="false" tabindex="0" class="relative bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] bevel-paper p-3 flex flex-col items-center justify-between cursor-pointer transition-transform duration-100 hover:brightness-[1.02]">
+          <!-- Image Area -->
+          <div class="w-full aspect-square max-h-[110px] flex items-center justify-center p-1">
+            <!-- Vector: Grasshopper -->
+            <svg class="w-full h-full drop-shadow-sm" viewBox="0 0 120 120" fill="none">
+              <!-- Body -->
+              <path d="M30 68C48 55 78 52 98 58C96 66 70 76 42 78L30 68Z" fill="#52B788" />
+              <path d="M40 65C58 58 75 58 85 62" stroke="#2D6A4F" stroke-width="2" stroke-linecap="round" />
+              <!-- Head -->
+              <ellipse cx="28" cy="66" rx="9" ry="11" transform="rotate(-15 28 66)" fill="#74C69D"/>
+              <circle cx="25" cy="62" r="2.5" fill="#264653" />
+              <!-- Big Jumper Leg -->
+              <path d="M72 70L88 42L95 78" stroke="#2D6A4F" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M72 70L86 44" stroke="#52B788" stroke-width="3" stroke-linecap="round" />
+              <!-- Front Legs -->
+              <path d="M35 75L30 88M48 76L46 88" stroke="#2D6A4F" stroke-width="3" stroke-linecap="round"/>
+              <!-- Antenna -->
+              <path d="M22 58C16 48 8 46 6 48" stroke="#2D6A4F" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+
+          <!-- Label -->
+          <div class="mt-2 text-center">
+            <span class="font-display font-bold text-base text-[#264653] tracking-wide">grasshopper</span>
+          </div>
+        </div>
+
+        <!-- Option 4: Missing image fallback variant (dragonfly) -->
+        <div role="button" aria-pressed="false" tabindex="0" class="relative bg-[#FDFBF7] rounded-3xl border-2 border-dashed border-[#C9BAA7] bevel-paper p-3 flex flex-col items-center justify-between cursor-pointer transition-transform duration-100 hover:brightness-[1.02]">
+          
+          <!-- Nature Illustrated Frame Fallback Placeholder -->
+          <div class="w-full aspect-square max-h-[110px] rounded-2xl bg-[#F7F3E8] border border-[#E2D7C3] flex flex-col items-center justify-center p-2 relative overflow-hidden group">
+            <!-- Corner decorative leaf accents -->
+            <svg class="absolute top-1 left-1 w-3.5 h-3.5 text-[#2A9D8F]/40" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 2a8 8 0 00-8 8c0 4.418 3.582 8 8 8s8-3.582 8-8c0-4.418-3.582-8-8-8zm0 2c3.314 0 6 2.686 6 6 0 1.657-.672 3.156-1.757 4.243L10 10V4z"/>
+            </svg>
+            <svg class="absolute bottom-1 right-1 w-3.5 h-3.5 text-[#E76F51]/40" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 2a8 8 0 00-8 8c0 4.418 3.582 8 8 8s8-3.582 8-8c0-4.418-3.582-8-8-8zm0 2c3.314 0 6 2.686 6 6 0 1.657-.672 3.156-1.757 4.243L10 10V4z"/>
+            </svg>
+
+            <!-- Illustrated Nature Frame & Dragonfly Silhouette Glyph -->
+            <div class="w-11 h-11 rounded-xl bg-white border border-[#E2D7C3] flex items-center justify-center shadow-xs">
+              <svg class="w-6 h-6 text-[#2A9D8F]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <!-- Dragonfly minimalist icon mark -->
+                <path d="M12 2v20M6 7l12 2M6 13l12 1M10 3a2 2 0 104 0 2 2 0 00-4 0z" />
+                <ellipse cx="7" cy="8" rx="4" ry="1.5" transform="rotate(-10 7 8)" />
+                <ellipse cx="17" cy="8" rx="4" ry="1.5" transform="rotate(10 17 8)" />
+              </svg>
+            </div>
+            <span class="text-[10px] font-bold text-[#8C7A68] uppercase tracking-wider mt-1.5 flex items-center gap-1">
+              <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Nature Card
+            </span>
+          </div>
+
+          <!-- Label -->
+          <div class="mt-2 text-center">
+            <span class="font-display font-bold text-base text-[#264653] tracking-wide">dragonfly</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Encouragement / Audio replay cue -->
+      <div class="flex items-center justify-center gap-1.5 text-center text-[#8C7A68] text-xs font-semibold py-1">
+        <svg class="w-4 h-4 text-[#1CB0F6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+        <span>Tap speaker anytime to hear again</span>
+      </div>
+
+    </section>
+
+    <!-- Sticky Bottom Child Action Bar -->
+    <footer class="bg-[#FDFBF7] border-t-2 border-[#E2D7C3] p-4 shrink-0 z-30 flex flex-col gap-2">
+      <!-- Active Primary CTA Button -->
+      <button type="button" class="w-full h-[54px] bg-[#2A9D8F] bevel-teal text-white font-display font-bold text-xl tracking-wider rounded-2xl flex items-center justify-center gap-2 active:translate-y-1 transition-all">
+        <span>CHECK</span>
+        <svg class="w-5 h-5 stroke-[3] -mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+    </footer>
+
+  </main>
+
+</body>
+</html>
