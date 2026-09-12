@@ -234,6 +234,41 @@ serve(async (req) => {
         };
       }
 
+
+// UNIT PLANS (spec 2026-09-13): heal the SAME unresolved MEDIA_PLAYER blocks
+// across the unit's non-default lesson plans (the default plan's flow is the
+// units.flow mirror, already saved). Matching mirrors syncClassPlanFlows:
+// search_query first, then title.
+async function syncUnitPlanFlows(
+  sb: any,
+  unitId: string,
+  resolvedBlocks: { searchQuery: string | null; title: string | null; data: Record<string, any> }[],
+): Promise<number> {
+  const { data: plans } = await sb.from('unit_plans').select('id, is_default, flow').eq('unit_id', unitId);
+  let synced = 0;
+  for (const plan of (plans || []) as any[]) {
+    if (plan.is_default) continue;
+    const flow = Array.isArray(plan.flow) ? plan.flow : [];
+    let changed = false;
+    for (const b of flow) {
+      if (b?.type !== 'MEDIA_PLAYER' || b?.data?.videoUrl || b?.data?.audioUrl) continue;
+      const lq = String(b.data?.search_query || '').trim().toLowerCase();
+      const rb = resolvedBlocks.find((r) =>
+        (r.searchQuery && lq === r.searchQuery) ||
+        (!r.searchQuery && r.title && String(b.data?.title || '') === r.title));
+      if (rb) {
+        b.data = { ...(b.data || {}), ...rb.data };
+        changed = true;
+        synced++;
+      }
+    }
+    if (changed) {
+      await sb.from('unit_plans').update({ flow, updated_at: new Date().toISOString() }).eq('id', plan.id);
+    }
+  }
+  return synced;
+}
+
       // Media resolution (design 2026-09-04 §4.2, on-demand entry): resolve
       // a unit's unresolved MEDIA_PLAYER blocks via the catalog-first ladder
       // and persist the result into units.flow. Heals already-generated units
@@ -315,6 +350,8 @@ serve(async (req) => {
                   ({ videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand }))(b.data),
               }));
             plansSynced = await syncClassPlanFlows(sb, unitId, resolvedBlocks);
+            // UNIT PLANS (spec 2026-09-13): heal non-default lesson plans too.
+            try { await syncUnitPlanFlows(sb, unitId, resolvedBlocks); } catch { /* best-effort */ }
           } catch { /* best-effort: units.flow is already saved */ }
         }
 
@@ -382,6 +419,8 @@ serve(async (req) => {
             title: target.data.title || null,
             data: merged,
           }]);
+          // UNIT PLANS (spec 2026-09-13): heal non-default lesson plans too.
+          try { await syncUnitPlanFlows(sb, unitId, [{ searchQuery: target.data.search_query || null, title: target.data.title || null, data: merged }]); } catch { /* best-effort */ }
         } catch { /* best-effort */ }
 
         const assetId = await upsertMediaAsset(sb, {

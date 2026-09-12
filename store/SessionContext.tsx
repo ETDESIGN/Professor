@@ -227,7 +227,7 @@ export interface SessionContextType {
   setActiveClass: (classId: string | null) => Promise<void>;
   /** stageId is the student-path (solo) extension: scope the lesson to one
    *  node. The live teacher implementation ignores it. */
-  setActiveUnit: (unitId: string, classPlanId?: string) => Promise<void>;
+  setActiveUnit: (unitId: string, classPlanId?: string, planId?: string) => Promise<void>;
   /** Media resolution (media design 2026-09-04 §2.3): re-fetch the ACTIVE unit
    *  (and its class-plan flow when one drives the session) and swap the flow in
    *  place WITHOUT resetting the current step — how every tab converges after a

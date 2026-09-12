@@ -10,24 +10,30 @@ export interface GroupScopedItem {
 }
 
 /**
- * Filter pool items to the block's group. No groupId (untagged block / whole
- * unit) passes everything through. When the groupId matches NOTHING we fall
- * back to the full list: a series block on a unit whose pool was generated
- * before group stamping (legacy data) must not render an empty game.
+ * Filter pool items to the block's group(s). A block carries either a single
+ * `group_id` (server-generated per-series waves) or `group_ids` (PlanComposer
+ * multi-series selection). No tag (untagged block / whole unit) passes
+ * everything through. When the tags match NOTHING we fall back to the full
+ * list: a series block on a unit whose pool was generated before group
+ * stamping (legacy data) must not render an empty game.
  */
-export function filterPoolByGroup<T extends GroupScopedItem>(items: T[], groupId?: string | null): T[] {
-  if (!groupId) return items;
-  const scoped = items.filter((i) => String(i?.content?.group_id ?? '') === groupId);
+export function filterPoolByGroup<T extends GroupScopedItem>(items: T[], groupId?: string | string[] | null): T[] {
+  const ids = Array.isArray(groupId) ? groupId.filter(Boolean) : groupId ? [groupId] : [];
+  if (ids.length === 0) return items;
+  const wanted = new Set(ids.map(String));
+  const scoped = items.filter((i) => wanted.has(String(i?.content?.group_id ?? '')));
   return scoped.length > 0 ? scoped : items;
 }
 
 /**
- * Derive the scope key from a flow block's data (the block currently being
- * played). Returns null for untagged blocks.
+ * Derive the scope ids from a flow block's data (the block currently being
+ * played). Returns an empty array for untagged blocks.
  */
-export function blockGroupId(blockData?: Record<string, any> | null): string | null {
+export function blockGroupIds(blockData?: Record<string, any> | null): string[] {
+  const multi = blockData?.group_ids;
+  if (Array.isArray(multi) && multi.length > 0) return multi.map(String).filter(Boolean);
   const gid = blockData?.group_id;
-  return typeof gid === 'string' && gid.length > 0 ? gid : null;
+  return typeof gid === 'string' && gid.length > 0 ? [gid] : [];
 }
 
 /**
