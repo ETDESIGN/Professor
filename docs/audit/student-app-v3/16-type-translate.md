@@ -1,6 +1,6 @@
 # Type Translate — L1 to L2 Translation — v3 Quality Audit (`TYPE_TRANSLATE (productive)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -114,15 +114,43 @@ Refs are `apps/student/exercises/TypeTranslate.tsx`.
 5. **[P3] Reskin prompt into Wonder Atlas mascot speech bubble:** Replace cold exam styling with a warm, encouraging illustrated character card.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the mascot-scaffolded translation slate and audio-enabled feedback drawer.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Type Translate L1 to L2 Slate (`16-type-translate.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: L1 Prompt Active State**
+   - **Stitch Screen ID:** `836fb75f884f47ef811257c0bec829be`
+   - **Title:** `Professor ESL - Type Translate (L1 Prompt Active State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VRwa8xJvmTCcitYz3pYKw2y0Rf6kODcZGPFY1KfPviyy3l0S10YSus5sO-6eqWoIZFa7qj-FEXsoRw7SomD5SclLS_onZpBeQ0x78ICJkFFD_sLgI9SI9xPjZD9YATLPegVQEtM8nIQpshcGNl_Ccwu20_OQDJQDSg74oyM8DpPt6kgli-HoyUOa3lT9Glrx21NVizcegNPqegM1eFyvMC-7F7ISNexcegZJ6NBykBEpa-KlEbyzESfgg`
+   - **Prompt Summary:** Mobile portrait (390×844) translation exercise in L1 prompt active state. Universal 64px header on paper #FDFBF7 with Step 6 in Duolingo pink #E91E63 (65%) and 4 hearts. Warm paper mascot prompt card (#FDFBF7, border #E2D7C3) displays friendly Professor Owl explorer gesturing to a large 28px bold Chinese prompt ("那辆红色的拖拉机非常大。"). Progressive on-demand hint button ("💡 Need a hint? (tap to peek)") in sand #E9C46A avoids pre-revealed answer leaks per audit P1 F3. Tactile typing slate shows active text input ("The red tractor is very ") with blinking cursor and character counter. Pinned 76px bottom dock features active primary CTA "CHECK TRANSLATION ➔" in teal #2A9D8F (bevel 0 4px 0 #1E6F5C).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: hint_reveal]` on tapping hint button
+     - `[🔊 playCue: tap_check]` on Check Translation tap
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Success & Reveal State**
+   - **Stitch Screen ID:** `3d17638818014a0bb6908772bd594f50`
+   - **Title:** `Professor ESL - Type Translate (Success & Reveal State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XBuqOpTojMmAXZEeC_BReavZ86K7apP3GcVVS2FGRxlIXV1LM_CbsEL19wUCa9FNqHfhvdqXWqV1rDdsRcB9jd19StoOL6oaLyEWnpKBBGn72BRlgO3UC0-r7q1hPTqqypsjGf2_DrXyLJ6NgJjEegeCSXqsaj6qNtQr66bSKE81f4sbl4pCOlgBvqCoqo0PUNtmeEN7QYtgu6HhcHM-jYT04V8xzujsWNDctyXy-n3PpXAx-Hvk_maSg`
+   - **Prompt Summary:** Mobile portrait (390×844) translation exercise in celebratory success and acoustic reveal state. Shell header shows Step 6 completed with sparkly progress glow and 4 hearts intact. Main stage shows Chinese prompt with emerald checkmark badge. Success drawer on paper #FDFBF7 (#2A9D8F border) features headline "🎉 Excellent Translation! 完美翻译", target English sentence ("The red tractor is very big."), auto-playing English audio waveform bar with 48px Duolingo blue speaker FAB ([playCue: match_success] [TTS: The red tractor is very big.]) solving audit P1 F5, alternative accepted translations chip ("Also accepted: 'That red tractor is really big.'") per audit F7, gamification badge "+15 XP Earned ⭐", and 54px primary CTA "CONTINUE ➔" in teal #2A9D8F (bevel 0 4px 0 #1E6F5C).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: match_success]` + `[TTS: The red tractor is very big.]` on success reveal
+     - `[🔊 playCue: tap_continue]` on Continue CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/16-type-translate/`. Screens 1-2 — PASS: hint behind on-demand peek; TTS-on-reveal with waveform + alternatives chip.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

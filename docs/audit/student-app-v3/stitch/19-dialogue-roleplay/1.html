@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Dialogue Roleplay (Chat Stream Transcript)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+    }
+    /* Dot pattern background */
+    .bg-pattern-dots {
+      background-image: radial-gradient(#d3c6b2 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+    }
+    /* 3D button bevels */
+    .bevel-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+    .bevel-teal:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1E6F5C;
+    }
+    .bevel-card {
+      box-shadow: 0 4px 0 #E2D7C3;
+    }
+    .bevel-subtle {
+      box-shadow: 0 2px 0 #E2D7C3;
+    }
+    .bevel-blue {
+      box-shadow: 0 3px 0 #0096d6;
+    }
+    .bevel-blue:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0096d6;
+    }
+    .bevel-close {
+      box-shadow: 0 3px 0 #D7CCB7;
+    }
+    .bevel-close:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D7CCB7;
+    }
+
+    /* Sound wave animation */
+    @keyframes soundwave {
+      0%, 100% { height: 6px; }
+      50% { height: 18px; }
+    }
+    .wave-bar-1 { animation: soundwave 1s ease-in-out infinite 0.1s; }
+    .wave-bar-2 { animation: soundwave 1s ease-in-out infinite 0.35s; }
+    .wave-bar-3 { animation: soundwave 1s ease-in-out infinite 0.2s; }
+    .wave-bar-4 { animation: soundwave 1s ease-in-out infinite 0.5s; }
+    .wave-bar-5 { animation: soundwave 1s ease-in-out infinite 0.25s; }
+
+    /* Pulse wave for speaker */
+    @keyframes audioPulse {
+      0% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.9; }
+    }
+    .animate-audio-pulse {
+      animation: audioPulse 1.8s infinite ease-in-out;
+    }
+
+    /* Subtle scrollbar customization */
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background-color: #d3c6b2;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-[#EAE0D0] bg-pattern-dots min-h-screen flex items-center justify-center p-0 sm:p-4">
+
+  <!-- Mobile Portrait Shell (390px x 844px canvas container) -->
+  <main class="w-full max-w-[390px] h-[844px] bg-[#FDFBF7] rounded-[36px] shadow-2xl border-[5px] border-[#3D352E] flex flex-col relative overflow-hidden">
+
+    <!-- ============================================================ -->
+    <!-- UNIVERSAL HEADER (64px)                                       -->
+    <!-- ============================================================ -->
+    <header class="h-[64px] px-4 flex items-center justify-between border-b border-[#E2D7C3] bg-[#FDFBF7] z-20 shrink-0">
+      <!-- 48px Close Button with tactile bevel -->
+      <button 
+        type="button" 
+        class="w-[44px] h-[44px] rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] bevel-close flex items-center justify-center text-[#8C7A68] hover:text-[#264653] transition active:scale-95"
+        title="Exit exercise [playCue: tap_exit]"
+        aria-label="Close Roleplay"
+      >
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Step Progress Track: Step 9 Active in Duolingo Pink #E91E63 (95% complete) -->
+      <div class="flex-1 mx-3.5 flex flex-col items-center">
+        <div class="flex items-center gap-1.5 mb-1.5">
+          <span class="w-2 h-2 rounded-full bg-[#E91E63] animate-ping inline-block"></span>
+          <span class="text-[11px] font-black uppercase tracking-wider text-[#E91E63] font-fredoka">Step 9 of 10</span>
+          <span class="text-[10px] text-[#8C7A68] font-bold tracking-tight uppercase">• ROLEPLAY</span>
+        </div>
+        <!-- Segmented-style track with Duolingo Pink Fill -->
+        <div class="w-full h-2.5 bg-[#EAE0D0] rounded-full overflow-hidden p-0.5 border border-[#E2D7C3]">
+          <div class="h-full bg-gradient-to-r from-[#FF4B8B] to-[#E91E63] rounded-full shadow-inner" style="width: 95%;"></div>
+        </div>
+      </div>
+
+      <!-- Live Hearts Counter: 4 Hearts with Red Pill -->
+      <div class="h-[38px] px-2.5 rounded-2xl bg-[#FFF1F2] border-2 border-[#FECDD3] flex items-center gap-1.5 shrink-0 shadow-sm" title="4 Hearts remaining">
+        <svg class="w-4 h-4 text-[#FF4B4B] fill-[#FF4B4B]" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka text-[15px] font-bold text-[#BE123C] leading-none">4</span>
+      </div>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- CONVERSATION SUBHEADER CARD                                  -->
+    <!-- ============================================================ -->
+    <section class="mx-3.5 mt-2.5 mb-1 p-2.5 bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl flex items-center justify-between shadow-xs shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-xl bg-[#FFECC8] border border-[#F4A261] flex items-center justify-center text-sm">
+          🚜
+        </div>
+        <div>
+          <h1 class="text-[12px] font-bold text-[#1D3557] font-fredoka leading-tight">Unit 3 Roleplay • At the Barn</h1>
+          <p class="text-[10px] text-[#8C7A68] font-semibold">Interactive Speaking Exchange</p>
+        </div>
+      </div>
+      <!-- Progress Chip -->
+      <div class="px-2.5 py-1 bg-[#FDFBF7] border border-[#E2D7C3] rounded-xl flex items-center gap-1 shadow-2xs">
+        <span class="text-[10px] font-black text-[#2A9D8F] font-fredoka">Turn 2 of 4</span>
+        <span class="text-[9px] font-bold text-[#E9C46A] bg-[#FEF9C3] px-1 py-0.5 rounded-md border border-[#FDE047]">1/2 ⭐</span>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- ILLUSTRATED MESSAGING CHAT STREAM (Scrollable transcript)    -->
+    <!-- ============================================================ -->
+    <div class="flex-1 px-3.5 py-2 space-y-3.5 overflow-y-auto custom-scroll">
+
+      <!-- ---------------------------------------------------------- -->
+      <!-- TURN 1: PARTNER (Professor Owl) - Completed               -->
+      <!-- ---------------------------------------------------------- -->
+      <div class="flex items-start gap-2.5">
+        <!-- Professor Owl Avatar (44px) -->
+        <div class="w-[44px] h-[44px] rounded-full bg-[#FEF3C7] border-2 border-[#F59E0B] p-0.5 shrink-0 shadow-sm relative flex items-center justify-center">
+          <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none">
+            <!-- Cute Owl Graphic -->
+            <circle cx="24" cy="24" r="19" fill="#2A9D8F" />
+            <circle cx="24" cy="25" r="14" fill="#FDFBF7" />
+            <!-- Glasses -->
+            <circle cx="18" cy="22" r="6" fill="#FFF" stroke="#E76F51" stroke-width="2.5" />
+            <circle cx="30" cy="22" r="6" fill="#FFF" stroke="#E76F51" stroke-width="2.5" />
+            <line x1="24" y1="22" x2="24" y2="22" stroke="#E76F51" stroke-width="2.5" stroke-linecap="round" />
+            <!-- Eyes -->
+            <circle cx="19" cy="22" r="2.2" fill="#1D3557" />
+            <circle cx="29" cy="22" r="2.2" fill="#1D3557" />
+            <circle cx="20" cy="20.5" r="0.8" fill="#FFF" />
+            <circle cx="30" cy="20.5" r="0.8" fill="#FFF" />
+            <!-- Beak -->
+            <polygon points="24,25 21,29 27,29" fill="#F4A261" />
+            <!-- Graduation Cap -->
+            <polygon points="24,7 13,12 24,16 35,12" fill="#E76F51" />
+            <rect x="20" y="14" width="8" height="3" rx="1.5" fill="#1D3557" />
+            <path d="M32 13v6" stroke="#F4A261" stroke-width="1.8" stroke-linecap="round" />
+            <circle cx="32" cy="20" r="1.5" fill="#F4A261" />
+          </svg>
+          <span class="absolute -bottom-1 -right-0.5 text-[10px] bg-[#10B981] text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shadow-xs">✔</span>
+        </div>
+
+        <!-- Speech Bubble Container -->
+        <div class="flex-1 max-w-[290px]">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-[11px] font-bold text-[#1D3557] font-fredoka">Professor Owl</span>
+            <span class="text-[9px] text-[#8C7A68] font-bold px-1.5 py-0.2 rounded-full bg-[#EAE0D0]">Teacher</span>
+          </div>
+
+          <!-- Bubble Content (#F7F3E8 mist bg, border #E2D7C3, rounded-2xl rounded-tl-none p-3.5) -->
+          <div class="bg-[#F7F3E8] border-2 border-[#E2D7C3] rounded-2xl rounded-tl-none p-3 shadow-xs">
+            <div class="flex items-start justify-between gap-2 mb-1.5">
+              <p class="text-[13.5px] font-bold text-[#1D3557] leading-snug">
+                “Welcome to my farm! Do you see the red tractor?”
+              </p>
+              
+              <!-- 36px Blue Speaker FAB [playCue: chat_audio] -->
+              <button 
+                type="button" 
+                class="w-[36px] h-[36px] rounded-xl bg-[#1CB0F6] bevel-blue flex items-center justify-center text-white shrink-0 hover:bg-[#0ea5e9] transition active:scale-95"
+                title="[playCue: chat_audio] [TTS: Welcome to my farm! Do you see the red tractor?]"
+                aria-label="Listen to Professor Owl"
+              >
+                <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Chinese Subtitle Scaffolding Chip -->
+            <div class="bg-[#FDFBF7] border border-[#E2D7C3] rounded-xl px-2 py-1 mt-1 flex items-center justify-between">
+              <span class="text-[10.5px] font-medium text-[#8C7A68]">
+                欢迎来到我的农场！你看到那辆红色的拖拉机了吗？
+              </span>
+              <span class="text-[10px] text-[#10B981] font-black shrink-0 ml-1">✔</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------------------------------------------------------- -->
+      <!-- TURN 2: STUDENT (Leo) - Completed                          -->
+      <!-- ---------------------------------------------------------- -->
+      <div class="flex items-start justify-end gap-2.5">
+        <!-- Speech Bubble Container -->
+        <div class="flex-1 max-w-[285px] flex flex-col items-end">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-[9px] text-[#2A9D8F] font-bold px-1.5 py-0.2 rounded-full bg-[#E6F4F1] border border-[#A7D7CD]">Student</span>
+            <span class="text-[11px] font-bold text-[#1D3557] font-fredoka">Leo (You)</span>
+          </div>
+
+          <!-- Bubble Content (emerald #E6F4F1 bg, border #2A9D8F, rounded-2xl rounded-tr-none p-3.5) -->
+          <div class="w-full bg-[#E6F4F1] border-2 border-[#2A9D8F] rounded-2xl rounded-tr-none p-3 shadow-xs">
+            <div class="flex items-start justify-between gap-1.5 mb-1.5">
+              <p class="text-[13.5px] font-extrabold text-[#1E6F5C] leading-snug">
+                “Yes, I see it! It is very big.”
+              </p>
+              <!-- Small Audio playback for Leo's speech -->
+              <button 
+                type="button" 
+                class="w-[28px] h-[28px] rounded-lg bg-[#2A9D8F] text-white flex items-center justify-center shrink-0 shadow-2xs hover:bg-[#208377]"
+                title="[playCue: student_voice_replay] Replay your recorded speech"
+              >
+                <svg class="w-3.5 h-3.5 fill-white" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Passed Badge chip -->
+            <div class="flex items-center justify-between bg-[#FDFBF7] border border-[#A7D7CD] rounded-xl px-2 py-1">
+              <div class="flex items-center gap-1">
+                <span class="text-[#2A9D8F] text-xs font-black">✔</span>
+                <span class="text-[10px] font-black text-[#2A9D8F] font-fredoka uppercase tracking-wide">Spoken (88% Match)</span>
+              </div>
+              <span class="text-[10px] font-bold text-[#F59E0B] flex items-center gap-0.5">
+                +10 XP ⭐
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leo Avatar (Kid with baseball cap) -->
+        <div class="w-[44px] h-[44px] rounded-full bg-[#E0F2FE] border-2 border-[#0284C7] p-0.5 shrink-0 shadow-sm relative flex items-center justify-center">
+          <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none">
+            <!-- Face -->
+            <circle cx="24" cy="26" r="15" fill="#FCD34D" />
+            <!-- Eyes -->
+            <ellipse cx="19" cy="26" rx="2" ry="2.5" fill="#1D3557" />
+            <ellipse cx="29" cy="26" rx="2" ry="2.5" fill="#1D3557" />
+            <circle cx="20" cy="25" r="0.8" fill="#FFF" />
+            <circle cx="30" cy="25" r="0.8" fill="#FFF" />
+            <!-- Happy Smile -->
+            <path d="M20 31c1.5 2 6.5 2 8 0" stroke="#B45309" stroke-width="2" stroke-linecap="round" />
+            <!-- Red Baseball Cap -->
+            <path d="M12 21c0-7 6-12 14-12 7 0 11 4 12 9H12z" fill="#E76F51" />
+            <path d="M10 21c3-2 18-2 26 0l2 2H10v-2z" fill="#C4553B" />
+            <!-- Cap Visor pointing forward/right -->
+            <path d="M26 21h15c2 0 4 2 2 4l-4 1H26v-5z" fill="#C4553B" />
+          </svg>
+          <span class="absolute -bottom-1 -left-0.5 text-[9px] bg-[#E9C46A] text-[#78350F] rounded-full px-1 py-0.2 font-black border border-[#F59E0B] shadow-2xs">YOU</span>
+        </div>
+      </div>
+
+      <!-- ---------------------------------------------------------- -->
+      <!-- TURN 3: PARTNER (Professor Owl) - Active Turn              -->
+      <!-- ---------------------------------------------------------- -->
+      <div class="flex items-start gap-2.5">
+        <!-- Professor Owl Avatar (44px) - Glowing/Active -->
+        <div class="w-[44px] h-[44px] rounded-full bg-[#FEF3C7] border-2 border-[#2A9D8F] p-0.5 shrink-0 shadow-md relative flex items-center justify-center ring-2 ring-[#2A9D8F] ring-offset-2 animate-audio-pulse">
+          <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none">
+            <circle cx="24" cy="24" r="19" fill="#2A9D8F" />
+            <circle cx="24" cy="25" r="14" fill="#FDFBF7" />
+            <circle cx="18" cy="22" r="6" fill="#FFF" stroke="#E76F51" stroke-width="2.5" />
+            <circle cx="30" cy="22" r="6" fill="#FFF" stroke="#E76F51" stroke-width="2.5" />
+            <line x1="24" y1="22" x2="24" y2="22" stroke="#E76F51" stroke-width="2.5" />
+            <circle cx="19" cy="22" r="2.2" fill="#1D3557" />
+            <circle cx="29" cy="22" r="2.2" fill="#1D3557" />
+            <circle cx="20" cy="20.5" r="0.8" fill="#FFF" />
+            <circle cx="30" cy="20.5" r="0.8" fill="#FFF" />
+            <polygon points="24,25 21,29 27,29" fill="#F4A261" />
+            <polygon points="24,7 13,12 24,16 35,12" fill="#E76F51" />
+            <rect x="20" y="14" width="8" height="3" rx="1.5" fill="#1D3557" />
+          </svg>
+          <!-- Active audio indicator dot -->
+          <span class="absolute -top-1 -right-0.5 w-3 h-3 bg-[#10B981] border-2 border-white rounded-full"></span>
+        </div>
+
+        <!-- Speech Bubble Container with live active animation -->
+        <div class="flex-1 max-w-[290px]">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] font-bold text-[#1D3557] font-fredoka">Professor Owl</span>
+              <span class="text-[9px] text-[#2A9D8F] font-black px-1.5 py-0.2 rounded-full bg-[#E6F4F1] border border-[#A7D7CD]">Speaking...</span>
+            </div>
+            <span class="text-[9px] text-[#8C7A68] font-bold font-mono">[playCue: audio_stream]</span>
+          </div>
+
+          <!-- Speech bubble with live soundwave effect -->
+          <div class="bg-[#FDFBF7] border-2 border-[#2A9D8F] rounded-2xl rounded-tl-none p-3 shadow-sm relative overflow-hidden">
+            <!-- Active top accent bar -->
+            <div class="absolute top-0 left-0 right-0 h-1 bg-[#2A9D8F]"></div>
+
+            <div class="flex items-start justify-between gap-2 mb-2 pt-0.5">
+              <p class="text-[14px] font-extrabold text-[#1D3557] leading-snug">
+                “Great! What is the farmer doing now?”
+              </p>
+              
+              <!-- 36px Blue Speaker FAB [playCue: chat_audio] -->
+              <button 
+                type="button" 
+                class="w-[36px] h-[36px] rounded-xl bg-[#1CB0F6] bevel-blue flex items-center justify-center text-white shrink-0 hover:bg-[#0ea5e9] transition active:scale-95"
+                title="[playCue: chat_audio] [TTS: Great! What is the farmer doing now?]"
+                aria-label="Replay audio prompt"
+              >
+                <svg class="w-4 h-4 fill-white animate-pulse" viewBox="0 0 24 24">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Live Animated Soundwave Bar Graphic -->
+            <div class="bg-[#F7F3E8] rounded-xl p-2 mb-2 border border-[#E2D7C3] flex items-center justify-between">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-black text-[#2A9D8F] font-fredoka uppercase tracking-wider">Audio Playing</span>
+                <div class="flex items-center gap-1 h-5 px-1">
+                  <span class="w-1 bg-[#2A9D8F] rounded-full wave-bar-1 inline-block"></span>
+                  <span class="w-1 bg-[#2A9D8F] rounded-full wave-bar-2 inline-block"></span>
+                  <span class="w-1 bg-[#2A9D8F] rounded-full wave-bar-3 inline-block"></span>
+                  <span class="w-1 bg-[#2A9D8F] rounded-full wave-bar-4 inline-block"></span>
+                  <span class="w-1 bg-[#2A9D8F] rounded-full wave-bar-5 inline-block"></span>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono text-[#8C7A68] font-semibold">1.4s</span>
+            </div>
+
+            <!-- Chinese Subtitle Scaffolding -->
+            <div class="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-2 py-1 flex items-center gap-1.5">
+              <span class="text-[11px] text-[#D97706]">💡</span>
+              <span class="text-[11px] font-semibold text-[#92400E]">
+                太棒了！农夫现在在做什么？
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turn 4 Teaser / Preview Card -->
+      <div class="pt-1 flex items-center justify-center">
+        <div class="px-3 py-1.5 bg-[#F7F3E8] border border-dashed border-[#D3C6B2] rounded-full flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse"></span>
+          <span class="text-[10.5px] font-bold text-[#8C7A68] font-fredoka">Turn 4 will unlock after your response</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ANCHORED FOOTER CONSOLE (Mic Temporarily Gated per P1 F3)     -->
+    <!-- ============================================================ -->
+    <footer class="p-3.5 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-30 shrink-0">
+
+      <!-- Status Banner Chip: Mic temporarily gated during partner playback -->
+      <div class="mb-2.5 px-3 py-1.5 bg-[#FEF3C7] border border-[#FDE68A] rounded-xl flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-[#D97706] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+          </svg>
+          <span class="text-[11px] font-extrabold text-[#92400E] font-fredoka leading-none">
+            Your Turn Next! Listen to Professor Owl...
+          </span>
+        </div>
+        <span class="text-[9.5px] font-bold text-[#B45309] bg-[#FDE68A] px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+          Gated (0.8s)
+        </span>
+      </div>
+
+      <!-- Target Sentence Hint Card (Child Scaffold) -->
+      <div class="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-2.5 mb-2.5 flex items-center justify-between">
+        <div class="flex-1 pr-2">
+          <div class="flex items-center gap-1 mb-0.5">
+            <span class="text-[9.5px] font-black uppercase text-[#8C7A68] font-fredoka tracking-wide">Target Phrase to Speak</span>
+            <span class="text-[9px] bg-[#E9C46A] text-[#78350F] font-bold px-1 rounded">Hint</span>
+          </div>
+          <p class="text-[12.5px] font-black text-[#1D3557] font-fredoka">
+            “He is driving the big green tractor.”
+          </p>
+          <p class="text-[10px] text-[#8C7A68] font-semibold">他正开着那辆绿色的大拖拉机。</p>
+        </div>
+        
+        <!-- Hint speaker -->
+        <button 
+          type="button" 
+          class="w-8 h-8 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] flex items-center justify-center text-[#2A9D8F] shadow-2xs hover:bg-[#EAE0D0] shrink-0"
+          title="[playCue: target_audio_hint] Hear model target phrase"
+        >
+          <svg class="w-4 h-4 fill-currentColor" viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Action Button Area: Gated Mic vs Tap to Speak Preview -->
+      <div class="flex items-center gap-2.5">
+        <!-- Replay Prompt Audio button -->
+        <button 
+          type="button" 
+          class="h-[48px] px-3.5 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] bevel-subtle flex items-center justify-center gap-1.5 text-[#264653] font-fredoka font-bold text-xs hover:bg-[#EAE0D0] transition active:scale-95 shrink-0"
+          title="[playCue: tap_replay] Re-listen to owl prompt"
+        >
+          <svg class="w-4 h-4 text-[#2A9D8F]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 4v6h6"></path>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>Replay</span>
+        </button>
+
+        <!-- Primary CTA: Gated Mic Console (Unlocks when audio completes) -->
+        <button 
+          type="button" 
+          disabled
+          class="flex-1 h-[48px] rounded-2xl bg-[#A0AEC0] border-2 border-[#718096] text-white flex items-center justify-center gap-2 font-fredoka text-[14px] font-extrabold opacity-80 cursor-not-allowed relative overflow-hidden group shadow-inner"
+          title="Mic temporarily locked while partner is speaking [audit P1 F3]"
+        >
+          <!-- Mic icon with lock badge -->
+          <div class="relative">
+            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+            <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#E76F51] rounded-full border border-white"></span>
+          </div>
+
+          <span>Listening to Partner...</span>
+
+          <!-- Shimmer bar showing auto-unlock countdown -->
+          <div class="absolute bottom-0 left-0 h-1 bg-[#FEF3C7] transition-all duration-300" style="width: 65%;"></div>
+        </button>
+      </div>
+
+      <!-- Safe Practice Guarantee Microcopy -->
+      <div class="mt-2 text-center">
+        <span class="text-[9.5px] font-bold text-[#8C7A68] flex items-center justify-center gap-1">
+          <svg class="w-3 h-3 text-[#2A9D8F]" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+          </svg>
+          Practice Safe • Speaking mistakes never cost hearts
+        </span>
+      </div>
+
+    </footer>
+
+  </main>
+
+</body>
+</html>

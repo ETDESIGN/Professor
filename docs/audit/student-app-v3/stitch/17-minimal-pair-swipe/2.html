@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Minimal Pair Swipe (Picked State & Phoneme Contrast)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderWarm: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            mutedBrown: '#8C7A68',
+            brandTeal: '#2A9D8F',
+            brandTealDark: '#1E6F5C',
+            terracotta: '#E76F51',
+            terracottaDark: '#C4553B',
+            sandYellow: '#E9C46A',
+            sandYellowDark: '#C99E32',
+            duoPink: '#E91E63',
+            duoPinkDark: '#BE185D',
+            duoBlue: '#1CB0F6',
+            duoRed: '#FF4B4B',
+            emeraldBg: '#E6F4F1',
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
+            lexend: ['Lexend', 'Nunito', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif'],
+          },
+          boxShadow: {
+            'bevel-teal': '0 4px 0 #1E6F5C',
+            'bevel-terracotta': '0 4px 0 #C4553B',
+            'bevel-sand': '0 3px 0 #C99E32',
+            'bevel-paper': '0 4px 0 #E2D7C3',
+            'bevel-emerald': '0 4px 0 #1E6F5C',
+            'subtle-card': '0 2px 8px rgba(38,70,83,0.06)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #DCD2C0;
+      background-image: radial-gradient(#B8AC9A 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+      font-family: 'Lexend', 'Nunito', sans-serif;
+    }
+    .tap-bounce {
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .tap-bounce:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 currentColor !important;
+    }
+    .phoneme-underline {
+      text-decoration-thickness: 3px;
+      text-underline-offset: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-3 sm:p-6 text-ink">
+
+  <!-- Mobile Screen Container (390 x 844 proportion canvas) -->
+  <div class="w-full max-w-[390px] h-[844px] max-h-[844px] bg-[#FAF6EE] rounded-[38px] border-[6px] border-[#3E3831] shadow-2xl flex flex-col justify-between overflow-hidden relative select-none">
+
+    <!-- TOP BAR / SHELL HEADER -->
+    <header class="pt-4 px-4 pb-2 bg-[#FAF6EE] flex items-center justify-between border-b border-borderWarm/60 z-20 shrink-0">
+      <!-- Close / Exit Button -->
+      <button class="w-10 h-10 rounded-2xl bg-paper border border-borderWarm shadow-bevel-paper flex items-center justify-center tap-bounce text-mutedBrown hover:text-ink">
+        <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <!-- Step Indicator Dots (Step 7 Complete with Sparkle Glow) -->
+      <div class="flex flex-col items-center">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 bg-mist/90 rounded-full border border-borderWarm/60">
+          <!-- Step 1-6 filled teal -->
+          <span class="w-2.5 h-2.5 rounded-full bg-brandTeal"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-brandTeal"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-brandTeal"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-brandTeal"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-brandTeal"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-brandTeal"></span>
+          <!-- Step 7 active complete with sparkle ring -->
+          <div class="relative flex items-center justify-center">
+            <span class="w-3.5 h-3.5 rounded-full bg-brandTeal ring-4 ring-brandTeal/20 animate-pulse"></span>
+            <span class="absolute -top-1.5 -right-1 text-[10px] text-sandYellow font-bold">✦</span>
+          </div>
+          <!-- Step 8 empty -->
+          <span class="w-2.5 h-2.5 rounded-full bg-borderWarm"></span>
+        </div>
+        <div class="flex items-center gap-1 mt-1 text-[11px] font-fredoka font-bold tracking-wider uppercase text-mutedBrown">
+          <span class="text-brandTeal">Step 7 of 8</span>
+          <span class="text-borderWarm">•</span>
+          <span>Minimal Pair</span>
+        </div>
+      </div>
+
+      <!-- Hearts Widget (4 Intact) -->
+      <div class="flex items-center gap-1.5 px-3 py-1.5 bg-paper rounded-2xl border border-borderWarm shadow-bevel-paper">
+        <svg class="w-4 h-4 text-duoRed fill-duoRed animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-sm text-inkDeep">4</span>
+      </div>
+    </header>
+
+    <!-- SCROLLABLE BODY / EXERCISE CANVAS -->
+    <main class="flex-1 overflow-y-auto px-4 pt-2.5 pb-2 flex flex-col gap-2.5">
+
+      <!-- Context pill banner -->
+      <div class="flex items-center justify-between px-3 py-1.5 bg-mist rounded-xl border border-borderWarm/70 text-xs">
+        <div class="flex items-center gap-1.5 text-brandTeal font-fredoka font-semibold">
+          <span>🎧</span>
+          <span>PHONICS EAR TRAINING</span>
+          <span class="text-mutedBrown text-[11px] font-normal font-lexend">听音辨词</span>
+        </div>
+        <span class="px-2 py-0.5 rounded-full bg-[#E6F4F1] text-brandTeal text-[10px] font-bold tracking-wider border border-brandTeal/30 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-brandTeal animate-ping"></span>
+          VERIFIED
+        </span>
+      </div>
+
+      <!-- Prompt Question Header -->
+      <div class="text-center">
+        <h1 class="font-fredoka text-xl font-bold text-inkDeep tracking-tight leading-snug">
+          Which word did you hear?
+        </h1>
+        <p class="text-xs text-mutedBrown font-lexend mt-0.5">
+          仔细辨听元音差异 • Focus on the vowel sound
+        </p>
+      </div>
+
+      <!-- TARGET SOUND PROMPT CARD (Mini Replay & Success Banner) -->
+      <div class="bg-paper rounded-2xl p-2.5 border border-borderWarm shadow-sm flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-11 h-11 rounded-2xl bg-duoBlue/10 border border-duoBlue/30 text-duoBlue flex items-center justify-center relative shadow-sm">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+            <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brandTeal opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-brandTeal"></span>
+            </span>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] font-fredoka font-bold text-mutedBrown uppercase tracking-wider">Target Played</span>
+              <span class="text-[10px] px-1.5 py-0.2 bg-[#E6F4F1] text-brandTeal font-bold rounded">MATCH FOUND</span>
+            </div>
+            <div class="text-xs font-semibold text-inkDeep">
+              Acoustic Prompt: <span class="font-fredoka text-terracotta text-sm">/iː/</span> (Target Sound)
+            </div>
+          </div>
+        </div>
+
+        <button class="px-2.5 py-1.5 bg-mist hover:bg-paper text-inkDeep rounded-xl border border-borderWarm text-[11px] font-fredoka font-bold flex items-center gap-1 tap-bounce shadow-sm">
+          <span>🔊</span> Replay
+        </button>
+      </div>
+
+      <!-- PHONICS CONTRAST PAIR CARDS STAGE -->
+      <div class="flex flex-col gap-2.5">
+
+        <!-- CARD A: Distractor Card ("ship") in soft muted paper -->
+        <div class="relative bg-paper/85 rounded-2xl border-2 border-borderWarm p-3 shadow-subtle-card transition-all opacity-85">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <!-- Card Badge A -->
+              <div class="w-8 h-8 rounded-xl bg-mist border border-borderWarm flex items-center justify-center font-fredoka font-bold text-sm text-mutedBrown">
+                A
+              </div>
+
+              <!-- Illustration icon for ship -->
+              <div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-xl">
+                🚢
+              </div>
+
+              <!-- Word + Phoneme contrast & Chinese meaning -->
+              <div>
+                <div class="font-fredoka text-xl tracking-wide flex items-baseline">
+                  <span class="text-ink">sh</span>
+                  <!-- Highlighted short vowel /ɪ/ in amber sand -->
+                  <span class="text-amber-600 bg-sandYellow/25 px-1 rounded font-bold underline decoration-amber-500 phoneme-underline">i</span>
+                  <span class="text-ink">p</span>
+                </div>
+                <div class="text-[11px] text-mutedBrown font-medium">轮船 / 海船</div>
+              </div>
+            </div>
+
+            <!-- IPA Chip & Sound length badge -->
+            <div class="flex flex-col items-end gap-1">
+              <div class="px-2 py-0.5 rounded-lg bg-mist border border-borderWarm text-xs font-mono font-medium text-ink">
+                [ʃ <span class="text-amber-700 font-bold bg-sandYellow/30 px-0.5 rounded">ɪ</span> p]
+              </div>
+              <span class="text-[10px] font-fredoka font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/80">
+                /ɪ/ short sound
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD B: Selected & Correct Card ("sheep") - EMERALD FRAME + BEVEL + GREEN BADGE -->
+        <div class="relative bg-emeraldBg rounded-2xl border-[3px] border-brandTeal p-3 shadow-bevel-emerald transition-all transform -translate-y-0.5">
+          <!-- Large Green Checkmark Badge -->
+          <div class="absolute -top-3 -right-2 bg-brandTeal text-paper rounded-full p-1 border-2 border-paper shadow-md flex items-center justify-center w-7 h-7">
+            <svg class="w-4 h-4 stroke-[3.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <!-- Card Badge B (Emerald Active) -->
+              <div class="w-8 h-8 rounded-xl bg-brandTeal text-paper flex items-center justify-center font-fredoka font-bold text-sm shadow-sm">
+                B
+              </div>
+
+              <!-- Illustration icon for sheep -->
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-xl">
+                🐑
+              </div>
+
+              <!-- Headword with Phoneme Contrast Highlighting (Audit F3) -->
+              <div>
+                <div class="font-fredoka text-2xl tracking-wide flex items-baseline">
+                  <span class="text-ink">sh</span>
+                  <!-- Vibrant Terracotta #E76F51, Bold, Underlined, Font-black -->
+                  <span class="text-terracotta font-black underline decoration-terracotta decoration-[3px] underline-offset-4 bg-terracotta/10 px-1 rounded mx-0.5">
+                    ee
+                  </span>
+                  <span class="text-ink">p</span>
+                </div>
+                <div class="text-[11px] text-brandTeal font-bold flex items-center gap-1">
+                  <span>绵羊 • Correct Match</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- IPA Chip with /iː/ (long sound) highlighted in terracotta -->
+            <div class="flex flex-col items-end gap-1">
+              <div class="px-2 py-0.5 rounded-lg bg-paper border border-brandTeal/30 text-xs font-mono font-medium text-ink shadow-sm">
+                [ʃ <span class="text-terracotta font-bold underline bg-terracotta/15 px-0.5 rounded">iː</span> p]
+              </div>
+              <span class="text-[10px] font-fredoka font-bold text-terracotta bg-terracotta/10 px-1.5 py-0.5 rounded border border-terracotta/20">
+                /iː/ long sound
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- "HEAR BOTH" AUDITORY COMPARISON CONSOLE (AUDIT P1 F5) -->
+    <!-- Warm paper drawer: #FDFBF7, rounded-t-3xl border-t-2 border-brandTeal p-4 shadow-2xl -->
+    <div class="bg-paper rounded-t-[30px] border-t-2 border-brandTeal px-4 pt-3.5 pb-4 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] z-30 flex flex-col gap-2.5 shrink-0">
+      
+      <!-- Drawer Pull Handle Indicator -->
+      <div class="w-10 h-1 bg-borderWarm rounded-full mx-auto -mt-1 opacity-70"></div>
+
+      <!-- Mascot Dialogue: Professor Owl Feedback -->
+      <div class="flex items-start gap-2.5 bg-mist/70 p-2.5 rounded-2xl border border-borderWarm/70">
+        <!-- Professor Owl Avatar -->
+        <div class="w-10 h-10 rounded-full bg-sandYellow/30 border border-sandYellow flex items-center justify-center shrink-0 text-xl shadow-sm">
+          🦉
+        </div>
+        <div class="flex-1 text-xs">
+          <div class="flex items-center gap-1.5 font-fredoka font-bold text-inkDeep">
+            <span>PROFESSOR OWL'S EAR TIP</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded bg-sandYellow text-inkDeep font-bold">ACOUSTIC</span>
+          </div>
+          <p class="text-ink leading-tight mt-0.5 font-lexend text-[11.5px]">
+            &ldquo;Notice the vowel difference? <span class="text-terracotta font-black font-fredoka">/iː/</span> in <strong class="text-inkDeep">sheep</strong> is long, while <span class="text-amber-700 font-bold font-fredoka">/ɪ/</span> in <strong class="text-inkDeep">ship</strong> is short!&rdquo;
+          </p>
+        </div>
+      </div>
+
+      <!-- Dual Replay Audio Comparison Pills -->
+      <div class="grid grid-cols-2 gap-2">
+        <!-- Pill 1: Hear 'ship' (/ɪ/ short) -->
+        <button class="w-full py-2.5 px-2 bg-mist hover:bg-[#EFE9DA] border border-borderWarm rounded-2xl flex flex-col items-center justify-center tap-bounce shadow-subtle-card group">
+          <div class="flex items-center gap-1 text-xs font-fredoka font-bold text-inkDeep">
+            <span class="text-base group-hover:scale-110 transition-transform">🔊</span>
+            <span>Hear &lsquo;ship&rsquo;</span>
+          </div>
+          <span class="text-[10px] text-amber-700 font-semibold font-mono mt-0.5">
+            /ɪ/ short vowel
+          </span>
+          <span class="text-[9px] text-mutedBrown/80 font-mono tracking-tighter mt-0.5">[TTS: "ship"]</span>
+        </button>
+
+        <!-- Pill 2: Hear 'sheep' (/iː/ long) -->
+        <button class="w-full py-2.5 px-2 bg-emeraldBg hover:bg-[#D5EEE8] border border-brandTeal/50 rounded-2xl flex flex-col items-center justify-center tap-bounce shadow-subtle-card group">
+          <div class="flex items-center gap-1 text-xs font-fredoka font-bold text-brandTeal">
+            <span class="text-base group-hover:scale-110 transition-transform">🔊</span>
+            <span>Hear &lsquo;sheep&rsquo;</span>
+          </div>
+          <span class="text-[10px] text-terracotta font-bold font-mono mt-0.5">
+            /iː/ long vowel
+          </span>
+          <span class="text-[9px] text-mutedBrown/80 font-mono tracking-tighter mt-0.5">[TTS: "sheep"]</span>
+        </button>
+      </div>
+
+      <!-- Primary Action CTA (54px full-width) in Teal #2A9D8F with bevel 0 4px 0 #1E6F5C -->
+      <button class="w-full h-[52px] bg-brandTeal hover:bg-[#24897D] text-paper font-fredoka font-bold text-base tracking-wide rounded-2xl shadow-bevel-teal flex items-center justify-center gap-2 tap-bounce transition-all">
+        <span>CONTINUE (NEXT PAIR)</span>
+        <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+        </svg>
+      </button>
+
+      <!-- Subtitle Cue metadata tag -->
+      <div class="text-center text-[10px] font-mono text-mutedBrown/70">
+        [playCue: tap_continue] • Next: Step 8 of 8
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

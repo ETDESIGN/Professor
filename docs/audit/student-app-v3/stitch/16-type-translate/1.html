@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Type Translate (L1 Prompt Active State)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+    }
+    /* Dot pattern background */
+    .bg-dots {
+      background-color: #EAE0D0;
+      background-image: radial-gradient(#D5C7B0 1.5px, transparent 1.5px);
+      background-size: 16px 16px;
+    }
+    /* 3D Tactile Buttons & Badges */
+    .bevel-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+    .bevel-teal:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1E6F5C;
+    }
+    .bevel-sand {
+      box-shadow: 0 3px 0 #C99E32;
+    }
+    .bevel-sand:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #C99E32;
+    }
+    .bevel-card {
+      box-shadow: 0 4px 0 #D9CEBA;
+    }
+    .bevel-close {
+      box-shadow: 0 3px 0 #D9CEBA;
+    }
+    .bevel-close:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D9CEBA;
+    }
+    /* Blinking Caret Animation */
+    @keyframes cursor-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .blinking-caret {
+      animation: cursor-blink 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Gentle floating animation for mascot hat or badge */
+    @keyframes subtle-bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    .animate-bob {
+      animation: subtle-bob 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-dots min-h-screen flex items-center justify-center p-0 sm:p-4">
+
+  <!-- Mobile Portrait Shell (390 x 844 target canvas) -->
+  <div class="relative w-[390px] h-[844px] bg-[#EAE0D0] rounded-[38px] shadow-2xl border-4 border-[#D8CCB9] overflow-hidden flex flex-col justify-between">
+    
+    <!-- Top Universal 64px Header Bar -->
+    <header class="h-[64px] bg-[#FDFBF7] border-b border-[#E2D7C3] px-4 flex items-center justify-between z-20 shrink-0 shadow-sm">
+      <!-- 48px Close '✕' Button with playCue: tap_exit -->
+      <button 
+        type="button"
+        data-cue="tap_exit"
+        class="w-11 h-11 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] bevel-close flex items-center justify-center text-[#8C7A68] hover:text-[#1D3557] hover:bg-[#EAE0D0] transition-colors focus:outline-none"
+        aria-label="Close and return">
+        <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Step Segmented Progress Pill Bar (Step 6 active in Duolingo pink #E91E63 ~65%) -->
+      <div class="flex-1 mx-3 flex flex-col items-center gap-1">
+        <div class="w-full flex items-center gap-1.5 px-1">
+          <!-- Step 1 Complete -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 2 Complete -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 3 Complete -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 4 Complete -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 5 Complete -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 6 Active: Duolingo Pink #E91E63 -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#E91E63] ring-2 ring-[#FCE7F0] relative overflow-hidden">
+            <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+          </div>
+          <!-- Step 7 Inactive / Future -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]"></div>
+          <!-- Step 8 Inactive / Future -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#E2D7C3]"></div>
+        </div>
+        <span class="text-[10px] font-bold tracking-wider uppercase text-[#8C7A68]">
+          Step 6 of 8 • <span class="text-[#E91E63] font-black">Translate Challenge</span>
+        </span>
+      </div>
+
+      <!-- Live Hearts Counter Badge (❤️ 4) -->
+      <div class="h-10 px-3 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center gap-1.5 shadow-sm">
+        <span class="text-sm filter drop-shadow-sm">❤️</span>
+        <span class="font-fredoka font-bold text-[#1D3557] text-base leading-none">4</span>
+      </div>
+    </header>
+
+    <!-- Main Active Scroll Area / Workout Zone -->
+    <main class="flex-1 px-4 py-3.5 overflow-y-auto flex flex-col justify-start gap-3 z-10">
+      
+      <!-- Mascot Prompt Card (#FDFBF7, rounded-3xl p-5 border #E2D7C3 bevel-card) -->
+      <section class="bg-[#FDFBF7] rounded-[26px] p-4 sm:p-5 border-2 border-[#E2D7C3] bevel-card flex flex-col gap-3 relative">
+        
+        <!-- Header Tag Bar inside Card -->
+        <div class="flex items-center justify-between">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E1F5FE] text-[#1CB0F6] border border-[#B3E5FC] text-xs font-black tracking-wide uppercase font-fredoka">
+            <svg class="w-3.5 h-3.5 text-[#1CB0F6]" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.875.875 0 01-.02.822 1 1 0 01-.76.443h-.008a1 1 0 01-.894-.553L14.7 14h-3.4l-.503 1.247a1 1 0 01-1.854-.746l2.99-5.982A1 1 0 0113 8zm-.553 4h1.106L13 10.894 12.447 12z" clip-rule="evenodd" />
+            </svg>
+            Translate to English • 中译英
+          </span>
+
+          <!-- Audio Read Aloud Button for L1 prompt -->
+          <button 
+            type="button" 
+            data-cue="prompt_listen"
+            class="w-8 h-8 rounded-full bg-[#1CB0F6] text-white flex items-center justify-center shadow-sm hover:brightness-105 active:scale-95 transition"
+            title="Read Chinese sentence aloud">
+            <svg class="w-4 h-4 fill-current ml-0.5" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Mascot & Dialogue Container -->
+        <div class="flex items-start gap-3.5 pt-1">
+          <!-- Professor Owl Vector Mascot in Explorer Gear -->
+          <div class="w-16 h-16 shrink-0 relative flex items-center justify-center animate-bob">
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+              <!-- Explorer Pith Hat -->
+              <ellipse cx="50" cy="24" rx="30" ry="7" fill="#D4A373" />
+              <path d="M32 24 C32 10, 68 10, 68 24 Z" fill="#E9C46A" stroke="#C99E32" stroke-width="2" />
+              <rect x="36" y="21" width="28" height="4" rx="2" fill="#E76F51" />
+              <!-- Owl Body -->
+              <ellipse cx="50" cy="58" rx="34" ry="32" fill="#2A9D8F" />
+              <ellipse cx="50" cy="62" rx="24" ry="22" fill="#F4A261" opacity="0.35" />
+              <!-- Owl Eyes / Glasses -->
+              <circle cx="37" cy="46" r="14" fill="#FDFBF7" stroke="#1D3557" stroke-width="3.5" />
+              <circle cx="63" cy="46" r="14" fill="#FDFBF7" stroke="#1D3557" stroke-width="3.5" />
+              <!-- Glasses Bridge -->
+              <path d="M50 46 Q50 42 50 46" stroke="#1D3557" stroke-width="4" stroke-linecap="round" />
+              <line x1="48" y1="46" x2="52" y2="46" stroke="#1D3557" stroke-width="4" />
+              <!-- Pupils -->
+              <circle cx="39" cy="46" r="6" fill="#1D3557" />
+              <circle cx="41" cy="44" r="2" fill="#FFFFFF" />
+              <circle cx="65" cy="46" r="6" fill="#1D3557" />
+              <circle cx="67" cy="44" r="2" fill="#FFFFFF" />
+              <!-- Orange Beak -->
+              <polygon points="50,51 45,59 55,59" fill="#E76F51" />
+              <!-- Explorer Vest Collar -->
+              <path d="M34 76 L50 86 L66 76" fill="none" stroke="#D4A373" stroke-width="4" stroke-linecap="round" />
+              <!-- Little Wing waving -->
+              <path d="M18 56 Q10 46 22 40" fill="none" stroke="#2A9D8F" stroke-width="6" stroke-linecap="round" />
+            </svg>
+            <div class="absolute -bottom-1 -right-1 bg-[#FFD166] text-[#1D3557] rounded-full p-1 border border-white shadow-sm text-[10px]">
+              ✏️
+            </div>
+          </div>
+
+          <!-- L1 Chinese Dialogue Speech Bubble -->
+          <div class="flex-1 bg-[#F7F3E8] rounded-2xl p-3.5 border border-[#E2D7C3] relative">
+            <!-- Speech Bubble Tail -->
+            <div class="absolute -left-2 top-4 w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#F7F3E8]"></div>
+            <div class="text-[11px] font-extrabold uppercase tracking-wider text-[#8C7A68] mb-0.5">
+              Listen & Translate this:
+            </div>
+            <!-- Large bold 28px inkDeep #1D3557 -->
+            <div class="text-[26px] leading-[34px] font-black text-[#1D3557] tracking-normal font-sans">
+              “那辆红色的拖拉机非常大。”
+            </div>
+          </div>
+        </div>
+
+        <!-- Progressive Hint Button (audit P1 F3: progressive on-demand hint, not pre-revealed!) -->
+        <div class="pt-1 flex flex-col items-center">
+          <button 
+            type="button" 
+            data-cue="hint_reveal"
+            class="w-full h-11 px-4 rounded-xl bg-[#E9C46A] bevel-sand border border-[#D8A72B] flex items-center justify-between text-[#1D3557] font-fredoka font-bold text-sm hover:brightness-105 transition-all">
+            <span class="flex items-center gap-1.5">
+              <span class="text-base">💡</span>
+              <span>Need a hint? <span class="text-xs font-semibold opacity-85">(tap to peek keywords)</span></span>
+            </span>
+            <span class="px-2 py-0.5 rounded-lg bg-white/40 text-xs font-black uppercase text-[#1D3557]">
+              Free Hint
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Tactile Typing Slate: Paper card (#FDFBF7, border 2px solid #2A9D8F, rounded-2xl p-4 shadow-inner) -->
+      <section class="bg-[#FDFBF7] border-2 border-[#2A9D8F] rounded-[22px] p-4 flex flex-col justify-between shadow-[inset_0_2px_4px_rgba(42,157,143,0.08)] relative">
+        
+        <!-- Slate Label & Character Counter Header -->
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5 text-xs font-bold text-[#2A9D8F]">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <span>CHILD'S WRITING SLATE</span>
+          </div>
+
+          <!-- Character count chip "25/35 chars" -->
+          <div class="px-2.5 py-0.5 rounded-full bg-[#E6F4F1] border border-[#2A9D8F]/30 text-[#2A9D8F] font-fredoka font-bold text-[11px] tracking-wide">
+            25/35 chars
+          </div>
+        </div>
+
+        <!-- Active child input text area with blinking cursor -->
+        <div class="min-h-[78px] text-[21px] font-fredoka font-bold text-[#1D3557] leading-relaxed break-words">
+          <span>The red tractor is very </span>
+          <!-- Blinking Cursor Indicator -->
+          <span class="inline-block w-[3px] h-[22px] bg-[#E91E63] align-middle rounded-full blinking-caret ml-0.5 -mt-0.5"></span>
+        </div>
+
+        <!-- Word Scaffolding Guide Chips (Light educational support) -->
+        <div class="pt-2 border-t border-[#EAE0D0] flex items-center justify-between text-xs text-[#8C7A68]">
+          <span class="font-medium text-[11px] flex items-center gap-1">
+            <span class="text-[#2A9D8F]">●</span> Finish with an adjective for “大”
+          </span>
+          <!-- Quick clear icon -->
+          <button type="button" class="text-[11px] font-bold text-[#8C7A68] hover:text-[#E76F51] flex items-center gap-0.5 transition-colors">
+            <span>Clear</span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Soft Keyboard Preview Deck (Adaptive child-friendly tactile letter tiles) -->
+      <section class="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-2.5 flex flex-col gap-1.5 shadow-sm">
+        <div class="flex items-center justify-between px-1 text-[10px] font-bold text-[#8C7A68] tracking-wider uppercase">
+          <span>Smart Letter Suggestions</span>
+          <span class="text-[#2A9D8F]">Tap or type</span>
+        </div>
+        <!-- Quick Suggested Word Pills -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+          <button type="button" class="h-8 px-3 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] bevel-close text-xs font-fredoka font-bold text-[#1D3557] hover:border-[#2A9D8F] active:scale-95 transition">
+            big .
+          </button>
+          <button type="button" class="h-8 px-3 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] bevel-close text-xs font-fredoka font-bold text-[#1D3557] hover:border-[#2A9D8F] active:scale-95 transition">
+            huge .
+          </button>
+          <button type="button" class="h-8 px-3 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] bevel-close text-xs font-fredoka font-bold text-[#1D3557] hover:border-[#2A9D8F] active:scale-95 transition">
+            large .
+          </button>
+          <button type="button" class="h-8 px-3 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] bevel-close text-xs font-fredoka font-bold text-[#8C7A68] hover:border-[#2A9D8F] active:scale-95 transition">
+            giant .
+          </button>
+        </div>
+      </section>
+
+      <!-- Pedagogical Safety Banner -->
+      <div class="text-center text-[11px] font-semibold text-[#8C7A68] flex items-center justify-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-[#2A9D8F]" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <span>Safe Practice • Spelling mistakes show friendly phonetic tips</span>
+      </div>
+
+    </main>
+
+    <!-- Anchored 76px Footer Dock -->
+    <footer class="h-[76px] bg-[#FDFBF7] border-t border-[#E2D7C3] px-4 flex items-center justify-center z-20 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      <!-- Primary CTA button: "CHECK TRANSLATION ➔" in teal #2A9D8F (bevel 0 4px 0 #1E6F5C). Active state ([playCue: tap_check]) -->
+      <button 
+        type="button" 
+        data-cue="tap_check"
+        class="w-full h-[52px] rounded-2xl bg-[#2A9D8F] bevel-teal text-white font-fredoka font-bold text-lg tracking-wider uppercase flex items-center justify-center gap-2 hover:brightness-105 active:scale-[0.99] transition-all focus:outline-none">
+        <span>CHECK TRANSLATION</span>
+        <svg class="w-5 h-5 stroke-[3] transform transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </button>
+    </footer>
+
+  </div>
+
+</body>
+</html>

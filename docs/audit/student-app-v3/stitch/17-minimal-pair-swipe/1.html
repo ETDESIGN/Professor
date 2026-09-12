@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Professor ESL - Phonics Minimal Pair Swipe (Auto-Playing Listen State)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            sandTone: '#EFE7D8',
+            borderTone: '#E2D7C3',
+            borderDark: '#CDC1AA',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            muted: '#8C7A68',
+            duoPink: '#E91E63',
+            duoPinkDark: '#BE185D',
+            duoBlue: '#1CB0F6',
+            duoBlueDark: '#0284C7',
+            duoTeal: '#2A9D8F',
+            duoTealDark: '#1E6F5C',
+            duoTerracotta: '#E76F51',
+            duoTerracottaDark: '#C4553B',
+            duoSand: '#E9C46A',
+            duoSandDark: '#C99E32',
+            duoRed: '#FF4B4B'
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
+            nunito: ['Nunito', 'system-ui', 'sans-serif'],
+            lexend: ['Lexend', 'system-ui', 'sans-serif']
+          },
+          boxShadow: {
+            'bevel-sm': '0 2px 0 var(--tw-shadow-color, #E2D7C3)',
+            'bevel-md': '0 4px 0 var(--tw-shadow-color, #E2D7C3)',
+            'bevel-lg': '0 5px 0 var(--tw-shadow-color, #0284C7)',
+            'bevel-pill': '0 3px 0 var(--tw-shadow-color, #CDC1AA)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+      background-color: #EAE0D0;
+      background-image: radial-gradient(#D6C9B4 1.2px, transparent 1.2px);
+      background-size: 18px 18px;
+      margin: 0;
+      padding: 0;
+      color: #264653;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Sound ripple keyframes */
+    @keyframes soundWave {
+      0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+      }
+      50% {
+        opacity: 0.35;
+      }
+      100% {
+        transform: scale(1.65);
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 5px 0 #0284C7, 0 0 0 0 rgba(28, 176, 246, 0.45);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow: 0 5px 0 #0284C7, 0 0 0 10px rgba(28, 176, 246, 0.15);
+      }
+    }
+
+    @keyframes audioEqualizer {
+      0%, 100% { height: 6px; }
+      50% { height: 18px; }
+    }
+
+    .audio-ripple-1 {
+      animation: soundWave 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+    }
+    .audio-ripple-2 {
+      animation: soundWave 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite 0.55s;
+    }
+    .audio-ripple-3 {
+      animation: soundWave 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite 1.1s;
+    }
+
+    .fab-pulse {
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    .eq-bar-1 { animation: audioEqualizer 0.8s ease-in-out infinite 0.1s; }
+    .eq-bar-2 { animation: audioEqualizer 0.8s ease-in-out infinite 0.35s; }
+    .eq-bar-3 { animation: audioEqualizer 0.8s ease-in-out infinite 0.2s; }
+    .eq-bar-4 { animation: audioEqualizer 0.8s ease-in-out infinite 0.5s; }
+
+    /* Shimmer effect for the gated state */
+    @keyframes lockShimmer {
+      0% { opacity: 0.85; }
+      50% { opacity: 1; }
+      100% { opacity: 0.85; }
+    }
+    .listen-lock-pulse {
+      animation: lockShimmer 1.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 sm:p-4">
+
+  <!-- Mobile Screen Container (390px x 844px portrait frame) -->
+  <main class="w-[390px] h-[844px] max-h-[844px] bg-cream relative flex flex-col justify-between overflow-hidden shadow-2xl sm:rounded-[36px] border-[5px] border-[#DDD1BE]">
+
+    <!-- ============================================================ -->
+    <!-- UNIVERSAL 64px HEADER on paper #FDFBF7                       -->
+    <!-- ============================================================ -->
+    <header class="h-16 w-full bg-paper border-b border-borderTone px-4 flex items-center justify-between shrink-0 z-20">
+      <!-- 48px Close Button [playCue: tap_exit] -->
+      <button type="button" 
+              class="w-12 h-12 rounded-2xl bg-paper border-2 border-borderTone text-muted hover:text-ink active:translate-y-0.5 active:shadow-none shadow-[0_3px_0_#E2D7C3] flex items-center justify-center transition-all cursor-pointer"
+              title="Exit Exercise"
+              aria-label="Exit Lesson">
+        <svg class="w-5 h-5 stroke-[2.75]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Step Progress Bar (Step 7 active in Duolingo pink #E91E63, 75% progress = 6/8 completed, 7 active) -->
+      <div class="flex-1 max-w-[190px] mx-3 flex flex-col items-center">
+        <div class="w-full flex items-center gap-1.5 h-3">
+          <!-- Step 1 Done -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 2 Done -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 3 Done -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 4 Done -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 5 Done -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 6 Done -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 7 Active (Duolingo Pink #E91E63, shadow bevel) -->
+          <div class="flex-1 h-2.5 rounded-full bg-duoPink shadow-[0_1px_0_#BE185D] ring-2 ring-pink-200 ring-offset-1 ring-offset-[#FDFBF7]"></div>
+          <!-- Step 8 Upcoming -->
+          <div class="flex-1 h-2.5 rounded-full bg-[#E5DBCA]"></div>
+        </div>
+        <div class="flex items-center gap-1 mt-1 text-[11px] font-black tracking-wider text-duoPink font-lexend uppercase">
+          <span>STEP 7 OF 8</span>
+          <span class="text-muted/60">•</span>
+          <span class="text-muted text-[10px]">MINIMAL PAIR</span>
+        </div>
+      </div>
+
+      <!-- Live Hearts Counter ❤️ 4 -->
+      <div class="h-10 px-3 bg-mist border-2 border-borderTone rounded-2xl flex items-center gap-1.5 shadow-[0_2px_0_#E2D7C3] shrink-0">
+        <svg class="w-5 h-5 fill-duoRed stroke-duoRed filter drop-shadow-[0_1px_0_#C53030]" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-inkDeep text-base leading-none">4</span>
+      </div>
+    </header>
+
+
+    <!-- ============================================================ -->
+    <!-- SCROLLABLE BODY AREA                                         -->
+    <!-- ============================================================ -->
+    <div class="flex-1 px-4 py-3.5 flex flex-col justify-between overflow-y-auto space-y-3">
+
+      <!-- ============================================================ -->
+      <!-- CENTRAL SOUND DECK (Warm paper #FDFBF7, rounded-3xl p-5)    -->
+      <!-- ============================================================ -->
+      <section class="bg-paper rounded-[26px] p-5 border-2 border-borderTone shadow-[0_4px_0_#E2D7C3] text-center relative flex flex-col items-center">
+
+        <!-- Top Row Metadata / Status -->
+        <div class="w-full flex items-center justify-between mb-2">
+          <!-- Eyebrow Chip: "PHONICS EAR TRAINING • 听音辨词" in Duolingo Blue #1CB0F6 -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F7FE] border border-[#BAE6FD] text-duoBlue text-[11.5px] font-black font-lexend tracking-wide">
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+            </svg>
+            <span>PHONICS EAR TRAINING • 听音辨词</span>
+          </div>
+
+          <!-- Active Audio State Tag -->
+          <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10.5px] font-extrabold tracking-wide">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>PLAYING</span>
+          </div>
+        </div>
+
+        <!-- Question Prompt: "Which word do you hear?" in Fredoka 22px inkDeep #1D3557 -->
+        <h1 class="font-fredoka font-bold text-[22px] leading-tight text-inkDeep mt-1 mb-1">
+          Which word do you hear?
+        </h1>
+        <p class="text-xs text-muted font-nunito font-semibold mb-3">
+          仔 细 辨 听 元 音 差 异 • Focus on the vowel sound
+        </p>
+
+        <!-- Hero Speaker FAB Area with Animated Acoustic Ripple Waves -->
+        <div class="relative w-44 h-40 flex items-center justify-center my-0.5">
+          <!-- Ripple Waves (Auto-playing Listen State: [playCue: prompt_audio] [TTS: sheep]) -->
+          <div class="absolute w-28 h-28 rounded-full border-2 border-duoBlue/45 audio-ripple-1 pointer-events-none"></div>
+          <div class="absolute w-28 h-28 rounded-full border-2 border-duoBlue/35 audio-ripple-2 pointer-events-none"></div>
+          <div class="absolute w-28 h-28 rounded-full border-2 border-duoBlue/25 audio-ripple-3 pointer-events-none"></div>
+
+          <!-- Hero Speaker FAB: 80x80px in Duolingo Blue (#1CB0F6, bevel 0 5px 0 #0284C7) -->
+          <button type="button" 
+                  class="relative z-10 w-20 h-20 rounded-full bg-duoBlue shadow-[0_5px_0_#0284C7] active:translate-y-1 active:shadow-[0_2px_0_#0284C7] fab-pulse flex flex-col items-center justify-center text-white cursor-pointer transition-transform"
+                  aria-label="Speaker button: playing sound"
+                  title="[playCue: prompt_audio] [TTS: sheep]">
+            <svg class="w-9 h-9 fill-current ml-0.5 filter drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </button>
+
+          <!-- Equalizer audio animation badge pinned near the speaker -->
+          <div class="absolute bottom-1 bg-paper/95 border border-borderTone px-2.5 py-1 rounded-full shadow-[0_2px_0_#E2D7C3] flex items-center gap-1.5 z-10">
+            <span class="text-[10px] font-extrabold text-ink font-mono">[TTS: "sheep"]</span>
+            <div class="flex items-end gap-0.5 h-3">
+              <span class="w-1 bg-duoBlue rounded-full eq-bar-1"></span>
+              <span class="w-1 bg-duoBlue rounded-full eq-bar-2"></span>
+              <span class="w-1 bg-duoBlue rounded-full eq-bar-3"></span>
+              <span class="w-1 bg-duoBlue rounded-full eq-bar-4"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Replay Meter (audit F1): Pill badge displaying "🎧 Played 1 of 3 free listens • Tap speaker to replay" -->
+        <div class="mt-2.5 w-full bg-mist border border-borderTone rounded-2xl py-2 px-3 flex items-center justify-between shadow-[0_1px_0_#E2D7C3]">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🎧</span>
+            <div class="text-left">
+              <p class="text-[12px] font-extrabold text-inkDeep leading-tight font-nunito">
+                Played 1 of 3 free listens
+              </p>
+              <p class="text-[10px] text-muted leading-tight font-bold">
+                Tap speaker anytime to replay • 听音完成后解锁作答
+              </p>
+            </div>
+          </div>
+          <!-- 3-bar Listen Allowance Indicator -->
+          <div class="flex items-center gap-1 pl-2">
+            <!-- 1 Used -->
+            <span class="w-2 h-4 rounded bg-duoBlue shadow-[0_1px_0_#0284C7]" title="Listen 1 used"></span>
+            <!-- 2 Free Remaining -->
+            <span class="w-2 h-4 rounded bg-sandTone border border-borderTone" title="Listen 2 free"></span>
+            <span class="w-2 h-4 rounded bg-sandTone border border-borderTone" title="Listen 3 free"></span>
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ============================================================ -->
+      <!-- PHONICS CANDIDATE CARDS (2 Giant Tactile Cards stacked)     -->
+      <!-- Listening-Gated State during initial audio playback          -->
+      <!-- ============================================================ -->
+      <section class="flex flex-col space-y-2.5 relative" aria-label="Candidate Word Cards">
+
+        <!-- Listening-Gated Overlay Notification Banner (Audit P1 F3) -->
+        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#FFF9E6] border border-[#F6E0A4] text-ink text-[11px] font-bold shadow-[0_1px_0_#E2D7C3]">
+          <div class="flex items-center gap-1.5 text-duoSandDark font-extrabold">
+            <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
+            <span class="text-inkDeep font-black tracking-wide">LISTENING GATE ACTIVE</span>
+          </div>
+          <span class="text-[10px] text-muted">Audio playing (1.2s remaining)</span>
+        </div>
+
+        <!-- CARD A: "ship" (Short /ɪ/ vowel minimal pair counterpart) -->
+        <!-- Min 88px height, paper #FDFBF7, bevel 0 4px 0 #E2D7C3 -->
+        <article class="min-h-[88px] w-full bg-paper rounded-[22px] border-2 border-borderTone shadow-[0_4px_0_#E2D7C3] p-3.5 flex items-center justify-between relative overflow-hidden transition-all opacity-95 group">
+          
+          <!-- Card Left: Letter Badge & Artwork -->
+          <div class="flex items-center gap-3.5">
+            <!-- Key indicator badge 'A' -->
+            <div class="w-10 h-10 rounded-xl bg-mist border-2 border-borderTone text-inkDeep font-fredoka font-bold text-lg flex items-center justify-center shadow-[0_2px_0_#E2D7C3]">
+              A
+            </div>
+
+            <!-- Miniature Boat SVG Illustration -->
+            <div class="w-12 h-12 rounded-2xl bg-[#EAF5F8] border border-[#CEE4EB] flex items-center justify-center shrink-0">
+              <svg class="w-8 h-8" viewBox="0 0 48 48" fill="none">
+                <!-- Water ripple -->
+                <path d="M6 38c3 0 5-1 8-1s5 1 8 1 5-1 8-1 5 1 8 1 4-.8 6-1" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+                <!-- Hull -->
+                <path d="M10 33l4 6h20l4-6H10z" fill="#E76F51" stroke="#264653" stroke-width="2" stroke-linejoin="round"/>
+                <!-- Mast & Sails -->
+                <line x1="24" y1="12" x2="24" y2="33" stroke="#264653" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M24 14l10 8H24V14z" fill="#F4A261" stroke="#264653" stroke-width="1.5" stroke-linejoin="round"/>
+                <path d="M24 16l-8 7h8v-7z" fill="#E9C46A" stroke="#264653" stroke-width="1.5" stroke-linejoin="round"/>
+                <circle cx="36" cy="11" r="2.5" fill="#FFD166"/>
+              </svg>
+            </div>
+
+            <!-- Word Typography & Phonetic Chip -->
+            <div class="flex flex-col text-left">
+              <div class="flex items-baseline gap-2">
+                <span class="font-fredoka font-bold text-2xl text-inkDeep tracking-wide">ship</span>
+                <!-- Phonetic IPA Chip "[ʃɪp]" -->
+                <span class="px-2 py-0.5 rounded-md bg-mist border border-borderTone font-mono font-bold text-[12px] text-ink">
+                  [ʃɪp]
+                </span>
+              </div>
+              <span class="text-[11px] font-bold text-muted mt-0.5">轮船 / 海船 • Short vowel /ɪ/</span>
+            </div>
+          </div>
+
+          <!-- Card Right: Listening-Gated Pill Badge -->
+          <div class="flex flex-col items-end gap-1 shrink-0 pl-1">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-mist border border-borderTone text-muted text-[11px] font-extrabold shadow-[0_1px_0_#E2D7C3] listen-lock-pulse">
+              <span>👂</span>
+              <span>Listen first</span>
+            </span>
+            <span class="text-[9.5px] font-bold text-muted/80">Swipe Left 👈</span>
+          </div>
+
+        </article>
+
+
+        <!-- CARD B: "sheep" (Long /iː/ vowel target sound matching [TTS: sheep]) -->
+        <!-- Min 88px height, paper #FDFBF7, bevel 0 4px 0 #E2D7C3 -->
+        <article class="min-h-[88px] w-full bg-paper rounded-[22px] border-2 border-borderTone shadow-[0_4px_0_#E2D7C3] p-3.5 flex items-center justify-between relative overflow-hidden transition-all opacity-95 group">
+          
+          <!-- Card Left: Letter Badge & Artwork -->
+          <div class="flex items-center gap-3.5">
+            <!-- Key indicator badge 'B' -->
+            <div class="w-10 h-10 rounded-xl bg-mist border-2 border-borderTone text-inkDeep font-fredoka font-bold text-lg flex items-center justify-center shadow-[0_2px_0_#E2D7C3]">
+              B
+            </div>
+
+            <!-- Miniature Sheep SVG Illustration -->
+            <div class="w-12 h-12 rounded-2xl bg-[#F0F7ED] border border-[#D5E8CE] flex items-center justify-center shrink-0">
+              <svg class="w-9 h-9" viewBox="0 0 48 48" fill="none">
+                <!-- Grass snippet -->
+                <path d="M8 40c4-1 8 0 12-1m8 1c4-1 8 0 12-1" stroke="#2A9D8F" stroke-width="2" stroke-linecap="round"/>
+                <!-- Legs -->
+                <line x1="17" y1="33" x2="17" y2="39" stroke="#1D3557" stroke-width="2" stroke-linecap="round"/>
+                <line x1="22" y1="33" x2="22" y2="39" stroke="#1D3557" stroke-width="2" stroke-linecap="round"/>
+                <line x1="28" y1="33" x2="28" y2="39" stroke="#1D3557" stroke-width="2" stroke-linecap="round"/>
+                <line x1="33" y1="33" x2="33" y2="39" stroke="#1D3557" stroke-width="2" stroke-linecap="round"/>
+                <!-- Fluffy body cloud -->
+                <path d="M15 28c-2 0-4-2-4-4 0-1.5 1-2.7 2.3-3.2-.2-.5-.3-1.1-.3-1.8 0-2.8 2.2-5 5-5 .7 0 1.4.1 2 .4 1.1-2 3.3-3.4 5.7-3.4 2.8 0 5.1 1.8 6 4.3.7-.2 1.5-.3 2.3-.3 3.3 0 6 2.7 6 6 0 .5-.1 1-.2 1.5 1.4.9 2.2 2.4 2.2 4.1 0 2.8-2.2 5-5 5H15z" fill="#FFFFFF" stroke="#1D3557" stroke-width="1.75"/>
+                <!-- Head & Face -->
+                <ellipse cx="14" cy="23" rx="4.5" ry="5.5" fill="#3D405B"/>
+                <ellipse cx="10.5" cy="20" rx="1.5" ry="3" fill="#3D405B" transform="rotate(-25 10.5 20)"/>
+                <!-- Cute eye dot -->
+                <circle cx="13" cy="22" r="1" fill="#FFFFFF"/>
+                <circle cx="15.5" cy="25" r="1.5" fill="#F4A261" opacity="0.6"/>
+              </svg>
+            </div>
+
+            <!-- Word Typography & Phonetic Chip -->
+            <div class="flex flex-col text-left">
+              <div class="flex items-baseline gap-2">
+                <span class="font-fredoka font-bold text-2xl text-inkDeep tracking-wide">sheep</span>
+                <!-- Phonetic IPA Chip "[ʃiːp]" -->
+                <span class="px-2 py-0.5 rounded-md bg-mist border border-borderTone font-mono font-bold text-[12px] text-ink">
+                  [ʃiːp]
+                </span>
+              </div>
+              <span class="text-[11px] font-bold text-muted mt-0.5">绵羊 • Long vowel /iː/</span>
+            </div>
+          </div>
+
+          <!-- Card Right: Listening-Gated Pill Badge -->
+          <div class="flex flex-col items-end gap-1 shrink-0 pl-1">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-mist border border-borderTone text-muted text-[11px] font-extrabold shadow-[0_1px_0_#E2D7C3] listen-lock-pulse">
+              <span>👂</span>
+              <span>Listen first</span>
+            </span>
+            <span class="text-[9.5px] font-bold text-muted/80">👉 Swipe Right</span>
+          </div>
+
+        </article>
+
+      </section>
+
+    </div>
+
+
+    <!-- ============================================================ -->
+    <!-- ANCHORED FOOTER                                              -->
+    <!-- ============================================================ -->
+    <footer class="bg-paper border-t border-borderTone p-3.5 pt-2.5 pb-4 shrink-0 z-20 space-y-2">
+      <!-- Helper Notice & Gesture Instruction -->
+      <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-mist border border-borderTone text-[11px] text-muted font-bold text-center justify-center leading-tight">
+        <svg class="w-4 h-4 text-duoBlue shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Listen closely to the vowel sound, then tap or swipe the card you heard! (Swipe left/right supported)</span>
+      </div>
+
+      <!-- Tactile Bottom Action bar (Disabled/Listening-Locked Primary Action during audio preview) -->
+      <div class="grid grid-cols-2 gap-2.5 pt-0.5">
+        <!-- Replay Audio Button -->
+        <button type="button"
+                class="w-full h-12 rounded-2xl bg-mist border-2 border-borderTone text-inkDeep font-fredoka font-bold text-[14px] flex items-center justify-center gap-1.5 shadow-[0_3px_0_#E2D7C3] active:translate-y-0.5 active:shadow-[0_1px_0_#E2D7C3] transition-all cursor-pointer"
+                title="[playCue: prompt_audio] Replay Sound">
+          <svg class="w-4 h-4 text-duoBlue fill-current" viewBox="0 0 24 24">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+          </svg>
+          <span>Replay Sound (2 left)</span>
+        </button>
+
+        <!-- Listening Lock State Indicator CTA -->
+        <button type="button"
+                disabled
+                class="w-full h-12 rounded-2xl bg-[#D6CDC0] border-2 border-[#C2B7A6] text-[#786B5A] font-fredoka font-bold text-[14px] flex items-center justify-center gap-1.5 shadow-[0_3px_0_#B3A796] cursor-not-allowed opacity-90">
+          <svg class="w-4 h-4 animate-spin text-[#786B5A]" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span>Listening...</span>
+        </button>
+      </div>
+    </footer>
+
+  </main>
+
+</body>
+</html>

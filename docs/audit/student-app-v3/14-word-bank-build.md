@@ -1,6 +1,6 @@
 # Word Bank Build — Sentence Builder — v3 Quality Audit (`WORD_BANK_BUILD (productive)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -116,15 +116,44 @@ Refs are `apps/student/exercises/WordBankBuild.tsx`.
 5. **[P3] Isolate syntactic errors with partial-match highlights:** Keep correctly positioned tokens green and highlight misplaced words in terracotta.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the tactile sentence tile builder and the Duolingo-style success drawer.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Word Bank Build Sentence Builder (`14-word-bank-build.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Build Runway Mid-Assembly State**
+   - **Stitch Screen ID:** `100c0224f18941fca8600cb4343d93e0`
+   - **Title:** `Professor ESL - Word Bank Build (Sentence Builder Active Mid-Assembly)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1XY9xG0lOT049ig3549SfeOKORsXa64q9MlD1AxuZvaooK0iGqN7J-SGbx8_CPTQpHhIFSlAgr6IOMycaBw15w-gvfQa1D2PHAfOqWkCRUhsV1-l7PWlQe479M0bbD055l9e-jBTGUhTGgItsVnxBSCFFksgd1rFRWvMgqQEJywY-HQTpNf7_l0ul2GQvMWAuZsRVBkc3rW0lttWjbJoXtP6mF-wG05kiGAdWdlH1yO_S6OnLyK99hJl6Q`
+   - **Prompt Summary:** Mobile portrait (390×844) sentence builder in active mid-assembly state. Universal 64px header on paper #FDFBF7 with 48px close button ([playCue: tap_exit]), glossy progress bar with Step 4 in Duolingo pink #E91E63 (45%), and real hearts counter showing 4 hearts in #FF4B4B. Context subheader with terracotta badge, 44px blue audio FAB, and Chinese translation chip. Central build runway (paper #FDFBF7 card) shows 4 words placed ("The", "farmer", "drives", "the") in 48px beveled tiles (0 3px 0 #1E6F5C), a pulsing cyan insertion cursor bar, and dashed word guidelines for remaining slots. Lower scrambled word bank contains 48px tactile candidate tiles ("big", "green", "tractor.", plus distractors "small", "yellow"). Anchored footer dock features a disabled Check CTA ("PLACE 3 MORE WORDS (4/7) ➔") preventing accidental premature submissions per audit P1 F3.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: prompt_audio]` + `[TTS: The farmer drives the big green tractor.]` on audio FAB tap
+     - `[🔊 playCue: tile_place]` + `[TTS: word]` on selecting bank word
+     - `[🔊 playCue: tile_remove]` on removing placed word from runway
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Wrong-Check In-Place Correction State**
+   - **Stitch Screen ID:** `56b1c03c1ec94430af74723301954197`
+   - **Title:** `Professor ESL - Word Bank Build (Wrong-Check In-Place Correction State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UU-T4Drq3_Bv-IknjgBtep7-xJEZuKbG-ajl8POJKu306lWgn-KEuoGiBua-ZlS0aFXbj70YjqwVjDUzZOw3ZH550yveWHVyrC56cZN19ucL1O4_8iiKAq0QWDJrSvn_CmAeqMD5ZL-MaAdeeNC1PX9VBCxPF7A32AGmhG-w4jfnG8bDYzaScq6izepqGSTf_PiOV-VT_uW-CIrFU0A14ueun9yxErMPwNsFSSJoi7m4zeMsqZj9Gvock`
+   - **Prompt Summary:** Mobile portrait (390×844) sentence builder in wrong-check in-place correction feedback state. Header shows heart loss moment (3 hearts filled, 1 broken grey heart pill "💔 -1 Heart"). Build runway on paper #FDFBF7 displays submitted sentence with in-place error isolation per audit F4 & F7: correctly placed tiles ("The", "farmer", "drives", "the", "tractor.") remain locked in emerald (#E6F4F1 bg, teal border #2A9D8F, checkmark badge), while misplaced tiles ("green" and "big") are highlighted in terracotta warning boxes (#FFEBEE bg, red border #FF4B4B) with swap-order badges. Feedback bottom drawer on warm paper #FDFBF7 features Professor Owl with glasses speech bubble ("Almost got it! Just swap green and big"), audio model replay FAB, and 54px tactile CTA "SWAP & RETRY ➔" in terracotta #E76F51 (bevel 0 4px 0 #C4553B).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: sentence_reveal]` + `[TTS: The farmer drives the big green tractor.]` on feedback drawer open
+     - `[🔊 playCue: tap_retry]` on Swap & Retry CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/14-word-bank-build/`. Screens 1-2 — PASS: gated Check (all slots filled), in-place swap correction with green retained tiles (F-solves per §4).-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

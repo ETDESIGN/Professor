@@ -1,6 +1,6 @@
 # Minimal Pair Swipe — Phonics Ear Training — v3 Quality Audit (`MINIMAL_PAIR_SWIPE (receptive)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -114,15 +114,43 @@ Refs are `apps/student/exercises/MinimalPairSwipe.tsx`.
 5. **[P3] Implement genuine mobile swipe gestures:** Support intuitive swipe left/right card sorting on touchscreens.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the acoustic phonics cards and the "Hear Both" contrast reveal drawer.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Minimal Pair Phonics Ear Training (`17-minimal-pair-swipe.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Auto-Playing Listen State with Replay Meter**
+   - **Stitch Screen ID:** `829634a195b24fa19e51882388d948ab`
+   - **Title:** `Professor ESL - Minimal Pair Swipe (Auto-Playing Listen State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VkfSk4-5jmDV1gy4qtji7lyW_ADr_-K1In8su3H8doOjGZ_J8wB4dcnvjJn1kW3btavYR_5sksUPZr1WSlVMCg3uKRUDhfr3rY2Yq1p1YwfaBXV_xRprZaEhTiliYKYa2kkpyStrcm3sqC0g1xgRi0gxCxvnaILCD2JcIKYVyJ-PdWtcEq5w6-DKMF8x0KnORBoGC-JSgjiaPYCEwiiTT2XWcBD2iySI9GzOdP5GW3jI9Rh6G0VL3HuBk`
+   - **Prompt Summary:** Mobile portrait (390×844) phonics ear-training exercise in auto-playing listen state with replay meter. Universal 64px header with Step 7 active in Duolingo pink #E91E63 (75%) and 4 hearts. Central sound deck on paper #FDFBF7 features 80px glowing Duolingo blue speaker FAB (#1CB0F6, bevel 0 5px 0 #0284C7) with 3 animated acoustic ripple waves indicating live auto-play ([playCue: prompt_audio] [TTS: sheep]). Replay meter pill badge ("🎧 Played 1 of 3 free listens") addresses audit F1. Two stacked giant tactile cards (min 88px tall, paper #FDFBF7, bevel 0 4px 0 #E2D7C3): Card A ("ship" with IPA "[ʃɪp]" and boat icon) and Card B ("sheep" with IPA "[ʃiːp]" and sheep icon). Cards are gated in listening mode during initial playback to prevent sight-reading guesses per audit P1 F3. Footer helper notes that swipe left/right gestures are supported.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: prompt_audio]` + `[TTS: sheep]` on auto-play and speaker tap
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Picked State with Phoneme-Contrast Highlighting**
+   - **Stitch Screen ID:** `23d9f94d06f34b449de99eef73b6e353`
+   - **Title:** `Professor ESL - Minimal Pair Swipe (Picked State & Phoneme Contrast)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1WLmmx-Z5a0jdUU2j_zrNqlaBHaju-M5jnqKlUjhsHRZCb73kS_beAcGiv1r9lkhFDgRNz7cj2ADPYcprdpa7DLGGNm7Wu0hWkiOk7LIMgwRSC7lnT4oU-OrXKCgr8u9MEH63U8qZ2iJ2psw3KQDqWvCS2_fcEetb7YzC6DnGYgHKFjke5jVoUmlysQCud0AkOGJRpUeAHBfOS4jycMQS6EnL7F4bRIdmAQqp9Z7WGVW9XR1W--dc9xlA`
+   - **Prompt Summary:** Mobile portrait (390×844) phonics ear-training exercise in picked state with phoneme-contrast highlighting. Shell header shows Step 7 complete with sparkle glow. Selected Card B ("sheep") locked in emerald correct frame (#E6F4F1 bg, 3px solid #2A9D8F, bevel 0 4px 0 #1E6F5C, green checkmark ✔). Contrasting phoneme letters highlighted per audit F3: headword "sh" + "ee" (vibrant terracotta #E76F51, bold underlined) + "p", with IPA "[ʃ iː p]" highlighting long /iː/. Distractor Card A ("ship") highlights short "i" in amber #E9C46A. "Hear Both" comparison console drawer on paper #FDFBF7 features Professor Owl explanation and dual audio replay pills: "🔊 Hear ship (/ɪ/ short)" and "🔊 Hear sheep (/iː/ long)" per audit P1 F5. Full-width 54px CTA "CONTINUE (NEXT PAIR) ➔" in teal #2A9D8F (bevel 0 4px 0 #1E6F5C).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: card_audio]` + `[TTS: ship]` on distractor sound comparison
+     - `[🔊 playCue: card_audio]` + `[TTS: sheep]` on target sound comparison
+     - `[🔊 playCue: tap_continue]` on Continue CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/17-minimal-pair-swipe/`. Screens 1-2 — PASS: listen-gated cards + replay meter + phoneme-contrast highlighting + Hear-Both console.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

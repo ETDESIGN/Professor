@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Word Bank Build (Sentence Diagnostic Correction State)</title>
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appBg: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            sandBorder: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            mutedInk: '#8C7A68',
+            duoTeal: '#2A9D8F',
+            duoTealDark: '#1E6F5C',
+            duoRed: '#FF4B4B',
+            duoRedDark: '#D63030',
+            duoRedLight: '#FFEBEE',
+            duoPink: '#E91E63',
+            duoPinkDark: '#BE185D',
+            duoBlue: '#1CB0F6',
+            duoBlueDark: '#0D8ECF',
+            duoTerracotta: '#E76F51',
+            duoTerracottaDark: '#C4553B',
+            duoAmber: '#F4A261',
+            duoYellow: '#FFC800',
+            duoYellowDark: '#C99E32',
+            emeraldLight: '#E6F4F1',
+          },
+          fontFamily: {
+            display: ['Fredoka', 'sans-serif'],
+            body: ['Nunito', 'sans-serif'],
+          },
+          boxShadow: {
+            'bevel-teal': '0 4px 0 #1E6F5C',
+            'bevel-terracotta': '0 4px 0 #C4553B',
+            'bevel-red': '0 3px 0 #D63030',
+            'bevel-sand': '0 3px 0 #D1C5AF',
+            'bevel-blue': '0 3px 0 #0D8ECF',
+            'card-lift': '0 8px 24px -4px rgba(38, 70, 83, 0.08)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #EAE0D0;
+      font-family: 'Nunito', sans-serif;
+      color: #264653;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Tactile button bevel active state */
+    .btn-tactile:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 currentColor !important;
+    }
+    
+    /* Gentle wobble animation for swap tiles */
+    @keyframes gentle-wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-1.5deg); }
+      75% { transform: rotate(1.5deg); }
+    }
+    .animate-wiggle {
+      animation: gentle-wiggle 2s ease-in-out infinite;
+    }
+
+    /* Lost heart bounce */
+    @keyframes heart-shake {
+      0%, 100% { transform: scale(1); }
+      30% { transform: scale(1.08) rotate(-4deg); }
+      60% { transform: scale(0.95) rotate(4deg); }
+    }
+    .animate-heart-pulse {
+      animation: heart-shake 1.8s ease-in-out infinite;
+    }
+
+    /* Dotted connection line for swapped words */
+    .swap-bridge-line {
+      background-image: repeating-linear-gradient(90deg, #FF4B4B 0, #FF4B4B 6px, transparent 6px, transparent 12px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 sm:p-4 bg-[#EAE0D0]">
+
+  <!-- Mobile Viewport Container: 390px x 844px exact standard canvas frame -->
+  <main class="w-[390px] h-[844px] bg-[#EAE0D0] relative flex flex-col justify-between overflow-hidden shadow-2xl sm:rounded-[36px] border-0 sm:border-8 sm:border-[#3E2F28]/10">
+    
+    <!-- TOP APP SHELL / HEADER -->
+    <header class="pt-5 px-5 pb-2 bg-[#EAE0D0] z-20 shrink-0">
+      
+      <!-- Top Row: Exit Button, Progress Track, Hearts Telemetry -->
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <!-- Close / Exit Button -->
+        <button class="w-10 h-10 rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] flex items-center justify-center text-[#8C7A68] hover:text-[#264653] shadow-[0_2px_0_#D1C5AF] active:translate-y-0.5 active:shadow-none transition-all" aria-label="Exit exercise">
+          <svg class="w-5 h-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+
+        <!-- Step Segment Progress Bar (Step 4 active in Duolingo Pink #E91E63) -->
+        <div class="flex-1 flex items-center gap-1.5 h-3 bg-transparent">
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <div class="h-2.5 flex-1 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 4: Active Current Step (Duolingo Pink) -->
+          <div class="h-2.5 flex-1 rounded-full bg-[#E91E63] ring-2 ring-[#BE185D]/30"></div>
+          <div class="h-2.5 flex-1 rounded-full bg-[#D8CABE]"></div>
+          <div class="h-2.5 flex-1 rounded-full bg-[#D8CABE]"></div>
+        </div>
+
+        <!-- Hearts Telemetry: 3 Filled Hearts + 1 Broken Grey Heart Pill "💔 -1 Heart" -->
+        <div class="flex items-center gap-1 bg-[#FDFBF7] py-1 px-2.5 rounded-full border-2 border-[#E2D7C3] shadow-[0_2px_0_#D1C5AF]">
+          <div class="flex items-center -space-x-0.5">
+            <!-- Heart 1 Filled -->
+            <svg class="w-4 h-4 text-[#FF4B4B] fill-current drop-shadow-sm" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <!-- Heart 2 Filled -->
+            <svg class="w-4 h-4 text-[#FF4B4B] fill-current drop-shadow-sm" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            <!-- Heart 3 Filled -->
+            <svg class="w-4 h-4 text-[#FF4B4B] fill-current drop-shadow-sm" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <!-- Broken Heart Penalty Tag -->
+          <div class="flex items-center gap-0.5 ml-1 pl-1.5 border-l border-[#E2D7C3] animate-heart-pulse">
+            <span class="text-xs font-black text-[#FF4B4B] font-display">-1</span>
+            <span class="text-[11px] leading-none text-[#8C7A68]">💔</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Eyebrow Badge & Audio Cue Header -->
+      <div class="flex items-center justify-between text-xs px-1">
+        <div class="flex items-center gap-1.5 bg-[#E8DDD0] px-2.5 py-1 rounded-full border border-[#D5C6B5]">
+          <span class="w-2 h-2 rounded-full bg-[#E76F51]"></span>
+          <span class="font-black text-[#E76F51] tracking-wide text-[11px] font-display uppercase">Word Bank Build • 句子构建</span>
+        </div>
+        <span class="text-[11px] font-bold text-[#8C7A68] flex items-center gap-1">
+          DOWN ON THE FARM 🌾
+        </span>
+      </div>
+
+    </header>
+
+    <!-- PROMPT / LISTENING BAR CARD -->
+    <div class="px-5 mb-2 shrink-0">
+      <div class="bg-[#FDFBF7] rounded-2xl border-2 border-[#E2D7C3] p-2.5 flex items-center gap-3 shadow-[0_2px_0_#D1C5AF]">
+        <!-- 40px Replay Prompt Audio -->
+        <button class="w-10 h-10 rounded-xl bg-[#1CB0F6] text-white flex items-center justify-center shadow-[0_3px_0_#0D8ECF] active:translate-y-0.5 active:shadow-none transition-all flex-shrink-0" title="Listen to prompt">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </button>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 mb-0.5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-[#8C7A68]">TARGET MEANING (L1)</span>
+            <span class="bg-[#EAE0D0] text-[#264653] text-[9px] font-extrabold px-1.5 py-0.2 rounded-md">7 WORDS</span>
+          </div>
+          <p class="text-[13px] font-bold text-[#1D3557] truncate font-sans">
+            “农夫开着那辆绿色的大拖拉机。”
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTRAL BUILD RUNWAY (DIAGNOSTIC STATE) -->
+    <section class="px-5 flex-1 flex flex-col justify-start z-10 min-h-0">
+      <div class="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-3xl p-4 shadow-card-lift flex flex-col relative">
+        
+        <!-- Runway Header with Diagnostic Status -->
+        <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-[#F0E8DC]">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-[#FF4B4B] animate-ping"></span>
+            <span class="text-xs font-extrabold text-[#1D3557] font-display">Your Sentence Runway</span>
+          </div>
+          <span class="bg-[#FFEBEE] text-[#FF4B4B] border border-[#FFCDD2] text-[10px] font-black px-2 py-0.5 rounded-full font-display">
+            Order Needs Fix (2 Misplaced)
+          </span>
+        </div>
+
+        <!-- In-Place Correction Sentence Tokens Flow (Audit F4 & F7) -->
+        <!-- Child sentence: "The farmer drives the the tractor green big." (Swapped at end) -->
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-2.5 py-1">
+          
+          <!-- Tile 1: "The" (LOCKED GREEN) -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_3px_0_#1E6F5C]">
+            <span class="font-display font-bold text-sm text-[#1D3557]">The</span>
+            <span class="w-4 h-4 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center text-[10px] font-black">✓</span>
+          </div>
+
+          <!-- Tile 2: "farmer" (LOCKED GREEN) -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_3px_0_#1E6F5C]">
+            <span class="font-display font-bold text-sm text-[#1D3557]">farmer</span>
+            <span class="w-4 h-4 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center text-[10px] font-black">✓</span>
+          </div>
+
+          <!-- Tile 3: "drives" (LOCKED GREEN) -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_3px_0_#1E6F5C]">
+            <span class="font-display font-bold text-sm text-[#1D3557]">drives</span>
+            <span class="w-4 h-4 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center text-[10px] font-black">✓</span>
+          </div>
+
+          <!-- Tile 4: "the" (LOCKED GREEN) -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_3px_0_#1E6F5C]">
+            <span class="font-display font-bold text-sm text-[#1D3557]">the</span>
+            <span class="w-4 h-4 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center text-[10px] font-black">✓</span>
+          </div>
+
+          <!-- SWAP GROUP CONTAINER with visual indicator bridge -->
+          <div class="w-full mt-1 pt-2 pb-1 px-2 rounded-2xl bg-[#FFF5F5] border border-dashed border-[#FF8A80] relative">
+            <div class="flex items-center justify-between text-[10px] font-bold text-[#D63030] mb-1.5 px-0.5">
+              <span class="flex items-center gap-1">
+                <span>⚠️</span> Adjective Word Order Rule
+              </span>
+              <span class="text-[9px] bg-[#FFCDD2] text-[#B71C1C] px-1.5 py-0.5 rounded font-black">SIZE + COLOR</span>
+            </div>
+
+            <div class="flex items-center justify-start gap-2.5 relative">
+              <!-- Tile 5: "green" (MISPLACED ⇄) -->
+              <div class="relative group animate-wiggle">
+                <div class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#FFEBEE] border-2 border-[#FF4B4B] shadow-[0_3px_0_#D63030]">
+                  <span class="font-display font-black text-sm text-[#D63030] line-through decoration-[#FF4B4B]/60">green</span>
+                  <span class="text-xs text-[#D63030] font-black">⇄</span>
+                </div>
+                <!-- Swap Hint Badge Floating -->
+                <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#E76F51] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full whitespace-nowrap shadow-sm">
+                  Swap #2
+                </span>
+              </div>
+
+              <!-- Animated Swap Curved Indicator Icon -->
+              <div class="flex flex-col items-center justify-center px-1">
+                <svg class="w-6 h-6 text-[#E76F51] animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                </svg>
+              </div>
+
+              <!-- Tile 6: "big" (MISPLACED ⇄) -->
+              <div class="relative group animate-wiggle">
+                <div class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#FFEBEE] border-2 border-[#FF4B4B] shadow-[0_3px_0_#D63030]">
+                  <span class="font-display font-black text-sm text-[#D63030] line-through decoration-[#FF4B4B]/60">big</span>
+                  <span class="text-xs text-[#D63030] font-black">⇄</span>
+                </div>
+                <!-- Swap Hint Badge Floating -->
+                <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#E76F51] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full whitespace-nowrap shadow-sm">
+                  Swap #1
+                </span>
+              </div>
+
+              <!-- Tile 7: "tractor." (LOCKED GREEN) -->
+              <div class="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-[#E6F4F1] border-2 border-[#2A9D8F] shadow-[0_3px_0_#1E6F5C] ml-auto">
+                <span class="font-display font-bold text-sm text-[#1D3557]">tractor.</span>
+                <span class="w-4 h-4 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center text-[10px] font-black">✓</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Pedagogy Assurance Note inside Card -->
+        <div class="mt-3 pt-2.5 border-t border-[#F0E8DC] flex items-center justify-between text-[11px] text-[#8C7A68]">
+          <span class="flex items-center gap-1">
+            <span class="text-[#2A9D8F] font-bold">5 of 7</span> tiles locked in position
+          </span>
+          <span class="text-[#2A9D8F] font-extrabold flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            Zero sentence wipe
+          </span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FEEDBACK BOTTOM SHEET DRAWER (Warm Paper #FDFBF7, rounded-t-3xl border-t-2 border-[#FF4B4B] shadow-2xl) -->
+    <div class="bg-[#FDFBF7] rounded-t-[32px] border-t-4 border-[#FF4B4B] shadow-[0_-12px_32px_rgba(38,70,83,0.14)] px-5 pt-4 pb-6 flex flex-col gap-3.5 z-30 shrink-0">
+      
+      <!-- Drawer Pull Handle Bar -->
+      <div class="w-12 h-1.5 bg-[#E2D7C3] rounded-full mx-auto -mt-1"></div>
+
+      <!-- Mascot Moment: Professor Owl with Magnifying Glass & Speech Bubble -->
+      <div class="flex items-start gap-3">
+        
+        <!-- Professor Owl Avatar (with magnifying glass + professor graduation cap/straw hat) -->
+        <div class="relative w-12 h-12 flex-shrink-0">
+          <div class="w-12 h-12 rounded-2xl bg-[#E6F4F1] border-2 border-[#2A9D8F] flex items-center justify-center text-2xl shadow-[0_2px_0_#1E6F5C] overflow-hidden">
+            <!-- Stylized Owl Face with Glasses -->
+            <div class="relative w-10 h-10 flex items-center justify-center">
+              <svg viewBox="0 0 64 64" class="w-10 h-10">
+                <!-- Cap / Hat -->
+                <polygon points="32,6 52,14 32,20 12,14" fill="#E76F51" />
+                <rect x="22" y="16" width="20" height="5" fill="#C4553B" rx="2"/>
+                <circle cx="32" cy="7" r="2.5" fill="#FFC800" />
+                <!-- Owl Body -->
+                <circle cx="32" cy="38" r="22" fill="#2A9D8F" />
+                <ellipse cx="32" cy="42" rx="15" ry="17" fill="#FDFBF7" />
+                <!-- Spectacles -->
+                <circle cx="24" cy="34" r="8" fill="#FDFBF7" stroke="#E76F51" stroke-width="2.5" />
+                <circle cx="40" cy="34" r="8" fill="#FDFBF7" stroke="#E76F51" stroke-width="2.5" />
+                <line x1="32" y1="34" x2="32" y2="34" stroke="#E76F51" stroke-width="3" />
+                <!-- Eyes Pupils (Looking thoughtfully) -->
+                <circle cx="26" cy="34" r="3.5" fill="#1D3557" />
+                <circle cx="42" cy="34" r="3.5" fill="#1D3557" />
+                <circle cx="27.5" cy="32.5" r="1" fill="#FFFFFF" />
+                <circle cx="43.5" cy="32.5" r="1" fill="#FFFFFF" />
+                <!-- Beak -->
+                <polygon points="32,38 29,44 35,44" fill="#FFC800" />
+                <!-- Magnifying Glass held up -->
+                <circle cx="47" cy="46" r="6" fill="#1CB0F6" fill-opacity="0.25" stroke="#E9C46A" stroke-width="2.5" />
+                <line x1="51" y1="51" x2="57" y2="57" stroke="#8C7A68" stroke-width="3" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+          <!-- Question / Insight Ping on Avatar -->
+          <span class="absolute -top-1 -right-1 w-4 h-4 bg-[#FFC800] border-2 border-white rounded-full flex items-center justify-center text-[9px] font-black text-[#1D3557]">
+            💡
+          </span>
+        </div>
+
+        <!-- Speech Bubble -->
+        <div class="flex-1 bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl rounded-tl-sm p-3 relative shadow-sm">
+          <div class="flex items-center justify-between mb-0.5">
+            <span class="text-[11px] font-black text-[#E76F51] uppercase font-display tracking-wider">Professor Owl's Hint</span>
+            <span class="text-[10px] text-[#8C7A68] font-bold">Acoustic Check</span>
+          </div>
+          <p class="text-xs font-bold text-[#1D3557] leading-relaxed">
+            “Almost got it! In English, describe the <span class="text-[#E76F51] underline font-extrabold">size first</span>, then the color: just swap <span class="bg-[#FFCDD2] text-[#B71C1C] px-1 py-0.5 rounded font-black font-display">‘green’</span> and <span class="bg-[#FFCDD2] text-[#B71C1C] px-1 py-0.5 rounded font-black font-display">‘big’</span>!”
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Target Sentence Model Card with 44px Blue Audio Replay FAB -->
+      <div class="bg-white rounded-2xl border-2 border-[#E2D7C3] p-3 flex items-center justify-between gap-3 shadow-[0_2px_0_#D1C5AF]">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-[9px] font-black uppercase tracking-widest text-[#2A9D8F] bg-[#E6F4F1] px-1.5 py-0.5 rounded">CORRECT MODEL</span>
+            <span class="text-[10px] text-[#8C7A68] font-semibold">Native Pronunciation</span>
+          </div>
+          <div class="font-display font-extrabold text-sm text-[#1D3557] tracking-tight leading-snug">
+            “The farmer drives the <span class="text-[#2A9D8F] bg-[#E6F4F1] px-1 rounded">big</span> <span class="text-[#2A9D8F] bg-[#E6F4F1] px-1 rounded">green</span> tractor.”
+          </div>
+          <div class="text-[10px] text-[#8C7A68] mt-0.5 truncate">
+            [playCue: sentence_reveal] [TTS: The farmer drives the big green tractor.]
+          </div>
+        </div>
+
+        <!-- 44px Blue Audio Replay FAB -->
+        <button class="w-11 h-11 rounded-2xl bg-[#1CB0F6] text-white flex items-center justify-center shadow-[0_3px_0_#0D8ECF] active:translate-y-0.5 active:shadow-none transition-all flex-shrink-0" title="Play target sentence audio">
+          <svg class="w-6 h-6 fill-current ml-0.5" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Primary Action CTA Button: 54px full-width tactile CTA in Terracotta #E76F51 -->
+      <div class="pt-1">
+        <button class="btn-tactile w-full h-[54px] rounded-2xl bg-[#E76F51] text-white font-display font-extrabold text-base tracking-wider flex items-center justify-center gap-2 shadow-[0_4px_0_#C4553B] active:translate-y-1 active:shadow-none transition-all" title="Swap tiles and retry">
+          <span>SWAP &amp; RETRY</span>
+          <svg class="w-5 h-5 stroke-[3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </button>
+        <div class="flex items-center justify-center gap-2 mt-2 text-[10px] font-bold text-[#8C7A68]">
+          <span>[playCue: tap_retry]</span>
+          <span>•</span>
+          <span>Preserves 5 locked words automatically</span>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

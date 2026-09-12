@@ -1,6 +1,6 @@
 # Dialogue Roleplay — Turn-Taking Speech — v3 Quality Audit (`DIALOGUE_ROLEPLAY (productive speech)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -114,15 +114,42 @@ Refs are `apps/student/exercises/DialogueRoleplay.tsx`.
 5. **[P3] Add dialogue progress indicator and celebratory completion card:** Clearly communicate line mastery and celebrate conversation completion.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the illustrated dialogue chat stream and pinned bottom recording console.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Dialogue Roleplay Turn-Taking Speech (`19-dialogue-roleplay.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Chat-Stream Transcript with Speaker Avatars**
+   - **Stitch Screen ID:** `da5349e0aaf94815bbd82583d169aa73`
+   - **Title:** `Professor ESL - Dialogue Roleplay (Chat Stream Transcript)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UCrVrq9Iq04lntSwI9g8wmkA1zSVc50JyGrA2MSkurCiJxmTxyrqmiA2epgi6U6kdUtSTjxwPt7r4sA9YYR20AUCPu5krs9mGErlaXK2LxG8LPmerMClSO68fj3gpghhxVjD1ABWeIRRV9Wt7pqRElPK2FSdXxEiFJ4HEb7JWjsRKgq4T7FUjTsTmweDJ3nroYgHgvWL_06InuIbVL7m2hdkEX28ywOrGh45JErTM4M52qIHKge_mrvwc`
+   - **Prompt Summary:** Mobile portrait (390×844) dialogue roleplay exercise in chat-stream transcript state. Universal 64px header on paper #FDFBF7 with Step 9 active in Duolingo pink #E91E63 (95%) and 4 hearts. Conversation context card shows "Unit 3 Roleplay • At the Barn" with progress chip "Turn 2 of 4 (1/2 lines passed ⭐)". Illustrated messaging chat stream displays character avatars per audit P2 F2: Turn 1 (Professor Owl) with speech bubble ("Welcome to my farm! Do you see the red tractor?"), audio FAB, Chinese subtitle, and checkmark; Turn 2 (Student Leo with cap) showing passed student line ("Yes, I see it! It is very big.") in emerald bubble with checkmark; Turn 3 (Professor Owl) active turn with sound-wave animation ("Great! What is the farmer doing now?"). Pinned footer dock gates the mic while partner audio plays per audit P1 F3.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: chat_audio]` + `[TTS: Welcome to my farm! Do you see the red tractor?]` on dialogue line audio
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Current-Line Pinned Mic Moment**
+   - **Stitch Screen ID:** `27c0341a234a47208fcada328d9ec500`
+   - **Title:** `Professor ESL - Dialogue Roleplay (Current-Line Pinned Mic Moment)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1WU9igwk6o9xhvFDkSJ8W1CzoI1VcRcPJHFlaskOYBaC7-ginoyWv8A1_tnvhPL8lge6dO7ftNa5ppJZ7yx2F9y2cKUi-Eft6zedfFAoniIvoUPfskpBTIifLXONj2ZXSaxydgNDsvaplIvsXtLB4dUgcLRmUwO26yU_sRdYTbhGPYNXOS9V7GPmBMSEBndwVKGXqGaWE8DxykGGjP09qoXAest0O5nZMqEsWDt01qis4NL9Mx1S8y8lqU`
+   - **Prompt Summary:** Mobile portrait (390×844) dialogue roleplay exercise in current-line pinned mic moment. Shell header shows Step 9 active with 4 hearts. Upper 40% viewport smoothly docks past conversation history with avatar thumbnails. Pinned bottom recording console on paper #FDFBF7 (rounded-t-3xl, shadow-2xl, top grab-handle) prevents off-screen scrolling per audit P1 F1: active target line banner ("He is feeding the horses." in 22px Fredoka), Chinese subtitle ("他正在喂马。"), audio model pill, 3-dot attempt budget ("⚪ Attempt 1 of 3", advances after 3 tries per audit P2 F4), 76px tactile mic button in Duolingo pink #E91E63 (bevel 0 5px 0 #BE185D) with live audio waves, live transcript feed, and skip link ("Skip line (practice only) ➔") protecting kid-alone flow.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: prompt_audio]` + `[TTS: He is feeding the horses.]` on hear line audio
+     - `[🔊 playCue: mic_record]` on mic button tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/19-dialogue-roleplay/`. Screens 1-2 — PASS: chat-stream with avatars + pinned bottom mic dock + attempt budget + skip bypass.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 

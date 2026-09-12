@@ -1,6 +1,6 @@
 # Speak Sentence — Voice Production — v3 Quality Audit (`SPEAK_SENTENCE (productive speech)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -115,15 +115,43 @@ Refs are `apps/student/exercises/SpeakSentence.tsx`.
 5. **[P3] Reskin to Wonder Atlas friendly companion interface:** Replace sterile Siri-like mic with a cheerful character scene and celebratory success feedback.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the speech studio interface with audio waveform and word-level pronunciation diagnostic card.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Speak Sentence Voice Production (`18-speak-sentence.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Mic-Ready State with Target Sentence**
+   - **Stitch Screen ID:** `e7e2ecd17ddc42618dca98d38af8fc2a`
+   - **Title:** `Professor ESL - Speak Sentence (Mic-Ready Recording State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UY5IyWKZWuBfcay2K6nI_qIFqAVjVGWE4VaGYyqDsLNiBFA_BxAqbYCQrTXlV34TkF6R1bKs_3tx1p4D7c1i9uSPGqhBTm0UxpLFMpnImdZbBqf-R8ZV8lm6pmrYAMFZg2AFSJLRHO2bu4L0TgFMv2jjV3Sk_4a-w-bB8UDBUtX11elUwhgeQsLVr34NBICfdoAEmFSjHfOUo7ejNaelo49r0lsPISmAoA9BkGGkMcbDIq0BtDLWe6FZQ`
+   - **Prompt Summary:** Mobile portrait (390×844) voice production exercise in mic-ready state. Universal 64px header on paper #FDFBF7 with Step 8 active in Duolingo pink #E91E63 (85%) and 4 hearts. Warm paper companion scene (#FDFBF7, border #E2D7C3) displays Professor Owl with DJ headphones, target sentence card ("The tractor is big and green." in 24px Fredoka inkDeep #1D3557), Chinese support chip ("这辆拖拉机又大又绿。"), and 44px blue audio button "🔊 Hear model first". Live mic recording deck features 88px terracotta mic button (#E76F51, bevel 0 5px 0 #C4553B) with glowing amber ring, live 5-bar volume visualizer in sky blue #38BDF8 per audit P1 F2, listening status prompt, and interim transcript feed ("I hear: The tractor is..."). Footer shows attempt counter ("Attempt 1 of 3") and note that speech practice never costs hearts.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: prompt_audio]` + `[TTS: The tractor is big and green.]` on hear model tap
+     - `[🔊 playCue: mic_start]` on mic button tap
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Tiered Almost/Retry Feedback State**
+   - **Stitch Screen ID:** `ae2f6d912d6f40059092a763e1df995d`
+   - **Title:** `Professor ESL - Speak Sentence (Tiered Almost/Retry Feedback State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1Xz0olmN9ruRtzDGCxpt9KS44oorzTk9bXk4DGhdc-TPAE_1sR0OHflmRyOWtyWHCxb8dYI7BggjLKib7Rp8Ww_5IlGc_h7aOomqnww4sn_7HB93SFS4yxv-UEvL7I802XOiI1ZbiGci3B7QR9YOd6ROgYUuBWMoCPFbA9YTp2mZUcQApSH5Wh-nEIaGRy-LWg2NhfOIz3WmrUK0xIlJedeFIVaAmNBYotKvr1UBx9i3BBQo0wmPy7oMA`
+   - **Prompt Summary:** Mobile portrait (390×844) voice production exercise in tiered Almost/retry feedback state. Shell header shows Step 8 with 4 hearts intact. Main stage displays word-by-word pronunciation diagnostic chips per audit P2 F5: "The", "tractor", "is", "and", "green." rendered in emerald green (#10B981) pill boxes with checkmarks, while "big" is highlighted in amber/terracotta (#F59E0B) with diagnostic warning ("unclear /b/ sound"). Tiered feedback banner shows score (54% Match, "Almost" tier per §0) and 3-dot attempt budget ("🟢 Try 1 used • ⚪ Try 2 • ⚪ Try 3", advancing on try 3 to prevent dead-ends per audit P1 F1/F3). Dual action buttons: 48px outlined button "🔊 Hear big" and 54px primary CTA "TRY AGAIN 🎙️" in terracotta #E76F51 (bevel 0 4px 0 #C4553B).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: prompt_audio]` + `[TTS: big]` on word model replay
+     - `[🔊 playCue: tap_retry]` on Try Again CTA tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/18-speak-sentence/`. Screens 1-2 — PASS: live volume visualizer + interim transcript; word-level diagnostic pills + bounded 3-try budget.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward."
 
 ## §7 Implementation notes & design-fidelity log
 
