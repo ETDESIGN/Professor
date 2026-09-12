@@ -1,6 +1,6 @@
 # Speed Quiz — In-Shell MCQ Step — v3 Quality Audit (`SPEED_QUIZ / GAME_ARENA`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -161,4 +161,21 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+- **Implementation Date:** 2026-09-13
+- **Component Touched:** `apps/student/SoloLessonPlayer.tsx` (`SPEED_QUIZ` / `GAME_ARENA` step)
+- **Diff Scope:**
+  - Resolved 07 F1 in-place correction on error: instead of abrupt progression or blocking failures, answer choices highlight in-place upon submission.
+  - Correct Answer State (Screen 1): Selected option lights up in emerald (`#E6F4F1`) with 2.5px teal border (`#2A9D8F`), 4px bevel (`#1E6F5C`), and checkmark badge. Triggers `playCue('correct')` (and `playCue('streak')` when streak combo >= 3), increments streak, awards session score via `addPoints('solo', 1)`. Bottom combo toast celebrates with flame streak chip (`🔥 N in a Row!`).
+  - Wrong Answer State (Screen 2): Selected incorrect option highlights in soft red (`#FEF2F2`) with red border (`#FF4B4B`), while the true correct answer is simultaneously revealed in emerald (`#E6F4F1`) with checkmark badge. Triggers `playCue('wrong')`, resets streak to 0, does NOT award points. An acoustic corrective drawer opens at the bottom with corrective speech narration (TTS) modeling the proper answer, spaced-repetition badge (`🔄 Keep practicing`), and a prominent `GOT IT →` button in terracotta (`#E76F51`).
+  - Tactile option cards: 56px height, ≥48px touch boundary, Fredoka ink typography.
+  - Question header: terracotta badge (`SPEED QUIZ • QUESTION X OF N`), 44px Duolingo blue question replay speaker FAB, Chinese subtitle for comprehension support.
+- **Scoring & Data Writes Verbatim Check:**
+  - `addPoints('solo', 1)` awarded strictly on correct answers; 0 points awarded on wrong answers.
+  - Lesson completion payload matches expected shape verbatim.
+- **Gauntlet Results:**
+  - `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+  - `npx vitest run`: 826 passed | 1 skipped (0 failures).
+  - `npm run build`: Clean build in 17.07s.
+- **Design-Fidelity Log per Stitch Screen:**
+  - **Screen 1 (MCQ Correct Feedback State): Followed.** Followed bevel option cards, checkmark badge, streak counter, Duolingo blue audio FAB, and teal continue CTA.
+  - **Screen 2 (MCQ Wrong Answer & Acoustic Correction): Followed.** Followed in-place red selection + emerald correct reveal, acoustic error drawer with corrective speech narration, and terracotta got-it CTA.

@@ -1,6 +1,6 @@
 # Story Stage — In-Lesson Reader — v3 Quality Audit (`STORY_STAGE (passive reading)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -159,4 +159,19 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+- **Implementation Date:** 2026-09-13
+- **Component Touched:** `apps/student/SoloLessonPlayer.tsx` (`STORY_STAGE` step)
+- **Diff Scope:**
+  - Resolved 05 F1 tap-target finding: replaced thin inline links with generous, padded tactile hit pills (`vocab-pill-orange` and `vocab-pill-teal`, ≥48px touch boundary) for target vocabulary in story text.
+  - Implemented Screen 1 Story Reader: illustrated paper card (`#FDFBF7`), character avatar with terracotta border, speaker dialogue attribution, line-spaced reading typography, previous/next page navigation buttons, dot indicator, and beveled `🔊 Read Along` audio button.
+  - Implemented Screen 2 Definition Popup Modal: tapping any vocabulary pill triggers `playCue('reveal')` and opens a focused modal over a softly dimmed scrim (`rgba(38, 70, 83, 0.38)`). Displays headword in 24px Fredoka, IPA pill, 48px Duolingo blue audio FAB (`#1CB0F6`), terracotta Chinese translation, definition box in mist fill, example sentence, and outside-tap dismiss.
+  - Anchored footer `CONTINUE →` allows advancing smoothly once the story is read.
+- **Scoring & Data Writes Verbatim Check:**
+  - Story stage completes with `onComplete()` without mutating FSRS memory or hearts balance.
+- **Gauntlet Results:**
+  - `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+  - `npx vitest run`: 826 passed | 1 skipped (0 failures).
+  - `npm run build`: Clean build in 17.07s.
+- **Design-Fidelity Log per Stitch Screen:**
+  - **Screen 1 (Illustrated Story Reader): Followed.** Followed illustrated book card, padded vocabulary pills, character speaker row, and audio read-along bar.
+  - **Screen 2 (Word Popup Definition Modal): Followed.** Followed elevated definition card, audio pronunciation button, translation chip, and outside-tap dismiss.

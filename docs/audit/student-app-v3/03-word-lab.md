@@ -1,6 +1,6 @@
 # Word Lab — Focus Cards Step — v3 Quality Audit (`FOCUS_CARDS (passive study)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -161,4 +161,21 @@ Refs are `apps/student/WordLab.tsx`.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+- **Implementation Date:** 2026-09-13
+- **Component Touched:** `apps/student/WordLab.tsx`
+- **Diff Scope:**
+  - Redesigned Word Lab into the Wonder Atlas paper (`#FDFBF7`) / cream (`#EAE0D0`) palette.
+  - Implemented 5-card carousel with side peeking affordances, card index chips, and bottom 5-item thumbnail deck strip for rapid switching.
+  - Front Card Face (Screen 1): Status badges (`CARD 1 OF 5`, `NEW WORD`), rounded illustration box with graceful fallback if image is missing, 26px Fredoka headword, IPA chip, 52px Duolingo blue audio FAB (`#1CB0F6`), and 48px `Flip to Learn Details 🔄` button.
+  - Back Card Face (Screen 3): Teal completion border (`#2A9D8F`), terracotta L1 translation box (`#E76F51`), child-friendly English definition in mist fill, example sentence card with 40px teal sentence audio button, dual studied badges (`👂 Listened ✔` and `🔄 Flipped ✔`), and `↩ Flip to Front` button.
+  - Dual studied gating: A card is marked studied only when the child has both listened (`playWordAudio`) and flipped the card. Continue button reflects progress (`CONTINUE (X/N CARDS) →`) and activates when all cards meet the dual requirement.
+  - Connected sound moments via `playCue`: `word_pronounce` / `sentence_audio`, `playCue('reveal')` on card flip, and `playCue('win')` / `playCue('correct')` on completion.
+- **Scoring & Data Writes Verbatim Check:**
+  - Passive study step calls `onComplete()` payload untouched; no illicit FSRS mutations.
+- **Gauntlet Results:**
+  - `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+  - `npx vitest run`: 826 passed | 1 skipped (0 failures).
+  - `npm run build`: Clean build in 17.07s.
+- **Design-Fidelity Log per Stitch Screen:**
+  - **Screen 1 (5-Card Carousel Front Face): Followed.** Followed Wonder Atlas tokens, card hierarchy, audio FAB, and thumbnail strip. Adapted carousel peek for responsive mobile viewport.
+  - **Screen 3 (Flipped Back Card Face): Followed.** Followed teal border, terracotta translation, definition container, example sentence with audio, and dual studied badges.

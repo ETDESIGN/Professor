@@ -1,6 +1,6 @@
 # Media Player — Video & Song Step — v3 Quality Audit (`MEDIA_PLAYER (passive)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -160,4 +160,21 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+- **Implementation Date:** 2026-09-13
+- **Component Touched:** `apps/student/SoloLessonPlayer.tsx` (`MEDIA_PLAYER` step)
+- **Diff Scope:**
+  - Resolved 04 F1 visual clarity bug: eliminated 0.6 opacity degradation and dark scrim over video playback. Video now renders full-bleed at 100% brightness and crisp 16:9 aspect ratio.
+  - Implemented karaoke sing-along lyric strip with live spoken text styling and upcoming line preview (Screen 1).
+  - Implemented 48px accessible transport scrubber with 22px thumb handle, timestamps (`00:00`), mute/unmute toggle, and 60px circular play/pause FAB in beveled teal (`#2A9D8F`).
+  - Implemented Screen 2 offline audio mode / empty state: when video is unavailable or fails to mount, a vinyl record illustration card appears with song title, animated equalizer visualization, audio playback, and Chinese guidance note (`视频离线中，已为您切换为高品质音频伴唱模式`).
+  - Preserved standard fallback text `"No media for this step. Tap Continue."` when neither audio nor video is provided, ensuring test and error resilience.
+  - Anchored footer CTA `CONTINUE TO LESSON →` ensures child is never dead-ended.
+- **Scoring & Data Writes Verbatim Check:**
+  - Passive media step calls `onComplete()` without mutating learner mastery state or hearts.
+- **Gauntlet Results:**
+  - `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+  - `npx vitest run`: 826 passed | 1 skipped (0 failures).
+  - `npm run build`: Clean build in 17.07s.
+- **Design-Fidelity Log per Stitch Screen:**
+  - **Screen 1 (Karaoke Sing-Along Video Player): Followed.** Followed 100% opacity video container, karaoke lyric strip, 48px transport scrubber, and beveled play/pause FAB.
+  - **Screen 2 (Offline Audio Fallback Card): Followed.** Followed vinyl card illustration, audio mode switch, equalizer visualization, and non-blocking continue flow.

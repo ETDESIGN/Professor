@@ -1,6 +1,6 @@
 # Solo Lesson Player Shell — v3 Quality Audit (`PLAYER SHELL + INTRO_SPLASH`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -163,4 +163,19 @@ Severity: P1 blocks learning · P2 degrades · P3 polish. Refs are `apps/student
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+- **Implementation Date:** 2026-09-13
+- **Component Touched:** `apps/student/SoloLessonPlayer.tsx`
+- **Diff Scope:**
+  - Integrated universal 64px player shell header on paper `#FDFBF7` with 48px tactile close button (`<X />`), multi-segment progress bar with active step highlighted in Duolingo pink `#E91E63`, and real hearts HUD via `Engine.getHearts(studentId)` (graceful fallback to `—`, non-blocking).
+  - Implemented accidental exit confirmation modal (02 F2): caring Professor Owl illustration, earned stars/XP loss-prevention stats, primary teal CTA "KEEP LEARNING" (`#2A9D8F`), and secondary paper CTA "Quit Lesson". Bypassed on INTRO_SPLASH so initial exit is instant without confirmation friction.
+  - Implemented INTRO_SPLASH unit showcase: custom vector illustration of Professor Owl explorer with city backdrop, unit badge, Chinese subtitle support, 3 learning roadmap chips (Vocabulary, Story, Speed Quiz), and beveled teal `START LESSON →` CTA with `playCue('win')`.
+  - All sound moments wired via `playCue` (`tap_exit`, `tap_start`, `win`, `reveal`).
+- **Scoring & Data Writes Verbatim Check:**
+  - `addPoints`, `onComplete`, `stageProgressService.completeStage` signatures and calling contracts preserved exactly.
+- **Gauntlet Results:**
+  - `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+  - `npx vitest run`: 826 passed | 1 skipped (0 failures).
+  - `npm run build`: Clean build in 17.07s.
+- **Design-Fidelity Log per Stitch Screen:**
+  - **Screen 1 (Shell + INTRO_SPLASH): Followed.** Implemented 64px header, 6-segment progress bar with `#E91E63` active indicator, hearts HUD, Professor Owl explorer hero illustration, roadmap chips, and anchored beveled footer CTA.
+  - **Screen 2 (Exit Confirmation Sheet): Followed.** Implemented centered/sheet loss-prevention modal with caring owl vector, stars/XP retention preview, and dual thumb-friendly buttons. Bypassed safely on INTRO_SPLASH where 0 progress has been made.

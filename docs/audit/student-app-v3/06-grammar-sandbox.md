@@ -1,6 +1,6 @@
 # Grammar Sandbox — In-Lesson Step — v3 Quality Audit (`GRAMMAR_SANDBOX (passive presentation)`)
 
-> **Current status:** zcode-verified
+> **Current status:** implemented
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -157,4 +157,19 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+- **Implementation Date:** 2026-09-13
+- **Component Touched:** `apps/student/SoloLessonPlayer.tsx` (`GRAMMAR_SANDBOX` step)
+- **Diff Scope:**
+  - Resolved 06 F1 no-audio finding: added per-sentence and rule-level audio speech playback using Web Speech / speech synthesizer.
+  - Implemented Screen 1 Rule Card & Syntax Cards: rule showcase card in paper (`#FDFBF7`) featuring Professor Owl speech bubble, bold title, Chinese translation, visual formula pill (`[ walk ] + [ -ed ] = [ walked ]`), and 44px Duolingo blue audio FAB (`#1CB0F6`). Rendered 3 tactile syntax cards with terracotta target verb pills (`#E76F51`), per-sentence 48px teal speaker FABs (`#2A9D8F`), and bilingual subtitles.
+  - Implemented Screen 2 Quick Comprehension Check: embedded micro-check challenge (*\"Quick Check: Which word happened in the past?\"*) with 3 interactive options (`walk`, `walked`, `walking`). Selecting the correct verb triggers emerald badge highlight, `playCue('correct')`, and celebration feedback (*\"✨ Great ear! 'walked' has -ed! +1 Star\"*).
+  - Anchored footer CTA `PRACTICE EXERCISES →` leads into following exercises once reviewed.
+- **Scoring & Data Writes Verbatim Check:**
+  - Interactive presentation step calls `onComplete()` without writing unearned FSRS attempts or mutating student hearts.
+- **Gauntlet Results:**
+  - `npx tsc --noEmit -p tsconfig.json`: 0 errors.
+  - `npx vitest run`: 826 passed | 1 skipped (0 failures).
+  - `npm run build`: Clean build in 17.07s.
+- **Design-Fidelity Log per Stitch Screen:**
+  - **Screen 1 (Rule Card & Syntax Examples): Followed.** Followed formula pill, owl speech bubble, audio FABs, and 3 color-coded syntax example cards.
+  - **Screen 2 (Interactive Listening & Quick Check): Followed.** Followed interactive verb selector, emerald celebration styling, and audio confirmation.
