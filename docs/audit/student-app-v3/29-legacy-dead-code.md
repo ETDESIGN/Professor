@@ -68,17 +68,23 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Documentation — not a redesign target.)*
+
+`/student/lesson` (`LessonSession.tsx`) mounts ListenTap / SentenceScramble / PronunciationCoach(embedded) / FlashMatch(embedded) behind a parent-Check-button contract. **Nothing navigates to the route**: HomeMap's legacy view names ('lesson'|'listen'|'scramble') all call `startLesson` → solo-lesson (StudentApp.tsx:354-360); no other caller exists (grep-verified 2026-09-13). The embedded trio survives only where other live surfaces use them: FlashMatch via MemoryMatchStep (file 10); PronunciationCoach via /student/pronounce (file 25). ListenTap.tsx and SentenceScramble.tsx are fully unreachable.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs: `apps/student/LessonSession.tsx`, `ListenTap.tsx`, `SentenceScramble.tsx`.
+
+- **F1 · P2 — Dead code ships kid-facing defects in the bundle.** Hardcoded fake HUD hearts ("5" FlashMatch.tsx:129-131, "4" ListenTap.tsx:100-103), a dicebear mascot URL (ListenTap.tsx:113), hardcoded completion stats (`{xp:5, accuracy:(lives/5)*100}` LessonSession.tsx:87), Spanish-era comments. Unreachable today, but any future route change re-exposes them.
+- **F2 · P3 — The parent-Check-button contract they implement is superseded** by the battery's self-completing contract — keeping both invites confusion in audits and onboarding.
+- **Recommendation (owner decision, `_CROSS-CUTTING.md` #2):** delete LessonSession + ListenTap + SentenceScramble + the embedded-mode props of PronunciationCoach/FlashMatch, OR archive under `apps/student/legacy/` with a README. Do NOT redesign. Deletion touches no live route (verified above); the gauntlet covers it.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

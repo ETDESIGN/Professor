@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+In-lesson MEMORY_LAB step (`steps/MemoryMatchStep.tsx`). Builds word↔L1-meaning pairs from the unit manifest via `buildMemoryPairs` (pure, capped at 6, drops words without translation/definition — memoryPairs.ts:19-47) and embeds the legacy `FlashMatch` engine in embedded mode: two shuffled columns, tap one from each; match → both lock grey; mismatch → 800ms red shake then reset (FlashMatch.tsx:45-66). On completion the step fires `recordAnswer(true)` once per pair — the documented simplification (mismatches are internal) — plays a cue, shows "All Matched!" with 3 stars + Play again/Continue (:50-56, :82-108). No XP here (pipeline).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs: `apps/student/steps/MemoryMatchStep.tsx`, `steps/memoryPairs.ts`, `apps/student/FlashMatch.tsx`.
+
+- **F1 · P2 — Scoring simplification inflates stage stars.** `recordAnswer(true)` × pairs regardless of how many mismatches happened (:54) — a kid who brute-forces every pair scores the same 100% session accuracy as a perfect first-pass run; those answers feed `starsForAccuracy` → persisted node stars. Documented, but it's wrong-data-adjacent (the §0 prelude's worst class).
+- **F2 · P2 — Text-only pairs waste the multimodal unit data.** Pairs are English word ↔ Chinese text (memoryPairs.ts:31-32); `audioUrl` is collected (:39) but FlashMatch never plays it, and images are unused — on a phone this is a wall of small text where word↔image would be both more kid-friendly and more discriminative (see board Memory Lab v3's cross-modal alternation).
+- **F3 · P3 — Six pairs = 12 tiles in two vertical columns** (FlashMatch max-w-md layout, :135-175) — on a phone the columns can exceed the viewport and scroll mid-game; no compact grid mode.
+- **F4 · P3 — No audio feedback at all** — no match chime, no word pronunciation on match (the engine has none; the step adds one cue at completion only).
+- **F5 · P3 — Matched pairs fade to opacity-50 with no reward moment** (:111) — matches feel like removal, not achievement (compare board v3's celebratory locks).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+PronunciationCoach standalone (`PronunciationCoach.tsx`): dark studio screen — target sentence chip, Listen button (TTS), 15-bar live input visualizer (getUserMedia + AnalyserNode :76-108), big mic button; per-attempt result card (similarity %, transcript, feedback) + retry; attempts counter (:268-271). Exit → `onSessionEnd({correct: server-verified only, total: attempts})` (:159-167) → StudentApp awards XP + PERFECT_SPEAKING if perfect (StudentApp.tsx:231). Server verification via the `evaluate-pronunciation` edge exists (SpeechService.ts:228); on failure the attempt degrades to client-graded and is excluded from credit.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs: `apps/student/PronunciationCoach.tsx`, `services/SpeechService.ts`.
+
+- **F1 · P1 — No content source: one hardcoded sentence forever.** `targetSentence = data?.targetSentence || data?.targetWord || "Let's practice English conversation!"` (:60) — and standalone mode never passes data. The "Speaking practice" tile practices a single fixed sentence regardless of unit/level; there is no progression, no unit tie-in, nothing from the learner's actual vocabulary. This surface needs a content model (unit sentences/words, or pool SPEAK_SENTENCE items) before any visual redesign matters.
+- **F2 · P2 — Honest-but-demotivating failure mode.** When the edge STT fails (offline/edge error), attempts become client-graded and `correct` stays 0 — the kid sees "Attempts: 5 | Correct: 0" (:268-271) after clearly-good tries, and the session pays the 1-XP floor. The scoring honesty is RIGHT (keep); the presentation must distinguish "practice-only session" from "you failed".
+- **F3 · P3 — Mic button bevel color mismatch** — pink button with a green hard shadow (`shadow-[0_8px_0_#2f6f02]`, :294) — Duolingo-era leftover.
+- **F4 · P3 — No target progression/history** — the owner's own draft prompt sketches history chips ("tractor 92%") and word/sentence targets; nothing exists.
+- **F5 · P3 — `onResult` embedded-mode prop unused in standalone** (dead surface per file 29).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

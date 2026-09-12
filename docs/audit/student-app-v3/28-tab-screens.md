@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending. Grouped functionality audit — chrome, not a game.)*
+
+Five tab screens + fullscreen chrome: Leaderboard (weekly league podium + rows), Quests (daily goal + claimable quest cards + chest), Shop (characters/wardrobe/power-ups, gem spend, "no real money" footer), Profile (avatar + level + stats + Customize), AvatarBuilder (slot tabs + equip/buy grids + Save → equip RPCs + compose), Settings (account card, sound-effects + speaking-exercises toggles, reminder, sign-out), HelpCenter (searchable FAQ). Data via GamificationService + avatar v2 catalog/RPCs + react-query.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Grouped audit (verify per-screen during any redesign):
+
+- **F1 · P2(verify) — Settings toggles' enforcement is unclear.** "Sound effects" and "Speaking exercises" toggles exist, but no reader of those settings was found in the audio paths audited (`playCue`/`playAudioUrl` don't consult them) — possibly decorative toggles. Verify before redesign; if dead, wire or remove.
+- **F2 · P3 — Theme is split across tabs** (Leaderboard/Quests slate-light vs Shop/Profile wa-*) — the owner's mix directive makes this the natural place to define the blended language.
+- **F3 · P3 — Quest claim / chest flows depend on GamificationService progress calls** — audit claim double-tap safety during implementation.
+- **F4 · P3 — AvatarBuilder Save → navigate only** (handleAvatarSave ignores config/url — react-query cache is truth) — fine; keep.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

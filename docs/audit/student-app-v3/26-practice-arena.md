@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+PracticeMenu (`PracticeMenu.tsx`): header + 2-col grid of tiles — Listening (DISABLED "Soon" :63-74), Speaking → /pronounce, Reading → /reading, Phonics Fly → /phonics, Fast Vocab, Spelling Bee, SRS Review (red due-count badge from `Engine.fetchSRSItems`, error → badge silently hidden :18-30), "Grammar · Soon" disabled, footer note. Navigation only; no writes.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/PracticeMenu.tsx`.
+
+- **F1 · P3 — Two dead tiles with no timeline** — "Soon" placeholders with no content plan attached (listening has no route — audit P0-6 legacy).
+- **F2 · P3 — SRS badge error is silent** (:24-26) — a fetch failure just hides the count; acceptable, note only.
+- **F3 · P3 — No per-tile unit context** — tiles don't indicate which unit Phonics will use (ties to file 22 F1's invisible activeUnit precondition).
+- **F4 · P3 — Tile subtitles are English-only small text** — fine for most; verify ≥14px after redesign.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

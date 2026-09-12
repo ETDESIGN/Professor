@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+SPEAK_SENTENCE (`exercises/SpeakSentence.tsx`): target sentence + hear-it-first AudioButton + big mic circle. Mic starts `startPronunciationCheck` with a lenient 0.6 pass threshold; tiered outcomes — pass → green + toast + complete (client-graded passes complete with `record:false` — practice-only, FIXPLAN H1); 0.4-0.6 → "Almost! Try once more" reset; <0.4 → replay the model + retry (:29-72). Unsupported devices get an engagement-only Continue (record:false) (:74-82). Runner writes apply only for server-verified results.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/exercises/SpeakSentence.tsx`.
+
+- **F1 · P2 — No live listening feedback.** While recording, the mic pulses but shows no waveform/level — shy kids need evidence they're being heard (compare PronunciationCoach's 15-bar visualizer, which this surface lacks).
+- **F2 · P3 — Retry loop is unbounded and unstated** — the kid doesn't know how many tries they have (there's no cap here, unlike DialogueRoleplay's 3/line).
+- **F3 · P3 — Success feedback is a toast + banner flash** — spoken production deserves the strongest celebration beat in the app (it's the scariest skill).
+- **F4 · P3 — Interim transcript unused** — SpeechService supports interim text; showing it would reassure ("I hear you: …").
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

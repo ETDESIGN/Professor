@@ -67,17 +67,27 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+In-lesson SPELLING_BEE step (`steps/SpellingBeeStep.tsx`) on the shared board-tested engine (`components/games/spellingBee/*`). Loads pool words (IMAGE_SELECT/MEANING_MATCH/DICTATION) with `get_unit_bundle` vocabulary fallback (:91-134); 3 rounds × `wordsPerRound` (plan data, default 5). Word lifecycle (shared engine): 3.2s **presentation beat** (image + auto-audio, clock paused) → typing under the countdown (default 15s from plan) with adaptive keyboard narrowing (deterministic per unitId) → solved hold 2.6s / reveal 2.8s (useSpellingBeeTurn.ts:50-52,124-125). Scoring: board math local — `scoreForAttempt` + speed bonus, −1 per wrong letter; **the SPLIT fail rule: a timeout ENDS THE RUN** (forceComplete → results after 1.8s) (:170-174); skip = attempted, unscored (:175-178). `recordAnswer` per solved/timeout word feeds session accuracy (:163,169). Round interstitials ("Well Done" + badges + score roll) and a 5-star results screen (:266-372).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/steps/SpellingBeeStep.tsx` unless noted.
+
+- **F1 · P1 — Timeout ends the entire run for a child alone.** The SPLIT rule (:170-174) is the standalone original's tension knob, but here it sits inside a LESSON: one expired clock kills all remaining rounds/words of the step and jumps to results. The board twin reveals + advances (teaching beat). For a 6-8 y/o at home this is the harshest single interaction in the app. **Owner decision needed: keep the tension (it's deliberate) or soften to reveal+continue in the lesson context** (the standalone game, file 21, can keep the hard rule).
+- **F2 · P2 — 15s default clock with no solo mercy.** Plan-time setting only (:42,74); the standalone twin has timer-off + 25s slow mode (localStorage), the lesson step takes whatever the teacher planned — a plan defaulting to 15s is tight for young home spellers (each wrong letter also burns 1s).
+- **F3 · P3 — Round interstitial badge row assumes `wordsPerRound` slots** (:283-299) — fine, but badges truncate long words (`w-12 truncate`).
+- **F4 · P3 — Exit mid-round no confirmation** (:384).
+- **F5 · P3 — Empty-pool error screen text is teacher-flavored** ("continue with the lesson for now" — OK in-lesson; just noting copy tone).
+
+**Works well:** the shared engine already carries the board v3 fixes (presentation beat, consolidation holds, deterministic narrowing, StrictMode-safe clock) — this surface inherits them for free.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

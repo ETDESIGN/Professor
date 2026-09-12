@@ -67,17 +67,20 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Parked — flag-gated OFF in prod (`VITE_ENABLE_DUBBING`). Documentation only.)*
+
+DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge scoring, playback) + ClassDubs (classmates' published dubs with hearts), entry chip on HomeMap also gated. Real infrastructure exists (dubbing migrations, retention cron, `evaluate-dubbing` deployed 2026-08-28; e2e suite skips unless flagged). Exit path routes through `handleLessonComplete({xp: 5, accuracy: 95, time: '2:30'})` — hardcoded fake stats (StudentApp.tsx:226).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+- **F1 · P3 — Hardcoded exit stats** (`{xp:5, accuracy:95}` StudentApp.tsx:226) would pay fake XP if the flag ever flips on — fix before any unflagging.
+- **F2 · P3 — Mock-flagged (audit P1-5)** — the studio's true state per AGENTS.md; keep parked, exclude from this redesign round.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

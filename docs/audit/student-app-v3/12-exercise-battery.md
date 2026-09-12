@@ -67,17 +67,28 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending — passport fixture; this surface + file 13 are where kids spend most of their time.)*
+
+The runner behind every pool-driven practice block in lessons AND the standalone Phonics/SRS surfaces (`exercises/ExerciseRunner.tsx`). Items arrive as PoolItems (typed via `toPoolItem`) selected by `selectLessonItems` with the family's type restrictions + signature-first ordering (`services/gameRouting.ts` GAME_CONTENT). The runner maintains a mutable queue; renders one exercise component at a time by `exercise_type` from the registry (:227-253). On each `onComplete` (:86-160): if `record !== false` — `Engine.recordAttempt` (**FSRS/LearnerState**) with the grade; hearts: a productive ERROR costs 1 (`Engine.loseHeart`, skipped when the balance couldn't be read — `heartsUnavailable` guard :112-118); correct → `awardXP(CORRECT_ANSWER)` + EARN_XP quest + "+1 XP" toast; a productive success lifting the objective to familiar/mastered counts the REACH_FAMILIAR quest once per session (:130-137); a missed item is re-queued ONCE at the end (:144-148); advance after 100ms (:151-157). Hearts balance loads on mount (:65-71, shows "—" when unread). Finish → summary screen (correct/accuracy/mastered tiles + re-queue note) → `finish()` = XP LESSON_COMPLETE + `restoreHeart` + onDone (:76-84, :175-212). Out of hearts → explanation + "Finish session" (:214-225). Unknown exercise types render a Skip that completes with `success: true` (:249-262). Empty items → "no practice content yet" + Continue (:162-172).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/exercises/ExerciseRunner.tsx` unless noted.
+
+- **F1 · P2 — The unknown-type Skip writes a false success into FSRS.** `UnknownType`'s skip calls `handleComplete({ success: true, … })` (:251) with `record` defaulting true → `recordAttempt` grades an objective the child never answered as correct. Rare (only v2-era unknown types), but it's the prelude's worst bug class — should be `record: false` or `success: false, record: false`.
+- **F2 · P2 — Out-of-hearts is an advice dead-end.** The screen says "complete a review to restore one" but offers only "Finish session" (:214-225) — no review button, no heart-refill path; a kid alone at 0 hearts mid-lesson can't act on the advice (kid-alone dead-end rule).
+- **F3 · P2 — Re-queueing visibly rewinds the progress bar.** The retry appends to `queue` (:146) and progress = index/queue.length (:74) — when a missed item re-queues, the bar denominator grows and progress jumps backward at the exact moment the kid just answered.
+- **F4 · P2 — Unreadable hearts render as a bare "—" with no explanation** (:238-241) — the child sees a dash heart with no why (and parents reviewing won't either).
+- **F5 · P3 — XP toast on every correct answer** (:124) — juice vs noise; one toast per answer may desensitize (§4 should weigh against a streak-based celebration).
+- **F6 · P3 — Summary "Mastered" tile counts familiar+mastered** (`familiarSeen`, :178-199) — label overstates.
+- **F7 · P3 — X-exit has no confirmation** (:233) — battery progress + FSRS-adjacent streak state lost on accidental tap (same class as shell F2).
+- **F8 · P3 — 100ms advance beat relies on components' internal 1.1-1.2s feedback holds** — the runner itself imposes no minimum teaching beat, so any future component that completes instantly will flash.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

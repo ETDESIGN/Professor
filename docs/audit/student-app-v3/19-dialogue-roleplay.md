@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+DIALOGUE_ROLEPLAY (`exercises/DialogueRoleplay.tsx`): transcript list — past lines dimmed with checks, current line highlighted with its translation; hear-the-model AudioButton + mic per line. Tiered scoring as SpeakSentence (0.6 pass); max 3 attempts per line, then the line advances without a pass ("never stuck") (:68-107). Success = passed ≥ half the lines; any client-graded pass makes the whole result practice-only (`record:false`) (:49-66).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/exercises/DialogueRoleplay.tsx`.
+
+- **F1 · P2 — Current line can scroll out of view.** The transcript is a scroll area (:126) — after several lines the active line + mic sit at the bottom of a scrolling column; on phones the mic may sit under the thumb/fold. An auto-scroll-to-active (or fixed current-line card + collapsible history) is needed.
+- **F2 · P3 — No speaker identity visuals** — speaker names are small caps text (:143-145); no avatars/portraits despite the unit having characters (the Story step resolves portraits; this doesn't).
+- **F3 · P3 — The ≥half-passed success rule is invisible** — the kid never knows what "done well" means; a simple progress row (lines passed / lines total) would fix it.
+- **F4 · P3 — Attempt counting per line resets silently** (:84-96) — no visual attempt dots (1·2·3) before the line moves on.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

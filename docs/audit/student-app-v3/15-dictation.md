@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+DICTATION (`exercises/Dictation.tsx`): large AudioButton ("tap to listen, then type"), a text input (autofocus only on fine pointers so touch keyboards don't jump the layout :10-12,36-44), Enter/Check submit, case/punctuation-insensitive comparison incl. CJK (:21-26 via shared `textMatches`). Hint text appears only after feedback (:45). Runner writes apply.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/exercises/Dictation.tsx`.
+
+- **F1 · P3 — Unlimited free replays** — kid-friendly, keep (board Sound Lab meters replays with a point cost; solo app should NOT copy that cost).
+- **F2 · P3 — No pre-answer scaffolding** — no letter-count slots, no first-letter hint (the board's Spelling Bee shows dashed slot counts); hardest exercise type gets the least support.
+- **F3 · P3 — Wrong feedback shows only the answer** — no character-level diff (which letters were right); a near-miss ("tractr" vs "tractor") reads as total failure.
+- **F4 · P3 — Input + keyboard occupy the lower screen** — thumb-reach is fine; no issue found beyond the shell's general floor pass.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

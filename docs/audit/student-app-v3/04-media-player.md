@@ -67,17 +67,26 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+The warm-up song/video step, rendered inline by SoloLessonPlayer (:443-568). Reads `videoUrl/audioUrl/lyrics` from the block. Video (ReactPlayer/YouTube, `controls:0`) sits absolutely at `opacity: 0.6` behind a 50% scrim; lyrics show current line (text-2xl) + dimmed next line, tracked from `onProgress` (:454-461,522-534). Controls: mute, 48-56px play/pause circle, restart, and a tappable seek bar with time labels (:536-565). Empty state when no media and no lyrics (:469-479). No writes. Exit/continue via the shell footer.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
+
+- **F1 · P2 — Video dimmed to 60% + 50% black scrim** (:498, :508) — on a phone in a bright room the actual TTR modeling is hard to see. The board's v3 media player fixed exactly this (full-bleed, uncropped, undimmed); port that thinking.
+- **F2 · P2 — No volume control** — mute toggle only (:552-554); headphone kids may need volume, speaker kids definitely do.
+- **F3 · P3 — Seek bar is a 6px-tall tap target** (`h-1.5`, :539) with tiny time labels — hard for kids to scrub.
+- **F4 · P3 — Audio-only steps show a bare "Press play to start"** (:530-532) — no artwork/title card moment.
+- **F5 · P3 — No caption/lyrics toggle** — lyrics render only if the block carries them; when absent there's no fallback display of the song text.
+- **F6 · P3 — No error recovery if the embed fails to load** (board v3 added `onError` + candidate fallback; this surface has none).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

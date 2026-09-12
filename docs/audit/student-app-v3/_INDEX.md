@@ -27,12 +27,14 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs the
 
 One game at a time. The owner tests live between games.
 
-## Design targets (owner-set — differ from the board)
+## Design targets (owner-set 2026-09-13 — see `_CROSS-CUTTING.md` §0 for the verbatim direction)
 
 - **Mobile-first, kid's own hands**: thumb-reachable controls (primary actions bottom-half), tap targets **≥ 48 px**, no text under ~14 px, forgiving hit areas, portrait ~390 px primary floor + small-height landscape second.
-- **NO board rules**: no 8-meter legibility, no `pl-40` phase-pill clearance, no landscape-cards-on-stage.
-- **v3 visual language where it fits**: night navy `#070C18`, surfaces `#0B132B`/`#111C3D`/`#16234D`, hot-pink `#FF2E79` accent, sky `#38BDF8` audio/time, emerald correct, amber hints, Fredoka/Sora/JetBrains Mono — **but Stitch proposes per-game personality** exactly like the board (Grammar Forge dark-cyber, Spelling Bee honeycomb). Per-game tokens beat the generic block.
-- ⚠️ **OPEN owner decision — light vs dark**: the current app is a LIGHT theme on two systems — `wa-*` (cream/paper/teal/terracotta, `tailwind.config` "Wonder Atlas") for the shell + `duo-*`/slate Duolingo-style for lesson content. The board's v3 identity is dark navy. Whether the student app goes dark-navy, stays light, or gets its own direction is THE cross-cutting call before implementation (see `_CROSS-CUTTING.md` #1 and the owner's own draft prompts at repo root).
+- **NO board rules**: no 8-meter legibility, no `pl-40` phase-pill clearance, no landscape-cards-on-stage, **and NOT the board's dark-navy identity**.
+- **Design language = a MIX of the app's two current light systems** (owner decision): "Wonder Atlas" warmth (cream/paper/teal/terracotta, Fredoka display — the home-page world) × "Duolingo white + pink" (clean white cards, `duo-pink` accents — the lesson world). Per-game personality welcome within that light mix.
+- **Student HOME page design is FROZEN** — functionality audit only (file 01); no Stitch redesign.
+- **Screens already good stay as implemented** — redesigns are surgical, per-game, sized by the audits (big vs slight improvement).
+- **AG recreates screens as reusable code** (production-grade Tailwind HTML adapted nearly verbatim); the **owner validates every screen before implementation** and may iterate himself inside Stitch.
 - CJK tolerance everywhere Chinese appears (translations, meanings, card backs).
 
 ## Files
@@ -56,49 +58,49 @@ Legend for "Writes": `FSRS` = Engine.recordAttempt (memory model) · `♥` = hea
 
 | # | File | Surface | Component(s) | Route | Data sources | Writes | Status |
 |---|---|---|---|---|---|---|---|
-| 01 | `01-home-map.md` | Home / Learn tab (winding path map, territory intro, quests header, join-class) | `HomeMap.tsx` + `atlas/TerritoryIntro.tsx`, `atlas/territory.ts`, `atlas/tokens.ts`, `CodeInput.tsx` (join modal in StudentApp) | `/student` | units via `Engine.fetchUnits`, mastery via `Engine.getUnitMasterySummary`, stage progress `getAllStageProgress`, student progress | read-only (navigation) | pending |
-| 26 | `26-practice-arena.md` | Practice Arena menu | `PracticeMenu.tsx` | `/student/practice` | `Engine.fetchSRSItems` (due count badge) | read-only | pending |
-| 27 | `27-lesson-complete.md` | Lesson-complete reward interstitial | `LessonComplete.tsx` + `StudentApp.finalizeLesson` | `/student/lesson-complete` | sessionResults passed in | XP `◆`(5★) `Q` (award site) | pending |
-| 28 | `28-tab-screens.md` | Rank / Quests / Shop / Profile tabs + AvatarBuilder + Settings + Help (grouped chrome) | `Leaderboard.tsx`, `Quests.tsx`, `Shop.tsx`, `Profile.tsx`, `AvatarBuilder.tsx`, `Settings.tsx`, `HelpCenter.tsx` | `/student/leaderboard` `/quests` `/shop` `/profile` `/avatar` `/settings` `/help` | GamificationService, shop catalog, avatar v2 RPCs | XP/◆/Q per tab logic | pending |
+| 01 | `01-home-map.md` | Home / Learn tab (winding path map, territory intro, quests header, join-class) | `HomeMap.tsx` + `atlas/TerritoryIntro.tsx`, `atlas/territory.ts`, `atlas/tokens.ts`, `CodeInput.tsx` (join modal in StudentApp) | `/student` | units via `Engine.fetchUnits`, mastery via `Engine.getUnitMasterySummary`, stage progress `getAllStageProgress`, student progress | read-only (navigation) | file-ready |
+| 26 | `26-practice-arena.md` | Practice Arena menu | `PracticeMenu.tsx` | `/student/practice` | `Engine.fetchSRSItems` (due count badge) | read-only | file-ready |
+| 27 | `27-lesson-complete.md` | Lesson-complete reward interstitial | `LessonComplete.tsx` + `StudentApp.finalizeLesson` | `/student/lesson-complete` | sessionResults passed in | XP `◆`(5★) `Q` (award site) | file-ready |
+| 28 | `28-tab-screens.md` | Rank / Quests / Shop / Profile tabs + AvatarBuilder + Settings + Help (grouped chrome) | `Leaderboard.tsx`, `Quests.tsx`, `Shop.tsx`, `Profile.tsx`, `AvatarBuilder.tsx`, `Settings.tsx`, `HelpCenter.tsx` | `/student/leaderboard` `/quests` `/shop` `/profile` `/avatar` `/settings` `/help` | GamificationService, shop catalog, avatar v2 RPCs | XP/◆/Q per tab logic | file-ready |
 
 ### The lesson player (SoloLessonPlayer steps, `/student/solo-lesson`)
 
 | # | File | Surface | Component(s) | Step type(s) | Data sources | Writes | Status |
 |---|---|---|---|---|---|---|---|
-| 02 | `02-lesson-shell.md` | Player shell: header/progress/5 hearts placeholder, footer nav, step routing, INTRO_SPLASH, empty states | `SoloLessonPlayer.tsx` | shell + `INTRO_SPLASH` | activeUnit flow via SoloSessionContext; gameRouting table | `⭐` completeStage at finish; XP via onComplete→finalizeLesson | pending |
-| 03 | `03-word-lab.md` | Word Lab — vocabulary flip-card study phase | `WordLab.tsx` | `FOCUS_CARDS` | unit manifest `getVocabulary` (image/IPA/L1/definition/example + audio) | none (study gate) | pending |
-| 04 | `04-media-player.md` | Song / karaoke step | inline in `SoloLessonPlayer.tsx` | `MEDIA_PLAYER` | flow block data (videoUrl/audioUrl/lyrics) | none | pending |
-| 05 | `05-story-stage.md` | Story reader step (tappable vocab, read-along) | inline in `SoloLessonPlayer.tsx` | `STORY_STAGE` | flow `data.pages` + manifest `getCharacters` portraits | none | pending |
-| 06 | `06-grammar-sandbox.md` | Grammar rule presentation step | inline in `SoloLessonPlayer.tsx` | `GRAMMAR_SANDBOX` | flow block data (rule/explanation/examples) | none | pending |
-| 07 | `07-speed-quiz.md` | Quiz MCQ step (legacy in-shell battery) | inline in `SoloLessonPlayer.tsx` | `SPEED_QUIZ`/`GAME_ARENA` | flow `data.questions` | local (addPoints 'solo') | pending |
-| 08 | `08-fast-vocab-step.md` | Fast Vocab engine step | `steps/FastVocabStep.tsx` (+ shared `components/games/fastVocab/*`) | `FAST_VOCAB` | pool_items IMAGE_SELECT+MEANING_MATCH | local (recordAnswer; XP at pipeline end) | pending |
-| 09 | `09-word-search-step.md` | Word Search engine step (tap first/last letter) | `steps/WordSearchStep.tsx` (+ board `wordSearch/gridEngine.ts`) | `WORD_SEARCH` | pool_items → manifest vocab fallback | local (recordAnswer) | pending |
-| 10 | `10-memory-match-step.md` | Memory Match engine step (embeds FlashMatch) | `steps/MemoryMatchStep.tsx` + `steps/memoryPairs.ts` + `FlashMatch.tsx` (embedded) | `MEMORY_LAB` (+legacy `FLASH_MATCH`) | manifest `getVocabulary` (word↔L1 pairs) | local (1 correct per pair — documented simplification) | pending |
-| 11 | `11-spelling-bee-step.md` | Spelling Bee engine step (timeout ENDS run) | `steps/SpellingBeeStep.tsx` (+ shared `components/games/spellingBee/*`) | `SPELLING_BEE` | pool_items IMAGE_SELECT/MEANING_MATCH/DICTATION → `get_unit_bundle` vocab fallback | local (recordAnswer) | pending |
-| 12 | `12-exercise-battery.md` | Exercise battery runner — the shell every pool-game family renders through (Sound Lab, Listen & Tap, Phonics, Word Detective, Vocab Blitz, Sentence Lab, Grammar Lab, Speaking, Dialogue, Story Quest, Speed Quiz, Unit Review) + gameRouting map | `exercises/ExerciseRunner.tsx` + `services/gameRouting.ts` | all `pool`/`pool-all` routed types | `prepareUnitForStudent` + `selectLessonItems` (FSRS-driven selection, seed per step) | **FSRS** per attempt · `♥` · XP per correct · Q EARN_XP/REACH_FAMILIAR · XP LESSON_COMPLETE + heart restore at finish | pending |
+| 02 | `02-lesson-shell.md` | Player shell: header/progress/5 hearts placeholder, footer nav, step routing, INTRO_SPLASH, empty states | `SoloLessonPlayer.tsx` | shell + `INTRO_SPLASH` | activeUnit flow via SoloSessionContext; gameRouting table | `⭐` completeStage at finish; XP via onComplete→finalizeLesson | file-ready |
+| 03 | `03-word-lab.md` | Word Lab — vocabulary flip-card study phase | `WordLab.tsx` | `FOCUS_CARDS` | unit manifest `getVocabulary` (image/IPA/L1/definition/example + audio) | none (study gate) | file-ready |
+| 04 | `04-media-player.md` | Song / karaoke step | inline in `SoloLessonPlayer.tsx` | `MEDIA_PLAYER` | flow block data (videoUrl/audioUrl/lyrics) | none | file-ready |
+| 05 | `05-story-stage.md` | Story reader step (tappable vocab, read-along) | inline in `SoloLessonPlayer.tsx` | `STORY_STAGE` | flow `data.pages` + manifest `getCharacters` portraits | none | file-ready |
+| 06 | `06-grammar-sandbox.md` | Grammar rule presentation step | inline in `SoloLessonPlayer.tsx` | `GRAMMAR_SANDBOX` | flow block data (rule/explanation/examples) | none | file-ready |
+| 07 | `07-speed-quiz.md` | Quiz MCQ step (legacy in-shell battery) | inline in `SoloLessonPlayer.tsx` | `SPEED_QUIZ`/`GAME_ARENA` | flow `data.questions` | local (addPoints 'solo') | file-ready |
+| 08 | `08-fast-vocab-step.md` | Fast Vocab engine step | `steps/FastVocabStep.tsx` (+ shared `components/games/fastVocab/*`) | `FAST_VOCAB` | pool_items IMAGE_SELECT+MEANING_MATCH | local (recordAnswer; XP at pipeline end) | file-ready |
+| 09 | `09-word-search-step.md` | Word Search engine step (tap first/last letter) | `steps/WordSearchStep.tsx` (+ board `wordSearch/gridEngine.ts`) | `WORD_SEARCH` | pool_items → manifest vocab fallback | local (recordAnswer) | file-ready |
+| 10 | `10-memory-match-step.md` | Memory Match engine step (embeds FlashMatch) | `steps/MemoryMatchStep.tsx` + `steps/memoryPairs.ts` + `FlashMatch.tsx` (embedded) | `MEMORY_LAB` (+legacy `FLASH_MATCH`) | manifest `getVocabulary` (word↔L1 pairs) | local (1 correct per pair — documented simplification) | file-ready |
+| 11 | `11-spelling-bee-step.md` | Spelling Bee engine step (timeout ENDS run) | `steps/SpellingBeeStep.tsx` (+ shared `components/games/spellingBee/*`) | `SPELLING_BEE` | pool_items IMAGE_SELECT/MEANING_MATCH/DICTATION → `get_unit_bundle` vocab fallback | local (recordAnswer) | file-ready |
+| 12 | `12-exercise-battery.md` | Exercise battery runner — the shell every pool-game family renders through (Sound Lab, Listen & Tap, Phonics, Word Detective, Vocab Blitz, Sentence Lab, Grammar Lab, Speaking, Dialogue, Story Quest, Speed Quiz, Unit Review) + gameRouting map | `exercises/ExerciseRunner.tsx` + `services/gameRouting.ts` | all `pool`/`pool-all` routed types | `prepareUnitForStudent` + `selectLessonItems` (FSRS-driven selection, seed per step) | **FSRS** per attempt · `♥` · XP per correct · Q EARN_XP/REACH_FAMILIAR · XP LESSON_COMPLETE + heart restore at finish | file-ready |
 
 ### Exercise components (ExerciseRunner children — the actual challenge screens)
 
 | # | File | Surface | Component(s) | Exercise type(s) | Modality | Writes (via runner) | Status |
 |---|---|---|---|---|---|---|---|
-| 13 | `13-choice-exercise.md` | The one flexible MCQ renderer | `exercises/ChoiceExercise.tsx` | IMAGE_SELECT, MEANING_MATCH, AUDIO_L1_SELECT, LISTEN_SELECT, SPELL_CLOZE, ERROR_SPOT, TRANSFORM, GRAMMAR_FILL, STORY_COMPREHENSION, WHO_SAID_IT | receptive | FSRS/♥/XP per attempt | pending |
-| 14 | `14-word-bank-build.md` | Sentence assembly from tiles | `exercises/WordBankBuild.tsx` | WORD_BANK_BUILD | productive | FSRS/♥/XP | pending |
-| 15 | `15-dictation.md` | Type what you hear | `exercises/Dictation.tsx` | DICTATION | productive | FSRS/♥/XP | pending |
-| 16 | `16-type-translate.md` | L1→L2 typing | `exercises/TypeTranslate.tsx` | TYPE_TRANSLATE | productive | FSRS/♥/XP | pending |
-| 17 | `17-minimal-pair-swipe.md` | Confusable-pair 2-option audio choice | `exercises/MinimalPairSwipe.tsx` | MINIMAL_PAIR_SWIPE | receptive | FSRS/♥/XP | pending |
-| 18 | `18-speak-sentence.md` | Speak-the-sentence (mic, tiered lenient scoring) | `exercises/SpeakSentence.tsx` | SPEAK_SENTENCE | productive (speech) | practice-only when client-graded (record:false) | pending |
-| 19 | `19-dialogue-roleplay.md` | Line-by-line dialogue performance | `exercises/DialogueRoleplay.tsx` | DIALOGUE_ROLEPLAY | productive (speech) | practice-only when client-graded | pending |
+| 13 | `13-choice-exercise.md` | The one flexible MCQ renderer | `exercises/ChoiceExercise.tsx` | IMAGE_SELECT, MEANING_MATCH, AUDIO_L1_SELECT, LISTEN_SELECT, SPELL_CLOZE, ERROR_SPOT, TRANSFORM, GRAMMAR_FILL, STORY_COMPREHENSION, WHO_SAID_IT | receptive | FSRS/♥/XP per attempt | file-ready |
+| 14 | `14-word-bank-build.md` | Sentence assembly from tiles | `exercises/WordBankBuild.tsx` | WORD_BANK_BUILD | productive | FSRS/♥/XP | file-ready |
+| 15 | `15-dictation.md` | Type what you hear | `exercises/Dictation.tsx` | DICTATION | productive | FSRS/♥/XP | file-ready |
+| 16 | `16-type-translate.md` | L1→L2 typing | `exercises/TypeTranslate.tsx` | TYPE_TRANSLATE | productive | FSRS/♥/XP | file-ready |
+| 17 | `17-minimal-pair-swipe.md` | Confusable-pair 2-option audio choice | `exercises/MinimalPairSwipe.tsx` | MINIMAL_PAIR_SWIPE | receptive | FSRS/♥/XP | file-ready |
+| 18 | `18-speak-sentence.md` | Speak-the-sentence (mic, tiered lenient scoring) | `exercises/SpeakSentence.tsx` | SPEAK_SENTENCE | productive (speech) | practice-only when client-graded (record:false) | file-ready |
+| 19 | `19-dialogue-roleplay.md` | Line-by-line dialogue performance | `exercises/DialogueRoleplay.tsx` | DIALOGUE_ROLEPLAY | productive (speech) | practice-only when client-graded | file-ready |
 
 ### Standalone practice games (Practice Arena → full-screen)
 
 | # | File | Surface | Component(s) | Route | Data sources | Writes | Status |
 |---|---|---|---|---|---|---|---|
-| 20 | `20-fast-vocab-solo.md` | Fast Vocab standalone (unit picker, longer-cycle pref, personal best) | `FastVocabGame.tsx` (+ shared engine) | `/student/fast-vocab` | pool_items by unit | local + **XP/◆/Q self-awarded once at end** (pattern A) | pending |
-| 21 | `21-spelling-bee-solo.md` | Spelling Bee standalone (settings, timer/slow/removal prefs, personal best) | `SpellingBeeGame.tsx` (+ shared engine) | `/student/spelling-bee` | pool_items → get_unit_bundle fallback | local + XP/◆/Q self-awarded once (pattern A) | pending |
-| 22 | `22-phonics-practice.md` | Phonics practice (minimal-pair battery wrapper) | `PhonicsPhlyer.tsx` | `/student/phonics` | pool_items MINIMAL_PAIR_SWIPE of active unit | via ExerciseRunner (FSRS/♥/XP) | pending |
-| 23 | `23-daily-practice.md` | Daily Practice / SRS review (due+weak across all units) | `SpacedRepetition.tsx` | `/student/srs` | `selectPracticeItems` (FSRS due+weak) | via ExerciseRunner + capped XP + Q REVIEW_WORDS at done | pending |
-| 24 | `24-reading-reader.md` | Reading reader + comprehension quiz | `ReadingReader.tsx` | `/student/reading` | manifest `getStory` pages + comprehension questions | session summary → XP via onSessionEnd | pending |
-| 25 | `25-pronunciation-coach.md` | Pronunciation Coach (mic + waveform + similarity) | `PronunciationCoach.tsx` | `/student/pronounce` | none (fixed default sentence!) | XP via onSessionEnd (server-verified only) | pending |
+| 20 | `20-fast-vocab-solo.md` | Fast Vocab standalone (unit picker, longer-cycle pref, personal best) | `FastVocabGame.tsx` (+ shared engine) | `/student/fast-vocab` | pool_items by unit | local + **XP/◆/Q self-awarded once at end** (pattern A) | file-ready |
+| 21 | `21-spelling-bee-solo.md` | Spelling Bee standalone (settings, timer/slow/removal prefs, personal best) | `SpellingBeeGame.tsx` (+ shared engine) | `/student/spelling-bee` | pool_items → get_unit_bundle fallback | local + XP/◆/Q self-awarded once (pattern A) | file-ready |
+| 22 | `22-phonics-practice.md` | Phonics practice (minimal-pair battery wrapper) | `PhonicsPhlyer.tsx` | `/student/phonics` | pool_items MINIMAL_PAIR_SWIPE of active unit | via ExerciseRunner (FSRS/♥/XP) | file-ready |
+| 23 | `23-daily-practice.md` | Daily Practice / SRS review (due+weak across all units) | `SpacedRepetition.tsx` | `/student/srs` | `selectPracticeItems` (FSRS due+weak) | via ExerciseRunner + capped XP + Q REVIEW_WORDS at done | file-ready |
+| 24 | `24-reading-reader.md` | Reading reader + comprehension quiz | `ReadingReader.tsx` | `/student/reading` | manifest `getStory` pages + comprehension questions | session summary → XP via onSessionEnd | file-ready |
+| 25 | `25-pronunciation-coach.md` | Pronunciation Coach (mic + waveform + similarity) | `PronunciationCoach.tsx` | `/student/pronounce` | none (fixed default sentence!) | XP via onSessionEnd (server-verified only) | file-ready |
 
 ### Legacy / flag-gated (document, don't redesign by default)
 
@@ -119,12 +121,15 @@ Legend for "Writes": `FSRS` = Engine.recordAttempt (memory model) · `♥` = hea
 
 ## Cross-cutting open questions (parked in `_CROSS-CUTTING.md`, owner decides)
 
-1. **Light vs dark** — current `wa-*`/`duo-*` light theme vs board v3 night-navy vs a fresh direction. The owner's own draft prompts (untracked, repo root: `PROMPT_STITCH_STUDENT_APP_UI.md`, `PROMPT_STITCH_STUDENT_SCREENS.md` — 28-screen checklist, "brainstorm 4 directions" approach) predate the v3 dark language and lean Duolingo-evolution. **Ask before any design generation.**
-2. The two untracked PROMPT_STITCH files are owner WIP — never commit without asking; are they superseded by this pipeline?
-3. Dead code (file 29): delete LessonSession/ListenTap/SentenceScramble or leave parked?
-4. Dubbing (file 30): stays flag-off?
-5. Hearts: the shell's fake hearts (file 02) vs the battery's real hearts — unify?
+1. ~~Light vs dark~~ **RESOLVED 2026-09-13** — redesigns mix Wonder Atlas × Duolingo white/pink; home design frozen (see `_CROSS-CUTTING.md` §0 + §1).
+2. ~~The owner's root PROMPT_STITCH files~~ — content checklists useful, process superseded; still owner WIP, never commit.
+3. Dead code (file 29): delete LessonSession/ListenTap/SentenceScramble or leave parked? — recommendation: delete, owner confirms.
+4. Hearts: the shell's fake hearts (file 02 F1) vs the battery's real hearts — unify? (battery model is the honest one)
+5. Spelling Bee SPLIT rule in-lesson (file 11 F1): timeout ends the run — keep the tension or soften to reveal+continue in lessons?
+6. Gems gate unreachable from lessons (file 27 F1) — intended or fix?
+7. Dubbing (file 30): stays flag-off (parked).
 
 ## Change log
 
 - 2026-09-13 — **PHASE A COMPLETE.** Folder + student prelude template + this index created; 30 per-game files generated with §0 identity filled from a full code read of `apps/student/**` (~10.4k lines: shell, player, 4 engine steps, runner, 7 exercise components, 6 standalone games, legacy + dubbing). Tag `student-app-v3-phase-a-start` pushed. Screenshots deferred to per-game §0–§3 prep (passport fixture required — first capture lands with the pilot game, same as games-v3). **Next: owner comments intake → pilot game selection.**
+- 2026-09-13 — **OWNER DIRECTION RECORDED + PHASE B (ZCode §1–§3) COMPLETE for ALL 30 surfaces.** Owner: full functionality audit of everything; theme = Wonder Atlas × Duolingo white/pink mix; home design FROZEN (functionality audit only); AG recreates screens as reusable code with owner validation before implementation; pilot game first to prove the flow. All 30 files now carry §1 verbatim mechanics + §3 numbered findings → **file-ready**. Headline findings: **P1 ×2** — Spelling Bee in-lesson timeout ends the run (11 F1, owner decision), Pronunciation Coach has NO content source — one hardcoded sentence forever (25 F1); **P2 highlights** — LISTEN_SELECT mixed-option modality leak (13 F1, verified vs generator), fake shell hearts vs real battery hearts (02 F1), no exit-confirm anywhere (02 F2/08 F3/12 F7), unknown-type Skip writes a FALSE FSRS success (12 F1), out-of-hearts advice dead-end (12 F2), Memory Match records perfect accuracy regardless of mismatches (10 F1), AI-prompt leak in Reading's missing-image fallback (24 F1), N+1 home-load queries + lifetime-units quest bar (01 F1/F2), 5★ gem gate unreachable from lessons (27 F1). **Next: pilot game selection → AG §4 + Stitch pack (Phase C).**

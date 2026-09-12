@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+WORD_BANK_BUILD (`exercises/WordBankBuild.tsx`): optional L1 translation prompt + audio button, a dashed build area, and shuffled word-bank tiles. Tap a bank tile to append it to the build area; tap a placed tile to remove it (:25-33). Check compares the built token sequence to the target via punctuation/case-insensitive normalization (:34-41); feedback shows the target sentence + banner, then completes. All writes via the runner.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/exercises/WordBankBuild.tsx`.
+
+- **F1 · P2 — Tile tap targets sit under the 48px floor.** Placed/bank tiles are `px-3 py-2` (~40px tall) (:57, :67) — dense word sequences with small targets is exactly the mis-tap profile for young fingers (and a mis-tap REMOVES a placed word).
+- **F2 · P3 — No per-tile TTS** — tapping a word is silent; hearing each tile would support phonological assembly (the board v3 Sentence Lab speaks the sentence on resolve).
+- **F3 · P3 — Sentence audio doesn't autoplay** — the AudioButton exists only when `audio_url` is present (:46) and waits for a tap.
+- **F4 · P3 — Wrong check wipes nothing but also teaches nothing in place** — feedback swaps the Check button for the answer text (:85-91); correctly placed words aren't distinguished from wrong ones (board v3 Sentence Lab keeps correct placements green).
+- **F5 · P3 — No length mismatch guard** — kid can Check a half-built sentence and burn the attempt; a gentle "2 words left" nudge would fit kid-alone rules.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

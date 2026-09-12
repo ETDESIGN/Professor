@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+LessonComplete (`LessonComplete.tsx`): dark celebration — conic burst + dot confetti, 1-3 star cascade (500/1000/1500ms), XP count-up, gems card, Continue (:18-59+). Continue → `StudentApp.finalizeLesson` (StudentApp.tsx:181-203): `awardXP(xp || LESSON_COMPLETE)`; PERFECT_LESSON gems ONLY when `stars === 5`; quests COMPLETE_LESSONS +1 and EARN_XP +xp; home. Stars arrive from the completing surface (`starsForAccuracy` = 1-3 for lessons; engine games compute their own 0-5 internally before pattern-A self-award).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs: `apps/student/LessonComplete.tsx`, `StudentApp.tsx:181-203`, `services/stageProgressService.ts:31-32`.
+
+- **F1 · P2 — The 5-star gem gate is unreachable from the lesson path.** `starsForAccuracy` returns 1-3 (stageProgressService.ts:31-32), but `finalizeLesson` requires `stars === 5` for gems (StudentApp.tsx:188) — no lesson, ever, awards perfect-lesson gems; only the standalone games' internal 0-5 star systems can. Either the gate means "engine-game perfect only" (then hide the gem card for lessons) or the scale needs alignment — kid-visible inconsistency either way.
+- **F2 · P3 — Star display clamps to 3** (`Math.min(3, …)` :22) — consistent with lesson stars, hides the mismatch in F1.
+- **F3 · P3 — XP count-up speed is fixed** (20ms/point :31-39) — a 200-XP run takes 4s of counting; cap the animation.
+- **F4 · P3 — No accuracy/time tiles** — the owner's draft prompt sketches "Total XP + Accuracy" stat tiles; current screen shows XP + gems only (time is passed but unused).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

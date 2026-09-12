@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+In-lesson FAST_VOCAB engine step (`steps/FastVocabStep.tsx`). Loads the unit pool (IMAGE_SELECT + MEANING_MATCH, limit 500) → `detectMode`/`buildUnitPairs` → waves of `waveSize` (plan data, default 3) up to 4 waves (:77-109). Each wave: a match phase (tap word↔image/meaning pairs — `FastVocabMatchWave`) then 2 speed questions @10s (`FastVocabSpeedRound`), driven by `useFastVocabTurn` (:185-192). Scoring is board-math local: correct → `scoreForAttempt(0, difficulty, 1.0, streak)` (+streak cues + audio), wrong → −1 MISTAKE_PENALTY, timeout costs nothing; every match/speed result also `recordAnswer` (session accuracy) (:114-183). Wave completion auto-advances after 1400ms (:160-177); done → stars via `starsFor(firstTry, interactions)` (:230-282). Wave audio prefetched (:195-197). Timers cleaned on unmount (:199-204).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/steps/FastVocabStep.tsx` unless noted.
+
+- **F1 · P2 — Speed questions are a fixed 10s with no mercy** (`SPEED_TIME_LIMIT = 10`, :41) — no slow mode in-lesson (the standalone twin has wave-size prefs but no timer pref either); young solo kids get one pace.
+- **F2 · P3 — Session-accuracy denominator counts mismatch taps** — every wrong pair tap and wrong speed pick calls `recordAnswer(false)` (:127-133, :157-158), so exploratory tapping (a legitimate memory-game strategy) drags the stars that `completeStage` persists.
+- **F3 · P3 — Exit mid-run has no confirmation** (:299) — same accidental-loss class as shell F2.
+- **F4 · P3 — Fixed 1400ms wave-advance beat** (:165) — a slow reader loses the wave-complete moment; not cancellable by tapping.
+- **F5 · P3 — No pool-empty retry path** — unlike SpellingBeeStep's bundle fallback, an empty pool shows the generic error Continue (fine, but inconsistent with 11).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

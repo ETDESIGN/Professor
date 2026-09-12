@@ -67,17 +67,29 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots: pending — first live captures land with the pilot's passport fixture; this audit is from code. DESIGN IS FROZEN per owner — functionality findings only.)*
+
+The child's landing surface. On mount it loads (a) the unit list via `Engine.fetchUnits` (SoloSessionContext.loadUnits), (b) per-unit mastery summaries in a serial loop — `Engine.getUnitMasterySummary(studentId, u.id)` for crowns/cracked/isComplete (HomeMap.tsx:57-70), (c) all stage progress in one call — `getAllStageProgress` (:75-81). Rendering per unit: an optional `TerritoryIntro` hero for the "focus unit" (`pickFocusUnit`, atlas/territory.ts) with a START button that launches the active node (:225-240); a unit header card with cover image, theme chip (`themeForUnit`), crowns `n/total`, and a pulsing "N cracked" chip when objectives decayed (:242-276); then the Student Path — `resolveUnitPath(unit)` → `computeNodeStates(path, stageProgress)` renders circular nodes (locked grey / active terracotta + START popover / completed sand + check + real 1-3 stars) on a dashed SVG path (`generatePath`, :84-101, rendered :279-291, nodes :294-367), ending in a dicebear treasure-chest node that lights "UNIT DONE!" when `isPathComplete` (:370-383). Node tap → `onNavigate('lesson', unitId, stage.id)` → solo lesson. Above the units: a Daily Quests card with two progress bars — "Earn 50 XP" from student XP and "Complete 2 Lessons" from `completedUnitIds.length` (:106-156). Floating bottom-right: Practice Arena FAB (+ dubbing FAB when flagged) (:390-406). Loading/error/empty states all present and honest (:158-209); scroll position restores via useMainScrollRestore.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Severity: P1 blocks learning · P2 degrades · P3 polish. Refs are `apps/student/HomeMap.tsx` unless noted.
+
+- **F1 · P2 — Serial N+1 mastery queries slow the home screen.** One `getUnitMasterySummary` RPC per unit in a sequential for-loop (:57-70) — a kid in a class with 12 units waits 12 round-trips before crowns/cracked render; the path itself renders from the single `getAllStageProgress` call, so the slow part is decoration, but it's the first screen a child opens.
+- **F2 · P2 — "Complete 2 Lessons" quest bar is computed from lifetime units, not lessons.** It reads `completedUnitIds.length` (:134-140) — finished-units-ever, not today's lessons — so after a child ever completes 2 units it permanently reads 2/2 and the daily-quest framing is a lie (compare the real quest engine in `Quests.tsx` via GamificationService).
+- **F3 · P2 — The "N cracked" chip promises targeted review but delivers the generic menu.** Tap → `onNavigate('practice', unit.id)` (:260-268); PracticeMenu receives no unitId and ignores it — the cracked skills of THAT unit are not what Practice offers (SRS is cross-unit, Phonics is activeUnit-based).
+- **F4 · P3 — Hardcoded daily goal + crude countdown.** `xpGoal = 50` and `hoursLeft = 24 - now.getHours()` (:41-44) — the "Xh left" label can read "0h left" at 23:00 and the goal ignores the real quest config.
+- **F5 · P3 — Node offsets push toward the screen edge on small phones.** `translate-x-16` every 2nd/4th node plus w-20 (80px) circles (:300-302, :314-328) — on a 390px viewport the offset nodes sit within ~20px of the edge; verify no clipping/overlap with the path SVG.
+- **F6 · P3 — Treasure chest + portraits depend on external dicebear URLs** (:373) — placeholder-grade art + a third-party dependency on the frozen home; a local asset would be safer offline.
+- **F7 · P3 — Streak shown twice** — sticky header pills (StudentApp.tsx:271-273) and the quests card (:142-154) duplicate the same number.
+
+**What already works well (context):** real stage gating with per-node teacher overrides, stale-stage-id recovery in setActiveUnit, honest loading/error/empty states, mastery/cracked decay surfacing, scroll restore. The owner likes this design — findings above are functionality polish, not a redesign case.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

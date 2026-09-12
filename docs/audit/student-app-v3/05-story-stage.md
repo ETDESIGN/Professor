@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+The story-reading input step, inline (:280-384). Pages come from flow `data.pages` (text/speaker/portrait/audio); speaker portraits resolve from the unit's manifest characters, emoji-fallback (:295-299). Story text renders token-by-token; tokens matching unit vocabulary (case-insensitive) become tappable amber-underlined spans — tap = speak the word (`playAudioUrl`) + popup card with word/IPA/L1/definition + listen chip (:301-318, :369-381). A "Read along" button speaks the whole page (:324-327). Page dots + small prev/next arrows (:345-366). No writes.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
+
+- **F1 · P2 — Inline vocab tap targets are word-sized.** The tappable span is just the word (:307-314) inside text-lg body text — for 6-y/o fingers, a partial-tap misses; the popup's listen chip is then a second small target (:373). Consider a larger hit area (padding) or tap-to-select-then-confirm pattern.
+- **F2 · P3 — Popup only closes by tapping itself** (:370) — no tap-outside, no auto-dismiss; a confused kid can accumulate a stale popup.
+- **F3 · P3 — "Tap any word to hear it 👆" hint is low-contrast** (`text-amber-500/70`, :342).
+- **F4 · P3 — Page dots are indicators, not buttons** (:345-349) — no jump-to-page; nav relies on the two small arrows (see shell F6).
+- **F5 · P3 — No page-turn audio cue or read-along state feedback** — pressing Read along gives no visual state (button doesn't change while speaking).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

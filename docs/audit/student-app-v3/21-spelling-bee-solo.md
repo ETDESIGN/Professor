@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+The standalone Spelling Bee (`SpellingBeeGame.tsx`) — same shared engine as file 11 plus: unit picker, persisted solo settings (timer on/off, slow mode 25s vs normal 15s, letter removal — localStorage `spellingbee-settings` :46-121), per-unit personal best, and pattern-A one-time end award. The SPLIT fail rule applies here too: **a timeout ends the run** (header :12-13). Presentation beat + holds inherited from the shared engine.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/SpellingBeeGame.tsx`.
+
+- **F1 · P1 (owner decision) — Timeout ends the run, with mitigations available but off by default.** Timer-on + 15s is the default (`DEFAULT_SETTINGS` :55); slow-25s and timer-off exist but a kid (or parent) must find Settings. If the owner keeps the tension rule here (reasonable for the arcade standalone), the defaults are still the kid-alone question — see file 11 F1.
+- **F2 · P3 — Settings panel is text-toggles** — fine functionally; ensure the redesigned surface keeps them reachable pre-run (thumb zone).
+- **F3 · P3 — Same no-exit-confirm and unit-list findings as file 20 (F1/F2).**
+- **F4 · P3 — Keyboard narrowing is deterministic per unit** (inherited) — replays narrow identically; consider per-run seeds in solo for freshness (board re-seeds per turn).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

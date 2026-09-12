@@ -67,17 +67,29 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending — passport fixture.)*
+
+The router + chrome of every lesson. `SoloLessonPlayer` takes the stage-scoped flow from SoloSessionContext and classifies each step via `services/gameRouting.ts` `contentForStep`: **engine** steps (FAST_VOCAB/WORD_SEARCH/MEMORY_LAB/SPELLING_BEE) render full-screen game steps (:615-641); **pool** steps (PRACTICE/ASSESS or routed families) render the ExerciseBattery (:589-610, loads via `prepareUnitForStudent` + `selectLessonItems(…, 14, {types, signature, interleave, seed})` :97-113, variety seed re-rolled per step :93,139); everything else renders inline passive steps — INTRO_SPLASH (:417-441), FOCUS_CARDS→WordLab (:185-192), SPEED_QUIZ/GAME_ARENA (:194-278), STORY_STAGE (:280-384), GRAMMAR_SANDBOX (:386-415), MEDIA_PLAYER (:443-568), generic placeholder (:570-584). Passive steps share the shell: X-exit + progress bar + a hearts counter (:686-704) and a Back/Continue footer (:721-740). Speed quiz: tap option → instant reveal, correct → `addPoints('solo', 1)` + "+1 XP" toast, wrong → local `lives-1` (:236-257). Lesson end: `handleNext` on the last step computes elapsed time, accuracy from `state.totalCorrect/totalAttempts`, XP = `max(1, state.score + 3) + stage.xpReward`, fires `completeStage` (stars best-kept, fire-and-forget) and calls `onComplete` → LessonComplete → `finalizeLesson` awards (:142-168). Battery/engine steps replace the whole screen (own headers with real HUDs) (:665-684). Unit vocab/images preloaded on mount (:115-129).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Severity: P1 blocks learning · P2 degrades · P3 polish. Refs are `apps/student/SoloLessonPlayer.tsx` unless noted.
+
+- **F1 · P2 — The shell's "5 hearts" are fake and coexist with the battery's real hearts.** `lives` is local state (:41), decremented only by speed-quiz wrongs (:247), never gates anything — a child can sit at 0 hearts and continue forever. Meanwhile ExerciseRunner shows the REAL DB-backed balance in its own header (ExerciseRunner.tsx:238-241). One lesson, two heart systems, one of them decorative — dishonest UI (see `_CROSS-CUTTING.md` #4).
+- **F2 · P2 — X-exits instantly with no confirmation.** The header X (:689) and the engine steps' chevron exits drop the whole lesson — stage stars, session accuracy, everything — with one accidental tap (completeStage only fires on natural completion :156-160). For a 6-y/o alone, an accidental exit is a data-loss dead-end.
+- **F3 · P2 — MEDIA_PLAYER dims and crops the video** — player at `opacity: 0.6` over a 50% black scrim (:498, :508). This is the same TTR-degradation the board's v3 explicitly fixed (uncropped, undimmed video for visual modeling); the student app kept the old pattern.
+- **F4 · P3 — Every lesson pays minimum XP regardless of performance** — `max(1, score + 3)` (:152): a zero-correct run still banks ≥3 XP (+ stage reward). Small, but the floor is generous.
+- **F5 · P3 — Speed-quiz `addPoints('solo', 1)` writes a phantom student id** (:244) into pointsLog — harmless locally, hygiene only.
+- **F6 · P3 — Story step tap targets are small** — prev/next page buttons are `p-2` icon buttons ≈36px (:353-365), under the 48px floor; the tapped-word popup requires a precise second tap on the 🔊 chip (:373).
+- **F7 · P3 — Story popup can collide at short viewports** — absolutely positioned `bottom-24` (:370) with no clamp; the story text reserves `pr-24` for the Read-along button (:341).
+- **F8 · P3 — Passive steps can be skipped without interacting** — the footer Continue is always enabled (no answer-ready gate, unlike the dead legacy runner's pattern); deliberate learner control vs. free-skipping is a pedagogy call to confirm in §4.
+- **F9 · P3 — No small-height landscape pass on any inline step** (only the engine steps were compact-tested); the shell itself reflows but the inline step bodies were never floor-verified.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

@@ -67,17 +67,26 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+The single MCQ renderer for 10 pool types (`exercises/ChoiceExercise.tsx`): IMAGE_SELECT, MEANING_MATCH, AUDIO_L1_SELECT, LISTEN_SELECT, SPELL_CLOZE, ERROR_SPOT, TRANSFORM, GRAMMAR_FILL, STORY_COMPREHENSION, WHO_SAID_IT. Each type maps to a prompt shape in a switch (:56-128): audio-first types render a large AudioButton + instruction; IMAGE_SELECT/LISTEN_SELECT use a 2-col image-option grid with optional labels under images (:169-192); sentence types show the sentence + rule instruction; explanation appears post-reveal (:194-196). One tap selects + reveals (green correct / red picked / grey others via shared `optionClasses`), then `onComplete({success, time_taken_ms, attempts: 1})` fires after 1100ms (:130-138) — all writes belong to the runner (file 12).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted.
+
+- **F1 · P2 (verified 2026-09-13 vs `supabase/functions/generate-exercises/index.ts:118-126`) — LISTEN_SELECT mixed-option modality leak.** Generator options are `{text: word, image_url}`; the renderer shows image-only when `image_url` exists (`opt.label` is never set, so no caption leaks) (:177-189) — BUT when some distractors lack images, the set renders MIXED: image options are matchable by picture, imageless options print the English `text` (:188) — the listening task becomes solable by sight/odd-one-out, and difficulty is uneven within one question. All-text sets are legitimate (listen→word recognition). **Fix shape: render a uniform modality per question — imageless options get a picture placeholder or the question degrades to text-only for ALL options.**
+- **F2 · P2 — The explanation window is ~1.1s.** Feedback + explanation render, then auto-complete fires (:135-137) — a young reader cannot finish the explanation; no tap-to-continue override, no pause.
+- **F3 · P2 — No in-component retry teaching beat** — wrong answers advance away after the flash; the runner's single re-queue comes later, detached from the moment (compare Word Bank's in-place correction).
+- **F4 · P3 — Image-onError fades to 0.2 opacity** (:183) with no fallback glyph — a dead image option becomes a ghost card the kid might still tap.
+- **F5 · P3 — Text options are comfortable but unlabeled** — no A/B/C/D badges (board v3 style) and no keyboard shortcuts; fine on touch, thin on tablets-with-keyboard.
+- **F6 · P3 — SPELL_CLOZE blank renders as raw underscores in the sentence** (:164) — no styled gap/letter-count affordance.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

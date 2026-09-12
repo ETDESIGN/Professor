@@ -67,17 +67,24 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+SpacedRepetition (`SpacedRepetition.tsx`): loads 18 due+weak items across ALL units via `selectPracticeItems` (:26-42), shows a "Today's Practice" start card, then runs ExerciseRunner ("Daily Practice"). On done: capped XP `min(5, max(1, correct))` (rescaled 2026-09-04) + REVIEW_WORDS quest progress, then `onComplete` (:115-124). Router note: StudentApp's route passes `onComplete={() => navigate('/student')}` (StudentApp.tsx:234) — the runner's own summary screen is the only celebration; no LessonComplete interstitial.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs: `apps/student/SpacedRepetition.tsx`, `StudentApp.tsx:234`.
+
+- **F1 · P3 — The computed xp in `handleDone` is dead code** — the router discards the result object and navigates home; XP actually comes from the runner's per-correct + LESSON_COMPLETE awards. Confusing but not double-awarding (verified once during implementation review anyway).
+- **F2 · P3 — No reward interstitial for daily practice** — every other flow ends on LessonComplete; SRS ends on the in-runner summary then home. Consistency/juice question for §4.
+- **F3 · P3 — Fixed 18 items** — no session-length choice for a tired kid (a "half for today" mercy would fit kid-alone rules).
+- **F4 · P3 — Retry/error states solid** (Retry + Back on failure :46-60; caught-up empty state :70-80) — good.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

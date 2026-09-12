@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+The standalone Fast Vocab (`FastVocabGame.tsx`) — same shared engine as file 08 plus a unit-picker screen, a persisted "Longer cycle" preference (5-pair waves, localStorage `fastvocab-longwaves` :46-105), and a per-unit personal best (`fastvocab-best-<unitId>`). Pool load per unit (IMAGE_SELECT/MEANING_MATCH) with inline load-error message (:118-140+). Scoring: identical board math kept local + `recordAnswer`; at run end an `awardedRef`-latched ONE-TIME GamificationService award (XP + gems + quests — pattern A, header :1-10) so the parent never double-awards. Results screen: stars, score roll-up, best streak, accuracy, personal best.
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/FastVocabGame.tsx`.
+
+- **F1 · P3 — Unit list is unfiltered and unsearchable** — every enrolled unit in one grid; long classes scroll.
+- **F2 · P3 — Exit mid-run has no confirmation** (same accidental-loss class as shell F2 — pattern A means an abandoned run awards nothing).
+- **F3 · P3 — The "Longer cycle" toggle lives on the picker** (:89-105) — discoverable only before a run; no mid-run wave-size escape.
+- **F4 · P3 — Speed phase 10s fixed** (same as file 08 F1 — one pace for all ages).
+- **F5 · P3 — Personal best is per-device (localStorage)** — device switches lose it; acceptable, note only.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

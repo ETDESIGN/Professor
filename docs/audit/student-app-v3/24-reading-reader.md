@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+ReadingReader (`ReadingReader.tsx`): manifest story pages (aspect-video art + speaker chip + large centered text with tappable blue vocab → popover with definition/L1 :187-196) → page dots footer (:199-211) → quiz phase over flattened `comprehension_questions` (:31-41): one question at a time, tap-to-reveal (green correct / red picked), Next → finish → `onSessionEnd({correct, total})` (:89-112). Empty state when the unit has no story (:52-65).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs: `apps/student/ReadingReader.tsx`, `StudentApp.tsx:232`.
+
+- **F1 · P2 — Missing-image fallback leaks the raw AI prompt to kids.** `{page.image_prompt || 'No image'}` renders the generation prompt text ("A watercolor illustration of…") in the art slot (:132-137) — an internal artifact on a child-facing surface; needs a friendly placeholder.
+- **F2 · P3 — PERFECT_SPEAKING quest credited for perfect READING** (StudentApp.tsx:232) — quest-type mislabel; reading perfection should feed its own (or a comprehension) quest.
+- **F3 · P3 — Quiz has no explanations and no retry** — reveal → Next; wrong answers pass by untaught (battery re-queue doesn't apply here).
+- **F4 · P3 — Vocab popover has no tap-outside close** (:188) and no audio button (definition/L1 only — inconsistent with the Story step's speak-enabled popup).
+- **F5 · P3 — No page TTS/read-along control** — the Story step has Read-along; Reading mode (the dedicated reading surface!) doesn't.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

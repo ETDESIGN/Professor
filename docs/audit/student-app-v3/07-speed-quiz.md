@@ -67,17 +67,25 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+The in-shell quiz battery for frozen `data.questions` [{text, options, correct}], inline (:194-278). One question at a time; tap → instant color reveal (green correct / red picked-wrong / grey others), correct → `addPoints('solo', 1)` + "+1 XP" toast, wrong → local `lives-1`; Continue advances; last question completes the step (:236-274). Progress bar per question index. No FSRS/quest writes (frozen questions carry no objective ids).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
+
+- **F1 · P2 — Wrong answers get no teaching beat.** Reveal + immediate Continue (:260-274) — no retry, no re-queue (the battery re-queues missed items once; this older surface doesn't), no explanation field support. Wrong = shown the answer for as long as the kid chooses to stare.
+- **F2 · P2 — Fake-heart decrement on wrong** (:247) — feeds shell F1 (decorative hearts).
+- **F3 · P3 — Quiz performance is invisible to the learner model** — frozen questions have no objective_id, so nothing reaches FSRS/remediation (acceptable for legacy blocks, but the audit should say it).
+- **F4 · P3 — A/B/C/D prefixes are small** (`text-sm font-mono opacity-60`, :253) vs the board v3's prominent letter badges.
+- **F5 · P3 — No question images** — content shape is text-only (pool-driven IMAGE_SELECT lives in the battery, not here).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

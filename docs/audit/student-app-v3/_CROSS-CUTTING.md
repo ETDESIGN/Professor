@@ -2,17 +2,23 @@
 
 Themes and decisions that span multiple surfaces. Owner decisions recorded here before they gate any design work.
 
-## 1. ⚠️ Light vs dark — THE first owner decision (blocks design generation)
+## 0. ✅ OWNER DIRECTION (2026-09-13, verbatim intent) — the ground rules for this round
 
-The student app currently runs **two light theme systems side by side**:
-- **`wa-*` "Wonder Atlas"** (cream `bg-wa-cream`, paper cards, teal/terracotta accents, Fredoka display) — Home Map, header, join-class, Shop/Profile area, TerritoryIntro.
-- **`duo-*` / slate Duolingo-style** (white cards, `duo-pink`/`duo-blue`/`duo-red`, slate-50) — lesson shell, WordLab, exercise battery, most practice games; a few slate-900 dark screens (engine steps 08/09/11, Pronunciation Coach, Lesson Complete).
+> "I will let you audit and let Anti-Gravity audit properly every game, every game interaction, the workflow, the user flow, the … pedagogic flow, etc. … and figure out where are the issues. About the theme — actually we have implemented on the first page some kind of wonder atlas, but actually I like very much the Duolingo style white and pink … So for the new stitch design creation I want a mix between those both. We don't change the screens already implemented, but some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement. So for each game I want Anti[-Gravity] to recreate the different screens with codes that we can reuse, but I want to validate them first, and in case there is some screen I don't like I will be able to modify through Stitch. … We will do the first game [first], I will review the Stitch file, make my comment to Anti-Gravity if needed and bring it back to you for you to analyze [whether] it's properly implemented. The home screen for the student will not be changed — the design is not bad right now — but it still can be audited about functionality. Actually the whole student app needs to be audited about functionality."
 
-The board's v3 identity (night navy `#070C18`, hot-pink `#FF2E79`, sky `#38BDF8`) was designed for a projector. The mission says "same v3 visual language where it fits — but let Stitch propose per-game personality."
+Decoded into operating rules:
+1. **Full functionality audit of everything** (ZCode §1–§3 + Anti-Gravity §4) BEFORE/alongside redesigns — every game, interaction, workflow, user flow, pedagogical flow.
+2. **Design language for redesigned games = a MIX of the current two light systems**: "Wonder Atlas" (home-page cream/paper/teal/terracotta warmth) × "Duolingo white + pink" (the lesson screens' clean white cards + `duo-pink` accents). NOT the board's dark-navy v3 identity. Per-game personality may still vary within that light world.
+3. **Student HOME page design is FROZEN** — functionality audit only (file 01), no Stitch redesign.
+4. **Screens that are already good stay as implemented** — only games needing refinement get recreated; expect a mix of big and slight improvements. The §4/§3 audits decide which bucket each game falls in.
+5. **AG recreates screens as reusable code** (production-grade Tailwind HTML → adapted nearly verbatim into the React component), **owner validates every screen before implementation**, and the owner can himself iterate a screen inside Stitch when he dislikes it.
+6. **Pilot-first workflow**: game #1 runs the full loop (audit → AG §4 + Stitch → owner review/comments → AG fixes → ZCode verifies implementation) to prove the flow before the batch.
 
-**The owner's own draft prompts** (untracked at repo root, `PROMPT_STITCH_STUDENT_APP_UI.md` + `PROMPT_STITCH_STUDENT_SCREENS.md`, ~28-screen checklist) describe the current look as a working-but-generic "Duolingo clone" and ask Stitch to brainstorm **4 distinct directions** (one may evolve the current berry/light style) for the whole app — a different process than per-game personality on top of v3 tokens.
+_(Supersedes the earlier "light vs dark" open question below — kept for history.)_
 
-**Decision needed before AG generates anything:** (a) adopt v3 dark as the base with per-game personality, (b) run the owner's 4-direction brainstorm app-wide first and pick one, or (c) keep light and modernize per-game. Also: are the two root PROMPT_STITCH files superseded by this pipeline? (They are owner WIP — never committed without asking.)
+## 1. ~~Light vs dark~~ RESOLVED by §0 — mix Wonder Atlas × Duolingo white/pink; home frozen
+
+The app's two current light systems are the PARENTS of the new mix: `wa-*` "Wonder Atlas" (cream `bg-wa-cream`, paper cards, teal/terracotta, Fredoka display — Home Map, Shop/Profile area) and `duo-*` Duolingo-style (white cards, `duo-pink`/`duo-blue`/`duo-red` on slate-50 — lesson shell, battery, most games). New Stitch designs for redesigned games blend both; the board's v3 dark-navy tokens are NOT the base. The owner's root draft prompts (`PROMPT_STITCH_STUDENT_APP_UI.md` / `_SCREENS.md`) predate this decision — treat their **content checklists** (28 screens, realistic kid content) as useful input, their **process** (4-direction brainstorm) as superseded. The files remain owner WIP — never commit without asking.
 
 ## 2. Dead code (file 29)
 

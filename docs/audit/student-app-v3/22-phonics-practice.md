@@ -67,17 +67,23 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending.)*
+
+PhonicsPhlyer (`PhonicsPhlyer.tsx`) is a thin wrapper: loads the ACTIVE unit's MINIMAL_PAIR_SWIPE pool items (:27-41) and runs them through ExerciseRunner with the title "Phonics — Minimal Pairs" (:83). Empty state explains minimal pairs are generated during enrichment (:62-77). All writes are the runner's (FSRS/hearts/XP).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/PhonicsPhlyer.tsx`.
+
+- **F1 · P2 — Depends on a previously-opened unit with no picker.** `state.activeUnit` (:17-18) is whatever the kid last opened on the map — a fresh app launch straight to Practice → Phonics hits the "open a unit from the map" empty state (:70-73). Inconsistent with files 20/21 which have pickers; a kid alone doesn't know the invisible precondition.
+- **F2 · P3 — No due-count / progress signal on entry** (compare SRS's badge on the Practice menu).
+- **F3 · P3 — Wrapper adds no phonics identity** — title chip only; the experience is 17's component repeated (see 17's findings).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

@@ -67,17 +67,26 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
-<ZCode fills: mechanics, flow, states, scoring wiring, data sources — self-contained, written for a reader with no codebase access, with file:line refs. Reference screenshots by filename.>
+*(Screenshots pending — passport fixture.)*
+
+The vocabulary STUDY phase for FOCUS_CARDS blocks. `WordLab` takes the unit's `getVocabulary(manifest)` and slices the first 5 cards (:23). Each card is an independent flip: front = image (`object-contain`, error→opacity .15) + word + a `duo-blue` Listen chip; back = gradient card with word, IPA, L1 translation, definition, example sentence + "hear sentence" (:79-151). `speak()` guarantees sound — stored audio or browser TTS — and marks the card played (:42-47). A card is "studied" when flipped AND played (:28-32); the footer button reads "I'm ready — let's practice" once all 5 are studied, else "Continue" with a tip (:159-174). No scores, no writes — a deliberate input gate before practice. Grid: 2 cols on phones → 5 cols on xl, min-height 220px cards (:66).
 
 ## §2 Owner comments (verbatim)
 
-> <Owner's recorded comments about THIS surface, pasted verbatim by ZCode, with recording date. Nothing paraphrased.>
-
-<ZCode note: any interpretation/clarification goes here, clearly marked as interpretation.>
+> **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
+>
+> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
 
 ## §3 ZCode code-level findings
 
-<ZCode fills: numbered findings, each with severity (P1 blocks learning/showstopper, P2 degrades experience, P3 polish), file:line reference, and what the code actually does vs. what was intended. Kid-alone failure modes from the prelude get special attention: dead-ends, unfair timeouts, sight-reading leaks, stale-audio desyncs, scoring that writes wrong data, phone-floor layout breaks.>
+Refs are `apps/student/WordLab.tsx`.
+
+- **F1 · P3 — Back-card content can overflow on long entries.** Definition + example + buttons in a min-h-220 card (grows, but in the 2-col phone grid a long definition squeezes the card tall and pushes the footer below the fold — no scroll containment per card).
+- **F2 · P3 — Broken images leave a near-blank card** — `onError` sets opacity .15 (:94) with no fallback glyph (the word text survives, but the visual channel silently dies; contrast with ListenTap's 🖼️ fallback pattern).
+- **F3 · P3 — No audio autoplay on flip** — by design (learner control, documented in the header comment); §4 should confirm keeping it.
+- **F4 · P3 — "Studied" requires hearing audio, but the Listen chip is small** (`px-3 py-1.5` ≈ 32px, :103-107) — the gate condition depends on a sub-floor tap target.
+
+**Works well:** guaranteed-sound design, independent flips for contrast study, honest gate, image containment. This one is close to "slight improvement" bucket.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 
