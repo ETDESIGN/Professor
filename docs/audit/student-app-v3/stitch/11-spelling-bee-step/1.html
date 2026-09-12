@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Spelling Bee (Active Typing)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #D6CCC2;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    /* Hard bevel / playful depth shadows */
+    .btn-3d-paper {
+      box-shadow: 0 3px 0 #D5C7B0;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-paper:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D5C7B0;
+    }
+    .btn-3d-amber {
+      box-shadow: 0 4px 0 #C99E32;
+    }
+    .btn-3d-blue {
+      box-shadow: 0 4px 0 #0284C7;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-blue:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #0284C7;
+    }
+    .btn-3d-delete {
+      box-shadow: 0 3px 0 #C4553B;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-delete:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #C4553B;
+    }
+    .btn-3d-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+
+    /* Blinking & Pulsing Animation for Active Slot */
+    @keyframes pulseGlow {
+      0%, 100% {
+        border-color: #E9C46A;
+        box-shadow: 0 0 0 3px rgba(233, 196, 106, 0.45);
+      }
+      50% {
+        border-color: #F4A261;
+        box-shadow: 0 0 0 5px rgba(244, 162, 97, 0.2);
+      }
+    }
+    .slot-focus {
+      animation: pulseGlow 1.6s infinite ease-in-out;
+    }
+
+    @keyframes blinkCursor {
+      0%, 45% { opacity: 1; }
+      50%, 95% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .blinking-cursor {
+      animation: blinkCursor 1s infinite;
+    }
+  </style>
+</head>
+<body class="p-0 sm:p-4 selection:bg-[#E9C46A]/40">
+
+  <!-- Mobile Portrait Shell (390 x 844) -->
+  <main class="w-[390px] h-[844px] max-h-[844px] bg-[#EAE0D0] relative flex flex-col justify-between overflow-hidden shadow-2xl rounded-[38px] border-4 border-[#D8CABE]">
+    
+    <!-- TOP SECTION: Shell Header & Subheader HUD -->
+    <header class="w-full flex-shrink-0 z-20">
+      <!-- Universal Shell Header (64px) -->
+      <div class="h-16 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between">
+        <!-- Close 'X' button -->
+        <button class="w-10 h-10 rounded-full bg-[#F7F3E8] border-2 border-[#E2D7C3] text-[#264653] font-fredoka font-bold text-lg flex items-center justify-center btn-3d-paper hover:bg-[#F2ECE0] focus:outline-none" aria-label="Close">
+          ✕
+        </button>
+
+        <!-- 6-Segment Progress Bar (Step 5 Active in Duolingo Pink #E91E63) -->
+        <div class="flex items-center gap-1.5 px-2">
+          <!-- Segment 1 Completed -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Segment 2 Completed -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Segment 3 Completed -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Segment 4 Completed -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Segment 5 (Active Step) in #E91E63 -->
+          <div class="w-9 h-2.5 rounded-full bg-[#E91E63] ring-2 ring-[#E91E63]/30 shadow-inner"></div>
+          <!-- Segment 6 Inactive -->
+          <div class="w-7 h-2.5 rounded-full bg-[#E2D7C3]"></div>
+        </div>
+
+        <!-- Hearts Counter -->
+        <div class="flex items-center gap-1 bg-[#F7F3E8] border-2 border-[#E2D7C3] px-2.5 py-1 rounded-full btn-3d-paper">
+          <svg class="w-4 h-4 text-[#FF4B4B] fill-current" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          <span class="font-fredoka font-bold text-sm text-[#1D3557]">4</span>
+        </div>
+      </div>
+
+      <!-- Subheader HUD: Badges & Relaxed Countdown Timer -->
+      <div class="px-4 pt-3 pb-1">
+        <div class="flex items-center justify-between mb-2">
+          <!-- Honeycomb Amber Pill Badge -->
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] font-fredoka font-bold text-xs shadow-sm">
+            <span class="text-sm">🐝</span>
+            <span>SPELLING BEE • WORD 2 OF 5</span>
+          </div>
+
+          <!-- Round Tag -->
+          <div class="px-2.5 py-1 rounded-full bg-[#FDFBF7] border border-[#E2D7C3] text-[#8C7A68] font-fredoka font-semibold text-xs shadow-xs">
+            🎯 Round 1
+          </div>
+        </div>
+
+        <!-- Relaxed Timer HUD -->
+        <div class="flex items-center gap-2.5 bg-[#FDFBF7]/85 border border-[#E2D7C3] px-3 py-1.5 rounded-2xl">
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <span class="text-sm">⏱️</span>
+            <span class="font-fredoka font-bold text-xs text-[#0284C7] tracking-wide">14s</span>
+          </div>
+          <!-- Progress Bar (70% full = 14s/20s) -->
+          <div class="w-full bg-[#E2D7C3] h-2.5 rounded-full overflow-hidden p-[1px]">
+            <div class="bg-[#38BDF8] h-full rounded-full w-[70%]" style="box-shadow: inset 0 -1.5px 0 #0284C7;"></div>
+          </div>
+          <!-- Audio Cue annotation pill -->
+          <div class="hidden sm:flex items-center text-[10px] text-[#8C7A68] font-mono whitespace-nowrap">
+            [clock_tick]
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CENTER MAIN STAGE: Card & Honeycomb Spelling Slots -->
+    <section class="flex-1 px-4 flex flex-col justify-center items-center py-2 relative z-10">
+      
+      <!-- Word Illustration Card -->
+      <div class="w-full max-w-[340px] bg-[#FDFBF7] rounded-[24px] border-[2.5px] border-[#E2D7C3] p-3 shadow-md relative text-center">
+        <!-- Replay Audio FAB Badge (Centered float or badge) -->
+        <button class="absolute -top-3.5 right-4 w-11 h-11 rounded-full bg-[#1CB0F6] border-2 border-white text-white flex items-center justify-center btn-3d-blue shadow-lg hover:brightness-105 focus:outline-none" title="Replay Pronunciation">
+          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+          </svg>
+        </button>
+
+        <!-- Stone Bridge Artwork (Clean SVG Vector) -->
+        <div class="w-full h-[142px] bg-gradient-to-b from-[#E0F2FE] via-[#BAE6FD] to-[#E2E8F0] rounded-[18px] overflow-hidden border border-[#D0C2B0] relative flex items-center justify-center shadow-inner">
+          <svg class="w-full h-full" viewBox="0 0 320 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Sky and Sun -->
+            <circle cx="270" cy="30" r="16" fill="#FDE047" opacity="0.9"/>
+            <circle cx="270" cy="30" r="22" fill="#FEF08A" opacity="0.4"/>
+            <!-- Gentle Clouds -->
+            <path d="M35 32 C35 26 42 22 48 24 C52 18 63 18 67 24 C73 23 78 28 77 34 Z" fill="#FFFFFF" opacity="0.8"/>
+            <path d="M190 22 C190 18 195 15 200 16 C203 12 211 12 214 16 C219 15 223 19 222 23 Z" fill="#FFFFFF" opacity="0.85"/>
+            <!-- Distant hills -->
+            <path d="M0 90 Q 70 65 140 85 T 280 80 Q 305 75 320 82 L 320 150 L 0 150 Z" fill="#A7F3D0"/>
+            <path d="M0 98 Q 90 80 180 94 T 320 90 L 320 150 L 0 150 Z" fill="#6EE7B7"/>
+            <!-- Sparkling Blue River -->
+            <path d="M0 108 C 80 102 240 104 320 108 L 320 150 L 0 150 Z" fill="#38BDF8"/>
+            <path d="M15 130 Q 50 126 85 130" stroke="#E0F2FE" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M140 134 Q 180 130 220 134" stroke="#E0F2FE" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M250 126 Q 285 124 310 127" stroke="#E0F2FE" stroke-width="2" stroke-linecap="round"/>
+            <!-- Riverbank Grass Foregrounds -->
+            <path d="M0 115 C 30 115 55 128 65 150 L 0 150 Z" fill="#10B981"/>
+            <path d="M320 115 C 290 115 265 128 255 150 L 320 150 Z" fill="#10B981"/>
+            <circle cx="28" cy="128" r="4" fill="#F43F5E"/>
+            <circle cx="38" cy="138" r="3.5" fill="#FBBF24"/>
+            <circle cx="285" cy="130" r="4" fill="#F43F5E"/>
+            <circle cx="298" cy="140" r="3.5" fill="#38BDF8"/>
+
+            <!-- Picturesque Stone Arch Bridge -->
+            <!-- Bridge Arch Piers & Spandrels -->
+            <path d="M45 124 L 275 124 L 275 106 Q 160 92 45 106 Z" fill="#D6D3D1"/>
+            <!-- Bridge Top Road Deck & Parapet -->
+            <path d="M35 108 Q 160 90 285 108 L 285 101 Q 160 83 35 101 Z" fill="#78716C"/>
+            <!-- Balustrade Posts -->
+            <line x1="60" y1="102" x2="60" y2="95" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="90" y1="99" x2="90" y2="92" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="125" y1="97" x2="125" y2="90" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="160" y1="96" x2="160" y2="89" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="195" y1="97" x2="195" y2="90" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="230" y1="99" x2="230" y2="92" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <line x1="260" y1="102" x2="260" y2="95" stroke="#E7E5E4" stroke-width="3" stroke-linecap="round"/>
+            <!-- Top Handrail -->
+            <path d="M35 97 Q 160 79 285 97" stroke="#A8A29E" stroke-width="3.5" stroke-linecap="round"/>
+
+            <!-- Main Central Arch cutout (River showing through) -->
+            <path d="M100 124 C 100 106 130 99 160 99 C 190 99 220 106 220 124 Z" fill="#0284C7"/>
+            <path d="M100 124 C 100 106 130 99 160 99 C 190 99 220 106 220 124" stroke="#78716C" stroke-width="4"/>
+            <!-- Inner Arch Keystone and voussoirs -->
+            <path d="M154 98 L 166 98 L 163 105 L 157 105 Z" fill="#F59E0B"/>
+            
+            <!-- Side arches -->
+            <path d="M50 124 C 50 114 65 110 80 112 L 80 124 Z" fill="#0284C7"/>
+            <path d="M240 112 C 255 110 270 114 270 124 L 240 124 Z" fill="#0284C7"/>
+
+            <!-- Stone Texture detailing -->
+            <rect x="110" y="106" width="10" height="5" rx="1.5" fill="#A8A29E"/>
+            <rect x="200" y="106" width="10" height="5" rx="1.5" fill="#A8A29E"/>
+            <rect x="145" y="108" width="12" height="5" rx="1.5" fill="#A8A29E"/>
+            <rect x="165" y="108" width="12" height="5" rx="1.5" fill="#A8A29E"/>
+          </svg>
+        </div>
+
+        <!-- Chinese Support Subtitle -->
+        <div class="mt-2 text-center">
+          <p class="font-bold text-sm text-[#8C7A68] tracking-wider">桥梁 / 大桥</p>
+          <div class="inline-flex items-center gap-1 text-[11px] text-[#A69584] font-medium mt-0.5">
+            <span>🔊 [playCue: word_audio]</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Honeycomb Spelling Slots Row (Target word: B-R-I-D-G-E) -->
+      <div class="w-full mt-4 flex flex-col items-center">
+        <!-- Slots container -->
+        <div class="flex justify-center items-center gap-2">
+          
+          <!-- Slot 1: 'B' (Filled) -->
+          <div class="w-12 h-14 bg-[#E9C46A] border-2 border-[#C99E32] rounded-xl flex items-center justify-center btn-3d-amber transition-transform transform hover:scale-105">
+            <span class="font-fredoka font-bold text-2xl text-[#1D3557]">B</span>
+          </div>
+
+          <!-- Slot 2: 'R' (Filled) -->
+          <div class="w-12 h-14 bg-[#E9C46A] border-2 border-[#C99E32] rounded-xl flex items-center justify-center btn-3d-amber transition-transform transform hover:scale-105">
+            <span class="font-fredoka font-bold text-2xl text-[#1D3557]">R</span>
+          </div>
+
+          <!-- Slot 3: Active Focus (Empty with Pulsing Amber Border & Cursor) -->
+          <div class="w-12 h-14 bg-[#FFFDF9] rounded-xl border-[2.5px] border-[#E9C46A] slot-focus flex items-center justify-center relative shadow-sm">
+            <span class="font-fredoka font-bold text-2xl text-[#E76F51] blinking-cursor -mt-1">_</span>
+          </div>
+
+          <!-- Slot 4: Empty Dotted Paper Slot -->
+          <div class="w-12 h-14 rounded-xl border-2 border-dashed border-[#C99E32]/70 bg-[#F7F3E8] flex items-center justify-center text-[#C99E32]/50 font-fredoka font-bold text-sm">
+            ·
+          </div>
+
+          <!-- Slot 5: Empty Dotted Paper Slot -->
+          <div class="w-12 h-14 rounded-xl border-2 border-dashed border-[#C99E32]/70 bg-[#F7F3E8] flex items-center justify-center text-[#C99E32]/50 font-fredoka font-bold text-sm">
+            ·
+          </div>
+
+          <!-- Slot 6: Empty Dotted Paper Slot -->
+          <div class="w-12 h-14 rounded-xl border-2 border-dashed border-[#C99E32]/70 bg-[#F7F3E8] flex items-center justify-center text-[#C99E32]/50 font-fredoka font-bold text-sm">
+            ·
+          </div>
+
+        </div>
+
+        <!-- Instructional Subtitle & Sound Cue -->
+        <div class="flex items-center gap-2 mt-3 px-3 py-1 bg-[#FDFBF7]/80 rounded-full border border-[#E2D7C3]/80">
+          <span class="text-xs">💡</span>
+          <span class="text-xs font-bold text-[#264653]">Spell the word: <span class="text-[#2A9D8F]">B - R - ?</span></span>
+          <span class="text-[10px] text-[#8C7A68] font-mono">[playCue: letter_place]</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- BOTTOM SECTION: Adaptive Kid-Sized Paper Keyboard -->
+    <footer class="w-full bg-[#FDFBF7] rounded-t-[32px] border-t-2 border-[#E2D7C3] p-4 shadow-xl flex-shrink-0 z-20">
+      
+      <!-- Assistive prompt & sound cue pill -->
+      <div class="flex items-center justify-between px-1 mb-3">
+        <span class="text-xs font-extrabold text-[#264653] tracking-wide flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[#2A9D8F] inline-block animate-ping"></span>
+          TAP A LETTER KEY
+        </span>
+        <span class="text-[11px] font-semibold text-[#8C7A68] bg-[#F7F3E8] px-2.5 py-0.5 rounded-full border border-[#E2D7C3]">
+          🔊 [playCue: key_tap]
+        </span>
+      </div>
+
+      <!-- Keyboard Container (2 Staggered Rows of Generous Paper Keys) -->
+      <div class="flex flex-col gap-2.5 pb-1">
+        
+        <!-- ROW 1: [ I ] [ D ] [ G ] [ E ] [ S ] (All >= 48px tap targets, 52px high) -->
+        <div class="grid grid-cols-5 gap-2 justify-center">
+          <!-- Key I (Next correct letter) -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            I
+          </button>
+          <!-- Key D -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            D
+          </button>
+          <!-- Key G -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            G
+          </button>
+          <!-- Key E -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            E
+          </button>
+          <!-- Key S (Distractor) -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            S
+          </button>
+        </div>
+
+        <!-- ROW 2: [ A ] [ T ] [ M ] [ ⌫ Delete ] -->
+        <div class="grid grid-cols-4 gap-2 justify-center">
+          <!-- Key A (Distractor) -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            A
+          </button>
+          <!-- Key T (Distractor) -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            T
+          </button>
+          <!-- Key M (Distractor) -->
+          <button class="h-[52px] min-w-[48px] rounded-[14px] bg-[#FDFBF7] border-2 border-[#E2D7C3] btn-3d-paper flex items-center justify-center font-fredoka font-bold text-2xl text-[#264653] hover:border-[#E9C46A] hover:bg-[#FFFDF7] active:bg-[#F2ECE0] focus:outline-none">
+            M
+          </button>
+          <!-- Key ⌫ Delete (Soft Mist #F7F3E8 with terracotta accent & bevel) -->
+          <button class="h-[52px] min-w-[70px] rounded-[14px] bg-[#F7F3E8] border-2 border-[#E2D7C3] btn-3d-delete flex items-center justify-center gap-1.5 px-3 font-fredoka font-bold text-[#E76F51] hover:bg-[#F0EAE0] active:bg-[#EAE1D3] focus:outline-none" aria-label="Delete letter">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/>
+            </svg>
+            <span class="text-sm font-fredoka tracking-tight">DEL</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Bottom Hint Note for Zero Overwhelm -->
+      <div class="mt-2 text-center">
+        <p class="text-[11px] text-[#8C7A68] font-bold">
+          🎯 Narrowed keyboard · Touch letters to complete <span class="text-[#2A9D8F]">"BRIDGE"</span>
+        </p>
+      </div>
+
+    </footer>
+
+  </main>
+
+</body>
+</html>

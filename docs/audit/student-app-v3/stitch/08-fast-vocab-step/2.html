@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Fast Vocab (Speed Question with Timer State)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', 'Noto Sans SC', sans-serif;
+      background-color: #E6DCB8;
+      background-image: radial-gradient(#D6CAAE 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #264653;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-fredoka {
+      font-family: 'Fredoka', 'Nunito', sans-serif;
+    }
+
+    /* Screen Frame */
+    .mobile-screen {
+      width: 390px;
+      height: 844px;
+      background-color: #F7F3E8;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px -15px rgba(38, 70, 83, 0.22), 0 0 0 1px rgba(226, 215, 195, 0.6);
+      border-radius: 44px;
+      border: 8px solid #FDFBF7;
+    }
+
+    /* Bevel UI Utilities */
+    .bevel-btn-blue {
+      background-color: #1CB0F6;
+      box-shadow: 0 4px 0 #0284C7;
+      transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .bevel-btn-blue:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #0284C7;
+    }
+
+    .bevel-card {
+      background-color: #FDFBF7;
+      border: 2.5px solid #E2D7C3;
+      box-shadow: 0 4px 0 #D4C6AF;
+      transition: all 0.15s ease;
+    }
+    .bevel-card:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #D4C6AF;
+    }
+    .bevel-card:hover {
+      border-color: #2A9D8F;
+    }
+
+    .bevel-timer-bar {
+      box-shadow: 0 2px 0 #0284C7;
+    }
+
+    /* Subtle pulse animation for timer badge */
+    @keyframes gentle-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .pulse-badge {
+      animation: gentle-pulse 1.2s infinite ease-in-out;
+    }
+
+    /* Sound Cue badge style */
+    .dev-sound-cue {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      background-color: #F0EAD6;
+      color: #786C5E;
+      border: 1px dashed #D6CAAE;
+      border-radius: 6px;
+      padding: 2px 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-screen select-none">
+    
+    <!-- ================= UNIVERSAL SHELL HEADER (64px) ================= -->
+    <header class="h-16 px-4 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center justify-between shrink-0 z-30">
+      <!-- Left: 48px Close Button -->
+      <button class="w-12 h-12 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] shadow-[0_2px_0_#D4C6AF] flex items-center justify-center text-[#8C7A68] hover:text-[#264653] hover:bg-white active:translate-y-0.5 transition-all" title="Exit Lesson" aria-label="Exit Lesson">
+        <svg class="w-5 h-5 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Center: 6-Segment Progress Tracker (Step 3 Active in #E91E63 Pink) -->
+      <div class="flex items-center gap-1.5 px-1 py-2">
+        <div class="w-5 h-2 rounded-full bg-[#E91E63] shadow-sm"></div>
+        <div class="w-5 h-2 rounded-full bg-[#E91E63] shadow-sm"></div>
+        <div class="w-7 h-2.5 rounded-full bg-[#E91E63] ring-2 ring-[#E91E63]/30 shadow-sm animate-pulse"></div>
+        <div class="w-5 h-2 rounded-full bg-[#E2D7C3]"></div>
+        <div class="w-5 h-2 rounded-full bg-[#E2D7C3]"></div>
+        <div class="w-5 h-2 rounded-full bg-[#E2D7C3]"></div>
+      </div>
+
+      <!-- Right: Real Hearts Counter Pill -->
+      <div class="h-10 px-3.5 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center gap-1.5 shadow-[0_2px_0_#D4C6AF]">
+        <svg class="w-5 h-5 fill-[#FF4B4B] drop-shadow-[0_1px_1px_rgba(255,75,75,0.4)]" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-base text-[#264653] leading-none pt-0.5">4</span>
+      </div>
+    </header>
+
+    <!-- Sound Cue Indicator for Header -->
+    <div class="bg-[#F0EAD6]/90 px-4 py-1 flex items-center justify-between border-b border-[#E2D7C3]/60 text-[10px] text-[#8C7A68]">
+      <span class="dev-sound-cue">🔊 [playCue: tap_exit]</span>
+      <span class="font-semibold text-[#8C7A68]">FastVocabStep • Step 3 of 6</span>
+    </div>
+
+    <!-- ================= SUBHEADER HUD & COUNTDOWN TIMER ================= -->
+    <div class="bg-[#FDFBF7] px-4 pt-3 pb-3 border-b-2 border-[#E2D7C3] shrink-0">
+      <!-- Top Row Badges -->
+      <div class="flex items-center justify-between gap-2 mb-2.5">
+        <!-- Amber Pill Badge -->
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FCECD0] border border-[#E9C46A] shadow-sm">
+          <span class="text-amber-500 font-bold text-xs">⚡</span>
+          <span class="font-fredoka font-bold text-[11px] text-[#A66E14] uppercase tracking-wide">Speed Round • Wave 2/3 (Q 1/2)</span>
+        </div>
+
+        <!-- Streak Combo Badge -->
+        <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FFECE4] border border-[#F4A261] shadow-sm">
+          <span class="text-xs">🔥</span>
+          <span class="font-fredoka font-bold text-xs text-[#E76F51]">3x Combo</span>
+        </div>
+      </div>
+
+      <!-- Prominent Countdown Timer Widget (Crucial requirement: 11s left of 15s) -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <!-- Pulsing Timer Badge -->
+            <div class="pulse-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#E0F2FE] border border-[#38BDF8] text-[#0284C7] shadow-sm">
+              <svg class="w-3.5 h-3.5 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"/>
+                <path stroke-linecap="round" d="M12 7v5l3 3"/>
+              </svg>
+              <span class="font-fredoka font-bold text-xs">⏱️ 11s left</span>
+            </div>
+            <span class="dev-sound-cue text-[9px] py-0.5">🔊 [playCue: clock_tick]</span>
+          </div>
+          <span class="font-bold text-[11px] text-[#8C7A68]">15s MAX</span>
+        </div>
+
+        <!-- Timer Bar Track: 10px high, 73.3% filled with sky blue #38BDF8 bevel -->
+        <div class="w-full h-2.5 bg-[#EAE0D0] rounded-full p-0.5 border border-[#D6CAAE] relative overflow-hidden">
+          <div class="h-full rounded-full bg-[#38BDF8] bevel-timer-bar w-[73.3%] transition-all duration-300 relative">
+            <div class="absolute inset-0 bg-white/20 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MAIN STAGE: SPEED CHALLENGE QUESTION ================= -->
+    <main class="flex-1 px-4 py-3.5 overflow-y-auto flex flex-col justify-between">
+      
+      <!-- Top Section: Question Prompt Card -->
+      <section class="bg-[#FDFBF7] rounded-[24px] border-2 border-[#E2D7C3] p-3.5 text-center shadow-[0_2px_4px_rgba(226,215,195,0.4)] relative">
+        <p class="text-xs font-bold text-[#8C7A68] tracking-wide mb-1 flex items-center justify-center gap-1.5">
+          <svg class="w-3.5 h-3.5 fill-[#2A9D8F]" viewBox="0 0 20 20">
+            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-11a1 1 0 112 0v4a1 1 0 11-2 0V7zm1 8a1 1 0 100-2 1 1 0 000 2z"/>
+          </svg>
+          Listen and find the matching picture!
+        </p>
+
+        <!-- Target Headword -->
+        <h1 class="font-fredoka font-bold text-[28px] text-[#1D3557] tracking-tight leading-none my-1.5">
+          traffic light
+        </h1>
+
+        <!-- Chinese Support Subtitle -->
+        <p class="text-sm font-semibold text-[#8C7A68] tracking-wide mb-2.5">
+          交通信号灯
+        </p>
+
+        <!-- Speaker Audio FAB (48px circle, #1CB0F6 Duolingo blue) -->
+        <div class="flex items-center justify-center gap-3">
+          <button class="w-12 h-12 rounded-full bevel-btn-blue flex items-center justify-center text-white active:scale-95 shadow-md" title="Play audio pronunciation" aria-label="Listen to word">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+          </button>
+          <span class="dev-sound-cue text-[10px]">🔊 [playCue: prompt_audio]</span>
+        </div>
+      </section>
+
+      <!-- 3 Large Image Candidate Options (100px high each) -->
+      <section class="space-y-2.5 my-2.5">
+        
+        <!-- OPTION 1: Traffic Light (Target Candidate) -->
+        <button class="w-full h-[98px] rounded-[22px] bevel-card flex items-center p-3 gap-3.5 text-left active:scale-[0.99] group focus:outline-none focus:ring-4 focus:ring-[#2A9D8F]/30" aria-label="Select traffic light">
+          <!-- Illustrated Thumbnail Box (48+ px target inside) -->
+          <div class="w-[72px] h-[72px] rounded-2xl bg-[#E8F4F8] border-2 border-[#B8DCE8] flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+            <!-- Traffic Light Vector Illustration -->
+            <svg class="w-11 h-11" viewBox="0 0 64 64" fill="none">
+              <!-- Metal Pole -->
+              <rect x="29" y="38" width="6" height="24" rx="2" fill="#7F8C8D" />
+              <!-- Housing Frame -->
+              <rect x="20" y="4" width="24" height="42" rx="6" fill="#2C3E50" />
+              <rect x="22" y="6" width="20" height="38" rx="4" fill="#34495E" />
+              <!-- Yellow Visors / Hoods -->
+              <path d="M22 13 Q32 9 42 13" stroke="#F1C40F" stroke-width="2.5" stroke-linecap="round" fill="none" />
+              <path d="M22 25 Q32 21 42 25" stroke="#F1C40F" stroke-width="2.5" stroke-linecap="round" fill="none" />
+              <path d="M22 37 Q32 33 42 37" stroke="#F1C40F" stroke-width="2.5" stroke-linecap="round" fill="none" />
+              <!-- Red Light (Glow) -->
+              <circle cx="32" cy="14" r="4.5" fill="#E74C3C" />
+              <circle cx="30.5" cy="12.5" r="1.5" fill="#FF7675" />
+              <!-- Yellow Light -->
+              <circle cx="32" cy="25" r="4" fill="#F39C12" />
+              <!-- Green Light -->
+              <circle cx="32" cy="36" r="4" fill="#2ECC71" />
+            </svg>
+          </div>
+
+          <!-- Label and Subtext -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="w-5 h-5 rounded-full bg-[#E2D7C3] font-fredoka font-bold text-xs text-[#8C7A68] flex items-center justify-center">A</span>
+              <span class="font-fredoka font-bold text-lg text-[#1D3557] truncate group-hover:text-[#2A9D8F] transition-colors">traffic light</span>
+            </div>
+            <p class="text-xs text-[#8C7A68] font-medium">3-color city signal pole</p>
+          </div>
+
+          <!-- Tap Indicator Arrow -->
+          <div class="w-8 h-8 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center text-[#8C7A68] group-hover:bg-[#2A9D8F] group-hover:text-white group-hover:border-[#2A9D8F] transition-colors shrink-0">
+            <svg class="w-4 h-4 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+
+        <!-- OPTION 2: Crosswalk -->
+        <button class="w-full h-[98px] rounded-[22px] bevel-card flex items-center p-3 gap-3.5 text-left active:scale-[0.99] group focus:outline-none focus:ring-4 focus:ring-[#2A9D8F]/30" aria-label="Select crosswalk">
+          <!-- Illustrated Thumbnail Box -->
+          <div class="w-[72px] h-[72px] rounded-2xl bg-[#EBF7EE] border-2 border-[#C6E8CE] flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+            <!-- Pedestrian Crosswalk Vector Illustration -->
+            <svg class="w-11 h-11" viewBox="0 0 64 64" fill="none">
+              <!-- Asphalt Road Base -->
+              <rect x="6" y="10" width="52" height="44" rx="8" fill="#576574" />
+              <!-- White Zebra Stripes (Perspective) -->
+              <rect x="12" y="16" width="6" height="32" rx="2" fill="#FDFBF7" />
+              <rect x="23" y="16" width="6" height="32" rx="2" fill="#FDFBF7" />
+              <rect x="34" y="16" width="6" height="32" rx="2" fill="#FDFBF7" />
+              <rect x="45" y="16" width="6" height="32" rx="2" fill="#FDFBF7" />
+              <!-- Curb side walk indicator -->
+              <path d="M6 14 H58" stroke="#F1C40F" stroke-width="2" stroke-dasharray="3 3"/>
+              <circle cx="32" cy="32" r="3" fill="#2ECC71" opacity="0.3"/>
+            </svg>
+          </div>
+
+          <!-- Label and Subtext -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="w-5 h-5 rounded-full bg-[#E2D7C3] font-fredoka font-bold text-xs text-[#8C7A68] flex items-center justify-center">B</span>
+              <span class="font-fredoka font-bold text-lg text-[#1D3557] truncate group-hover:text-[#2A9D8F] transition-colors">crosswalk</span>
+            </div>
+            <p class="text-xs text-[#8C7A68] font-medium">zebra pedestrian street path</p>
+          </div>
+
+          <!-- Tap Indicator Arrow -->
+          <div class="w-8 h-8 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center text-[#8C7A68] group-hover:bg-[#2A9D8F] group-hover:text-white group-hover:border-[#2A9D8F] transition-colors shrink-0">
+            <svg class="w-4 h-4 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+
+        <!-- OPTION 3: Subway Station -->
+        <button class="w-full h-[98px] rounded-[22px] bevel-card flex items-center p-3 gap-3.5 text-left active:scale-[0.99] group focus:outline-none focus:ring-4 focus:ring-[#2A9D8F]/30" aria-label="Select subway station">
+          <!-- Illustrated Thumbnail Box -->
+          <div class="w-[72px] h-[72px] rounded-2xl bg-[#FEF3EB] border-2 border-[#FAD6BC] flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
+            <!-- Subway Entrance / Stairs Vector Illustration -->
+            <svg class="w-11 h-11" viewBox="0 0 64 64" fill="none">
+              <!-- Subway Entrance Canopy -->
+              <path d="M10 26 Q32 14 54 26 L54 50 L10 50 Z" fill="#2980B9" />
+              <!-- Glass Arch Canopy -->
+              <path d="M12 28 Q32 18 52 28" stroke="#6DD5FA" stroke-width="3" fill="none" />
+              <!-- Dark Stairs Descending -->
+              <rect x="16" y="32" width="32" height="18" fill="#1A252F" rx="2" />
+              <line x1="16" y1="36" x2="48" y2="36" stroke="#7F8C8D" stroke-width="2" />
+              <line x1="16" y1="41" x2="48" y2="41" stroke="#7F8C8D" stroke-width="2" />
+              <line x1="16" y1="46" x2="48" y2="46" stroke="#7F8C8D" stroke-width="2" />
+              <!-- Subway "M" / Train Sign -->
+              <circle cx="32" cy="22" r="7" fill="#E74C3C" stroke="#FFFFFF" stroke-width="1.5" />
+              <path d="M28 25 V19 L32 23 L36 19 V25" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+
+          <!-- Label and Subtext -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="w-5 h-5 rounded-full bg-[#E2D7C3] font-fredoka font-bold text-xs text-[#8C7A68] flex items-center justify-center">C</span>
+              <span class="font-fredoka font-bold text-lg text-[#1D3557] truncate group-hover:text-[#2A9D8F] transition-colors">subway station</span>
+            </div>
+            <p class="text-xs text-[#8C7A68] font-medium">metro stairs with canopy</p>
+          </div>
+
+          <!-- Tap Indicator Arrow -->
+          <div class="w-8 h-8 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center text-[#8C7A68] group-hover:bg-[#2A9D8F] group-hover:text-white group-hover:border-[#2A9D8F] transition-colors shrink-0">
+            <svg class="w-4 h-4 stroke-current stroke-[2.5]" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
+
+      </section>
+
+      <!-- Fast Answer Bonus Chip -->
+      <div class="flex justify-center pb-1">
+        <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#FCECD0] border border-[#E9C46A] shadow-[0_2px_0_#D4C6AF] animate-bounce">
+          <span class="text-amber-500 font-bold text-sm">⚡</span>
+          <span class="font-fredoka font-bold text-xs text-[#A66E14]">Fast Answer: +50 Bonus XP active!</span>
+          <span class="text-xs">⭐</span>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ================= ANCHORED FOOTER (76px) ================= -->
+    <footer class="h-[76px] px-5 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] flex flex-col items-center justify-center shrink-0 z-30">
+      <p class="text-xs font-semibold text-[#8C7A68] text-center leading-tight">
+        Tap the correct picture before time runs out!
+      </p>
+      <div class="flex items-center gap-1 mt-1 text-[11px] font-bold text-[#2A9D8F]">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <span>Timeout costs no hearts</span>
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Word Search (WORD_SEARCH) Mid-Solve</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #D8CEBE;
+      color: #264653;
+      margin: 0;
+      padding: 0;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    /* Grid cell base */
+    .grid-cell {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 700;
+      font-size: 17px;
+      color: #264653;
+      position: relative;
+      user-select: none;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+    /* Ribbons */
+    .trail-bus {
+      background: rgba(42, 157, 143, 0.28);
+      border: 2px solid #2A9D8F;
+      color: #16564e;
+    }
+    .trail-city {
+      background: rgba(233, 30, 99, 0.22);
+      border: 2px solid #E91E63;
+      color: #9c1040;
+    }
+    .trail-park {
+      background: rgba(233, 196, 106, 0.35);
+      border: 2px solid #D8A527;
+      color: #7b5809;
+    }
+    .trail-active {
+      background: #38BDF8;
+      border: 2px dashed #0284C7;
+      color: #FFFFFF !important;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+      animation: pulse-active 1.4s infinite alternate;
+    }
+    @keyframes pulse-active {
+      0% { transform: scale(0.96); box-shadow: 0 0 6px rgba(56, 189, 248, 0.5); }
+      100% { transform: scale(1.02); box-shadow: 0 0 14px rgba(56, 189, 248, 0.85); }
+    }
+    @keyframes hint-pulse {
+      0% { transform: scale(1); box-shadow: 0 3px 0 #C99E32; }
+      50% { transform: scale(1.05); box-shadow: 0 4px 12px rgba(233, 196, 106, 0.65), 0 3px 0 #C99E32; }
+      100% { transform: scale(1); box-shadow: 0 3px 0 #C99E32; }
+    }
+    .animate-hint {
+      animation: hint-pulse 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+  <!-- Device Frame (390x844 mobile screen container) -->
+  <div class="w-full max-w-[390px] h-[844px] max-h-[844px] bg-[#EAE0D0] rounded-[38px] shadow-2xl overflow-hidden flex flex-col relative border-4 border-[#D8CEBE]">
+    
+    <!-- UNIVERSAL SHELL HEADER (64px) -->
+    <header class="h-16 min-h-[64px] bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-3.5 flex items-center justify-between z-20 shrink-0">
+      <!-- Left: Exit Button -->
+      <button class="w-10 h-10 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center justify-center text-[#8C7A68] hover:text-[#264653] hover:bg-[#EAE0D0] active:scale-95 transition-all text-lg font-bold">
+        ✕
+      </button>
+      
+      <!-- Center: 6-Segment Progress Tracker -->
+      <div class="flex items-center gap-1.5 px-2 py-1.5 bg-[#F7F3E8] rounded-full border border-[#E2D7C3]/70">
+        <div class="w-5 h-2 rounded-full bg-[#E91E63]"></div>
+        <div class="w-5 h-2 rounded-full bg-[#E91E63]"></div>
+        <div class="w-5 h-2 rounded-full bg-[#E91E63]"></div>
+        <!-- Active Step 4 -->
+        <div class="w-6 h-2.5 rounded-full bg-[#E91E63] ring-2 ring-[#E91E63]/30"></div>
+        <div class="w-5 h-2 rounded-full bg-[#D8CEBE]"></div>
+        <div class="w-5 h-2 rounded-full bg-[#D8CEBE]"></div>
+      </div>
+
+      <!-- Right: Real Hearts Counter -->
+      <div class="flex items-center gap-1.5 bg-[#F7F3E8] border-2 border-[#E2D7C3] px-2.5 py-1 rounded-full shadow-xs">
+        <svg class="w-4 h-4 text-[#FF4B4B] fill-current" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-sm text-[#264653]">4</span>
+      </div>
+    </header>
+
+    <!-- SUBHEADER HUD & HINT FAB -->
+    <div class="px-3.5 pt-2.5 pb-1 flex items-center justify-between shrink-0">
+      <!-- Status Badge -->
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E76F51] text-white shadow-xs">
+        <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+        <span class="font-fredoka font-semibold text-xs tracking-wider uppercase">WORD SEARCH • 3 / 6 FOUND</span>
+      </div>
+
+      <!-- Hint FAB with gentle glow pulse -->
+      <button class="animate-hint flex items-center gap-1 px-3 py-1 bg-[#E9C46A] border-b-[3px] border-[#C99E32] rounded-full text-[#1D3557] font-fredoka font-bold text-xs active:translate-y-[2px] active:border-b-0 transition-transform">
+        <span>🔍</span>
+        <span>Hint</span>
+      </button>
+    </div>
+
+    <!-- MAIN STAGE (SCROLLABLE OR FIT) -->
+    <main class="flex-1 px-3 py-1.5 flex flex-col justify-between overflow-hidden">
+      
+      <!-- Audio cue / instruction banner -->
+      <div class="flex items-center justify-between px-2.5 py-1 bg-[#FDFBF7]/85 border border-[#E2D7C3] rounded-xl mb-1.5">
+        <div class="flex items-center gap-1.5 text-xs text-[#264653]">
+          <span class="text-base">🧩</span>
+          <span class="font-bold text-[#1D3557]">Find city words!</span>
+          <span class="text-[11px] text-[#8C7A68]">Swipe or tap letters</span>
+        </div>
+        <div class="flex items-center gap-1 text-[10px] font-mono text-[#2A9D8F] bg-[#2A9D8F]/10 px-1.5 py-0.5 rounded border border-[#2A9D8F]/30">
+          <span>🔊</span>
+          <span>[playCue: letter_select]</span>
+        </div>
+      </div>
+
+      <!-- 8x8 MOBILE LETTER GRID BOARD -->
+      <div class="bg-[#FDFBF7] rounded-[22px] border-[2.5px] border-[#E2D7C3] p-2 shadow-sm mx-auto w-full max-w-[356px]">
+        <div class="grid grid-cols-8 gap-1 place-items-center relative">
+          
+          <!-- ROW 0 -->
+          <!-- 0,0 'P' (PARK diagonal start) -->
+          <div class="grid-cell trail-park rounded-tl-xl font-bold">P</div>
+          <div class="grid-cell">Z</div>
+          <div class="grid-cell">O</div>
+          <div class="grid-cell">Q</div>
+          <div class="grid-cell">K</div>
+          <div class="grid-cell">M</div>
+          <div class="grid-cell">L</div>
+          <!-- 0,7 'C' (CITY vertical start) -->
+          <div class="grid-cell trail-city rounded-t-xl">C</div>
+
+          <!-- ROW 1 -->
+          <!-- 'B'-'U'-'S' (Horizontal found trail) -->
+          <div class="grid-cell trail-bus rounded-l-xl">B</div>
+          <div class="grid-cell trail-bus">U</div>
+          <div class="grid-cell trail-bus rounded-r-xl">S</div>
+          <div class="grid-cell">F</div>
+          <div class="grid-cell">N</div>
+          <div class="grid-cell">X</div>
+          <div class="grid-cell">W</div>
+          <!-- 1,7 'I' (CITY vertical) -->
+          <div class="grid-cell trail-city">I</div>
+
+          <!-- ROW 2 -->
+          <div class="grid-cell">H</div>
+          <!-- 2,1 'A' (PARK diagonal) -->
+          <div class="grid-cell trail-park">A</div>
+          <div class="grid-cell">V</div>
+          <div class="grid-cell">G</div>
+          <div class="grid-cell">D</div>
+          <div class="grid-cell">Y</div>
+          <div class="grid-cell">B</div>
+          <!-- 2,7 'T' (CITY vertical) -->
+          <div class="grid-cell trail-city">T</div>
+
+          <!-- ROW 3: S - T - R - E - E - T (Active Selection Trail from col 1 to col 6 or col 2 to 7) -->
+          <div class="grid-cell">J</div>
+          <!-- 3,1 (row 3, col 2: child tapped 'S' and dragged to 'T' at col 7) -->
+          <div class="grid-cell trail-active rounded-l-xl">S</div>
+          <div class="grid-cell trail-active">T</div>
+          <div class="grid-cell trail-active">R</div>
+          <div class="grid-cell trail-active">E</div>
+          <div class="grid-cell trail-active">E</div>
+          <div class="grid-cell trail-active rounded-r-xl">T</div>
+          <!-- 3,7 'Y' (CITY vertical end) -->
+          <div class="grid-cell trail-city rounded-b-xl">Y</div>
+
+          <!-- ROW 4 -->
+          <div class="grid-cell">U</div>
+          <div class="grid-cell">T</div>
+          <!-- 4,2 'R' (PARK diagonal) -->
+          <div class="grid-cell trail-park">R</div>
+          <div class="grid-cell">O</div>
+          <div class="grid-cell">P</div>
+          <div class="grid-cell">E</div>
+          <div class="grid-cell">A</div>
+          <div class="grid-cell">R</div>
+
+          <!-- ROW 5 -->
+          <div class="grid-cell">A</div>
+          <div class="grid-cell">E</div>
+          <div class="grid-cell">L</div>
+          <!-- 5,3 'K' (PARK diagonal end) -->
+          <div class="grid-cell trail-park rounded-br-xl">K</div>
+          <div class="grid-cell">T</div>
+          <div class="grid-cell">A</div>
+          <div class="grid-cell">X</div>
+          <div class="grid-cell">I</div>
+
+          <!-- ROW 6 -->
+          <div class="grid-cell">S</div>
+          <div class="grid-cell">U</div>
+          <div class="grid-cell">B</div>
+          <div class="grid-cell">W</div>
+          <div class="grid-cell">A</div>
+          <div class="grid-cell">Y</div>
+          <div class="grid-cell">O</div>
+          <div class="grid-cell">N</div>
+
+          <!-- ROW 7 -->
+          <div class="grid-cell">C</div>
+          <div class="grid-cell">R</div>
+          <div class="grid-cell">O</div>
+          <div class="grid-cell">S</div>
+          <div class="grid-cell">S</div>
+          <div class="grid-cell">W</div>
+          <div class="grid-cell">L</div>
+          <div class="grid-cell">K</div>
+
+        </div>
+
+        <!-- Legend indicators under the grid -->
+        <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-[#E2D7C3]/60 px-1 text-[11px] text-[#8C7A68]">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#38BDF8] border border-[#0284C7] inline-block animate-pulse"></span>
+            <span class="font-bold text-[#0284C7]">Selecting: "S - T - R - E - E - T"</span>
+          </div>
+          <span class="font-fredoka text-[#2A9D8F] font-bold">Release to check!</span>
+        </div>
+      </div>
+
+      <!-- WORD BANK (BOTTOM OF STAGE) -->
+      <div class="bg-[#FDFBF7] rounded-[20px] border-2 border-[#E2D7C3] p-2.5 shadow-xs w-full max-w-[356px] mx-auto mt-1.5">
+        <div class="flex items-center justify-between mb-1.5 px-0.5">
+          <span class="text-[11px] font-bold text-[#8C7A68] uppercase tracking-wider font-fredoka">Words to Find (3 remaining):</span>
+          <span class="text-[10px] font-bold text-[#E76F51] bg-[#E76F51]/10 px-2 py-0.5 rounded-full">3 of 6</span>
+        </div>
+
+        <!-- 6 Word Chips in 3x2 Grid -->
+        <div class="grid grid-cols-3 gap-1.5">
+          <!-- 1. BUS (Found) -->
+          <div class="flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] opacity-60">
+            <span class="text-[#2A9D8F] font-bold text-xs">✔</span>
+            <span class="font-fredoka font-bold text-xs text-[#8C7A68] line-through">BUS</span>
+          </div>
+
+          <!-- 2. CITY (Found) -->
+          <div class="flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] opacity-60">
+            <span class="text-[#E91E63] font-bold text-xs">✔</span>
+            <span class="font-fredoka font-bold text-xs text-[#8C7A68] line-through">CITY</span>
+          </div>
+
+          <!-- 3. PARK (Found) -->
+          <div class="flex items-center justify-center gap-1 py-1.5 px-1 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3] opacity-60">
+            <span class="text-[#D8A527] font-bold text-xs">✔</span>
+            <span class="font-fredoka font-bold text-xs text-[#8C7A68] line-through">PARK</span>
+          </div>
+
+          <!-- 4. STREET (Active target) -->
+          <div class="flex items-center justify-between py-1 px-2 rounded-xl bg-[#E0F2FE] border-2 border-[#38BDF8] shadow-xs ring-1 ring-[#38BDF8]/40">
+            <span class="font-fredoka font-bold text-xs text-[#1D3557]">STREET</span>
+            <button class="w-5 h-5 rounded-full bg-[#0284C7] text-white flex items-center justify-center text-[10px] hover:scale-105" title="Pronounce word [playCue: word_pronounce]">
+              🔊
+            </button>
+          </div>
+
+          <!-- 5. SUBWAY -->
+          <div class="flex items-center justify-between py-1 px-2 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] hover:border-[#2A9D8F] transition-colors">
+            <span class="font-fredoka font-semibold text-xs text-[#264653]">SUBWAY</span>
+            <button class="w-5 h-5 rounded-full bg-[#F7F3E8] text-[#264653] flex items-center justify-center text-[10px] hover:bg-[#EAE0D0]">
+              🔊
+            </button>
+          </div>
+
+          <!-- 6. TAXI -->
+          <div class="flex items-center justify-between py-1 px-2 rounded-xl bg-[#FDFBF7] border border-[#E2D7C3] hover:border-[#2A9D8F] transition-colors">
+            <span class="font-fredoka font-semibold text-xs text-[#264653]">TAXI</span>
+            <button class="w-5 h-5 rounded-full bg-[#F7F3E8] text-[#264653] flex items-center justify-center text-[10px] hover:bg-[#EAE0D0]">
+              🔊
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ANCHORED FOOTER (76px) -->
+    <footer class="h-[76px] min-h-[76px] bg-[#FDFBF7] border-t border-[#E2D7C3] px-4 flex flex-col justify-center items-center shrink-0 z-20">
+      <p class="text-xs text-[#8C7A68] font-medium text-center leading-tight">
+        Drag or tap first &amp; last letter to find words<br>
+        <span class="text-[11px] text-[#2A9D8F] font-semibold">✨ Exploratory taps do not cost hearts</span>
+      </p>
+    </footer>
+
+  </div>
+</body>
+</html>

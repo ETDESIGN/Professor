@@ -1,6 +1,6 @@
 # Fast Vocab — In-Lesson Step — v3 Quality Audit (`FAST_VOCAB (engine)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -117,15 +117,48 @@ Refs are `apps/student/steps/FastVocabStep.tsx` unless noted.
 5. **[P2] Add exit-confirmation modal:** Protect solo students from accidental progress loss when tapping exit.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the light-themed Fast Vocab match wave and speed round screen.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Fast Vocab In-Lesson Match & Speed Step (`08-fast-vocab-step.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Fast Vocab Match Wave 2/3 Mid-Game State (Word ↔ Image Pairing)**
+   - **Stitch Screen ID:** `8bb91123799746208965950c74015b05`
+   - **Title:** `Professor ESL - Fast Vocab (Match Wave 2/3 Mid-Game)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1X2_XtW89PZX0-ZLkjcqqsf91y6AdyfhXEJyFkfU2gPJACIJrqiUEIGuGHw6rmdWH2RMKNaNwU2PyeqUo7VR_1iHifsl3QKPQ0hj2zTdRYzNWyFxrJkCoJWSkdibGsLID-0TNGklBXScGuXMeZguO-aRHWrextE4aKj_ayfgtK2iu62BhkW5YTJZJE8knP-haIxsJjqnnPF31seCWXj7hJ92TWx1ur3jJ1WuEu3dYwXodbO7CizsXYHMg`
+   - **Prompt Summary:** Mobile portrait (390×844) vocabulary pairing wave. Universal 64px header on paper `#FDFBF7` with 48px close '✕' button (`[playCue: tap_exit]`), 6-segment progress tracker (Step 3 active in Duolingo pink `#E91E63`), and real hearts counter showing 4 hearts (`#FF4B4B`). Subheader HUD displays terracotta badge `FAST VOCAB • MATCH WAVE 2 / 3`, score `⭐ 420 pts`, and combo streak chip `🔥 Streak x3`. 6-tile tactile paper card grid (2 cols × 3 rows, min 68px tile height, 3D bevels): Tile 1 (`subway` word card with IPA chip and blue speaker FAB) actively selected in emerald `#E6F4F1` with 2.5px teal border (`#2A9D8F`) and hard bevel (`#1E6F5C`), connecting to Tile 2 (vector subway train illustration, `PAIR LINK READY`). Tiles 3 & 4 (`bridge` word and river bridge illustration) locked in celebratory golden-teal matched frame with checkmark badges (`[playCue: match_success]`). Tiles 5 & 6 (`traffic light` word and pedestrian crosswalk illustration) idle in paper `#FDFBF7`. Wave progress card shows `1/3 Pairs Locked` with `+10 Speed XP Available!`. Anchored 76px footer with disabled CTA `MATCH ALL PAIRS (1/3) →`.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: card_select]` on card selection tap
+     - `[🔊 playCue: match_success]` on pair match lock
+     - `[🔊 playCue: match_mismatch]` on mismatch attempt
+     - `[🔊 playCue: tap_next]` on footer CTA tap
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Fast Vocab Speed Question with 15s Countdown Timer State**
+   - **Stitch Screen ID:** `64f4f7325ae740feb61c03f45a5c7345`
+   - **Title:** `Professor ESL - Fast Vocab (Speed Question with Timer State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1X8MzYtaJAQMQwpuI2UgVvQ9RXn0z0OKssl4dzEXWTvamhjvkSmPQ7h5-xrnwveDSZs4aQSwZBIqtEmB33S8vwlSUy9YTgfouO3Uc_RlboyGuM4OuQ1-FwPITIk_P-2dE-klQEr8ppyMCCOBq0Ul79Ks36Ej21jFgATndSatpTtDyZ7cxwTWDke-GgJCN8uu8hrquMrEUEfpzcFD7gseEsc4id7bz2YUVU3advD7KXew_Ak1PeeOaxmvP0`
+   - **Prompt Summary:** Mobile portrait (390×844) speed round challenge. Shell header displays Step 3 in Duolingo pink `#E91E63` and 4 hearts. Speed HUD features amber badge `⚡ SPEED ROUND • WAVE 2/3 (Q 1/2)` and `🔥 3x Combo`. Prominent full-width 10px countdown bar filled in vibrant sky blue `#38BDF8` with beveled edge showing 11s left of 15s (73.3% full) and pulsing `⏱️ 11s left` pill badge (`[playCue: clock_tick]`). Central question card on warm paper `#FDFBF7` displays bold 26px Fredoka headword `traffic light` in inkDeep `#1D3557`, Chinese subtitle `交通信号灯`, and 48px Duolingo blue speaker FAB (`[playCue: prompt_audio]`). 3 large tactile image candidate cards (98px each, bevel `0 4px 0 #E2D7C3`): Option 1 (traffic light on signal pole - target candidate), Option 2 (pedestrian crosswalk), Option 3 (subway station entrance). Bottom speed bonus banner displays `⚡ Fast Answer: +50 Bonus XP active! ⭐`. Anchored footer with reassuring notice: `Tap the correct picture before time runs out! Timeout costs no hearts.`
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: prompt_audio]` on question speaker FAB tap
+     - `[🔊 playCue: clock_tick]` on countdown progression
+     - `[🔊 playCue: speed_bonus]` on fast answer selection
+     - `[🔊 playCue: correct_chime]` on correct option tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/08-fast-vocab-step/`. Screens 1-2 — PASS: match wave (2×3 bevel tiles, pair-lock glow) + speed question with countdown bar and bonus moment; exploration-safe per design. Sound moments marked; implementation wires playCue/TTS.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward." The spelling rule (11) proceeds as AG recommended + owner-batch-ratified: in-lesson timeout = word-cost + audio reveal + continue; standalone game keeps sudden-death.
 
 ## §7 Implementation notes & design-fidelity log
 

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Memory Match (Mismatch Shake & Corrective Feedback)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #D9CEBE;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', sans-serif;
+    }
+    @keyframes gentleShake {
+      0%, 100% { transform: translateX(0) rotate(0deg); }
+      15% { transform: translateX(-5px) rotate(-1.5deg); }
+      30% { transform: translateX(4px) rotate(1.2deg); }
+      45% { transform: translateX(-4px) rotate(-1deg); }
+      60% { transform: translateX(3px) rotate(0.8deg); }
+      75% { transform: translateX(-2px) rotate(-0.5deg); }
+      90% { transform: translateX(1px) rotate(0.2deg); }
+    }
+    .mismatch-shake {
+      animation: gentleShake 0.42s ease-in-out infinite alternate;
+      transform-origin: center center;
+    }
+    .bevel-red {
+      box-shadow: 0 4px 0 #DC2626;
+    }
+    .bevel-teal {
+      box-shadow: 0 4px 0 #1E6F5C;
+    }
+    .bevel-sand {
+      box-shadow: 0 4px 0 #D4A373;
+    }
+    .bevel-terracotta {
+      box-shadow: 0 4px 0 #C4553B;
+    }
+    .bevel-neutral {
+      box-shadow: 0 4px 0 #D6CBBC;
+    }
+    .btn-press:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 var(--active-shadow, #D6CBBC);
+    }
+    @keyframes pulseAcoustic {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.2); }
+    }
+    .pulse-audio {
+      animation: pulseAcoustic 1.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="p-0 sm:p-4">
+
+  <!-- Mobile Container (390 x 844) -->
+  <div class="w-[390px] h-[844px] max-h-[844px] bg-[#EAE0D0] flex flex-col relative overflow-hidden rounded-[40px] shadow-2xl border-[5px] border-[#3D352E]/10 select-none">
+
+    <!-- 1. Universal Shell Header (64px) -->
+    <header class="h-16 px-4 bg-[#FDFBF7] border-b-2 border-[#E2D7C3] flex items-center justify-between shrink-0 z-30">
+      <!-- Left: Exit Button -->
+      <button class="w-10 h-10 rounded-full bg-[#F7F3E8] border border-[#E2D7C3] text-[#264653] hover:bg-[#ECE5D8] flex items-center justify-center font-bold text-lg transition-colors bevel-neutral btn-press" title="Exit (Sound: tap_exit)">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Center: 6-Segment Progress Bar -->
+      <div class="flex items-center gap-1.5 px-2">
+        <div class="w-6 h-2 rounded-full bg-[#2A9D8F]"></div>
+        <div class="w-6 h-2 rounded-full bg-[#2A9D8F]"></div>
+        <!-- Active Step 3: Pink #E91E63 -->
+        <div class="w-8 h-2.5 rounded-full bg-[#E91E63] shadow-sm ring-2 ring-[#E91E63]/25"></div>
+        <div class="w-6 h-2 rounded-full bg-[#D8CEBE]"></div>
+        <div class="w-6 h-2 rounded-full bg-[#D8CEBE]"></div>
+        <div class="w-6 h-2 rounded-full bg-[#D8CEBE]"></div>
+      </div>
+
+      <!-- Right: Hearts Counter -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 bg-[#F7F3E8] border border-[#E2D7C3] rounded-full bevel-neutral">
+        <svg class="w-5 h-5 text-[#FF4B4B] fill-current animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-sm text-[#264653]">4</span>
+      </div>
+    </header>
+
+    <!-- 2. Subheader HUD (Compact & Balanced) -->
+    <div class="px-4 pt-2.5 pb-1 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-1.5 px-3 py-1 bg-[#E76F51] text-white rounded-full shadow-sm text-xs font-fredoka font-semibold tracking-wide">
+        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+        <span>MEMORY MATCH • 1 / 4 PAIRS</span>
+      </div>
+      <div class="flex items-center gap-1 px-2.5 py-1 bg-[#FDFBF7] text-[#264653] border border-[#E2D7C3] rounded-full text-xs font-semibold shadow-xs">
+        <span>🎯 Attempt 2</span>
+      </div>
+    </div>
+
+    <!-- 3. Audio & Acoustic Cue Feedback Strip -->
+    <div class="px-4 py-0.5 shrink-0 flex items-center justify-between text-[11px] text-[#8C7A68]">
+      <div class="flex items-center gap-1.5 bg-[#FDFBF7]/80 px-2 py-0.5 rounded-md border border-[#E2D7C3]/60">
+        <span class="text-[#DC2626] font-bold">🔊 [mismatch_buzz]</span>
+        <span class="text-gray-400">→</span>
+        <span class="text-[#1CB0F6] font-semibold">[word: crosswalk]</span>
+      </div>
+      <span class="text-[10px] text-[#2A9D8F] font-semibold bg-[#2A9D8F]/10 px-1.5 py-0.5 rounded">Zero input lockout ⚡</span>
+    </div>
+
+    <!-- 4. Main Stage Scroll Area: 8-Tile Grid + Corrective Drawer -->
+    <main class="flex-1 px-4 py-1.5 flex flex-col justify-between overflow-y-auto min-h-0">
+
+      <!-- 2-Column x 4-Row Grid (8 Tiles) -->
+      <div class="grid grid-cols-2 gap-2.5 shrink-0">
+
+        <!-- Card 1: Word Mismatch (crosswalk) -->
+        <div class="mismatch-shake relative h-[86px] rounded-2xl bg-[#FEF2F2] border-[2.5px] border-[#FF4B4B] bevel-red p-2 flex flex-col justify-between cursor-pointer transition-transform">
+          <!-- Top Tag & Red X Badge -->
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-fredoka font-bold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+              MISMATCH
+            </span>
+            <div class="w-5 h-5 rounded-full bg-[#FF4B4B] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              ✕
+            </div>
+          </div>
+          <!-- Word Body + Audio Icon -->
+          <div class="flex items-center justify-between px-1">
+            <div>
+              <div class="font-fredoka font-bold text-lg text-[#264653] leading-tight">crosswalk</div>
+              <div class="text-[10px] font-semibold text-[#DC2626]">/ˈkrɔːs.wɑːk/</div>
+            </div>
+            <!-- Active Speaker Button -->
+            <button class="w-8 h-8 rounded-full bg-[#FF4B4B] text-white flex items-center justify-center pulse-audio shadow-sm" title="Audio playing: crosswalk">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Card 2: Image Mismatch (traffic light) -->
+        <div class="mismatch-shake relative h-[86px] rounded-2xl bg-[#FEF2F2] border-[2.5px] border-[#FF4B4B] bevel-red p-2 flex flex-col justify-between cursor-pointer transition-transform">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-fredoka font-bold text-[#DC2626] bg-[#FEE2E2] px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+              IMAGE
+            </span>
+            <div class="w-5 h-5 rounded-full bg-[#FF4B4B] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              ✕
+            </div>
+          </div>
+          <!-- SVG Illustration: Traffic Light -->
+          <div class="flex items-center justify-center pb-1">
+            <svg class="w-14 h-12" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="23" y="2" width="18" height="38" rx="5" fill="#3D352E" stroke="#264653" stroke-width="2"/>
+              <!-- Red Light (Lit) -->
+              <circle cx="32" cy="9" r="4.5" fill="#EF4444" stroke="#B91C1C" stroke-width="1.2"/>
+              <circle cx="30.5" cy="7.5" r="1.5" fill="#FCA5A5"/>
+              <!-- Yellow Light -->
+              <circle cx="32" cy="21" r="4" fill="#F59E0B" opacity="0.4"/>
+              <!-- Green Light -->
+              <circle cx="32" cy="33" r="4" fill="#10B981" opacity="0.4"/>
+              <!-- Pole Base -->
+              <path d="M30 40V46H34V40" stroke="#3D352E" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <span class="text-[10px] font-bold text-[#DC2626] ml-1">traffic light</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Word Matched (bridge) -->
+        <div class="relative h-[86px] rounded-2xl bg-[#F0FDF4] border-[2px] border-[#2A9D8F] bevel-teal p-2 flex flex-col justify-between opacity-90 cursor-default">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-fredoka font-bold text-[#1E6F5C] bg-[#DCFCE7] px-1.5 py-0.5 rounded-full uppercase">
+              MATCHED
+            </span>
+            <div class="w-5 h-5 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center font-bold text-xs">
+              ✓
+            </div>
+          </div>
+          <div class="text-center pb-1">
+            <div class="font-fredoka font-bold text-base text-[#264653] leading-none">bridge</div>
+            <div class="text-[10px] font-medium text-[#2A9D8F] mt-1">桥梁 (qiáoliáng)</div>
+          </div>
+        </div>
+
+        <!-- Card 4: Image Matched (stone bridge) -->
+        <div class="relative h-[86px] rounded-2xl bg-[#F0FDF4] border-[2px] border-[#2A9D8F] bevel-teal p-2 flex flex-col justify-between opacity-90 cursor-default">
+          <div class="flex items-center justify-between">
+            <span class="text-[9px] font-fredoka font-bold text-[#1E6F5C] bg-[#DCFCE7] px-1.5 py-0.5 rounded-full uppercase">
+              PAIR 1/4
+            </span>
+            <div class="w-5 h-5 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center font-bold text-xs">
+              ✓
+            </div>
+          </div>
+          <div class="flex items-center justify-center pb-0.5">
+            <svg class="w-20 h-10" viewBox="0 0 80 40" fill="none">
+              <!-- Water -->
+              <rect y="26" width="80" height="14" rx="3" fill="#A5D8D3"/>
+              <!-- Waves -->
+              <path d="M10 32C15 30 20 34 25 32M45 33C50 31 55 35 60 33" stroke="#2A9D8F" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Bridge Arch -->
+              <path d="M12 26C12 18 24 10 40 10C56 10 68 18 68 26" fill="#D4A373" stroke="#8C7A68" stroke-width="2"/>
+              <path d="M26 26C26 19 32 15 40 15C48 15 54 19 54 26" fill="#A5D8D3" stroke="#8C7A68" stroke-width="1.5"/>
+              <!-- Sun -->
+              <circle cx="65" cy="7" r="4.5" fill="#E9C46A"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 5: Face Down -->
+        <div class="relative h-[86px] rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] bevel-neutral flex items-center justify-center cursor-pointer hover:border-[#2A9D8F]/60 transition-all btn-press">
+          <svg class="w-9 h-9 text-[#E9C46A]" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="14" stroke="#E2D7C3" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <path d="M20 7V33M7 20H33" stroke="#E9C46A" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M11 11L29 29M11 29L29 11" stroke="#E76F51" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+            <circle cx="20" cy="20" r="3" fill="#264653"/>
+          </svg>
+          <span class="absolute bottom-1 right-2 text-[9px] text-[#8C7A68] font-bold">?</span>
+        </div>
+
+        <!-- Card 6: Face Down -->
+        <div class="relative h-[86px] rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] bevel-neutral flex items-center justify-center cursor-pointer hover:border-[#2A9D8F]/60 transition-all btn-press">
+          <svg class="w-9 h-9 text-[#2A9D8F]" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="14" stroke="#E2D7C3" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <path d="M20 7V33M7 20H33" stroke="#2A9D8F" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M11 11L29 29M11 29L29 11" stroke="#E9C46A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+            <circle cx="20" cy="20" r="3" fill="#264653"/>
+          </svg>
+          <span class="absolute bottom-1 right-2 text-[9px] text-[#8C7A68] font-bold">?</span>
+        </div>
+
+        <!-- Card 7: Face Down -->
+        <div class="relative h-[86px] rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] bevel-neutral flex items-center justify-center cursor-pointer hover:border-[#2A9D8F]/60 transition-all btn-press">
+          <svg class="w-9 h-9 text-[#E76F51]" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="14" stroke="#E2D7C3" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <path d="M20 7V33M7 20H33" stroke="#E76F51" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M11 11L29 29M11 29L29 11" stroke="#2A9D8F" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+            <circle cx="20" cy="20" r="3" fill="#264653"/>
+          </svg>
+          <span class="absolute bottom-1 right-2 text-[9px] text-[#8C7A68] font-bold">?</span>
+        </div>
+
+        <!-- Card 8: Face Down -->
+        <div class="relative h-[86px] rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] bevel-neutral flex items-center justify-center cursor-pointer hover:border-[#2A9D8F]/60 transition-all btn-press">
+          <svg class="w-9 h-9 text-[#1CB0F6]" viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="14" stroke="#E2D7C3" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <path d="M20 7V33M7 20H33" stroke="#1CB0F6" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M11 11L29 29M11 29L29 11" stroke="#E9C46A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+            <circle cx="20" cy="20" r="3" fill="#264653"/>
+          </svg>
+          <span class="absolute bottom-1 right-2 text-[9px] text-[#8C7A68] font-bold">?</span>
+        </div>
+
+      </div>
+
+      <!-- 5. Corrective Feedback Drawer (Non-locking, Child-friendly) -->
+      <section class="mt-2 bg-[#FDFBF7] rounded-[22px] border-[2px] border-[#FF4B4B]/80 shadow-md p-3 relative shrink-0">
+        <!-- Top Status Pill -->
+        <div class="flex items-center justify-between pb-1.5 border-b border-[#F2E8DC]">
+          <div class="flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center text-xs font-bold">✕</span>
+            <span class="font-fredoka font-bold text-xs text-[#DC2626]">Not a match, but keep going!</span>
+          </div>
+          <span class="text-[10px] font-bold text-[#2A9D8F] bg-[#E8F6F4] px-2 py-0.5 rounded-full">Tap any card</span>
+        </div>
+
+        <!-- Mascot Tip Content -->
+        <div class="flex items-start gap-2.5 pt-2">
+          <!-- Professor Owl Mascot Icon -->
+          <div class="w-11 h-11 shrink-0 rounded-full bg-[#E9C46A]/20 border border-[#E9C46A] flex items-center justify-center p-1 relative">
+            <!-- Custom Vector Owl with Graduation/Straw Hat -->
+            <svg class="w-9 h-9" viewBox="0 0 40 40" fill="none">
+              <ellipse cx="20" cy="22" rx="14" ry="15" fill="#2A9D8F"/>
+              <ellipse cx="20" cy="24" rx="10" ry="11" fill="#FEF3C7"/>
+              <!-- Big Glasses -->
+              <circle cx="15" cy="19" r="6" stroke="#264653" stroke-width="2" fill="white"/>
+              <circle cx="25" cy="19" r="6" stroke="#264653" stroke-width="2" fill="white"/>
+              <line x1="21" y1="19" x2="19" y2="19" stroke="#264653" stroke-width="2"/>
+              <!-- Pupils looking thoughtful -->
+              <circle cx="16" cy="19" r="2.2" fill="#264653"/>
+              <circle cx="24" cy="19" r="2.2" fill="#264653"/>
+              <!-- Beak -->
+              <polygon points="18,22 22,22 20,26" fill="#E76F51"/>
+              <!-- Cap/Hat -->
+              <path d="M11 12L20 8L29 12L20 15L11 12Z" fill="#E76F51"/>
+              <rect x="18" y="7" width="4" height="2" fill="#E9C46A"/>
+            </svg>
+            <span class="absolute -bottom-1 -right-1 text-xs">🪶</span>
+          </div>
+
+          <!-- Bilingual Pedagogical Explanation -->
+          <div class="flex-1 min-w-0">
+            <p class="text-xs text-[#264653] font-bold leading-snug">
+              “<span class="text-[#E76F51]">Crosswalk</span>” is where pedestrians cross the road. Look for the zebra stripes!
+            </p>
+            <p class="text-[11px] text-[#8C7A68] font-medium mt-0.5 leading-normal">
+              “Crosswalk” 是人行横道（斑马线）。再找找看哪张图有斑马线吧！
+            </p>
+          </div>
+        </div>
+
+        <!-- Safeguard Note: Zero Penalty -->
+        <div class="mt-2 pt-1.5 border-t border-[#F2E8DC] flex items-center justify-between text-[10.5px] font-semibold text-[#8C7A68]">
+          <span class="flex items-center gap-1 text-[#2A9D8F]">
+            🛡️ Free exploration: no stars or hearts lost
+          </span>
+          <span class="text-[#E76F51] font-bold">0s Lockout</span>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 6. Anchored Footer (76px) -->
+    <footer class="h-[76px] px-4 bg-[#FDFBF7] border-t-2 border-[#E2D7C3] flex items-center justify-between gap-3 shrink-0 z-30">
+      <!-- Secondary Back Button -->
+      <button class="px-4 py-3 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] text-[#264653] font-fredoka font-bold text-sm bevel-neutral btn-press hover:bg-[#ECE5D8] transition-colors flex items-center gap-1">
+        <span>‹ Back</span>
+      </button>
+
+      <!-- Primary Action CTA -->
+      <button class="flex-1 py-3.5 px-4 rounded-2xl bg-[#E76F51] text-white font-fredoka font-bold text-base tracking-wide bevel-terracotta btn-press hover:bg-[#D96144] transition-all flex items-center justify-center gap-2">
+        <span>TRY ANOTHER CARD</span>
+        <span class="text-lg leading-none">↩</span>
+      </button>
+    </footer>
+
+  </div>
+
+</body>
+</html>

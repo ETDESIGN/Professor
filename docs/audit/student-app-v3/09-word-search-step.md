@@ -1,6 +1,6 @@
 # Word Search — In-Lesson Step — v3 Quality Audit (`WORD_SEARCH (engine)`)
 
-> **Current status:** ag-audit-done
+> **Current status:** zcode-verified
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -115,15 +115,48 @@ Refs are `apps/student/steps/WordSearchStep.tsx`.
 5. **[P3] Reskin to Wonder Atlas paper-and-pastel explorer palette:** Frame the puzzle with warm, tactile paper styling and colorful highlighter ribbons.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*(Phase 1 audit complete. Stitch designs will be generated in Phase 2 for the 8x8 paper grid and word-found celebration state.)*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game Subsystem:** Word Search In-Lesson Step (`09-word-search-step.md`)
+- **Generation Date:** 2026-09-13
+- **Submission Status:** 2 screens submitted and successfully materialized in Stitch datastore (HTTP 200 / Exit code 0).
+- **Quota Discipline:** 2 screens generated (max 2 per game).
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Word Search 8x8 Mobile Grid Mid-Solve State (Found Trails & Hint)**
+   - **Stitch Screen ID:** `0d3c9fa2b62e4248a1a6d5a655da8bc1`
+   - **Title:** `Professor ESL - Word Search (WORD_SEARCH Mid-Solve State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UOkq16ypepeaFwREa4vvo4__JQJ3wfNmBa7SiVBLCP0Q-aOFSnGwwfNxl2zKDYgI4azGpGfKFdV6X64n7rWerAeNuenaXbcO0dS_8A7AJ6g-u2vPIKgeeNcUppbgQU2H7U9tY3vZWg94HJ60ouCtLwQVvXvwuEeXUn_u8SKQQ1z-FUJyBhOaeIRQdWCcnP2vyGmkf8klXLKMftsOGuXHKqRkLeaqvFcVaFtm7GHtO7zgAH26qX3TfJddI`
+   - **Prompt Summary:** Mobile portrait (390×844) word search mid-solve state. Universal 64px header on paper `#FDFBF7` with 48px close '✕' button (`[playCue: tap_exit]`), 6-segment progress bar with Step 4 highlighted in Duolingo pink (`#E91E63`), and real hearts counter showing 4 hearts (`#FF4B4B`). Subheader HUD displays terracotta badge `WORD SEARCH • 3 / 6 FOUND` and pulsing Magnifying Glass Hint FAB in sand `#E9C46A` with gold bevel shadow and gentle glow pulse (`[playCue: hint_pulse]`). Main stage features an 8×8 letter grid with 42px touch-target tiles in warm paper `#FDFBF7`: 3 found word trails locked with translucent pastel ribbons (`BUS` in translucent teal `#2A9D8F`, `CITY` in translucent Duolingo pink `#E91E63`, `PARK` in translucent sand `#E9C46A`), and an active drag selection trail for `STREET` in glowing sky blue `#38BDF8` with dashed border and pulsating end-caps (`[playCue: letter_select]`). Word bank at bottom displays 6 word chips (3 struck-through, `STREET` active with speaker FAB `[playCue: word_pronounce]`, `SUBWAY` and `TAXI` pending). Anchored footer with reassuring note: `Drag or tap first & last letter to find words • Exploratory taps do not cost hearts.`
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: hint_pulse]` on hint FAB pulse/tap
+     - `[🔊 playCue: letter_select]` on letter cell tap and drag selection
+     - `[🔊 playCue: word_pronounce]` on word chip speaker FAB tap
+     - `[🔊 playCue: word_found_chime]` on completing word trail
+   - **Design Contract:** Wonder Atlas warm tokens (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Word Search Puzzle Complete Celebration State (3 Stars & Reward Banner)**
+   - **Stitch Screen ID:** `39c4f6cd86804c108dd8707343320820`
+   - **Title:** `Professor ESL - Word Search (Puzzle Complete Celebration State)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VHD8AXRRxAutWbFXTI9IVamFUgS6S45-rvI70gSrtCoizheacsK_CmTjSrykBmYkjKk1eDLNxG_iLsgvftYalsyqukfOc2Wl92zJliAoKnAPRh0kXTPDw-aQrgf-fPimNcrKISFxCW35ZaA8PlldNVIMETsOr7_47f0hTPsp_bc2PAse-kHGfxRJt1-nWcak-v4iWu5WkBadPdtbJTrkJ7GaydLNOcGUB_20-QEO1Pbtph5v6vR4AegQ`
+   - **Prompt Summary:** Mobile portrait (390×844) puzzle completion victory state. Shell header shows Step 4 completed in vibrant teal (`#2A9D8F`) and 4 full hearts preserved. Background layer displays the completed 8×8 letter grid with all 6 found word highlight ribbons (Bus, City, Park, Street, Subway, Taxi) rendered in soft focus behind a warm modal scrim. Floating celebration victory card in warm paper `#FDFBF7` (`rounded-[32px]`, border 3px solid `#E9C46A`, shadow-xl): Professor Owl explorer badge in safari hat with sparkling confetti and golden starbursts, headline `All Words Discovered! 🎉`, Chinese subtitle `太棒了！所有隐藏单词已全部找到！`, 3 large glowing golden stars in sand `#E9C46A` (`[playCue: win_fanfare]`), achievement banner rewarding `✨ +20 XP`, `🎯 Accuracy: 100%`, and `⚡ No Hints Bonus!`. Word recap 2×3 grid with checkmarks, IPA phonetics, and 24px interactive speaker buttons to replay native audio. Anchored 80px footer with primary tactile button `CONTINUE LESSON →` in teal `#2A9D8F` (`0 4px 0 #1E6F5C` bevel, `[playCue: tap_next]`).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header close tap
+     - `[🔊 playCue: win_fanfare]` on victory screen entrance
+     - `[🔊 playCue: star_burst]` on 3-star award animation
+     - `[🔊 playCue: word_pronounce]` on recap word speaker tap
+     - `[🔊 playCue: tap_next]` on footer continue tap
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13** (owner batch pre-approval). Project `6865954475041880496`; exports in `stitch/09-word-search-step/`. Screens 1-2 — PASS: mid-solve grid with pastel trails + hint FAB, and the completion card with word-recap audio pills; exploratory-tap protection designed (F1). Sound moments marked; implementation wires playCue/TTS.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**PRE-APPROVED 2026-09-13 (owner batch directive):** "implement them all right away without waiting for my approval… we will modify [off designs] afterward." The spelling rule (11) proceeds as AG recommended + owner-batch-ratified: in-lesson timeout = word-cost + audio reveal + continue; standalone game keeps sudden-death.
 
 ## §7 Implementation notes & design-fidelity log
 

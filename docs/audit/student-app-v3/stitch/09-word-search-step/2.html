@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, height=844, initial-scale=1.0">
+  <title>Professor ESL - Word Search (Puzzle Complete Celebration State)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #DCD2C0;
+      color: #264653;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', sans-serif;
+    }
+    /* Tactile buttons & cards with solid depth bevels */
+    .tactile-card {
+      box-shadow: 0 8px 24px -4px rgba(42, 40, 36, 0.18), 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .btn-teal {
+      background: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.15s ease-out;
+    }
+    .btn-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+    .btn-icon {
+      background: #FDFBF7;
+      box-shadow: 0 3px 0 #D6C8AF;
+      transition: all 0.12s ease;
+    }
+    .btn-icon:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D6C8AF;
+    }
+    .pill-press {
+      box-shadow: 0 2px 0 #E2D7C3;
+      transition: all 0.12s ease;
+    }
+    .pill-press:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 0 #E2D7C3;
+    }
+    /* Glow animations */
+    @keyframes starPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 10px rgba(233, 196, 106, 0.55)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 6px 16px rgba(233, 196, 106, 0.85)); }
+    }
+    .star-glow {
+      animation: starPulse 2.8s ease-in-out infinite;
+    }
+    @keyframes floatGentle {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(2deg); }
+    }
+    .float-badge {
+      animation: floatGentle 3.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 md:p-6 bg-[#DCD2C0]">
+  <!-- Mobile Device Shell (390 x 844) -->
+  <div class="w-[390px] h-[844px] bg-[#EAE0D0] relative flex flex-col overflow-hidden rounded-[36px] shadow-2xl border-[5px] border-[#D4C4AC]">
+
+    <!-- ================= UNIVERSAL SHELL HEADER (64px) ================= -->
+    <header class="h-[64px] bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 flex items-center justify-between z-30 shrink-0 shadow-sm">
+      <!-- Left: Exit Button -->
+      <button class="w-10 h-10 rounded-xl bg-[#F4EDE0] border border-[#DDD0B9] text-[#7A6956] hover:text-[#264653] font-bold flex items-center justify-center text-lg transition-transform active:scale-95" title="Exit Lesson">
+        ✕
+      </button>
+
+      <!-- Center: 6-Segment Progress Tracker (Step 4 Complete) -->
+      <div class="flex flex-col items-center gap-1">
+        <div class="flex items-center gap-1.5">
+          <!-- Step 1 Complete -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 2 Complete -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 3 Complete -->
+          <div class="w-7 h-2.5 rounded-full bg-[#2A9D8F]"></div>
+          <!-- Step 4 (Current Completed Step) -->
+          <div class="w-8 h-2.5 rounded-full bg-[#2A9D8F] ring-2 ring-[#2A9D8F]/30 ring-offset-1"></div>
+          <!-- Step 5 Incomplete -->
+          <div class="w-7 h-2.5 rounded-full bg-[#DDD2BF]"></div>
+          <!-- Step 6 Incomplete -->
+          <div class="w-7 h-2.5 rounded-full bg-[#DDD2BF]"></div>
+        </div>
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#8C7A68]">Step 4 of 6 • Word Search</span>
+      </div>
+
+      <!-- Right: Real Hearts Counter -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FFF0F0] border border-[#FFD5D5] shadow-inner">
+        <svg class="w-4 h-4 text-[#FF4B4B] fill-current animate-pulse" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+        <span class="font-fredoka font-bold text-xs text-[#D93838]">4</span>
+      </div>
+    </header>
+
+    <!-- Sound Cue Micro-Banner (Architectural state clarity) -->
+    <div class="bg-[#F6EEDF] border-b border-[#E3D8C4] px-3 py-1 flex items-center justify-between text-[11px] text-[#786653] font-mono shrink-0 z-20">
+      <div class="flex items-center gap-1.5">
+        <span class="inline-block w-2 h-2 rounded-full bg-[#2A9D8F] animate-ping"></span>
+        <span class="font-bold text-[#2A9D8F]">[playCue: win_fanfare]</span>
+      </div>
+      <span class="text-[10px] bg-[#E3D9C7] px-2 py-0.5 rounded text-[#5D4E3E]">Score: 100% • Perfect Round</span>
+    </div>
+
+    <!-- ================= MAIN STAGE: CELEBRATION OVER COMPLETED PUZZLE ================= -->
+    <div class="flex-1 relative overflow-hidden flex items-center justify-center p-3">
+
+      <!-- BACKGROUND: Fully Solved 8x8 Word Search Board (Soft Blur & Low Opacity) -->
+      <div class="absolute inset-0 p-4 flex flex-col items-center justify-start opacity-35 filter blur-[1.5px] pointer-events-none scale-95 select-none">
+        <!-- Subheader in background -->
+        <div class="w-full flex items-center justify-between mb-3 px-1">
+          <div class="bg-[#E76F51] text-white px-3 py-1 rounded-full text-xs font-fredoka font-bold">
+            WORD SEARCH • 6 / 6 FOUND
+          </div>
+          <div class="bg-[#DDD1BC] text-[#695B4C] px-2 py-1 rounded-lg text-xs font-bold">
+            100% Complete
+          </div>
+        </div>
+
+        <!-- 8x8 Grid with colorful completed highlight ribbons -->
+        <div class="w-[336px] bg-[#FDFBF7] p-2.5 rounded-2xl border-2 border-[#D8CCB5] grid grid-cols-8 gap-1 shadow-inner text-center font-fredoka font-bold text-sm text-[#264653]">
+          <!-- Row 1: P, Z, O, Q, K, M, L, C(City start) -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E9C46A]/40 text-[#8C6D14]">P</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">Z</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">O</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">Q</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">K</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">M</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">L</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E91E63]/30 text-[#C2185B]">C</div>
+
+          <!-- Row 2: B, U, S (Found horizontal), F, N, X, W, I(City) -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#2A9D8F]/30 text-[#1B685F]">B</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#2A9D8F]/30 text-[#1B685F]">U</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#2A9D8F]/30 text-[#1B685F]">S</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">F</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">N</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">X</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">W</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E91E63]/30 text-[#C2185B]">I</div>
+
+          <!-- Row 3: H, A(Park), V, G, D, Y, B, T(City) -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">H</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E9C46A]/40 text-[#8C6D14]">A</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">V</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">G</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">D</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">Y</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">B</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E91E63]/30 text-[#C2185B]">T</div>
+
+          <!-- Row 4: J, S, T, R, E, E, T (Found horizontal blue), Y(City) -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">J</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#1CB0F6]/30 text-[#0E7CB3]">S</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#1CB0F6]/30 text-[#0E7CB3]">T</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#1CB0F6]/30 text-[#0E7CB3]">R</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#1CB0F6]/30 text-[#0E7CB3]">E</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#1CB0F6]/30 text-[#0E7CB3]">E</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#1CB0F6]/30 text-[#0E7CB3]">T</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E91E63]/30 text-[#C2185B]">Y</div>
+
+          <!-- Row 5: U, T, R(Park), O, P, E, A, R -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">U</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">T</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E9C46A]/40 text-[#8C6D14]">R</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">O</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">P</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">E</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">A</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">R</div>
+
+          <!-- Row 6: A, E, L, K(Park), T, A, X, I(Taxi) -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">A</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">E</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">L</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E9C46A]/40 text-[#8C6D14]">K</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E76F51]/30 text-[#B84E33]">T</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E76F51]/30 text-[#B84E33]">A</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E76F51]/30 text-[#B84E33]">X</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#E76F51]/30 text-[#B84E33]">I</div>
+
+          <!-- Row 7: S, U, B, W, A, Y (Subway purple), O, N -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9B51E0]/30 text-[#6C25B5]">S</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9B51E0]/30 text-[#6C25B5]">U</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9B51E0]/30 text-[#6C25B5]">B</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9B51E0]/30 text-[#6C25B5]">W</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9B51E0]/30 text-[#6C25B5]">A</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg bg-[#9B51E0]/30 text-[#6C25B5]">Y</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">O</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">N</div>
+
+          <!-- Row 8: C, R, O, S, S, W, L, K -->
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">C</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">R</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">O</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">S</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">S</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">W</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">L</div>
+          <div class="w-9 h-9 flex items-center justify-center rounded-lg">K</div>
+        </div>
+      </div>
+
+      <!-- Backdrop scrim for focus -->
+      <div class="absolute inset-0 bg-[#342D26]/25 z-10 backdrop-blur-[1px]"></div>
+
+      <!-- ================= FLOATING CELEBRATION VICTORY MODAL ================= -->
+      <div class="relative z-20 w-full max-w-[358px] bg-[#FDFBF7] rounded-[30px] border-[3px] border-[#E9C46A] px-4 pt-3 pb-4 tactile-card text-center flex flex-col items-center">
+        
+        <!-- Confetti & Celebration Sprinkles Floating Graphics -->
+        <div class="absolute -top-4 -left-2 text-2xl animate-bounce" style="animation-duration: 2.2s;">✨</div>
+        <div class="absolute -top-3 -right-2 text-2xl animate-bounce" style="animation-duration: 1.9s; animation-delay: 0.3s;">🎉</div>
+        <div class="absolute top-12 -left-3 text-lg opacity-80">⭐</div>
+        <div class="absolute top-16 -right-3 text-lg opacity-80">🎊</div>
+
+        <!-- Mascot Owl Explorer Badge with 2 Thumbs Up -->
+        <div class="relative -mt-11 mb-1.5 float-badge">
+          <!-- Glow halo -->
+          <div class="absolute -inset-2 bg-[#FEE488]/70 rounded-full blur-md"></div>
+          
+          <!-- Illustrated SVG Mascot -->
+          <div class="relative w-20 h-20 bg-gradient-to-b from-[#FFF9EE] to-[#FCEECF] rounded-full p-1 border-[3px] border-[#E9C46A] shadow-md flex items-center justify-center">
+            <svg class="w-16 h-16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Safari Hat -->
+              <ellipse cx="50" cy="30" rx="36" ry="7" fill="#C49A50"/>
+              <path d="M28 30 C28 17, 72 17, 72 30 Z" fill="#DDB166"/>
+              <rect x="29" y="27" width="42" height="4" rx="2" fill="#8C6527"/>
+              <circle cx="50" cy="20" r="3" fill="#E76F51"/>
+              
+              <!-- Owl Body -->
+              <ellipse cx="50" cy="62" rx="30" ry="27" fill="#2A9D8F"/>
+              <!-- Belly -->
+              <ellipse cx="50" cy="67" rx="20" ry="18" fill="#FDFBF7"/>
+              
+              <!-- Big Glasses -->
+              <circle cx="41" cy="50" r="13" stroke="#E76F51" stroke-width="4" fill="#FFFFFF"/>
+              <circle cx="59" cy="50" r="13" stroke="#E76F51" stroke-width="4" fill="#FFFFFF"/>
+              <rect x="51" y="48" width="6" height="4" fill="#E76F51"/>
+              
+              <!-- Eyes with celebratory sparkling pupils -->
+              <circle cx="41" cy="50" r="6" fill="#1D3557"/>
+              <circle cx="59" cy="50" r="6" fill="#1D3557"/>
+              <circle cx="39" cy="48" r="2.2" fill="#FFFFFF"/>
+              <circle cx="57" cy="48" r="2.2" fill="#FFFFFF"/>
+              
+              <!-- Happy Beak -->
+              <polygon points="50,54 45,61 55,61" fill="#F4A261"/>
+              
+              <!-- Rosy Cheeks -->
+              <ellipse cx="32" cy="59" rx="4" ry="2.5" fill="#FFA5A5" opacity="0.8"/>
+              <ellipse cx="68" cy="59" rx="4" ry="2.5" fill="#FFA5A5" opacity="0.8"/>
+
+              <!-- Thumbs Up Left Hand -->
+              <g transform="translate(14, 52)">
+                <ellipse cx="6" cy="10" rx="6" ry="6" fill="#264653"/>
+                <rect x="5" y="2" width="5" height="10" rx="2.5" fill="#F4A261" transform="rotate(-20 5 2)"/>
+              </g>
+              <!-- Thumbs Up Right Hand -->
+              <g transform="translate(74, 52)">
+                <ellipse cx="6" cy="10" rx="6" ry="6" fill="#264653"/>
+                <rect x="2" y="2" width="5" height="10" rx="2.5" fill="#F4A261" transform="rotate(20 2 2)"/>
+              </g>
+            </svg>
+          </div>
+
+          <!-- Mini Celebration Laurel Badge -->
+          <div class="absolute -bottom-1.5 bg-[#E76F51] text-white px-2 py-0.5 rounded-full text-[9px] font-fredoka font-bold tracking-wide uppercase border border-white shadow-sm">
+            Expert
+          </div>
+        </div>
+
+        <!-- Headline & Chinese Subtitle -->
+        <h2 class="text-[22px] leading-tight font-fredoka font-bold text-[#1D3557] mb-0.5">
+          All Words Discovered! 🎉
+        </h2>
+        <p class="text-[13px] font-semibold text-[#8C7A68] mb-2.5">
+          太棒了！所有隐藏单词已全部找到！
+        </p>
+
+        <!-- Star Rating: 3 Glowing Golden Stars -->
+        <div class="flex items-center justify-center gap-3 mb-2.5 py-1">
+          <!-- Star 1 -->
+          <div class="relative star-glow" style="animation-delay: 0s;">
+            <svg class="w-9 h-9 text-[#E9C46A] fill-current drop-shadow" viewBox="0 0 24 24">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-2.5 h-2.5 bg-white/60 rounded-full blur-[1px]"></div>
+            </div>
+          </div>
+          <!-- Star 2 (Slightly larger center star) -->
+          <div class="relative star-glow scale-110" style="animation-delay: 0.2s;">
+            <svg class="w-10 h-10 text-[#F4A261] fill-current drop-shadow-md" viewBox="0 0 24 24">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-3 h-3 bg-white/70 rounded-full blur-[1px]"></div>
+            </div>
+          </div>
+          <!-- Star 3 -->
+          <div class="relative star-glow" style="animation-delay: 0.4s;">
+            <svg class="w-9 h-9 text-[#E9C46A] fill-current drop-shadow" viewBox="0 0 24 24">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-2.5 h-2.5 bg-white/60 rounded-full blur-[1px]"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- XP & Reward Banner (bg-[#E6F4F1] border 2px solid #2A9D8F) -->
+        <div class="w-full bg-[#E6F4F1] border-2 border-[#2A9D8F] rounded-2xl p-2.5 mb-3 flex items-center justify-between shadow-sm">
+          <!-- Reward 1 -->
+          <div class="flex flex-col items-center flex-1 border-r border-[#BCE1DA] px-1">
+            <span class="text-[11px] font-bold text-[#1F7A6E] uppercase tracking-tight flex items-center gap-0.5">
+              <span>✨</span> +20 XP
+            </span>
+            <span class="text-[9px] text-[#638E86] font-extrabold">Quest Reward</span>
+          </div>
+
+          <!-- Reward 2 -->
+          <div class="flex flex-col items-center flex-1 border-r border-[#BCE1DA] px-1">
+            <span class="text-[11px] font-bold text-[#1F7A6E] uppercase tracking-tight flex items-center gap-0.5">
+              <span>🎯</span> 100%
+            </span>
+            <span class="text-[9px] text-[#638E86] font-extrabold">Accuracy</span>
+          </div>
+
+          <!-- Reward 3 -->
+          <div class="flex flex-col items-center flex-1 px-1">
+            <span class="text-[11px] font-bold text-[#D97706] uppercase tracking-tight flex items-center gap-0.5">
+              <span>⚡</span> Bonus!
+            </span>
+            <span class="text-[9px] text-[#B45309] font-extrabold">No Hints Used</span>
+          </div>
+        </div>
+
+        <!-- Found Words Recap Title -->
+        <div class="w-full flex items-center justify-between mb-1.5 px-1 text-left">
+          <span class="text-[11px] font-fredoka font-bold uppercase tracking-wider text-[#7E6E5C] flex items-center gap-1">
+            <svg class="w-3.5 h-3.5 text-[#2A9D8F]" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Found Words Audio Recap (6/6)
+          </span>
+          <span class="text-[10px] text-[#8C7A68] font-semibold">Tap to hear 🎧</span>
+        </div>
+
+        <!-- Found Words Recap (2 columns x 3 rows of neat pills in mist #F7F3E8) -->
+        <div class="w-full grid grid-cols-2 gap-2 mb-1">
+          <!-- Word 1: BUS -->
+          <div class="pill-press bg-[#F7F3E8] hover:bg-[#F2ECE0] border border-[#E2D7C3] rounded-xl px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer group">
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="w-4 h-4 rounded-full bg-[#2A9D8F]/20 text-[#1F7A6E] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <div>
+                <div class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">BUS</div>
+                <div class="text-[10px] text-[#8C7A68] font-mono leading-tight mt-0.5">[bʌs]</div>
+              </div>
+            </div>
+            <button class="w-6 h-6 rounded-full bg-[#E6F4F1] group-hover:bg-[#2A9D8F] group-hover:text-white text-[#2A9D8F] flex items-center justify-center transition-colors" title="Play pronunciation">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Word 2: CITY -->
+          <div class="pill-press bg-[#F7F3E8] hover:bg-[#F2ECE0] border border-[#E2D7C3] rounded-xl px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer group">
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="w-4 h-4 rounded-full bg-[#2A9D8F]/20 text-[#1F7A6E] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <div>
+                <div class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">CITY</div>
+                <div class="text-[10px] text-[#8C7A68] font-mono leading-tight mt-0.5">[ˈsɪti]</div>
+              </div>
+            </div>
+            <button class="w-6 h-6 rounded-full bg-[#E6F4F1] group-hover:bg-[#2A9D8F] group-hover:text-white text-[#2A9D8F] flex items-center justify-center transition-colors" title="Play pronunciation">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Word 3: PARK -->
+          <div class="pill-press bg-[#F7F3E8] hover:bg-[#F2ECE0] border border-[#E2D7C3] rounded-xl px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer group">
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="w-4 h-4 rounded-full bg-[#2A9D8F]/20 text-[#1F7A6E] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <div>
+                <div class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">PARK</div>
+                <div class="text-[10px] text-[#8C7A68] font-mono leading-tight mt-0.5">[pɑːk]</div>
+              </div>
+            </div>
+            <button class="w-6 h-6 rounded-full bg-[#E6F4F1] group-hover:bg-[#2A9D8F] group-hover:text-white text-[#2A9D8F] flex items-center justify-center transition-colors" title="Play pronunciation">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Word 4: STREET -->
+          <div class="pill-press bg-[#F7F3E8] hover:bg-[#F2ECE0] border border-[#E2D7C3] rounded-xl px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer group">
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="w-4 h-4 rounded-full bg-[#2A9D8F]/20 text-[#1F7A6E] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <div>
+                <div class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">STREET</div>
+                <div class="text-[10px] text-[#8C7A68] font-mono leading-tight mt-0.5">[striːt]</div>
+              </div>
+            </div>
+            <button class="w-6 h-6 rounded-full bg-[#E6F4F1] group-hover:bg-[#2A9D8F] group-hover:text-white text-[#2A9D8F] flex items-center justify-center transition-colors" title="Play pronunciation">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Word 5: SUBWAY -->
+          <div class="pill-press bg-[#F7F3E8] hover:bg-[#F2ECE0] border border-[#E2D7C3] rounded-xl px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer group">
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="w-4 h-4 rounded-full bg-[#2A9D8F]/20 text-[#1F7A6E] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <div>
+                <div class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">SUBWAY</div>
+                <div class="text-[10px] text-[#8C7A68] font-mono leading-tight mt-0.5">[ˈsʌbweɪ]</div>
+              </div>
+            </div>
+            <button class="w-6 h-6 rounded-full bg-[#E6F4F1] group-hover:bg-[#2A9D8F] group-hover:text-white text-[#2A9D8F] flex items-center justify-center transition-colors" title="Play pronunciation">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Word 6: TAXI -->
+          <div class="pill-press bg-[#F7F3E8] hover:bg-[#F2ECE0] border border-[#E2D7C3] rounded-xl px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer group">
+            <div class="flex items-center gap-1.5 overflow-hidden">
+              <span class="w-4 h-4 rounded-full bg-[#2A9D8F]/20 text-[#1F7A6E] flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <div>
+                <div class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">TAXI</div>
+                <div class="text-[10px] text-[#8C7A68] font-mono leading-tight mt-0.5">[ˈtæksi]</div>
+              </div>
+            </div>
+            <button class="w-6 h-6 rounded-full bg-[#E6F4F1] group-hover:bg-[#2A9D8F] group-hover:text-white text-[#2A9D8F] flex items-center justify-center transition-colors" title="Play pronunciation">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= ANCHORED FOOTER (80px) ================= -->
+    <footer class="h-[80px] bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-4 flex items-center justify-between z-30 shrink-0 shadow-lg">
+      <!-- Replay Board Secondary Action -->
+      <button class="w-12 h-12 rounded-2xl btn-icon border border-[#DDD0B9] text-[#786653] flex items-center justify-center mr-2 shrink-0 active:scale-95" title="Review solved puzzle board">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+      </button>
+
+      <!-- Primary CTA: Continue Lesson -->
+      <button class="flex-1 h-[56px] rounded-2xl btn-teal text-white font-fredoka font-bold text-lg flex items-center justify-center gap-2 tracking-wide uppercase shadow-md">
+        <span>CONTINUE LESSON</span>
+        <svg class="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+        </svg>
+      </button>
+    </footer>
+
+    <!-- Bottom system audio annotation -->
+    <div class="bg-[#F4EDE0] text-[#8C7A68] text-[10px] font-mono py-1 px-3 text-center border-t border-[#E5DAC6] shrink-0">
+      🔊 Sound Cue: [playCue: tap_next] on Continue • [playCue: word_pronounce] on pills
+    </div>
+
+  </div>
+</body>
+</html>
