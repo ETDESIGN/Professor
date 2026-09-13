@@ -108,7 +108,7 @@ describe('Phase 9 Tests', () => {
   });
 
   describe('T9.01: SoloLessonPlayer MEDIA_PLAYER', () => {
-    it('renders fallback when no media URLs present', () => {
+    it('auto-skips a media step with nothing to play (owner session-1: no dead screens)', () => {
       mockSessionState.activeSlideData = {
         type: 'MEDIA_PLAYER',
         data: { title: 'Empty Media', videoUrl: '', audioUrl: '', lyrics: [] },
@@ -121,7 +121,9 @@ describe('Phase 9 Tests', () => {
         />
       );
 
-      expect(screen.getByText('No media for this step. Tap Continue.')).toBeInTheDocument();
+      // The empty-media fallback UI is gone by design — the step renders
+      // nothing and the player advances past it automatically.
+      expect(screen.queryByText('No media for this step. Tap Continue.')).not.toBeInTheDocument();
     });
 
     it('renders ReactPlayer when videoUrl is provided', () => {
