@@ -450,7 +450,7 @@ const SpellingBeeStep: React.FC<SpellingBeeStepProps> = ({
       )}
 
       {/* Stage: Word Card + Honeycomb Slots + Adaptive Keyboard */}
-      <div className="flex-1 min-h-0 flex items-center justify-center px-3 py-2 overflow-y-auto">
+      <div className="flex-1 min-h-0 flex px-3 py-2 overflow-y-auto">
         <AnimatePresence mode="wait">
           {turn.currentWord && turn.status !== 'complete' && (
             <motion.div
@@ -459,7 +459,7 @@ const SpellingBeeStep: React.FC<SpellingBeeStepProps> = ({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.22 }}
-              className="w-full"
+              className="w-full flex-1 flex flex-col"
             >
               <SpellingBeeStage
                 word={turn.currentWord}

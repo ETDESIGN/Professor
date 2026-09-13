@@ -200,15 +200,21 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
     >
       {/* ── Top Clue & Replay Banner ── */}
       <div
-        className={`w-full rounded-2xl p-2.5 sm:p-3 flex items-center justify-between gap-3 sm:gap-4 relative overflow-hidden ${
+        className={`w-full rounded-2xl relative overflow-hidden ${
+          compact
+            ? // Owner 2026-09-14: phones stack the clue — image above the
+              // replay cues — instead of image-left-of-writing in a fixed h-20.
+              'flex flex-col items-center justify-center gap-2 p-3'
+            : 'p-2.5 sm:p-3 flex items-center justify-between gap-3 sm:gap-4 h-20 sm:h-24'
+        } ${
           lightTheme
             ? 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-md'
             : 'bg-[#0B132B]/90 border border-slate-700/80 shadow-lg backdrop-blur-sm'
-        } ${compact ? 'h-20' : 'h-20 sm:h-24'}`}
+        }`}
       >
         {/* Left Thumbnail */}
         <div
-          className={`h-full aspect-[4/3] rounded-xl overflow-hidden shrink-0 flex items-center justify-center relative ${
+          className={`${compact ? 'h-20' : 'h-full'} aspect-[4/3] rounded-xl overflow-hidden shrink-0 flex items-center justify-center relative ${
             lightTheme
               ? 'border-2 border-[#E2D7C3] bg-[#F7F3E8]'
               : 'border border-slate-700 bg-black/60'
@@ -229,7 +235,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
         </div>
 
         {/* Center: Replay & Meaning cues */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+        <div className={`${compact ? 'items-center w-full' : 'flex-1 min-w-0'} flex flex-col justify-center gap-1.5`}>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
@@ -277,6 +283,22 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
           )}
         </div>
       </div>
+
+      {/* Compact presenting escape (owner 2026-09-14): phones/tablets have no
+          ENTER key — a visible Ready tap starts typing instead of waiting. */}
+      {presenting && compact && (
+        <button
+          type="button"
+          onClick={onReady}
+          className={`shrink-0 px-6 min-h-[48px] py-3 rounded-2xl font-headline font-black text-sm uppercase tracking-wider active:translate-y-0.5 transition-all cursor-pointer ${
+            lightTheme
+              ? 'bg-[#E76F51] text-white shadow-[0_4px_0_#C4553B] active:shadow-[0_1px_0_#C4553B]'
+              : 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-[0_4px_0_#881337] active:shadow-[0_1px_0_#881337]'
+          }`}
+        >
+          Ready to spell →
+        </button>
+      )}
 
       {/* ── Letter Slot Runway (Projector Scale) ── */}
       <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 my-1 sm:my-2 flex-wrap select-none">
@@ -393,9 +415,9 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
           ? 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-md'
           : 'bg-[#0B132B]/85 border border-slate-800 shadow-2xl backdrop-blur-md'
       }`}>
-        <div className="flex flex-col gap-1.5 sm:gap-2 w-full items-center">
+        <div className="flex flex-col gap-1.5 sm:gap-2.5 w-full items-center">
           {QWERTY_ROWS.map((row, rowIdx) => (
-            <div key={rowIdx} className="flex justify-center gap-1 sm:gap-2 w-full">
+            <div key={rowIdx} className="flex justify-center gap-1.5 sm:gap-2.5 w-full">
               <AnimatePresence>
                 {row.map((letter) => {
                   if (removedKeys.has(letter)) {
@@ -403,7 +425,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                     return (
                       <div
                         key={letter}
-                        className="flex-1 max-w-[136px] h-10 sm:h-12 md:h-14 opacity-0 pointer-events-none"
+                        className="flex-1 max-w-[150px] h-12 sm:h-14 md:h-16 opacity-0 pointer-events-none"
                       />
                     );
                   }
@@ -443,10 +465,10 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                       whileTap={typing ? { scale: 0.92 } : undefined}
                       onClick={() => typing && onType(letter)}
                       disabled={!typing}
-                      className={`spelling-key-btn flex-1 max-w-[136px] h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border font-headline font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none ${
+                      className={`spelling-key-btn flex-1 max-w-[150px] h-12 sm:h-14 md:h-16 rounded-xl sm:rounded-2xl border font-headline font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none ${
                         lightTheme ? '' : 'key-cap-bevel'
                       } ${
-                        compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl md:text-3xl'
+                        compact ? 'text-xl sm:text-2xl' : 'text-xl sm:text-2xl md:text-3xl'
                       } ${keyClass}`}
                     >
                       <span>{letter}</span>
