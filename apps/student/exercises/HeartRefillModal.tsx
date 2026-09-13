@@ -1,23 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart, X, Sparkles } from 'lucide-react';
+import { Heart, X, Sparkles, Loader2 } from 'lucide-react';
 import { useStudentGems } from '../../../hooks/useQueries';
+import { supabase } from '../../../services/supabaseClient';
+import { toast as sonnerToast } from 'sonner';
 
 interface HeartRefillModalProps {
   studentId: string;
   currentHearts?: number;
   onPracticeReview: () => void | Promise<void>;
+  /** Called after a successful gem refill so the caller can refresh its hearts display. */
+  onRefilled?: () => void;
   onClose: () => void;
 }
 
 export const HeartRefillModal: React.FC<HeartRefillModalProps> = ({
   currentHearts = 0,
   onPracticeReview,
+  onRefilled,
   onClose,
 }) => {
   const { t } = useTranslation();
   const { data: gemCount } = useStudentGems();
   const gems = gemCount ?? 0;
+  const [refilling, setRefilling] = useState(false);
+  const REFILL_COST = 50;
+
+  /** Atomic 50 gems → 5 hearts (RPC live 2026-09-14). Insufficient gems → polite toast. */
+  const onRefillTap = async () => {
+    if (refilling) return;
+    setRefilling(true);
+    try {
+      const { data, error } = await supabase.rpc('refill_hearts_gems', { p_cost: REFILL_COST, p_hearts: 5 });
+      if (error) throw error;
+      if (data == null) {
+        sonnerToast('Not enough gems yet — practice to earn more!', { icon: '💎' });
+      } else {
+        onRefilled?.();
+        onClose();
+      }
+    } catch {
+      sonnerToast.error('Could not refill — try again.');
+    } finally {
+      setRefilling(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#264653]/65 backdrop-blur-[5px] animate-fadeIn">
@@ -133,17 +160,15 @@ export const HeartRefillModal: React.FC<HeartRefillModalProps> = ({
           {/* Button 1: Refill with Gems — Disabled (Coming Soon) per Owner Verdict & Data-Write Discipline */}
           <button
             type="button"
-            disabled
-            className="w-full h-[54px] rounded-2xl flex items-center justify-center gap-2 bg-[#E76F51]/60 text-[#FDFBF7] font-wa-display font-bold text-[15px] tracking-wide cursor-not-allowed border border-[#C4553B]/30 opacity-75 shadow-none"
-            title="Direct gem-spend refill coming soon"
+            onClick={() => void onRefillTap()}
+            disabled={refilling || gems < 50}
+            className="w-full h-[54px] rounded-2xl flex items-center justify-center gap-2 bg-[#E76F51] text-[#FDFBF7] font-wa-display font-bold text-[15px] tracking-wide border border-[#C4553B] shadow-[0_4px_0_#C4553B] active:translate-y-[2px] active:shadow-[0_2px_0_#C4553B] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
+            title={gems < 50 ? 'Earn more gems by learning, then refill' : 'Spend 50 gems to restore all hearts'}
           >
-            <span className="text-xl">❤️</span>
+            {refilling ? <Loader2 size={18} className="animate-spin" /> : <span className="text-xl">❤️</span>}
             <span>{t('student.refill5Hearts', 'REFILL 5 HEARTS')}</span>
-            <span className="px-2 py-0.5 rounded-lg bg-[#C4553B]/50 text-[#FDFBF7] text-xs font-sans font-extrabold border border-[#FDFBF7]/30">
+            <span className="px-2 py-0.5 rounded-lg bg-[#C4553B]/60 text-[#FDFBF7] text-xs font-sans font-extrabold border border-[#FDFBF7]/30">
               50 💎
-            </span>
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold uppercase tracking-wider">
-              {t('student.comingSoon', 'Coming soon')}
             </span>
           </button>
 

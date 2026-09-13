@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Loader2, Mic, RefreshCw, Share2, Star, Users, Video, Volume2, Play } from 'lucide-react';
+import { X, ChevronLeft, Loader2, Mic, RefreshCw, Share2, Star, Users, Video, Volume2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -66,6 +66,10 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   const [clips, setClips] = useState<ClipWithLines[]>([]);
   const [clipsLoading, setClipsLoading] = useState(true);
   const [newClipIds, setNewClipIds] = useState<Set<string>>(new Set());
+  /** clipId → my latest SAVED take (owner fix 1: re-watch your own dub). */
+  const [myTakeByClip, setMyTakeByClip] = useState<Record<string, any>>({});
+  const [myDubPlay, setMyDubPlay] = useState<{ clip: ClipWithLines; videoUrl: string; lineAudioUrls: Record<string, string> } | null>(null);
+  const [myDubLoading, setMyDubLoading] = useState<string | null>(null);
   const [clip, setClip] = useState<ClipWithLines | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -125,6 +129,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
         setClips(myClips);
         const dubbed = new Set(myDubs.map((d) => d.clipId));
         setNewClipIds(new Set(myClips.filter((c) => !dubbed.has(c.id)).map((c) => c.id)));
+        setMyTakeByClip(Object.fromEntries(myDubs.filter((d: any) => Object.keys(d.lineAudio ?? {}).length > 0).map((d: any): [string, any] => [d.clipId, d])));
       } catch (err) {
         log.warn('list_clips_failed', { error: err instanceof Error ? err.message : String(err) });
         toast.error('Could not load your dubbing clips.');
@@ -184,6 +189,32 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       setPhase('pick');
     }
   }, []);
+
+  // Owner fix 1: re-watch your own saved take from the Pick list.
+  const openMyDub = useCallback(async (c: ClipWithLines) => {
+    const take = myTakeByClip[c.id];
+    if (!take) return;
+    setMyDubLoading(c.id);
+    try {
+      const [video, lines] = await Promise.all([
+        DubbingService.signedUrl(c.videoPath),
+        c.lines?.length ? Promise.resolve(c.lines) : DubbingService.getClipLines(c.id),
+      ]);
+      const lineAudioUrls: Record<string, string> = {};
+      await Promise.all(
+        Object.entries(take.lineAudio ?? {}).map(async ([lineId, path]: [string, any]) => {
+          if (!path) return;
+          try { lineAudioUrls[lineId] = await DubbingService.signedUrl(path); } catch { /* play the rest */ }
+        }),
+      );
+      setMyDubPlay({ clip: c, videoUrl: video, lineAudioUrls });
+    } catch (err) {
+      log.warn('open_my_dub_failed', { error: err instanceof Error ? err.message : String(err) });
+      toast.error('Could not load your take.');
+    } finally {
+      setMyDubLoading(null);
+    }
+  }, [myTakeByClip]);
 
   // ── Per-line instant evaluation (one line per request, fired per line) ──────
   const evaluateLine = useCallback(async (lineId: string, blob: Blob, transcript: string) => {
@@ -421,7 +452,11 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
 
   const activeLine = activeSubIdx >= 0 ? lines[activeSubIdx] : null;
   const recLine = recorder.activeLineIndex >= 0 ? lines[recorder.activeLineIndex] : null;
-  const recNextLine = recorder.activeLineIndex >= 0 ? lines[recorder.activeLineIndex + 1] : null;
+  const recNextLine = (() => {
+    // During a single-line redo (all lines already captured) there IS no "next".
+    if (recorder.state !== 'pass_done' && Object.keys(recorder.lineBlobs).length >= lines.length && lines.length > 0) return null;
+    return recorder.activeLineIndex >= 0 ? lines[recorder.activeLineIndex + 1] : null;
+  })();
   const recordedCount = Object.keys(recorder.lineBlobs).length;
   const overallBand = bandFromScores(lineScores, lines);
   const overallMatch = useMemo(() => {
@@ -435,6 +470,14 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       <header className="p-4 flex justify-between items-center z-10 shrink-0">
         <button
           onClick={() => {
+            if (phase === 'record' && recorder.state !== 'pass_done' && recorder.state !== 'idle') {
+              // P3 fix: recording in progress — confirm before dropping the take.
+              if (window.confirm('Leave dubbing? Your current take will be lost.')) {
+                recorder.reset();
+                setPhase('pick'); setClip(null); setVideoUrl(null);
+              }
+              return;
+            }
             if (phase === 'record') { recorder.reset(); }
             if (phase === 'pick') onBack();
             else { setPhase('pick'); setClip(null); setVideoUrl(null); }
@@ -519,6 +562,15 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
                 <span className="px-2 py-0.5 rounded-full bg-[#E6F4F1] text-[#1E6F5C] text-[10px] font-extrabold uppercase border border-[#2A9D8F]">
                   New
                 </span>
+              ) : myTakeByClip[c.id] ? (
+                <button
+                  onClick={(e) => { e.stopPropagation(); void openMyDub(c); }}
+                  disabled={myDubLoading === c.id}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#F7F3E8] border-2 border-[#E9C46A] text-[#9A6B00] text-[10px] font-extrabold uppercase active:translate-y-[2px]"
+                >
+                  {myDubLoading === c.id ? <Loader2 size={12} className="animate-spin" /> : <Star size={12} className="fill-[#E9C46A] text-[#E9C46A]" />}
+                  My dub
+                </button>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-[#F7F3E8] text-[#8C7A68] text-[10px] font-extrabold uppercase border border-[#E2D7C3]">
                   Dubbed
@@ -526,6 +578,29 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
               )}
             </button>
           ))}
+
+          {/* My-dub playback overlay (owner fix 1) */}
+          {myDubPlay && (
+            <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
+              <div className="p-4 flex items-center justify-between text-white">
+                <div className="min-w-0">
+                  <div className="text-[10px] text-white/60 uppercase tracking-widest font-bold">Your dub</div>
+                  <div className="font-bold truncate">{myDubPlay.clip.title}</div>
+                </div>
+                <button onClick={() => setMyDubPlay(null)} className="p-2 bg-white/10 rounded-full" aria-label="Close">
+                  <X size={22} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 max-w-md w-full mx-auto">
+                <DubPlayer
+                  videoUrl={myDubPlay.videoUrl}
+                  lines={myDubPlay.clip.lines ?? []}
+                  lineAudioUrls={myDubPlay.lineAudioUrls}
+                  className="w-full aspect-video rounded-2xl"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -572,7 +647,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
           <div className="flex-1 bg-[#1D3557] rounded-t-[32px] relative mx-2 mt-1 min-h-[28vh]">
             <video ref={videoRef} src={videoUrl ?? undefined} className="w-full h-full object-contain" muted playsInline />
             <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-[#FDFBF7]/90 border border-[#E2D7C3] text-[10px] font-extrabold text-[#1D3557]">
-              LINE {Math.min(Math.max(recorder.activeLineIndex + 1, recordedCount + 1), lines.length)} / {lines.length}
+              LINE {Math.max(1, Math.min(recorder.activeLineIndex + 1 || recordedCount + 1, lines.length))} / {lines.length}
             </div>
           </div>
 
@@ -787,7 +862,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
               {published ? 'Shared' : 'Share with class'}
               {!published && overallBand === 'great' && (
                 <span className="px-1.5 py-0.5 rounded-full bg-[#FFF6E0] border border-[#E9C46A] text-[#9A6B00] text-[10px] font-extrabold">
-                  +1 💎
+                  Earn +1 💎
                 </span>
               )}
             </button>

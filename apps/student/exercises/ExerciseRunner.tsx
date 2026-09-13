@@ -360,6 +360,7 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
         <HeartRefillModal
           studentId={studentId}
           currentHearts={hearts}
+          onRefilled={() => setHearts(5)}
           onPracticeReview={async () => {
             try {
               await Engine.restoreHeart(studentId);

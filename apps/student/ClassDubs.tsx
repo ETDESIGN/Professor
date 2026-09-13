@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, Heart, Loader2, Sparkles, Users, Video, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, Play, Heart, Loader2, Sparkles, Users, Video, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -9,7 +9,7 @@ import {
   type DubbingClip,
 } from '../../services/DubbingService';
 import { supabase } from '../../services/supabaseClient';
-import DubPlayer from '../../components/shared/DubPlayer';
+import DubPlayer, { type DubPlayerHandle } from '../../components/shared/DubPlayer';
 import { playCue } from '../board/templates/playCue';
 import { createClientLogger } from '../../services/logger';
 
@@ -143,6 +143,18 @@ const ClassDubs: React.FC<ClassDubsProps> = ({ onBack, onGoStudio }) => {
   }, []);
 
   // ── Open a dub in the full-screen player (signed URLs) ──────────────────────
+  // Owner fix 3: sign the active clip's video ONCE for card thumbnails.
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setThumbUrl(null);
+    if (!activeClip) return;
+    DubbingService.signedUrl(activeClip.videoPath)
+      .then((u) => { if (!cancelled) setThumbUrl(u); })
+      .catch(() => { /* thumbnails are decorative */ });
+    return () => { cancelled = true; };
+  }, [activeClip?.id]);
+
   const openDub = useCallback(async (dub: ClassDub) => {
     if (!activeClip) return;
     setPlayerLoading(true);
@@ -261,12 +273,21 @@ const ClassDubs: React.FC<ClassDubsProps> = ({ onBack, onGoStudio }) => {
                   <button
                     onClick={() => void openDub(d)}
                     disabled={playerLoading}
-                    className="flex items-center gap-3 text-left disabled:opacity-60"
+                    className="flex flex-col gap-2 text-left disabled:opacity-60 w-full"
                   >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#2A9D8F] to-[#1E6F5C] flex items-center justify-center font-bold text-white shrink-0">
-                      {firstName(d.studentName).charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
+                    {thumbUrl ? (
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-[#1D3557] border border-[#E2D7C3]">
+                        {/* preload=metadata renders the clip's first frame as the thumbnail */}
+                        <video src={thumbUrl} muted preload="metadata" playsInline className="w-full h-full object-cover" />
+                        <span className="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center">
+                          <Play size={12} className="text-white" fill="currentColor" />
+                        </span>
+                        <span className="absolute bottom-1 left-1 w-6 h-6 rounded-full bg-gradient-to-br from-[#2A9D8F] to-[#1E6F5C] flex items-center justify-center text-[10px] font-extrabold text-white border border-white/70">
+                          {firstName(d.studentName).charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="flex items-center gap-2 w-full">
                       <div className="flex items-center gap-1.5">
                         {/* Privacy: first name only */}
                         <span className="font-bold text-sm truncate text-[#1D3557]">{firstName(d.studentName)}</span>
@@ -343,16 +364,33 @@ const ClassDubs: React.FC<ClassDubsProps> = ({ onBack, onGoStudio }) => {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 max-w-md w-full mx-auto">
-            <DubPlayer
-              videoUrl={playing.videoUrl}
-              lines={playing.lines}
-              lineAudioUrls={playing.lineAudioUrls}
-              className="w-full rounded-2xl bg-black"
-            />
+            <DubbingOverlayPlayer videoUrl={playing.videoUrl} lines={playing.lines} lineAudioUrls={playing.lineAudioUrls} />
           </div>
         </div>
       )}
     </div>
+  );
+};
+
+const DubbingOverlayPlayer: React.FC<{
+  videoUrl: string;
+  lines: { id: string; startMs: number; endMs: number; text: string }[];
+  lineAudioUrls: Record<string, string>;
+}> = ({ videoUrl, lines, lineAudioUrls }) => {
+  const ref = useRef<DubPlayerHandle | null>(null);
+  useEffect(() => {
+    // Autoplay on open: the user's tap on the card is the gesture.
+    const t = setTimeout(() => ref.current?.play(), 150);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <DubPlayer
+      ref={ref}
+      videoUrl={videoUrl}
+      lines={lines as any}
+      lineAudioUrls={lineAudioUrls}
+      className="w-full aspect-video rounded-2xl"
+    />
   );
 };
 

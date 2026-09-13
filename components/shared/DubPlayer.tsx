@@ -1,4 +1,5 @@
-import React, { forwardRef, useCallback, useEffect, useRef } from 'react';
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { Play, Pause } from 'lucide-react';
 import type { ClipLine } from '../../services/DubbingService';
 
 export type DubPlayerHandle = {
@@ -31,6 +32,7 @@ const DubPlayer = forwardRef<DubPlayerHandle, DubPlayerProps>(function DubPlayer
   ref
 ) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioByLine = useRef<Map<string, HTMLAudioElement>>(new Map());
   const firedLines = useRef<Set<string>>(new Set());
   const rafId = useRef<number | null>(null);
@@ -108,6 +110,7 @@ const DubPlayer = forwardRef<DubPlayerHandle, DubPlayerProps>(function DubPlayer
   const play = useCallback(() => {
     firedLines.current.clear();
     playing.current = true;
+    setIsPlaying(true);
     const video = videoRef.current;
     if (video) {
       video.muted = true; // never unmuted
@@ -119,6 +122,7 @@ const DubPlayer = forwardRef<DubPlayerHandle, DubPlayerProps>(function DubPlayer
 
   const pause = useCallback(() => {
     playing.current = false;
+    setIsPlaying(false);
     cancelLoop();
     stopAllAudio();
     videoRef.current?.pause();
@@ -151,15 +155,53 @@ const DubPlayer = forwardRef<DubPlayerHandle, DubPlayerProps>(function DubPlayer
 
   React.useImperativeHandle(ref, () => ({ play, pause }), [play, pause]);
 
+  const toggle = useCallback(() => {
+    if (playing.current) pause();
+    else play();
+  }, [play, pause]);
+
+  // Video ended → reset the overlay to the big play button.
+  const handleVideoEnd = useCallback(() => {
+    playing.current = false;
+    setIsPlaying(false);
+    cancelLoop();
+  }, [cancelLoop]);
+
   return (
-    <video
-      ref={videoRef}
-      className={className}
-      src={videoUrl}
-      muted
-      playsInline
-      preload="auto"
-    />
+    <div className={`relative bg-black ${className ?? ''}`}>
+      <video
+        ref={videoRef}
+        className="w-full h-full"
+        src={videoUrl}
+        muted
+        playsInline
+        preload="auto"
+        onEnded={handleVideoEnd}
+        onClick={toggle}
+      />
+      {!isPlaying && (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="Play dub"
+          className="absolute inset-0 flex items-center justify-center bg-black/25 active:bg-black/40 transition-colors"
+        >
+          <span className="w-16 h-16 rounded-full bg-white/95 shadow-[0_4px_0_rgba(0,0,0,0.25)] flex items-center justify-center">
+            <Play size={30} className="text-[#1D3557] ml-1" fill="currentColor" />
+          </span>
+        </button>
+      )}
+      {isPlaying && (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="Pause dub"
+          className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-black/45 flex items-center justify-center active:bg-black/60"
+        >
+          <Pause size={18} className="text-white" fill="currentColor" />
+        </button>
+      )}
+    </div>
   );
 });
 

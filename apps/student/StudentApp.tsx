@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
 import CodeInput from './atlas/CodeInput';
 import HomeMap from './HomeMap';
-import LessonSession, { ActivityType } from './LessonSession';
 import { Engine } from '../../services/SupabaseService';
 import { supabase } from '../../services/supabaseClient';
 import { useSoloSession } from '../../store/SoloSessionContext';
@@ -15,7 +14,7 @@ import { joinClassByCode } from '../../services/DataService';
 import { useStudentClasses, useStudentAssignments, useSubmitAssignment, useMyAvatar } from '../../hooks/useQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { GamificationService } from '../../services/GamificationService';
-import { GEM_REWARDS, XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
+import { XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import { createClientLogger } from '../../services/logger';
 import Avatar from '../../components/shared/Avatar';
 import { useMainScrollRestore } from './useMainScrollRestore';
@@ -41,6 +40,8 @@ const SpacedRepetition = lazy(() => import('./SpacedRepetition'));
 const SoloLessonPlayer = lazy(() => import('./SoloLessonPlayer'));
 const FastVocabGame = lazy(() => import('./FastVocabGame'));
 const SpellingBeeGame = lazy(() => import('./SpellingBeeGame'));
+const ListeningPractice = lazy(() => import('./ListeningPractice'));
+const GrammarPractice = lazy(() => import('./GrammarPractice'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-full">
@@ -150,23 +151,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   const [isJoining, setIsJoining] = useState(false);
   const [joinError, setJoinError] = useState('');
 
-  // Get the lesson playlist from the active unit's flow, or return empty.
-  const getLessonPlaylist = (): { type: ActivityType, id: string, data?: any }[] => {
-    // If we have an active unit with flow, use it
-    if (state.activeUnit?.flow && state.activeUnit.flow.length > 0) {
-      return state.activeUnit.flow.map((step: any) => ({
-        type: step.type as ActivityType,
-        id: step.id,
-        data: step.data
-      }));
-    }
-
-    // No fallback, return empty state if no active unit or flow
-    return [];
-  };
-
-  const lessonPlaylist = getLessonPlaylist();
-
   // Avatar v2: the Builder persists via equip RPCs + compose-avatar itself;
   // the react-query cache (invalidated by those mutations) is the live state.
   const handleAvatarSave = (_config: unknown, _url: string | null) => {
@@ -183,12 +167,9 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
       sessionResults.xp || XP_REWARDS.LESSON_COMPLETE,
       'lesson_complete'
     );
-    // Perfect-lesson gems are gated on 5 stars (the mini-games already gate
-    // this way — the unconditional award here made every lesson "perfect").
-    const perfect = (sessionResults.stars ?? 0) === 5;
-    const newGems = perfect
-      ? await GamificationService.awardGems(GEM_REWARDS.PERFECT_LESSON, 'lesson_complete')
-      : userStats.gems;
+    // Gems mirror XP 1:1 inside award_xp now (owner decision 2026-09-14) —
+    // no separate perfect-lesson gem grant here.
+    const newGems = userStats.gems;
 
     await GamificationService.updateQuestProgress(QUEST_TYPES.COMPLETE_LESSONS, 1);
     await GamificationService.updateQuestProgress(QUEST_TYPES.EARN_XP, sessionResults.xp || XP_REWARDS.LESSON_COMPLETE);
@@ -212,11 +193,6 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
     navigate('/student/solo-lesson');
   };
 
-  // The Main Lesson Runner (live class mode)
-  if (location.pathname === '/student/lesson') {
-    return <LessonSession playlist={lessonPlaylist} onComplete={handleLessonComplete} onExit={() => navigate('/student')} />;
-  }
-
   // Solo Lesson Player (independent study mode)
   if (location.pathname === '/student/solo-lesson') {
     return <Suspense fallback={<PageLoader />}><SoloLessonPlayer onComplete={handleLessonComplete} onExit={() => navigate('/student')} /></Suspense>;
@@ -234,6 +210,8 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   if (location.pathname === '/student/srs') return <Suspense fallback={<PageLoader />}><SpacedRepetition onBack={() => navigate('/student/practice')} onComplete={() => navigate('/student')} /></Suspense>;
   if (location.pathname === '/student/fast-vocab') return <Suspense fallback={<PageLoader />}><FastVocabGame onBack={() => navigate('/student/practice')} /></Suspense>;
   if (location.pathname === '/student/spelling-bee') return <Suspense fallback={<PageLoader />}><SpellingBeeGame onBack={() => navigate('/student/practice')} /></Suspense>;
+  if (location.pathname === '/student/listening') return <Suspense fallback={<PageLoader />}><ListeningPractice onBack={() => navigate('/student/practice')} /></Suspense>;
+  if (location.pathname === '/student/grammar') return <Suspense fallback={<PageLoader />}><GrammarPractice onBack={() => navigate('/student/practice')} /></Suspense>;
 
   // The Reward Interstitial
   if (location.pathname === '/student/lesson-complete') return <Suspense fallback={<PageLoader />}><LessonComplete onContinue={finalizeLesson} stats={sessionResults} /></Suspense>;

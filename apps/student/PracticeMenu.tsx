@@ -21,6 +21,7 @@ import {
   X,
   Check,
   Flame,
+  PenLine,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Engine } from '../../services/SupabaseService';
@@ -245,6 +246,58 @@ const PracticeMenu: React.FC<PracticeMenuProps> = ({ onBack, onNavigate }) => {
                 <p className="text-[11px] text-[#264653]/65 font-medium mt-0.5">
                   Illustrated Stories
                 </p>
+              </div>
+            </motion.button>
+          </div>
+        </div>
+
+        {/* TIER 2b: Skill Drills (owner Tier-1 2026-09-14) */}
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[12px] font-fredoka font-bold uppercase tracking-wider text-[#1D3557]/80">
+              🎧 2b. Skill Drills
+            </span>
+            <span className="text-[10px] font-bold text-[#264653]/60 uppercase">Ears & Rules</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* Tile: Listening */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('listening')}
+              className="bg-[#FDFBF7] p-4 rounded-[22px] border-2 border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] hover:border-sky-400 transition-all text-left flex flex-col justify-between h-36 relative"
+            >
+              <div className="flex items-start justify-between w-full">
+                <div className="w-12 h-12 bg-sky-100 text-[#0284C7] rounded-2xl flex items-center justify-center border border-sky-200">
+                  <Headphones size={24} />
+                </div>
+                <span className="px-2 py-0.5 bg-sky-100 text-[#0284C7] font-fredoka font-bold text-[10px] rounded-full">
+                  Audio
+                </span>
+              </div>
+              <div>
+                <h3 className="font-fredoka font-bold text-[15px] text-[#1D3557] leading-tight">Listening</h3>
+                <p className="text-[11px] text-[#264653]/65 font-medium mt-0.5">Hear it, tap it</p>
+              </div>
+            </motion.button>
+
+            {/* Tile: Grammar */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => onNavigate('grammar')}
+              className="bg-[#FDFBF7] p-4 rounded-[22px] border-2 border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] hover:border-teal-400 transition-all text-left flex flex-col justify-between h-36 relative"
+            >
+              <div className="flex items-start justify-between w-full">
+                <div className="w-12 h-12 bg-teal-100 text-[#1E6F5C] rounded-2xl flex items-center justify-center border border-teal-200">
+                  <PenLine size={24} />
+                </div>
+                <span className="px-2 py-0.5 bg-teal-100 text-[#1E6F5C] font-fredoka font-bold text-[10px] rounded-full">
+                  Rules
+                </span>
+              </div>
+              <div>
+                <h3 className="font-fredoka font-bold text-[15px] text-[#1D3557] leading-tight">Grammar</h3>
+                <p className="text-[11px] text-[#264653]/65 font-medium mt-0.5">Build it right</p>
               </div>
             </motion.button>
           </div>
