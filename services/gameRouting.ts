@@ -106,6 +106,7 @@ export const GAME_TITLES: Readonly<Record<string, string>> = {
   FOCUS_CARDS: 'Word Lab',
   GRAMMAR_SANDBOX: 'Grammar',
   STORY_STAGE: 'Story',
+  STORY_STAGE_AG: 'Story',
   DIALOGUE_STAGE: 'Dialogue',
   FAST_VOCAB: 'Fast Vocab',
   SPELLING_BEE: 'Spelling Bee',

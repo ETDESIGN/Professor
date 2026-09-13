@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoloSession } from '../../store/SoloSessionContext';
 import { MediaService } from '../../services/MediaService';
-import { getVocabulary, getCharacters } from '../../services/manifest';
+import { getVocabulary, getCharacters, getStory } from '../../services/manifest';
 import { supabase } from '../../services/supabaseClient';
 import { selectLessonItems, prepareUnitForStudent } from '../../services/poolService';
 import { contentForStep, friendlyTitle } from '../../services/gameRouting';
@@ -733,7 +733,18 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
    * With 05 F1/F2 padded hit pills + tap-outside popup dismiss
    * ========================================================================= */
   const renderStoryStage = () => {
-    const pages = currentStep.data?.pages || [];
+    // Board parity (BoardStoryStage): relational story_pages FIRST — resolved
+    // live via getStory(structure_ids) over the _relational bundle — with the
+    // block's frozen data.pages as fallback. Post content-groups, orchestrate
+    // emits STORY_STAGE_AG with group tags and nothing guarantees frozen
+    // pages; without this the student saw "No content for Story" while the
+    // board kept rendering (owner 2026-09-14).
+    const data: any = currentStep.data || {};
+    const relPages = getStory(
+      state.activeUnit?.manifest,
+      Array.isArray(data.structure_ids) ? data.structure_ids : null,
+    ).pages || [];
+    const pages = relPages.length > 0 ? relPages : (data.pages || []);
     if (pages.length === 0) return <EmptyStep title="Story" />;
     const page = pages[activePageIndex];
     if (!page) return <EmptyStep title="Story" />;
@@ -1429,6 +1440,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       case 'SPEED_QUIZ':
         return renderSpeedQuiz();
       case 'STORY_STAGE':
+      case 'STORY_STAGE_AG': // content-groups story block — same reader (owner 2026-09-14)
         return renderStoryStage();
       case 'GRAMMAR_SANDBOX':
         return renderGrammarSandbox();

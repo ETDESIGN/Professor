@@ -77,6 +77,7 @@ export const STUDENT_ELIGIBLE_TYPES: ReadonlySet<string> = new Set([
   ...LEAD_IN_TYPES,
   ...POOL_ROUND_TYPES,
   'STORY_STAGE',
+  'STORY_STAGE_AG', // content-groups per-story block — student reader parity (owner 2026-09-14)
   'GRAMMAR_SANDBOX',
 ]);
 
