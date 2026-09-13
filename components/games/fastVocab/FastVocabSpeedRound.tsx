@@ -3,7 +3,7 @@
 // choices. Single-shot under the shared timer; the turn controller owns the
 // state machine, this component renders it and emits onChoose.
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Zap } from 'lucide-react';
 import type { FastVocabMode, FastVocabSpeedQ } from './types';
@@ -37,6 +37,12 @@ const FastVocabSpeedRound: React.FC<FastVocabSpeedRoundProps> = ({
   onChoose,
   compact = false,
 }) => {
+  // Owner (session-1): focus carried from the entering tap painted a ring on
+  // one option ("pre-selected" look). Drop it on each new question.
+  useEffect(() => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+  }, [question.id]);
+
   const choiceState = (idx: number) => {
     if (revealCorrect) {
       if (idx === question.correctIndex) return 'correct';
@@ -98,7 +104,7 @@ const FastVocabSpeedRound: React.FC<FastVocabSpeedRoundProps> = ({
               type="button"
               disabled={disabled}
               onClick={() => onChoose(idx)}
-              className={`relative rounded-2xl border-4 transition-all duration-200 font-black
+              className={`relative rounded-2xl border-4 transition-all duration-200 font-black focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-300/60
                 ${compact ? 'w-full px-5 py-3.5 text-lg' : 'px-7 py-4 text-xl md:text-2xl min-w-36'} ${cls}`}
             >
               {word}

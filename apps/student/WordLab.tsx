@@ -33,6 +33,7 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
     [set, flipped, played],
   );
   const allStudied = studiedCount >= set.length && set.length > 0;
+  const [showGate, setShowGate] = useState(false);
 
   const currentWord = set[activeCardIndex];
 
@@ -78,7 +79,8 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
     } else if (activeCardIndex < set.length - 1) {
       handleSelectCard(activeCardIndex + 1);
     } else {
-      onReady();
+      // Owner (session-1): Continue with unlearned words → Chinese guidance modal.
+      setShowGate(true);
     }
   };
 
@@ -524,7 +526,24 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
           )}
         </button>
       </footer>
-    </div>
+
+      {showGate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#264653]/55" onClick={() => setShowGate(false)}>
+          <div className="w-full max-w-xs bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] p-5 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#FFF6E0] border-2 border-[#E9C46A] flex items-center justify-center text-xl">📚</div>
+            <p className="font-bold text-[#1D3557] text-sm leading-relaxed">
+              先学习单词再继续哦！<br />
+              <span className="text-[#8C7A68] text-xs">请翻开每一张卡片，并点击喇叭听发音<br />(还有 {set.length - studiedCount} 个单词没学完)</span>
+            </p>
+            <button
+              onClick={() => setShowGate(false)}
+              className="mt-4 w-full py-3 rounded-2xl bg-[#2A9D8F] text-white font-bold text-sm shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px]"
+            >
+              我知道了
+            </button>
+          </div>
+        </div>
+      )}    </div>
   );
 };
 

@@ -275,13 +275,15 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
                 }
               }
 
+              const imageOnly = kind === 'IMAGE_SELECT'; // Word Detective: image-only cards (owner session-1)
+
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={() => handleSelect(i)}
                   disabled={feedback !== 'idle'}
-                  className={`relative rounded-3xl p-3 flex flex-col items-center justify-between transition-all duration-100 ${cardStyle}`}
+                  className={`relative rounded-3xl flex flex-col items-center justify-between transition-all duration-100 overflow-hidden ${imageOnly ? 'p-1.5 aspect-square' : 'p-0'} ${cardStyle}`}
                 >
                   {/* Status badges when revealed */}
                   {feedback !== 'idle' && isCorrect && (
@@ -295,13 +297,17 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
                     </div>
                   )}
 
-                  {/* Image area or fallback placeholder */}
-                  <div className="w-full aspect-square max-h-[110px] flex items-center justify-center p-1">
+                  {/* Image area or fallback placeholder (owner: fill the frame) */}
+                  <div className={`flex items-center justify-center ${imageOnly ? 'w-full h-full' : 'w-full'}`}>
                     {optImageUrl && !hasFailedImage ? (
                       <img
                         src={optImageUrl}
                         alt={optText}
-                        className="w-full h-full object-contain rounded-2xl"
+                        className={
+                          imageOnly
+                            ? 'w-full h-full object-contain rounded-2xl' // square frame, uncropped
+                            : 'w-full aspect-[4/3] object-cover' // corner-to-corner strip (Sound Lab)
+                        }
                         onError={() => {
                           setFailedImages((prev) => new Set(prev).add(i));
                         }}
@@ -322,9 +328,10 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
                     )}
                   </div>
 
-                  {/* Label */}
-                  {optText && (
-                    <div className="mt-2 text-center w-full px-1">
+                  {/* Label — hidden on IMAGE_SELECT (owner: image-only cards);
+                      bottom white strip on audio-image types (Sound Lab) */}
+                  {!imageOnly && optText && (
+                    <div className="text-center w-full px-3 py-2 bg-[#FDFBF7] border-t-2 border-[#E2D7C3]/70 shrink-0">
                       <span className="font-bold text-base text-[#1D3557] tracking-wide block truncate">
                         {optText}
                       </span>

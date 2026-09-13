@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
-import { X, Heart, ArrowRight, ArrowLeft, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX, RotateCw, Check } from 'lucide-react';
+import { X, Heart, ArrowRight, ArrowLeft, Volume2, ChevronRight, Star, BookOpen, Zap, Play, Pause, VolumeX, RotateCw, Check , Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSoloSession } from '../../store/SoloSessionContext';
@@ -58,6 +58,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
   // Grammar sandbox state (06)
   const [heardGrammarExamples, setHeardGrammarExamples] = useState<Set<number>>(new Set());
+  const [showGrammarGate, setShowGrammarGate] = useState(false);
   const [selectedGrammarQuizOption, setSelectedGrammarQuizOption] = useState<number | null>(null);
 
   // Story stage state (05)
@@ -187,6 +188,24 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     setMediaError(false);
     setVarietySeed((Math.random() * 0x7fffffff) | 0);
   }, [currentIndex]);
+
+  // Auto-skip MEDIA_PLAYER steps with nothing to play (owner: no dead screens).
+  useEffect(() => {
+    if (currentStep?.type !== 'MEDIA_PLAYER') return;
+    const d = currentStep.data || {};
+    if (!d.videoUrl && !d.audioUrl && !(d.lyrics?.length > 0)) {
+      handleNext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, currentStep?.type]);
+
+  // Grammar TTS warm-up: force voice loading so the first example tap doesn't
+  // pay the synthesis cold-start (owner: audio latency).
+  useEffect(() => {
+    if (currentStep?.type === 'GRAMMAR_SANDBOX') {
+      try { window.speechSynthesis?.getVoices(); } catch { /* best-effort */ }
+    }
+  }, [currentIndex, currentStep?.type]);
 
   const handleNext = useCallback(() => {
     if (currentIndex < totalSteps - 1) {
@@ -916,12 +935,12 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
         {/* Rule Showcase Card */}
         <div className="bg-[#FDFBF7] rounded-[24px] border-2 border-[#E2D7C3] p-4 shadow-sm relative overflow-hidden">
-          {/* Owl Speech Bubble */}
+          {/* Explanation card — no mascot (owner rule); clean card replaces the cut-out bubble */}
           <div className="flex items-start gap-2.5 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] border-2 border-[#BAE6FD] flex items-center justify-center text-2xl shrink-0 shadow-xs">
-              🦉
+            <div className="w-10 h-10 rounded-full bg-[#2A9D8F]/12 border-2 border-[#2A9D8F]/40 flex items-center justify-center shrink-0">
+              <Sparkles size={18} className="text-[#1E6F5C]" />
             </div>
-            <div className="flex-1 bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-2.5">
+            <div className="flex-1 bg-[#F7F3E8] border-2 border-[#E2D7C3] rounded-2xl rounded-tl-md p-2.5">
               <p className="text-xs font-fredoka font-bold text-[#264653] leading-snug">{explanation}</p>
             </div>
           </div>
@@ -1042,15 +1061,9 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     const hasContent = hasVideo || hasAudio;
 
     if (!hasContent && !hasLyrics) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="bg-[#FDFBF7] rounded-2xl shadow-lg border-2 border-[#E2D7C3] p-8 text-center max-w-sm">
-            <Volume2 size={40} className="text-[#8C7A68] mx-auto mb-4" />
-            <h2 className="text-lg font-fredoka font-bold text-[#1D3557] mb-2">{title}</h2>
-            <p className="text-[#8C7A68] text-sm font-medium">No media for this step. Tap Continue.</p>
-          </div>
-        </div>
-      );
+      // Owner (session-1): a media step with nothing to play must not render a
+      // dead screen — the auto-skip effect below advances past it.
+      return null;
     }
 
     const handleMediaProgress = (progressState: { played: number; playedSeconds: number }) => {
@@ -1359,8 +1372,14 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     }
     if (currentStep.type === 'GRAMMAR_SANDBOX') {
       return {
-        label: 'TRY EXERCISES',
-        action: handleNext,
+        label: heardGrammarExamples.size > 0 ? 'TRY EXERCISES' : 'HEAR AN EXAMPLE FIRST',
+        action: () => {
+          if (heardGrammarExamples.size === 0) {
+            setShowGrammarGate(true); // Chinese guidance (owner session-1)
+            return;
+          }
+          handleNext();
+        },
         disabled: false,
       };
     }
@@ -1565,6 +1584,26 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
                 Quit Lesson
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showGrammarGate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#264653]/55" onClick={() => setShowGrammarGate(false)}>
+          <div className="w-full max-w-xs bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] p-5 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#FFF6E0] border-2 border-[#E9C46A] flex items-center justify-center">
+              <Volume2 size={22} className="text-[#9A6B00]" />
+            </div>
+            <p className="font-bold text-[#1D3557] text-sm leading-relaxed">
+              先听一个例句再继续 👆<br />
+              <span className="text-[#8C7A68] text-xs">点一个喇叭图标，听完发音就可以继续啦</span>
+            </p>
+            <button
+              onClick={() => setShowGrammarGate(false)}
+              className="mt-4 w-full py-3 rounded-2xl bg-[#2A9D8F] text-white font-bold text-sm shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px]"
+            >
+              我知道了
+            </button>
           </div>
         </div>
       )}
