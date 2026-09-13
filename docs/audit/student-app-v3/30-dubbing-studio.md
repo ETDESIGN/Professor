@@ -1,5 +1,5 @@
 # Dubbing Studio + Class Gallery — v3 Quality Audit (`FLAG-GATED: VITE_ENABLE_DUBBING (off)`)
-> **Current status:** stitch-designed (awaiting materialization + owner approval)
+> **Current status:** owner-approved (plan written — implementation in flight)
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -124,7 +124,7 @@ DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge 
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**APPROVED 2026-09-14 (owner, verbatim):** "ok i validate the dubbing functionality and design, you can implement it after plannify all in details." — functionality (§5 decisions) AND the design set approved; implementation gated on the detailed plan, which is written at `docs/superpowers/plans/2026-09-14-student-dubbing-v3.md`.
 
 ## §7 Implementation notes & design-fidelity log
 
