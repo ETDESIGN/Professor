@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Loader2, Mic, RefreshCw, Share2, Star, Users, Video } from 'lucide-react';
+import { ChevronLeft, Loader2, Mic, RefreshCw, Share2, Star, Users, Video, Volume2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -12,6 +12,7 @@ import { GamificationService } from '../../services/GamificationService';
 import { XP_REWARDS, QUEST_TYPES } from '../../constants/gamification';
 import { useDubRecorder, buildLineWindows } from './dubbing/useDubRecorder';
 import DubPlayer from '../../components/shared/DubPlayer';
+import { playCue } from '../board/templates/playCue';
 import { createClientLogger } from '../../services/logger';
 
 const log = createClientLogger('DubbingStudio');
@@ -24,6 +25,9 @@ interface DubbingStudioProps {
   /** Opens the class gallery (friends' published dubs). Optional — hidden when absent. */
   onOpenGallery?: () => void;
 }
+
+/** Owner decision 7 (2026-09-13): +1 gem for a 'great'-band PUBLISHED take (exactly-once latch). */
+const DUBBING_GREAT_GEMS = 1;
 
 // ── Capability check (pattern kept from the previous implementation) ─────────
 function recordingSupported(): boolean {
@@ -49,6 +53,14 @@ const BAND_LABEL: Record<string, string> = {
   try_again: 'Try again',
 };
 
+const BAND_STARS: Record<string, number> = { great: 3, almost: 2, try_again: 1 };
+
+const BAND_CHIP: Record<string, string> = {
+  great: 'bg-[#E6F4F1] text-[#1E6F5C] border-[#2A9D8F]',
+  almost: 'bg-[#FFF6E0] text-[#9A6B00] border-[#E9C46A]',
+  try_again: 'bg-[#FEF2F2] text-[#C0392B] border-[#FF4B4B]',
+};
+
 const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) => {
   const [phase, setPhase] = useState<Phase>('pick');
   const [clips, setClips] = useState<ClipWithLines[]>([]);
@@ -70,6 +82,8 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   const savedDubbingIdRef = useRef<string | null>(null);
   /** XP already granted for this take (10 private, top-up 5 on publish → exactly 15 published / 10 private). */
   const xpGivenRef = useRef(0);
+  /** Gems already granted for this take (+1 once, on a 'great' band publish). */
+  const gemGivenRef = useRef(false);
   const [activeSubIdx, setActiveSubIdx] = useState(-1);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -87,6 +101,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
     lines,
     durationMs: clip?.videoDurationMs ?? 0,
     onLineCaptured: (lineId, blob, transcript) => {
+      playCue('reveal'); // karaoke deck: a line was captured
       evaluateLine(lineId, blob, transcript);
     },
   });
@@ -147,6 +162,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
     finalBlobsRef.current = {};
     savedDubbingIdRef.current = null;
     xpGivenRef.current = 0;
+    gemGivenRef.current = false;
     setPhase('watch');
     try {
       const url = await DubbingService.signedUrl(c.videoPath);
@@ -167,7 +183,9 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       const { results } = await DubbingService.evaluateTake(clip?.id ?? '', [
         { lineId, text: line.text, transcript: transcript || undefined, audioBase64: b64 },
       ]);
-      setLineScores((prev) => ({ ...prev, [lineId]: results[lineId] ?? null }));
+      const score = results[lineId] ?? null;
+      if (score) playCue(score.band === 'great' ? 'correct' : score.band === 'try_again' ? 'wrong' : 'reveal');
+      setLineScores((prev) => ({ ...prev, [lineId]: score }));
     } catch (err) {
       log.warn(`line_eval_failed line=${lineId}`, { error: err instanceof Error ? err.message : String(err) });
       setLineScores((prev) => ({ ...prev, [lineId]: null })); // AI down → pending
@@ -195,10 +213,10 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       const draw = () => {
         rafWaveRef.current = requestAnimationFrame(draw);
         node.getByteTimeDomainData(dataArray);
-        ctx2d.fillStyle = 'rgb(15, 23, 42)';
+        ctx2d.fillStyle = '#1D3557';
         ctx2d.fillRect(0, 0, canvas.width, canvas.height);
         ctx2d.lineWidth = 2;
-        ctx2d.strokeStyle = 'rgb(34, 197, 94)';
+        ctx2d.strokeStyle = '#2A9D8F';
         ctx2d.beginPath();
         const sliceWidth = canvas.width / bufferLength;
         let x = 0;
@@ -225,6 +243,11 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   useEffect(() => {
     analyserRef.current = recorder.analyser;
   }, [recorder.analyser]);
+
+  // Result-screen celebration cue (owner sound directive).
+  useEffect(() => {
+    if (phase === 'result') playCue('win');
+  }, [phase]);
 
   // Subtitle tracking during Watch.
   const onTimeUpdate = useCallback(() => {
@@ -325,12 +348,23 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
         await GamificationService.awardXP(XP_REWARDS.DUBBING_PERFECT - xpGivenRef.current, 'dubbing_complete');
         xpGivenRef.current = XP_REWARDS.DUBBING_PERFECT;
       }
+      // Owner decision 7: +1 gem exactly once for a 'great'-band PUBLISHED take.
+      const overall = bandFromScores(lineScores, lines);
+      if (overall === 'great' && !gemGivenRef.current) {
+        gemGivenRef.current = true;
+        try {
+          await GamificationService.awardGems(DUBBING_GREAT_GEMS, 'dubbing_great_publish');
+        } catch (err) {
+          log.warn('gem_failed', { error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+      playCue('win');
       toast.success('Shared with your class!');
     } catch (err) {
       log.warn('publish_failed', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Could not share your take.');
     }
-  }, [saveTake]);
+  }, [saveTake, lineScores, lines]);
 
   const tryAgain = useCallback(() => {
     Object.values(blobUrlMap.current).forEach((u) => URL.revokeObjectURL(u));
@@ -341,6 +375,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
     finalBlobsRef.current = {};
     savedDubbingIdRef.current = null;
     xpGivenRef.current = 0;
+    gemGivenRef.current = false;
     recorder.reset();
     setPhase('watch');
   }, [recorder]);
@@ -348,15 +383,15 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   // ── Render ──────────────────────────────────────────────────────────────────
   if (!recordingSupported()) {
     return (
-      <div className="h-dvh bg-slate-900 text-white flex flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-          <Mic size={28} className="text-slate-400" />
+      <div className="h-dvh bg-[#EAE0D0] text-[#1D3557] flex flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#FDFBF7] border-2 border-[#E2D7C3] flex items-center justify-center">
+          <Mic size={28} className="text-[#8C7A68]" />
         </div>
         <h1 className="text-xl font-bold">Please update your browser</h1>
-        <p className="text-sm text-slate-400 max-w-xs">
+        <p className="text-sm text-[#8C7A68] max-w-xs">
           Voice dubbing needs microphone recording, which this browser does not support. Try the latest Chrome, Safari, or Edge.
         </p>
-        <button onClick={onBack} className="mt-2 px-4 py-2 bg-white/10 rounded-xl text-sm font-bold">
+        <button onClick={onBack} className="mt-2 px-5 py-3 bg-[#2A9D8F] text-white rounded-2xl font-bold shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px] active:shadow-[0_2px_0_#1E6F5C] text-sm">
           Go back
         </button>
       </div>
@@ -365,10 +400,17 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
 
   const activeLine = activeSubIdx >= 0 ? lines[activeSubIdx] : null;
   const recLine = recorder.activeLineIndex >= 0 ? lines[recorder.activeLineIndex] : null;
+  const recNextLine = recorder.activeLineIndex >= 0 ? lines[recorder.activeLineIndex + 1] : null;
   const recordedCount = Object.keys(recorder.lineBlobs).length;
+  const overallBand = bandFromScores(lineScores, lines);
+  const overallMatch = useMemo(() => {
+    const vals = lines.map((l) => lineScores[l.id]).filter((s): s is LineScore => !!s);
+    if (!vals.length) return null;
+    return Math.round((vals.reduce((a, s) => a + s.wordMatch, 0) / vals.length) * 100);
+  }, [lineScores, lines]);
 
   return (
-    <div className="h-dvh bg-slate-900 text-white font-sans max-w-md mx-auto flex flex-col">
+    <div className="h-dvh bg-[#EAE0D0] text-[#1D3557] font-sans max-w-md mx-auto flex flex-col">
       <header className="p-4 flex justify-between items-center z-10 shrink-0">
         <button
           onClick={() => {
@@ -376,25 +418,25 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
             if (phase === 'pick') onBack();
             else { setPhase('pick'); setClip(null); setVideoUrl(null); }
           }}
-          className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+          className="p-2 bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-full active:translate-y-[2px] transition-colors"
           aria-label="Back"
         >
-          <ChevronLeft size={24} />
+          <ChevronLeft size={22} className="text-[#1D3557]" />
         </button>
         <div className="flex flex-col items-center">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          <span className="text-[10px] font-extrabold text-[#8C7A68] uppercase tracking-widest">
             {phase === 'pick' ? 'Dubbing' : 'Dubbing Studio'}
           </span>
-          {clip && <span className="font-bold text-sm">{clip.title}</span>}
+          {clip && <span className="font-bold text-sm text-[#264653]">{clip.title}</span>}
         </div>
         {phase === 'pick' && onOpenGallery ? (
           <button
             onClick={onOpenGallery}
-            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
+            className="p-2 bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-full active:translate-y-[2px]"
             aria-label="Friends' videos"
             title="Friends' videos"
           >
-            <Users size={22} />
+            <Users size={20} className="text-[#2A9D8F]" />
           </button>
         ) : (
           <div className="w-10" />
@@ -405,34 +447,60 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       {phase === 'pick' && (
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {clipsLoading && (
-            <div className="flex items-center justify-center py-16 text-slate-400">
+            <div className="flex items-center justify-center py-16 text-[#8C7A68]">
               <Loader2 className="animate-spin" />
             </div>
           )}
           {!clipsLoading && clips.length === 0 && (
-            <div className="text-center py-16 text-slate-400">
-              <Video className="mx-auto mb-3 opacity-50" />
-              <p className="text-sm">No dubbing clips assigned yet. Check back soon!</p>
+            <div className="bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] p-6 text-center">
+              {/* Shapes-only illustration (no animal mascot per owner rule) */}
+              <div className="w-20 h-16 mx-auto mb-4 rounded-2xl bg-[#F7F3E8] border-2 border-[#E2D7C3] flex items-center justify-center relative">
+                <div className="absolute -top-2 left-4 w-0.5 h-3 bg-[#8C7A68]" />
+                <div className="absolute -top-2 right-4 w-0.5 h-3 bg-[#8C7A68]" />
+                <Video size={26} className="text-[#2A9D8F]" />
+              </div>
+              <h3 className="font-bold text-lg text-[#1D3557] mb-1">No dubbing clips yet!</h3>
+              <p className="text-sm text-[#8C7A68] mb-1">Your teacher will assign fun voice clips for your class.</p>
+              <p className="text-xs text-[#8C7A68]/80 mb-5">你的老师会布置配音任务</p>
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                {[
+                  { icon: <Play size={16} />, label: 'Watch' },
+                  { icon: <Mic size={16} />, label: 'Record' },
+                  { icon: <Share2 size={16} />, label: 'Share' },
+                ].map((s) => (
+                  <div key={s.label} className="bg-[#F7F3E8] rounded-2xl border border-[#E2D7C3] p-2.5 flex flex-col items-center gap-1">
+                    <span className="w-8 h-8 rounded-full bg-[#E6F4F1] text-[#1E6F5C] flex items-center justify-center">{s.icon}</span>
+                    <span className="text-[10px] font-bold text-[#8C7A68] uppercase tracking-wide">{s.label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-2.5 bg-[#2A9D8F] text-white font-bold rounded-2xl text-sm shadow-[0_4px_0_#1E6F5C] inline-block">
+                Check back soon
+              </div>
             </div>
           )}
           {clips.map((c) => (
             <button
               key={c.id}
               onClick={() => void openClip(c)}
-              className="w-full flex items-center gap-4 p-4 bg-slate-800 rounded-2xl border border-slate-700 hover:border-slate-500 transition-colors text-left"
+              className="w-full flex items-center gap-4 p-4 bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] hover:border-[#2A9D8F] active:translate-y-[2px] transition-all text-left shadow-[0_4px_0_#E2D7C3]"
             >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0">
-                <Video size={24} />
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2A9D8F] to-[#1E6F5C] flex items-center justify-center shrink-0">
+                <Video size={24} className="text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-bold truncate">{c.title}</div>
-                <div className="text-xs text-slate-400">
+                <div className="font-bold truncate text-[#1D3557]">{c.title}</div>
+                <div className="text-xs text-[#8C7A68] font-semibold">
                   {(c.lines?.length ?? 0)} lines · {Math.round(c.videoDurationMs / 1000)}s
                 </div>
               </div>
-              {newClipIds.has(c.id) && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase">
+              {newClipIds.has(c.id) ? (
+                <span className="px-2 py-0.5 rounded-full bg-[#E6F4F1] text-[#1E6F5C] text-[10px] font-extrabold uppercase border border-[#2A9D8F]">
                   New
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-[#F7F3E8] text-[#8C7A68] text-[10px] font-extrabold uppercase border border-[#E2D7C3]">
+                  Dubbed
                 </span>
               )}
             </button>
@@ -443,7 +511,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
       {/* ── Watch phase ── */}
       {phase === 'watch' && (
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 bg-black relative">
+          <div className="flex-1 bg-[#1D3557] rounded-t-[32px] relative overflow-hidden mx-2 mt-1">
             <video
               ref={videoRef}
               src={videoUrl ?? undefined}
@@ -454,13 +522,13 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
               onEnded={() => setActiveSubIdx(-1)}
             />
             {activeLine && (
-              <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black to-transparent">
-                <p className="text-center text-lg font-medium">{activeLine.text}</p>
+              <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <p className="text-center text-lg font-medium text-white">{activeLine.text}</p>
               </div>
             )}
           </div>
-          <div className="p-6 bg-slate-800 border-t border-slate-700">
-            <p className="text-sm text-slate-400 mb-4 text-center">
+          <div className="p-5 pt-4">
+            <p className="text-sm text-[#8C7A68] font-semibold mb-4 text-center">
               Watch the clip once, then record your voice over it.
             </p>
             <button
@@ -469,7 +537,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
                 setPhase('record');
               }}
               disabled={!videoUrl}
-              className="w-full py-4 rounded-2xl bg-red-500 hover:bg-red-600 disabled:opacity-50 font-bold flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl bg-[#2A9D8F] hover:bg-[#1E6F5C] disabled:opacity-50 font-bold text-white shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px] active:shadow-[0_2px_0_#1E6F5C] flex items-center justify-center gap-2"
             >
               <Mic size={20} /> Start dubbing
             </button>
@@ -477,49 +545,80 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
         </div>
       )}
 
-      {/* ── Record pass phase ── */}
+      {/* ── Record pass phase (KARAOKE deck) ── */}
       {phase === 'record' && (
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 bg-black relative">
+          <div className="flex-1 bg-[#1D3557] rounded-t-[32px] relative mx-2 mt-1 min-h-[28vh]">
             <video ref={videoRef} src={videoUrl ?? undefined} className="w-full h-full object-contain" muted playsInline />
+            <div className="absolute top-2 right-2 px-2.5 py-1 rounded-full bg-[#FDFBF7]/90 border border-[#E2D7C3] text-[10px] font-extrabold text-[#1D3557]">
+              LINE {Math.min(Math.max(recorder.activeLineIndex + 1, recordedCount + 1), lines.length)} / {lines.length}
+            </div>
           </div>
 
-          <div className="bg-slate-800 border-t border-slate-700 p-6 flex flex-col gap-4">
-            {/* Current line + progress */}
-            <div className="text-center min-h-[72px]">
+          <div className="bg-[#FDFBF7] border-t-[3px] border-[#E2D7C3] rounded-t-[28px] p-5 flex flex-col gap-4 flex-none">
+            {/* Karaoke line deck */}
+            <div className="text-center min-h-[92px] flex flex-col justify-center">
               {recorder.state === 'pass_done' ? (
-                <p className="text-sm font-bold text-emerald-400">Pass complete! Review your lines below.</p>
+                <p className="text-sm font-extrabold text-[#1E6F5C]">Pass complete! Review your lines below.</p>
               ) : recLine ? (
                 <>
-                  <div className="text-xs text-slate-400 font-bold uppercase mb-1">
-                    {recorder.state === 'countdown' ? 'Get ready…' : 'Speak now'} ·{' '}
-                    {Math.min(recordedCount + 1, lines.length)} of {lines.length}
+                  <div className="text-[10px] text-[#8C7A68] font-extrabold uppercase tracking-widest mb-1">
+                    {recorder.state === 'countdown' ? 'Get ready…' : 'Speak now'}
                   </div>
-                  <p className="text-xl font-semibold leading-snug">{recLine.text}</p>
+                  <p className="text-2xl font-bold text-[#1D3557] leading-snug px-2">{recLine.text}</p>
+                  {recNextLine && (
+                    <p className="text-sm text-[#8C7A68]/70 font-semibold mt-1.5">Next: {recNextLine.text}</p>
+                  )}
                 </>
               ) : (
-                <p className="text-sm text-slate-400">Listen for your cue…</p>
+                <p className="text-sm text-[#8C7A68] font-semibold">Listen for your cue…</p>
               )}
             </div>
 
-            {/* Mic ring + waveform */}
+            {/* Draining window bar */}
+            {recorder.state !== 'pass_done' && (
+              <div className="h-3 rounded-full bg-[#F7F3E8] border border-[#E2D7C3] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-none ${
+                    recorder.state === 'recording_line' ? 'bg-[#E76F51]' : 'bg-[#E9C46A]'
+                  }`}
+                  style={{ width: `${Math.round((recorder.state === 'recording_line' ? 1 - recorder.windowProgress : recorder.windowProgress) * 100)}%` }}
+                />
+              </div>
+            )}
+
+            {/* Mic + waveform */}
             {recorder.state !== 'pass_done' && (
               <div className="flex items-center justify-center gap-4">
                 <div className="relative">
                   {(recorder.state === 'recording_line' || recorder.state === 'countdown') && (
                     <motion.div
-                      className="absolute inset-0 rounded-full border-4 border-red-500"
+                      className="absolute inset-0 rounded-full border-4 border-[#FF4B4B]"
                       animate={{ scale: [1, 1.35, 1], opacity: [0.7, 0, 0.7] }}
                       transition={{ repeat: Infinity, duration: 1.4 }}
                     />
                   )}
-                  <div className="w-16 h-16 rounded-full bg-red-500 flex items-center justify-center">
-                    <Mic size={26} />
+                  <div className="w-16 h-16 rounded-full bg-[#FF4B4B] shadow-[0_4px_0_#C0392B] flex items-center justify-center">
+                    <Mic size={26} className="text-white" />
                   </div>
                 </div>
-                <div className="h-12 flex-1 bg-slate-900 rounded-lg border border-slate-700 overflow-hidden relative">
+                <div className="h-12 flex-1 bg-[#1D3557] rounded-xl overflow-hidden relative">
                   <canvas ref={canvasRef} width={400} height={48} className="w-full h-full absolute inset-0" />
                 </div>
+              </div>
+            )}
+
+            {/* Instant band chips for captured lines */}
+            {recordedCount > 0 && recorder.state !== 'pass_done' && (
+              <div className="flex gap-2 flex-wrap justify-center">
+                {lines.filter((l) => recorder.lineBlobs[l.id]).map((l) => {
+                  const s = lineScores[l.id];
+                  return (
+                    <span key={l.id} className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${BAND_CHIP[s?.band ?? 'great']}`}>
+                      {s ? `${BAND_LABEL[s.band]} ${Math.round(s.wordMatch * 100)}%` : 'Scoring…'}
+                    </span>
+                  );
+                })}
               </div>
             )}
 
@@ -527,7 +626,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
             {recorder.state === 'idle' || recorder.state === 'watching' || recorder.state === 'countdown' ? (
               <button
                 onClick={recorder.startPass}
-                className="w-full py-4 rounded-2xl bg-red-500 hover:bg-red-600 font-bold flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-[#FF4B4B] hover:bg-[#E04040] font-bold text-white shadow-[0_4px_0_#C0392B] active:translate-y-[2px] active:shadow-[0_2px_0_#C0392B] flex items-center justify-center gap-2"
               >
                 <Mic size={20} /> Tap to record
               </button>
@@ -537,27 +636,23 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
                   {lines.map((l) => {
                     const s = lineScores[l.id];
                     return (
-                      <div key={l.id} className="flex items-center gap-2 bg-slate-900 rounded-xl p-3">
+                      <div key={l.id} className="flex items-center gap-2 bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs truncate text-slate-300">{l.text}</p>
-                          {!s && <span className="text-[10px] text-slate-500">Score pending…</span>}
+                          <p className="text-xs truncate font-semibold text-[#264653]">{l.text}</p>
+                          {!s && <span className="text-[10px] text-[#8C7A68]">Score pending…</span>}
                           {s && (
-                            <span
-                              className={`text-[10px] font-bold uppercase ${
-                                s.band === 'great' ? 'text-emerald-400' : s.band === 'almost' ? 'text-yellow-400' : 'text-red-400'
-                              }`}
-                            >
-                              {BAND_LABEL[s.band] ?? s.band} · {Math.round(s.wordMatch * 100)}%
+                            <span className={`text-[10px] font-extrabold uppercase ${s.band === 'great' ? 'text-[#1E6F5C]' : s.band === 'almost' ? 'text-[#9A6B00]' : 'text-[#C0392B]'}`}>
+                              {BAND_LABEL[s.band]} · {Math.round(s.wordMatch * 100)}%
                             </span>
                           )}
                         </div>
                         <button
                           onClick={() => recorder.rerecordLine(l.id)}
-                          className="p-2 bg-white/10 rounded-full hover:bg-white/20 shrink-0"
+                          className="p-2.5 bg-[#FDFBF7] border border-[#E2D7C3] rounded-full active:translate-y-[2px] shrink-0"
                           aria-label={`Redo line ${l.order + 1}`}
                           title="Redo this line"
                         >
-                          <RefreshCw size={16} />
+                          <RefreshCw size={15} className="text-[#E76F51]" />
                         </button>
                       </div>
                     );
@@ -565,76 +660,88 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
                 </div>
                 <button
                   onClick={goResult}
-                  className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold"
+                  className="w-full py-4 rounded-2xl bg-[#2A9D8F] hover:bg-[#1E6F5C] font-bold text-white shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px] active:shadow-[0_2px_0_#1E6F5C]"
                 >
                   See my results
                 </button>
               </div>
             ) : (
-              <div className="text-center text-xs text-slate-500 py-2">Recording… stay quiet between lines.</div>
+              <div className="text-center text-xs text-[#8C7A68] font-semibold py-2">Recording… stay quiet between lines.</div>
             )}
           </div>
         </div>
       )}
 
-      {/* ── Result phase ── */}
+      {/* ── Result phase (STAR BAND card) ── */}
       {phase === 'result' && clip && (
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {videoUrl && Object.keys(blobUrlMap.current).length > 0 ? (
-            <DubPlayer
-              videoUrl={videoUrl}
-              lines={lines}
-              lineAudioUrls={blobUrlMap.current}
-              className="w-full rounded-2xl bg-black"
-            />
+            <div className="bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] p-2 shadow-[0_4px_0_#E2D7C3]">
+              <DubPlayer
+                videoUrl={videoUrl}
+                lines={lines}
+                lineAudioUrls={blobUrlMap.current}
+                className="w-full rounded-2xl bg-black"
+              />
+            </div>
           ) : (
-            <div className="aspect-video bg-black rounded-2xl flex items-center justify-center text-slate-500 text-sm">
+            <div className="aspect-video bg-[#1D3557] rounded-2xl flex items-center justify-center text-[#8C7A68] text-sm font-semibold">
               {saveState === 'saving' ? 'Saving your take…' : 'No recording to play back.'}
             </div>
           )}
 
-          {/* Score card */}
-          <div className="bg-slate-800 rounded-2xl p-5 border border-slate-700">
-            <div className="flex items-center justify-between mb-4">
+          {/* Star band card */}
+          <div className="bg-[#FDFBF7] rounded-3xl border-2 border-[#E2D7C3] p-5 shadow-[0_4px_0_#E2D7C3]">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Star className="text-yellow-400 w-5 h-5 fill-yellow-400" />
-                <span className="font-bold">
+                <Star className="text-[#E9C46A] w-5 h-5 fill-[#E9C46A]" />
+                <span className="font-extrabold text-[#1D3557]">
                   {(() => {
-                    const b = bandFromScores(lineScores, lines);
                     if (saveState === 'saving') return 'Scoring…';
-                    return b ? BAND_LABEL[b] ?? b : 'Score pending';
+                    return overallBand ? BAND_LABEL[overallBand] ?? overallBand : 'Score pending';
                   })()}
                 </span>
               </div>
               {published && (
-                <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase">
+                <span className="px-2 py-1 rounded-full bg-[#E6F4F1] text-[#1E6F5C] text-[10px] font-extrabold uppercase border border-[#2A9D8F]">
                   Shared with class
                 </span>
               )}
             </div>
+
+            <div className="flex items-center justify-center gap-2 mb-3">
+              {[1, 2, 3].map((n) => (
+                <Star
+                  key={n}
+                  size={34}
+                  className={n <= (overallBand ? BAND_STARS[overallBand] : 0) ? 'text-[#E9C46A] fill-[#E9C46A]' : 'text-[#E2D7C3] fill-transparent'}
+                />
+              ))}
+            </div>
+
+            {overallMatch !== null && (
+              <div className="flex justify-center mb-3">
+                <span className="px-3 py-1 rounded-full bg-[#F7F3E8] border border-[#E2D7C3] text-xs font-extrabold text-[#264653]">
+                  {overallMatch}% word match
+                </span>
+              </div>
+            )}
+
             <div className="space-y-2">
               {lines.map((l) => {
                 const s = lineScores[l.id];
                 return (
-                  <div key={l.id} className="bg-slate-900 rounded-xl p-3">
-                    <p className="text-xs text-slate-300 mb-1">{l.text}</p>
+                  <div key={l.id} className="bg-[#F7F3E8] border border-[#E2D7C3] rounded-2xl p-3">
+                    <p className="text-xs text-[#264653] font-semibold mb-1">{l.text}</p>
                     {s ? (
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            s.band === 'great'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : s.band === 'almost'
-                                ? 'bg-yellow-500/20 text-yellow-400'
-                                : 'bg-red-500/20 text-red-400'
-                          }`}
-                        >
-                          {BAND_LABEL[s.band] ?? s.band}
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${BAND_CHIP[s.band]}`}>
+                          {BAND_LABEL[s.band]}
                         </span>
-                        <span className="text-[11px] text-slate-400">{s.feedback || Math.round(s.wordMatch * 100) + '% match'}</span>
+                        <span className="text-[11px] text-[#8C7A68] font-semibold">{s.feedback || Math.round(s.wordMatch * 100) + '% match'}</span>
                       </div>
                     ) : (
-                      <span className="text-[10px] text-slate-500">Score pending — your teacher can still hear your dub.</span>
+                      <span className="text-[10px] text-[#8C7A68]">Score pending — your teacher can still hear your dub.</span>
                     )}
                   </div>
                 );
@@ -646,17 +753,22 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
             <button
               onClick={tryAgain}
               disabled={saveState === 'saving'}
-              className="py-3 rounded-2xl bg-white/10 hover:bg-white/20 font-bold text-sm disabled:opacity-50"
+              className="py-3.5 rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3] hover:border-[#8C7A68] font-bold text-sm text-[#1D3557] shadow-[0_4px_0_#E2D7C3] active:translate-y-[2px] disabled:opacity-50"
             >
               Try again
             </button>
             <button
               onClick={() => void shareWithClass()}
               disabled={saveState === 'saving' || published}
-              className="py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              className="py-3.5 rounded-2xl bg-[#2A9D8F] hover:bg-[#1E6F5C] font-bold text-sm text-white shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px] active:shadow-[0_2px_0_#1E6F5C] flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saveState === 'saving' ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
               {published ? 'Shared' : 'Share with class'}
+              {!published && overallBand === 'great' && (
+                <span className="px-1.5 py-0.5 rounded-full bg-[#FFF6E0] border border-[#E9C46A] text-[#9A6B00] text-[10px] font-extrabold">
+                  +1 💎
+                </span>
+              )}
             </button>
           </div>
         </div>

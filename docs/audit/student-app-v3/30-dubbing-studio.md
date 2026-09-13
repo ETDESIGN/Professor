@@ -1,5 +1,5 @@
 # Dubbing Studio + Class Gallery — v3 Quality Audit (`FLAG-GATED: VITE_ENABLE_DUBBING (off)`)
-> **Current status:** owner-approved (plan written — implementation in flight)
+> **Current status:** implemented (AG review + fidelity pass + flag flip pending)
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -128,4 +128,4 @@ DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge 
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+**IMPLEMENTED 2026-09-14 — by ZCode** (AG was geo-blocked both runs: the machine's VPN was down; owner restored it after). Files: DubbingStudio.tsx (full rewrite: light reskin all 4 phases + KARAOKE record deck (big current line + draining window bar via the recorder's new additive `windowProgress` + dimmed next line + red mic FAB + waveform + instant band chips + per-line redo), STAR-BAND result (3/2/1 stars + word-match ring + per-line pills + +1💎 badge on great-share), empty state (shapes-only, no animal), playCue sounds); ClassDubs.tsx (light reskin + terracotta hearts + sound on like); dubbing/useDubRecorder.ts (ADDITIVE `windowProgress` only — timing semantics untouched, 2dp rounding to avoid 60fps churn); StudentApp.tsx (sanctioned: fake {xp:5/accuracy:95} dubbing exit → plain back-nav). Gem latch: `gemGivenRef` mirroring `xpGivenRef` (awardGems(1) on publish when band==='great', exactly-once). SACRED LIST VERIFIED: recorder timing math, evaluateTake calls/payloads, exactly-once 10/15 XP + DUBBING_TAKE quest, one-row-per-take, snapshot-flush invariant, storage paths, DubbingService untouched, DubPlayer untouched. **Fidelity log: screens 1-2 Followed (Pick, Watch exports); screens 3-6 Spec-built — Stitch generation was geo-blocked; screens re-submitted post-VPN-restore for a fidelity pass.** AG independent review pending; gauntlet green (tsc clean, 826 tests, build clean).

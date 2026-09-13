@@ -77,6 +77,14 @@ export type UseDubRecorderProps = {
 export type UseDubRecorderResult = {
   state: RecorderState;
   activeLineIndex: number;
+  /**
+   * ADDITIVE (dubbing v3 karaoke bar): 0..1 progress through the ACTIVE
+   * window — during 'countdown' it fills the lead-in, during 'recording_line'
+   * it drains the capture window. Rounded to 2dp so rAF setState bails out on
+   * identical values (~100 updates per window, not 60fps churn). Timing
+   * semantics untouched.
+   */
+  windowProgress: number;
   lineBlobs: Record<string, Blob>;
   lineTranscripts: Record<string, string>;
   /** Live analyser for waveform rendering; null when mic is off. */
@@ -116,6 +124,7 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
   const [lineBlobs, setLineBlobs] = useState<Record<string, Blob>>({});
   const [lineTranscripts, setLineTranscripts] = useState<Record<string, string>>({});
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
+  const [windowProgress, setWindowProgress] = useState(0);
 
   const windowsRef = useRef<LineWindow[]>([]);
   // Guard: malformed clip lines must never crash the render (invalid → no windows).
@@ -244,6 +253,14 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
           return;
         }
 
+        // Karaoke bar signal (additive): lead-in fills, capture drains.
+        if (t < win.startMs) {
+          const lead = Math.max(1, win.startMs - win.leadMs);
+          setWindowProgress(Math.round(Math.min(1, Math.max(0, (t - win.leadMs) / lead)) * 100) / 100);
+        } else {
+          const len = Math.max(1, win.endMs - win.startMs);
+          setWindowProgress(Math.round(Math.min(1, Math.max(0, (t - win.startMs) / len)) * 100) / 100);
+        }
         if (t < win.leadMs && winIdx === 0 && mode === 'pass') {
           setState('watching');
           setActiveLineIndex(-1);
@@ -364,6 +381,7 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
     setActiveLineIndex(-1);
     setLineBlobs({});
     setLineTranscripts({});
+    setWindowProgress(0);
   }, [stopTranscript]);
 
   // Cleanup on unmount.
@@ -389,5 +407,5 @@ export function useDubRecorder(props: UseDubRecorderProps): UseDubRecorderResult
     };
   }, []);
 
-  return { state, activeLineIndex, lineBlobs, lineTranscripts, analyser, startPass, rerecordLine, reset };
+  return { state, activeLineIndex, windowProgress, lineBlobs, lineTranscripts, analyser, startPass, rerecordLine, reset };
 }

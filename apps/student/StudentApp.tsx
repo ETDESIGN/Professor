@@ -223,7 +223,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
   }
 
   // Full screen standalone apps
-  if (dubbingEnabled && location.pathname === '/student/dubbing') return <DubbingFlow onBack={() => handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })} />;
+  if (dubbingEnabled && location.pathname === '/student/dubbing') return <DubbingFlow onBack={() => navigate('/student')} />;
   // Real stats (Phase 4): the practice apps report their own attempts/quiz
   // results via onSessionEnd — the old hardcoded xp/accuracy values are gone.
   // Phonics + SRS run through ExerciseRunner, which already awards XP per
