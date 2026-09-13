@@ -1,5 +1,6 @@
 # Dubbing Studio + Class Gallery — v3 Quality Audit (`FLAG-GATED: VITE_ENABLE_DUBBING (off)`)
 > **Current status:** implemented (AG review + fidelity pass + flag flip pending)
+*(Mascot rule corrected 2026-09-14: existing owls STAY — only Duolingo-likeness was the concern.)*
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

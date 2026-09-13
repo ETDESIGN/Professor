@@ -1,5 +1,6 @@
 # Tab Screens — Rank / Quests / Shop / Profile + Settings & Help — v3 Quality Audit (`CHROME (grouped)`)
 > **Current status:** implemented (Phase 3 run I6 approved subset)
+*(Mascot rule corrected 2026-09-14: existing owls STAY — only Duolingo-likeness was the concern.)*
 
 ## SHARED PRELUDE (read first — identical in every game file)
 

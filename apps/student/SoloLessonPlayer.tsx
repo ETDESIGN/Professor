@@ -59,6 +59,13 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
   // Grammar sandbox state (06)
   const [heardGrammarExamples, setHeardGrammarExamples] = useState<Set<number>>(new Set());
   const [showGrammarGate, setShowGrammarGate] = useState(false);
+  /** Deeper fix (owner 2026-09-14): real micro-quiz per grammar step — items
+   *  sourced from the unit's GRAMMAR_FILL pool (fallback: derived from the
+   *  step's own examples). Presentation-phase only: NO learner-data writes. */
+  const [grammarQuizItems, setGrammarQuizItems] = useState<{ sentence: string; options: string[]; correctIndex: number }[]>([]);
+  const [grammarQuizIdx, setGrammarQuizIdx] = useState(0);
+  const [grammarQuizPick, setGrammarQuizPick] = useState<number | null>(null);
+  const [grammarQuizDone, setGrammarQuizDone] = useState(false);
   const [selectedGrammarQuizOption, setSelectedGrammarQuizOption] = useState<number | null>(null);
 
   // Story stage state (05)
@@ -185,6 +192,10 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     setStoryWord(null);
     setHeardGrammarExamples(new Set());
     setSelectedGrammarQuizOption(null);
+    setGrammarQuizItems([]);
+    setGrammarQuizIdx(0);
+    setGrammarQuizPick(null);
+    setGrammarQuizDone(false);
     setMediaError(false);
     setVarietySeed((Math.random() * 0x7fffffff) | 0);
   }, [currentIndex]);
@@ -206,6 +217,63 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
       try { window.speechSynthesis?.getVoices(); } catch { /* best-effort */ }
     }
   }, [currentIndex, currentStep?.type]);
+
+  // Micro-quiz loader: 2 GRAMMAR_FILL items from the unit pool; derived-from-
+  // examples fallback when the pool is empty. No writes — presentation phase.
+  useEffect(() => {
+    if (currentStep?.type !== 'GRAMMAR_SANDBOX' || !unitId) return;
+    let cancelled = false;
+    (async () => {
+      let items: { sentence: string; options: string[]; correctIndex: number }[] = [];
+      try {
+        const { data } = await supabase
+          .from('pool_items')
+          .select('content')
+          .eq('unit_id', unitId)
+          .eq('exercise_type', 'GRAMMAR_FILL')
+          .limit(6);
+        for (const row of data || []) {
+          const c = row?.content || {};
+          if (c.sentence_with_blank && Array.isArray(c.options) && typeof c.correct_index === 'number') {
+            items.push({ sentence: c.sentence_with_blank, options: c.options.map(String), correctIndex: c.correct_index });
+          }
+          if (items.length >= 2) break;
+        }
+      } catch { /* fall through to derivation */ }
+      if (!items.length) {
+        // Derive one cloze from the step's own examples (past-tense heuristic).
+        const exs: string[] = currentStep.data?.examples || [];
+        for (const ex of exs) {
+          const words = String(ex).split(/\s+/);
+          const target = words.find((w) => /[a-z]{3,}ed[.,!?]?$/i.test(w)) || words.filter((w) => w.length > 4)[0];
+          if (!target) continue;
+          const clean = target.replace(/[.,!?]$/, '');
+          const distractors = exs.flatMap((e) => String(e).split(/\s+/))
+            .map((w) => w.replace(/[.,!?]$/, ''))
+            .filter((w) => /^[a-z]{3,}$/i.test(w) && w.toLowerCase() !== clean.toLowerCase());
+          const uniq = [...new Set(distractors)].slice(0, 2);
+          if (uniq.length === 2) {
+            items.push({ sentence: String(ex).replace(target, '____'), options: [clean, ...uniq], correctIndex: 0 });
+            break;
+          }
+        }
+      }
+      if (!cancelled && items.length) {
+        // shuffle options, keep correctIndex in sync
+        items = items.map((it) => {
+          const paired = it.options.map((o, oi) => ({ o, correct: oi === it.correctIndex }));
+          for (let i = paired.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [paired[i], paired[j]] = [paired[j], paired[i]];
+          }
+          return { sentence: it.sentence, options: paired.map((x) => x.o), correctIndex: paired.findIndex((x) => x.correct) };
+        });
+        setGrammarQuizItems(items);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, currentStep?.type, unitId]);
 
   const handleNext = useCallback(() => {
     if (currentIndex < totalSteps - 1) {
@@ -935,10 +1003,11 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
 
         {/* Rule Showcase Card */}
         <div className="bg-[#FDFBF7] rounded-[24px] border-2 border-[#E2D7C3] p-4 shadow-sm relative overflow-hidden">
-          {/* Explanation card — no mascot (owner rule); clean card replaces the cut-out bubble */}
+          {/* Explanation card (owner 2026-09-14: the owl STAYS — only Duolingo's
+              likeness was ever the concern; a custom mascot is a future task) */}
           <div className="flex items-start gap-2.5 mb-3">
-            <div className="w-10 h-10 rounded-full bg-[#2A9D8F]/12 border-2 border-[#2A9D8F]/40 flex items-center justify-center shrink-0">
-              <Sparkles size={18} className="text-[#1E6F5C]" />
+            <div className="w-12 h-12 rounded-2xl bg-[#E0F2FE] border-2 border-[#BAE6FD] flex items-center justify-center text-2xl shrink-0 shadow-xs">
+              🦉
             </div>
             <div className="flex-1 bg-[#F7F3E8] border-2 border-[#E2D7C3] rounded-2xl rounded-tl-md p-2.5">
               <p className="text-xs font-fredoka font-bold text-[#264653] leading-snug">{explanation}</p>
@@ -1008,39 +1077,91 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
           })}
         </div>
 
-        {/* Quick Check Micro-Challenge */}
-        <div className="bg-[#F7F3E8] rounded-2xl border border-[#E2D7C3] p-3 shadow-xs">
-          <p className="font-fredoka font-bold text-xs text-[#1D3557] mb-2">
-            ⚡ Quick Check: Which word is in the past tense?
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {['walk', 'walked', 'walking'].map((opt, i) => {
-              const isSelected = selectedGrammarQuizOption === i;
-              const isCorrect = opt === 'walked';
-
+        {/* Quick Check — REAL micro-quiz (owner: deeper fix, 2026-09-14).
+            Unit-pool GRAMMAR_FILL questions; presentation-phase, no writes. */}
+        {grammarQuizItems.length > 0 && (
+          <div className="bg-[#F7F3E8] rounded-2xl border-2 border-[#E2D7C3] p-3 shadow-xs">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-fredoka font-bold text-xs text-[#1D3557]">
+                ⚡ Quick Check {grammarQuizIdx + 1}/{grammarQuizItems.length}
+              </p>
+              {grammarQuizDone && (
+                <span className="px-2 py-0.5 rounded-full bg-[#E6F4F1] border border-[#2A9D8F] text-[#1E6F5C] text-[10px] font-extrabold uppercase">
+                  Done ✓
+                </span>
+              )}
+            </div>
+            {(() => {
+              const q = grammarQuizItems[grammarQuizIdx];
+              if (!q) return null;
+              const picked = grammarQuizPick;
+              const revealed = picked !== null;
+              const quizState = (oi: number) => {
+                if (!revealed) return 'idle';
+                if (oi === q.correctIndex) return 'correct';
+                if (oi === picked) return 'wrong';
+                return 'gone';
+              };
               return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    setSelectedGrammarQuizOption(i);
-                    if (isCorrect) playCue('correct');
-                    else playCue('wrong');
-                  }}
-                  className={`py-2 px-1 rounded-xl font-fredoka font-bold text-xs border transition active:translate-y-0.5 cursor-pointer ${
-                    isSelected
-                      ? isCorrect
-                        ? 'bg-[#2A9D8F] border-[#1E6F5C] text-white shadow-sm'
-                        : 'bg-[#FF4B4B] border-[#DC2626] text-white'
-                      : 'bg-[#FDFBF7] border-[#E2D7C3] text-[#264653]'
-                  }`}
-                >
-                  {opt} {isSelected && isCorrect ? '✓' : ''}
-                </button>
+                <>
+                  <p className="font-fredoka font-semibold text-[15px] text-[#1D3557] leading-relaxed mb-2.5">
+                    {q.sentence.split('____').map((part, pi, arr) => (
+                      <React.Fragment key={pi}>
+                        {part}
+                        {pi < arr.length - 1 && (
+                          <span className={`inline-block min-w-16 mx-1 px-2 py-0.5 rounded-lg border-b-4 text-center ${revealed ? 'bg-[#E6F4F1] border-[#2A9D8F] text-[#1E6F5C]' : 'bg-[#FDFBF7] border-[#E9C46A] text-[#8C7A68]'}`}>
+                            {revealed ? q.options[q.correctIndex] : '?'}
+                          </span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {q.options.map((opt, oi) => {
+                      const st = quizState(oi);
+                      return (
+                        <button
+                          key={oi}
+                          type="button"
+                          disabled={revealed}
+                          onClick={() => {
+                            setGrammarQuizPick(oi);
+                            playCue(oi === q.correctIndex ? 'correct' : 'wrong');
+                          }}
+                          className={`py-2 px-1 rounded-xl font-fredoka font-bold text-xs border transition active:translate-y-0.5 cursor-pointer disabled:cursor-default ${
+                            st === 'correct'
+                              ? 'bg-[#2A9D8F] border-[#1E6F5C] text-white shadow-sm'
+                              : st === 'wrong'
+                                ? 'bg-[#FF4B4B] border-[#DC2626] text-white'
+                              : st === 'gone'
+                                ? 'bg-[#FDFBF7] border-[#E2D7C3] text-[#264653]/40'
+                                : 'bg-[#FDFBF7] border-[#E2D7C3] text-[#264653] hover:border-[#2A9D8F]/60'
+                          }`}
+                        >
+                          {opt} {st === 'correct' ? '✓' : st === 'wrong' ? '✗' : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {revealed && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextIdx = grammarQuizIdx + 1;
+                        setGrammarQuizPick(null);
+                        if (nextIdx >= grammarQuizItems.length) setGrammarQuizDone(true);
+                        else setGrammarQuizIdx(nextIdx);
+                      }}
+                      className="mt-2.5 w-full py-2.5 rounded-xl bg-[#2A9D8F] text-white font-fredoka font-bold text-xs shadow-[0_3px_0_#1E6F5C] active:translate-y-0.5"
+                    >
+                      {grammarQuizIdx + 1 >= grammarQuizItems.length ? 'Finish check ✓' : 'Next question →'}
+                    </button>
+                  )}
+                </>
               );
-            })}
+            })()}
           </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -1372,9 +1493,13 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
     }
     if (currentStep.type === 'GRAMMAR_SANDBOX') {
       return {
-        label: heardGrammarExamples.size > 0 ? 'TRY EXERCISES' : 'HEAR AN EXAMPLE FIRST',
+        label: heardGrammarExamples.size > 0 && (grammarQuizItems.length === 0 || grammarQuizDone)
+          ? 'TRY EXERCISES'
+          : 'FINISH THE LESSON FIRST',
         action: () => {
-          if (heardGrammarExamples.size === 0) {
+          const heardOk = heardGrammarExamples.size > 0;
+          const quizOk = grammarQuizItems.length === 0 || grammarQuizDone;
+          if (!heardOk || !quizOk) {
             setShowGrammarGate(true); // Chinese guidance (owner session-1)
             return;
           }
@@ -1595,8 +1720,10 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
               <Volume2 size={22} className="text-[#9A6B00]" />
             </div>
             <p className="font-bold text-[#1D3557] text-sm leading-relaxed">
-              先听一个例句再继续 👆<br />
-              <span className="text-[#8C7A68] text-xs">点一个喇叭图标，听完发音就可以继续啦</span>
+              先完成这一页的小任务再继续 👆<br />
+              <span className="text-[#8C7A68] text-xs">
+                {heardGrammarExamples.size === 0 ? '听一个例句的发音，然后做完下面的小测验' : '做完下面的小测验（Quick Check）就可以继续啦'}
+              </span>
             </p>
             <button
               onClick={() => setShowGrammarGate(false)}

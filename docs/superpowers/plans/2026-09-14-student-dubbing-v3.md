@@ -1,5 +1,6 @@
 # Student Dubbing v3 — implementation plan (owner-approved 2026-09-14)
 
+*(Mascot rule corrected 2026-09-14: existing owls STAY — only Duolingo-likeness was the concern.)*
 Owner: "i validate the dubbing functionality and design, you can implement it after plannify all in details." Design set: 6 screens in Stitch project `6865954475041880496` (2 exported: Pick `1.html`, Watch `2.html`; Record-karaoke / Result-star / Gallery / Empty materializing — AG exports them before implementing). Spec: `docs/brainstorming/13_DUBBING_STUDENT_V3_BRAINSTORM.md` §5-§7.
 
 ## 1. Scope (files AG may edit)

@@ -49,6 +49,12 @@ Double-award or miss-award = FSRS/economy corruption (worst bug class).
 
 Many production units still have empty `pool_items` (word-image backfill deferred; ~243 vocab rows imageless). The student app's answer everywhere is the 3-tier ladder (pool → `get_unit_bundle` vocab → clean empty-state with Continue). Every redesigned surface must keep a **visible way forward** for the kid alone — no dead-ends.
 
+## 8. FUTURE TASK (owner 2026-09-14): Professor's own mascot
+
+> "i did like the owl… but we should recreate a mascot of our own in the same SVG style — keep this in mind for future tasks. From now on, don't take the initiative to remove an owl because i mention it; what is already there can stay."
+
+Design an ORIGINAL mascot (owl-style guide character is fine — just not Duolingo's), delivered as an SVG set usable across student app + board. Candidate pipeline: Stitch (design passes) or the seedream art pipeline (scripts/avatars/) → `components/shared/`. Until then: existing emoji/SVG mascots stay untouched.
+
 ## 7. Screenshot fixture path (Phase B tooling)
 
 Students authenticate via teacher-minted passports (`student-passports` edge fn, `@passport.local` emails, AES-GCM creds in `passport_secrets`). The games-v3 Playwright pattern adapts: mint a throwaway passport on the pipeline account's class → log in at `/login` (student tab) → walk `/student`. First capture lands with the pilot game's §0–§3. Phone viewport 390×844 @2x primary; 700×320 landscape secondary.
