@@ -75,3 +75,52 @@ Existing phases kept 1:1 (pick → watch → record → result → gallery); eac
 - **P5 Gallery**: classmate dubs per clip, heart reactions (kept), name chips, play inline.
 - Sounds: playCue reveal on line capture, correct/wrong per band chip, win on result; TTS reads the line during countdown as a cue option (muted by default).
 - **Economy guardrails (existing, kept)**: exactly-once XP refs, one row per take, score-pending path, retention untouched. New: single conditional gem on publish when band==='great' (pattern-A style latch).
+
+---
+
+## 7. Anti-Gravity brainstorm (2026-09-13)
+
+### (a) Child-Experience Critique of the §6 Spec (Ages 6–12 Solo ESL)
+1. **Flow Friction**:
+   - *Watch → Record Transition*: In the existing UI, tapping "Start dubbing" moves to the record phase, which still requires an explicit tap on "Tap to record" (due to iOS/WebKit `getUserMedia` audio gesture requirements). If not handled transparently, children perceive this as a broken double-click. **Critique**: The Record screen must visually position the initial mic interaction as a clear, tactile "Ready? Tap Mic to Begin" stage rather than a generic replay button.
+   - *Review Gate Fatigue*: After the pass finishes, presenting children with an overly dense, text-heavy table of line scores before they can hear their dub delays emotional payoff. The hero must always be listening to their completed creation in `DubPlayer`.
+2. **Timing Pressure & Cognitive Load**:
+   - A rapid shrinking progress bar can trigger panic or rushed pronunciation if styled aggressively (e.g. flashing red countdowns). For 6–12 ESL learners, rushed speech degrades intelligibility and F1 score.
+   - **Critique**: The karaoke timing bar must drain smoothly in calming Duolingo sky blue (`#1CB0F6`), preceded by an Amber 1.5s countdown lead-in pill ("3... 2... 1... Speak!"). Visual rhythm must feel musical, not punitive.
+3. **Shy-Kid Safety & Affective Filter**:
+   - Speaking aloud into a phone in a second language is terrifying for shy kids. Harsh red "Try Again" indicators create emotional shutdown.
+   - **Critique**: Scoring feedback must never use red error banners. Instead: Emerald (`#10B981`) for "Great! 🌟", Amber (`#F59E0B`) for "Almost there! 👍", and soft coral/rose (`#FB7185`) for "Keep practicing! 💪".
+   - Per-line redo buttons (`RefreshCw`) must remain easily accessible in both the review phase and result star card so a child can fix a single misspoken word without re-doing the whole scene.
+   - Sharing must remain voluntary: 10 XP is banked immediately upon private save, so shy kids are fully rewarded even if they never share to the class gallery.
+4. **Failure Modes & Edge Cases**:
+   - *Mic Permission Denied / Browser Incompatible*: Must present a comforting, illustrated recovery card with a direct button back to the unit path instead of an ominous error dialog.
+   - *Silent / Whispered Takes*: When the child speaks too quietly and STT captures no words, display a helpful hint: "We couldn't hear your voice clearly — check your microphone and speak up!" with a one-tap redo.
+   - *AI Evaluation Latency / Offline Edge*: When `evaluate-dubbing` times out, gracefully award the private take XP and show "Score pending — your teacher will listen!" while preserving full video/audio playback in `DubPlayer`.
+
+### (b) Interaction Refinements (Within Approved Owner Scope)
+- **Rhythmic Karaoke Record Stage**:
+  - Top: Muted story video playing smoothly in 16:9 frame.
+  - Middle: Prominent current subtitle line in 22px Fredoka font. Above it, a rhythmic 1.5s countdown cue ("Get ready... 3, 2, 1"). Below it, a smooth horizontal draining window bar (`endMs - startMs`) in Duolingo sky blue `#1CB0F6`.
+  - Next Line Preview: Positioned below at 40% opacity in muted slate so children can anticipate the next phrase without distraction.
+  - Floating Mic HUD: Tactile circular Mic FAB with animated acoustic soundwave ring + live green canvas waveform strip.
+- **Star-Band Celebration Result Card**:
+  - Hero `DubPlayer` with synchronized playback of the child's recorded lines over muted video.
+  - 3-Star Badge: 3 golden stars for `great`, 2 stars for `almost`, 1 star for `try_again`.
+  - Gem Latch: For `great` band takes, a sparkling cyan Gem chip (`+1 Gem Bonus! 💎`) highlights the "Share with Class" button.
+  - Per-line breakdown pills showing word-match percentage and instant line replay/redo.
+- **Warm & Safe Class Gallery**:
+  - Filterable by assigned clip tabs.
+  - Privacy-preserving student cards: First names only (`firstName(studentName)`), take timestamp, and optimistic heart reaction counter with bouncing pink heart toggle.
+  - Inline DubPlayer modal for listening to classmates' voice acting.
+- **Empathetic Empty / Unsupported State**:
+  - When no clips are assigned: Warm paper card explaining that the teacher will assign story scenes soon, with a reassuring CTA to explore the Study Map.
+  - When mic access is blocked: Clear visual permission guide with retry button.
+
+### (c) Final Screen List to Design (Stitch Project 6865954475041880496)
+1. **Screen 1 — Pick**: Clip selection library with thumbnail cards, line counts, duration, "New" status chips, progress indicators ("2/5 Takes Dubbed"), and Class Gallery link.
+2. **Screen 2 — Watch**: Receptive listening phase with synchronized subtitle band tracking active character lines, video controls, and beveled teal "Start Dubbing 🎙️" CTA.
+3. **Screen 3 — Record KARAOKE**: Active recording pass with muted video, large active line, 1.5s countdown lead, smooth draining time-window bar, dimmed next-line preview, pulsing Mic FAB, live waveform strip, and instant line band chips.
+4. **Screen 4 — Result STAR CARD**: Hero `DubPlayer` with synchronized child audio playback, 3-Star achievement card, +1 Gem celebration chip, per-line accuracy pills, and Share/Try-Again actions.
+5. **Screen 5 — Class Gallery**: Community showcase featuring classmate dubs per clip, privacy-safe first name chips, optimistic heart likes with counter, and instant inline playback.
+6. **Screen 6 — Empty / Unsupported State**: Friendly empty state when no clips are assigned by the teacher, and supportive mic permission guidance with return action.
+

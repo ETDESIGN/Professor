@@ -1,5 +1,5 @@
 # Dubbing Studio + Class Gallery — v3 Quality Audit (`FLAG-GATED: VITE_ENABLE_DUBBING (off)`)
-> **Current status:** ag-audit-done
+> **Current status:** stitch-designed (awaiting materialization + owner approval)
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -114,6 +114,8 @@ DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge 
 5. **Re-evaluate as Standalone Post-v3 (P3):** Revisit as a dedicated creative speaking feature once core curriculum and FSRS systems are stable.
 
 ### 4.f Stitch design log (AG fills as it generates)
+
+**2026-09-13 — dubbing v3 design set submitted** (project `6865954475041880496`, owner decisions §5-§7 of the brainstorm doc): 1 Pick (AG, `212a87a4cf9b429e97a7db77ef255afa`), 2 Watch (AG, `d3c8acd0ff904371976cfe33f9bcb57f`), 3 Record KARAOKE (ZCode via CLI after a transient Stitch geo-block killed AG's batch — a timed-out MCP attempt may have left a near-duplicate; dedupe at export), 4 Result STAR card (ZCode CLI), 5 Class Gallery hearts (ZCode CLI), 6 Empty state (ZCode CLI). All per the §6 spec + AG §7 critique. Screens materialize asynchronously; ZCode exports + QAs when visible. **OWNER GATE ON — no implementation until he approves the set.**
 *No designs required — feature parked behind VITE_ENABLE_DUBBING feature flag.*
 
 ## §5 ZCode design verification (inside Stitch)
