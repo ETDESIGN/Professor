@@ -31,6 +31,12 @@ import {
   buildChoices,
   shuffle,
 } from '../_shared/exerciseTypes.ts';
+import {
+  normalizeForDedupe,
+  sanitizeConfusables,
+  dedupeDistinct,
+  grammarMutations,
+} from '../_shared/exerciseQuality.ts';
 
 interface PoolItemRow {
   unit_id: string;
@@ -78,9 +84,61 @@ function difficultyFor(type: ExerciseType): number {
   }
 }
 
+// ── Quality gate (owner 2026-09-14) ─────────────────────────────────────────
+// One batched, region-safe AI call per run: verify each text-judgeable MCQ has
+// EXACTLY ONE defensible answer; the caller drops items the model flags.
+// This is the semantic authority the deterministic builders cannot be
+// ("My birthday is on ___" fits both Wednesday and Tuesday). Non-fatal by
+// design — a null return triggers the deterministic fallback in the caller.
+const AI_GATE_TIMEOUT_MS = 25_000;
+const AI_GATE_MODEL = () => Deno.env.get('AI_MODEL_NAME') || 'deepseek/deepseek-chat';
+
+interface GateItem { i: number; type: string; question: string; options: string[]; correct: number }
+
+async function aiValidateItems(items: GateItem[]): Promise<Map<number, boolean> | null> {
+  const key = Deno.env.get('AI_API_KEY');
+  if (!key || items.length === 0) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), AI_GATE_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: AI_GATE_MODEL(),
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are an ESL exam QA checker for 6-12 year old learners. For each question decide whether EXACTLY ONE option is a correct answer and every other option is clearly wrong. ok=false when more than one option could be correct, the question is unanswerable without outside information the learner does not have, any two options are effectively identical, or the marked correct option is actually wrong. Reply with STRICT JSON only, no prose: {"verdicts":[{"i":<id>,"ok":true|false}]}',
+          },
+          { role: 'user', content: JSON.stringify({ questions: items }) },
+        ],
+        max_tokens: 4000,
+      }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return null;
+    const json: any = await res.json();
+    const text = String(json?.choices?.[0]?.message?.content || '');
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const parsed = JSON.parse(match[0]);
+    const out = new Map<number, boolean>();
+    for (const v of parsed?.verdicts || []) {
+      if (typeof v?.i === 'number') out.set(v.i, v.ok !== false);
+    }
+    return out.size > 0 ? out : null;
+  } catch {
+    return null; // timeout / parse failure / network — non-fatal
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // --- vocabulary pool builders ---------------------------------------------
 
-function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: any[]): PoolItemRow[] {
+function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: any[], unitWords: string[] = []): PoolItemRow[] {
   const items: PoolItemRow[] = [];
   const word = String(v?.word || '').trim();
   if (!word) return items;
@@ -118,14 +176,14 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
   }
 
   // LISTEN_SELECT — listen, tap the matching word/image. Reference-based:
-  // emitted whenever distractors exist (no audio precondition anymore).
-  {
+  // emitted when the word AND ≥3 siblings have real images (owner 2026-09-14:
+  // an all-image option set, never mixed — imageless distractors leaked the
+  // English word as text and made the listening task sight-solvable).
+  if (isRealImage(image) && siblingImages.length >= 3) {
     const correct = { text: word, image_url: image };
     const distractorObjs = siblingImages.slice(0, 3).map((s) => ({ text: String(s.word), image_url: s.image_url }));
-    if (distractorObjs.length >= 1) {
-      const c = buildChoices(correct, distractorObjs, Math.min(4, distractorObjs.length + 1));
-      push('LISTEN_SELECT', { prompt_text: word, ...(audio ? { audio_url: audio } : {}), options: c.options, correct_index: c.correct_index });
-    }
+    const c = buildChoices(correct, distractorObjs, 4);
+    push('LISTEN_SELECT', { prompt_text: word, ...(audio ? { audio_url: audio } : {}), options: c.options, correct_index: c.correct_index });
   }
 
   // IMAGE_SELECT — match word to image (needs word image + >=3 sibling images).
@@ -137,9 +195,20 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
   }
 
   // SPELL_CLOZE — choose the correctly spelled word in a cloze (needs example + confusables).
+  // Owner 2026-09-14: confusables are sanitized (no "Friday vs Saturday"
+  // multi-alternatives) and deduped normalized (no visually-identical options).
+  // A distractor that IS another unit word is the ambiguity signature
+  // (Wednesday↔Tuesday both fit) — flagged needs_ai_check; the run-level AI
+  // gate is the semantic authority, the flag drives the no-AI fallback.
   if (example && confusables.length >= 1) {
-    const c = buildChoices(word, confusables, Math.min(4, confusables.length + 1));
-    push('SPELL_CLOZE', { sentence_with_blank: blankOut(example, word), ...c });
+    const clean = sanitizeConfusables(confusables);
+    const unitWordNorms = new Set(unitWords.map((w) => normalizeForDedupe(String(w || ''))).filter(Boolean));
+    const distractors = dedupeDistinct(word, clean).slice(0, 3);
+    const ambiguousRisk = distractors.some((d) => unitWordNorms.has(normalizeForDedupe(d)));
+    if (distractors.length >= 1) {
+      const c = buildChoices(word, distractors, Math.min(4, distractors.length + 1));
+      push('SPELL_CLOZE', { sentence_with_blank: blankOut(example, word), ...c, ...(ambiguousRisk ? { needs_ai_check: true } : {}) });
+    }
   }
 
   // WORD_BANK_BUILD — assemble the example sentence (needs example).
@@ -212,19 +281,6 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
     if (A.length !== B.length || A.length === 0) return [];
     return A.map((w, i) => (w !== B[i] ? i : -1)).filter((i) => i >= 0);
   };
-  // ONE transformation per variant — composed inflections produce nonsense
-  // (does → do → doed). Only forms a 6-12 y/o meets in class.
-  const inflectionVariants = (w: string): string[] => {
-    const lw = w.toLowerCase();
-    const out: string[] = [];
-    const push = (v: string) => { if (v && v !== w && v.length > 1) out.push(v); };
-    if (lw.endsWith('ies')) push(w.slice(0, -3) + 'y');
-    else if (lw.endsWith('es')) push(w.slice(0, -2));
-    else if (lw.endsWith('s') && !lw.endsWith('ss')) push(w.slice(0, -1));
-    if (lw.endsWith('e')) { push(w + 'd'); push(w.slice(0, -1) + 'ing'); push(w + 's'); }
-    else if (lw.length > 2 && !lw.endsWith('s')) { push(w + 's'); push(w + 'ed'); push(w + 'ing'); }
-    return [...new Set(out)];
-  };
   const spotList = errors
     .map((e: any) => {
       const wrong = String(e?.wrong || ''), correct = String(e?.correct || '');
@@ -233,33 +289,32 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
     .filter(Boolean) as { e: any; wrong: string; correct: string; pos: number[] }[];
   for (const { e, wrong, correct, pos } of spotList) {
     const C = correct.split(/\s+/);
-    const distractors = new Set<string>();
-    const add = (cand: string[]) => {
-      const str = cand.join(' ');
-      if (str !== correct && str !== wrong) distractors.add(str);
-    };
+    // (a) cross-apply sibling errors' wrong forms at this stem's fix positions
+    // (stem-like near-misses — kept from the games-v3 fix, now deduped
+    // NORMALIZED so invisible punctuation/case variants can't ship).
+    const crossApplied: string[] = [];
     for (const i of pos) {
-      // (a) cross-apply sibling errors' wrong forms at this stem's fix positions
       for (const s2 of spotList) {
         for (const j of s2.pos) {
           const bad = String(s2.wrong.split(/\s+/)[j] || '');
-          if (bad && bad !== C[i]) { const cand = [...C]; cand[i] = bad; add(cand); }
+          if (bad && bad !== C[i]) crossApplied.push([...C.slice(0, i), bad, ...C.slice(i + 1)].join(' '));
         }
       }
-      // (b) single-transform inflection variants of the corrected token
-      for (const v of inflectionVariants(C[i])) { const cand = [...C]; cand[i] = v; add(cand); }
     }
-    // (c) last resort: perturb OTHER words' plural/tense so the option stays
-    // stem-like but grammatically wrong (covers multi-token & short diffs).
-    if (distractors.size < 2) {
-      for (let k = 0; k < C.length && distractors.size < 3; k++) {
-        if (pos.includes(k)) continue;
-        for (const v of inflectionVariants(C[k])) { const cand = [...C]; cand[k] = v; add(cand); if (distractors.size >= 3) break; }
-      }
+    // (b) REAL-grammar wrong variants of the correct sentence (owner
+    // 2026-09-14: "just by adding maybe some inversion on the place of the
+    // word would be enough. Creating fake world doesn't make sense" — the old
+    // blind-suffix inflections invented non-words like "Yous"/"Ewing").
+    const wrongNorm = normalizeForDedupe(wrong);
+    const list = dedupeDistinct(correct, [...crossApplied, ...grammarMutations(correct)])
+      .filter((d) => normalizeForDedupe(d) !== wrongNorm)
+      .slice(0, 3);
+    // ≥2 visually-distinct distractors or the item is skipped entirely —
+    // never ship identical/near-identical option sets.
+    if (list.length >= 2) {
+      const c = buildChoices(correct, list, Math.min(4, list.length + 1));
+      push('ERROR_SPOT', { sentence: wrong, ...c, explanation: g?.explanation });
     }
-    const list = [...distractors].slice(0, 3);
-    const c = buildChoices(correct, list, Math.min(4, list.length + 1));
-    push('ERROR_SPOT', { sentence: wrong, ...c, explanation: g?.explanation });
   }
 
   // TRANSFORM — one per buildable pair.
@@ -297,21 +352,30 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
   }
 
   // GRAMMAR_FILL (new-gen GRAMMAR_LAB rung, 2026-08-07) — MCQ: "which sentence
-  // uses the rule correctly?". Correct option = a valid transformed/example
-  // sentence; distractors = the WRONG sentences from error_examples. Fully
-  // deterministic from existing grammar_rules fields.
+  // uses the rule correctly?". Owner 2026-09-14 REBUILD: options must share
+  // the SAME stem — the transformation pair's original sentence plus
+  // real-grammar wrong variants of the correct sentence. The old version
+  // paired the abstract pattern_template with UNRELATED error sentences
+  // ("they must wear helmet" → options about books/stoves). ≥2 distinct
+  // distractors or the item is skipped.
   const correctSentence = pairs.length > 0 ? String(pairs[0]?.transformed || '') : (examples.length > 0 ? String(examples[0]) : '');
-  const wrongSentences = errors
-    .map((e) => String(e?.wrong || ''))
-    .filter((w) => w && w !== correctSentence);
-  if (correctSentence && wrongSentences.length >= 1) {
-    const c = buildChoices(correctSentence, Array.from(new Set(wrongSentences)), 3);
-    push('GRAMMAR_FILL', {
-      rule_name: rule,
-      sentence_with_blank: g?.pattern_template || '',
-      ...c,
-      explanation: g?.explanation,
-    });
+  if (correctSentence) {
+    const pairOriginal = pairs.length > 0 ? String(pairs[0]?.original || '') : '';
+    const correctNorm = normalizeForDedupe(correctSentence);
+    const list = dedupeDistinct(correctSentence, [
+      ...(pairOriginal ? [pairOriginal] : []),
+      ...grammarMutations(correctSentence),
+      ...errors.map((e) => String(e?.wrong || '')), // same-sentence wrongs survive; unrelated ones face the AI gate
+    ]).filter((d) => normalizeForDedupe(d) !== correctNorm).slice(0, 3);
+    if (list.length >= 2) {
+      const c = buildChoices(correctSentence, list, Math.min(4, list.length + 1));
+      push('GRAMMAR_FILL', {
+        rule_name: rule,
+        sentence_with_blank: g?.pattern_template || '',
+        ...c,
+        explanation: g?.explanation,
+      });
+    }
   }
 
   return items;
@@ -736,7 +800,7 @@ serve(async (req) => {
         const vGroup = v.source_structure_id ? groupByStructure.get(String(v.source_structure_id)) : undefined;
         if (vGroup) v.group_id = String(vGroup.id);
         const oid = await ensureObjective('vocabulary', String(v.word), (v as any).source_structure_id ?? undefined);
-        allRows.push(...gate('vocabulary', buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word))));
+        allRows.push(...gate('vocabulary', buildVocabItems(unitId, oid, v, vocabWithImages.filter((s) => s.word !== v.word), vocabWithImages.map((s: any) => String(s.word || '')))));
       }
       // Phase 1.4: grammar from the relational table (grammar_rules is the
       // canonical source once enrich-unit has written it there). Falls back to
@@ -1082,6 +1146,57 @@ serve(async (req) => {
       await runBounded(backfills, 6);
     } catch (err: any) {
       errors.push(`srs objective backfill failed: ${err?.message || err}`);
+    }
+
+    // ── 3.5 QUALITY GATE (owner 2026-09-14: "Rebuild + AI check") ───────────
+    // One batched region-safe AI call verifies every text-judgeable MCQ built
+    // this run has EXACTLY ONE defensible answer; flagged items are dropped.
+    // This is the semantic authority the deterministic builders cannot be
+    // (Wednesday↔Tuesday both fit "My birthday is on ___"). Non-fatal: when
+    // the AI is unreachable, the deterministic fallback drops same-unit-
+    // distractor clozes (the ambiguity signature) instead.
+    try {
+      const GATED_TYPES = new Set(['SPELL_CLOZE', 'ERROR_SPOT', 'GRAMMAR_FILL', 'TRANSFORM', 'MEANING_MATCH', 'AUDIO_L1_SELECT', 'STORY_COMPREHENSION', 'WHO_SAID_IT']);
+      const mcq: { row: PoolItemRow; q: GateItem }[] = [];
+      for (const row of allRows) {
+        if (!GATED_TYPES.has(row.exercise_type)) continue;
+        const c = row.content || {};
+        const opts: any[] = Array.isArray(c.options) ? c.options : [];
+        if (opts.length < 2) continue;
+        mcq.push({
+          row,
+          q: {
+            i: mcq.length,
+            type: row.exercise_type,
+            question: c.sentence_with_blank || c.sentence || c.prompt_sentence || c.prompt || c.prompt_text || c.prompt_l1 || '',
+            options: opts.map((o: any) => (typeof o === 'string' ? o : o?.text || o?.label || '')),
+            correct: typeof c.correct_index === 'number' ? c.correct_index : -1,
+          },
+        });
+      }
+      const verdicts = await aiValidateItems(mcq.map((m) => m.q));
+      const doomed = new Set<PoolItemRow>();
+      let droppedAi = 0, droppedFallback = 0;
+      if (verdicts) {
+        for (const m of mcq) {
+          if (verdicts.get(m.q.i) === false) { doomed.add(m.row); droppedAi++; }
+        }
+      } else {
+        for (const m of mcq) {
+          if (m.row.exercise_type === 'SPELL_CLOZE' && m.row.content?.needs_ai_check) { doomed.add(m.row); droppedFallback++; }
+        }
+      }
+      if (doomed.size > 0) {
+        for (let i = allRows.length - 1; i >= 0; i--) if (doomed.has(allRows[i])) allRows.splice(i, 1);
+      }
+      for (const r of allRows) if (r.content?.needs_ai_check) delete r.content.needs_ai_check; // internal flag never persists
+      console.log(`[quality-gate] kept ${mcq.length - doomed.size}/${mcq.length} MCQ (dropped ${droppedAi} ambiguous via AI, ${droppedFallback} via fallback)`);
+      if (mcq.length > 0 && doomed.size / mcq.length > 0.3) {
+        console.warn('[quality-gate] >30% of MCQ items dropped — re-enrich this unit (enrich-unit prompt quality)');
+      }
+    } catch (err: any) {
+      console.warn('[quality-gate] skipped:', err?.message || err);
+      for (const r of allRows) if (r.content?.needs_ai_check) delete r.content.needs_ai_check;
     }
 
     // ── 4. Swap the pool for this unit atomically-SAFE ─────────────────────
