@@ -118,8 +118,11 @@ export function snapLine(anchor: Cell, target: Cell, size: number): Cell[] {
 
   let best: { cells: Cell[]; dist: number } | null = null;
   for (const [vr, vc] of ALL_VECTORS) {
-    // Scalar projection of (dr,dc) onto the unit vector (vr,vc).
-    const proj = dr * vr + dc * vc;
+    // Scalar projection of (dr,dc) onto the vector, normalized by its squared
+    // length (1 for straight, 2 for diagonal) — without this, diagonal
+    // candidates overshoot 2× and exact diagonal taps snap straight.
+    const len2 = vr * vr + vc * vc;
+    const proj = (dr * vr + dc * vc) / len2;
     if (proj <= 0) continue;
     const steps = Math.round(proj);
     const endRow = anchor.row + vr * steps;

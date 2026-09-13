@@ -74,6 +74,19 @@ describe('snapLine', () => {
     const cells = snapLine({ row: 0, col: 0 }, { row: -5, col: -5 }, 8);
     expect(cells.every((c) => c.row >= 0 && c.col >= 0)).toBe(true);
   });
+  it('selects the exact down-right diagonal (0,0)→(2,2)', () => {
+    expect(snapLine({ row: 0, col: 0 }, { row: 2, col: 2 }, 10))
+      .toEqual([{ row: 0, col: 0 }, { row: 1, col: 1 }, { row: 2, col: 2 }]);
+  });
+  it('selects the exact up-right anti-diagonal (2,0)→(0,2)', () => {
+    expect(snapLine({ row: 2, col: 0 }, { row: 0, col: 2 }, 10))
+      .toEqual([{ row: 2, col: 0 }, { row: 1, col: 1 }, { row: 0, col: 2 }]);
+  });
+  it('still snaps horizontal exactly', () => {
+    const cells = snapLine({ row: 1, col: 1 }, { row: 1, col: 4 }, 10);
+    expect(cells.map((c) => c.col)).toEqual([1, 2, 3, 4]);
+    expect(cells.every((c) => c.row === 1)).toBe(true);
+  });
 });
 
 describe('buildGrid', () => {
