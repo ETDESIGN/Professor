@@ -1,5 +1,5 @@
 # Tab Screens — Rank / Quests / Shop / Profile + Settings & Help — v3 Quality Audit (`CHROME (grouped)`)
-> **Current status:** ag-audit-done (design phase, approval gate ON)
+> **Current status:** stitch-designed (approval gate ON — awaiting owner review)
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -128,11 +128,120 @@ Grouped audit (verify per-screen during any redesign):
 5. **Add Educational Power-ups to Shop (P2):** Allow students to spend hard-earned gems on Streak Freezes and unlockable bonus story chapters.
 
 ### 4.f Stitch design log (AG fills as it generates)
-*Stitch mobile screens for Tab Screens (Leaderboard, Quests, Shop, Profile) will be generated in the design phase following owner approval.*
+
+- **Stitch Project ID:** `6865954475041880496` (Project Title: `Professor Student App v3`, DeviceType: `MOBILE`)
+- **Game/Chrome Subsystem:** Tab Screens & Core Chrome (`28-tab-screens.md`) — Shop, Avatar Studio, Profile, Quests, Leaderboard, Settings, Help Center, Heart Refill Confirmation Modal
+- **Generation Date:** 2026-09-13
+- **Approval Gate Status:** **GATE IS ON.** All 8 screens generated in Stitch for personal review and sign-off by the owner prior to any implementation.
+- **Submission Status:** All 8 screens submitted and successfully materialized in Stitch project `6865954475041880496` (Status: `COMPLETE`, exit code 0). Zero duplicates.
+
+#### Screens Generated & Brief Summaries:
+
+1. **Screen 1: Shop Tab (`Shop.tsx`)**
+   - **Stitch Screen ID:** `a62e6d1a0fc4431e96a6667f7fd80c30`
+   - **Title:** `Professor ESL - Shop Tab (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VoERrGCavs2kNC6-T_o_-y4R8oCl3VlZXzY9z4lz27em7CHbSMDkTToXbqp3Fyd8_8s_mJdEnPVeJb1KdCy3nRa0U315QHAbLthICSw9zkxHCSI6KnIOMJK4H4wYe-EbCHdLMBfyZIR43FV-vBmZhr-yIW-snfiun6iBQTJuWYKxWWIcNe9o6vMb79VHSmuWOw1UcDVV7QJuG3OgBRUKssgt40TNUGz7XJnFZO-uN37UIqtiOlEbvSC_U`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2VjZTBhY2IxZjFlODRkNDU5YTY4NDc5N2QyMGQxNDFjEgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) Shop tab surface. Sticky paper `#FDFBF7` header with back button, Fredoka title "Shop", and real gem pill counter (`💎 320` in Duolingo blue `#1CB0F6`). Avatar hero card on soft pink-to-cream gradient card (`#FFF5F7` to `#FDFBF7`) showing current student avatar with safari hat, status copy, and 48px tactile "Studio ✨" button in Duolingo pink `#E91E63` (`0 4px 0 #BE185D` bevel). 3-column Characters grid with real species bases: "Boy Kid" (equipped with emerald `#2A9D8F` border & "In use" check), "Cyber Bot" (rare purple ring `#8B5CF6`, `💎 150`), and "Fire Drake" (legendary terracotta ring `#E76F51`, `💎 300`). 4-column Wardrobe accessory grid for Hats (Safari Hat equipped with pink check, Wizard Hat `💎 80`, Dragon Horns `💎 120`, Astronaut Helmet `💎 250`). Stacked Power-ups cards with real pedagogical utility: Full Heart Refill (`❤️`, `50 💎`, "×1 owned" badge + Use action) and Streak Freeze (`🧊`, `100 💎`, "×2 ready" badge). Footer lock guarantee: *"🔒 Everything here is earned by learning — no real money, ever."* Docked 5-tab bar with Shop tab active in Duolingo pink.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_nav]` on back and tab navigation
+     - `[🔊 playCue: tap_studio]` on Studio button tap
+     - `[🔊 playCue: buy_item]` on purchasing character or wardrobe item
+     - `[🔊 playCue: buy_powerup]` on buying heart refill or streak freeze
+   - **Design Contract:** Wonder Atlas warmth (`#EAE0D0`, `#FDFBF7`, `#E2D7C3`) × Duolingo accents (`#E91E63`, `#1CB0F6`), Fredoka + Nunito typography, production Tailwind HTML + small style block, zero placeholder chrome.
+
+2. **Screen 2: Avatar Studio (`AvatarBuilder.tsx`)**
+   - **Stitch Screen ID:** `c57b42e7a56c4a1d9a5679f0c216b91b`
+   - **Title:** `Professor ESL - Avatar Studio Builder (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1ULOH8vlwDBtFp6isZDTRTcsdHjWRC1b-f25_wLc0hJhD6k5UHBXsFDlXTp-lsjduv3TK8ptZp7tp64Y9Lc6F50mYYKEN_yd_XzRqvBqaDirK04rozcpQa_yBMRImzU1ozq9AsLUc6kn0bsl5I4WMqzM5AO1EG24CcFTda3WtSWIdcYoRUh35zxQVeSDFnKdWu0Eun7mJaAe7z3Ahfnxap3HmQRc2QPYGhQJiOUKzYMEZEOIYrxcWUMJ50`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzMwOTRjZTBkMjliNjRmYmViNDkyYzUzYjk2ZWE0MGY1EgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) live avatar builder. Sticky paper header with exit chevron and top-right green check Save button in emerald `#2A9D8F`. Main stage features large live layer preview container (min 280px tall) with blue dotted grid backdrop (`#F0F7FF` with `radial-gradient(#38BDF8 1.5px, transparent 1.5px)`), rendering the multi-layer composite character (Cyber Bot mascot with Safari Hat and Cool Star Sunglasses) with live floating shadow. Bottom docked drawer on paper `#FDFBF7` with rounded-t-[32px] and tactile slot tabs (Character [active], Hats, Glasses, Outfits). Item selection grid with real species and items, active equipped indicators (pink border `#E91E63` + check badge), gem price chips (`💎 150`), and tactile "None 🚫" unequip tile. Anchored 54px full-width primary CTA button "SAVE AVATAR" in teal `#2A9D8F` (`0 4px 0 #1E6F5C` bevel).
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_exit]` on header exit
+     - `[🔊 playCue: select_tab]` on switching wardrobe slots
+     - `[🔊 playCue: equip_item]` on selecting base species or accessory
+     - `[🔊 playCue: save_avatar]` on Save action
+   - **Design Contract:** Exact token hexes, thumb-reachable actions, production-grade Tailwind HTML + small style block.
+
+3. **Screen 3: Profile Tab (`Profile.tsx`)**
+   - **Stitch Screen ID:** `2a14d51435c347ebb08e91c45ff47d40`
+   - **Title:** `Professor ESL - Profile Tab (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1W3O1HobgnApAX2wVTY-3_MmpmrtDnDOc6ckU5hjzfAVwIzGkPQFfHqlciZ_U_Uj8cu3Jzy7U4R-raG306kpUNpFAXA5JIdzn7svrXftuHLM__4qQDvXXoAVD86eAkn_jG8lvskZt349tSHryP9xzd4D9zGYxM2y-mHLPwOiUDYqlZqvXCI5TDuE9dEzOYOLRAzajevmIDJw2LNPW6ZHdmlkS2Md1OcUDUlCV9wuBQTLyffRJXvhvcOh3Y`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzMwOTZhMDE0NWE1ODQ0ZWM5Y2FkNDZlODdjZGM5MWI4EgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) student profile screen. Sticky header on `#FDFBF7` with back chevron, title "My Profile", and top-right gear Settings icon button (`[🔊 playCue: tap_settings]`). Centered 128px circular avatar with white border, drop shadow, and tactile camera badge button (`#FFFFFF`, pink camera icon `#E91E63`). Student name "Leo Zhang" (Fredoka 24px) with level pill badge "⭐ Level 5: Word Wizard" (Chinese support chip: "5级 • 词汇小巫师"). 3 honest metric stat tiles (grid-cols-3) on paper cards with 3D bevels: Streak (`14 Days`, orange flame 🔥), Total XP (`2,450 XP`, electric yellow lightning ⚡), and Gems (`320 Gems`, sparkling cyan gem 💎). Full-width 54px primary CTA button "CUSTOMIZE AVATAR ✨" in Duolingo pink `#E91E63` (`0 4px 0 #BE185D` bevel). Learning badges showcase and persistent bottom navigation bar.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_settings]` on settings gear tap
+     - `[🔊 playCue: tap_avatar_edit]` on camera badge tap
+     - `[🔊 playCue: tap_customize]` on Customize Avatar tap
+     - `[🔊 playCue: tap_nav]` on bottom tab switch
+   - **Design Contract:** Wonder Atlas warmth × Duolingo accents, Fredoka + Nunito typography, production-grade Tailwind HTML + style block.
+
+4. **Screen 4: Quests Tab (`Quests.tsx`)**
+   - **Stitch Screen ID:** `753ea8d02d5c4b17b09c670cb2904bf0`
+   - **Title:** `Professor ESL - Daily Quests Tab (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1UskTG6v2R_bH-ma4VvY6ZvAamVVM9z4-5-3C4heCjLSiNSfGCF4CrqESpTOd1yi5DUDf4eZkbIZjdaauocXTMOf4Xz9SNg7mu3p_pPQRhIiyvE2aeQwg68mMFVeJGulQi8XKYkSGn8ovaKonBiQvynb-BB1dMe1AHugkZsbg084L0kQLZ0hW1wkC492dQkNySiRqP67Lvcs2dRRl6XUNO0pEHAbAzYPv57Lsy8cRLf52_hHX3UULMroA`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzY1YzVkM2M3NTQ5NTQxZGU5MmY1Mzg2MjMzODMzMGJhEgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) daily quests and streak tab. Sticky header with amber star badge, title "Daily Quests", countdown chip ("⏱️ Resets in 6h 42m"), and real XP (⚡ 450) and gem (💎 320) counters. Streak hero card in terracotta gradient (`#FFF7ED` to `#FFEDD5`) with flame icon 🔥, headline "14 Day Streak!", and 7-day strip (M–S with emerald checkmarks, TODAY with pulsing flame). Daily Goal hero card with 3D golden chest illustration (`🎁`), status "2 / 3 Quests Done", 66% progress bar in teal `#2A9D8F`, and reward preview (`+20 Gems 💎 • +50 XP ⚡`). Today's quests list: Quest 1 completed and claimable ("Earn 20 XP in Lessons", 20/20, tactile green "CLAIM! 🎁" button in teal `#2A9D8F`), Quest 2 claimed ("Complete 2 Story Steps", emerald "Claimed ✓" pill), and Quest 3 in progress ("Speak 3 Sentences Perfectly", 1/3, amber progress bar). Docked 5-tab bar with Quests active.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: claim_reward]` on claiming completed quest
+     - `[🔊 playCue: chest_unlock]` on opening Mystery Chest
+     - `[🔊 playCue: tap_nav]` on tab switch
+   - **Design Contract:** Wonder Atlas × Duolingo tokens, reusable Tailwind HTML + style block, kid-friendly honest progress.
+
+5. **Screen 5: Leaderboard / Rank Tab (`Leaderboard.tsx`)**
+   - **Stitch Screen ID:** `40ce97e60ff64c77b956ef0775e9e1b5`
+   - **Title:** `Professor ESL - Weekly League Leaderboard (Diamond League)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VjmyzggwS51aDV1laQWGpq6y7zdDTbEvSPfZmqY8la_piW4iB2znfqGpTZHmc7nXYDa5N-WwJxOnHDekFN-W_EXBkXwC1KV4W2j2foKj8pMrDx1vrpMbNFv_pIPsgpmgyDdi3GiYHXj2-Jr1HjcPO-Zxs0J-JPQSIe_8Rp3DdWZB31bkglUlpfK29GpH6klC8eR7K3M55O9iLHkA79sBDWIlUA4SNxbVcXudD-Hn-rEIKuO5PTERBUtZU`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzljMDg4OTZhNmVjNDQ2ODRhZWY1YTNkODExYWQ1MGYzEgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) weekly league leaderboard screen. Royal blue-indigo header banner (`#1CB0F6` to `#4F46E5`) with back button, golden league trophy, headline "Diamond League" in Fredoka white, and countdown badge "⏱️ Time Left: 2d 14h". Subtitle chip: "Top 5 students promote to Master League 🚀". 3D tactile podium pedestals with gold, silver, and bronze pedestals: 1st Place (Gold, h-32, golden crown 👑, avatar "Kenji", 🥇, `2,120 XP`), 2nd Place (Silver, h-24, avatar "Maya", 🥈, `1,850 XP`), and 3rd Place (Bronze, h-20, avatar "Sarah", 🥉, `1,640 XP`). Ranked learner rows list: 4th Place ("Alex T.", `1,420 XP`, movement chip `▲ 2`), 5th Place ("Leo (You) 👤" highlighted floating paper card with teal border `#2A9D8F`, soft mint fill `#F0FDF4`, `1,380 XP`, movement chip `▲ 1` inside promotion zone), 6th Place ("Chloe M.", `1,290 XP`, `—`), and 7th Place ("David K.", `1,150 XP`, `▼ 1`). Motivation footer note and docked 5-tab bar.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: podium_fanfare]` on leaderboard entrance
+     - `[🔊 playCue: tap_row]` on tapping student profile row
+     - `[🔊 playCue: tap_nav]` on tab switch
+   - **Design Contract:** Exact token hexes, cohort-based league presentation, production Tailwind HTML + small style block.
+
+6. **Screen 6: Settings (`Settings.tsx`)**
+   - **Stitch Screen ID:** `480abc89ca8f4551b5f892fa4fff20f4`
+   - **Title:** `Professor ESL - Student Settings (/student/settings)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1X0TOkNxqbDUKxQ5V8pCYD0n4If44tT1kYjLIjdKK9VEzdBUqGGO4X2SqgsCVs5SQ-5hvUlh2uKCip5ci1-ZO9PtnjX9Xqx4_q4wDLl3TJFAhSfepiLnrb5CS5b1dmRbgEEZ3sh96QzlnUWRXAg479HZx9YvgpE7I95_fgOIaXVaJYw8PAruz97d9BC9sakh6vR4I5fi1kQ2LcdLiIROSnNlfstzXDEbkeFd6DfKjB9Jahu2Ca_FEoTEQ`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2E3Y2U5YzEzZTZmMzQ3YjFiZjY1ZmFkZjQ4MjFlZWIxEgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) student settings with REAL WIRED CONTROLS (directly addressing audit §4 F3/F1). Sticky paper header with back chevron button and bold title "Settings" in Fredoka `#1D3557`. Student account card on warm paper `#FDFBF7` with 56px avatar, name "Leo Zhang", badge "Student Account • Grade 5", and "Switch Profile" link. Audio & Exercise Controls section with realistic wired toggles: 1) "Sound Effects" (blue volume icon, plays celebratory fanfare and feedback, active toggle in Duolingo pink `#E91E63` with ON label), 2) "Speaking Exercises" (purple mic icon, helper text "Turn off if in a quiet room or library. Speech tasks will automatically be replaced by listening exercises.", active toggle switch), 3) "Mascot Speech Speed" segmented pill control (Normal 1.0x / Slower 0.8x). Notifications section with Daily Study Reminder toggle at 18:00. Tactile "Sign Out of Account" button in soft red/paper card (`border-2 #FCA5A5`, text `#EF4444`, bevel `0 3px 0 #F87171`). App version footer.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on back navigation
+     - `[🔊 playCue: toggle_sound]` on toggling sound effects
+     - `[🔊 playCue: toggle_speaking]` on toggling speaking exercises
+     - `[🔊 playCue: tap_signout]` on sign-out action
+   - **Design Contract:** Real tactile wired controls, exact token hexes, production-grade Tailwind HTML + style block.
+
+7. **Screen 7: Help Center (`HelpCenter.tsx`)**
+   - **Stitch Screen ID:** `958657a6d53c423095acb8099791e9c0`
+   - **Title:** `Professor ESL - Help Center (/student/help)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1VRxJwR1DCYs8f5OGUnHlYSOIO8AgHhreAS62N__kOl2f7SXMVMpLTnno79PFeBC2U6eGk0zMB9NKOnuLjkvWvWOdywOuulsZ-KHPN3MmEU3TQOAiSskXLLb7rwSbgXl2e9DbbmP5QyZYJuD8FYlK0ty31keJStD1lhWPRnHWW3ixR8lbM-KTvee3u6SHnWAv84N8RQZyAuGYuOsRcG6UXvcuyl9EkT1Frj6DPvRssTB3sYwbtjr8Wmkw`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2EwNjU0Nzk0YjczZDQ1N2FiNGIwMWRiZTFjNTUyYjMxEgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) student help center. Sticky paper header with back chevron button and title "Help Center" in Fredoka `#1D3557`. Friendly mascot hero illustration with Professor Owl welcoming the student ("How can we help? Find quick answers or take an interactive tour."). Full-width tactile search input card on paper `#FDFBF7` with magnifying glass icon and mic hint. Interactive App Tour card on soft indigo `#EEF2FF` with compass icon 🧭 and "Start Tour →" CTA button. Frequently Asked Questions interactive accordions: Accordion 1 in EXPANDED state ("How do I earn XP and Gems?" with chevron rotated 180° and full dual-currency explanation), and Accordions 2–4 in collapsed state ("Can I practice offline without internet?", "I lost my streak! How do I repair it?", "How do I reset my student PIN or password?"). Reassuring parent/teacher help note footer.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: tap_back]` on back navigation
+     - `[🔊 playCue: search_input]` on focusing search
+     - `[🔊 playCue: tap_tour]` on starting app tour
+     - `[🔊 playCue: accordion_toggle]` on expanding/collapsing FAQ items
+   - **Design Contract:** Wonder Atlas × Duolingo light tokens, responsive mobile FAQ UI, production-grade Tailwind HTML + style block.
+
+8. **Screen 8: Heart Refill Confirmation Modal (`Shop.tsx` / `ExerciseRunner.tsx`)**
+   - **Stitch Screen ID:** `c241696d957f49cc94232eea69b9f105`
+   - **Title:** `Professor ESL - Heart Refill Confirmation Modal (390x844)`
+   - **Screenshot URL:** `https://lh3.googleusercontent.com/aida/AEtjO1Ve14SZBg8CckD8IJanOUq1p1lwrWpurkzEXpBqYJKyYt7sWtxdwjQY7G1cZtxXkZSsyX6DHcjxzvpSym2tcJr1dd7Zqy9Qd4Ljhc_vB-aTEuFvfdg7edYiMF6OzUV4JMScbwNubFcVXo8TWL6YZsWKryf5AhmsjNIs0M1F8_b5ZvAtJTQ4KlvZFhvsdc0XEXWRBtjOyidgf1WX69VTebsw3ea4kIy44qSSYMKoVv7rHBvWEopg8Vn-kr4`
+   - **HTML Download URL:** `https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sX2U5ODVmYjllZDZkMDQ0NTI4ZjBmYjkzZjQ1MTg2MDQ5EgsSBxDz_t2KihIYAZIBIwoKcHJvamVjdF9pZBIVQhM2ODY1OTU0NDc1MDQxODgwNDk2&filename=&opi=96797242`
+   - **Prompt Summary:** Mobile portrait (390×844) Heart Refill Confirmation Modal anchored over dimmed and blurred stage (`rgba(38, 70, 83, 0.65)` scrim). Centered floating warm paper `#FDFBF7` dialog card with rounded-[32px] and tactile shadow. Hero heart graphic: golden-framed heart container showing 1 filled heart ❤️ and 4 pulsing restoration hearts with glowing sparkles ✨. Headline "Restore All Hearts?" in Fredoka 22px inkDeep `#1D3557` with reassuring body text. Economy exchange container in mist `#F7F3E8` showing student balance (`💎 320`) vs refill cost (`💎 50`) and "Restores to 5/5 Hearts ❤️" badge. Vertical thumb-zone action buttons: 1) Primary 54px tactile CTA "REFILL 5 HEARTS (50 💎)" in terracotta/red `#E76F51` (`0 4px 0 #C4553B` bevel), 2) Free pedagogical alternative button "Practice in Review (Earn +1 ❤️ Free)" in paper `#FDFBF7` with teal border `#2A9D8F` (solving the kid-alone dead-end finding F2), and 3) 44px dismiss button "Not now, keep current hearts". Economy safety footer guarantee.
+   - **Sound Cue Marks:**
+     - `[🔊 playCue: modal_open]` on modal appearance
+     - `[🔊 playCue: refill_success]` on confirming heart refill
+     - `[🔊 playCue: tap_review]` on launching free review practice
+     - `[🔊 playCue: tap_cancel]` on modal dismissal
+   - **Design Contract:** High-delight modal, exact token hexes, dead-end elimination, production-grade Tailwind HTML + style block.
 
 ## §5 ZCode design verification (inside Stitch)
 
-<ZCode fills after AG reports designs done: list_screens result, title verification against §4.f, export paths (`stitch/<NN>-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
+**Verified 2026-09-13 — AWAITING OWNER APPROVAL (gate ON).** Project `6865954475041880496`; exports in `stitch/28-tab-screens/1-8.{html,png}`. All 8 PASS ZCode QA: mobile portrait, Wonder Atlas × Duolingo tokens, ≥48px targets, CJK-safe, no placeholder chrome. Spot-checked: 1 Shop (avatar hero + characters/wardrobe/power-ups + 'no real money' footer) and 8 Heart-Refill modal — the out-of-hearts dead-end solver (50💎→5❤️ exchange PLUS a free 'Practice in Review +1❤️' alternative, matching the SRS heart-haven direction). Settings (6) designs REAL wired-look toggles per §4. NO IMPLEMENTATION until §6 owner go.-<game>/1-*.html|png` …), per-screen QA verdict (mobile frame, kid-readable type ≥14px, tap targets ≥48px, all states present, no Chinese on challenge surfaces, nothing clipped, palette respected), and the go/no-go for the owner gate.>
 
 ## §6 Owner approval (HARD GATE)
 

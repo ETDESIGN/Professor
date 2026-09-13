@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Avatar Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+      background-color: #EAE0D0;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .font-fredoka {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+
+    /* Tactile 3D Button Shadows & Depress */
+    .btn-3d-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+
+    .btn-3d-emerald {
+      background-color: #10B981;
+      box-shadow: 0 3px 0 #059669;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-emerald:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #059669;
+    }
+
+    .btn-3d-paper {
+      background-color: #FDFBF7;
+      box-shadow: 0 3px 0 #D8CEBC;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-paper:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #D8CEBC;
+    }
+
+    .btn-3d-blue {
+      background-color: #1CB0F6;
+      box-shadow: 0 3px 0 #0284C7;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-blue:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0284C7;
+    }
+
+    /* Live Preview Stage Grid Pattern */
+    .stage-dotted-bg {
+      background-color: #F0F7FF;
+      background-image: radial-gradient(#38BDF8 1.5px, transparent 1.5px);
+      background-size: 18px 18px;
+    }
+
+    /* Mascot Gentle Floating Animation */
+    @keyframes avatarFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+    .avatar-float {
+      animation: avatarFloat 3.8s ease-in-out infinite;
+    }
+
+    @keyframes shadowPulse {
+      0%, 100% { transform: scaleX(1); opacity: 0.28; }
+      50% { transform: scaleX(0.85); opacity: 0.16; }
+    }
+    .shadow-pulse {
+      animation: shadowPulse 3.8s ease-in-out infinite;
+    }
+
+    /* Hide scrollbars but keep scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center p-0 sm:p-4">
+
+  <!-- Mobile Screen Container: 390px x 844px portrait frame -->
+  <div class="w-[390px] h-[844px] bg-[#FDFBF7] rounded-[42px] shadow-[0_25px_60px_-15px_rgba(38,70,83,0.35)] border-[8px] border-[#264653] flex flex-col overflow-hidden relative">
+
+    <!-- 1. TOP APP HEADER (Sticky paper header) -->
+    <header class="w-full bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 pt-3 pb-2.5 flex items-center justify-between z-30 shrink-0">
+      <!-- Exit Button -->
+      <button data-cue="tap_exit" aria-label="Exit Studio" class="w-11 h-11 rounded-2xl btn-3d-paper border border-[#E2D7C3] flex items-center justify-center text-[#264653] hover:bg-[#F7F3E8] focus:outline-none">
+        <svg class="w-6 h-6 stroke-[#264653]" fill="none" stroke-width="2.5" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+
+      <!-- Center Title & Mode -->
+      <div class="flex flex-col items-center">
+        <h1 class="font-fredoka text-[20px] font-bold text-[#1D3557] tracking-wide leading-tight flex items-center gap-1.5">
+          Avatar Studio
+          <span class="text-xs bg-[#FFC800]/20 text-[#D97706] font-fredoka px-2 py-0.5 rounded-full border border-[#FFC800]/50">V2</span>
+        </h1>
+        <span class="text-[11px] font-extrabold text-[#8C7A68] tracking-wider uppercase">Custom Companion</span>
+      </div>
+
+      <!-- Top-right Emerald Save Button -->
+      <button data-cue="save_avatar" class="h-11 px-3.5 rounded-2xl btn-3d-emerald text-white flex items-center gap-1.5 font-fredoka text-[14px] font-bold tracking-wide focus:outline-none">
+        <svg class="w-4 h-4 stroke-white" fill="none" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Save
+      </button>
+    </header>
+
+    <!-- 2. BIG LIVE LAYER PREVIEW STAGE (min 280px tall) -->
+    <section class="relative w-full h-[290px] stage-dotted-bg flex flex-col items-center justify-center overflow-hidden shrink-0 border-b border-[#E2D7C3]/60">
+      
+      <!-- Stage Decor & Ambient Glow Tags -->
+      <div class="absolute top-3 left-4 flex items-center gap-1.5 bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-xl border border-[#38BDF8]/30 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
+        <span class="text-[11px] font-extrabold text-[#1D3557]">LIVE PREVIEW</span>
+      </div>
+
+      <!-- Studio Gem Balance Chip -->
+      <div class="absolute top-3 right-4 flex items-center gap-1.5 bg-white/85 backdrop-blur-sm px-2.5 py-1 rounded-xl border border-[#1CB0F6]/30 shadow-sm">
+        <span class="text-[13px]">💎</span>
+        <span class="text-[13px] font-fredoka font-bold text-[#0284C7]">320</span>
+      </div>
+
+      <!-- Interactive Rotate Cue Hint -->
+      <div class="absolute bottom-2.5 flex items-center gap-1 bg-white/70 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-[#E2D7C3]/80">
+        <svg class="w-3 h-3 stroke-[#8C7A68]" fill="none" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        <span class="text-[10px] font-bold text-[#8C7A68]">Tap items below to dress up</span>
+      </div>
+
+      <!-- Live Composite Mascot Container (~220px) -->
+      <div class="relative w-[220px] h-[220px] flex items-center justify-center -mt-1">
+
+        <!-- Animated Floating Character Stack -->
+        <div class="avatar-float relative w-full h-full flex items-center justify-center">
+
+          <!-- 1. MASCOT BASE BODY: Cyber Bot mascot -->
+          <svg class="w-[175px] h-[175px] drop-shadow-md" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Antenna -->
+            <rect x="76" y="10" width="8" height="20" rx="4" fill="#3B82F6"/>
+            <circle cx="80" cy="10" r="7" fill="#FFC800" stroke="#F59E0B" stroke-width="2"/>
+            <!-- Bot Ears -->
+            <rect x="18" y="62" width="12" height="26" rx="5" fill="#2563EB"/>
+            <rect x="130" y="62" width="12" height="26" rx="5" fill="#2563EB"/>
+            <!-- Bot Outer Head -->
+            <rect x="26" y="26" width="108" height="100" rx="28" fill="#4F46E5" stroke="#3730A3" stroke-width="4"/>
+            <!-- Bot Face Screen -->
+            <rect x="36" y="38" width="88" height="76" rx="20" fill="#1E1B4B"/>
+            <!-- Cheerful Cyan Visor Screen -->
+            <rect x="42" y="46" width="76" height="58" rx="15" fill="#06B6D4"/>
+            <!-- Friendly Mascot Eyes -->
+            <circle cx="62" cy="70" r="10" fill="#1E1B4B"/>
+            <circle cx="65" cy="67" r="3.5" fill="#FFFFFF"/>
+            <circle cx="98" cy="70" r="10" fill="#1E1B4B"/>
+            <circle cx="101" cy="67" r="3.5" fill="#FFFFFF"/>
+            <!-- Blushing Rosy Cheeks -->
+            <ellipse cx="50" cy="85" rx="5" ry="3" fill="#F43F5E" opacity="0.6"/>
+            <ellipse cx="110" cy="85" rx="5" ry="3" fill="#F43F5E" opacity="0.6"/>
+            <!-- Warm Smile -->
+            <path d="M72 82C72 86.5 88 86.5 88 82" stroke="#1E1B4B" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- Bot Body collar preview -->
+            <path d="M50 126C50 126 62 136 80 136C98 136 110 126 110 126L116 154H44L50 126Z" fill="#3B82F6" stroke="#2563EB" stroke-width="3.5"/>
+            <circle cx="80" cy="144" r="4" fill="#FFC800"/>
+          </svg>
+
+          <!-- 2. LAYER PREVIEW: SAFARI HAT (Equipped on head) -->
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-[160px] pointer-events-none drop-shadow-lg z-10">
+            <svg viewBox="0 0 160 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Hat Crown -->
+              <path d="M42 42C42 18 56 6 80 6C104 6 118 18 118 42H42Z" fill="#D4A373" stroke="#9A6B3D" stroke-width="3.5"/>
+              <!-- Hat Crown Top Dome Ridge -->
+              <path d="M60 18C68 14 92 14 100 18" stroke="#9A6B3D" stroke-width="2" stroke-linecap="round"/>
+              <!-- Hat Brown Ribbon Band -->
+              <path d="M42 36C54 39 106 39 118 36V43H42V36Z" fill="#78350F"/>
+              <circle cx="80" cy="39" r="3" fill="#E9C46A"/>
+              <!-- Hat Wide Safari Brim -->
+              <ellipse cx="80" cy="46" rx="72" ry="16" fill="#E6BE8A" stroke="#9A6B3D" stroke-width="3.5"/>
+              <ellipse cx="80" cy="43" rx="66" ry="12" fill="#D4A373" opacity="0.35"/>
+            </svg>
+          </div>
+
+          <!-- 3. LAYER PREVIEW: COOL STAR SUNGLASSES (Equipped on face) -->
+          <div class="absolute top-[68px] left-1/2 -translate-x-1/2 w-[124px] pointer-events-none drop-shadow-md z-20">
+            <svg viewBox="0 0 130 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Golden Glass Frames -->
+              <!-- Left Star Frame -->
+              <path d="M34 6L40 18L53 19L43 28L46 41L34 34L22 41L25 28L15 19L28 18L34 6Z" fill="#FFC800" stroke="#D97706" stroke-width="2.5"/>
+              <!-- Left Tinted Lens -->
+              <path d="M34 11L38 20L47 21L40 27L42 36L34 31L26 36L28 27L21 21L30 20L34 11Z" fill="#1E293B" opacity="0.9"/>
+              <!-- Right Star Frame -->
+              <path d="M96 6L102 18L115 19L105 28L108 41L96 34L84 41L87 28L77 19L90 18L96 6Z" fill="#FFC800" stroke="#D97706" stroke-width="2.5"/>
+              <!-- Right Tinted Lens -->
+              <path d="M96 11L100 20L109 21L102 27L104 36L96 31L88 36L90 27L83 21L92 20L96 11Z" fill="#1E293B" opacity="0.9"/>
+              <!-- Sunglasses Bridge & Temples -->
+              <path d="M53 23C62 19 68 19 77 23" stroke="#FFC800" stroke-width="4.5" stroke-linecap="round"/>
+              <path d="M53 23C62 19 68 19 77 23" stroke="#B45309" stroke-width="2" stroke-linecap="round"/>
+              <!-- Reflection Specular Shimmer -->
+              <line x1="26" y1="20" x2="38" y2="32" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+              <line x1="88" y1="20" x2="100" y2="32" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+            </svg>
+          </div>
+
+        </div>
+
+        <!-- 4. SUBTLE FLOATING SHADOW -->
+        <div class="shadow-pulse absolute -bottom-1 w-[130px] h-[16px] bg-[#264653] rounded-full filter blur-[2px] pointer-events-none"></div>
+
+      </div>
+
+    </section>
+
+    <!-- 3. BOTTOM CUSTOMIZATION DRAWER (paper card rounded-t-[32px]) -->
+    <main class="flex-1 bg-[#FDFBF7] rounded-t-[32px] border-t-2 border-[#E2D7C3] shadow-[0_-12px_36px_rgba(38,70,83,0.08)] flex flex-col justify-between overflow-hidden -mt-4 z-20">
+
+      <!-- Drawer Drag Handle & Subtitle -->
+      <div class="pt-2 px-4 flex flex-col items-center shrink-0">
+        <div class="w-10 h-1.5 bg-[#E2D7C3] rounded-full mb-2"></div>
+      </div>
+
+      <!-- SLOT TAB STRIP: Horizontal tactile pill tabs -->
+      <div class="px-4 shrink-0 mb-2">
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          
+          <!-- Tab 1: Character (ACTIVE) -->
+          <button data-cue="select_tab" class="btn-3d-blue px-4 py-2 rounded-2xl text-white font-fredoka font-bold text-[14px] flex items-center gap-1.5 shrink-0 focus:outline-none">
+            <span>🤖</span>
+            <span>Character</span>
+          </button>
+
+          <!-- Tab 2: Hats -->
+          <button data-cue="select_tab" class="btn-3d-paper border border-[#E2D7C3] px-3.5 py-2 rounded-2xl text-[#264653] font-fredoka font-bold text-[14px] flex items-center gap-1.5 shrink-0 hover:bg-[#F7F3E8] focus:outline-none">
+            <span>🤠</span>
+            <span>Hats</span>
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+          </button>
+
+          <!-- Tab 3: Glasses -->
+          <button data-cue="select_tab" class="btn-3d-paper border border-[#E2D7C3] px-3.5 py-2 rounded-2xl text-[#264653] font-fredoka font-bold text-[14px] flex items-center gap-1.5 shrink-0 hover:bg-[#F7F3E8] focus:outline-none">
+            <span>⭐</span>
+            <span>Glasses</span>
+            <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+          </button>
+
+          <!-- Tab 4: Outfits -->
+          <button data-cue="select_tab" class="btn-3d-paper border border-[#E2D7C3] px-3.5 py-2 rounded-2xl text-[#264653] font-fredoka font-bold text-[14px] flex items-center gap-1.5 shrink-0 hover:bg-[#F7F3E8] focus:outline-none">
+            <span>🥋</span>
+            <span>Outfits</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ITEM SELECTION GRID (Scrollable section) -->
+      <div class="flex-1 overflow-y-auto px-4 pb-2 no-scrollbar">
+        
+        <!-- Category Section Header -->
+        <div class="flex items-center justify-between mb-2.5 px-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[12px] font-extrabold tracking-wider text-[#8C7A68] uppercase">Mascot Models</span>
+            <span class="text-[11px] font-bold bg-[#EAE0D0] text-[#1D3557] px-2 py-0.5 rounded-full">4 Available</span>
+          </div>
+          <span class="text-[11px] font-bold text-[#2A9D8F] flex items-center gap-1">
+            <svg class="w-3.5 h-3.5 stroke-[#2A9D8F]" fill="none" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+            Auto-synced
+          </span>
+        </div>
+
+        <!-- Character Species Cards Grid (2x2 Grid) -->
+        <div class="grid grid-cols-2 gap-2.5 mb-3">
+
+          <!-- 1. Cyber Bot (CURRENTLY EQUIPPED: Active pink border #E91E63 with checkmark badge) -->
+          <div data-cue="equip_item" class="relative bg-white rounded-2xl p-2.5 border-2 border-[#E91E63] shadow-[0_4px_12px_rgba(233,30,99,0.18)] flex flex-col items-center text-center cursor-pointer transition-transform active:scale-[0.98]">
+            <!-- Active Equipped Pill Badge -->
+            <div class="absolute -top-2 left-2 bg-[#E91E63] text-white text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+              <svg class="w-2.5 h-2.5 stroke-white" fill="none" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              EQUIPPED
+            </div>
+            <!-- Rarity Chip -->
+            <div class="self-end mb-1">
+              <span class="text-[10px] font-extrabold text-[#1CB0F6] bg-[#1CB0F6]/10 px-1.5 py-0.5 rounded-md border border-[#1CB0F6]/30 uppercase">Rare</span>
+            </div>
+            <!-- Bot Avatar Thumbnail -->
+            <div class="w-14 h-14 rounded-2xl bg-[#EEF2FF] border border-[#C7D2FE] flex items-center justify-center mb-1.5">
+              <svg class="w-10 h-10" viewBox="0 0 120 120" fill="none">
+                <rect x="20" y="24" width="80" height="72" rx="20" fill="#4F46E5"/>
+                <rect x="30" y="34" width="60" height="48" rx="12" fill="#06B6D4"/>
+                <circle cx="48" cy="56" r="6" fill="#1E1B4B"/>
+                <circle cx="72" cy="56" r="6" fill="#1E1B4B"/>
+                <path d="M52 68C52 71 68 71 68 68" stroke="#1E1B4B" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="font-fredoka font-bold text-[14px] text-[#1D3557]">Cyber Bot</span>
+            <span class="text-[11px] font-semibold text-[#8C7A68]">AI Buddy Companion</span>
+          </div>
+
+          <!-- 2. Boy Kid (Owned, tap to select) -->
+          <div data-cue="equip_item" class="relative bg-white rounded-2xl p-2.5 border-2 border-[#E2D7C3] hover:border-[#1CB0F6] shadow-sm flex flex-col items-center text-center cursor-pointer transition-transform active:scale-[0.98]">
+            <!-- Rarity Chip -->
+            <div class="self-end mb-1">
+              <span class="text-[10px] font-extrabold text-[#8C7A68] bg-[#F7F3E8] px-1.5 py-0.5 rounded-md border border-[#E2D7C3] uppercase">Common</span>
+            </div>
+            <!-- Boy Kid Thumbnail -->
+            <div class="w-14 h-14 rounded-2xl bg-[#FFF7ED] border border-[#FED7AA] flex items-center justify-center mb-1.5">
+              <svg class="w-11 h-11" viewBox="0 0 100 100" fill="none">
+                <circle cx="50" cy="52" r="32" fill="#FED7AA"/>
+                <!-- Hair -->
+                <path d="M22 46C22 28 34 20 50 20C66 20 78 28 78 46C72 38 64 34 50 34C36 34 28 38 22 46Z" fill="#78350F"/>
+                <!-- Eyes & Smile -->
+                <circle cx="40" cy="52" r="3.5" fill="#1E293B"/>
+                <circle cx="60" cy="52" r="3.5" fill="#1E293B"/>
+                <path d="M44 63C44 67 56 67 56 63" stroke="#C2410C" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="font-fredoka font-bold text-[14px] text-[#1D3557]">Boy Kid</span>
+            <span class="text-[11px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-full mt-0.5">Owned</span>
+          </div>
+
+          <!-- 3. Girl Kid (Owned) -->
+          <div data-cue="equip_item" class="relative bg-white rounded-2xl p-2.5 border-2 border-[#E2D7C3] hover:border-[#1CB0F6] shadow-sm flex flex-col items-center text-center cursor-pointer transition-transform active:scale-[0.98]">
+            <div class="self-end mb-1">
+              <span class="text-[10px] font-extrabold text-[#8C7A68] bg-[#F7F3E8] px-1.5 py-0.5 rounded-md border border-[#E2D7C3] uppercase">Common</span>
+            </div>
+            <!-- Girl Kid Thumbnail -->
+            <div class="w-14 h-14 rounded-2xl bg-[#FFF1F2] border border-[#FECDD3] flex items-center justify-center mb-1.5">
+              <svg class="w-11 h-11" viewBox="0 0 100 100" fill="none">
+                <circle cx="50" cy="52" r="32" fill="#FED7AA"/>
+                <!-- Pigtails Hair -->
+                <path d="M18 36C18 36 12 50 20 60" stroke="#92400E" stroke-width="7" stroke-linecap="round"/>
+                <path d="M82 36C82 36 88 50 80 60" stroke="#92400E" stroke-width="7" stroke-linecap="round"/>
+                <path d="M22 42C24 24 36 20 50 20C64 20 76 24 78 42C70 34 62 30 50 30C38 30 30 34 22 42Z" fill="#92400E"/>
+                <!-- Hair bow -->
+                <circle cx="24" cy="38" r="4" fill="#EC4899"/>
+                <circle cx="76" cy="38" r="4" fill="#EC4899"/>
+                <!-- Eyes & Smile -->
+                <circle cx="40" cy="52" r="3.5" fill="#1E293B"/>
+                <circle cx="60" cy="52" r="3.5" fill="#1E293B"/>
+                <path d="M44 63C44 67 56 67 56 63" stroke="#E11D48" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="font-fredoka font-bold text-[14px] text-[#1D3557]">Girl Kid</span>
+            <span class="text-[11px] font-bold text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-full mt-0.5">Owned</span>
+          </div>
+
+          <!-- 4. Fire Drake (LOCKED, price badge 💎 150) -->
+          <div data-cue="locked_item_tap" class="relative bg-[#F9F7F2] rounded-2xl p-2.5 border-2 border-dashed border-[#D4C7B3] flex flex-col items-center text-center cursor-not-allowed opacity-90">
+            <!-- Lock Status Icon -->
+            <div class="absolute top-2 left-2 w-5 h-5 rounded-full bg-[#8C7A68]/20 flex items-center justify-center">
+              <svg class="w-3 h-3 stroke-[#8C7A68]" fill="none" stroke-width="2.5" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </div>
+            <!-- Legendary Rarity Badge -->
+            <div class="self-end mb-1">
+              <span class="text-[10px] font-extrabold text-[#E76F51] bg-[#E76F51]/10 px-1.5 py-0.5 rounded-md border border-[#E76F51]/30 uppercase">Legend</span>
+            </div>
+            <!-- Drake Mascot Thumbnail -->
+            <div class="w-14 h-14 rounded-2xl bg-[#FFF5F5] border border-[#FCA5A5] flex items-center justify-center mb-1.5 relative">
+              <svg class="w-11 h-11" viewBox="0 0 100 100" fill="none">
+                <!-- Drake Horns -->
+                <path d="M30 32L24 16L38 24" fill="#F59E0B" stroke="#B45309" stroke-width="2"/>
+                <path d="M70 32L76 16L62 24" fill="#F59E0B" stroke="#B45309" stroke-width="2"/>
+                <!-- Dragon Face -->
+                <circle cx="50" cy="54" r="28" fill="#EF4444"/>
+                <circle cx="42" cy="50" r="4.5" fill="#FEF08A"/>
+                <circle cx="42" cy="50" r="2" fill="#1E293B"/>
+                <circle cx="58" cy="50" r="4.5" fill="#FEF08A"/>
+                <circle cx="58" cy="50" r="2" fill="#1E293B"/>
+                <!-- Cute Snout -->
+                <ellipse cx="50" cy="62" rx="10" ry="7" fill="#F87171"/>
+                <circle cx="47" cy="61" r="1.5" fill="#7F1D1D"/>
+                <circle cx="53" cy="61" r="1.5" fill="#7F1D1D"/>
+              </svg>
+              <!-- Lock Overlay -->
+              <div class="absolute inset-0 bg-[#264653]/15 backdrop-blur-[0.5px] rounded-2xl flex items-center justify-center">
+                <span class="text-xs">🔒</span>
+              </div>
+            </div>
+            <span class="font-fredoka font-bold text-[14px] text-[#8C7A68]">Fire Drake</span>
+            <!-- Price Gem Badge -->
+            <div class="mt-0.5 flex items-center gap-1 bg-[#0284C7]/10 px-2 py-0.5 rounded-full border border-[#0284C7]/20">
+              <span class="text-[11px]">💎</span>
+              <span class="text-[11px] font-fredoka font-bold text-[#0284C7]">150</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- QUICK ACCESSORIES ACCORDION / UNEQUIP STRIP -->
+        <div class="bg-[#F7F3E8] p-2.5 rounded-2xl border border-[#E2D7C3] mb-2">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-extrabold text-[#1D3557] uppercase tracking-wider">Quick Accessories Slot</span>
+            <span class="text-[10px] font-bold text-[#8C7A68]">2 of 4 Equipped</span>
+          </div>
+          
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <!-- Unequip Card: Tactile "None 🚫" -->
+            <button data-cue="unequip_item" class="w-16 h-16 rounded-xl btn-3d-paper border-2 border-dashed border-[#D4C7B3] flex flex-col items-center justify-center text-[#8C7A68] shrink-0 active:scale-95 focus:outline-none">
+              <span class="text-lg leading-none mb-0.5">🚫</span>
+              <span class="text-[10px] font-fredoka font-bold">None</span>
+            </button>
+
+            <!-- Safari Hat (Equipped - Rare Blue Ring #1CB0F6) -->
+            <div class="w-16 h-16 rounded-xl bg-white border-2 border-[#1CB0F6] p-1 flex flex-col items-center justify-center relative shrink-0 shadow-sm">
+              <div class="absolute -top-1.5 -right-1 w-4 h-4 bg-[#1CB0F6] rounded-full flex items-center justify-center">
+                <svg class="w-2.5 h-2.5 stroke-white" fill="none" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <span class="text-xl leading-none mb-0.5">🤠</span>
+              <span class="text-[9px] font-bold text-[#1D3557] truncate w-full text-center">Safari Hat</span>
+              <span class="text-[8px] font-bold text-[#1CB0F6]">Rare</span>
+            </div>
+
+            <!-- Star Glasses (Equipped - Epic Purple Ring #9333EA) -->
+            <div class="w-16 h-16 rounded-xl bg-white border-2 border-[#9333EA] p-1 flex flex-col items-center justify-center relative shrink-0 shadow-sm">
+              <div class="absolute -top-1.5 -right-1 w-4 h-4 bg-[#9333EA] rounded-full flex items-center justify-center">
+                <svg class="w-2.5 h-2.5 stroke-white" fill="none" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <span class="text-xl leading-none mb-0.5">⭐</span>
+              <span class="text-[9px] font-bold text-[#1D3557] truncate w-full text-center">Star Shades</span>
+              <span class="text-[8px] font-bold text-[#9333EA]">Epic</span>
+            </div>
+
+            <!-- Wizard Hat (Common Gray Ring, Gem cost chip 80) -->
+            <div class="w-16 h-16 rounded-xl bg-white border border-[#CBD5E1] p-1 flex flex-col items-center justify-center relative shrink-0 opacity-80">
+              <span class="text-xl leading-none mb-0.5">🧙‍♂️</span>
+              <span class="text-[9px] font-bold text-[#64748B] truncate w-full text-center">Wizard</span>
+              <div class="flex items-center gap-0.5 mt-0.5">
+                <span class="text-[8px]">💎</span>
+                <span class="text-[9px] font-bold text-[#0284C7]">80</span>
+              </div>
+            </div>
+
+            <!-- Astro Helmet (Epic Purple Ring, Gem cost 250) -->
+            <div class="w-16 h-16 rounded-xl bg-white border-2 border-[#C084FC] p-1 flex flex-col items-center justify-center relative shrink-0 opacity-80">
+              <span class="text-xl leading-none mb-0.5">👨‍🚀</span>
+              <span class="text-[9px] font-bold text-[#64748B] truncate w-full text-center">Astro Helm</span>
+              <div class="flex items-center gap-0.5 mt-0.5">
+                <span class="text-[8px]">💎</span>
+                <span class="text-[9px] font-bold text-[#9333EA]">250</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 4. STICKY SAVE ACTION BAR (Docked bottom bar with full-width 54px CTA) -->
+      <footer class="w-full bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-4 pt-2.5 pb-4 shrink-0 shadow-[0_-4px_16px_rgba(38,70,83,0.05)]">
+        <div class="flex items-center justify-between text-[11px] font-bold text-[#8C7A68] mb-1.5 px-1">
+          <span>Active Look: Cyber Bot + Safari + Star</span>
+          <span class="text-[#2A9D8F]">Cost: 0 Gems (Owned)</span>
+        </div>
+        
+        <!-- Full-width 54px Primary CTA Button -->
+        <button data-cue="save_avatar" class="w-full h-[54px] rounded-2xl btn-3d-teal text-white font-fredoka text-[17px] font-bold tracking-wider flex items-center justify-center gap-2 uppercase focus:outline-none">
+          <svg class="w-5 h-5 stroke-white" fill="none" stroke-width="3" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          SAVE AVATAR
+        </button>
+      </footer>
+
+    </main>
+
+  </div>
+
+</body>
+</html>

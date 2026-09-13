@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Professor ESL - Student Settings</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderCream: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            mutedBrown: '#8C7A68',
+            brandTeal: {
+              DEFAULT: '#2A9D8F',
+              bevel: '#1E6F5C'
+            },
+            brandPink: {
+              DEFAULT: '#E91E63',
+              dark: '#BE185D'
+            },
+            brandTerracotta: {
+              DEFAULT: '#E76F51',
+              bevel: '#C4553B'
+            },
+            brandSand: {
+              DEFAULT: '#E9C46A',
+              bevel: '#C99E32'
+            },
+            duoBlue: {
+              DEFAULT: '#1CB0F6',
+              bevel: '#0284C7'
+            }
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
+            nunito: ['Nunito', 'system-ui', 'sans-serif']
+          },
+          boxShadow: {
+            'paper': '0 2px 0 #E2D7C3',
+            'card-lift': '0 4px 0 #E2D7C3',
+            'btn-bevel': '0 4px 0 #1E6F5C',
+            'danger-bevel': '0 3px 0 #F87171'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #EAE0D0;
+      font-family: 'Nunito', system-ui, sans-serif;
+      color: #264653;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Tactile Toggle Switch (Duolingo / Wonder Atlas Style) */
+    .toggle-track {
+      transition: background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s;
+    }
+    .toggle-knob {
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    /* Active State for Switches */
+    .switch-active .toggle-track {
+      background-color: #E91E63;
+      box-shadow: inset 0 -3px 0 #BE185D;
+    }
+    .switch-active .toggle-knob {
+      transform: translateX(26px);
+    }
+
+    /* Inactive State */
+    .switch-inactive .toggle-track {
+      background-color: #D1C5B2;
+      box-shadow: inset 0 -3px 0 #BAAC96;
+    }
+    .switch-inactive .toggle-knob {
+      transform: translateX(0px);
+    }
+
+    /* Tactile 3D buttons */
+    .btn-tactile-action:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #F87171 !important;
+    }
+    .icon-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #E2D7C3 !important;
+    }
+
+    /* Segmented pill active style */
+    .pill-btn-active {
+      background-color: #2A9D8F;
+      color: #FFFFFF;
+      box-shadow: 0 3px 0 #1E6F5C;
+    }
+    .pill-btn-inactive {
+      background-color: #F7F3E8;
+      color: #8C7A68;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .pill-btn-inactive:active {
+      background-color: #EDE7D7;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-0 sm:p-4 bg-[#EAE0D0]">
+
+  <!-- Mobile Portrait Container (390px x 844px) -->
+  <main class="w-[390px] h-[844px] bg-[#EAE0D0] flex flex-col relative overflow-hidden shadow-2xl rounded-[40px] border-[6px] border-[#2A231C]">
+    
+    <!-- Top System Status Area -->
+    <div class="pt-3 px-7 flex justify-between items-center bg-[#FDFBF7] text-[#1D3557] select-none text-[13px] font-bold z-20">
+      <span>9:41</span>
+      <div class="flex items-center space-x-1.5">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25A9.957 9.957 0 0 1 2 12C2 6.48 6.48 2 12 2s10 4.48 10 10c0 2.32-.79 4.46-2.12 6.16l-.62-.62A8.966 8.966 0 0 0 21 12c0-4.97-4.03-9-9-9zM12 6a6 6 0 0 0-6 6c0 1.48.54 2.84 1.43 3.9l.71-.71A4.978 4.978 0 0 1 7 12c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.15-.39 2.22-1.05 3.07l.71.71A5.98 5.98 0 0 0 18 12c0-3.31-2.69-6-6-6zm0 3c-1.66 0-3 1.34-3 3 0 .74.27 1.42.72 1.95l.71-.71A1.99 1.99 0 0 1 10 12c0-1.1.9-2 2-2s2 .9 2 2c0 .48-.17.92-.46 1.27l.71.71c.47-.54.75-1.23.75-1.98 0-1.66-1.34-3-3-3z"/></svg>
+        <span class="text-[11px] font-extrabold tracking-tight">5G</span>
+        <!-- Battery Icon -->
+        <div class="w-5 h-2.5 border border-[#1D3557] rounded-sm p-0.5 flex items-center">
+          <div class="h-full w-3 bg-[#1D3557] rounded-xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Header (Sticky Paper #FDFBF7) -->
+    <header class="sticky top-0 z-30 bg-[#FDFBF7] px-5 pt-2 pb-3.5 border-b border-[#E2D7C3] flex items-center justify-between shadow-[0_2px_8px_rgba(38,70,83,0.04)]">
+      <button 
+        type="button"
+        class="icon-btn w-10 h-10 rounded-2xl bg-[#F7F3E8] border border-[#E2D7C3] flex items-center justify-center text-[#1D3557] shadow-[0_3px_0_#E2D7C3] transition-all"
+        aria-label="Go back"
+        data-cue="tap_back"
+      >
+        <!-- Chevron Left SVG -->
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+
+      <h1 class="font-fredoka text-[22px] font-bold text-[#1D3557] tracking-tight">Settings</h1>
+
+      <!-- Balanced spacer or sound preview indicator -->
+      <div class="w-10 h-10 flex items-center justify-center text-[#8C7A68]">
+        <div class="w-2.5 h-2.5 rounded-full bg-[#2A9D8F] ring-4 ring-[#2A9D8F]/20"></div>
+      </div>
+    </header>
+
+    <!-- Scrollable Content Area -->
+    <div class="flex-1 overflow-y-auto px-4 pt-4 pb-8 space-y-4 overscroll-contain">
+
+      <!-- 2. Student Account Card -->
+      <section class="bg-[#FDFBF7] rounded-[24px] p-4 border border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] flex items-center justify-between">
+        <div class="flex items-center space-x-3.5">
+          <!-- Student Avatar: Kid with Lion Badge -->
+          <div class="relative w-14 h-14 rounded-2xl bg-[#FFE4D6] border-2 border-[#E2D7C3] flex items-center justify-center shadow-inner overflow-visible">
+            <!-- Child Face SVG -->
+            <svg class="w-10 h-10 text-[#E76F51]" viewBox="0 0 36 36" fill="currentColor">
+              <circle cx="18" cy="18" r="14" fill="#FBD5B5"/>
+              <!-- Hair -->
+              <path d="M9 16c0-6 4-10 9-10s9 4 9 10c0 1-1 2-2 1-2-2-4-3-7-3s-5 1-7 3c-1 1-2 0-2-1z" fill="#4A3427"/>
+              <!-- Eyes -->
+              <circle cx="13.5" cy="17.5" r="1.75" fill="#1D3557"/>
+              <circle cx="22.5" cy="17.5" r="1.75" fill="#1D3557"/>
+              <circle cx="14" cy="16.8" r="0.6" fill="#FFFFFF"/>
+              <circle cx="23" cy="16.8" r="0.6" fill="#FFFFFF"/>
+              <!-- Smile -->
+              <path d="M14.5 22.5c1 1.5 6 1.5 7 0" stroke="#C4553B" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+              <!-- Rosy Cheeks -->
+              <circle cx="11.5" cy="20.5" r="1.5" fill="#FF8A8A" opacity="0.65"/>
+              <circle cx="24.5" cy="20.5" r="1.5" fill="#FF8A8A" opacity="0.65"/>
+            </svg>
+            <!-- Lion Achievement Pin on Avatar -->
+            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FFC800] border-2 border-[#FFFFFF] shadow-sm flex items-center justify-center text-[12px]" title="Lion Badge">
+              🦁
+            </div>
+          </div>
+
+          <!-- Account Details -->
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 class="font-fredoka text-[18px] font-bold text-[#1D3557] leading-tight">Leo Zhang</h2>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-extrabold bg-[#E6F4EA] text-[#137333] border border-[#CEEAD6]">Active</span>
+            </div>
+            <p class="text-[13px] font-semibold text-[#8C7A68] mt-0.5">
+              Student Account • <span class="text-[#2A9D8F] font-bold">Grade 5</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Switch Profile Link -->
+        <button 
+          type="button"
+          class="text-[13px] font-extrabold text-[#2A9D8F] hover:text-[#1E6F5C] active:opacity-80 py-2 px-3 rounded-xl bg-[#F7F3E8] border border-[#E2D7C3]/80 transition-colors"
+          data-cue="tap_switch_profile"
+        >
+          Switch
+        </button>
+      </section>
+
+      <!-- 3. Audio & Exercise Controls Section (REAL WIRED CONTROLS - addressing audit F3/F1) -->
+      <section class="bg-[#FDFBF7] rounded-[24px] p-4 border border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] space-y-4">
+        <!-- Section Header -->
+        <div class="flex items-center justify-between pb-1 border-b border-[#F7F3E8]">
+          <h3 class="text-[11px] font-extrabold text-[#8C7A68] tracking-wider uppercase font-nunito">
+            Audio &amp; Exercise Preferences
+          </h3>
+          <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#E0F2FE] text-[#0284C7]">Live Engine</span>
+        </div>
+
+        <!-- Setting 1: Sound Effects -->
+        <div class="flex items-start justify-between space-x-3 pt-1">
+          <div class="flex items-start space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-[#E0F2FE] border border-[#BAE6FD] flex-shrink-0 flex items-center justify-center text-[19px] shadow-sm mt-0.5">
+              🔊
+            </div>
+            <div class="flex-1 pr-1">
+              <label for="toggle-sound" class="font-fredoka text-[16px] font-bold text-[#1D3557] block leading-tight cursor-pointer">
+                Sound Effects
+              </label>
+              <p class="text-[12.5px] font-medium text-[#8C7A68] leading-snug mt-1">
+                Plays celebratory fanfare, click sounds, and audio feedback during lessons.
+              </p>
+            </div>
+          </div>
+
+          <!-- Realistic Tactile Sliding Toggle Switch in ACTIVE ON state -->
+          <button 
+            id="toggle-sound"
+            type="button" 
+            role="switch" 
+            aria-checked="true"
+            class="switch-active flex-shrink-0 relative w-[58px] h-8 p-1 rounded-full cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#E91E63]/40"
+            data-cue="toggle_sound"
+            onclick="this.classList.toggle('switch-active'); this.classList.toggle('switch-inactive'); this.setAttribute('aria-checked', this.classList.contains('switch-active'));"
+          >
+            <div class="toggle-track w-full h-full rounded-full flex items-center justify-between px-2 text-[10px] font-black text-white">
+              <span class="ml-0.5">ON</span>
+              <span class="opacity-0">OFF</span>
+            </div>
+            <div class="toggle-knob absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.22)] flex items-center justify-center">
+              <div class="w-2 h-2 rounded-full bg-[#E91E63]"></div>
+            </div>
+          </button>
+        </div>
+
+        <div class="h-px bg-[#EAE0D0]/80"></div>
+
+        <!-- Setting 2: Speaking Exercises -->
+        <div class="flex items-start justify-between space-x-3">
+          <div class="flex items-start space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-[#F3E8FF] border border-[#E9D5FF] flex-shrink-0 flex items-center justify-center text-[19px] shadow-sm mt-0.5">
+              🎤
+            </div>
+            <div class="flex-1 pr-1">
+              <div class="flex items-center space-x-1.5">
+                <label for="toggle-speaking" class="font-fredoka text-[16px] font-bold text-[#1D3557] block leading-tight cursor-pointer">
+                  Speaking Exercises
+                </label>
+                <span class="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-[#F7F3E8] text-[#8C7A68] border border-[#E2D7C3]">Quiet mode</span>
+              </div>
+              <p class="text-[12.5px] font-medium text-[#8C7A68] leading-snug mt-1">
+                Turn off if in a quiet room or library. Speech tasks will automatically be replaced by listening exercises.
+              </p>
+            </div>
+          </div>
+
+          <!-- Realistic Tactile Sliding Toggle Switch in ACTIVE ON state -->
+          <button 
+            id="toggle-speaking"
+            type="button" 
+            role="switch" 
+            aria-checked="true"
+            class="switch-active flex-shrink-0 relative w-[58px] h-8 p-1 rounded-full cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#E91E63]/40"
+            data-cue="toggle_speaking"
+            onclick="this.classList.toggle('switch-active'); this.classList.toggle('switch-inactive'); this.setAttribute('aria-checked', this.classList.contains('switch-active'));"
+          >
+            <div class="toggle-track w-full h-full rounded-full flex items-center justify-between px-2 text-[10px] font-black text-white">
+              <span class="ml-0.5">ON</span>
+              <span class="opacity-0">OFF</span>
+            </div>
+            <div class="toggle-knob absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.22)] flex items-center justify-center">
+              <div class="w-2 h-2 rounded-full bg-[#E91E63]"></div>
+            </div>
+          </button>
+        </div>
+
+        <div class="h-px bg-[#EAE0D0]/80"></div>
+
+        <!-- Setting 3: Mascot Speech Speed -->
+        <div class="pt-1">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-8 h-8 rounded-xl bg-[#FEF3C7] border border-[#FDE68A] flex items-center justify-center text-[16px]">
+                🐇
+              </div>
+              <span class="font-fredoka text-[15px] font-bold text-[#1D3557]">Mascot Speech Speed</span>
+            </div>
+            <span class="text-[11px] font-bold text-[#2A9D8F] bg-[#E6F4EA] px-2 py-0.5 rounded-full">Professor Owl</span>
+          </div>
+
+          <!-- Segmented Pill Control -->
+          <div class="bg-[#F7F3E8] p-1.5 rounded-2xl border border-[#E2D7C3] flex space-x-1.5">
+            <button 
+              type="button"
+              id="speed-normal"
+              class="flex-1 py-2.5 px-3 rounded-xl font-fredoka text-[14px] font-bold transition-all flex items-center justify-center space-x-1.5 pill-btn-active"
+              onclick="this.className='flex-1 py-2.5 px-3 rounded-xl font-fredoka text-[14px] font-bold transition-all flex items-center justify-center space-x-1.5 pill-btn-active'; document.getElementById('speed-slower').className='flex-1 py-2.5 px-3 rounded-xl font-fredoka text-[14px] font-bold transition-all flex items-center justify-center space-x-1.5 pill-btn-inactive';"
+            >
+              <span>🐇</span>
+              <span>Normal 1.0x</span>
+            </button>
+            <button 
+              type="button"
+              id="speed-slower"
+              class="flex-1 py-2.5 px-3 rounded-xl font-fredoka text-[14px] font-bold transition-all flex items-center justify-center space-x-1.5 pill-btn-inactive"
+              onclick="this.className='flex-1 py-2.5 px-3 rounded-xl font-fredoka text-[14px] font-bold transition-all flex items-center justify-center space-x-1.5 pill-btn-active'; document.getElementById('speed-normal').className='flex-1 py-2.5 px-3 rounded-xl font-fredoka text-[14px] font-bold transition-all flex items-center justify-center space-x-1.5 pill-btn-inactive';"
+            >
+              <span>🐢</span>
+              <span>Slower 0.8x</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 4. Notifications & Reminders Section -->
+      <section class="bg-[#FDFBF7] rounded-[24px] p-4 border border-[#E2D7C3] shadow-[0_3px_0_#E2D7C3] space-y-3">
+        <div class="flex items-center justify-between pb-1 border-b border-[#F7F3E8]">
+          <h3 class="text-[11px] font-extrabold text-[#8C7A68] tracking-wider uppercase font-nunito">
+            Study Reminders &amp; Streaks
+          </h3>
+          <span class="text-[11px] font-bold text-[#E76F51] flex items-center space-x-1">
+            <span>🔥</span>
+            <span>14 Day Streak</span>
+          </span>
+        </div>
+
+        <!-- Setting: Daily Study Reminder -->
+        <div class="flex items-start justify-between space-x-3 pt-1">
+          <div class="flex items-start space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-[#FFF7ED] border border-[#FFEDD5] flex-shrink-0 flex items-center justify-center text-[19px] shadow-sm mt-0.5">
+              🔔
+            </div>
+            <div class="flex-1 pr-1">
+              <div class="flex items-center space-x-1.5">
+                <label for="toggle-reminder" class="font-fredoka text-[16px] font-bold text-[#1D3557] block leading-tight cursor-pointer">
+                  Daily Reminder
+                </label>
+                <span class="text-[11px] font-extrabold text-[#E76F51] bg-[#FFF2EE] px-1.5 py-0.5 rounded-md border border-[#FCD9D0]">18:00</span>
+              </div>
+              <p class="text-[12.5px] font-medium text-[#8C7A68] leading-snug mt-1">
+                Receive a friendly prompt at 18:00 to keep your streak flame alive.
+              </p>
+            </div>
+          </div>
+
+          <!-- Realistic Tactile Sliding Toggle Switch in ACTIVE ON state -->
+          <button 
+            id="toggle-reminder"
+            type="button" 
+            role="switch" 
+            aria-checked="true"
+            class="switch-active flex-shrink-0 relative w-[58px] h-8 p-1 rounded-full cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#E91E63]/40"
+            data-cue="toggle_reminder"
+            onclick="this.classList.toggle('switch-active'); this.classList.toggle('switch-inactive'); this.setAttribute('aria-checked', this.classList.contains('switch-active'));"
+          >
+            <div class="toggle-track w-full h-full rounded-full flex items-center justify-between px-2 text-[10px] font-black text-white">
+              <span class="ml-0.5">ON</span>
+              <span class="opacity-0">OFF</span>
+            </div>
+            <div class="toggle-knob absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.22)] flex items-center justify-center">
+              <div class="w-2 h-2 rounded-full bg-[#E91E63]"></div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- 5. Sign Out Action Card -->
+      <section class="pt-1">
+        <button 
+          type="button"
+          class="btn-tactile-action w-full min-h-[52px] py-3.5 px-4 rounded-[22px] bg-[#FEF2F2] border-2 border-[#FCA5A5] text-[#EF4444] font-fredoka text-[16px] font-bold flex items-center justify-center space-x-2 shadow-[0_3px_0_#F87171] transition-all"
+          data-cue="tap_signout"
+        >
+          <!-- Logout icon -->
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Sign Out of Account</span>
+        </button>
+      </section>
+
+      <!-- 6. App Footer Information -->
+      <footer class="text-center pt-2 pb-2">
+        <p class="text-[12px] font-extrabold text-[#8C7A68] tracking-tight">
+          Professor Student v3.2.0 • <span class="text-[#2A9D8F]">Offline Ready ✓</span>
+        </p>
+        <p class="text-[11px] font-medium text-[#8C7A68]/80 mt-0.5">
+          Student ID: ESL-7729-ZHANG • All lesson data cached locally
+        </p>
+      </footer>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

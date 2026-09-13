@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Daily Quests Tab</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderCream: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            mutedBrown: '#8C7A68',
+            tealCTA: '#2A9D8F',
+            tealBevel: '#1E6F5C',
+            terracotta: '#E76F51',
+            terracottaBevel: '#C4553B',
+            sandGold: '#E9C46A',
+            sandBevel: '#C99E32',
+            accentPink: '#E91E63',
+            accentPinkBevel: '#BE185D',
+            accentBlue: '#1CB0F6',
+            accentYellow: '#FFC800'
+          },
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            nunito: ['Nunito', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #D9CEBD;
+      font-family: 'Nunito', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Device Container 390x844 */
+    .mobile-screen {
+      width: 390px;
+      height: 844px;
+      background-color: #EAE0D0;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px -15px rgba(38, 70, 83, 0.3), 0 0 0 12px #264653;
+      border-radius: 46px;
+    }
+
+    /* 3D Tactile Buttons & Bevels */
+    .btn-3d-teal {
+      background-color: #2A9D8F;
+      box-shadow: 0 4px 0 #1E6F5C;
+      transition: all 0.1s ease;
+    }
+    .btn-3d-teal:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #1E6F5C;
+    }
+
+    .btn-3d-terracotta {
+      background-color: #E76F51;
+      box-shadow: 0 4px 0 #C4553B;
+      transition: all 0.1s ease;
+    }
+
+    .btn-3d-paper {
+      background-color: #FDFBF7;
+      box-shadow: 0 3px 0 #E2D7C3;
+    }
+
+    /* Smooth Scrollbar hide */
+    .scroll-container::-webkit-scrollbar {
+      display: none;
+    }
+    .scroll-container {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Shimmer & Glow keyframes */
+    @keyframes flamePulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 2px 6px rgba(231, 111, 81, 0.4)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 4px 10px rgba(231, 111, 81, 0.7)); }
+    }
+    .pulse-flame {
+      animation: flamePulse 2s infinite ease-in-out;
+    }
+
+    @keyframes chestFloat {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(1deg); }
+    }
+    .float-chest {
+      animation: chestFloat 3s infinite ease-in-out;
+    }
+
+    @keyframes claimGlow {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+    .claim-ready {
+      animation: claimGlow 1.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile Frame (390 x 844) -->
+  <div class="mobile-screen">
+
+    <!-- iOS Dynamic Island / Status Bar -->
+    <div class="w-full pt-3 px-7 flex justify-between items-center z-30 shrink-0 bg-[#FDFBF7]">
+      <span class="text-[14px] font-extrabold text-[#1D3557] font-nunito tracking-tight">9:41</span>
+      <!-- Speaker Notch Pill -->
+      <div class="w-24 h-5 bg-[#1D3557] rounded-full mx-auto -mt-1 flex items-center justify-center">
+        <div class="w-2.5 h-2.5 bg-[#264653] rounded-full mr-2"></div>
+        <div class="w-2.5 h-2.5 bg-[#0f1f33] rounded-full"></div>
+      </div>
+      <div class="flex items-center space-x-1.5 text-[#1D3557]">
+        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+        <span class="text-[11px] font-black">5G</span>
+        <div class="w-5 h-2.5 border-1.5 border-[#1D3557] rounded-sm p-0.5 flex items-center">
+          <div class="w-full h-full bg-[#1D3557] rounded-2xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Header (Sticky Paper #FDFBF7 Bar) -->
+    <header class="bg-[#FDFBF7] border-b-2 border-[#E2D7C3] px-4 pt-2.5 pb-3 shrink-0 z-20 shadow-sm">
+      <div class="flex items-center justify-between">
+        <!-- Title & Star Badge -->
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-[#FFF9E6] border-2 border-[#E9C46A] flex items-center justify-center shadow-sm">
+            <span class="text-xl">⭐</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-1.5">
+              <h1 class="font-fredoka text-[21px] leading-tight font-bold text-[#1D3557] tracking-tight">Daily Quests</h1>
+              <span class="bg-[#E76F51] text-white text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">NEW</span>
+            </div>
+            <div class="flex items-center text-[12px] font-bold text-[#8C7A68] mt-0.5">
+              <span>⏱️ Resets in 6h 42m</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Counters: XP & Gems -->
+        <div class="flex items-center space-x-2">
+          <!-- XP Pill -->
+          <div class="flex items-center space-x-1 bg-[#F7F3E8] border-1.5 border-[#E2D7C3] px-2.5 py-1.5 rounded-xl shadow-xs">
+            <span class="text-[13px] leading-none">⚡</span>
+            <span class="font-fredoka font-bold text-[13px] text-[#264653] leading-none">450</span>
+          </div>
+          <!-- Gems Pill -->
+          <div class="flex items-center space-x-1 bg-[#F0FDF4] border-1.5 border-[#86EFAC] px-2.5 py-1.5 rounded-xl shadow-xs">
+            <span class="text-[13px] leading-none">💎</span>
+            <span class="font-fredoka font-bold text-[13px] text-[#1E6F5C] leading-none">320</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Scrollable Content Area -->
+    <main class="scroll-container flex-1 overflow-y-auto px-4 py-3.5 space-y-3.5 pb-24">
+
+      <!-- 2. Streak Hero Card -->
+      <section class="rounded-3xl p-4 bg-gradient-to-br from-[#FFF7ED] via-[#FFEDD5] to-[#FED7AA] border-2 border-[#FDBA74] shadow-sm relative overflow-hidden">
+        <!-- Background decorative watermark flame -->
+        <div class="absolute -right-4 -bottom-4 text-7xl opacity-15 pointer-events-none select-none">🔥</div>
+
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-2xl bg-[#EA580C] text-white flex items-center justify-center text-2xl shadow-md shadow-orange-500/20 pulse-flame">
+              🔥
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <h2 class="font-fredoka text-[20px] font-bold text-[#9A3412] leading-none">14 Day Streak!</h2>
+                <span class="bg-[#EA580C] text-white text-[11px] font-fredoka font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">ON FIRE</span>
+              </div>
+              <p class="text-[13px] font-bold text-[#C2410C] mt-1 leading-snug">Study 1 lesson today to keep your flame alive!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7-Day Streak Strip (Mon - Sun) -->
+        <div class="mt-3.5 pt-3 border-t border-[#FDBA74]/50">
+          <div class="grid grid-cols-7 gap-1.5">
+            <!-- Mon: Completed -->
+            <div class="flex flex-col items-center bg-[#FDFBF7] border border-[#FED7AA] rounded-2xl py-1.5 px-0.5 shadow-2xs">
+              <span class="text-[11px] font-black text-[#9A3412]">M</span>
+              <div class="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center text-[12px] font-black mt-1 shadow-xs">
+                ✓
+              </div>
+            </div>
+            <!-- Tue: Completed -->
+            <div class="flex flex-col items-center bg-[#FDFBF7] border border-[#FED7AA] rounded-2xl py-1.5 px-0.5 shadow-2xs">
+              <span class="text-[11px] font-black text-[#9A3412]">T</span>
+              <div class="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center text-[12px] font-black mt-1 shadow-xs">
+                ✓
+              </div>
+            </div>
+            <!-- Wed: Completed -->
+            <div class="flex flex-col items-center bg-[#FDFBF7] border border-[#FED7AA] rounded-2xl py-1.5 px-0.5 shadow-2xs">
+              <span class="text-[11px] font-black text-[#9A3412]">W</span>
+              <div class="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center text-[12px] font-black mt-1 shadow-xs">
+                ✓
+              </div>
+            </div>
+            <!-- Thu: Completed -->
+            <div class="flex flex-col items-center bg-[#FDFBF7] border border-[#FED7AA] rounded-2xl py-1.5 px-0.5 shadow-2xs">
+              <span class="text-[11px] font-black text-[#9A3412]">T</span>
+              <div class="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center text-[12px] font-black mt-1 shadow-xs">
+                ✓
+              </div>
+            </div>
+            <!-- Fri: Completed -->
+            <div class="flex flex-col items-center bg-[#FDFBF7] border border-[#FED7AA] rounded-2xl py-1.5 px-0.5 shadow-2xs">
+              <span class="text-[11px] font-black text-[#9A3412]">F</span>
+              <div class="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center text-[12px] font-black mt-1 shadow-xs">
+                ✓
+              </div>
+            </div>
+            <!-- Sat: Completed -->
+            <div class="flex flex-col items-center bg-[#FDFBF7] border border-[#FED7AA] rounded-2xl py-1.5 px-0.5 shadow-2xs">
+              <span class="text-[11px] font-black text-[#9A3412]">S</span>
+              <div class="w-6 h-6 rounded-full bg-[#10B981] text-white flex items-center justify-center text-[12px] font-black mt-1 shadow-xs">
+                ✓
+              </div>
+            </div>
+            <!-- Sun / TODAY: Pulsing Orange Flame -->
+            <div class="flex flex-col items-center bg-[#EA580C] border-2 border-[#C2410C] rounded-2xl py-1.5 px-0.5 shadow-md transform -translate-y-0.5">
+              <span class="text-[10px] font-black text-white uppercase tracking-tighter">TODAY</span>
+              <div class="w-6 h-6 rounded-full bg-[#FFF7ED] text-[#EA580C] flex items-center justify-center text-[14px] mt-1 shadow-inner pulse-flame">
+                🔥
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Daily Goal Mystery Chest Card -->
+      <section class="rounded-3xl p-4 bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between mb-2.5">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm font-fredoka font-bold text-[#1D3557] uppercase tracking-wide">🏆 Daily Goal</span>
+            <span class="bg-[#E9F5F3] text-[#1E6F5C] border border-[#99F6E4] text-[11px] font-extrabold px-2 py-0.5 rounded-full">2 / 3 Quests Done</span>
+          </div>
+          <!-- Sparkle Chip -->
+          <div class="flex items-center space-x-1 text-[11px] font-bold text-[#C99E32] bg-[#FFFBEB] px-2 py-0.5 rounded-full border border-[#FDE68A]">
+            <span>✨</span>
+            <span>Reward Ready</span>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3.5">
+          <!-- 3D Golden Mystery Chest Graphic -->
+          <div class="relative shrink-0">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-b from-[#FEF3C7] to-[#FDE68A] border-2 border-[#F59E0B] flex items-center justify-center text-3xl shadow-sm float-chest">
+              🎁
+            </div>
+            <div class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#FF4B4B] text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-xs">
+              1
+            </div>
+          </div>
+
+          <!-- Progress Info & Preview -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline justify-between mb-1">
+              <span class="font-fredoka text-[15px] font-bold text-[#1D3557]">Mystery Chest</span>
+              <span class="text-[12px] font-black text-[#2A9D8F]">66% Complete</span>
+            </div>
+
+            <!-- Multi-segment Progress Bar (2 of 3 filled) -->
+            <div class="w-full bg-[#EAE0D0] h-3.5 rounded-full p-0.5 flex space-x-1 border border-[#D5C7B2]">
+              <!-- Segment 1: Completed -->
+              <div class="flex-1 bg-[#2A9D8F] rounded-full h-full shadow-inner"></div>
+              <!-- Segment 2: Completed -->
+              <div class="flex-1 bg-[#2A9D8F] rounded-full h-full shadow-inner"></div>
+              <!-- Segment 3: Unfilled -->
+              <div class="flex-1 bg-transparent rounded-full h-full"></div>
+            </div>
+
+            <!-- Chest Reward Preview -->
+            <div class="flex items-center justify-between mt-2 pt-1.5 border-t border-dashed border-[#E2D7C3]">
+              <span class="text-[12px] font-bold text-[#8C7A68]">Chest Loot:</span>
+              <span class="font-fredoka font-bold text-[12px] text-[#264653] bg-[#F7F3E8] px-2 py-0.5 rounded-lg border border-[#E2D7C3]">
+                +20 Gems 💎 • +50 XP ⚡
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-[12px] font-extrabold text-[#2A9D8F] bg-[#E6F4F1] p-2 rounded-xl text-center mt-2.5 border border-[#BEE3DB]">
+          🎯 Complete 1 more quest to unlock today's Mystery Chest!
+        </p>
+      </section>
+
+      <!-- 4. Today's Quests List -->
+      <section class="space-y-2.5">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="font-fredoka text-[17px] font-bold text-[#1D3557]">Today's Missions</h3>
+          <span class="text-[12px] font-bold text-[#8C7A68]">3 Active Today</span>
+        </div>
+
+        <!-- Quest 1: Completed & Claimable (Claim Ready) -->
+        <article class="bg-[#FDFBF7] rounded-3xl p-3.5 border-2 border-[#10B981] shadow-sm relative overflow-hidden claim-ready">
+          <!-- Top subtle claim ribbon -->
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center space-x-3">
+              <!-- Electric Lightning Icon -->
+              <div class="w-12 h-12 rounded-2xl bg-[#ECFDF5] border-2 border-[#34D399] flex items-center justify-center text-2xl shadow-2xs">
+                ⚡
+              </div>
+              <div>
+                <h4 class="font-fredoka text-[16px] font-bold text-[#1D3557] leading-tight">Earn 20 XP in Lessons</h4>
+                <div class="flex items-center space-x-2 mt-0.5">
+                  <span class="text-[12px] font-bold text-[#8C7A68]">Reward:</span>
+                  <span class="font-fredoka font-bold text-[12px] text-[#1E6F5C] bg-[#ECFDF5] px-2 py-0.5 rounded-md border border-[#A7F3D0]">
+                    +15 XP ⚡ • +5 Gems 💎
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span class="bg-[#10B981] text-white text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+              COMPLETED
+            </span>
+          </div>
+
+          <!-- Progress Bar & Action Button Row -->
+          <div class="flex items-center justify-between space-x-3 mt-2.5 pt-2 border-t border-[#E2D7C3]">
+            <div class="flex-1">
+              <div class="flex justify-between text-[11px] font-extrabold text-[#10B981] mb-1">
+                <span>Progress</span>
+                <span>20 / 20 (100%)</span>
+              </div>
+              <div class="w-full bg-[#EAE0D0] h-2.5 rounded-full overflow-hidden border border-[#D5C7B2]">
+                <div class="bg-[#10B981] h-full w-full rounded-full"></div>
+              </div>
+            </div>
+
+            <!-- Tactile Green Claim Button (3D Bevel) -->
+            <button class="btn-3d-teal px-4 py-2.5 rounded-2xl text-white font-fredoka text-[14px] font-bold tracking-wide flex items-center space-x-1.5 shrink-0 active:translate-y-1">
+              <span>CLAIM!</span>
+              <span class="text-base">🎁</span>
+            </button>
+          </div>
+        </article>
+
+        <!-- Quest 2: Claimed State -->
+        <article class="bg-[#FDFBF7]/90 rounded-3xl p-3.5 border-2 border-[#E2D7C3] shadow-xs relative opacity-85">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <!-- Storybook Icon -->
+              <div class="w-11 h-11 rounded-2xl bg-[#F7F3E8] border-1.5 border-[#E2D7C3] flex items-center justify-center text-xl text-[#8C7A68]">
+                📖
+              </div>
+              <div>
+                <h4 class="font-fredoka text-[15px] font-bold text-[#264653] leading-tight">Complete 2 Story Steps</h4>
+                <p class="text-[12px] font-bold text-[#8C7A68] mt-0.5">Wonder Memory Story Reader</p>
+              </div>
+            </div>
+
+            <!-- Claimed Check Badge -->
+            <div class="flex items-center space-x-1.5 bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] px-3 py-1.5 rounded-xl">
+              <span class="text-xs font-black">✓</span>
+              <span class="font-fredoka text-[12px] font-bold">Claimed</span>
+            </div>
+          </div>
+
+          <!-- Finished Progress Bar -->
+          <div class="mt-2.5 pt-2 border-t border-dashed border-[#E2D7C3] flex items-center justify-between text-[11px] font-bold text-[#8C7A68]">
+            <span>Status: 2 / 2 Steps Completed</span>
+            <span class="text-[#047857] font-extrabold">+25 XP Received</span>
+          </div>
+        </article>
+
+        <!-- Quest 3: In Progress State -->
+        <article class="bg-[#FDFBF7] rounded-3xl p-3.5 border-2 border-[#E2D7C3] shadow-sm relative">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex items-center space-x-3">
+              <!-- Microphone Icon -->
+              <div class="w-12 h-12 rounded-2xl bg-[#FFFBEB] border-2 border-[#FCD34D] flex items-center justify-center text-2xl shadow-2xs">
+                🎤
+              </div>
+              <div>
+                <h4 class="font-fredoka text-[16px] font-bold text-[#1D3557] leading-tight">Speak 3 Sentences Perfectly</h4>
+                <div class="flex items-center space-x-2 mt-0.5">
+                  <span class="text-[12px] font-bold text-[#8C7A68]">Reward:</span>
+                  <span class="font-fredoka font-bold text-[12px] text-[#B45309] bg-[#FFFBEB] px-2 py-0.5 rounded-md border border-[#FDE68A]">
+                    +20 XP ⚡ • +10 Gems 💎
+                  </span>
+                </div>
+              </div>
+            </div>
+            <!-- In Progress Badge -->
+            <span class="bg-[#FEF3C7] text-[#B45309] border border-[#FCD34D] text-[10px] font-fredoka font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              IN PROGRESS
+            </span>
+          </div>
+
+          <!-- Progress Bar & Target -->
+          <div class="space-y-1.5 mt-2 pt-2 border-t border-[#E2D7C3]">
+            <div class="flex justify-between text-[11px] font-extrabold text-[#B45309]">
+              <span>Speech Accuracy Mastery</span>
+              <span>1 / 3 (33%)</span>
+            </div>
+            <div class="w-full bg-[#EAE0D0] h-2.5 rounded-full overflow-hidden border border-[#D5C7B2]">
+              <div class="bg-[#F59E0B] h-full w-[33%] rounded-full shadow-inner"></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+    </main>
+
+    <!-- 5. Persistent Bottom Tab Bar (5 Tabs) -->
+    <nav class="absolute bottom-0 left-0 right-0 h-[74px] bg-[#FDFBF7] border-t-2 border-[#E2D7C3] px-3 pb-3 pt-1.5 flex items-center justify-around z-30 shadow-lg">
+      <!-- Tab 1: Learn / Map -->
+      <a href="#" class="flex flex-col items-center justify-center w-14 h-full text-[#8C7A68] hover:text-[#264653] transition-colors">
+        <svg class="w-6 h-6 stroke-current stroke-[2.2] fill-none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+        </svg>
+        <span class="text-[11px] font-bold font-nunito mt-0.5">Learn</span>
+      </a>
+
+      <!-- Tab 2: Quests (ACTIVE with teal/pink highlight) -->
+      <a href="#" class="flex flex-col items-center justify-center w-14 h-full text-[#2A9D8F] relative">
+        <!-- Active indicator chip background -->
+        <div class="w-10 h-7 rounded-2xl bg-[#E6F4F1] border border-[#2A9D8F]/30 flex items-center justify-center relative shadow-xs">
+          <!-- Target Icon with Pink Accent dot -->
+          <svg class="w-5 h-5 text-[#2A9D8F] fill-current" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+          </svg>
+          <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#E91E63] rounded-full border-2 border-[#FDFBF7]"></span>
+        </div>
+        <span class="text-[11px] font-black font-fredoka text-[#2A9D8F] mt-0.5">Quests</span>
+      </a>
+
+      <!-- Tab 3: Leaderboard / Rank -->
+      <a href="#" class="flex flex-col items-center justify-center w-14 h-full text-[#8C7A68] hover:text-[#264653] transition-colors">
+        <svg class="w-6 h-6 stroke-current stroke-[2.2] fill-none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <span class="text-[11px] font-bold font-nunito mt-0.5">Rank</span>
+      </a>
+
+      <!-- Tab 4: Shop -->
+      <a href="#" class="flex flex-col items-center justify-center w-14 h-full text-[#8C7A68] hover:text-[#264653] transition-colors">
+        <svg class="w-6 h-6 stroke-current stroke-[2.2] fill-none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        <span class="text-[11px] font-bold font-nunito mt-0.5">Shop</span>
+      </a>
+
+      <!-- Tab 5: Profile -->
+      <a href="#" class="flex flex-col items-center justify-center w-14 h-full text-[#8C7A68] hover:text-[#264653] transition-colors">
+        <svg class="w-6 h-6 stroke-current stroke-[2.2] fill-none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <span class="text-[11px] font-bold font-nunito mt-0.5">Profile</span>
+      </a>
+    </nav>
+
+    <!-- iOS Home Bar -->
+    <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-32 h-1 bg-[#1D3557]/20 rounded-full z-40 pointer-events-none"></div>
+
+  </div>
+
+</body>
+</html>

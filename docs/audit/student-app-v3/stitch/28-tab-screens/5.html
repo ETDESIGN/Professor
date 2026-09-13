@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Professor ESL - Diamond League Leaderboard</title>
+  <!-- Google Fonts: Fredoka & Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fredoka', 'sans-serif'],
+            body: ['Nunito', 'sans-serif'],
+          },
+          colors: {
+            canvas: '#EAE0D0',
+            paper: '#FDFBF7',
+            mist: '#F7F3E8',
+            borderCream: '#E2D7C3',
+            ink: '#264653',
+            inkDeep: '#1D3557',
+            mutedBrown: '#8C7A68',
+            brandTeal: '#2A9D8F',
+            brandTealDark: '#1E6F5C',
+            brandTerracotta: '#E76F51',
+            brandSand: '#E9C46A',
+            duoBlue: '#1CB0F6',
+            duoBlueDark: '#0284C7',
+            duoYellow: '#FFC800',
+            duoRed: '#FF4B4B',
+          },
+          boxShadow: {
+            'btn-blue': '0 4px 0 #0284C7',
+            'btn-teal': '0 4px 0 #1E6F5C',
+            'btn-terracotta': '0 4px 0 #C4553B',
+            'card-tactile': '0 3px 0 #E2D7C3',
+            'card-you': '0 4px 0 #2A9D8F',
+            'podium-gold': '0 6px 0 #D97706',
+            'podium-silver': '0 6px 0 #94A3B8',
+            'podium-bronze': '0 6px 0 #B45309',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #D8CEBD;
+      font-family: 'Nunito', sans-serif;
+      margin: 0;
+      padding: 24px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#D8CEBD] text-ink select-none">
+
+  <!-- Mobile Screen Frame (390px x 844px) -->
+  <div class="w-[390px] h-[844px] bg-canvas rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col border-[8px] border-[#2C3E50] ring-1 ring-black/10">
+
+    <!-- Top Phone Sensor Bar / Status Bar -->
+    <div class="h-10 px-7 flex items-center justify-between z-30 shrink-0 bg-[#1CB0F6] text-white">
+      <span class="text-xs font-bold font-display tracking-wide">9:41</span>
+      <div class="w-20 h-4 bg-slate-900 rounded-full mx-auto -mt-1 shadow-inner"></div>
+      <div class="flex items-center space-x-1.5 text-xs font-bold">
+        <span>5G</span>
+        <svg class="w-4 h-4 fill-current inline-block" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 2c3.87 0 7 3.13 7 7 0 1.63-.56 3.13-1.5 4.34L12 19.72l-5.5-3.38C5.56 15.13 5 13.63 5 12c0-3.87 3.13-7 7-7z"/></svg>
+        <div class="w-5 h-2.5 border-2 border-white rounded-sm p-0.5 flex items-center">
+          <div class="h-full w-3 bg-white rounded-2xs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Main Container -->
+    <div class="flex-1 overflow-y-auto custom-scroll pb-24 flex flex-col">
+
+      <!-- 1. League Header & Countdown Banner -->
+      <section class="relative bg-gradient-to-b from-[#1CB0F6] via-[#2F80ED] to-[#4F46E5] pt-3 pb-7 px-4 rounded-b-[32px] text-white shadow-md">
+        <!-- Top bar actions -->
+        <div class="flex items-center justify-between mb-3">
+          <button type="button" aria-label="Go back" class="w-10 h-10 rounded-2xl bg-white/20 hover:bg-white/30 active:scale-95 transition-all flex items-center justify-center border border-white/25 backdrop-blur-sm shadow-sm" onclick="console.log('[playCue: tap_nav]')">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- League Badge Pill -->
+          <div class="inline-flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+            <span class="text-sm">⏱️</span>
+            <span class="text-xs font-black tracking-wide uppercase font-body text-amber-200">Time Left: 2d 14h</span>
+          </div>
+
+          <!-- Rules / Info Button -->
+          <button type="button" aria-label="League rules" class="w-10 h-10 rounded-2xl bg-white/20 hover:bg-white/30 active:scale-95 transition-all flex items-center justify-center border border-white/25 backdrop-blur-sm shadow-sm">
+            <span class="font-display font-bold text-base">?</span>
+          </button>
+        </div>
+
+        <!-- Diamond League Title & Shield Emblem -->
+        <div class="text-center flex flex-col items-center">
+          <!-- Emblem Graphic -->
+          <div class="relative mb-2">
+            <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-amber-400 via-yellow-200 to-amber-100 flex items-center justify-center shadow-lg border-2 border-white ring-4 ring-white/20">
+              <span class="text-3xl filter drop-shadow">💎</span>
+            </div>
+            <div class="absolute -bottom-1.5 -right-1 bg-amber-500 text-white rounded-full px-1.5 py-0.5 text-[10px] font-black border border-white flex items-center gap-0.5 shadow-sm">
+              <span>🏆</span>
+              <span>TOP</span>
+            </div>
+          </div>
+
+          <h1 class="font-display text-2xl font-bold tracking-tight text-white drop-shadow-sm mb-1">
+            Diamond League
+          </h1>
+
+          <!-- Promotion cutoff message chip -->
+          <div class="inline-flex items-center gap-1.5 bg-white/15 px-3.5 py-1 rounded-full border border-white/25 backdrop-blur-sm">
+            <span class="text-xs">🚀</span>
+            <span class="text-xs font-extrabold text-blue-100 font-body">
+              Top 5 students promote to <span class="text-amber-300 underline decoration-amber-300/60 font-black">Master League</span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Top 3 Podium Section -->
+      <section class="px-4 -mt-2 mb-4 z-10">
+        <div class="bg-paper border border-borderCream rounded-3xl p-3.5 pt-4 shadow-card-tactile">
+          <div class="flex items-center justify-between px-2 mb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-mutedBrown flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-duoYellow inline-block"></span>
+              Podium Leaders
+            </span>
+            <span class="text-[11px] font-bold text-brandTeal bg-mist px-2.5 py-0.5 rounded-full border border-borderCream">
+              Live Updates
+            </span>
+          </div>
+
+          <!-- 3D Pedestals Container -->
+          <div class="flex items-end justify-center gap-2 pt-8 pb-1 px-1">
+
+            <!-- 2ND PLACE (SILVER) -->
+            <div class="flex-1 flex flex-col items-center">
+              <!-- Avatar & Medal -->
+              <div class="relative -mb-3 z-10 flex flex-col items-center">
+                <span class="text-xl -mb-1 filter drop-shadow">🥈</span>
+                <div class="w-13 h-13 w-[52px] h-[52px] rounded-full bg-slate-100 border-3 border-slate-300 shadow-md flex items-center justify-center overflow-hidden ring-2 ring-white">
+                  <!-- Maya Avatar -->
+                  <div class="w-full h-full bg-[#E0F2FE] flex items-center justify-center font-display font-bold text-slate-700 text-lg">
+                    👧🏽
+                  </div>
+                </div>
+                <span class="text-xs font-bold font-display text-inkDeep mt-1">Maya</span>
+              </div>
+              <!-- Silver Pedestal -->
+              <div class="w-full h-24 bg-gradient-to-b from-slate-200 to-slate-300 rounded-2xl flex flex-col items-center justify-between py-2 border-t-2 border-slate-100 shadow-podium-silver relative">
+                <span class="font-display font-extrabold text-2xl text-slate-500">2</span>
+                <div class="bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg border border-slate-300">
+                  <span class="font-body font-black text-[11px] text-slate-700">1,850 XP</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 1ST PLACE (GOLD) -->
+            <div class="flex-1 flex flex-col items-center">
+              <!-- Crown & Avatar -->
+              <div class="relative -mb-3 z-10 flex flex-col items-center">
+                <span class="text-2xl -mb-1 animate-bounce filter drop-shadow">👑</span>
+                <div class="w-[62px] h-[62px] rounded-full bg-amber-100 border-4 border-amber-400 shadow-lg flex items-center justify-center overflow-hidden ring-4 ring-amber-200/60">
+                  <!-- Kenji Avatar -->
+                  <div class="w-full h-full bg-[#FEF3C7] flex items-center justify-center font-display font-bold text-amber-900 text-2xl">
+                    👦🏻
+                  </div>
+                </div>
+                <div class="flex items-center gap-0.5 mt-1">
+                  <span class="text-xs">🥇</span>
+                  <span class="text-xs font-bold font-display text-amber-900">Kenji</span>
+                </div>
+              </div>
+              <!-- Gold Pedestal -->
+              <div class="w-full h-32 bg-gradient-to-b from-amber-300 via-amber-400 to-yellow-500 rounded-2xl flex flex-col items-center justify-between py-2.5 border-t-2 border-yellow-200 shadow-podium-gold relative">
+                <span class="font-display font-black text-3xl text-amber-900/50">1</span>
+                <div class="bg-amber-950/10 px-2.5 py-0.5 rounded-lg border border-amber-300/60 shadow-inner">
+                  <span class="font-body font-black text-xs text-amber-950">2,120 XP</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3RD PLACE (BRONZE) -->
+            <div class="flex-1 flex flex-col items-center">
+              <!-- Avatar & Medal -->
+              <div class="relative -mb-3 z-10 flex flex-col items-center">
+                <span class="text-xl -mb-1 filter drop-shadow">🥉</span>
+                <div class="w-[48px] h-[48px] rounded-full bg-amber-50 border-3 border-amber-600/70 shadow-md flex items-center justify-center overflow-hidden ring-2 ring-white">
+                  <!-- Sarah Avatar -->
+                  <div class="w-full h-full bg-[#FCE7F3] flex items-center justify-center font-display font-bold text-pink-700 text-lg">
+                    👧🏼
+                  </div>
+                </div>
+                <span class="text-xs font-bold font-display text-inkDeep mt-1">Sarah</span>
+              </div>
+              <!-- Bronze Pedestal -->
+              <div class="w-full h-20 bg-gradient-to-b from-amber-600/80 to-amber-700 rounded-2xl flex flex-col items-center justify-between py-2 border-t-2 border-amber-400 shadow-podium-bronze relative">
+                <span class="font-display font-extrabold text-2xl text-amber-200/50">3</span>
+                <div class="bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-amber-800/20">
+                  <span class="font-body font-black text-[11px] text-amber-950">1,640 XP</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Promotion Cutoff Line Indicator -->
+      <div class="px-5 mb-2 flex items-center gap-2">
+        <div class="flex-1 border-t-2 border-dashed border-brandTeal/60"></div>
+        <div class="bg-emerald-100 border border-brandTeal/40 text-brandTeal text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1">
+          <span>✨</span>
+          <span>Promotion Cutoff Zone (Top 5)</span>
+        </div>
+        <div class="flex-1 border-t-2 border-dashed border-brandTeal/60"></div>
+      </div>
+
+      <!-- 4. Ranked Learner Rows List -->
+      <section class="px-4 space-y-2">
+
+        <!-- 4th Place: Alex T. -->
+        <div class="bg-paper border border-borderCream rounded-2xl p-3 flex items-center justify-between shadow-card-tactile hover:translate-y-[-1px] transition-transform">
+          <div class="flex items-center gap-3">
+            <!-- Rank Number -->
+            <div class="w-7 text-center font-display font-bold text-inkDeep text-base">4</div>
+            <!-- Avatar -->
+            <div class="w-10 h-10 rounded-2xl bg-sky-100 border border-sky-300 flex items-center justify-center text-lg">
+              👦🏽
+            </div>
+            <!-- Name & Promotion Tag -->
+            <div>
+              <div class="font-display font-bold text-inkDeep text-sm flex items-center gap-1.5">
+                Alex T.
+                <span class="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-1.5 py-0.2 rounded border border-emerald-200">Promoting</span>
+              </div>
+              <div class="text-xs text-mutedBrown font-bold">14 day streak 🔥</div>
+            </div>
+          </div>
+          <!-- XP & Movement -->
+          <div class="flex items-center gap-2.5">
+            <div class="text-right">
+              <div class="font-black text-inkDeep text-sm">1,420 <span class="text-xs text-brandSand font-bold">XP</span></div>
+            </div>
+            <!-- Movement Chip: Up 2 -->
+            <div class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-xl text-xs font-black flex items-center gap-0.5 border border-emerald-200 shadow-2xs">
+              <span class="text-[10px]">▲</span>
+              <span>2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5th Place: YOU (HIGHLIGHTED CARD) -->
+        <div class="bg-[#F0FDF4] border-2 border-brandTeal rounded-2xl p-3.5 flex items-center justify-between shadow-card-you relative overflow-hidden ring-2 ring-brandTeal/20">
+          <!-- Active Learner Pill Indicator -->
+          <div class="absolute -right-7 top-2 bg-brandTeal text-white text-[9px] font-black uppercase tracking-wider py-0.5 px-8 rotate-45 shadow-sm">
+            YOU
+          </div>
+
+          <div class="flex items-center gap-3">
+            <!-- Rank Badge -->
+            <div class="w-8 h-8 rounded-xl bg-brandTeal text-white flex items-center justify-center font-display font-black text-sm shadow-btn-teal">
+              #5
+            </div>
+            <!-- Avatar with Green Border -->
+            <div class="relative">
+              <div class="w-11 h-11 rounded-2xl bg-emerald-100 border-2 border-brandTeal p-0.5 flex items-center justify-center text-xl shadow-sm">
+                🦉
+              </div>
+              <div class="absolute -bottom-1 -right-1 bg-brandTeal text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] border border-white font-bold">
+                ✓
+              </div>
+            </div>
+            <!-- Name & Status -->
+            <div>
+              <div class="font-display font-bold text-inkDeep text-base flex items-center gap-1.5">
+                Leo (You)
+                <span class="text-sm">👤</span>
+              </div>
+              <div class="text-xs text-brandTealDark font-extrabold flex items-center gap-1">
+                <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                In Promotion Cutoff!
+              </div>
+            </div>
+          </div>
+
+          <!-- XP & Movement -->
+          <div class="flex items-center gap-2.5 pr-3">
+            <div class="text-right">
+              <div class="font-black text-emerald-900 text-base">1,380</div>
+              <div class="text-[10px] text-emerald-700 font-extrabold uppercase tracking-tight">TOTAL XP</div>
+            </div>
+            <!-- Movement Chip: Up 1 -->
+            <div class="bg-brandTeal text-white px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-0.5 shadow-sm">
+              <span class="text-[10px]">▲</span>
+              <span>1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Demotion / Safety line -->
+        <div class="px-2 py-0.5 flex items-center gap-2">
+          <div class="flex-1 border-t border-dashed border-borderCream"></div>
+          <span class="text-[10px] font-bold text-mutedBrown">Safe Zone (Remain in Diamond)</span>
+          <div class="flex-1 border-t border-dashed border-borderCream"></div>
+        </div>
+
+        <!-- 6th Place: Chloe M. -->
+        <div class="bg-paper border border-borderCream rounded-2xl p-3 flex items-center justify-between shadow-card-tactile">
+          <div class="flex items-center gap-3">
+            <div class="w-7 text-center font-display font-bold text-mutedBrown text-base">6</div>
+            <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-lg">
+              👧🏻
+            </div>
+            <div>
+              <div class="font-display font-bold text-inkDeep text-sm">Chloe M.</div>
+              <div class="text-xs text-mutedBrown font-bold">9 day streak 🔥</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="text-right">
+              <div class="font-black text-inkDeep text-sm">1,290 <span class="text-xs text-brandSand font-bold">XP</span></div>
+            </div>
+            <!-- Movement Chip: Neutral -->
+            <div class="bg-slate-100 text-slate-500 px-2 py-1 rounded-xl text-xs font-black flex items-center justify-center w-7 border border-slate-200">
+              —
+            </div>
+          </div>
+        </div>
+
+        <!-- 7th Place: David K. -->
+        <div class="bg-paper border border-borderCream rounded-2xl p-3 flex items-center justify-between shadow-card-tactile">
+          <div class="flex items-center gap-3">
+            <div class="w-7 text-center font-display font-bold text-mutedBrown text-base">7</div>
+            <div class="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-lg">
+              👦🏼
+            </div>
+            <div>
+              <div class="font-display font-bold text-inkDeep text-sm">David K.</div>
+              <div class="text-xs text-mutedBrown font-bold">5 day streak 🔥</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <div class="text-right">
+              <div class="font-black text-inkDeep text-sm">1,150 <span class="text-xs text-brandSand font-bold">XP</span></div>
+            </div>
+            <!-- Movement Chip: Down 1 -->
+            <div class="bg-rose-100 text-rose-700 px-2 py-1 rounded-xl text-xs font-black flex items-center gap-0.5 border border-rose-200">
+              <span class="text-[10px]">▼</span>
+              <span>1</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 5. Motivation Footer Card -->
+      <section class="px-4 mt-4 mb-2">
+        <div class="bg-mist border border-borderCream rounded-2xl p-3 flex items-center gap-3 text-left">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl shrink-0 border border-amber-300">
+            ⏳
+          </div>
+          <p class="text-xs text-mutedBrown font-bold leading-relaxed">
+            Scores reset every <span class="text-inkDeep font-extrabold">Sunday at midnight</span>. Complete daily quests to climb higher!
+          </p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 6. Persistent Bottom Tab Bar (Docked) -->
+    <nav class="absolute bottom-0 inset-x-0 bg-paper border-t border-borderCream h-20 px-3 flex items-center justify-around z-30 shadow-lg">
+      
+      <!-- Tab 1: Learn / Map -->
+      <button type="button" class="flex flex-col items-center justify-center w-14 h-full text-mutedBrown hover:text-ink transition-colors">
+        <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        <span class="text-[11px] font-extrabold font-body">Learn</span>
+      </button>
+
+      <!-- Tab 2: Quests -->
+      <button type="button" class="flex flex-col items-center justify-center w-14 h-full text-mutedBrown hover:text-ink transition-colors">
+        <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="text-[11px] font-extrabold font-body">Quests</span>
+      </button>
+
+      <!-- Tab 3: Leaderboard (ACTIVE) -->
+      <button type="button" class="flex flex-col items-center justify-center w-16 h-full text-brandTeal relative">
+        <div class="w-10 h-10 rounded-2xl bg-teal-50 border border-brandTeal/30 flex items-center justify-center mb-0.5 shadow-2xs">
+          <svg class="w-6 h-6 text-brandTeal" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+          </svg>
+        </div>
+        <span class="text-[11px] font-black font-body text-brandTeal">Rank</span>
+        <!-- Active indicator dot -->
+        <span class="w-1.5 h-1.5 bg-brandTeal rounded-full mt-0.5"></span>
+      </button>
+
+      <!-- Tab 4: Shop -->
+      <button type="button" class="flex flex-col items-center justify-center w-14 h-full text-mutedBrown hover:text-ink transition-colors">
+        <svg class="w-6 h-6 mb-1 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
+        <span class="text-[11px] font-extrabold font-body">Shop</span>
+      </button>
+
+      <!-- Tab 5: Profile -->
+      <button type="button" class="flex flex-col items-center justify-center w-14 h-full text-mutedBrown hover:text-ink transition-colors">
+        <div class="w-6 h-6 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-xs mb-1 opacity-80">
+          👤
+        </div>
+        <span class="text-[11px] font-extrabold font-body">Profile</span>
+      </button>
+
+    </nav>
+
+    <!-- Home indicator line -->
+    <div class="absolute bottom-1 inset-x-0 flex justify-center z-40 pointer-events-none">
+      <div class="w-32 h-1 bg-slate-400/40 rounded-full"></div>
+    </div>
+
+  </div>
+
+</body>
+</html>
