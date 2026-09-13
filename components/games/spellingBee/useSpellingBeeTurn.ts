@@ -103,12 +103,19 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
   const later = (fn: () => void, ms: number) => {
     timeoutsRef.current.push(setTimeout(fn, ms));
   };
+  const schedulePresentBeat = () => {
+    later(() => beginTyping(), PRESENT_BEAT_MS);
+  };
 
   // ── Full reset on a new wave (NEW_TURN / RESET_GAME / solo next round) ───
   // Render-phase adjustment (the documented "adjust state when props change"
   // pattern, same as the clock): the render that observes a new waveWords
   // identity already carries the reset — no intermediate frame can paint the
   // new wave's words against the old wordIdx/mistakes/removedKeys.
+  // NOTE: the presenting→typing BEAT is NOT scheduled here — the [waveWords]
+  // effect below owns it (scheduling here meant the same wave change's
+  // clearTimeouts() killed it → keyboard dead at every round start,
+  // owner 2026-09-14).
   function resetTurnState() {
     turnKeyRef.current += 1;
     setTurnKey(turnKeyRef.current);
@@ -122,7 +129,6 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
     completedRef.current = false;
     wordIdxRef.current = 0;
     setStatus('presenting');
-    later(() => beginTyping(), PRESENT_BEAT_MS);
     setWordIdx(0);
     setTypedCount(0);
     typedCountRef.current = 0;
@@ -321,16 +327,21 @@ export function useSpellingBeeTurn({ waveWords, settings, events, seedKey = '', 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWordId, wordIdx, typedCount, mistakes, clock.elapsedRatio, hintCount, settings.letterRemoval, status]);
 
-  // Wave changes reset synchronously in render (lastWaveRef above); the
-  // effect only handles the impure part — killing pending holds.
+  // Wave changes reset synchronously in render (lastWaveRef above); this
+  // effect owns the timer lifecycle — clear stale holds FIRST, then (re)
+  // schedule the presenting→typing beat. Effect ordering guarantees the
+  // schedule happens AFTER the clears, so a wave change can never cancel its
+  // own beat (the dead-keyboard race, owner 2026-09-14).
   const resetTurn = useCallback(() => {
     clearTimeouts();
     resetTurnState();
+    schedulePresentBeat();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     clearTimeouts();
+    if (statusRef.current === 'presenting') schedulePresentBeat();
   }, [waveWords]);
 
   useEffect(() => clearTimeouts, []);
