@@ -54,3 +54,24 @@ Pick (clip cards w/ New badges + progress "2/5 dubbed") → Watch once (subtitle
 7. **Rewards**: keep 10/15 XP + quest, or tie a gem to a "great" published dub?
 
 Once answered: AG designs the screens (approval gate like tabs), then one implementation run + gauntlet + deploy.
+
+
+---
+
+## 5. OWNER DECISIONS (2026-09-13) — all 7 recommendations ADOPTED
+
+> "your suggestions are good, i follow, but for not going too fast i want you and Anti-Gravity to brainstorm the dubbing functionality and create the stitch screen first, or the already existing UI if there is one."
+
+Locked: (1) reskin → flip flag for everyone; (2) v1 upgrades = **karaoke timing bar + star-banded results** (practice mode v2, duet later); (3) keep lenient bands; (4) anyone publishes, teacher can unpublish; (5) gallery keeps hearts; (6) teacher uploads v1, auto-clips from story scenes v2; (7) 10/15 XP + quest stay, **+1 gem for a 'great'-band published dub**. PROCESS: ZCode spec (§6) → AG brainstorm/critique + Stitch screens → **owner approves designs BEFORE implementation**.
+
+## 6. ZCode interaction spec v3 (designed FROM the existing UI — the flow is real, only the surface changes)
+
+Existing phases kept 1:1 (pick → watch → record → result → gallery); each gets the light reskin + the two approved upgrades:
+
+- **P1 Pick** (existing list upgraded): paper clip cards with thumbnail/title/lines-count, `New` chip, per-clip progress dots ("2/5 takes"), class-scoped. Empty state explains teacher assigns clips.
+- **P2 Watch**: video with active-line subtitle band (existing), CTA "Start dubbing" beveled teal. No change structurally.
+- **P3 Record — KARAOKE UPGRADE**: muted video on top; below, the CURRENT LINE in large type with a **shrinking window bar** (the line's time window draining like Spelling Bee's clock), next line dimmed beneath; mic FAB + live waveform strip; per-line band chips appear the instant each line is captured (great=emerald/almost=amber/try=red); pass-done review list with per-line redo stays.
+- **P4 Result — STAR-BAND UPGRADE**: DubPlayer (video + child's voice) as hero; 3-star card from the overall band (great=3★+gem badge, almost=2★, try=1★); per-line pills with word-match %; Try again / Share with class; "great + published = +1 gem" surfaced on the share button.
+- **P5 Gallery**: classmate dubs per clip, heart reactions (kept), name chips, play inline.
+- Sounds: playCue reveal on line capture, correct/wrong per band chip, win on result; TTS reads the line during countdown as a cue option (muted by default).
+- **Economy guardrails (existing, kept)**: exactly-once XP refs, one row per take, score-pending path, retention untouched. New: single conditional gem on publish when band==='great' (pattern-A style latch).
