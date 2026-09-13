@@ -1,8 +1,10 @@
 // WordSearchStep — the in-lesson surface of Word Search for WORD_SEARCH
 // blocks on the Student Path. Reuses the board v3 word-search PURE modules
 // (wordSearch/gridEngine.ts + content.ts — placement, line snapping and
-// segment matching are the same tested logic the projector runs); only the
-// interaction is student-side: tap the first letter, tap the last letter.
+// segment matching are the same tested logic the projector runs); the
+// interaction is student-side: slide across a word, or tap the first letter
+// then the last letter. Words run left→right / top→bottom only (owner
+// 2026-09-14).
 //
 // Same contract as FastVocabStep/SpellingBeeStep: self-fetching by unitId,
 // loading/error/play/done screens, recordAnswer feeds session accuracy, and
@@ -21,6 +23,7 @@ import {
   buildGrid,
   snapLine,
   matchSegment,
+  DIRECTIONS_EASY,
   type Cell,
   type SearchGrid,
 } from '../../board/templates/wordSearch/gridEngine';
@@ -64,18 +67,20 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
   const [words, setWords] = useState<SearchWord[]>([]);
   const [grid, setGrid] = useState<SearchGrid | null>(null);
   const [foundIds, setFoundIds] = useState<string[]>([]);
-  const [anchor, setAnchor] = useState<Cell | null>(null);
+  const [sel, setSel] = useState<{ anchor: Cell; cells: Cell[] } | null>(null);
   const [wrongCells, setWrongCells] = useState<string[]>([]);
-  const [missCount, setMissCount] = useState(0);
   const [hintCell, setHintCell] = useState<string | null>(null);
+  const [hintCooldown, setHintCooldown] = useState(false);
   const statsRef = useRef({ found: 0, attempts: 0 });
+  const gridElRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef(false);
 
   const loadRun = useCallback(async () => {
     setScreen('loading');
     setFoundIds([]);
-    setAnchor(null);
-    setMissCount(0);
+    setSel(null);
     setHintCell(null);
+    setHintCooldown(false);
     statsRef.current = { found: 0, attempts: 0 };
 
     const { data, error } = await supabase
@@ -99,7 +104,9 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
       return;
     }
     const round = takeRound(words, Math.floor(Math.random() * 97) + 1, ROUND_SIZE);
-    const built = buildGrid(toGridWords(round), { seed: (Math.random() * 0x7fffffff) | 0, fillBias: true });
+    // Owner 2026-09-14: words run left→right and top→bottom ONLY — the
+    // backwards/up/diagonal placements of DIRECTIONS_ALL were too hard.
+    const built = buildGrid(toGridWords(round), { seed: (Math.random() * 0x7fffffff) | 0, fillBias: true, directions: DIRECTIONS_EASY });
     const placeable = round.filter((w) => !built.unplaced.includes(w.id));
     if (placeable.length < 3) {
       setScreen('error');
@@ -115,21 +122,28 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
 
   const wordIndex = (id: string) => words.findIndex((w) => w.id === id);
 
-  const handleCell = (cell: Cell) => {
-    if (!grid || screen !== 'play') return;
-    if (!anchor) {
-      setAnchor(cell);
-      return;
-    }
-    const line = snapLine(anchor, cell, grid.size);
-    setAnchor(null);
-    // Tapping the anchor cell again (or a neighbor that snaps to a 1-cell
-    // line) just clears the anchor — not an attempt.
-    if (line.length < 2) return;
+  // ── Selection: tap-first/tap-last + slide-over-word (owner 2026-09-14;
+  // the board's proven pointer pattern — rect-math hit-testing + capture) ──
+  const cellFromEvent = (e: React.PointerEvent): Cell | null => {
+    const el = gridElRef.current;
+    if (!el || !grid) return null;
+    const rect = el.getBoundingClientRect();
+    const col = Math.floor(((e.clientX - rect.left) / rect.width) * grid.size);
+    const row = Math.floor(((e.clientY - rect.top) / rect.height) * grid.size);
+    if (row < 0 || row >= grid.size || col < 0 || col >= grid.size) return null;
+    return { row, col };
+  };
+
+  const sameCell = (a: Cell, b: Cell) => a.row === b.row && a.col === b.col;
+
+  const validateSelection = (cells: Cell[]) => {
+    if (!grid) { setSel(null); return; }
+    if (cells.length === 1) return; // anchor stays armed for tap-tap
+    if (cells.length < 1) { setSel(null); return; }
 
     statsRef.current.attempts += 1;
     const candidates = toGridWords(words.filter((w) => !foundIds.includes(w.id)));
-    const hit = matchSegment(line, grid, candidates);
+    const hit = matchSegment(cells, grid, candidates);
     if (hit) {
       const idx = wordIndex(hit.id);
       const word = words[idx];
@@ -145,15 +159,50 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
     } else {
       recordAnswer(false);
       playCue('wrong');
-      setMissCount((m) => m + 1);
-      const keys = line.map((c) => `${c.row}-${c.col}`);
-      setWrongCells(keys);
+      setWrongCells(cells.map((c) => `${c.row}-${c.col}`));
       setTimeout(() => setWrongCells([]), 450);
+    }
+    setSel(null);
+  };
+
+  const onGridPointerDown = (e: React.PointerEvent) => {
+    if (screen !== 'play' || !grid) return;
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    if (sel && sameCell(sel.anchor, cell)) { setSel(null); return; } // re-tap clears
+    if (sel && sel.cells.length === 1) {
+      // second tap of tap-tap: complete the line from the armed anchor
+      setSel({ anchor: sel.anchor, cells: snapLine(sel.anchor, cell, grid.size) });
+      dragRef.current = false;
+    } else {
+      setSel({ anchor: cell, cells: [cell] });
+      dragRef.current = true;
     }
   };
 
+  const onGridPointerMove = (e: React.PointerEvent) => {
+    if (!sel || !dragRef.current || !grid) return;
+    const cell = cellFromEvent(e);
+    if (!cell || sameCell(sel.anchor, cell)) {
+      setSel((prev) => (prev ? { ...prev, cells: [prev.anchor] } : prev));
+      return;
+    }
+    setSel((prev) => (prev ? { ...prev, cells: snapLine(prev.anchor, cell, grid.size) } : prev));
+  };
+
+  const onGridPointerUp = () => {
+    dragRef.current = false;
+    if (!sel) return;
+    validateSelection(sel.cells);
+  };
+
+  // Hint: always available while words remain (solo kid has no teacher to
+  // unstick them) with a 10s cooldown so it can't be spam-clicked.
+  const canUseHint = !hintCooldown && foundIds.length < words.length;
+
   const handleUseHint = () => {
-    if (missCount < 3) return;
+    if (hintCooldown) return;
     const unfound = words.find((w) => !foundIds.includes(w.id));
     if (!unfound || !grid) return;
     const placement = grid.placements.find((p) => p.wordId === unfound.id);
@@ -162,10 +211,9 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
     const key = `${firstCell.row}-${firstCell.col}`;
     setHintCell(key);
     playCue('reveal');
-    setMissCount(0);
-    setTimeout(() => {
-      setHintCell((curr) => (curr === key ? null : curr));
-    }, 4000);
+    setHintCooldown(true);
+    setTimeout(() => setHintCooldown(false), 10000);
+    setTimeout(() => { setHintCell((curr) => (curr === key ? null : curr)); }, 4000);
   };
 
   if (screen === 'loading') {
@@ -297,8 +345,6 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
     placement?.cells.forEach((c) => foundTrail.set(`${c.row}-${c.col}`, trail));
   });
 
-  const canUseHint = missCount >= 3;
-
   return (
     <div className="h-full bg-[#EAE0D0] flex flex-col font-sans relative overflow-hidden select-none">
       {/* Universal light header */}
@@ -318,19 +364,19 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
             <span>WORD SEARCH • {foundIds.length} / {words.length} FOUND</span>
           </div>
 
-          {/* Hint FAB: active after 3 misses */}
+          {/* Hint FAB: always available, 10s cooldown */}
           <button
             onClick={handleUseHint}
             disabled={!canUseHint}
             className={`flex items-center gap-1 px-3 py-1 rounded-full font-bold text-xs transition-all shadow-xs ${
               canUseHint
-                ? 'bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] animate-pulse cursor-pointer shadow-[0_2px_0_#C99E32] active:translate-y-0.5'
+                ? 'bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] cursor-pointer shadow-[0_2px_0_#C99E32] active:translate-y-0.5'
                 : 'bg-[#F7F3E8] border border-[#E2D7C3] text-[#B5A490] cursor-not-allowed opacity-60'
             }`}
-            title={canUseHint ? 'Show first letter of an unfound word' : `${3 - missCount} more misses for hint`}
+            title={canUseHint ? 'Show first letter of an unfound word' : 'Hint recharging…'}
           >
             <span>🔍</span>
-            <span>Hint{canUseHint ? '!' : ` (${missCount}/3)`}</span>
+            <span>Hint{canUseHint ? '!' : ' …'}</span>
           </button>
         </div>
 
@@ -364,14 +410,20 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
       <div className="flex-1 min-h-0 flex items-center justify-center p-3">
         <div className="bg-[#FDFBF7] rounded-[24px] border-[2.5px] border-[#E2D7C3] p-2.5 shadow-md mx-auto w-full max-w-sm">
           <div
-            className="grid gap-1 w-full"
+            ref={gridElRef}
+            onPointerDown={onGridPointerDown}
+            onPointerMove={onGridPointerMove}
+            onPointerUp={onGridPointerUp}
+            onPointerCancel={() => { dragRef.current = false; }}
+            className="grid gap-1 w-full touch-none"
             style={{ gridTemplateColumns: `repeat(${grid.size}, minmax(0, 1fr))` }}
           >
             {grid.cells.map((row, r) =>
               row.map((letter, c) => {
                 const key = `${r}-${c}`;
                 const trail = foundTrail.get(key);
-                const isAnchor = anchor?.row === r && anchor?.col === c;
+                const isAnchor = !!sel && sel.anchor.row === r && sel.anchor.col === c;
+                const inPending = !!sel && sel.cells.length > 1 && sel.cells.some((c2) => c2.row === r && c2.col === c);
                 const isWrong = wrongCells.includes(key);
                 const isHint = hintCell === key;
 
@@ -379,17 +431,18 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
                   ? trail
                   : isAnchor
                     ? 'bg-[#38BDF8] border-2 border-[#0284C7] text-white shadow-md scale-105'
-                    : isHint
-                      ? 'bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] ring-4 ring-[#E9C46A]/50 animate-bounce'
-                      : isWrong
-                        ? 'bg-[#FEF2F2] border-2 border-[#FF4B4B] text-[#DC2626]'
-                        : 'bg-[#FDFBF7] border border-[#E2D7C3] text-[#264653] hover:bg-[#F7F3E8] shadow-xs active:translate-y-0.5';
+                    : inPending
+                      ? 'bg-[#38BDF8]/30 border-2 border-[#38BDF8] text-[#0369A1] scale-[1.02]'
+                      : isHint
+                        ? 'bg-[#E9C46A] border-2 border-[#C99E32] text-[#1D3557] ring-4 ring-[#E9C46A]/50 animate-bounce'
+                        : isWrong
+                          ? 'bg-[#FEF2F2] border-2 border-[#FF4B4B] text-[#DC2626]'
+                          : 'bg-[#FDFBF7] border border-[#E2D7C3] text-[#264653] hover:bg-[#F7F3E8] shadow-xs active:translate-y-0.5';
 
                 return (
                   <button
                     key={key}
                     type="button"
-                    onClick={() => handleCell({ row: r, col: c })}
                     className={`aspect-square rounded-xl font-fredoka font-bold text-base sm:text-lg flex items-center justify-center transition-all duration-150 cursor-pointer ${cls}`}
                   >
                     {letter}
@@ -403,9 +456,9 @@ const WordSearchStep: React.FC<WordSearchStepProps> = ({ unitId, unitTitle, onDo
 
       {/* Reassurance instructional footer */}
       <p className="pb-3 pt-1 text-center text-[#8C7A68] text-xs font-semibold shrink-0">
-        {anchor
-          ? 'Now tap the last letter'
-          : 'Tap first & last letter to find words • Exploratory taps do not cost hearts.'}
+        {sel
+          ? 'Now tap the last letter — or slide across the word'
+          : 'Slide across a word (or tap first & last letter) • Exploratory taps do not cost hearts.'}
       </p>
     </div>
   );
