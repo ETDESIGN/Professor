@@ -133,6 +133,14 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
       return <div className="p-6 text-[#8C7A68]">{t('exercise.unsupported', 'Unsupported exercise.')}</div>;
   }
 
+  // Owner 2026-09-14: image cards never show the English word (sight-reading
+  // leak — "too easy" in Vocab Blitz / Unit Review / Speed Quiz), and a
+  // question renders the image grid ONLY when EVERY option has an image —
+  // mixed sets degrade to uniform text options.
+  const allHaveImages =
+    optionsRaw.length > 0 && optionsRaw.every((o: any) => typeof o === 'object' && !!o?.image_url);
+  if (imageOptions && !allHaveImages) imageOptions = false;
+
   const handleAdvance = (success: boolean) => {
     if (autoTimerRef.current !== null) {
       clearTimeout(autoTimerRef.current);
@@ -275,15 +283,13 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
                 }
               }
 
-              const imageOnly = kind === 'IMAGE_SELECT'; // Word Detective: image-only cards (owner session-1)
-
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={() => handleSelect(i)}
                   disabled={feedback !== 'idle'}
-                  className={`relative rounded-3xl flex flex-col items-center justify-between transition-all duration-100 overflow-hidden ${imageOnly ? 'p-1.5 aspect-square' : 'p-0'} ${cardStyle}`}
+                  className={`relative rounded-3xl flex flex-col items-center justify-between transition-all duration-100 overflow-hidden p-0 aspect-square ${cardStyle}`}
                 >
                   {/* Status badges when revealed */}
                   {feedback !== 'idle' && isCorrect && (
@@ -298,16 +304,12 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
                   )}
 
                   {/* Image area or fallback placeholder (owner: fill the frame) */}
-                  <div className={`flex items-center justify-center ${imageOnly ? 'w-full h-full' : 'w-full'}`}>
+                  <div className="flex items-center justify-center w-full h-full">
                     {optImageUrl && !hasFailedImage ? (
                       <img
                         src={optImageUrl}
                         alt={optText}
-                        className={
-                          imageOnly
-                            ? 'w-full h-full object-contain rounded-2xl' // square frame, uncropped
-                            : 'w-full aspect-[4/3] object-cover' // corner-to-corner strip (Sound Lab)
-                        }
+                        className="w-full h-full object-cover"
                         onError={() => {
                           setFailedImages((prev) => new Set(prev).add(i));
                         }}
@@ -328,15 +330,9 @@ const ChoiceExercise: React.FC<BaseExerciseProps> = ({ data, onComplete, onError
                     )}
                   </div>
 
-                  {/* Label — hidden on IMAGE_SELECT (owner: image-only cards);
-                      bottom white strip on audio-image types (Sound Lab) */}
-                  {!imageOnly && optText && (
-                    <div className="text-center w-full px-3 py-2 bg-[#FDFBF7] border-t-2 border-[#E2D7C3]/70 shrink-0">
-                      <span className="font-bold text-base text-[#1D3557] tracking-wide block truncate">
-                        {optText}
-                      </span>
-                    </div>
-                  )}
+                  {/* English label strip removed (owner 2026-09-14): image
+                      cards are image-only — the alt attribute keeps
+                      accessibility, the word stays hidden from sight-readers */}
                 </button>
               );
             })}
