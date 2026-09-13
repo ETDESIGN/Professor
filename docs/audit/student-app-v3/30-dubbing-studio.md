@@ -129,3 +129,99 @@ DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge 
 ## §7 Implementation notes & design-fidelity log
 
 **IMPLEMENTED 2026-09-14 — by ZCode** (AG was geo-blocked both runs: the machine's VPN was down; owner restored it after). Files: DubbingStudio.tsx (full rewrite: light reskin all 4 phases + KARAOKE record deck (big current line + draining window bar via the recorder's new additive `windowProgress` + dimmed next line + red mic FAB + waveform + instant band chips + per-line redo), STAR-BAND result (3/2/1 stars + word-match ring + per-line pills + +1💎 badge on great-share), empty state (shapes-only, no animal), playCue sounds); ClassDubs.tsx (light reskin + terracotta hearts + sound on like); dubbing/useDubRecorder.ts (ADDITIVE `windowProgress` only — timing semantics untouched, 2dp rounding to avoid 60fps churn); StudentApp.tsx (sanctioned: fake {xp:5/accuracy:95} dubbing exit → plain back-nav). Gem latch: `gemGivenRef` mirroring `xpGivenRef` (awardGems(1) on publish when band==='great', exactly-once). SACRED LIST VERIFIED: recorder timing math, evaluateTake calls/payloads, exactly-once 10/15 XP + DUBBING_TAKE quest, one-row-per-take, snapshot-flush invariant, storage paths, DubbingService untouched, DubPlayer untouched. **Fidelity log: screens 1-2 Followed (Pick, Watch exports); screens 3-6 Spec-built — Stitch generation was geo-blocked; screens re-submitted post-VPN-restore for a fidelity pass.** AG independent review pending; gauntlet green (tsc clean, 826 tests, build clean).
+
+### AG review (2026-09-14)
+
+**Verdict:** `SAFE-TO-FLAG` (0 P1 blockers; 3 P2 optimizations; 3 P3 minor UX notes).
+**Review Scope:** Diff verification against `docs/superpowers/plans/2026-09-14-student-dubbing-v3.md` and the Sacred List across:
+- `apps/student/DubbingStudio.tsx`
+- `apps/student/ClassDubs.tsx`
+- `apps/student/dubbing/useDubRecorder.ts`
+- `apps/student/StudentApp.tsx`
+
+---
+
+#### 1. Sacred List Verification — PASS
+- **Recorder timing math untouched:** Verified in `useDubRecorder.ts:240-285`. Window interval calculation (`leadMs`, `startMs`, `endMs`), chunk boundaries, `flushLine`, and window iteration remain byte-for-byte functionally identical.
+- **evaluateTake calls/payloads identical:** Verified in `DubbingStudio.tsx:183-185`. Call signature and payload `{ lineId, text: line.text, transcript: transcript || undefined, audioBase64: b64 }` matches previous implementation exactly.
+- **Exactly-once XP (10 private / 15 published) + DUBBING_TAKE quest:** Verified in `DubbingStudio.tsx:302-310` and `347-350`. `xpGivenRef` latches prevent double awards.
+- **One-row-per-take:** Verified in `DubbingStudio.tsx:273` (`savedDubbingIdRef.current` guards take creation) and `343` (`publishDubbing` reuses the same row).
+- **Snapshot-flush invariant (`finalBlobsRef`):** Verified in `DubbingStudio.tsx:80, 326-328`. Blobs are snapshotted into `finalBlobsRef.current` synchronously before `recorder.reset()` clears state, and read directly by `saveTake()`.
+- **Storage paths & services untouched:** `DubbingService.ts` and `DubPlayer.tsx` have zero diff (`git diff HEAD~1` empty). Storage audio paths and retention remain untouched.
+
+---
+
+#### 2. Gem Latch Integrity — PASS
+- Verified in `DubbingStudio.tsx:86, 165, 353-360, 378`.
+- `gemGivenRef` initializes `false`, resets on `openClip` (line 165) and `tryAgain` (line 378).
+- Inside `shareWithClass`, `gemGivenRef.current = true` is set synchronously prior to `awardGems`, preventing double-fire even if rapid multi-taps occur during async dispatch.
+- Gem badge `+1 💎` on the Share button strictly conditional on `!published && overallBand === 'great'` (line 767).
+
+---
+
+#### 3. Karaoke `windowProgress` Signal — PASS
+- Verified in `useDubRecorder.ts:80-87, 127, 256-263` and `DubbingStudio.tsx:580-588`.
+- Signal is purely additive: exposes `windowProgress: number`.
+- Rounded via `Math.round(... * 100) / 100` (2 decimal places) so `setState` bails out when progress hasn't advanced by a full percent, preventing 60fps render churn.
+- In `DubbingStudio.tsx:585`, lead-in fills (`windowProgress`) and capture drains (`1 - windowProgress`) with distinct colors (`bg-[#E9C46A]` lead-in, `bg-[#E76F51]` capture).
+
+---
+
+#### 4. Sanctioned `StudentApp.tsx` Edit — PASS
+- Verified in `apps/student/StudentApp.tsx:226`.
+- Exactly one change: replaced `onBack={() => handleLessonComplete({ xp: 5, accuracy: 95, time: '2:30' })}` with `onBack={() => navigate('/student')}`. No other edits made.
+
+---
+
+#### 5. Kid-Alone UX & Recovery — PASS
+- **Recovery paths:** Clear recovery on mic unsupported (lines 384-398), video load error (lines 170-174), and invalid timing boundaries (lines 152-156).
+- **Pass-done review:** Shows line transcripts, real-time score badges, individual line redo triggers (`rerecordLine`), and a high-contrast primary CTA to proceed.
+- **Score-pending honesty:** If STT scoring is delayed or down, the UI renders "Score pending" with 0 stars and no invented scores or false gem promises (lines 701, 717, 744, 767).
+
+---
+
+#### 6. Theme Consistency & Visual Guidelines — PASS
+- Full light-palette conformance: `#EAE0D0` canvas, `#FDFBF7` cream cards, `#E2D7C3` sand borders, `#1D3557` navy typography, `#2A9D8F` emerald accents, `#E76F51` terracotta hearts.
+- Zero owl or animal mascots across all files; empty state uses geometric TV/video shapes (`DubbingStudio.tsx:456-461`).
+- Chinese characters are restricted strictly to support surfaces (empty state hint `你的老师会布置配音任务` at line 464); recording prompts remain in English.
+
+---
+
+#### 7. Findings & Observations (P2/P3)
+
+- **F1 · P2 (Performance / Leak) — Blob URLs unrevoked across clip changes and back navigation:**
+  - *Evidence:* `apps/student/DubbingStudio.tsx:158`, `334`, `419`.
+  - *Detail:* `URL.createObjectURL(blob)` created in `goResult` (line 332) are only revoked in `tryAgain` (line 370) and component unmount (line 137). If a child exits via the Back button to 'pick' (line 419) and selects another clip (line 158), previous blob URLs remain in memory until the studio unmounts.
+  - *Recommendation:* Add `Object.values(blobUrlMap.current).forEach(URL.revokeObjectURL); blobUrlMap.current = {};` inside `openClip` and `goResult` (before reassigning).
+
+- **F2 · P2 (Race Condition) — In-flight STT evaluation race on rapid "See my results" tap:**
+  - *Evidence:* `apps/student/DubbingStudio.tsx:183-192`, `286-297`, `326-337`.
+  - *Detail:* If a child taps "See my results" immediately upon completing the final line while `evaluateLine` is still in flight, `saveTake` persists the database row with incomplete `perLineScores` and an incomplete `overallBand`. Once `savedDubbingIdRef.current` is set, the take row is not updated when `evaluateLine` eventually resolves in local state.
+  - *Recommendation:* Disable the "See my results" button or show a brief "Scoring last line…" spinner while any line in `lineScores` is unresolved.
+
+- **F3 · P2 (UX / Idempotency) — "Share with class" button missing `isPublishing` loading state:**
+  - *Evidence:* `apps/student/DubbingStudio.tsx:762-766`.
+  - *Detail:* Button is disabled by `disabled={saveState === 'saving' || published}`. During `DubbingService.publishDubbing(dubbingId)`, `saveState` is `'saved'` and `published` is `false`. A slow network connection allows rapid repeated clicks dispatching duplicate publish calls (though `gemGivenRef` prevents double gem awards).
+  - *Recommendation:* Introduce an `isPublishing` boolean state and disable/spin during publish.
+
+- **F4 · P3 (UI Glitch) — Line counter badge during single-line redo:**
+  - *Evidence:* `apps/student/DubbingStudio.tsx:554`.
+  - *Detail:* The counter expression `LINE {Math.min(Math.max(recorder.activeLineIndex + 1, recordedCount + 1), lines.length)} / {lines.length}` evaluates to `LINE 3 / 3` when re-recording line 1 because `recordedCount` is already 3.
+  - *Recommendation:* If `recorder.activeLineIndex >= 0`, display `recorder.activeLineIndex + 1` directly.
+
+- **F5 · P3 (UX) — Misleading "Next: [text]" subtitle during single-line redo:**
+  - *Evidence:* `apps/student/DubbingStudio.tsx:403, 569-571`.
+  - *Detail:* During a single-line redo of line 1, `recNextLine` shows "Next: [Line 2 text]", although the recording loop stops immediately after line 1.
+
+- **F6 · P3 (UX) — Absence of exit confirmation on active recording:**
+  - *Evidence:* `apps/student/DubbingStudio.tsx:416-420`.
+  - *Detail:* Tapping the back button during `phase === 'record'` immediately cancels the take and returns to 'pick' without confirmation.
+
+---
+
+**Gauntlet Status:**
+- `tsc --noEmit`: 0 errors.
+- `vitest run`: 83 test files passed (826 passed, 1 skipped).
+- `vite build`: Clean production build (PWA sw.js precache generated, `DubbingStudio` & `ClassDubs` chunks cleanly bundled).
+
+**Recommendation:** `SAFE-TO-FLAG`. Proceed to owner flag-flip step.

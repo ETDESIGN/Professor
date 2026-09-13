@@ -70,8 +70,14 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   const [lineScores, setLineScores] = useState<Record<string, LineScore | null>>({});
+  // AG review F2 (P2): saveTake reads this REF (synced below) instead of its
+  // closure, so a line score that lands while the result screen is mounting
+  // (evaluateLine still in flight) is included in the persisted take.
+  const lineScoresRef = useRef<Record<string, LineScore | null>>({});
+  useEffect(() => { lineScoresRef.current = lineScores; }, [lineScores]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [published, setPublished] = useState(false);
+  const [publishing, setPublishing] = useState(false); // AG review F3 (P2): no double-publish taps
   /**
    * Snapshot of the take's blobs, taken when the pass is finished (hook state
    * is cleared on reset). Kept in a REF so saveTake can read it in the same
@@ -148,6 +154,10 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   // videoRef.current as a prop on every render so it tracks the live element.
 
   const openClip = useCallback(async (c: ClipWithLines) => {
+    // AG review F1 (P2): release the previous take's blob URLs on clip switch
+    // (they were only revoked on tryAgain/unmount before).
+    Object.values(blobUrlMap.current).forEach((u) => URL.revokeObjectURL(u));
+    blobUrlMap.current = {};
     // Guard: malformed/overlapping lines must not crash the screen.
     try {
       buildLineWindows(c.lines ?? [], c.videoDurationMs);
@@ -157,6 +167,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
     }
     setClip(c);
     setLineScores({});
+    lineScoresRef.current = {};
     setSaveState('idle');
     setPublished(false);
     finalBlobsRef.current = {};
@@ -283,11 +294,12 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
         if (!blob) continue;
         lineAudio[line.id] = await DubbingService.uploadLineAudio(dubbingId, line.id, blob);
       }
+      const liveScores = lineScoresRef.current;
       const perLineScores: Record<string, LineScore> = {};
-      for (const [k, v] of Object.entries(lineScores)) {
+      for (const [k, v] of Object.entries(liveScores)) {
         if (v) perLineScores[k] = v;
       }
-      const overall = bandFromScores(lineScores, lines);
+      const overall = bandFromScores(liveScores, lines);
       // AI-down path: persist with overallBand null → UI shows "Score pending".
       await DubbingService.saveTake({
         dubbingId,
@@ -337,6 +349,9 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
   }, [recorder, saveTake]);
 
   const shareWithClass = useCallback(async () => {
+    if (publishing || published) return;
+    setPublishing(true);
+    try {
     const dubbingId = await saveTake();
     if (!dubbingId) return;
     try {
@@ -363,13 +378,19 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
     } catch (err) {
       log.warn('publish_failed', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Could not share your take.');
+    } finally {
+      setPublishing(false);
     }
-  }, [saveTake, lineScores, lines]);
+    } finally {
+      setPublishing(false);
+    }
+  }, [saveTake, lineScores, lines, publishing, published]);
 
   const tryAgain = useCallback(() => {
     Object.values(blobUrlMap.current).forEach((u) => URL.revokeObjectURL(u));
     blobUrlMap.current = {};
     setLineScores({});
+    lineScoresRef.current = {};
     setSaveState('idle');
     setPublished(false);
     finalBlobsRef.current = {};
@@ -759,7 +780,7 @@ const DubbingStudio: React.FC<DubbingStudioProps> = ({ onBack, onOpenGallery }) 
             </button>
             <button
               onClick={() => void shareWithClass()}
-              disabled={saveState === 'saving' || published}
+              disabled={saveState === 'saving' || publishing || published}
               className="py-3.5 rounded-2xl bg-[#2A9D8F] hover:bg-[#1E6F5C] font-bold text-sm text-white shadow-[0_4px_0_#1E6F5C] active:translate-y-[2px] active:shadow-[0_2px_0_#1E6F5C] flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saveState === 'saving' ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
