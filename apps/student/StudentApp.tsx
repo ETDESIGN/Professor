@@ -363,7 +363,7 @@ const StudentApp: React.FC<StudentAppProps> = ({ onSignOut }) => {
               <Route path="/student/leaderboard" element={<RouteErrorBoundary name="leaderboard"><Leaderboard onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
               <Route path="/student/quests" element={<RouteErrorBoundary name="quests"><Quests onBack={() => navigate('/student')} /></RouteErrorBoundary>} />
               <Route path="/student/shop" element={<RouteErrorBoundary name="shop"><Shop onBack={() => navigate('/student')} onOpenStudio={() => navigate('/student/avatar')} /></RouteErrorBoundary>} />
-              <Route path="/student/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} stats={userStats} /></RouteErrorBoundary>} />
+              <Route path="/student/profile" element={<RouteErrorBoundary name="profile"><Profile onBack={() => navigate('/student')} onCustomize={() => navigate('/student/avatar')} onSettings={() => navigate('/student/settings')} stats={userStats} /></RouteErrorBoundary>} />
               <Route path="*" element={<Navigate to="/student" replace />} />
             </Routes>
           </motion.div>
