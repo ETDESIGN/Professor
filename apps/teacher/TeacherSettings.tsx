@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store/useAppStore';
 import BillingSettings from './BillingSettings';
+import { fallbackAvatar } from '../../services/localArt';
 
 const TeacherSettings: React.FC = () => {
    const { t } = useTranslation();
@@ -58,7 +59,7 @@ const TeacherSettings: React.FC = () => {
                            <div className="flex items-start gap-6 mb-8">
                               <div className="relative">
                                  <div className="w-24 h-24 rounded-full bg-slate-100 border-4 border-white shadow-md overflow-hidden">
-                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" alt="Profile" />
+                                    <img src={fallbackAvatar('Teacher')} alt="Profile" />
                                  </div>
                                  <button className="absolute bottom-0 right-0 bg-indigo-600 text-white p-1.5 rounded-full border-2 border-white hover:bg-indigo-700">
                                     <User size={14} />

@@ -71,7 +71,7 @@ describe('LessonTransformer', () => {
     expect(media).toBeDefined();
     expect(media!.title).toBe('Warm Up Song');
     expect(media!.data.lyrics).toEqual([]);
-    expect(media!.data.videoThumbnail).toContain('dicebear');
+    expect(media!.data.videoThumbnail).toMatch(/^\/art\/cover-\d\.svg$/);
   });
 
   it('should map FOCUS_CARDS type with vocabulary cards', async () => {
@@ -133,11 +133,14 @@ describe('LessonTransformer', () => {
     expect(focus!.data.cards.length).toBe(2);
   });
 
-  it('should generate proper image URLs with encoded seeds', async () => {
+  it('should fall back to deterministic local cover art for imageless cards', async () => {
     const flow = await transformManifestToFlow(makeManifest());
     const focus = flow.find(s => s.type === 'FOCUS_CARDS');
     const card = focus!.data.cards[0];
-    expect(card.image).toContain('bus');
-    expect(card.image).not.toContain(' ');
+    // Local /art SVG (api.dicebear.com is unreachable from mainland China) —
+    // deterministic per seed, never a remote placeholder.
+    expect(card.image).toMatch(/^\/art\/cover-\d\.svg$/);
+    const again = await transformManifestToFlow(makeManifest());
+    expect(again.find(s => s.type === 'FOCUS_CARDS')!.data.cards[0].image).toBe(card.image);
   });
 });

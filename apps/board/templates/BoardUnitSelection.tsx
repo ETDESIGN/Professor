@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Search, Clock, BookOpen, Star, PlayCircle } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { coverOrFallback } from '../../../services/localArt';
 
 const BoardUnitSelection = () => {
    const { state, startSession, nextSlide } = useSession();
@@ -52,7 +53,7 @@ const BoardUnitSelection = () => {
             {!searchTerm && featuredUnit && (
                <div className="w-full h-80 bg-slate-900 rounded-[3rem] relative overflow-hidden shadow-2xl mb-12 group cursor-pointer" onClick={handleLaunch}>
                   <img
-                     src={featuredUnit.coverImage || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(featuredUnit.title || 'unit')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`}
+                     src={coverOrFallback(featuredUnit.coverImage, featuredUnit.title || 'unit')}
                      className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
                      alt="Featured"
                   />
@@ -98,7 +99,7 @@ const BoardUnitSelection = () => {
                         >
                            <div className="aspect-video bg-slate-100 rounded-2xl mb-4 relative overflow-hidden">
                               <img
-                                 src={unit.coverImage || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(unit.title || 'unit')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`}
+                                 src={coverOrFallback(unit.coverImage, unit.title || 'unit')}
                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                  alt={unit.title}
                               />

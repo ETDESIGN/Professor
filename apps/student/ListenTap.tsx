@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Volume2, Check, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { playAudioUrl } from '../../services/SpeechService';
+import { MASCOT_ART } from '../../services/localArt';
 
 interface ListenTapProps {
   onBack: () => void;
@@ -110,7 +111,7 @@ const ListenTap: React.FC<ListenTapProps> = ({
         <div className="flex flex-col items-center mb-8 w-full">
            <div className="flex items-center gap-4 mb-6 self-start w-full">
               <div className="w-16 h-16 shrink-0">
-                 <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Mascot" alt="Mascot" className="animate-bounce-subtle" />
+                 <img src={MASCOT_ART} alt="Mascot" className="animate-bounce-subtle" />
               </div>
               <div className="bg-white border-2 border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm relative">
                  <p className="font-bold text-slate-700">{instruction}</p>

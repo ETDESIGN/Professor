@@ -5,6 +5,7 @@ import { toUnitPlan, UnitPlan } from './planFlow';
 import { LessonManifest } from '../types/pipeline';
 import { StudentStage } from '../types/stage';
 import { transformManifestToFlow } from './LessonTransformer';
+import { fallbackCover } from './localArt';
 import { createClientLogger } from './logger';
 import {
     getOrCreateDefaultBookForCurrentUser,
@@ -138,9 +139,7 @@ const supabaseCreateUnit = async (title: string, manifest?: LessonManifest): Pro
         level: manifest?.meta.difficulty_cefr || 'Draft',
         status: 'Processing',
         lessons: manifest?.timeline?.length || 0,
-        cover_image: manifest?.meta.theme
-            ? `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(manifest.meta.theme)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`
-            : `https://api.dicebear.com/7.x/shapes/svg?seed=${Date.now()}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`,
+        cover_image: fallbackCover(manifest?.meta.theme || String(Date.now())),
         flow: generatedFlow,
         scanned_assets: [],
         manifest: manifest ?? null,

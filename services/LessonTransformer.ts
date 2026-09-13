@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { createClientLogger } from './logger';
 import { normalizeManifest } from './manifest';
+import { fallbackCover } from './localArt';
 
 const log = createClientLogger('LessonTransformer');
 
@@ -28,7 +29,7 @@ const differentiateText = async (text: string, theme: string): Promise<{ below: 
 };
 
 const getAssetUrl = (keyword: string) => {
-  return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(keyword || 'vocab')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
+  return fallbackCover(keyword || 'vocab');
 };
 
 export const transformManifestToFlow = async (manifest: any): Promise<any[]> => {

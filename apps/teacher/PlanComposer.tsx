@@ -12,6 +12,7 @@ import { useSession } from '../../store/SessionContext';
 import { toast } from 'sonner';
 import { resolveWaveSize } from '../../components/games/fastVocab/contentBuilder';
 import type { UnitPlan } from '../../services/planFlow';
+import { coverOrFallback } from '../../services/localArt';
 import GroupPicker, { GroupOption } from './planComposer/GroupPicker';
 import PlanSwitcher from './planComposer/PlanSwitcher';
 import MediaInspector from './planComposer/MediaInspector';
@@ -88,10 +89,11 @@ const TYPE_META: Record<string, { icon: React.ReactNode; chip: string }> = {
 };
 const typeMeta = (type: string) => TYPE_META[type] || { icon: <PenTool size={16} />, chip: 'bg-slate-100 text-slate-600' };
 
-const dicebear = (seed: string) =>
-  `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed || 'vocab')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
+// Placeholder art: local /art SVGs (api.dicebear.com is unreachable from
+// mainland China); coverOrFallback also guards legacy persisted
+// dicebear/pollinations URLs.
 const realImage = (url: any, seed: string) =>
-  (url && typeof url === 'string' && /^https?:/.test(url)) ? url : dicebear(seed);
+  coverOrFallback(typeof url === 'string' ? url : null, seed || 'vocab');
 
 /** Group tags for a block's data (the generalized COMIC_PANELS identity pattern). */
 const groupTags = (groups: ContentGroup[]): Record<string, any> => {

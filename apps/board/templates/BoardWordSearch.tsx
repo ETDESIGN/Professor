@@ -126,17 +126,9 @@ const ZERO_STATS: RoundStats = { credited: 0, revealed: 0, misses: 0, hints: 0 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** v3 fonts (Fredoka display + JetBrains Mono numerals), injected once. */
-function useV3Fonts() {
-  useEffect(() => {
-    if (document.getElementById('ws-v3-fonts')) return;
-    const l = document.createElement('link');
-    l.id = 'ws-v3-fonts';
-    l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@700;800&display=swap';
-    document.head.appendChild(l);
-  }, []);
-}
+// v3 fonts (Fredoka display + JetBrains Mono numerals) ship globally via
+// src/index.css (@fontsource) — no runtime Google-Fonts injection (blocked in
+// mainland China).
 
 // ── Token / preview cards ──────────────────────────────────────────────────
 interface TokenCardProps {
@@ -265,7 +257,6 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ word, showWord, unitId }) => 
 
 // ── Component ──────────────────────────────────────────────────────────────
 const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
-  useV3Fonts();
   const { state, triggerAction, addPoints, triggerConfetti } = useSession();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';

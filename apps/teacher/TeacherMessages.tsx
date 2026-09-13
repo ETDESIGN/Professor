@@ -6,6 +6,7 @@ import { useTeacherStudents } from '../../hooks/useQueries';
 import { Modal } from './SharedUI';
 import { useAppStore } from '../../store/useAppStore';
 import { createClientLogger } from '../../services/logger';
+import { avatarOrFallback } from '../../services/localArt';
 
 const log = createClientLogger('TeacherMessages');
 
@@ -234,7 +235,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                                         <div className="relative">
                                             <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
                                                 <img
-                                                    src={conv.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.name}`}
+                                                    src={avatarOrFallback(conv.avatar, conv.name)}
                                                     alt={conv.name}
                                                     className="w-full h-full object-cover"
                                                 />
@@ -270,7 +271,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                             <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden">
                                     <img
-                                        src={conversations[selectedConversation]?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conversations[selectedConversation]?.name}`}
+                                        src={avatarOrFallback(conversations[selectedConversation]?.avatar, conversations[selectedConversation]?.name)}
                                         alt={conversations[selectedConversation]?.name}
                                         className="w-full h-full object-cover"
                                     />
@@ -300,7 +301,7 @@ const TeacherMessages: React.FC<TeacherMessagesProps> = ({ onBack }) => {
                                                     {showAvatar && !isOwn && (
                                                         <div className="w-8 h-8 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden">
                                                             <img
-                                                                src={message.sender_avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender_name}`}
+                                                                src={avatarOrFallback(message.sender_avatar, message.sender_name)}
                                                                 alt={message.sender_name}
                                                                 className="w-full h-full object-cover"
                                                             />

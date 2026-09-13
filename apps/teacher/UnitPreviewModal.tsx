@@ -2,6 +2,7 @@
 import React from 'react';
 import { X, Clock, BookOpen, Layers, Play, Edit3, ArrowRight, Video, Mic, LayoutGrid, Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { coverOrFallback } from '../../services/localArt';
 
 interface UnitPreviewModalProps {
    unit: any;
@@ -57,7 +58,7 @@ const UnitPreviewModal: React.FC<UnitPreviewModalProps> = ({ unit, onClose, onLa
                {/* Header Image */}
                <div className="h-48 bg-slate-100 relative">
                   <img
-                     src={(unit.coverImage && !unit.coverImage.includes('dicebear')) ? unit.coverImage : `https://api.dicebear.com/7.x/shapes/svg?seed=${unit.id}&backgroundColor=b6e3f4,c0aede,d1d4f9`}
+                     src={coverOrFallback(unit.coverImage, unit.id)}
                      className="w-full h-full object-cover"
                      alt="Cover"
                      referrerPolicy="no-referrer"

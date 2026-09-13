@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import { reportApiError } from './errorReporting';
 import { createClientLogger } from './logger';
 import { trackEdgeFunctionCall } from './perfMonitor';
+import { fallbackCover } from './localArt';
 
 const log = createClientLogger('AIService');
 
@@ -132,7 +133,7 @@ export const AIService = {
                     { original: "Please open your textbook.", translation: "Please open your book for studying." }
                 ]
             },
-            imageUrl: data?.imageUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(topic || 'lesson')}`,
+            imageUrl: data?.imageUrl || fallbackCover(topic || 'lesson'),
             audioUrl: data?.audioUrl || null
         };
     }

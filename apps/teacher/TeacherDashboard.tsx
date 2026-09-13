@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
+import { avatarOrFallback } from '../../services/localArt';
 
 const UnitList = lazy(() => import('./UnitList'));
 const ClassManagement = lazy(() => import('./ClassManagement'));
@@ -251,7 +252,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onNavigateToStudio,
         <div className="mt-auto p-6 border-t border-slate-100">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
-              <img src={userProfile?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher"} alt="Teacher" />
+              <img src={avatarOrFallback(userProfile?.avatar_url, 'Teacher')} alt="Teacher" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-bold text-sm text-slate-800 truncate">{userProfile?.full_name || 'Teacher'}</div>

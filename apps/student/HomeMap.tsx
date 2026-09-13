@@ -13,6 +13,7 @@ import {
 } from '../../services/stageProgressService';
 import type { StageProgressMap } from '../../services/stageProgressService';
 import { StageIcon } from '../../components/shared/stageIcons';
+import { CHEST_ART } from '../../services/localArt';
 import { motion } from 'framer-motion';
 import { themeForUnit, pickFocusUnit } from './atlas/territory';
 import TerritoryIntro from './atlas/TerritoryIntro';
@@ -370,7 +371,7 @@ const HomeMap: React.FC<HomeMapProps> = ({ onNavigate, onJoinClass }) => {
               <div className="relative mt-6">
                 <div className={`w-24 h-24 rounded-3xl flex items-center justify-center border-b-8 transition-colors ${unitLocked || !pathDone ? 'bg-wa-mist border-wa-border' : 'bg-wa-sand border-wa-sandDeep shadow-2xl ring-4 ring-wa-sand/30'}`}>
                   <img
-                    src="https://api.dicebear.com/7.x/icons/svg?seed=chest"
+                    src={CHEST_ART}
                     className={`w-16 h-16 ${unitLocked || !pathDone ? 'opacity-30 grayscale' : 'drop-shadow-lg animate-bounce-subtle'}`}
                     alt="Chest"
                   />

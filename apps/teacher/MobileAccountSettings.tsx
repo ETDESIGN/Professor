@@ -2,6 +2,7 @@
 import React from 'react';
 import { ChevronLeft, Camera, Lock, User, Trash2, Check, CheckCircle2 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
+import { fallbackAvatar } from '../../services/localArt';
 
 interface MobileAccountSettingsProps {
    onBack: () => void;
@@ -26,7 +27,7 @@ const MobileAccountSettings: React.FC<MobileAccountSettingsProps> = ({ onBack })
             <div className="flex flex-col items-center">
                <div className="relative mb-4 group cursor-pointer">
                   <div className="w-28 h-28 rounded-full bg-slate-200 border-4 border-white shadow-lg overflow-hidden">
-                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" alt="Profile" />
+                     <img src={fallbackAvatar('Teacher')} alt="Profile" />
                   </div>
                   <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                      <Camera className="text-white" size={24} />

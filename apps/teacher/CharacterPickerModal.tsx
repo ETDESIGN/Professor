@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Search, User, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Character, CharacterService } from '../../services/CharacterService';
+import { avatarOrFallback } from '../../services/localArt';
 import { toast } from 'sonner';
 
 /**
@@ -107,7 +108,7 @@ const CharacterPickerModal: React.FC<CharacterPickerModalProps> = ({
     };
 
     const portrait = (c: Character) =>
-        c.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`;
+        avatarOrFallback(c.image_url, c.name);
 
     return (
         <AnimatePresence>

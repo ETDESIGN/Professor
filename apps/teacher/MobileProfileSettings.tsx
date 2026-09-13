@@ -4,6 +4,7 @@ import { ChevronRight, User, Lock, Bell, Moon, HelpCircle, Bug, LogOut, X } from
 import MobileAccountSettings from './MobileAccountSettings';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
+import { fallbackAvatar } from '../../services/localArt';
 
 interface MobileProfileSettingsProps {
    onBack: () => void;
@@ -33,7 +34,7 @@ const MobileProfileSettings: React.FC<MobileProfileSettingsProps> = ({ onBack })
             <div className="flex flex-col items-center pt-4">
                <div className="relative mb-4">
                   <div className="w-24 h-24 rounded-full bg-slate-200 border-4 border-white shadow-lg overflow-hidden">
-                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" alt="Profile" />
+                     <img src={fallbackAvatar('Teacher')} alt="Profile" />
                   </div>
                   <button className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full border-2 border-white shadow-sm hover:bg-blue-700 active:scale-95 transition-all">
                      <User size={14} />

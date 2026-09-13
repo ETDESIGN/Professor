@@ -13,6 +13,7 @@ import { useEnrichment } from '../../hooks/useEnrichment';
 import { toast } from 'sonner';
 import { useUnitStudioStore, VocabItem, GrammarRule, StoryPage, QuizQuestion } from '../../store/useUnitStudioStore';
 import { parseYouTubeUrl, oembedLookup, youtubeSearchUrl } from '../../services/youtubeUrl';
+import { fallbackCover, avatarOrFallback } from '../../services/localArt';
 
 type VaultTab = 'vocabulary' | 'questions' | 'story' | 'cast' | 'grammar' | 'media' | 'settings';
 
@@ -235,7 +236,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
           return { ...step, data: { ...step.data, cards: vocabulary.map((v, i) => ({
             id: `c_${i}`, front: v.word, back: v.word,
             pronunciation: `/${v.word.toLowerCase()}/`,
-            image: v.image_url || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(v.word)}`,
+            image: v.image_url || fallbackCover(v.word),
             context_sentence: v.context_sentence, definition: v.definition,
             audioUrl: v.audio_url || ''
           }))}};
@@ -1178,7 +1179,7 @@ const UnitContentVault: React.FC<{ embedded?: boolean }> = ({ embedded = false }
                             <div className="space-y-2">
                               {linkedChars.map(c => (
                                 <div key={c.id} className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 bg-white">
-                                  <img src={c.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5be`} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0 object-cover" />
+                                  <img src={avatarOrFallback(c.image_url, c.name)} alt={c.name} className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0 object-cover" />
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium text-slate-800 truncate">{c.name}</div>
                                     <div className="text-[11px] text-slate-500 truncate">

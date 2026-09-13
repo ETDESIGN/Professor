@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ConfettiSystem from '../../components/effects/ConfettiSystem';
 import { useAppStore } from '../../store/useAppStore';
 import { RouteErrorBoundary } from '../../components/shared/RouteErrorBoundary';
+import { avatarOrFallback } from '../../services/localArt';
 
 // Feature flag: dubbing is a mock (audit P1-5). Default OFF.
 const dubbingEnabled = import.meta.env.VITE_ENABLE_DUBBING === 'true';
@@ -42,7 +43,7 @@ const ParentApp: React.FC<ParentAppProps> = ({ onSignOut }) => {
         <header className="bg-white px-6 py-4 flex justify-between items-center sticky top-0 z-20 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
-              <img src={userProfile?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Parent"} alt="Parent" />
+              <img src={avatarOrFallback(userProfile?.avatar_url, 'Parent')} alt="Parent" />
             </div>
             <span className="font-bold text-slate-700">{userProfile?.full_name || 'Parent'}</span>
           </div>

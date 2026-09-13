@@ -6,6 +6,7 @@ import ParentConnect from './ParentConnect';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress } from '../../services/DataService';
 import { createClientLogger } from '../../services/logger';
+import { fallbackAvatar, avatarOrFallback } from '../../services/localArt';
 
 const log = createClientLogger('ParentSettings');
 
@@ -63,7 +64,7 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
             >
                <div className="relative">
                   <div className="w-16 h-16 rounded-full bg-slate-200 overflow-hidden border-2 border-white shadow-sm">
-                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Parent" alt="Parent" />
+                     <img src={fallbackAvatar('Parent')} alt="Parent" />
                   </div>
                   <button className="absolute bottom-0 right-0 bg-cyan-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
                      <User size={12} />
@@ -88,7 +89,7 @@ const ParentSettings: React.FC<ParentSettingsProps> = ({ onBack, onSignOut }) =>
                       <div key={student.id} className="p-4 flex items-center justify-between border-b border-slate-50">
                          <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                               <img src={student.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${student.full_name || 'Student'}`} alt={student.full_name || 'Student'} />
+                               <img src={avatarOrFallback(student.avatar_url, student.full_name || 'Student')} alt={student.full_name || 'Student'} />
                             </div>
                             <div>
                                <div className="font-bold text-slate-700">{student.full_name || student.email || 'Student'}</div>

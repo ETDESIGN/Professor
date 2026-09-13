@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress, getStudentSRSWords } from '../../services/DataService';
 import { createClientLogger } from '../../services/logger';
+import { fallbackAvatar } from '../../services/localArt';
 
 const log = createClientLogger('ParentReports');
 
@@ -148,7 +149,7 @@ const ParentReports: React.FC<ParentReportsProps> = ({ onBack }) => {
                </p>
                <div className="mt-4 flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-slate-200 overflow-hidden">
-                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher" alt="Teacher" />
+                     <img src={fallbackAvatar('Teacher')} alt="Teacher" />
                   </div>
                    <span className="text-xs font-bold text-slate-500">{userProfile?.full_name || 'Teacher'} • {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                </div>

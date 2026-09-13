@@ -18,7 +18,9 @@ export default {
             fontFamily: {
                 display: ['Fredoka', 'sans-serif'],
                 body: ['Inter', 'sans-serif'],
-                cn: ['Noto Sans SC', 'sans-serif'],
+                // CJK: never fetched from Google Fonts (blocked in mainland China) —
+                // every Chinese device ships a native CJK font, use those.
+                cn: ['Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'MiSans', 'sans-serif'],
             },
             colors: {
                 // Wonder Atlas — student app (apps/student/atlas/tokens.ts)

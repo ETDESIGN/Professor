@@ -9,6 +9,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { getParentStudents, StudentWithProgress } from '../../services/DataService';
 import { getWeeklyActivity, getStudentSkillMastery, DailyActivity, SkillMastery } from '../../services/parentAnalytics';
 import { createClientLogger } from '../../services/logger';
+import { avatarOrFallback } from '../../services/localArt';
 
 const log = createClientLogger('ParentDashboard');
 
@@ -163,7 +164,7 @@ const ParentDashboard: React.FC<ParentDashboardProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-4 mb-6 relative z-10">
           <div className="w-16 h-16 bg-white rounded-full p-1 shadow-md">
             <img
-              src={selectedStudent?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedStudent?.full_name || 'Student'}`}
+              src={avatarOrFallback(selectedStudent?.avatar_url, selectedStudent?.full_name || 'Student')}
               alt={selectedStudent?.full_name || 'Student'}
               className="rounded-full"
             />

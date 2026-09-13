@@ -33,28 +33,19 @@ import { Volume2, Check, ChevronRight, X, RotateCw, Sparkles } from 'lucide-reac
 import { useSession } from '../../../store/SessionContext';
 import { getVocabulary } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
+import { fallbackCover } from '../../../services/localArt';
 
 // WS4 runtime heal: placeholder images frozen at orchestration time lose to
 // the manifest's real word-library URL.
 const isRealImage = (u?: string) =>
   !!u && !u.includes('dicebear') && !u.startsWith('https://pollinations.ai');
 
-/** v3 fonts (Fredoka display + JetBrains Mono), injected once per page. */
-function useV3Fonts() {
-  useEffect(() => {
-    if (document.getElementById('ws-v3-fonts')) return;
-    const l = document.createElement('link');
-    l.id = 'ws-v3-fonts';
-    l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@700;800&display=swap';
-    document.head.appendChild(l);
-  }, []);
-}
+// v3 fonts (Fredoka display + JetBrains Mono) ship globally via src/index.css
+// (@fontsource) — no runtime Google-Fonts injection (blocked in mainland China).
 
 const BATCH_SIZE = 6;
 
 const BoardFocusCards = ({ data }: { data: any }) => {
-  useV3Fonts();
   const { state, triggerAction, triggerConfetti } = useSession();
 
   // ── Content: frozen flow cards merged with the manifest vocabulary ───────
@@ -69,7 +60,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
         word: c.front || rich.word || '',
         image: (isRealImage(c.image) ? c.image : '') ||
           (isRealImage(rich.image_url) ? rich.image_url : '') ||
-          c.image || '',
+          fallbackCover(String(c.front || rich.word || 'item')),
         phonetic: c.phonetic || rich.phonetic || '',
         l1: rich.l1_translation || c.translation || '',
         definition: c.definition || rich.definition || '',

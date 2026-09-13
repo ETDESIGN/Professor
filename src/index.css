@@ -1,3 +1,31 @@
+/* Self-hosted fonts (same set the old fonts.googleapis.com <link> shipped,
+   plus JetBrains Mono for the board games). No font bytes leave our origin —
+   required for mainland-China access where Google Fonts is blocked. */
+@import '@fontsource/fredoka/400.css';
+@import '@fontsource/fredoka/500.css';
+@import '@fontsource/fredoka/600.css';
+@import '@fontsource/fredoka/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+@import '@fontsource/inter/900.css';
+@import '@fontsource/rubik/400.css';
+@import '@fontsource/rubik/600.css';
+@import '@fontsource/rubik/700.css';
+@import '@fontsource/rubik/700-italic.css';
+@import '@fontsource/rubik/800.css';
+@import '@fontsource/rubik/900.css';
+@import '@fontsource/rubik/900-italic.css';
+@import '@fontsource/nunito-sans/400.css';
+@import '@fontsource/nunito-sans/400-italic.css';
+@import '@fontsource/nunito-sans/600.css';
+@import '@fontsource/nunito-sans/700.css';
+@import '@fontsource/nunito-sans/800.css';
+@import '@fontsource/jetbrains-mono/700.css';
+@import '@fontsource/jetbrains-mono/800.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

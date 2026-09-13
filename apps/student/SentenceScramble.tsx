@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Volume2, Check, Heart, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MASCOT_ART } from '../../services/localArt';
 
 interface SentenceScrambleProps {
   onBack: () => void;
@@ -109,7 +110,7 @@ const SentenceScramble: React.FC<SentenceScrambleProps> = ({
          {/* Prompt Area */}
          <div className="flex gap-4 mb-8 items-start">
             <div className="w-24 h-24 shrink-0 relative hidden sm:block">
-               <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Mascot" alt="Mascot" className="animate-bounce-subtle" />
+               <img src={MASCOT_ART} alt="Mascot" className="animate-bounce-subtle" />
             </div>
             <div className="bg-white border-2 border-slate-200 rounded-2xl p-4 sm:rounded-tl-none shadow-sm relative mt-4 w-full">
                <div className="absolute -left-2 top-0 w-0 h-0 border-t-[10px] border-t-white border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent -rotate-90 filter drop-shadow-sm hidden sm:block"></div>

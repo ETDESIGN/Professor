@@ -11,6 +11,7 @@ import { Volume2, RotateCw, Check, Star, ArrowLeft, ArrowRight, BookOpen } from 
 import { CanonicalVocab } from '../../services/manifest';
 import { playAudioUrl } from '../../services/SpeechService';
 import { playCue } from '../board/templates/playCue';
+import { coverOrFallback } from '../../services/localArt';
 
 interface WordLabProps {
   /** Rich vocab (image/audio/phonetic/l1 translation). Limited to ~5 inside. */
@@ -212,7 +213,7 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
                 <div className="relative w-full h-[150px] rounded-xl overflow-hidden border border-[#E2D7C3] bg-[#F7F3E8] flex items-center justify-center">
                   {currentWord?.image_url && !imgErrors.has(activeCardIndex) ? (
                     <img
-                      src={currentWord.image_url}
+                      src={coverOrFallback(currentWord.image_url, currentWord.word)}
                       alt={currentWord.word}
                       className="w-full h-full object-cover object-center"
                       onError={() => setImgErrors((prev) => new Set(prev).add(activeCardIndex))}
@@ -462,7 +463,7 @@ const WordLab: React.FC<WordLabProps> = ({ cards, onReady }) => {
 
                   <div className="w-7 h-7 rounded-lg bg-[#EAE0D0]/50 flex items-center justify-center text-xs overflow-hidden">
                     {v.image_url && !imgErrors.has(i) ? (
-                      <img src={v.image_url} alt="" className="w-full h-full object-cover" />
+                      <img src={coverOrFallback(v.image_url, v.word)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <span>📖</span>
                     )}

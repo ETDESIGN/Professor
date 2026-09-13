@@ -13,6 +13,7 @@ import type { StudentStage } from '../../types/stage';
 import { playAudioUrl } from '../../services/SpeechService';
 import { Engine } from '../../services/SupabaseService';
 import { playCue } from '../board/templates/playCue';
+import { coverOrFallback } from '../../services/localArt';
 import ExerciseRunner from './exercises/ExerciseRunner';
 import WordLab from './WordLab';
 import ReactPlayer from 'react-player/lazy';
@@ -709,7 +710,7 @@ const SoloLessonPlayer: React.FC<SoloLessonPlayerProps> = ({ onComplete, onExit 
           <div className="relative w-full h-[180px] rounded-2xl overflow-hidden border-2 border-[#E2D7C3] bg-[#DFF1F5] mt-2 shadow-inner flex items-center justify-center">
             {page.image_url || page.image || page.imageUrl ? (
               <img
-                src={page.image_url || page.image || page.imageUrl}
+                src={coverOrFallback(page.image_url || page.image || page.imageUrl, page.speaker || 'story')}
                 alt={page.speaker || 'Story scene'}
                 className="w-full h-full object-cover object-center"
               />
