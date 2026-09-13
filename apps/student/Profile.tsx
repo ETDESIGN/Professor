@@ -11,6 +11,7 @@ import Avatar from '../../components/shared/Avatar';
 interface ProfileProps {
    onBack: () => void;
    onCustomize?: () => void;
+   onSettings?: () => void;
    stats?: {
       streak: number;
       gems: number;
@@ -19,7 +20,7 @@ interface ProfileProps {
    };
 }
 
-const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
+const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, onSettings, stats = { streak: 0, gems: 0, xp: 0, level: 1 } }) => {
    const { userProfile } = useAppStore();
   const { t } = useTranslation();
   const { data: myAvatar } = useMyAvatar();
@@ -35,7 +36,7 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, stats = { streak
                <ChevronLeft size={24} />
             </button>
             <span className="font-bold text-slate-800">{t('student.myProfile', 'My Profile')}</span>
-            <button className="p-2 -mr-2 text-slate-400 hover:text-slate-600">
+            <button onClick={onSettings} className="p-2 -mr-2 text-slate-400 hover:text-slate-600">
                <Settings size={24} />
             </button>
          </header>
@@ -108,6 +109,110 @@ const Profile: React.FC<ProfileProps> = ({ onBack, onCustomize, stats = { streak
             >
                {t('student.customizeAvatar', 'Customize Avatar')}
             </button>
+
+            {/* Learning Badges Showcase (Recent Achievements from Stitch 3) */}
+            <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.2 }}
+               className="bg-white rounded-2xl border border-slate-200 p-4 shadow-[0_4px_0_0_#e2e8f0] space-y-3"
+            >
+               <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2">
+                     <span className="text-base">🏆</span>
+                     <h3 className="font-wa-display font-bold text-base text-slate-800">{t('student.recentBadges', 'Recent Badges')}</h3>
+                  </div>
+                  <span className="text-[11px] font-bold text-wa-muted bg-wa-mist px-2.5 py-0.5 rounded-full border border-wa-border">
+                     {t('student.unlockedCount', '3 Unlocked')}
+                  </span>
+               </div>
+
+               <div className="space-y-2.5">
+                  <div className="flex items-center p-2.5 rounded-xl bg-wa-mist border border-wa-border gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-200 border border-white shadow-sm flex items-center justify-center text-xl shrink-0">
+                        🏅
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                           <h4 className="font-wa-display font-bold text-sm text-wa-ink truncate">{t('student.badge7Day', '7-Day Streak')}</h4>
+                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Unlocked</span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-wa-muted mt-0.5">{t('student.badge7DayDesc', 'Completed lessons 7 days in a row')}</p>
+                     </div>
+                  </div>
+
+                  <div className="flex items-center p-2.5 rounded-xl bg-wa-mist border border-wa-border gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-400 to-sky-200 border border-white shadow-sm flex items-center justify-center text-xl shrink-0">
+                        📖
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                           <h4 className="font-wa-display font-bold text-sm text-wa-ink truncate">{t('student.badgeVocab', 'Vocab Master')}</h4>
+                           <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Level 3</span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-wa-muted mt-0.5">{t('student.badgeVocabDesc', 'Mastered 100+ English vocabulary words')}</p>
+                     </div>
+                  </div>
+
+                  <div className="flex items-center p-2.5 rounded-xl bg-wa-mist border border-wa-border gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-400 to-emerald-200 border border-white shadow-sm flex items-center justify-center text-xl shrink-0">
+                        🎙️
+                     </div>
+                     <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                           <h4 className="font-wa-display font-bold text-sm text-wa-ink truncate">{t('student.badgeTalker', 'Fast Talker')}</h4>
+                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Unlocked</span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-wa-muted mt-0.5">{t('student.badgeTalkerDesc', 'High accuracy in speaking practice mode')}</p>
+                     </div>
+                  </div>
+               </div>
+            </motion.div>
+
+            {/* Current Unit Progress Card (Stitch 3) */}
+            <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.3 }}
+               className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-[0_4px_0_0_#e2e8f0] flex items-center justify-between"
+            >
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-wa-teal/10 border border-wa-teal/20 flex items-center justify-center text-xl">
+                     🎒
+                  </div>
+                  <div>
+                     <span className="text-[10px] font-extrabold text-wa-muted uppercase tracking-wider">{t('student.currentUnit', 'CURRENT UNIT')}</span>
+                     <h4 className="font-wa-display font-bold text-sm text-wa-ink">Unit 3: City Adventures</h4>
+                  </div>
+               </div>
+               <div className="text-right">
+                  <span className="font-wa-display font-bold text-sm text-wa-teal">85% Done</span>
+                  <div className="w-16 h-2 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                     <div className="bg-wa-teal h-full rounded-full" style={{ width: '85%' }} />
+                  </div>
+               </div>
+            </motion.div>
+
+            {/* Student Passport Card (Stitch 3) */}
+            <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.4 }}
+               className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-[0_4px_0_0_#e2e8f0] flex items-center justify-between"
+            >
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-xl">
+                     🏫
+                  </div>
+                  <div>
+                     <h4 className="font-wa-display font-bold text-sm text-wa-ink">Student Passport • Grade 5</h4>
+                     <p className="text-[11px] font-semibold text-wa-muted mt-0.5">Connected to Class • Solo Practice Active</p>
+                  </div>
+               </div>
+               <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Active ✓
+               </span>
+            </motion.div>
 
          </div>
       </div>

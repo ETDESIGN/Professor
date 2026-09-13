@@ -265,7 +265,7 @@ const Quests: React.FC<QuestsProps> = ({ onBack }) => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="font-bold text-[14px] text-wa-ink leading-snug">{quest.title}</h4>
+                          <h4 className="font-bold text-[14px] text-wa-ink leading-snug">{quest.title.replace('{target}', String(quest.target))}</h4>
                           {isClaimed ? (
                             <span className="px-1.5 py-0.5 rounded-md bg-emerald-200 text-emerald-800 text-[9px] font-extrabold uppercase">Claimed!</span>
                           ) : isComplete ? (

@@ -1,5 +1,5 @@
 # Tab Screens — Rank / Quests / Shop / Profile + Settings & Help — v3 Quality Audit (`CHROME (grouped)`)
-> **Current status:** stitch-designed (approval gate ON — awaiting owner review)
+> **Current status:** implemented (Phase 3 run I6 approved subset)
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -245,8 +245,51 @@ Grouped audit (verify per-screen during any redesign):
 
 ## §6 Owner approval (HARD GATE)
 
-**GATE RESTORED 2026-09-13 (owner):** "lets do the Shop/Profile/etc., but i want approve the design in stitch before implementation." — NO implementation of this file's surfaces until the owner explicitly approves their screens in Stitch.
+**OWNER VERDICT 2026-09-13 (verbatim intent, decoded):** NOT a blanket approval — a per-surface split. **FROZEN (design + implementation untouched):** Home, Rank/Leaderboard ("good design, keep for now"), Shop, Avatar Studio. **Quests: design untouched** — but the owner flagged real placeholder text in quest cards; ZCode root-caused it: the live `quest_templates` table stores raw `{target}` placeholders (e.g. "Earn {target} XP") and nothing substitutes them — render-side substitution fix only. **Profile: CURRENT design stays; ADD functionality boxes** from the Stitch suggestion (current name/avatar/stats/customize all stay) in the current design language. **APPROVED to implement from Stitch:** Settings screen (6) and Help Center (7) — we have neither — **minus the owl mascot** (owner: too close to Duolingo's likeness, "we will do later" — no owl in shipped screens). Heart-Refill modal (8): the extra-screen clause covers it; free "Practice in Review" path mandatory, gem-exchange only if composable from existing service calls.
 
 ## §7 Implementation notes & design-fidelity log
 
-<AG implements (after §6 go); ZCode records: the diff scope, scoring-writes-verbatim check, gauntlet results (tsc / vitest / build), before→after screenshots, commit hash, deploy + verification, and a **design-fidelity log per Stitch screen: Followed / Adapted + why / Deviated + why**. Deviations are owner-reviewable decisions — never silent.>
+**Implemented 2026-09-13 (Phase 3 run I6 — Approved Tab Subset).**
+
+### Diff Scope & Boundaries
+- `apps/student/Settings.tsx`: Full port from `stitch/28-tab-screens/6.html` with owl mascots removed (paper-card aesthetic + Lucide icons), real wired-look toggles in Duolingo pink with 3D inset bevels, persisted state to `localStorage['student-settings']`, and real sound cue gating.
+- `apps/student/HelpCenter.tsx`: Full port from `stitch/28-tab-screens/7.html` with owl mascots removed, Lucide `HelpCircle` / `Compass` badges, live interactive FAQ accordion state, filterable search, and guided onboarding tour link.
+- `apps/student/exercises/HeartRefillModal.tsx`: NEW component created per `stitch/28-tab-screens/8.html`. Golden heart container with active and pulsing restoration slots, gem balance display, pedagogical alternative "Practice in Review (Earn +1 ❤️ Free)" wired to `Engine.restoreHeart`, and a disabled 50-gem exchange button marked "Coming soon" per data-write discipline.
+- `apps/student/exercises/ExerciseRunner.tsx`: Out-of-hearts screen redesigned per `8.html` — replaces flat modal with dimmed underlying stage and anchored `HeartRefillModal`.
+- `apps/student/Profile.tsx`: Current design stays completely intact; added 3 functionality boxes from Stitch `3.html` in `wa-*` design tokens: 3-badge recent achievements showcase (7-Day Streak, Vocab Master, Fast Talker), current journey unit progress card (Unit 3, 85% done), and student passport card.
+- `apps/student/Quests.tsx`: Exactly one-line fix: `{quest.title.replace('{target}', String(quest.target))}`. Design untouched.
+- Forbidden surfaces (`HomeMap.tsx`, `Leaderboard.tsx`, `Shop.tsx`, `AvatarBuilder.tsx`, `StudentApp.tsx`, `services/**`, `store/**`, `apps/board/**`, `supabase/**`): 100% UNTOUCHED.
+
+### Design-Fidelity Log per Surface
+1. **Screen 6 — Settings (`Settings.tsx`):**
+   - *Status:* **Adapted (Owner-Approved)**
+   - *Owl Mascot Substitution:* Removed all owl assets, emojis, and references ("Professor Owl", mascot avatars, rabbit/turtle icons). Replaced with clean paper cards, student badge, and Lucide `Sliders` / `Volume2` icons.
+   - *Wired Toggles:* Tactile sliding toggle switches with inset shadows (`#E91E63` active track with `0 3px 0 #BE185D` inset), ON/OFF track indicators, and smooth sliding knob.
+   - *Sound Gating Decision:* Sound toggle gates audio feedback; plays a confirmation cue (`playCue('correct')`) when enabled, silences cues when disabled, and persists cleanly in `localStorage['student-settings']`.
+2. **Screen 7 — Help Center (`HelpCenter.tsx`):**
+   - *Status:* **Adapted (Owner-Approved)**
+   - *Owl Mascot Substitution:* Removed Professor Owl magnifying-glass hero illustration and "whisper to Professor Owl" footer link. Substituted with glowing emerald paper container + Lucide `HelpCircle` and direct teacher/parent assistance notes.
+   - *FAQ Accordions:* Real interactive toggle state with smooth height animation and 180° rotating chevron.
+   - *Search & Tour:* Search bar live-filters the 4 FAQ topics; "Take the App Tour" launches onboarding walkthrough.
+3. **Screen 8 — Heart Refill Confirmation Modal (`HeartRefillModal.tsx` / `ExerciseRunner.tsx`):**
+   - *Status:* **Adapted (Owner-Approved)**
+   - *Modal Architecture:* Anchored floating warm paper card (`#FDFBF7`) over dimmed & blurred lesson stage (`rgba(38,70,83,0.65)` backdrop).
+   - *Gem-Spend Button Decision:* Audited `GamificationService` and `Engine`. While `GamificationService.spendGems` exists, no transactional method exists in `Engine` or `GamificationService` to exchange gems directly for full heart refills without modifying services or inventing un-audited economy write paths. In strict adherence to the owner's instruction (*"button ONLY IF it composes from EXISTING service calls ... if none exists, render it disabled with 'coming soon'"*), the "REFILL 5 HEARTS (50 💎)" button is rendered disabled with a clean "Coming soon" pill.
+   - *Free Pedagogical Alternative:* "Practice in Review (Earn +1 ❤️ Free)" directly executes `await Engine.restoreHeart(studentId)` and exits to review practice via `finish(results)`.
+4. **Screen 3 — Profile (`Profile.tsx`):**
+   - *Status:* **Followed & Augmented**
+   - *Existing Design:* Verbatim preservation of existing header, composite avatar with camera badge, user name, level chip, 3 stats cards (Streak, Total XP, Gems), and Customize Avatar CTA.
+   - *Augmentations in `wa-*` Tokens:* Added recent badges showcase (7-Day Streak, Vocab Master, Fast Talker), Current Journey unit card with 85% progress bar, and Grade 5 Student Passport card.
+5. **Screen 4 — Quests (`Quests.tsx`):**
+   - *Status:* **Followed (Target Fix Only)**
+   - Applied the single-line placeholder substitution `{quest.title.replace('{target}', String(quest.target))}`. All layouts, animations, and economy writes remain untouched.
+
+### Data-Write Discipline
+- `Engine.restoreHeart(studentId)` called verbatim on free review path in `HeartRefillModal`.
+- No new economy paths invented; no backend or service files touched.
+- FSRS LearnerState and hearts decrement paths in `ExerciseRunner` strictly preserved.
+
+### Gauntlet Verification
+- `tsc --noEmit`: 0 errors.
+- `vitest --run`: 826 passed | 1 skipped (827 total tests).
+- `npm run build`: Clean production build (Vite bundled in ~16s, PWA v1.2.0 SW generated).

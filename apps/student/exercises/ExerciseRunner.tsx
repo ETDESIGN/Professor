@@ -19,6 +19,7 @@ import { XP_REWARDS, QUEST_TYPES } from '../../../constants/gamification';
 import { gradeFromResult, HEARTS_MAX } from '../../../services/learnerState';
 import { getExerciseRegistry } from './registry';
 import { playCue } from '../../board/templates/playCue';
+import { HeartRefillModal } from './HeartRefillModal';
 
 export interface RunnerResult {
   total: number;
@@ -332,26 +333,44 @@ const ExerciseRunner: React.FC<ExerciseRunnerProps> = ({ items, studentId, title
     );
   }
 
-  // Out of hearts screen
+  // Out of hearts screen per Stitch 8.html
   if (outOfHearts) {
     return (
-      <div className="h-full flex flex-col justify-center items-center p-6 text-center bg-[#EAE0D0]">
-        <div className="w-full max-w-sm bg-[#FDFBF7] rounded-[28px] border-2 border-[#E2D7C3] p-6 shadow-card flex flex-col items-center text-center">
-          <div className="w-16 h-16 rounded-full bg-[#FEE2E2] border-2 border-[#FECACA] flex items-center justify-center mb-4 text-[#FF4B4B]">
-            <Heart size={36} fill="currentColor" />
+      <div className="h-full relative overflow-hidden bg-[#EAE0D0]">
+        {/* Dimmed & blurred underlying stage */}
+        <div className="absolute inset-0 filter blur-[4px] opacity-70 pointer-events-none select-none flex flex-col justify-between p-5" aria-hidden="true">
+          <div className="flex items-center justify-between pt-4">
+            <div className="w-10 h-10 rounded-2xl bg-[#FDFBF7] border-2 border-[#E2D7C3]" />
+            <div className="flex-1 mx-3 h-4 bg-[#DCD1BF] rounded-full overflow-hidden p-0.5 border border-[#CFC3AE]">
+              <div className="h-full bg-[#E76F51] rounded-full w-2/3" />
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FDFBF7] rounded-full border-2 border-[#FF4B4B] text-[#FF4B4B] font-wa-display font-bold text-sm">
+              <Heart size={16} className="fill-[#FF4B4B]" />
+              <span>0</span>
+            </div>
           </div>
-          <h2 className="text-2xl font-black text-[#1D3557] mb-2">Out of hearts!</h2>
-          <p className="text-sm font-bold text-[#8C7A68] mb-6">
-            Hearts refill over time, or complete a review to restore one.
-          </p>
-          <button
-            type="button"
-            onClick={() => finish(results)}
-            className="w-full h-12 bg-[#E76F51] shadow-[0_4px_0_#C4553B] active:translate-y-[2px] active:shadow-[0_2px_0_#C4553B] text-white font-bold text-base rounded-2xl flex items-center justify-center transition-all cursor-pointer"
-          >
-            Finish session
-          </button>
+          <div className="bg-[#FDFBF7] border-2 border-[#E2D7C3] rounded-[28px] p-6 shadow-md my-auto h-64 flex flex-col justify-center items-center">
+            <div className="w-16 h-16 rounded-full bg-[#FEE2E2] border-2 border-[#FECACA] flex items-center justify-center text-[#FF4B4B]">
+              <Heart size={36} fill="currentColor" />
+            </div>
+          </div>
         </div>
+
+        {/* Anchored Golden Heart Refill Modal */}
+        <HeartRefillModal
+          studentId={studentId}
+          currentHearts={hearts}
+          onPracticeReview={async () => {
+            try {
+              await Engine.restoreHeart(studentId);
+              toast.success(t('student.heartRestored', '+1 Heart restored! Practice in review.'), { icon: '❤️' });
+            } catch {
+              /* offline / read fallback */
+            }
+            finish(results);
+          }}
+          onClose={() => finish(results)}
+        />
       </div>
     );
   }
