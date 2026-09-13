@@ -77,7 +77,7 @@ In-lesson WORD_SEARCH engine step (`steps/WordSearchStep.tsx), reusing the board
 
 > **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
 >
-> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
+> **(2026-09-14, owner testing session 2 — Word Search, verbatim):** "So this looks kind of good except first thing, first command is to select a word you need to select the first letter and the last letters. It would be better if we could slide over the world instead or both way are okay other things and I notice that there is that the world could be in every direction means they could be backward from right to left they could be from bottom to up up and they also can be in diagonals. Actually it's a little bit too difficult so we will have only the world going from left to right and from top to bottom. I also noticed that some word in diagonals wasn't able to click, some kind of bug. And there is a hint button. But the hint button doesn't really work. Right now it's in light grey. and there is no way to click on it. So sometimes it can be hard for the student. We should give a level of easiness and difficulties that the teacher can choose in the game option in the path panel."
 
 ## §3 ZCode code-level findings
 
@@ -87,6 +87,14 @@ Refs are `apps/student/steps/WordSearchStep.tsx`.
 - **F2 · P3 — No hint system** — nothing helps a stuck kid (board v3 has teacher hint; solo has nothing). A "show first letter" mercy after N misses would fit the kid-alone rule.
 - **F3 · P3 — Grid density on phones.** 10×10 in `max-w-sm` (:248-249) → ~34px cells on a 390px screen — workable with the two-tap model but at the edge; font `text-sm` on cells.
 - **F4 · P3 — Word bank shows all words spelled out** (:228-244) — that's the game's nature (sight support), noted for §4 pedagogy, not a defect.
+- **F2 SUPERSEDED (2026-09-14):** a hint system now exists (first-letter reveal) but is gated behind 3 misses — see F7.
+
+### §3 addendum (2026-09-14 — owner session-2)
+
+- **F5 · P1 — `snapLine` diagonal math is broken: exact diagonal endpoint taps NEVER select a diagonal word** (`apps/board/templates/wordSearch/gridEngine.ts:114-140`). `proj = dr*vr + dc*vc` treats the 8 vectors as unit-length; diagonal vectors have length √2, so a true diagonal target (dr=dc=k) yields steps=2k on the diagonal candidate (endpoint overshoots → perpendicular distance 2k²) while straight candidates give an exact k-step line (distance k²) — the straight candidate always wins, `matchSegment` reads the wrong letters, and the tap counts as a miss. Shared with the board (its MEDIUM/ALL rounds use diagonals). Only snapLine tests are horizontal (`test/wordSearchGridEngine.test.ts:65-77`). Fix: normalize the projection by the vector's squared length.
+- **F6 · P2 — Student grids default to ALL 8 directions — too hard, owner decision: left-to-right + top-to-bottom ONLY.** `WordSearchStep.tsx:102` passes no `directions` to `buildGrid`, and `gridEngine.ts:169` defaults to `DIRECTIONS_ALL` (backwards, upwards, 4 diagonals). The board ramps EASY→MEDIUM→ALL (`BoardWordSearch.tsx:502-506`); the student step never does. Fix: pass `DIRECTIONS_EASY` (`gridEngine.ts:70-72`). Teacher-configurable difficulty requested by owner — parked: the plan panel (PlanComposer) is owner WIP; student-side easy default ships first.
+- **F7 · P2 — Hint button reads as broken: dead-grey until 3 misses** (`WordSearchStep.tsx:300 canUseHint = missCount >= 3`, render `:322-334`, guard `:156`). With easy directions most kids never accumulate 3 misses, so the button sits light-grey/disabled and the owner filed it "doesn't really work … no way to click on it". Solo-kid mercy rule → always-available hint (keep first-letter-only reveal).
+- **F8 · P3 — Tap-first + tap-last only; no slide-over-word gesture.** Owner: "It would be better if we could slide over the world instead or both way are okay". The board already has pointer-drag selection (`BoardWordSearch.tsx:1049-1051`) — port the pointerdown/move/up path onto the student step alongside tap-tap.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

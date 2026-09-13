@@ -77,7 +77,9 @@ The single MCQ renderer for 10 pool types (`exercises/ChoiceExercise.tsx`): IMAG
 
 > **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
 >
-> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
+> **(2026-09-14, owner testing session 2 — Vocab Blitz image phase, verbatim):** "Now we are on the next phase of the vocab blitz where we have an English word and we need to choose the proper vocabulary card. So same issue as previously, we get the nice design with the image and the English word writing in the card. The English word shouldn't be there, just only the image. So also make sure the image fits this frame with rounded corner. It will be visually more beautiful. Thank you."
+>
+> **(2026-09-14, owner testing session 2 — Unit Review image cards, verbatim):** "we start with the same, the challenge is having a word and we need to pick the right vocabulary card. So again the word is writing English and inside the vocabulary card we have the writing of the vocabulary word. Again it shouldn't be there and the image also should be fitting the frame, the square frame with round corner where it is right now. It should be a little bit bigger to fit from side to side and corner to corner. That's this box."
 
 ## §3 ZCode code-level findings
 
@@ -89,6 +91,11 @@ Refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted.
 - **F4 · P3 — Image-onError fades to 0.2 opacity** (:183) with no fallback glyph — a dead image option becomes a ghost card the kid might still tap.
 - **F5 · P3 — Text options are comfortable but unlabeled** — no A/B/C/D badges (board v3 style) and no keyboard shortcuts; fine on touch, thin on tablets-with-keyboard.
 - **F6 · P3 — SPELL_CLOZE blank renders as raw underscores in the sentence** (:164) — no styled gap/letter-count affordance.
+
+### §3 addendum (2026-09-14 — owner session-2; refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted)
+
+- **F7 · P2 — LISTEN_SELECT image cards still render the English word — sight-reading leak / "too easy".** The session-1 image-only rule is gated to IMAGE_SELECT only (`:278 const imageOnly = kind === 'IMAGE_SELECT'`); LISTEN_SELECT options carry `{text, image_url}` (generator `generate-exercises/index.ts:122-129`) and render the English strip at `:333-339`. Every battery that routes LISTEN_SELECT (SPEED_QUIZ, GAME_ARENA, SOUND_LAB, LISTEN_TAP, UNIT_REVIEW — `services/gameRouting.ts:66/67/90/93`) shows word-on-card. Compounding: when only some options have images the set renders MIXED (image cards + text cards — original F1). Fix shape: image-bearing option sets render image-only cards; if any option lacks an image the whole question degrades to uniform text-only; generator emits LISTEN_SELECT only when all 4 options have real images.
+- **F8 · P3 — IMAGE_SELECT cards letterbox instead of filling the rounded frame.** `:308 'w-full h-full object-contain'` inside `p-1.5 aspect-square` — square generated images fit, non-square ones float with padding bands. Owner: "the image should be fitting the frame, the square frame with round corner … fit from side to side and corner to corner" → `object-cover` edge-to-edge inside the rounded card.
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

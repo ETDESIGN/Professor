@@ -77,7 +77,7 @@ The in-shell quiz battery for frozen `data.questions` [{text, options, correct}]
 
 > **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
 >
-> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
+> **(2026-09-14, owner testing session 2 — Speed Quiz / Game Arena, verbatim):** "Speed Quiz. So, speed quiz, sometimes we have the same issue with the question where we have an English vocabulary word and we need to pick up the right flashcard, the right vocabulary card. And the vocabulary card includes also the English vocabulary name, the English vocabulary word. So, they shouldn't be on the flashcard. ... I'm in the game area and same issue, we have a vocabulary word, we need to select the right flashcard but again the vocabulary word is writing on the flashcard so too easy. Again same issue, the image should be the size of the frame. Same issue as previously."
 
 ## §3 ZCode code-level findings
 
@@ -88,6 +88,10 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 - **F3 · P3 — Quiz performance is invisible to the learner model** — frozen questions have no objective_id, so nothing reaches FSRS/remediation (acceptable for legacy blocks, but the audit should say it).
 - **F4 · P3 — A/B/C/D prefixes are small** (`text-sm font-mono opacity-60`, :253) vs the board v3's prominent letter badges.
 - **F5 · P3 — No question images** — content shape is text-only (pool-driven IMAGE_SELECT lives in the battery, not here).
+
+### §3 addendum (2026-09-14 — owner session-2)
+
+- **F6 · P2 — Pool-driven SPEED_QUIZ / GAME_ARENA batteries render vocab image cards with the English word on them — too easy (cross-ref 13 F7/F8).** Both types route LISTEN_SELECT + IMAGE_SELECT through `ChoiceExercise` (`services/gameRouting.ts:90`, `types/stage.ts:57-73`); LISTEN_SELECT image options render the English `{text}` strip (`ChoiceExercise.tsx:333-339` — the image-only gate covers IMAGE_SELECT alone) and IMAGE_SELECT cards letterbox instead of filling the rounded frame (`:308`). Fix lands in ChoiceExercise + generator (emit LISTEN_SELECT only with all-image options); no change in this file's inline renderer (it is text-only, `SoloLessonPlayer.tsx:521`).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 

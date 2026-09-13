@@ -77,7 +77,7 @@ In-lesson SPELLING_BEE step (`steps/SpellingBeeStep.tsx`) on the shared board-te
 
 > **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
 >
-> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
+> **(2026-09-14, owner testing session 2 — Spelling Bee, verbatim):** "It looks kind of alright except that there is too big gap on the top and bottom of the screen. I think those big spaces should be used efficiently. I think the keyboard have a room to be bigger, more similar as a mobile phone keyboard. I mean in a question of size. The design is good, it's just kind of like small, a bit small. and on the top the images are on the left side of the writing. I think this screen should be better designed to fit more properly a mobile phone screen. I also noticed that the keyboard was not functional. I cannot press on any button."
 
 ## §3 ZCode code-level findings
 
@@ -88,6 +88,11 @@ Refs are `apps/student/steps/SpellingBeeStep.tsx` unless noted.
 - **F3 · P3 — Round interstitial badge row assumes `wordsPerRound` slots** (:283-299) — fine, but badges truncate long words (`w-12 truncate`).
 - **F4 · P3 — Exit mid-round no confirmation** (:384).
 - **F5 · P3 — Empty-pool error screen text is teacher-flavored** ("continue with the lesson for now" — OK in-lesson; just noting copy tone).
+
+### §3 addendum (2026-09-14 — owner session-2; refs are the shared engine unless noted)
+
+- **F6 · P1 — Wave-change timer race leaves the on-screen keyboard DEAD (all keys disabled) at every round/wave start.** `components/games/spellingBee/useSpellingBeeTurn.ts`: the render-phase wave reset (`:137-141`) calls `resetTurnState()`, which sets status `'presenting'` and schedules `later(() => beginTyping(), PRESENT_BEAT_MS)` (`:124-125`); the `useEffect(() => { clearTimeouts(); }, [waveWords])` at `:332-334` runs after that same commit and kills the just-scheduled timer → status never reaches `'typing'` → `SpellingBeeStage.tsx:431-445` keys are `disabled={!typing}` (opacity 0.45) forever. Both student surfaces pass `compact` (`SpellingBeeStep.tsx:474`, `SpellingBeeGame.tsx:924`) so the non-compact "Ready to spell →" escape button (`SpellingBeeStage.tsx:58`) doesn't exist for them; only physical Space/Enter (keydown listener `:297-303`) revives it — which is why desktop-keyboard testing masked it. Hits initial load, every next round, and Play Again, on BOTH the in-lesson step and the standalone game (file 21). Owner report: "the keyboard was not functional. I cannot press on any button."
+- **F7 · P2 — Layout wastes the vertical space the owner wants for the keyboard.** The stage container centers its child (`SpellingBeeStep.tsx:453` / `SpellingBeeGame.tsx:903` `flex-1 min-h-0 flex items-center justify-center`) leaving dead bands above/below; keys cap at `h-10 sm:h-12 md:h-14` with `max-w-[136px]` (`SpellingBeeStage.tsx:446`). Owner: "too big gap on the top and bottom … the keyboard have a room to be bigger, more similar as a mobile phone keyboard … the images are on the left side of the writing" — restack: prompt block top, keyboard bottom, keys sized to consume the freed space.
 
 **Works well:** the shared engine already carries the board v3 fixes (presentation beat, consolidation holds, deterministic narrowing, StrictMode-safe clock) — this surface inherits them for free.
 

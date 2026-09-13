@@ -77,7 +77,7 @@ The story-reading input step, inline (:280-384). Pages come from flow `data.page
 
 > **(2026-09-13, global direction — recorded in `_CROSS-CUTTING.md` §0):** "Actually the whole student app needs to be audited about functionality … some games are still good but some deserve refinement — some a very big improvement and some just a slight improvement … The home screen for the student will not be changed … for the new stitch design creation I want a mix between those both [Wonder Atlas + Duolingo white/pink]."
 >
-> No game-specific comments recorded yet. This file's §1/§3 audit is the functionality audit the owner asked for.
+> **(2026-09-14, owner testing session 2 — Story step, verbatim):** "So I guess now I'm in one of the story games and there is no story content so I cannot analyze it or it's not present on the student game. Either way I didn't see any story in my testing. I think there was a story in there. Let me check that last one again it tells me no content for story so maybe there is no story in this unit but I think there is so probably there is some issue of rendering the story and comics into the student app so can you investigate and audit those? storytelling game and exercise."
 
 ## §3 ZCode code-level findings
 
@@ -88,6 +88,11 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 - **F3 · P3 — "Tap any word to hear it 👆" hint is low-contrast** (`text-amber-500/70`, :342).
 - **F4 · P3 — Page dots are indicators, not buttons** (:345-349) — no jump-to-page; nav relies on the two small arrows (see shell F6).
 - **F5 · P3 — No page-turn audio cue or read-along state feedback** — pressing Read along gives no visual state (button doesn't change while speaking).
+
+### §3 addendum (2026-09-14 — owner session-2; the "No content for Story" investigation)
+
+- **F6 · P1 — The student story step reads ONLY frozen `data.pages`; after the content-groups migration nothing guarantees those exist — grouped-story units show "No content for Story" or drop the story node entirely.** `SoloLessonPlayer.tsx:666-671`: `const pages = currentStep.data?.pages || []; if (pages.length === 0) return <EmptyStep title="Story" />`. Meanwhile (a) orchestrate-lesson's content-groups branch now emits `STORY_STAGE_AG` per story group (`orchestrate-lesson/index.ts:294-302`) — a type that is NOT student-eligible (`types/stage.ts:76-81`), has no `GAME_CONTENT`/renderer under `apps/student/`, and is dropped by `deriveDefaultPath` (`stageProgressService.ts:218`); (b) the vault's STORY_STAGE bridge write (`data.pages = storyPages`) was REMOVED (`apps/teacher/UnitContentVault.tsx:246-252`) because the board reads story live via `getStory(manifest, structure_ids)` (`BoardStoryStage.tsx:105-110`) — the student step never got that runtime resolution; (c) a saved `unit.studentPath` freezes whatever empty STORY_STAGE block existed at save time (same failure class as the MEDIA_PLAYER blank-block precedent, `StudentPathComposer.tsx:311-314`). Fix shape (mirrors the board): student renderer resolves pages relational-first (`getStory(manifest, data.structure_ids)` over the `_relational` bundle attached in `SoloSessionContext.tsx:124-128`) with frozen `data.pages` fallback; map `STORY_STAGE_AG` to the same student reader + make it student-eligible; `EmptyStep` only when the unit truly has no story.
+- **F7 · P2 — Comics are board-only: students never see comic content.** `COMIC_PANELS` renders via `BoardComicPanels.tsx` (`boardMap.tsx:97`), absent from `STUDENT_ELIGIBLE_TYPES`, `GAME_CONTENT`, `GAME_TITLES` — `deriveDefaultPath` strips it from student paths. A student-side comics surface = new game design (owner decision, parked — see `_CROSS-CUTTING`).
 
 ## §4 ⬜ Anti-Gravity quality audit + Stitch design generation
 
