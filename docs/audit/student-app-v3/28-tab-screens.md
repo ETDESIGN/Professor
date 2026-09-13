@@ -1,5 +1,5 @@
 # Tab Screens — Rank / Quests / Shop / Profile + Settings & Help — v3 Quality Audit (`CHROME (grouped)`)
-> **Current status:** ag-audit-done
+> **Current status:** ag-audit-done (design phase, approval gate ON)
 
 ## SHARED PRELUDE (read first — identical in every game file)
 
@@ -136,7 +136,7 @@ Grouped audit (verify per-screen during any redesign):
 
 ## §6 Owner approval (HARD GATE)
 
-<Owner's verdict per screen: approved / revise (what to change). No implementation starts before an explicit go on THIS game's designs.>
+**GATE RESTORED 2026-09-13 (owner):** "lets do the Shop/Profile/etc., but i want approve the design in stitch before implementation." — NO implementation of this file's surfaces until the owner explicitly approves their screens in Stitch.
 
 ## §7 Implementation notes & design-fidelity log
 

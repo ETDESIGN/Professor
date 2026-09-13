@@ -68,6 +68,8 @@ ZCode: reviews diff (scoring verbatim, no forbidden files), re-runs gauntlet
 
 ## §1 How the game works today
 
+> **BRAINSTORM 2026-09-13 (owner request):** full recon + proposed v3 scope + 7 owner questions at `docs/brainstorming/13_DUBBING_STUDENT_V3_BRAINSTORM.md` — nothing is designed/built until the owner answers them. Key recon finding: the module is ~90% REAL (studio, recorder, scoring edge, teacher clip tools, gallery, economy) — only flag-gated OFF and dark-themed.
+
 *(Parked — flag-gated OFF in prod (`VITE_ENABLE_DUBBING`). Documentation only.)*
 
 DubbingStudio (record story lines with countdown windows, evaluate-dubbing edge scoring, playback) + ClassDubs (classmates' published dubs with hearts), entry chip on HomeMap also gated. Real infrastructure exists (dubbing migrations, retention cron, `evaluate-dubbing` deployed 2026-08-28; e2e suite skips unless flagged). Exit path routes through `handleLessonComplete({xp: 5, accuracy: 95, time: '2:30'})` — hardcoded fake stats (StudentApp.tsx:226).
