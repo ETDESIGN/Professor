@@ -7,7 +7,9 @@ export const Modal: React.FC<{
     onClose: () => void;
     title: string;
     children: React.ReactNode;
-}> = ({ open, onClose, title, children }) => {
+    /** Widen the panel (max-w-3xl) for wide content such as A5 card previews. */
+    wide?: boolean;
+}> = ({ open, onClose, title, children, wide }) => {
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -25,7 +27,7 @@ export const Modal: React.FC<{
                 >
                     <motion.div
                         initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-auto"
+                        className={`bg-white rounded-2xl p-6 w-full ${wide ? 'max-w-3xl' : 'max-w-md'} shadow-2xl max-h-[90vh] overflow-auto`}
                         role="dialog"
                         aria-modal="true"
                         aria-label={title}

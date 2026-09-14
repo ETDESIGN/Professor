@@ -128,37 +128,435 @@
   scrollbar-width: none;
 }
 
-/* ── Passport login-card printing ──────────────────────────────────────
-   The print sheet is portal-rendered as a direct child of <body>. On
-   screen it stays hidden; when printing, it becomes the only visible
-   element. Two cards per A4 row with cut-friendly dashed borders. */
+/* ── Passport login cards — "Family Pocket Passport" (spec: docs/    ──
+   ── design/qr-login-card-design-spec.md, v2 family card) ─────────────
+   A5-landscape card (210 × 148.5 design-mm): ONE card per student with
+   BOTH family logins — a student pass panel (pink) and a parent pass
+   panel (blue), each with its own QR. Every internal size is a multiple
+   of --u = "one design millimetre": ~3.43 px for the on-screen preview,
+   exactly 1 mm under print — identical geometry, two scales. Print
+   sheets (portal-rendered as direct children of <body>) stack two cards
+   per A4 portrait page with a centered cut guide. */
 .passport-print-portal {
   display: none;
 }
 
+.passport-card {
+  /* preview scale: 720 px wide ≙ 210 mm */
+  --u: 3.4286px;
+  --ink: #0f172a;
+  --slate: #475569;
+  --hairline: #cbd5e1;
+  --brand: #e91e63;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--u) * 210);
+  height: calc(var(--u) * 148.5);
+  padding: calc(var(--u) * 4.5) calc(var(--u) * 7) calc(var(--u) * 4);
+  background: #ffffff;
+  border: solid calc(var(--u) * 0.53) var(--hairline);
+  border-radius: calc(var(--u) * 5.5);
+  color: var(--ink);
+  font-family: 'Nunito Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: calc(var(--u) * 2.2);
+  line-height: 1.25;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+}
+/* Self-contained geometry: never depend on Tailwind preflight resets. */
+.passport-card,
+.passport-card * {
+  box-sizing: border-box;
+}
+.passport-card ol,
+.passport-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.passport-student {
+  --accent: #e91e63;
+  --accent-dark: #be185d;
+  --accent2: #ffc800;
+  --tint: #fff1f5;
+}
+.passport-parent {
+  --accent: #1cb0f6;
+  --accent-dark: #0284c7;
+  --accent2: #10b981;
+  --tint: #f0f9ff;
+}
+
+/* ZONE 1 — header */
+.passport-header {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.8);
+}
+.passport-header-row {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  min-height: calc(var(--u) * 9.5);
+}
+.passport-wordmark {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.1;
+}
+.passport-app {
+  font-family: 'Fredoka', 'Nunito Sans', sans-serif;
+  font-weight: 700;
+  font-size: calc(var(--u) * 4.2);
+  letter-spacing: calc(var(--u) * 0.2);
+  color: var(--brand);
+}
+.passport-tag {
+  font-size: calc(var(--u) * 1.8);
+  font-weight: 700;
+  color: var(--slate);
+  letter-spacing: calc(var(--u) * 0.25);
+}
+.passport-class {
+  margin-left: auto;
+  max-width: calc(var(--u) * 58);
+  padding: calc(var(--u) * 1) calc(var(--u) * 2.8);
+  border: solid calc(var(--u) * 0.35) var(--hairline);
+  border-radius: 999px;
+  font-size: calc(var(--u) * 2.2);
+  font-weight: 700;
+  color: var(--slate);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: none;
+}
+.passport-family-badge {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.4);
+  flex: none;
+  padding: calc(var(--u) * 1.2) calc(var(--u) * 3.2);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e91e63 0%, #e91e63 50%, #1cb0f6 50%, #1cb0f6 100%);
+  color: #ffffff;
+  font-family: 'Fredoka', 'Nunito Sans', sans-serif;
+  font-weight: 600;
+  font-size: calc(var(--u) * 2.5);
+  letter-spacing: calc(var(--u) * 0.3);
+  white-space: nowrap;
+}
+.passport-name {
+  font-family: 'Fredoka', 'Nunito Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-weight: 700;
+  font-size: calc(var(--u) * 6.6);
+  line-height: 1.1;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ZONE 2 — the pass panels */
+.passport-panels {
+  flex: 1;
+  position: relative;
+  display: flex;
+  gap: calc(var(--u) * 5);
+  padding-top: calc(var(--u) * 2.5);
+  margin-top: calc(var(--u) * 1.5);
+  min-height: 0;
+}
+.passport-panels::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  bottom: 8%;
+  border-left: calc(var(--u) * 0.3) dashed #cbd5e1;
+}
+.passport-panels-single::before {
+  display: none;
+}
+.passport-panel {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--u) * 2.6) calc(var(--u) * 3);
+  background: var(--tint);
+  border: solid calc(var(--u) * 0.35) var(--hairline);
+  border-radius: calc(var(--u) * 3.5);
+}
+.passport-panel-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 2);
+  margin-bottom: calc(var(--u) * 1.6);
+}
+.passport-role-badge {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1.4);
+  flex: none;
+  padding: calc(var(--u) * 1.1) calc(var(--u) * 3);
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-family: 'Fredoka', 'Nunito Sans', sans-serif;
+  font-weight: 600;
+  font-size: calc(var(--u) * 2.6);
+  letter-spacing: calc(var(--u) * 0.3);
+  white-space: nowrap;
+}
+.passport-panel-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  min-height: 0;
+}
+.passport-qr-cluster {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 1.4);
+}
+.passport-bubble {
+  padding: calc(var(--u) * 0.8) calc(var(--u) * 2.6);
+  background: #ffffff;
+  border: solid calc(var(--u) * 0.35) var(--hairline);
+  border-radius: 999px;
+  font-family: 'Fredoka', 'Nunito Sans', sans-serif;
+  font-weight: 500;
+  font-size: calc(var(--u) * 2.3);
+  white-space: nowrap;
+}
+.passport-reticle {
+  position: relative;
+  padding: calc(var(--u) * 4);
+  background: #ffffff;
+  border-radius: calc(var(--u) * 1.5);
+}
+.reticle-corner {
+  position: absolute;
+  width: calc(var(--u) * 6);
+  height: calc(var(--u) * 6);
+}
+.reticle-tl {
+  top: 0; left: 0;
+  border-top: solid calc(var(--u) * 0.9) var(--ink);
+  border-left: solid calc(var(--u) * 0.9) var(--ink);
+  border-top-left-radius: calc(var(--u) * 1.4);
+}
+.reticle-tr {
+  top: 0; right: 0;
+  border-top: solid calc(var(--u) * 0.9) var(--ink);
+  border-right: solid calc(var(--u) * 0.9) var(--ink);
+  border-top-right-radius: calc(var(--u) * 1.4);
+}
+.reticle-bl {
+  bottom: 0; left: 0;
+  border-bottom: solid calc(var(--u) * 0.9) var(--ink);
+  border-left: solid calc(var(--u) * 0.9) var(--ink);
+  border-bottom-left-radius: calc(var(--u) * 1.4);
+}
+.reticle-br {
+  bottom: 0; right: 0;
+  border-bottom: solid calc(var(--u) * 0.9) var(--ink);
+  border-right: solid calc(var(--u) * 0.9) var(--ink);
+  border-bottom-right-radius: calc(var(--u) * 1.4);
+}
+.passport-qr {
+  display: block;
+  width: calc(var(--u) * 29);
+  height: calc(var(--u) * 29);
+}
+.passport-qr-solo {
+  width: calc(var(--u) * 34);
+  height: calc(var(--u) * 34);
+}
+.passport-peek {
+  position: absolute;
+  top: calc(var(--u) * -4.6);
+  left: calc(var(--u) * -4.2);
+  width: calc(var(--u) * 11);
+  height: calc(var(--u) * 9.9);
+  z-index: 2;
+}
+.passport-mini-guide {
+  font-size: calc(var(--u) * 1.85);
+  font-weight: 700;
+  color: var(--slate);
+  text-align: center;
+  white-space: nowrap;
+}
+.passport-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--u) * 2.6);
+}
+.passport-chip {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 2.2);
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 2.6);
+  background: #ffffff;
+  border: solid calc(var(--u) * 0.53) var(--slate);
+  border-radius: calc(var(--u) * 2.2);
+}
+.passport-chip-icon {
+  width: calc(var(--u) * 5);
+  height: calc(var(--u) * 5);
+  flex: none;
+  padding: calc(var(--u) * 1);
+  border-radius: 999px;
+  background: var(--tint);
+  color: var(--accent-dark);
+}
+.passport-chip-fields {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.passport-chip-label {
+  font-size: calc(var(--u) * 1.6);
+  font-weight: 800;
+  letter-spacing: calc(var(--u) * 0.4);
+  color: var(--slate);
+}
+.passport-chip-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 700;
+  font-size: calc(var(--u) * 3.2);
+  letter-spacing: calc(var(--u) * 0.1);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.passport-sparkle {
+  position: absolute;
+  pointer-events: none;
+}
+.passport-seam {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+  padding: calc(var(--u) * 1.6) calc(var(--u) * 2.4);
+  background: #ffffff;
+  border: solid calc(var(--u) * 0.4) var(--hairline);
+  border-radius: 999px;
+  color: var(--brand);
+  font-size: calc(var(--u) * 2.4);
+  z-index: 5;
+}
+
+/* ZONE 3 — footer */
+.passport-footer {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--u) * 4);
+  margin-top: calc(var(--u) * 1.8);
+  padding-top: calc(var(--u) * 1.4);
+  border-top: solid calc(var(--u) * 0.35) var(--hairline);
+  font-size: calc(var(--u) * 2);
+  color: var(--slate);
+}
+.passport-footer > span:first-child {
+  min-width: 0;
+}
+.passport-serial {
+  flex: none;
+  letter-spacing: calc(var(--u) * 0.25);
+  font-weight: 700;
+  font-size: calc(var(--u) * 1.8);
+}
+
+/* ── Print: two A5 cards per A4 portrait sheet + cut guide ─────────── */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
   body > *:not(.passport-print-portal) {
     display: none !important;
   }
   .passport-print-portal {
     display: block !important;
   }
-  .passport-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6mm;
-    padding: 8mm;
+  .passport-print-portal * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .passport-sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    background: #ffffff;
+    break-after: page;
+    page-break-after: always;
+  }
+  .passport-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
   .passport-card {
+    --u: 1mm;
+    flex: none;
+    box-shadow: none;
     break-inside: avoid;
     page-break-inside: avoid;
-    border: 1px dashed #94a3b8;
-    border-radius: 4mm;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
-  .passport-qr {
-    width: 30mm;
-    height: 30mm;
+  .passport-cutline {
+    position: absolute;
+    left: 6mm;
+    right: 6mm;
+    top: 148.5mm;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .passport-cutline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    border-top: 0.26mm dashed #94a3b8;
+  }
+  .passport-cutline span {
+    position: relative;
+    background: #ffffff;
+    padding: 0 3mm;
+    font-family: 'Nunito Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: 2mm;
+    font-weight: 700;
+    letter-spacing: 0.4mm;
+    color: #64748b;
+    text-transform: uppercase;
   }
 }
