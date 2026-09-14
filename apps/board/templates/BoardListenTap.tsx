@@ -695,7 +695,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
       {uiPhase === 'listen' && (
         <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-5">
           {banner}
-          <button onClick={playAudio} className="relative flex items-center justify-center w-28 h-28 lg:w-44 lg:h-44 [@media(max-height:430px)]:w-20 [@media(max-height:430px)]:h-20 shrink-0">
+          <button onClick={playAudio} className="relative flex items-center justify-center w-28 h-28 lg:w-44 lg:h-44 shrink-0">
             <span className="lt-ring absolute inset-0 rounded-full border-2 border-[#38BDF8]/60" />
             <span className="lt-ring absolute rounded-full border-2 border-[#38BDF8]/40" style={{ inset: '14%', animationDelay: '0.5s' }} />
             <span className="lt-ring absolute rounded-full border-2 border-[#38BDF8]/25" style={{ inset: '28%', animationDelay: '1s' }} />

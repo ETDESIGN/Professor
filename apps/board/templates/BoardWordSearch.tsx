@@ -947,7 +947,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   // pl-40/lg:pl-48 keeps this header's W badge clear of it (owner review
   // 2026-09-10 caught the overlap).
   const header = (
-    <header className="w-full flex items-center justify-between gap-4 pr-2 pl-40 lg:pl-48 h-14 lg:h-16 [@media(max-height:430px)]:h-11 shrink-0">
+    <header className="w-full flex items-center justify-between gap-4 pr-2 pl-40 lg:pl-48 h-14 lg:h-16 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-[#FF2E79] flex items-center justify-center text-white font-bold text-xl lg:text-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] shrink-0">W</div>
         <div className="flex flex-col min-w-0">
@@ -957,7 +957,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
               {stage === 'final' ? 'Complete' : `${isFinalRound ? 'Final round' : `Round ${roundIndex}/${TOTAL_ROUNDS}`} · ${PRESET === 'starter' ? 'Starter' : 'Explorer'}`}
             </span>
           </div>
-          <span className="text-[10px] lg:text-xs text-slate-400 font-medium whitespace-nowrap [@media(max-height:430px)]:hidden">{directionsLabel} directions</span>
+          <span className="text-[10px] lg:text-xs text-slate-400 font-medium whitespace-nowrap">{directionsLabel} directions</span>
         </div>
         <div className="hidden md:block ml-2">{modeChip}</div>
       </div>
@@ -997,7 +997,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   );
 
   return (
-    <div className="ws-root h-full w-full bg-[#070C18] flex flex-col p-3 lg:p-5 [@media(max-height:430px)]:p-1.5 relative overflow-hidden"
+    <div className="ws-root h-full w-full bg-[#070C18] flex flex-col p-3 lg:p-5 relative overflow-hidden"
       style={{
         backgroundImage:
           'radial-gradient(circle at 50% -10%, rgba(30,58,138,0.35) 0%, transparent 55%),' +
@@ -1006,12 +1006,12 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       }}>
 
       {header}
-      <div className="md:hidden shrink-0 mt-1 [@media(max-height:430px)]:hidden">{modeChip}</div>
+      <div className="md:hidden shrink-0 mt-1">{modeChip}</div>
 
       {/* ═══ PREVIEW — the round's words, INPUT moment (Stitch round_preview:
           big portrait photo cards, huge display title, difficulty chip) ═══ */}
       {stage === 'preview' && grid && (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2.5 lg:gap-4 animate-fade-in px-2 overflow-y-auto [@media(max-height:430px)]:gap-1.5">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2.5 lg:gap-4 animate-fade-in px-2 overflow-y-auto">
           <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-800/90 border border-sky-500/30 text-sky-300 font-bold text-[10px] lg:text-xs uppercase tracking-widest whitespace-nowrap">
             {PRESET === 'starter' ? 'Starter' : 'Explorer'} · {directionsLabel} only
           </span>
@@ -1037,7 +1037,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
           <main className="flex-1 min-h-0 flex flex-col xl:flex-row items-center justify-center gap-3 lg:gap-5 px-1 py-2">
             {/* compact rail (top strip) below xl — slim + shrink-0 so it can
                 never crush the grid (the phone-floor F0-relapse the gate caught) */}
-            <div className="xl:hidden w-full max-h-16 overflow-y-hidden shrink-0 [@media(max-height:430px)]:hidden">{railTokens(true)}</div>
+            <div className="xl:hidden w-full max-h-16 overflow-y-hidden shrink-0">{railTokens(true)}</div>
 
             {/* The grid — pure CSS square (F0 fix); strokes are grid-unit SVG.
                 Sizing is orientation-conditional: stacked (<xl) it takes the

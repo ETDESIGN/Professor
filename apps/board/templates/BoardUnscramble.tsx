@@ -670,16 +670,6 @@ const BoardUnscramble = ({ data }: { data: any }) => {
             {tray.length} block{tray.length === 1 ? '' : 's'} left
           </span>
         </div>
-        {/* Compact inline check button for phone floor */}
-        {!outcome && !slideComplete && !revealTiles && (
-          <button onClick={checkAnswer} disabled={!canCheck}
-            className={`[@media(min-height:451px)]:hidden px-3 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all
-              ${canCheck
-                ? 'bg-[#FF2E79] text-white shadow-[0_0_12px_-2px_rgba(255,46,121,0.6)] active:scale-95'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
-            <Check size={13} /> Check
-          </button>
-        )}
       </div>
       <div className="flex flex-wrap justify-center gap-2 lg:gap-4">
         {tray.length === 0 && (
