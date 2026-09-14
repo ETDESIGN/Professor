@@ -26,7 +26,7 @@
 //   - Seeded deterministic tile banks
 //   - Steal mechanic & reveal holds
 //   - Phone-landscape floor 700x320 zero scroll
-//   - Header clearance pl-40 lg:pl-48
+//   - Header clearance pl-48
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -498,7 +498,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
       <div className="flex flex-col items-center justify-center h-full w-full bg-[#070C18] text-white cyber-grid select-none p-6">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center bg-[#0B132B] border border-cyan-500/30 p-10 rounded-3xl shadow-2xl">
           <div className="text-7xl mb-4">⚡</div>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-[#00FFCC] tracking-tight">Round {roundIndex} — Level up!</h2>
+          <h2 className="text-5xl font-extrabold text-[#00FFCC] tracking-tight">Round {roundIndex} — Level up!</h2>
           <div className="text-lg text-slate-400 mt-2 font-mono">Harder grammar challenges coming…</div>
         </motion.div>
       </div>
@@ -529,15 +529,15 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
   // ── Kid-Friendly Bilingual Warming Up Holding State (from Stitch Design #2) ──
   if (warmingUp) {
     return (
-      <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-4 md:p-6 cyber-grid select-none overflow-hidden relative gl-container">
+      <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-6 cyber-grid select-none overflow-hidden relative gl-container">
         {/* Ambient radial glows behind center */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
           <div className="w-[640px] h-[640px] rounded-full bg-cyan-400/5 blur-[120px] absolute" />
           <div className="w-[420px] h-[420px] rounded-full bg-[#FF2D78]/5 blur-[100px] absolute translate-y-12" />
         </div>
 
-        {/* Top HUD with clear left margin (pl-40 lg:pl-48) */}
-        <header className="w-full flex items-center justify-between pl-40 lg:pl-48 relative z-20 gl-header">
+        {/* Top HUD with clear left margin (pl-48) */}
+        <header className="w-full flex items-center justify-between pl-48 relative z-20 gl-header">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#0B132B] border border-white/10 flex items-center justify-center text-[#FF2D78] shadow-[0_0_15px_rgba(255,45,120,0.25)]">
               <Beaker size={22} />
@@ -555,7 +555,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
 
         {/* Center arena: warming up holding card */}
         <main className="flex-1 flex flex-col items-center justify-center px-4 relative z-10 gl-main">
-          <div className="w-full max-w-xl bg-[#0B132B]/90 border border-[#182752] rounded-3xl p-6 md:p-8 flex flex-col items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-md relative overflow-hidden gl-card">
+          <div className="w-full max-w-xl bg-[#0B132B]/90 border border-[#182752] rounded-3xl p-8 flex flex-col items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-md relative overflow-hidden gl-card">
             {/* Bubbling test tube vector */}
             <div className="relative w-36 h-40 mb-4 flex items-center justify-center glow-beaker">
               {/* Floating bubbles */}
@@ -612,13 +612,13 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
               </svg>
             </div>
 
-            <h1 className="font-headline font-extrabold text-2xl md:text-3xl text-white tracking-tight mb-2 leading-tight">
+            <h1 className="font-headline font-extrabold text-3xl text-white tracking-tight mb-2 leading-tight">
               Grammar Lab is warming up!
             </h1>
-            <p className="text-lg md:text-xl font-semibold text-[#00FFCC] mb-3 tracking-wide drop-shadow-[0_0_12px_rgba(0,255,204,0.4)]">
+            <p className="text-xl font-semibold text-[#00FFCC] mb-3 tracking-wide drop-shadow-[0_0_12px_rgba(0,255,204,0.4)]">
               语法实验准备中…
             </p>
-            <p className="text-slate-300 text-sm md:text-base font-medium max-w-md mb-6 leading-relaxed">
+            <p className="text-slate-300 text-base font-medium max-w-md mb-6 leading-relaxed">
               Ask your teacher to generate exercises for this unit.
             </p>
             <button
@@ -744,28 +744,28 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
     : 'Spot the wrong word in this sentence:';
 
   return (
-    <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-4 md:p-6 cyber-grid select-none overflow-hidden relative gl-container">
+    <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-6 cyber-grid select-none overflow-hidden relative gl-container">
       {/* Ambient background glows */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
         <div className="w-[720px] h-[720px] rounded-full bg-cyan-400/5 blur-[120px] absolute" />
         <div className="w-[480px] h-[480px] rounded-full bg-[#FF2D78]/5 blur-[100px] absolute translate-y-12" />
       </div>
 
-      {/* TOP HUD BAR: Strict overscan clearance pl-40 lg:pl-48 */}
+      {/* TOP HUD BAR: Strict overscan clearance pl-48 */}
       <header className="w-full flex flex-col gap-2 relative z-20 gl-header">
-        <div className="flex justify-between items-center w-full px-4 md:px-6 py-2.5 bg-[#0B132B]/80 border border-slate-800/80 rounded-2xl shadow-sm backdrop-blur-md">
+        <div className="flex justify-between items-center w-full px-6 py-2.5 bg-[#0B132B]/80 border border-slate-800/80 rounded-2xl shadow-sm backdrop-blur-md">
           {/* Left: Over-scan clearance + Phase Pill + Game Name */}
-          <div className="flex items-center gap-3 md:gap-4 pl-40 lg:pl-48">
+          <div className="flex items-center gap-4 pl-48">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1e1e30] border border-slate-700 text-[11px] font-mono font-semibold text-[#00FFCC] tracking-widest uppercase">
               <span className="w-2 h-2 rounded-full bg-[#00FFCC] animate-pulse" />
               PHASE: GRAMMAR LAB
             </span>
-            <div className="font-headline font-bold text-xl md:text-2xl text-white tracking-wide flex items-center gap-2">
+            <div className="font-headline font-bold text-2xl text-white tracking-wide flex items-center gap-2">
               <Beaker className="text-[#00FFCC]" size={24} />
               <span>Grammar Lab</span>
             </div>
             {/* Round badge */}
-            <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-800">
+            <div className="flex items-center gap-2 pl-3 border-l border-slate-800">
               <span className="px-2.5 py-0.5 bg-[#141422] border border-slate-700 rounded-lg font-mono text-xs font-semibold text-[#FFE04A] tracking-wider uppercase">
                 Round {roundIndex}/{TOTAL_ROUNDS}
               </span>
@@ -811,15 +811,15 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
               }`}
             >
               {stealBanner.kind === 'offer' && (
-                <div className="text-lg md:text-xl animate-pulse">⚡ STEAL CHANCE! Teacher spins for stealer!</div>
+                <div className="text-xl animate-pulse">⚡ STEAL CHANCE! Teacher spins for stealer!</div>
               )}
               {stealBanner.kind === 'active' && (
-                <div className="text-lg md:text-xl">
+                <div className="text-xl">
                   ⚡ {stealBanner.name} is stealing for <span className="text-amber-300">HALF POINTS</span>!
                 </div>
               )}
               {stealBanner.kind === 'stolen' && (
-                <div className="text-xl md:text-2xl">🌟 STOLEN! {stealBanner.name} +{stealBanner.points} pts</div>
+                <div className="text-2xl">🌟 STOLEN! {stealBanner.name} +{stealBanner.points} pts</div>
               )}
             </motion.div>
           )}
@@ -827,7 +827,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
       </header>
 
       {/* CENTER ARENA */}
-      <main className="flex-1 flex flex-col justify-center my-2 md:my-3 px-2 md:px-6 relative z-10 overflow-hidden gl-main">
+      <main className="flex-1 flex flex-col justify-center my-3 px-6 relative z-10 overflow-hidden gl-main">
         <AnimatePresence>
           {/* Phase 1: Pattern / Formula Presentation Beat (2 seconds) */}
           {phase === 'pattern' && (
@@ -838,7 +838,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="w-full flex items-center justify-center"
             >
-              <div className="w-full max-w-2xl bg-[#0B132B]/90 border border-[#182752] rounded-3xl p-6 md:p-10 text-center shadow-2xl backdrop-blur-md relative overflow-hidden gl-card">
+              <div className="w-full max-w-2xl bg-[#0B132B]/90 border border-[#182752] rounded-3xl p-10 text-center shadow-2xl backdrop-blur-md relative overflow-hidden gl-card">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e1e30] border border-[#302840] text-xs font-mono font-bold text-[#00FFCC] uppercase tracking-widest mb-3">
                   <span className="w-2 h-2 rounded-full bg-[#00FFCC] animate-pulse" />
                   Formula Beat · 语法规则
@@ -849,10 +849,10 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                 </h3>
 
                 {/* Formula Syntax Pills */}
-                <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 my-4 md:my-6">
+                <div className="flex flex-wrap items-center justify-center gap-3 my-6">
                   {formulaParts.map((part, pIdx) => (
                     <React.Fragment key={pIdx}>
-                      <span className={`px-4 py-2 rounded-xl border text-xl md:text-2xl font-extrabold uppercase tracking-wide ${getSyntaxPillStyle(pIdx)}`}>
+                      <span className={`px-4 py-2 rounded-xl border text-2xl font-extrabold uppercase tracking-wide ${getSyntaxPillStyle(pIdx)}`}>
                         {part}
                       </span>
                       {pIdx < formulaParts.length - 1 && (
@@ -863,7 +863,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                 </div>
 
                 {content.explanation && (
-                  <p className="text-base md:text-lg text-slate-300 bg-[#141422] border border-slate-700/60 rounded-xl p-3 md:p-4 mt-2 leading-relaxed">
+                  <p className="text-lg text-slate-300 bg-[#141422] border border-slate-700/60 rounded-xl p-4 mt-2 leading-relaxed">
                     {content.explanation}
                   </p>
                 )}
@@ -886,21 +886,21 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
             >
               {/* SHAPE 1: TRANSFORM (Rung 3 Sentence Assembly Runway) */}
               {currentItem.shape === 'transform' && (
-                <div className="w-full flex flex-col gap-3 md:gap-4 max-w-5xl mx-auto">
+                <div className="w-full flex flex-col gap-4 max-w-5xl mx-auto">
                   {/* Mission / Reference Plate */}
-                  <div className="bg-[#141422]/90 border border-[#302840] rounded-2xl p-4 md:p-5 flex items-center justify-between gap-4 shadow-lg relative overflow-hidden gl-prompt-card">
+                  <div className="bg-[#141422]/90 border border-[#302840] rounded-2xl p-5 flex items-center justify-between gap-4 shadow-lg relative overflow-hidden gl-prompt-card">
                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#38BDF8] via-[#00FFCC] to-[#A855F7]" />
                     <div className="pl-3 flex flex-col">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono uppercase tracking-widest text-[#38BDF8] font-bold">RUNG 3 · TRANSFORM</span>
                         <span className="text-xs font-mono text-slate-400">· {currentItem.ruleName}</span>
                       </div>
-                      <h2 className="font-headline font-extrabold text-xl md:text-2xl text-white tracking-tight mt-0.5">
+                      <h2 className="font-headline font-extrabold text-2xl text-white tracking-tight mt-0.5">
                         {content.instruction || 'Build the transformed sentence:'}
                       </h2>
                     </div>
                     {content.prompt_sentence && (
-                      <div className="hidden sm:flex flex-col bg-[#0a0a12] border border-slate-800 rounded-xl px-4 py-2 max-w-md">
+                      <div className="flex flex-col bg-[#0a0a12] border border-slate-800 rounded-xl px-4 py-2 max-w-md">
                         <span className="text-[10px] font-mono uppercase text-slate-400 font-semibold">Original Sentence</span>
                         <p className="font-headline font-bold text-base text-slate-300 italic line-through decoration-slate-600">
                           "{content.prompt_sentence}"
@@ -910,19 +910,19 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                   </div>
 
                   {/* Sentence Assembly Runway */}
-                  <div className="bg-[#141422]/80 border border-[#302840] rounded-3xl p-4 md:p-6 backdrop-blur-sm shadow-xl">
+                  <div className="bg-[#141422]/80 border border-[#302840] rounded-3xl p-6 backdrop-blur-sm shadow-xl">
                     <div className="flex items-center justify-between mb-3 px-1">
                       <span className="font-mono font-bold text-xs uppercase tracking-widest text-slate-400 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-[#00FFCC]" />
                         Sentence Assembly Runway
                       </span>
-                      <span className="font-mono text-xs text-slate-400 hidden sm:inline">
+                      <span className="font-mono text-xs text-slate-400 inline">
                         Tap words to place them in order
                       </span>
                     </div>
 
                     {/* Runway Slots Grid */}
-                    <div className="flex flex-wrap items-stretch gap-2.5 md:gap-3 min-h-[70px] md:min-h-[85px] bg-[#0a0a12]/60 rounded-2xl p-3 border border-slate-800/80 gl-dropzone">
+                    <div className="flex flex-wrap items-stretch gap-3 min-h-[85px] bg-[#0a0a12]/60 rounded-2xl p-3 border border-slate-800/80 gl-dropzone">
                       {Array.from({ length: Math.max(targetWords.length, buildTiles.length) }).map((_, i) => {
                         const isFilled = i < buildTiles.length;
                         const isActiveTarget = i === buildTiles.length;
@@ -933,7 +933,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                             <button
                               key={`slot-${i}`}
                               onClick={() => handleRemoveTile(i)}
-                              className="px-4 py-2.5 rounded-xl bg-[#1e1e30] border-2 border-amber-400/80 hover:border-amber-300 text-amber-200 font-headline font-extrabold text-lg md:text-xl flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.25)] active:scale-95 transition-all group gl-tile"
+                              className="px-4 py-2.5 rounded-xl bg-[#1e1e30] border-2 border-amber-400/80 hover:border-amber-300 text-amber-200 font-headline font-extrabold text-xl flex items-center gap-2 shadow-[0_0_15px_rgba(245,158,11,0.25)] active:scale-95 transition-all group gl-tile"
                               title="Tap to remove"
                             >
                               <span className="text-xs font-mono font-bold text-amber-400 bg-amber-400/20 w-5 h-5 rounded flex items-center justify-center">
@@ -949,7 +949,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                           return (
                             <div
                               key={`slot-${i}`}
-                              className="px-4 py-2.5 rounded-xl border-2 border-dashed border-[#00FFCC]/70 bg-[#00FFCC]/5 text-[#00FFCC] font-mono text-sm md:text-base font-bold flex items-center gap-2 animate-pulse gl-tile"
+                              className="px-4 py-2.5 rounded-xl border-2 border-dashed border-[#00FFCC]/70 bg-[#00FFCC]/5 text-[#00FFCC] font-mono text-base font-bold flex items-center gap-2 animate-pulse gl-tile"
                             >
                               <span className="w-5 h-5 rounded border border-[#00FFCC]/50 flex items-center justify-center text-xs">
                                 {i + 1}
@@ -975,7 +975,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                   </div>
 
                   {/* Word Bank Tray & Check Button */}
-                  <div className="bg-[#0a0a12] border border-[#302840] rounded-2xl p-4 md:p-5 shadow-2xl">
+                  <div className="bg-[#0a0a12] border border-[#302840] rounded-2xl p-5 shadow-2xl">
                     <div className="flex items-center justify-between mb-3 px-1">
                       <span className="font-mono font-bold text-xs uppercase tracking-widest text-slate-400">
                         Word Bank Tiles
@@ -985,7 +985,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2.5 md:gap-3 items-center">
+                    <div className="flex flex-wrap gap-3 items-center">
                       {transformBank.map((tile, idx) => {
                         const usedCount = buildTiles.filter((t) => t === tile).length;
                         const bankCount = transformBank.slice(0, idx + 1).filter((t) => t === tile).length;
@@ -997,7 +997,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                             key={`${tile}-${idx}`}
                             onClick={() => handleTileTap(tile)}
                             disabled={isUsed || phase !== 'answer' || resolvedRef.current}
-                            className={`px-4 py-2.5 md:py-3 rounded-xl font-headline font-bold text-lg md:text-xl transition-all gl-btn ${
+                            className={`px-4 py-3 rounded-xl font-headline font-bold text-xl transition-all gl-btn ${
                               isUsed
                                 ? 'bg-[#141422]/50 border border-[#302840] text-slate-600 cursor-not-allowed opacity-40'
                                 : showHint && idx === hintBankIdx
@@ -1013,7 +1013,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                       {buildTiles.length > 0 && (
                         <button
                           onClick={handleCheckAssembly}
-                          className="ml-auto glow-pink-btn px-6 md:px-8 py-2.5 md:py-3 rounded-xl bg-[#FF2D78] hover:bg-[#FF2D78]/90 text-white font-headline font-black text-base md:text-lg tracking-wider uppercase flex items-center gap-2 transition-all active:scale-95 shadow-[0_0_20px_rgba(255,45,120,0.45),0_4px_0_#b3004e] gl-btn"
+                          className="ml-auto glow-pink-btn px-8 py-3 rounded-xl bg-[#FF2D78] hover:bg-[#FF2D78]/90 text-white font-headline font-black text-lg tracking-wider uppercase flex items-center gap-2 transition-all active:scale-95 shadow-[0_0_20px_rgba(255,45,120,0.45),0_4px_0_#b3004e] gl-btn"
                         >
                           Check Sentence
                           <ArrowRight size={20} className="stroke-[3]" />
@@ -1028,18 +1028,18 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
               {currentItem.shape === 'error_spot' && (
                 <div className="w-full max-w-4xl mx-auto flex flex-col gap-4">
                   {/* Stem Card with Error Framing */}
-                  <div className="bg-[#141422] border border-[#302840] rounded-3xl p-5 md:p-7 shadow-2xl relative overflow-hidden gl-prompt-card">
-                    <div className="text-amber-400 font-bold text-xs md:text-sm mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
+                  <div className="bg-[#141422] border border-[#302840] rounded-3xl p-7 shadow-2xl relative overflow-hidden gl-prompt-card">
+                    <div className="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
                       <Zap size={16} className="text-amber-400" />
                       <span>{errorPromptText}</span>
                     </div>
-                    <p className="text-white text-2xl md:text-4xl font-extrabold tracking-wide leading-snug gl-sentence">
+                    <p className="text-white text-4xl font-extrabold tracking-wide leading-snug gl-sentence">
                       {content.sentence}
                     </p>
                   </div>
 
                   {/* Option Plates Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 gl-options-grid">
+                  <div className="grid grid-cols-2 gap-4 gl-options-grid">
                     {mcqOptions.map((option: string, idx: number) => {
                       const isEliminated = eliminated.includes(idx);
                       const isSelected = selectedOption === idx;
@@ -1051,7 +1051,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                           key={idx}
                           onClick={() => handleMcqSelect(idx)}
                           disabled={isEliminated || resolvedRef.current || phase !== 'answer'}
-                          className={`w-full p-4 md:p-5 rounded-2xl border-2 text-left text-lg md:text-2xl font-bold transition-all flex items-center justify-between gl-option-btn ${
+                          className={`w-full p-5 rounded-2xl border-2 text-left text-2xl font-bold transition-all flex items-center justify-between gl-option-btn ${
                             isEliminated
                               ? 'bg-[#0f0f1a] border-[#302840] text-slate-600 line-through opacity-40 cursor-not-allowed'
                               : isSelected
@@ -1061,8 +1061,8 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                               : 'bg-[#141422] border-[#302840] hover:border-[#00FFCC] hover:bg-[#1e1e30] text-white shadow-md active:scale-[0.99]'
                           } ${isRevealedCorrect ? 'ring-4 ring-amber-400 border-amber-400' : ''}`}
                         >
-                          <span className="flex items-center gap-3 md:gap-4">
-                            <span className={`w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center font-mono text-sm md:text-base font-black ${
+                          <span className="flex items-center gap-4">
+                            <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-mono text-base font-black ${
                               isSelected && isCorrect
                                 ? 'bg-[#00FFCC] text-slate-950'
                                 : isSelected && !isCorrect
@@ -1087,20 +1087,20 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
               {currentItem.shape === 'fill_blank' && (
                 <div className="w-full max-w-4xl mx-auto flex flex-col gap-4">
                   {/* Stem Card */}
-                  <div className="bg-[#141422] border border-[#302840] rounded-3xl p-5 md:p-7 shadow-2xl relative overflow-hidden gl-prompt-card">
-                    <div className="text-[#38BDF8] font-bold text-xs md:text-sm mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
+                  <div className="bg-[#141422] border border-[#302840] rounded-3xl p-7 shadow-2xl relative overflow-hidden gl-prompt-card">
+                    <div className="text-[#38BDF8] font-bold text-sm mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
                       <Zap size={16} className="text-[#38BDF8]" />
                       <span>Which sentence uses the rule correctly?</span>
                     </div>
                     {content.sentence_with_blank && (
-                      <p className="text-white text-2xl md:text-4xl font-extrabold tracking-wide leading-snug gl-sentence">
+                      <p className="text-white text-4xl font-extrabold tracking-wide leading-snug gl-sentence">
                         {content.sentence_with_blank}
                       </p>
                     )}
                   </div>
 
                   {/* Option Plates Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 gl-options-grid">
+                  <div className="grid grid-cols-2 gap-4 gl-options-grid">
                     {mcqOptions.map((option: string, idx: number) => {
                       const isEliminated = eliminated.includes(idx);
                       const isSelected = selectedOption === idx;
@@ -1112,7 +1112,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                           key={idx}
                           onClick={() => handleMcqSelect(idx)}
                           disabled={isEliminated || resolvedRef.current || phase !== 'answer'}
-                          className={`w-full p-4 md:p-5 rounded-2xl border-2 text-left text-lg md:text-2xl font-bold transition-all flex items-center justify-between gl-option-btn ${
+                          className={`w-full p-5 rounded-2xl border-2 text-left text-2xl font-bold transition-all flex items-center justify-between gl-option-btn ${
                             isEliminated
                               ? 'bg-[#0f0f1a] border-[#302840] text-slate-600 line-through opacity-40 cursor-not-allowed'
                               : isSelected
@@ -1122,8 +1122,8 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                               : 'bg-[#141422] border-[#302840] hover:border-[#00FFCC] hover:bg-[#1e1e30] text-white shadow-md active:scale-[0.99]'
                           } ${isRevealedCorrect ? 'ring-4 ring-amber-400 border-amber-400' : ''}`}
                         >
-                          <span className="flex items-center gap-3 md:gap-4">
-                            <span className={`w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center font-mono text-sm md:text-base font-black ${
+                          <span className="flex items-center gap-4">
+                            <span className={`w-9 h-9 rounded-xl flex items-center justify-center font-mono text-base font-black ${
                               isSelected && isCorrect
                                 ? 'bg-[#00FFCC] text-slate-950'
                                 : isSelected && !isCorrect
@@ -1154,7 +1154,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                   {currentItem.shape === 'transform' && (
                     <div className="text-xl font-bold text-amber-200 mb-1">{targetWords.join(' ')}</div>
                   )}
-                  {revealNote && <div className="text-sm md:text-base text-amber-300 font-medium">{revealNote}</div>}
+                  {revealNote && <div className="text-base text-amber-300 font-medium">{revealNote}</div>}
                 </motion.div>
               )}
             </motion.div>
@@ -1169,19 +1169,19 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
               exit={{ opacity: 0, scale: 0.9 }}
               className="w-full flex items-center justify-center"
             >
-              <div className="bg-[#0B132B] border-2 border-[#00FFCC] rounded-3xl p-8 md:p-12 text-center shadow-[0_0_40px_rgba(0,255,204,0.25)] max-w-xl w-full">
+              <div className="bg-[#0B132B] border-2 border-[#00FFCC] rounded-3xl p-12 text-center shadow-[0_0_40px_rgba(0,255,204,0.25)] max-w-xl w-full">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200 }}
-                  className="text-7xl md:text-8xl mb-4"
+                  className="text-8xl mb-4"
                 >
                   🎉
                 </motion.div>
-                <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-2">
+                <h2 className="text-4xl font-extrabold text-white mb-2">
                   {pickedStudent ? `${pickedStudent.name} cracked the grammar!` : 'Formula Mastered!'}
                 </h2>
-                <div className="text-xl md:text-2xl font-mono font-bold text-[#00FFCC] mb-4">
+                <div className="text-2xl font-mono font-bold text-[#00FFCC] mb-4">
                   +{lastAward} points
                 </div>
 
@@ -1189,7 +1189,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                 {fullTargetSentence && (
                   <button
                     onClick={handleHearIt}
-                    className="mt-2 px-6 py-2.5 bg-[#141422] hover:bg-[#1e1e30] border border-[#00FFCC]/50 text-[#00FFCC] hover:text-white rounded-xl font-bold inline-flex items-center gap-2 transition-all active:scale-95 shadow-md text-sm md:text-base"
+                    className="mt-2 px-6 py-2.5 bg-[#141422] hover:bg-[#1e1e30] border border-[#00FFCC]/50 text-[#00FFCC] hover:text-white rounded-xl font-bold inline-flex items-center gap-2 transition-all active:scale-95 shadow-md text-base"
                   >
                     <Volume2 size={20} /> Hear Sentence
                   </button>
@@ -1206,7 +1206,7 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                   initial={{ scale: 0, rotate: -10 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 14 }}
-                  className="text-[10rem] md:text-[11rem] leading-none mb-6 drop-shadow-[0_12px_24px_rgba(0,255,204,0.3)]"
+                  className="text-[11rem] leading-none mb-6 drop-shadow-[0_12px_24px_rgba(0,255,204,0.3)]"
                 >
                   🏆
                 </motion.div>
@@ -1214,11 +1214,11 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="text-5xl md:text-6xl font-extrabold text-white mb-3 tracking-tight"
+                  className="text-6xl font-extrabold text-white mb-3 tracking-tight"
                 >
                   Grammar Lab Complete!
                 </motion.h2>
-                <div className="text-xl md:text-2xl text-slate-400 font-mono">
+                <div className="text-2xl text-slate-400 font-mono">
                   All {TOTAL_ROUNDS} rounds practiced
                 </div>
               </div>
@@ -1231,8 +1231,8 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
       <footer className="w-full flex items-center justify-between text-xs text-slate-500 font-mono gl-footer">
         <div className="flex items-center gap-4">
           <span>16:9 Projector Mode · 8m Legibility</span>
-          <span className="hidden sm:inline">·</span>
-          <span className="hidden sm:inline">Controls: Remote / Hotkeys</span>
+          <span className="inline">·</span>
+          <span className="inline">Controls: Remote / Hotkeys</span>
         </div>
         {pickedStudent && phase !== 'complete' && (
           <div className="inline-flex items-center gap-2 bg-[#0B132B] border border-slate-800 px-4 py-1.5 rounded-full text-slate-300">

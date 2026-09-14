@@ -507,7 +507,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
   return (
     <div
       ref={containerRef}
-      className="h-full w-full bg-[#070c18] text-[#f1f5f9] font-sans flex flex-col justify-between select-none overflow-hidden relative antialiased p-4 lg:p-6"
+      className="h-full w-full bg-[#070c18] text-[#f1f5f9] font-sans flex flex-col justify-between select-none overflow-hidden relative antialiased p-6"
     >
       {/* Ambient background grid & glow */}
       <div className="absolute inset-0 pointer-events-none opacity-25">
@@ -522,9 +522,9 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
       </div>
 
       {/* TOP BAR: Safe 180px+ clearance from BoardShell's • PRACTICE badge */}
-      <header className="relative z-20 w-full flex items-center justify-between h-12 lg:h-14 shrink-0">
+      <header className="relative z-20 w-full flex items-center justify-between h-14 shrink-0">
         {/* Left Cluster: Clearance offset */}
-        <div className="flex items-center gap-3 pl-28 lg:pl-44 min-w-0">
+        <div className="flex items-center gap-3 pl-44 min-w-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111c3d]/90 border border-[#1e2d5a] shadow-sm shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] animate-pulse" />
             <span className="font-mono text-xs font-bold tracking-wider text-[#38bdf8] uppercase">
@@ -532,7 +532,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
             </span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0b132b] border border-[#1e2d5a] shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0b132b] border border-[#1e2d5a] shrink-0">
             <Search size={16} className="text-[#ff2e79]" />
             <span className="font-extrabold text-sm text-white tracking-tight">Word Detective</span>
             <span className="text-xs px-2 py-0.5 rounded bg-[#111c3d] border border-[#1e2d5a] text-slate-400 font-mono">
@@ -548,7 +548,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
           )}
 
           {pickedStudent && (
-            <div className="hidden md:flex items-center gap-2 bg-[#111c3d] border border-[#38bdf8]/40 rounded-full pl-1.5 pr-3 py-0.5 shrink-0">
+            <div className="flex items-center gap-2 bg-[#111c3d] border border-[#38bdf8]/40 rounded-full pl-1.5 pr-3 py-0.5 shrink-0">
               <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center font-extrabold text-[10px] text-[#070c18]">
                 {pickedStudent.name?.[0]?.toUpperCase() || 'S'}
               </div>
@@ -579,12 +579,12 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
       </header>
 
       {/* MAIN VIEWPORT ARENA: 16:9 projection, no vertical clipping */}
-      <main className="relative z-10 w-full flex-1 flex flex-col justify-center max-w-[1720px] mx-auto px-2 lg:px-4 py-1 gap-3 lg:gap-4 min-h-0">
+      <main className="relative z-10 w-full flex-1 flex flex-col justify-center max-w-[1720px] mx-auto px-4 py-1 gap-4 min-h-0">
         {/* CLUE PROMPT BANNER */}
-        <div className="w-full bg-gradient-to-r from-[#111c3d]/90 via-[#0b132b] to-[#111c3d]/90 border border-[#1e2d5a] rounded-2xl px-5 lg:px-7 py-3 flex items-center justify-between shadow-2xl relative overflow-hidden shrink-0">
+        <div className="w-full bg-gradient-to-r from-[#111c3d]/90 via-[#0b132b] to-[#111c3d]/90 border border-[#1e2d5a] rounded-2xl px-7 py-3 flex items-center justify-between shadow-2xl relative overflow-hidden shrink-0">
           <div className="flex items-center gap-4 min-w-0">
             <div
-              className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 ${
+              className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 ${
                 phase === 'revealing' || phase === 'feedback'
                   ? 'bg-[#10b981]/20 border border-[#10b981]/50 text-[#10b981]'
                   : 'bg-[#38bdf8]/10 border border-[#38bdf8]/40 text-[#38bdf8]'
@@ -595,7 +595,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
 
             <div className="min-w-0">
               <div className="flex items-center gap-2 truncate">
-                <span className="text-[11px] lg:text-xs uppercase tracking-widest font-mono font-semibold text-[#38bdf8]">
+                <span className="text-xs uppercase tracking-widest font-mono font-semibold text-[#38bdf8]">
                   {phase === 'revealing' || phase === 'feedback' ? 'CASE SOLVED' : 'MYSTERY CLUE'}
                 </span>
                 <span className="text-xs text-slate-400 font-sans truncate">
@@ -605,7 +605,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
 
               {/* CLUE TEXT: Strictly English, Zero Chinese (§4.e 1) */}
               <div className="flex items-baseline gap-3 mt-0.5 truncate">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight truncate drop-shadow-[0_2px_12px_rgba(56,189,248,0.25)]">
+                <h1 className="text-4xl font-extrabold text-white tracking-tight truncate drop-shadow-[0_2px_12px_rgba(56,189,248,0.25)]">
                   {currentItem.exerciseType === 'SPELL_CLOZE' && (phase === 'revealing' || phase === 'feedback')
                     ? currentItem.sentence.replace('___', currentItem.options[currentItem.correctIndex])
                     : currentItem.sentence}
@@ -618,10 +618,10 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={playAudio}
-              className="inline-flex items-center gap-2 px-3.5 lg:px-4 py-2 rounded-full bg-[#38bdf8]/15 border border-[#38bdf8]/50 text-[#38bdf8] text-xs font-bold tracking-wide hover:bg-[#38bdf8]/25 transition-all shadow-[0_0_16px_rgba(56,189,248,0.3)] cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#38bdf8]/15 border border-[#38bdf8]/50 text-[#38bdf8] text-xs font-bold tracking-wide hover:bg-[#38bdf8]/25 transition-all shadow-[0_0_16px_rgba(56,189,248,0.3)] cursor-pointer"
             >
               <Volume2 size={16} />
-              <span className="hidden sm:inline">HEAR CLUE</span>
+              <span className="inline">HEAR CLUE</span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#070c18] text-[#38bdf8] border border-[#38bdf8]/40">
                 SPACE
               </span>
@@ -638,7 +638,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
 
         {/* 1x4 HORIZONTAL CARD ROW (Stitch 2-feedback.html, §4.e 2) */}
         {/* Replaces the 2x2 vertical stack, utilizing full 16:9 width without cropping */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-5 w-full items-stretch min-h-0 flex-1">
+        <div className="grid grid-cols-4 gap-5 w-full items-stretch min-h-0 flex-1">
           {currentItem.options.map((option, idx) => {
             const isCorrect = idx === currentItem.correctIndex;
             const isSelected = selectedWord === idx;
@@ -716,11 +716,11 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
                   </div>
                 ) : (
                   /* Text Option Card (for SPELL_CLOZE, MEANING_MATCH) */
-                  <div className="flex-1 flex flex-col justify-center items-center p-4 lg:p-6 text-center">
+                  <div className="flex-1 flex flex-col justify-center items-center p-6 text-center">
                     <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-1">
                       OPTION {String.fromCharCode(65 + idx)}
                     </span>
-                    <span className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight">
+                    <span className="text-3xl font-extrabold tracking-tight">
                       {option}
                     </span>
                     {isEliminated && (
@@ -735,7 +735,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
                 {isImageTask && (
                   <div className="p-3 bg-[#111c3d] border-t border-[#1e2d5a]/60 flex items-center justify-between shrink-0">
                     <div>
-                      <h3 className="text-sm lg:text-base font-extrabold text-white tracking-wide truncate">
+                      <h3 className="text-base font-extrabold text-white tracking-wide truncate">
                         {isCorrect && (phase === 'revealing' || phase === 'feedback')
                           ? currentItem.sentence
                           : `Evidence ${String.fromCharCode(65 + idx)}`}
@@ -769,7 +769,7 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
       </main>
 
       {/* BOTTOM BAR: Auto-advance status / step dots / manual next */}
-      <footer className="relative z-20 w-full h-14 lg:h-16 shrink-0 bg-[#0b132b]/90 border-t border-[#1e2d5a] rounded-2xl px-4 lg:px-6 flex items-center justify-between gap-4 shadow-2xl">
+      <footer className="relative z-20 w-full h-16 shrink-0 bg-[#0b132b]/90 border-t border-[#1e2d5a] rounded-2xl px-6 flex items-center justify-between gap-4 shadow-2xl">
         {/* Left: Auto-advancing status or round progress */}
         <div className="flex items-center gap-3">
           {phase === 'revealing' || phase === 'feedback' ? (

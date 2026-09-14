@@ -567,26 +567,26 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
   const bet2 = bet === 2;
 
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-14 shrink-0">
       <div className="flex items-center gap-2 min-w-0">
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FF2E79]/15 border border-[#FF2E79]/50 shrink-0">
           <Zap size={14} className="text-[#FF2E79]" />
-          <span className="vb-mono text-[10px] lg:text-xs font-black tracking-widest text-[#FF2E79] whitespace-nowrap">VOCAB BLITZ</span>
+          <span className="vb-mono text-xs font-black tracking-widest text-[#FF2E79] whitespace-nowrap">VOCAB BLITZ</span>
         </div>
-        <span className="vb-mono text-[10px] lg:text-xs text-slate-400 font-bold whitespace-nowrap">
+        <span className="vb-mono text-xs text-slate-400 font-bold whitespace-nowrap">
           {phase === 'bet' ? (state.quickWheelWinner ? 'Confidence gate' : 'Class Blitz') : `Q ${currentQIdx + 1}/${questions.length}`}
         </span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {phase === 'question' && bet2 && stealBanner?.kind !== 'active' && (
           <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border-2 border-orange-500 animate-pulse whitespace-nowrap">
-            <span className="vb-mono text-[10px] lg:text-xs font-black text-orange-400">2X LOCKED</span>
+            <span className="vb-mono text-xs font-black text-orange-400">2X LOCKED</span>
           </span>
         )}
         {streak > 1 && (
           <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#FF2E79]/10 border border-[#FF2E79]/40 whitespace-nowrap">
             <Flame size={12} className="text-[#FF2E79]" />
-            <span className="vb-mono text-[10px] lg:text-xs font-black text-[#FF2E79]">{streak} IN A ROW</span>
+            <span className="vb-mono text-xs font-black text-[#FF2E79]">{streak} IN A ROW</span>
           </span>
         )}
       </div>
@@ -623,7 +623,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B] to-transparent" />
             </div>
             {option.label && (
-              <span className={`shrink-0 h-7 lg:h-11 px-3 flex items-center vb-mono font-bold text-xs lg:text-base border-t
+              <span className={`shrink-0 h-11 px-3 flex items-center vb-mono font-bold text-base border-t
                 ${solved && isCorrect ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                   : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40 text-[#7DD3FC]' : 'bg-[#111C3D] border-slate-700/60 text-white'}`}>
                 {option.label}
@@ -631,15 +631,15 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
             )}
           </>
         ) : (
-          <span className={`flex-1 min-h-0 flex items-center justify-center px-3 py-1.5 lg:px-4 lg:py-3 text-center font-bold
-            ${currentQuestion.options.length > 2 ? 'text-base lg:text-2xl' : 'text-xl lg:text-3xl'}
+          <span className={`flex-1 min-h-0 flex items-center justify-center px-4 py-3 text-center font-bold
+            ${currentQuestion.options.length > 2 ? 'text-2xl' : 'text-3xl'}
             ${solved && isCorrect ? 'text-emerald-300' : revealCorrect && isCorrect ? 'text-amber-300' : isSelected ? 'text-[#7DD3FC]' : 'text-white'}`}>
             {option.label}
           </span>
         )}
         {solved && isCorrect && (
           <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }}
-            className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500 text-slate-950 vb-mono text-[8px] lg:text-[9px] font-black tracking-wider uppercase">
+            className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500 text-slate-950 vb-mono text-[9px] font-black tracking-wider uppercase">
             <Check size={11} strokeWidth={4} /> Correct
           </motion.span>
         )}
@@ -653,7 +653,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="vb-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 bg-[#070C18] relative overflow-hidden">
+    <div className="vb-root h-full w-full flex flex-col gap-2.5 p-4 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .vb-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .vb-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -678,15 +678,15 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
               stealBanner.kind === 'stolen' ? 'bg-emerald-950/70 border-emerald-400/70' : 'bg-purple-950/70 border-purple-400/70'
             }`}>
             {stealBanner.kind === 'offer' && (
-              <span className="text-lg lg:text-2xl font-black text-purple-200 animate-pulse">STEAL CHANCE! Pick the stealer!</span>
+              <span className="text-2xl font-black text-purple-200 animate-pulse">STEAL CHANCE! Pick the stealer!</span>
             )}
             {stealBanner.kind === 'active' && (
-              <span className="text-lg lg:text-2xl font-black text-purple-200">
+              <span className="text-2xl font-black text-purple-200">
                 {stealBanner.name} — steal for <span className="text-amber-300">HALF</span> points!
               </span>
             )}
             {stealBanner.kind === 'stolen' && (
-              <span className="text-xl lg:text-3xl font-black text-emerald-300">STOLEN! {stealBanner.name} +{stealBanner.points}</span>
+              <span className="text-3xl font-black text-emerald-300">STOLEN! {stealBanner.name} +{stealBanner.points}</span>
             )}
           </motion.div>
         )}
@@ -697,22 +697,22 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
         {phase === 'bet' && currentQuestion && (
           !state.quickWheelWinner ? (
             <motion.div key="choral-start" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-4 text-center">
-              <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center shadow-[0_0_24px_-4px_rgba(56,189,248,0.5)]">
+              className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 text-center">
+              <div className="w-20 h-20 rounded-full bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center shadow-[0_0_24px_-4px_rgba(56,189,248,0.5)]">
                 <Zap size={36} className="text-sky-400" />
               </div>
               <div>
-                <h2 className="text-2xl lg:text-4xl font-black text-white">Class Choral Blitz</h2>
-                <p className="text-slate-400 text-xs lg:text-base mt-1">Whole class answers together!</p>
+                <h2 className="text-4xl font-black text-white">Class Choral Blitz</h2>
+                <p className="text-slate-400 text-base mt-1">Whole class answers together!</p>
               </div>
               <button onClick={() => { setBet(1); setPhase('question'); }}
-                className="px-8 py-2.5 lg:py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-base lg:text-lg transition-all active:scale-95 shadow-[0_0_20px_-4px_rgba(56,189,248,0.6)]">
+                className="px-8 py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-lg transition-all active:scale-95 shadow-[0_0_20px_-4px_rgba(56,189,248,0.6)]">
                 Start Blitz
               </button>
             </motion.div>
           ) : (
             <motion.div key="bet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex-1 min-h-0 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 lg:gap-7">
+              className="flex-1 min-h-0 grid grid-cols-[1fr_auto_1fr] items-stretch gap-7">
               {([
                 { b: 1 as const, label: 'SAFE PLAY', mult: '1x', tone: 'sky', tag: 'Standard sprint · steady climb',
                   reward: 'Standard points per correct answer', risk: `−${MISTAKE_PENALTY} pts on a miss` },
@@ -720,35 +720,35 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
                   reward: 'DOUBLE points if correct', risk: `−${MISTAKE_PENALTY * 2} pts if wrong` },
               ] as const).map((pod) => (
                 <section key={pod.b} onClick={() => handleBetSelect(pod.b)}
-                  className={`relative rounded-2xl border-2 p-2.5 lg:p-6 flex flex-col justify-between min-h-0 cursor-pointer overflow-hidden transition-all active:scale-[0.99]
+                  className={`relative rounded-2xl border-2 p-6 flex flex-col justify-between min-h-0 cursor-pointer overflow-hidden transition-all active:scale-[0.99]
                     ${pod.tone === 'pink' ? 'border-[#FF2E79]/60 bg-[#111C3D]' : 'border-[#38BDF8]/50 bg-[#111C3D]'} hover:shadow-[0_0_30px_-6px_${pod.tone === 'pink' ? 'rgba(255,46,121,0.5)' : 'rgba(56,189,248,0.5)'}]`}>
                   <div className={`absolute -top-14 ${pod.tone === 'pink' ? '-right-14' : '-left-14'} w-36 h-36 rounded-full blur-3xl pointer-events-none ${pod.tone === 'pink' ? 'bg-[#FF2E79]/15' : 'bg-[#38BDF8]/15'}`} />
                   <div className="relative z-10 flex items-center justify-between gap-2">
-                    <span className={`px-2 py-0.5 rounded-full border vb-mono text-[8px] lg:text-[10px] font-bold uppercase tracking-widest truncate
+                    <span className={`px-2 py-0.5 rounded-full border vb-mono text-[10px] font-bold uppercase tracking-widest truncate
                       ${pod.tone === 'pink' ? 'bg-[#FF2E79]/10 border-[#FF2E79]/50 text-[#FF2E79]' : 'bg-[#38BDF8]/10 border-[#38BDF8]/50 text-[#7DD3FC]'}`}>
                       {pod.tag}
                     </span>
-                    <span className={`vb-mono text-[9px] lg:text-xs font-bold ${pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'} shrink-0`}>
+                    <span className={`vb-mono text-xs font-bold ${pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'} shrink-0`}>
                       KEY {pod.b}
                     </span>
                   </div>
-                  <div className="relative z-10 text-center my-0.5 lg:my-3">
+                  <div className="relative z-10 text-center my-3">
                     <div className={`font-black tracking-tighter leading-none ${pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'}
-                      text-4xl lg:text-8xl`}>
+                      text-8xl`}>
                       {pod.mult}
                     </div>
-                    <h2 className="text-base lg:text-3xl font-extrabold text-white tracking-tight">{pod.label}</h2>
+                    <h2 className="text-3xl font-extrabold text-white tracking-tight">{pod.label}</h2>
                   </div>
-                  <div className="relative z-10 flex flex-col gap-1 lg:gap-2.5">
-                    <div className="flex items-center gap-2 px-2.5 lg:px-4 py-1 lg:py-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                  <div className="relative z-10 flex flex-col gap-2.5">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700">
                       <TrendingUp size={14} className={pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'} />
-                      <span className="text-xs lg:text-base font-bold text-white truncate">{pod.reward}</span>
+                      <span className="text-base font-bold text-white truncate">{pod.reward}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2.5 lg:px-4 py-1 lg:py-2 rounded-xl bg-slate-800/60 border border-slate-700">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/60 border border-slate-700">
                       <TrendingDown size={14} className="text-slate-400" />
-                      <span className="text-xs lg:text-base font-bold text-slate-300 truncate">{pod.risk}</span>
+                      <span className="text-base font-bold text-slate-300 truncate">{pod.risk}</span>
                     </div>
-                    <button className={`w-full py-2 lg:py-4 rounded-xl border-2 font-extrabold text-sm lg:text-xl tracking-wide uppercase transition-all active:scale-95
+                    <button className={`w-full py-4 rounded-xl border-2 font-extrabold text-xl tracking-wide uppercase transition-all active:scale-95
                       ${pod.tone === 'pink'
                         ? 'bg-slate-800 hover:bg-[#FF2E79] border-[#FF2E79] text-[#FF2E79] hover:text-white'
                         : 'bg-slate-800 hover:bg-[#38BDF8] border-[#38BDF8] text-[#7DD3FC] hover:text-slate-900'}`}>
@@ -760,8 +760,8 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
               {/* OR divider */}
               <div className="relative flex flex-col items-center justify-center py-2">
                 <div className="w-0.5 flex-1 bg-gradient-to-b from-transparent via-slate-600 to-transparent" />
-                <div className="w-9 h-9 lg:w-14 lg:h-14 my-1 rounded-full bg-[#111C3D] border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)] shrink-0">
-                  <span className="font-black text-amber-300 text-xs lg:text-lg">OR</span>
+                <div className="w-14 h-14 my-1 rounded-full bg-[#111C3D] border-2 border-amber-400/80 flex items-center justify-center shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)] shrink-0">
+                  <span className="font-black text-amber-300 text-lg">OR</span>
                 </div>
                 <div className="w-0.5 flex-1 bg-gradient-to-b from-transparent via-slate-600 to-transparent" />
               </div>
@@ -772,35 +772,35 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
         {/* ═══ SPRINT (design #2): radial clock + prompt + answer grid ═══ */}
         {phase === 'question' && (
           <motion.div key={`q-${currentQIdx}`} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
-            className="flex-1 min-h-0 flex flex-col gap-1.5 lg:gap-3">
+            className="flex-1 min-h-0 flex flex-col gap-3">
             {/* Clock strip */}
-            <div className="shrink-0 flex items-center justify-between gap-3 px-3 lg:px-4 py-1.5 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70">
+            <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-1.5 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70">
               {stealBanner?.kind === 'active' ? (
-                <span className="vb-mono text-sm lg:text-lg font-black text-purple-300 animate-pulse">STEAL — untimed!</span>
+                <span className="vb-mono text-lg font-black text-purple-300 animate-pulse">STEAL — untimed!</span>
               ) : (
                 <div className="flex items-center gap-2.5">
-                  <div className="relative w-8 h-8 lg:w-11 lg:h-11 flex items-center justify-center">
-                    <svg className="w-8 h-8 lg:w-11 lg:h-11 -rotate-90" viewBox="0 0 36 36">
+                  <div className="relative w-11 h-11 flex items-center justify-center">
+                    <svg className="w-11 h-11 -rotate-90" viewBox="0 0 36 36">
                       <circle cx="18" cy="18" fill="none" r="15.5" stroke="#1e293b" strokeWidth="3.5" />
                       <circle cx="18" cy="18" fill="none" r="15.5" stroke={ringColor}
                         strokeDasharray="97.4" strokeDashoffset={97.4 * (1 - timeFrac)} strokeLinecap="round" strokeWidth="3.5"
                         style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }} />
                     </svg>
-                    <span className="absolute vb-mono text-[10px] lg:text-sm font-black" style={{ color: ringColor }}>
+                    <span className="absolute vb-mono text-sm font-black" style={{ color: ringColor }}>
                       {timeRemaining}s
                     </span>
                   </div>
-                  <span className="vb-mono text-[9px] lg:text-[10px] uppercase tracking-widest text-slate-500 font-bold hidden sm:block">Speed clock</span>
+                  <span className="vb-mono text-[10px] uppercase tracking-widest text-slate-500 font-bold block">Speed clock</span>
                 </div>
               )}
               <div className="flex items-center gap-2">
                 {retryUsed && stealBanner?.kind !== 'active' && (
-                  <span className="vb-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-950/50 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+                  <span className="vb-mono text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-950/50 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
                     Retry · 50% points
                   </span>
                 )}
                 {bet2 && (
-                  <span className="vb-mono text-[9px] lg:text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/50 border border-orange-500/50 px-2.5 py-0.5 rounded-full">
+                  <span className="vb-mono text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/50 border border-orange-500/50 px-2.5 py-0.5 rounded-full">
                     2x multiplier locked
                   </span>
                 )}
@@ -808,23 +808,23 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
             </div>
 
             {/* Prompt plate */}
-            <div className="shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-4 lg:px-6 py-2 lg:py-4 flex items-center justify-center min-h-9 lg:min-h-16">
-              <p className="text-base lg:text-2xl font-bold text-white text-center">{currentQuestion.prompt}</p>
+            <div className="shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-6 py-4 flex items-center justify-center min-h-16">
+              <p className="text-2xl font-bold text-white text-center">{currentQuestion.prompt}</p>
             </div>
 
             {/* Answer grid (landscape) */}
-            <div className={`flex-1 min-h-0 grid gap-2 lg:gap-4 ${currentQuestion.options.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
+            <div className={`flex-1 min-h-0 grid gap-4 ${currentQuestion.options.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
               {currentQuestion.options.map((option, idx) => renderOption(option, idx))}
             </div>
 
             {/* Reveal beat */}
             {revealCorrect && (
               <div className="shrink-0 text-center pb-0.5">
-                <div className="text-sm lg:text-xl font-bold text-amber-400">
+                <div className="text-xl font-bold text-amber-400">
                   {timedOut ? "Time's up! The answer was:" : 'The answer was:'}
                 </div>
                 {currentQuestion.explanation && (
-                  <div className="text-xs lg:text-sm text-slate-400 mt-0.5">{currentQuestion.explanation}</div>
+                  <div className="text-sm text-slate-400 mt-0.5">{currentQuestion.explanation}</div>
                 )}
               </div>
             )}
@@ -836,18 +836,18 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
           <motion.div key="feedback" initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
             className="flex-1 flex flex-col items-center justify-center gap-3">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}
-              className="w-20 h-20 lg:w-28 lg:h-28 rounded-full bg-emerald-500/15 border-2 border-emerald-400 flex items-center justify-center vb-glow-correct">
+              className="w-28 h-28 rounded-full bg-emerald-500/15 border-2 border-emerald-400 flex items-center justify-center vb-glow-correct">
               <Check size={44} className="text-emerald-400" strokeWidth={3} />
             </motion.div>
-            <h2 className="text-2xl lg:text-4xl font-black text-white">
+            <h2 className="text-4xl font-black text-white">
               {pickedStudent ? `${pickedStudent.name} nailed it!` : 'Excellent!'}
             </h2>
             <div className="flex items-center gap-2">
-              <span className="px-4 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-400/60 vb-mono font-black text-emerald-300 text-lg lg:text-2xl">
+              <span className="px-4 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-400/60 vb-mono font-black text-emerald-300 text-2xl">
                 +{lastAward} pts
               </span>
               {bet2 && stealBanner?.kind !== 'stolen' && (
-                <span className="px-3 py-1.5 rounded-full bg-orange-950/60 border border-orange-500/50 vb-mono font-black text-orange-300 text-sm lg:text-lg">
+                <span className="px-3 py-1.5 rounded-full bg-orange-950/60 border border-orange-500/50 vb-mono font-black text-orange-300 text-lg">
                   2x bet
                 </span>
               )}
@@ -859,10 +859,10 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
         {phase === 'complete' && (
           <motion.div key="complete" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
             className="flex-1 flex flex-col items-center justify-center gap-4">
-            <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-amber-500/15 border-2 border-amber-400 flex items-center justify-center shadow-[0_0_30px_-6px_rgba(245,158,11,0.6)]">
+            <div className="w-28 h-28 rounded-full bg-amber-500/15 border-2 border-amber-400 flex items-center justify-center shadow-[0_0_30px_-6px_rgba(245,158,11,0.6)]">
               <Trophy size={48} className="text-amber-400" />
             </div>
-            <h2 className="text-3xl lg:text-5xl font-black text-white">Vocab Blitz Complete!</h2>
+            <h2 className="text-5xl font-black text-white">Vocab Blitz Complete!</h2>
             <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-[#FF2E79]/10 border border-[#FF2E79]/40">
               <Flame size={18} className="text-[#FF2E79]" />
               <span className="text-lg font-bold text-[#FF2E79]">Final streak: {streak}</span>

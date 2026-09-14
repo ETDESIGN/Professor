@@ -578,7 +578,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
   return (
     <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-3 select-none overflow-hidden relative font-sans">
       {/* ── TOP HUD HEADER STRIP ── */}
-      <header className="w-full flex items-center justify-between px-4 py-2 bg-[#0B132B]/95 border border-[#1E2D5A] rounded-2xl backdrop-blur-md shrink-0 shadow-lg z-20 pl-28 lg:pl-44">
+      <header className="w-full flex items-center justify-between px-4 py-2 bg-[#0B132B]/95 border border-[#1E2D5A] rounded-2xl backdrop-blur-md shrink-0 shadow-lg z-20 pl-44">
         {/* Left: Phase Pill & Round Detail */}
         <div className="flex items-center gap-3">
           <div
@@ -606,7 +606,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#0E1733] border border-[#1E2D5A] rounded-lg text-xs font-mono text-slate-300">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#0E1733] border border-[#1E2D5A] rounded-lg text-xs font-mono text-slate-300">
             <span className="text-slate-400 font-bold">R{round + 1}/3:</span>
             <span className="text-sky-300 font-semibold">{cfg.title}</span>
           </div>
@@ -761,7 +761,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
                       {isWordMode ? (
                         /* Word Focus Card */
                         <div className="flex-1 w-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#0E1733] to-[#111C3D]">
-                          <span className="text-2xl lg:text-3xl font-black text-white tracking-wide font-sans group-hover:text-sky-300 transition-colors">
+                          <span className="text-3xl font-black text-white tracking-wide font-sans group-hover:text-sky-300 transition-colors">
                             {card.word.toUpperCase()}
                           </span>
                           <span className="font-mono text-xs text-sky-400 mt-1 font-semibold">
@@ -779,7 +779,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
                             />
                           </div>
                           <div className="h-10 px-3.5 bg-[#0E1733] border-t border-[#1E2D5A] flex items-center justify-between shrink-0">
-                            <span className="font-sans text-base lg:text-lg font-black tracking-wide text-white group-hover:text-sky-300 transition-colors">
+                            <span className="font-sans text-lg font-black tracking-wide text-white group-hover:text-sky-300 transition-colors">
                               {card.word.toUpperCase()}
                             </span>
                             <span className="font-mono text-xs text-sky-400 font-bold">
@@ -807,7 +807,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
             >
               <div className="text-center px-12 py-10 rounded-3xl bg-gradient-to-br from-[#0B132B] to-[#1E2D5A] border-2 border-pink-500 shadow-[0_0_40px_rgba(255,46,121,0.35)]">
                 <div className="text-6xl mb-3 animate-bounce">👉</div>
-                <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight tracking-wide mb-2">
+                <h2 className="text-5xl font-extrabold text-white leading-tight tracking-wide mb-2">
                   Everyone — Point at the Missing Card!
                 </h2>
                 <div className="text-base text-pink-300 font-mono font-bold">
@@ -844,7 +844,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
                         <div className="w-12 h-12 rounded-full bg-sky-400/15 border border-sky-400 flex items-center justify-center mb-1 shadow-[0_0_15px_rgba(56,189,248,0.35)]">
                           <span className="font-extrabold text-2xl text-sky-300">?</span>
                         </div>
-                        <span className="font-sans font-bold text-sm lg:text-base text-sky-200 tracking-wider">
+                        <span className="font-sans font-bold text-base text-sky-200 tracking-wider">
                           TARGET #0{idx + 1}
                         </span>
                         <span className="font-mono text-[11px] text-slate-400 mt-0.5">
@@ -868,7 +868,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
                       </div>
                       {isWordMode ? (
                         <div className="flex-1 w-full flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#0E1733] to-[#111C3D]">
-                          <span className="text-xl lg:text-2xl font-black text-white tracking-wide font-sans">
+                          <span className="text-2xl font-black text-white tracking-wide font-sans">
                             {card.word.toUpperCase()}
                           </span>
                         </div>
@@ -882,7 +882,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
                             />
                           </div>
                           <div className="h-9 px-3.5 bg-[#0E1733] border-t border-[#1E2D5A] flex items-center justify-between shrink-0">
-                            <span className="font-sans text-sm lg:text-base font-black tracking-wide text-white">
+                            <span className="font-sans text-base font-black tracking-wide text-white">
                               {card.word.toUpperCase()}
                             </span>
                             <span className="font-mono text-xs text-sky-400">0{idx + 1}</span>
@@ -932,7 +932,7 @@ const BoardMemoryLab: React.FC<{ data?: any }> = () => {
                             <span className="w-7 h-7 rounded-lg bg-[#070C18] border border-white/10 font-mono text-xs font-black text-sky-400 flex items-center justify-center">
                               {OPTION_KEYS[idx]}
                             </span>
-                            <span className="font-sans text-base lg:text-lg font-black text-white tracking-wide">
+                            <span className="font-sans text-lg font-black text-white tracking-wide">
                               {cand.word.toUpperCase()}
                             </span>
                           </div>

@@ -462,7 +462,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
   const pairCount = matchPairs.length;
 
   return (
-    <div className="fm-root h-full w-full flex flex-col gap-1.5 lg:gap-2 p-2 lg:p-3.5 bg-[#070C18] relative overflow-hidden">
+    <div className="fm-root h-full w-full flex flex-col gap-2 p-3.5 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .fm-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .fm-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -478,20 +478,20 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
       `}</style>
 
-      {/* Header — compressed per the Stitch revision; pl-32/lg:pl-48 clears
+      {/* Header — compressed per the Stitch revision; pl-48 clears
           BoardShell's phase pill. */}
-      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-10 lg:h-13 shrink-0">
+      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-13 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-lg bg-gradient-to-br from-[#FF2E79] to-rose-600 flex items-center justify-center font-black text-white text-[10px] lg:text-xs shadow-md shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF2E79] to-rose-600 flex items-center justify-center font-black text-white text-xs shadow-md shrink-0">
             FM
           </div>
-          <h1 className="text-base lg:text-xl font-extrabold tracking-tight text-white truncate">Flash Match</h1>
-          <span className="fm-mono px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] lg:text-xs font-bold text-slate-300 whitespace-nowrap">
+          <h1 className="text-xl font-extrabold tracking-tight text-white truncate">Flash Match</h1>
+          <span className="fm-mono px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-bold text-slate-300 whitespace-nowrap">
             ROUND <span className="text-white">{roundIndex}/{TOTAL_ROUNDS}</span>
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="fm-mono px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 flex items-center gap-1.5 whitespace-nowrap text-[10px] lg:text-xs">
+          <span className="fm-mono px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 flex items-center gap-1.5 whitespace-nowrap text-xs">
             <span className="uppercase text-slate-400">Matched</span>
             <span className="font-bold text-amber-300 px-1 py-px rounded bg-amber-400/15 border border-amber-400/30">
               {matchedCount}/{pairCount}
@@ -505,11 +505,11 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       </header>
 
       {/* Instruction banner */}
-      <div className="w-full shrink-0 py-1 lg:py-1.5 px-3.5 rounded-xl bg-[#0B132B]/90 border border-slate-800 flex items-center justify-between gap-3">
-        <p className="text-xs lg:text-sm text-slate-300 truncate">
+      <div className="w-full shrink-0 py-1.5 px-3.5 rounded-xl bg-[#0B132B]/90 border border-slate-800 flex items-center justify-between gap-3">
+        <p className="text-sm text-slate-300 truncate">
           <span className="text-white font-bold">{matchedCount === 0 ? 'Fresh deal!' : 'Keep going!'}</span> Tap a word, then tap its matching photo.
         </p>
-        <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 flex items-center gap-1.5 whitespace-nowrap">
+        <span className="fm-mono text-[10px] text-slate-500 flex items-center gap-1.5 whitespace-nowrap">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
           {pairCount} pairs hidden
         </span>
@@ -517,32 +517,32 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
 
       {/* Matching arena: two balanced columns, each a 2-col grid (3 rows for a
           6-pair deal — nothing clips, per the Stitch revision). */}
-      <main className={`w-full flex-1 min-h-0 grid gap-3 lg:gap-5 items-stretch ${pairCount > 4 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+      <main className={`w-full flex-1 min-h-0 grid gap-5 items-stretch ${pairCount > 4 ? 'grid-cols-2' : 'grid-cols-2'}`}>
         {/* Column A — word tablets */}
         <section className="h-full min-h-0 flex flex-col">
           <div className="flex items-center justify-between mb-1 px-1 shrink-0">
-            <span className="fm-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-[#38BDF8]">
+            <span className="fm-mono text-[10px] font-bold uppercase tracking-widest text-[#38BDF8]">
               Column A <span className="text-slate-500 normal-case">· words</span>
             </span>
-            <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 uppercase hidden sm:block">Tap word first</span>
+            <span className="fm-mono text-[10px] text-slate-500 uppercase block">Tap word first</span>
           </div>
-          <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 lg:gap-3.5">
+          <div className="flex-1 min-h-0 grid grid-cols-2 gap-3.5">
             {leftItems.map((item, i) => (
               <button key={item.id} onClick={() => handleLeftClick(item.id)} disabled={item.matched}
-                className={`relative rounded-xl border-2 px-2.5 lg:px-3.5 flex flex-col justify-center min-h-0 transition-all duration-200
+                className={`relative rounded-xl border-2 px-3.5 flex flex-col justify-center min-h-0 transition-all duration-200
                   ${item.matched ? 'border-emerald-500/40 bg-emerald-950/30 opacity-45'
                     : selectedLeft === item.id ? 'border-[#38BDF8] bg-[#38BDF8]/10 fm-glow-sky'
                     : 'border-slate-700 bg-[#111C3D] hover:border-[#38BDF8]/70'}`}>
-                <span className="fm-mono absolute top-1 left-1.5 text-[8px] lg:text-[9px] font-bold px-1.5 py-px rounded bg-slate-800/90 text-slate-500 border border-slate-700/60">
+                <span className="fm-mono absolute top-1 left-1.5 text-[9px] font-bold px-1.5 py-px rounded bg-slate-800/90 text-slate-500 border border-slate-700/60">
                   W{i + 1}
                 </span>
                 {item.kind === 'audio' ? (
                   <span className="flex items-center gap-2 py-1.5">
                     <Volume2 size={16} className="text-[#7DD3FC] shrink-0" />
-                    <span className="text-xs lg:text-sm font-bold text-[#7DD3FC]">Tap to hear</span>
+                    <span className="text-sm font-bold text-[#7DD3FC]">Tap to hear</span>
                   </span>
                 ) : (
-                  <span className={`font-extrabold tracking-wide truncate text-center ${pairCount > 4 ? 'text-base lg:text-xl' : 'text-xl lg:text-2xl'}
+                  <span className={`font-extrabold tracking-wide truncate text-center ${pairCount > 4 ? 'text-xl' : 'text-2xl'}
                     ${item.matched ? 'text-emerald-400' : selectedLeft === item.id ? 'text-[#7DD3FC]' : 'text-white'}`}>
                     {item.display}
                   </span>
@@ -556,12 +556,12 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         {/* Column B — photo tiles (landscape) */}
         <section className="h-full min-h-0 flex flex-col">
           <div className="flex items-center justify-between mb-1 px-1 shrink-0">
-            <span className="fm-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-[#FF2E79]">
+            <span className="fm-mono text-[10px] font-bold uppercase tracking-widest text-[#FF2E79]">
               Column B <span className="text-slate-500 normal-case">· photos</span>
             </span>
-            <span className="fm-mono text-[9px] lg:text-[10px] text-slate-500 uppercase hidden sm:block">Match the word</span>
+            <span className="fm-mono text-[10px] text-slate-500 uppercase block">Match the word</span>
           </div>
-          <div className="flex-1 min-h-0 grid grid-cols-2 gap-2 lg:gap-3.5">
+          <div className="flex-1 min-h-0 grid grid-cols-2 gap-3.5">
             {rightItems.map((item) => {
               const isHint = hintTileId === item.id;
               return (
@@ -576,7 +576,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
                     <img src={item.display} alt="" className="absolute inset-0 w-full h-full object-cover"
                       onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.15'; }} />
                   ) : (
-                    <span className="absolute inset-0 flex items-center justify-center font-bold text-slate-300 text-base lg:text-xl px-2 text-center">
+                    <span className="absolute inset-0 flex items-center justify-center font-bold text-slate-300 text-xl px-2 text-center">
                       {item.display}
                     </span>
                   )}
@@ -595,12 +595,12 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
       {/* Micro-explanation overlay (2nd miss feedback) */}
       {showMicroExplanation && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 pointer-events-none">
-          <div className="bg-[#111C3D] border-2 border-amber-400/60 p-6 lg:p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-fade-in max-w-md">
+          <div className="bg-[#111C3D] border-2 border-amber-400/60 p-8 rounded-3xl shadow-2xl flex flex-col items-center animate-fade-in max-w-md">
             <div className="flex items-center gap-2 mb-2">
               <Lightbulb size={20} className="text-amber-400" />
               <span className="fm-mono text-[10px] font-bold tracking-widest uppercase text-amber-300">Remember this pair</span>
             </div>
-            <p className="fm-mono text-2xl lg:text-3xl font-extrabold text-white">{showMicroExplanation.left.display}</p>
+            <p className="fm-mono text-3xl font-extrabold text-white">{showMicroExplanation.left.display}</p>
             <p className="text-lg text-slate-400 mt-1">= {showMicroExplanation.right.display}</p>
           </div>
         </div>
@@ -611,9 +611,9 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         <div
           onClick={advanceRound}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 cursor-pointer">
-          <div className="bg-[#111C3D] border-2 border-emerald-400/60 p-8 lg:p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
+          <div className="bg-[#111C3D] border-2 border-emerald-400/60 p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
             <Check size={52} className="text-emerald-400 mb-3" strokeWidth={4} />
-            <h2 className="text-2xl lg:text-3xl font-black text-white">Round {roundIndex} Complete!</h2>
+            <h2 className="text-3xl font-black text-white">Round {roundIndex} Complete!</h2>
             <p className="text-base text-slate-400 mt-1">Next round loading…</p>
           </div>
         </div>
@@ -624,14 +624,14 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
         <div
           onClick={() => setAllComplete(false)}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-[#111C3D] border-2 border-[#FF2E79]/60 p-8 lg:p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
+          <div className="bg-[#111C3D] border-2 border-[#FF2E79]/60 p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-bounce-subtle">
             <div className="w-24 h-24 bg-[#FF2E79]/15 text-[#FF2E79] rounded-full flex items-center justify-center mb-5">
               <Check size={56} strokeWidth={4} />
             </div>
-            <h2 className="text-3xl lg:text-5xl font-black text-white mb-2">
+            <h2 className="text-5xl font-black text-white mb-2">
               {pickedStudent ? `${pickedStudent.name} nailed it!` : 'All Matched!'}
             </h2>
-            <p className="text-lg lg:text-2xl text-slate-400">Great job connecting the pairs!</p>
+            <p className="text-2xl text-slate-400">Great job connecting the pairs!</p>
             <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
