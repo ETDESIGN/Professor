@@ -90,10 +90,12 @@ function difficultyFor(type: ExerciseType): number {
 // This is the semantic authority the deterministic builders cannot be
 // ("My birthday is on ___" fits both Wednesday and Tuesday). Non-fatal by
 // design — a null return triggers the deterministic fallback in the caller.
-const AI_GATE_TIMEOUT_MS = 25_000;
+const AI_GATE_TIMEOUT_MS = 45_000;
+const AI_GATE_CHUNK = 30; // per-call item count — one 116-item call timed out live (2026-09-14)
 const AI_GATE_MODEL = () => Deno.env.get('AI_MODEL_NAME') || 'deepseek/deepseek-chat';
 
 interface GateItem { i: number; type: string; question: string; options: string[]; correct: number }
+let gateLastError = '';
 
 async function aiValidateItems(items: GateItem[]): Promise<Map<number, boolean> | null> {
   const key = Deno.env.get('AI_API_KEY');
@@ -110,26 +112,41 @@ async function aiValidateItems(items: GateItem[]): Promise<Map<number, boolean> 
           {
             role: 'system',
             content:
-              'You are an ESL exam QA checker for 6-12 year old learners. For each question decide whether EXACTLY ONE option is a correct answer and every other option is clearly wrong. ok=false when more than one option could be correct, the question is unanswerable without outside information the learner does not have, any two options are effectively identical, or the marked correct option is actually wrong. Reply with STRICT JSON only, no prose: {"verdicts":[{"i":<id>,"ok":true|false}]}',
+              'You are a harsh ESL exam QA checker for 6-12 year old beginners. For each question, mentally list EVERY option a typical child could reasonably defend as a correct answer. The question is GOOD only if EXACTLY ONE option is defensible and every other option is clearly wrong for this sentence. ok=false when two or more options could both be correct (e.g. "My birthday is on ___" with two days of the week), when the answer is visible in the question, when any two options are effectively identical, or when the marked correct option is wrong. When in doubt, ok=false — an ambiguous question is worse than a dropped question. Reply with STRICT JSON only, no prose: {"verdicts":[{"i":<id>,"ok":true|false}]}',
           },
           { role: 'user', content: JSON.stringify({ questions: items }) },
         ],
-        max_tokens: 4000,
+        // Sized to the chunk (~12 verdict tokens/item): a flat 4000 got the
+        // call rejected with HTTP 402 when the account balance ran low
+        // (OpenRouter pre-checks max_tokens against affordable credits,
+        // found live 2026-09-14).
+        max_tokens: Math.max(600, Math.min(1500, items.length * 50)),
       }),
       signal: ctrl.signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 300);
+      gateLastError = `HTTP ${res.status}: ${body}`;
+      console.warn('[quality-gate] chunk rejected:', res.status, body);
+      return null;
+    }
     const json: any = await res.json();
     const text = String(json?.choices?.[0]?.message?.content || '');
     const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return null;
+    if (!match) {
+      gateLastError = `no JSON in reply: ${text.slice(0, 200)}`;
+      console.warn('[quality-gate] no JSON in model reply:', text.slice(0, 300));
+      return null;
+    }
     const parsed = JSON.parse(match[0]);
     const out = new Map<number, boolean>();
     for (const v of parsed?.verdicts || []) {
       if (typeof v?.i === 'number') out.set(v.i, v.ok !== false);
     }
     return out.size > 0 ? out : null;
-  } catch {
+  } catch (err: any) {
+    gateLastError = `${err?.name || 'error'}: ${err?.message || String(err).slice(0, 200)}`;
+    console.warn('[quality-gate] chunk failed:', err?.name, err?.message || String(err).slice(0, 200));
     return null; // timeout / parse failure / network — non-fatal
   } finally {
     clearTimeout(timer);
@@ -204,10 +221,14 @@ function buildVocabItems(unitId: string, objectiveId: string, v: any, siblings: 
     const clean = sanitizeConfusables(confusables);
     const unitWordNorms = new Set(unitWords.map((w) => normalizeForDedupe(String(w || ''))).filter(Boolean));
     const distractors = dedupeDistinct(word, clean).slice(0, 3);
-    const ambiguousRisk = distractors.some((d) => unitWordNorms.has(normalizeForDedupe(d)));
-    if (distractors.length >= 1) {
+    // No-blank guard: if the sentence doesn't contain the word verbatim
+    // (inflection drift like "ride bikes" vs "ride a bike"), blankOut is a
+    // no-op — the kid would see the answer in plain sight. Skip instead.
+    const blanked = blankOut(example, word);
+    if (distractors.length >= 1 && blanked !== example) {
+      const ambiguousRisk = distractors.some((d) => unitWordNorms.has(normalizeForDedupe(d)));
       const c = buildChoices(word, distractors, Math.min(4, distractors.length + 1));
-      push('SPELL_CLOZE', { sentence_with_blank: blankOut(example, word), ...c, ...(ambiguousRisk ? { needs_ai_check: true } : {}) });
+      push('SPELL_CLOZE', { sentence_with_blank: blanked, ...c, ...(ambiguousRisk ? { needs_ai_check: true } : {}) });
     }
   }
 
@@ -746,6 +767,17 @@ serve(async (req) => {
         return found.id;
       }
       const { data: inserted, error } = await sb.from('objectives').insert({ unit_id: unitId, type, target_value: target, ...(sourceStructureId ? { source_structure_id: sourceStructureId } : {}) }).select('id').single();
+      if ((error as any)?.code === '23505') {
+        // Lost an insert race with a concurrent generation run on the same
+        // unit (owner-triggered + scripted regen overlapping, found live
+        // 2026-09-14): adopt the winner's row instead of failing the run.
+        const { data: winner } = await sb.from('objectives').select('id').eq('unit_id', unitId).eq('type', type).eq('target_value', target).maybeSingle();
+        if (winner?.id) {
+          objectiveIdFor.set(key, winner.id);
+          existing.push({ id: winner.id, type, target_value: target });
+          return winner.id;
+        }
+      }
       if (error || !inserted) throw new Error(`objective insert failed: ${error?.message || 'no row'}`);
       objectiveIdFor.set(key, inserted.id);
       existing.push({ id: inserted.id, type, target_value: target });
@@ -1155,6 +1187,7 @@ serve(async (req) => {
     // (Wednesday↔Tuesday both fit "My birthday is on ___"). Non-fatal: when
     // the AI is unreachable, the deterministic fallback drops same-unit-
     // distractor clozes (the ambiguity signature) instead.
+    const gateStats: { checked: number; droppedAi: number; droppedFlagged: number; mode: string; lastError?: string } = { checked: 0, droppedAi: 0, droppedFlagged: 0, mode: 'skipped' };
     try {
       const GATED_TYPES = new Set(['SPELL_CLOZE', 'ERROR_SPOT', 'GRAMMAR_FILL', 'TRANSFORM', 'MEANING_MATCH', 'AUDIO_L1_SELECT', 'STORY_COMPREHENSION', 'WHO_SAID_IT']);
       const mcq: { row: PoolItemRow; q: GateItem }[] = [];
@@ -1174,23 +1207,51 @@ serve(async (req) => {
           },
         });
       }
-      const verdicts = await aiValidateItems(mcq.map((m) => m.q));
-      const doomed = new Set<PoolItemRow>();
-      let droppedAi = 0, droppedFallback = 0;
-      if (verdicts) {
-        for (const m of mcq) {
-          if (verdicts.get(m.q.i) === false) { doomed.add(m.row); droppedAi++; }
+      // Chunked so no single call outruns the model (a 116-item single call
+      // timed out live, 2026-09-14); chunks run 2-at-a-time so the gate stays
+      // under the 150s gateway idle limit (sequential 4×45s exceeded it).
+      // Verdict ids stay global; any successful chunk counts (partial
+      // coverage still beats the blunt fallback).
+      const chunks: GateItem[][] = [];
+      for (let i = 0; i < mcq.length; i += AI_GATE_CHUNK) {
+        chunks.push(mcq.slice(i, i + AI_GATE_CHUNK).map((m) => m.q));
+      }
+      const verdicts = new Map<number, boolean>();
+      let haveVerdicts = false;
+      const chunkResults = await runBounded(chunks.map((c) => aiValidateItems(c)), 2);
+      for (const v of chunkResults) {
+        if (v) {
+          haveVerdicts = true;
+          for (const [k, val] of v) verdicts.set(k, val);
         }
-      } else {
+      }
+      const doomed = new Set<PoolItemRow>();
+      let droppedAi = 0, droppedFlagged = 0;
+      // Hard rule (live evidence 2026-09-14: the model APPROVED "My birthday
+      // is on ___" {Tuesday, Wednesday}): a distractor that is another unit
+      // word is the ambiguity signature — dropped regardless of verdicts.
+      for (const m of mcq) {
+        if (m.row.exercise_type === 'SPELL_CLOZE' && m.row.content?.needs_ai_check) { doomed.add(m.row); droppedFlagged++; }
+      }
+      // AI semantic check for everything else (subtle both-valid cases whose
+      // distractors are NOT unit words, e.g. "I play ___ with friends"
+      // {soccer, tennis}).
+      if (haveVerdicts) {
         for (const m of mcq) {
-          if (m.row.exercise_type === 'SPELL_CLOZE' && m.row.content?.needs_ai_check) { doomed.add(m.row); droppedFallback++; }
+          if (doomed.has(m.row)) continue;
+          if (verdicts.get(m.q.i) === false) { doomed.add(m.row); droppedAi++; }
         }
       }
       if (doomed.size > 0) {
         for (let i = allRows.length - 1; i >= 0; i--) if (doomed.has(allRows[i])) allRows.splice(i, 1);
       }
       for (const r of allRows) if (r.content?.needs_ai_check) delete r.content.needs_ai_check; // internal flag never persists
-      console.log(`[quality-gate] kept ${mcq.length - doomed.size}/${mcq.length} MCQ (dropped ${droppedAi} ambiguous via AI, ${droppedFallback} via fallback)`);
+      gateStats.checked = mcq.length;
+      gateStats.mode = haveVerdicts ? 'ai' : 'fallback';
+      gateStats.droppedAi = droppedAi;
+      gateStats.droppedFlagged = droppedFlagged;
+      if (!haveVerdicts && gateLastError) gateStats.lastError = gateLastError.slice(0, 220);
+      console.log(`[quality-gate] kept ${mcq.length - doomed.size}/${mcq.length} MCQ (dropped ${droppedFlagged} same-unit-flagged, ${droppedAi} ambiguous via AI; mode ${gateStats.mode})`);
       if (mcq.length > 0 && doomed.size / mcq.length > 0.3) {
         console.warn('[quality-gate] >30% of MCQ items dropped — re-enrich this unit (enrich-unit prompt quality)');
       }
@@ -1259,6 +1320,7 @@ serve(async (req) => {
       objectives: objectiveIdFor.size,
       poolItems: persistedCount,
       typeCounts,
+      qualityGate: gateStats,
       ...(warnings.length > 0 ? { warnings } : {}),
       ...(fatal.length > 0 ? { errors: fatal } : {}),
     };
