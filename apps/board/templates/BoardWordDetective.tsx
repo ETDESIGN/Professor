@@ -245,7 +245,10 @@ const BoardWordDetective: React.FC<{ data?: any }> = ({ data }) => {
     awardedRef.current = false;
     streakRef.current = 0;
     setStreak(0);
-    setCurrentItemIdx(0);
+    // ROUND-2 #9 (owner rule): a new student CONTINUES to the next question —
+    // the old reset-to-0 re-served the same question to every student. Option
+    // order is already re-shuffled per turn by the turnId-seeded rng above.
+    setCurrentItemIdx(prev => vocabItems.length > 0 ? (prev + 1) % vocabItems.length : 0);
     setSelectedWord(null);
     setPhase('prompt');
     setEliminatedIdx(null);
