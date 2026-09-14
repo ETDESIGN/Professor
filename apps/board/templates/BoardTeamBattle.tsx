@@ -498,25 +498,6 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
 
   return (
     <div className="tb-container h-full flex flex-col p-3 sm:p-5 relative overflow-hidden bg-[#070b16] select-none text-white">
-      {/* ── Responsive Reflow Styles (700×320 Phone Floor, F5) ── */}
-      <style>{`
-        @media (max-height: 450px) {
-          .tb-container { padding: 4px !important; gap: 4px !important; }
-          .tb-roster-col { width: 95px !important; padding: 4px !important; }
-          .tb-roster-list { display: none !important; }
-          .tb-tactical-grid { width: 140px !important; gap: 3px !important; }
-          .tb-cell { width: 42px !important; height: 42px !important; font-size: 16px !important; }
-          .tb-timer-ring { width: 46px !important; height: 46px !important; margin-bottom: 2px !important; }
-          .tb-timer-svg { width: 46px !important; height: 46px !important; }
-          .tb-timer-text { font-size: 16px !important; }
-          .tb-prompt-text { font-size: 15px !important; margin-bottom: 4px !important; line-height: 1.15 !important; }
-          .tb-option-btn { width: 120px !important; height: 44px !important; padding: 4px 6px !important; font-size: 12px !important; }
-          .tb-header-bar { margin-bottom: 2px !important; }
-          .tb-wb-runway { min-height: 42px !important; padding: 4px !important; }
-          .tb-wb-word { font-size: 13px !important; padding: 3px 8px !important; }
-        }
-      `}</style>
-
       {/* ── Top Header / Status Bar (Overscan cleared) ── */}
       <div className="tb-header-bar pl-28 lg:pl-44 pr-4 py-1.5 flex items-center justify-between border-b border-white/10 shrink-0 mb-3">
         <div className="flex items-center gap-3">

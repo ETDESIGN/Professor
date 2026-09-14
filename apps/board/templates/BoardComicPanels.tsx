@@ -401,16 +401,6 @@ const BoardComicPanels = ({ data }: { data: any }) => {
   if (complete) {
     return (
       <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-7 relative overflow-hidden select-none font-sans comic-stage-root">
-        <style>{`
-          @media (max-height: 450px) {
-            .comic-stage-root { padding: 0.5rem !important; }
-            .comic-header { height: 2.25rem !important; margin-bottom: 0.25rem !important; }
-            .comic-hero-banner { padding: 0.5rem 1rem !important; margin: 0.25rem 0 !important; }
-            .comic-filmstrip-panel { max-height: 120px !important; }
-            .comic-story-recap { padding: 0.5rem 1rem !important; margin: 0.25rem 0 !important; }
-          }
-        `}</style>
-
         {/* TOP APP BAR / HEADER */}
         <header className="w-full flex items-center justify-between h-12 sm:h-14 relative z-20 flex-none comic-header">
           <div className="flex items-center gap-3 pl-28 lg:pl-44">
@@ -597,15 +587,6 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         }
         .pulse-target {
           animation: pulse-border 2.2s infinite ease-in-out;
-        }
-        @media (max-height: 450px) {
-          .comic-stage-root { padding: 0.35rem !important; }
-          .comic-header { height: 2rem !important; margin-bottom: 0.15rem !important; }
-          .comic-runway-container { padding: 0.2rem 0 !important; }
-          .comic-tray-container { height: 6.5rem !important; padding: 0.25rem !important; }
-          .comic-slot-card { padding: 0.25rem !important; }
-          .comic-story-text { font-size: 0.65rem !important; line-height: 0.8rem !important; }
-          .comic-tray-card { width: 8.5rem !important; min-width: 8.5rem !important; padding: 0.25rem !important; }
         }
       `}</style>
 

@@ -434,7 +434,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
   // Header. BoardShell's phase pill sits top-left (~164px) — pl-32/lg:pl-48
   // keeps the game badge clear of it (same fix as Word Search, 2026-09-10).
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 [@media(max-height:450px)]:h-8 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 shrink-0">
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-7 h-7 lg:w-10 lg:h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/40 flex items-center justify-center shadow-[0_0_18px_-4px_rgba(56,189,248,0.5)] shrink-0">
           <Headphones size={15} className="text-[#38BDF8]" />
@@ -447,9 +447,9 @@ const BoardListenTap = ({ data }: { data: any }) => {
       <div className="flex items-center gap-2 shrink-0">
         {classStreak >= 2 && (
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            className="flex items-center gap-1.5 px-2.5 py-1 [@media(max-height:450px)]:py-0.5 rounded-full bg-amber-950/60 border border-amber-500/50">
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-500/50">
             <Flame size={13} className="text-amber-400" />
-            <span className="lt-mono text-xs [@media(max-height:450px)]:text-[9px] font-bold tracking-wider text-amber-300">STREAK {classStreak}</span>
+            <span className="lt-mono text-xs font-bold tracking-wider text-amber-300">STREAK {classStreak}</span>
           </motion.div>
         )}
         <button onClick={playAudio} title="Replay the audio"
@@ -471,7 +471,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
   // text IS the spoken target and would reveal the answer on the projector
   // (design adaptation; fidelity log). It appears only after answering.
   const banner = (
-    <div className="w-full shrink-0 flex items-center justify-between gap-3 px-3 lg:px-6 py-1.5 lg:py-2.5 [@media(max-height:450px)]:py-1 rounded-2xl bg-[#0B132B]/90 border border-[#38BDF8]/25 shadow-[0_0_24px_-8px_rgba(56,189,248,0.25)]">
+    <div className="w-full shrink-0 flex items-center justify-between gap-3 px-3 lg:px-6 py-1.5 lg:py-2.5 rounded-2xl bg-[#0B132B]/90 border border-[#38BDF8]/25 shadow-[0_0_24px_-8px_rgba(56,189,248,0.25)]">
       <div className="flex items-center gap-2.5 min-w-0">
         <div className={`w-8 h-8 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
           uiPhase === 'listen' ? 'bg-[#38BDF8]/20 border border-[#38BDF8]/60 shadow-[0_0_14px_-2px_rgba(56,189,248,0.5)]' : 'bg-slate-800 border border-slate-700'
@@ -592,12 +592,12 @@ const BoardListenTap = ({ data }: { data: any }) => {
           )}
         </div>
         {/* Label plate */}
-        <div className={`shrink-0 h-9 lg:h-14 [@media(max-height:450px)]:h-7 px-3 lg:px-4 [@media(max-height:450px)]:px-2 flex items-center justify-between gap-2 border-t ${
+        <div className={`shrink-0 h-9 lg:h-14 px-3 lg:px-4 flex items-center justify-between gap-2 border-t ${
           solvedCorrect && isCorrect ? 'bg-emerald-950/60 border-emerald-500/40'
             : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40'
             : 'bg-[#111C3D] border-slate-700/60'
         }`}>
-          <span className={`lt-mono font-extrabold tracking-wide truncate ${twoUp ? 'text-lg lg:text-3xl' : 'text-sm lg:text-2xl'} [@media(max-height:450px)]:text-xs ${
+          <span className={`lt-mono font-extrabold tracking-wide truncate ${twoUp ? 'text-lg lg:text-3xl' : 'text-sm lg:text-2xl'} ${
             solvedCorrect && isCorrect ? 'text-emerald-300'
               : isSelected ? 'text-[#7DD3FC]' : 'text-white'
           }`}>
@@ -670,7 +670,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
   );
 
   return (
-    <div className="lt-root h-full w-full flex flex-col gap-2 lg:gap-3 p-2 lg:p-4 [@media(max-height:450px)]:gap-1 [@media(max-height:450px)]:p-1 relative overflow-hidden">
+    <div className="lt-root h-full w-full flex flex-col gap-2 lg:gap-3 p-2 lg:p-4 relative overflow-hidden">
       <style>{`
         .lt-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .lt-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }

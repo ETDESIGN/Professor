@@ -559,9 +559,9 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
   const bet2 = bet === 2;
 
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 [@media(max-height:450px)]:h-8 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 shrink-0">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 [@media(max-height:450px)]:py-0.5 rounded-xl bg-[#FF2E79]/15 border border-[#FF2E79]/50 shrink-0">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#FF2E79]/15 border border-[#FF2E79]/50 shrink-0">
           <Zap size={14} className="text-[#FF2E79]" />
           <span className="vb-mono text-[10px] lg:text-xs font-black tracking-widest text-[#FF2E79] whitespace-nowrap">VOCAB BLITZ</span>
         </div>
@@ -571,14 +571,14 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {phase === 'question' && bet2 && stealBanner?.kind !== 'active' && (
-          <span className="flex items-center gap-1.5 px-3 py-1 [@media(max-height:450px)]:hidden rounded-full bg-orange-500/15 border-2 border-orange-500 animate-pulse whitespace-nowrap">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border-2 border-orange-500 animate-pulse whitespace-nowrap">
             <span className="vb-mono text-[10px] lg:text-xs font-black text-orange-400">2X LOCKED</span>
           </span>
         )}
         {streak > 1 && (
-          <span className="flex items-center gap-1 px-3 py-1 [@media(max-height:450px)]:px-2 [@media(max-height:450px)]:py-0.5 rounded-full bg-[#FF2E79]/10 border border-[#FF2E79]/40 whitespace-nowrap">
+          <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#FF2E79]/10 border border-[#FF2E79]/40 whitespace-nowrap">
             <Flame size={12} className="text-[#FF2E79]" />
-            <span className="vb-mono text-[10px] lg:text-xs [@media(max-height:450px)]:text-[9px] font-black text-[#FF2E79]">{streak} IN A ROW</span>
+            <span className="vb-mono text-[10px] lg:text-xs font-black text-[#FF2E79]">{streak} IN A ROW</span>
           </span>
         )}
       </div>
@@ -624,7 +624,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
           </>
         ) : (
           <span className={`flex-1 min-h-0 flex items-center justify-center px-3 py-1.5 lg:px-4 lg:py-3 text-center font-bold
-            ${currentQuestion.options.length > 2 ? 'text-base lg:text-2xl [@media(max-height:450px)]:text-xs' : 'text-xl lg:text-3xl [@media(max-height:450px)]:text-sm'}
+            ${currentQuestion.options.length > 2 ? 'text-base lg:text-2xl' : 'text-xl lg:text-3xl'}
             ${solved && isCorrect ? 'text-emerald-300' : revealCorrect && isCorrect ? 'text-amber-300' : isSelected ? 'text-[#7DD3FC]' : 'text-white'}`}>
             {option.label}
           </span>
@@ -645,7 +645,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="vb-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 [@media(max-height:450px)]:gap-1 [@media(max-height:450px)]:p-1 bg-[#070C18] relative overflow-hidden">
+    <div className="vb-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .vb-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .vb-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -704,7 +704,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
             </motion.div>
           ) : (
             <motion.div key="bet" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex-1 min-h-0 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 lg:gap-7 [@media(max-height:450px)]:gap-1.5">
+              className="flex-1 min-h-0 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 lg:gap-7">
               {([
                 { b: 1 as const, label: 'SAFE PLAY', mult: '1x', tone: 'sky', tag: 'Standard sprint · steady climb',
                   reward: 'Standard points per correct answer', risk: `−${MISTAKE_PENALTY} pts on a miss` },
@@ -712,7 +712,7 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
                   reward: 'DOUBLE points if correct', risk: `−${MISTAKE_PENALTY * 2} pts if wrong` },
               ] as const).map((pod) => (
                 <section key={pod.b} onClick={() => handleBetSelect(pod.b)}
-                  className={`relative rounded-2xl border-2 p-2.5 lg:p-6 [@media(max-height:450px)]:p-1.5 flex flex-col justify-between min-h-0 cursor-pointer overflow-hidden transition-all active:scale-[0.99]
+                  className={`relative rounded-2xl border-2 p-2.5 lg:p-6 flex flex-col justify-between min-h-0 cursor-pointer overflow-hidden transition-all active:scale-[0.99]
                     ${pod.tone === 'pink' ? 'border-[#FF2E79]/60 bg-[#111C3D]' : 'border-[#38BDF8]/50 bg-[#111C3D]'} hover:shadow-[0_0_30px_-6px_${pod.tone === 'pink' ? 'rgba(255,46,121,0.5)' : 'rgba(56,189,248,0.5)'}]`}>
                   <div className={`absolute -top-14 ${pod.tone === 'pink' ? '-right-14' : '-left-14'} w-36 h-36 rounded-full blur-3xl pointer-events-none ${pod.tone === 'pink' ? 'bg-[#FF2E79]/15' : 'bg-[#38BDF8]/15'}`} />
                   <div className="relative z-10 flex items-center justify-between gap-2">
@@ -726,21 +726,21 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
                   </div>
                   <div className="relative z-10 text-center my-0.5 lg:my-3">
                     <div className={`font-black tracking-tighter leading-none ${pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'}
-                      text-4xl lg:text-8xl [@media(max-height:450px)]:text-3xl`}>
+                      text-4xl lg:text-8xl`}>
                       {pod.mult}
                     </div>
-                    <h2 className="text-base lg:text-3xl font-extrabold text-white tracking-tight [@media(max-height:450px)]:text-sm">{pod.label}</h2>
+                    <h2 className="text-base lg:text-3xl font-extrabold text-white tracking-tight">{pod.label}</h2>
                   </div>
                   <div className="relative z-10 flex flex-col gap-1 lg:gap-2.5">
-                    <div className="flex items-center gap-2 px-2.5 lg:px-4 py-1 lg:py-2 rounded-xl bg-slate-800/60 border border-slate-700 [@media(max-height:450px)]:hidden">
+                    <div className="flex items-center gap-2 px-2.5 lg:px-4 py-1 lg:py-2 rounded-xl bg-slate-800/60 border border-slate-700">
                       <TrendingUp size={14} className={pod.tone === 'pink' ? 'text-[#FF2E79]' : 'text-[#38BDF8]'} />
                       <span className="text-xs lg:text-base font-bold text-white truncate">{pod.reward}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2.5 lg:px-4 py-1 lg:py-2 rounded-xl bg-slate-800/60 border border-slate-700 [@media(max-height:450px)]:hidden">
+                    <div className="flex items-center gap-2 px-2.5 lg:px-4 py-1 lg:py-2 rounded-xl bg-slate-800/60 border border-slate-700">
                       <TrendingDown size={14} className="text-slate-400" />
                       <span className="text-xs lg:text-base font-bold text-slate-300 truncate">{pod.risk}</span>
                     </div>
-                    <button className={`w-full py-2 lg:py-4 [@media(max-height:450px)]:py-1.5 rounded-xl border-2 font-extrabold text-sm lg:text-xl tracking-wide uppercase transition-all active:scale-95
+                    <button className={`w-full py-2 lg:py-4 rounded-xl border-2 font-extrabold text-sm lg:text-xl tracking-wide uppercase transition-all active:scale-95
                       ${pod.tone === 'pink'
                         ? 'bg-slate-800 hover:bg-[#FF2E79] border-[#FF2E79] text-[#FF2E79] hover:text-white'
                         : 'bg-slate-800 hover:bg-[#38BDF8] border-[#38BDF8] text-[#7DD3FC] hover:text-slate-900'}`}>
@@ -764,9 +764,9 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
         {/* ═══ SPRINT (design #2): radial clock + prompt + answer grid ═══ */}
         {phase === 'question' && (
           <motion.div key={`q-${currentQIdx}`} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
-            className="flex-1 min-h-0 flex flex-col gap-1.5 lg:gap-3 [@media(max-height:450px)]:gap-1">
+            className="flex-1 min-h-0 flex flex-col gap-1.5 lg:gap-3">
             {/* Clock strip */}
-            <div className="shrink-0 flex items-center justify-between gap-3 px-3 lg:px-4 py-1.5 [@media(max-height:450px)]:py-0.5 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70">
+            <div className="shrink-0 flex items-center justify-between gap-3 px-3 lg:px-4 py-1.5 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70">
               {stealBanner?.kind === 'active' ? (
                 <span className="vb-mono text-sm lg:text-lg font-black text-purple-300 animate-pulse">STEAL — untimed!</span>
               ) : (
@@ -800,12 +800,12 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
             </div>
 
             {/* Prompt plate */}
-            <div className="shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-4 lg:px-6 py-2 lg:py-4 [@media(max-height:450px)]:py-1 flex items-center justify-center min-h-9 lg:min-h-16">
-              <p className="text-base lg:text-2xl [@media(max-height:450px)]:text-sm font-bold text-white text-center">{currentQuestion.prompt}</p>
+            <div className="shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-4 lg:px-6 py-2 lg:py-4 flex items-center justify-center min-h-9 lg:min-h-16">
+              <p className="text-base lg:text-2xl font-bold text-white text-center">{currentQuestion.prompt}</p>
             </div>
 
             {/* Answer grid (landscape) */}
-            <div className={`flex-1 min-h-0 grid gap-2 lg:gap-4 [@media(max-height:450px)]:gap-1.5 ${currentQuestion.options.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
+            <div className={`flex-1 min-h-0 grid gap-2 lg:gap-4 ${currentQuestion.options.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
               {currentQuestion.options.map((option, idx) => renderOption(option, idx))}
             </div>
 

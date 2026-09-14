@@ -566,21 +566,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
         </div>
       </div>
 
-      {/* Responsive phone-landscape floor styling */}
       <style>{`
-        @media (max-height: 450px) {
-          .gf-container { padding: 0.5rem 1rem !important; }
-          .gf-header { margin-bottom: 0.35rem !important; }
-          .gf-title { font-size: 1.15rem !important; }
-          .gf-prompt-card { padding: 0.5rem 0.75rem !important; margin-bottom: 0.35rem !important; border-radius: 1rem !important; }
-          .gf-sentence { font-size: 1.25rem !important; line-height: 1.25 !important; }
-          .gf-options-grid { gap: 0.35rem !important; }
-          .gf-option-btn { padding: 0.4rem 0.75rem !important; font-size: 1rem !important; border-radius: 0.75rem !important; }
-          .gf-dropzone { min-height: 44px !important; padding: 0.35rem !important; margin-bottom: 0.35rem !important; gap: 0.35rem !important; border-radius: 0.75rem !important; }
-          .gf-tile { padding: 0.25rem 0.5rem !important; font-size: 0.85rem !important; border-radius: 0.5rem !important; }
-          .gf-footer { margin-top: 0.25rem !important; padding-top: 0.25rem !important; }
-          .gf-btn { height: 2.25rem !important; padding: 0 0.75rem !important; font-size: 0.875rem !important; border-radius: 0.75rem !important; }
-        }
         @keyframes gf-shake {
           0%, 100% { transform: translateX(0); }
           20%, 60% { transform: translateX(-6px); }

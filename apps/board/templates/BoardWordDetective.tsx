@@ -13,7 +13,6 @@
 //   - P2: Dynamic task instruction sub-labels per exercise type.
 //   - P2: Cancellable transition timers preventing turn-bleeding.
 //   - Safe 180px+ header clearance from BoardShell's • PRACTICE badge.
-//   - Full @media (max-height: 450px) phone floor support.
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {

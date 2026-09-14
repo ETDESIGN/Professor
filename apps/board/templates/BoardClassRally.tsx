@@ -386,14 +386,6 @@ const BoardClassRally = ({ data }: { data?: any }) => {
 
   return (
     <div className="relative flex flex-col h-full w-full bg-[#070C18] text-[#E8E0F0] select-none overflow-hidden">
-      <style>{`
-        @media (max-height: 450px) {
-          .rally-compact-hide { display: none !important; }
-          .rally-compact-pad { padding: 4px 8px !important; }
-          .rally-compact-h { height: 75px !important; }
-        }
-      `}</style>
-
       {/* ═══ TOP APP BAR (Shared Anchor with pl-40 lg:pl-48 Clearance) ═══ */}
       <header className="w-full flex items-center justify-between pl-40 lg:pl-48 pr-4 sm:pr-8 py-2 bg-[#0A0A12]/95 border-b border-[#302840] shrink-0 z-20 shadow-[0_0_16px_rgba(255,45,120,0.15)]">
         {/* Left: Brand & Phase Pill */}

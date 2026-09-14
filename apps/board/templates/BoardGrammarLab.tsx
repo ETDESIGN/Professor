@@ -669,13 +669,6 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
           .bubble-5 { animation: rise-slow 3.6s infinite ease-in-out 1.2s; }
           .liquid-sway { animation: wave-liquid 3s infinite ease-in-out; transform-origin: bottom center; }
           .glow-beaker { filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.35)); }
-
-          @media (max-height: 450px) {
-            .gl-container { padding: 0.5rem 1rem !important; }
-            .gl-header { margin-bottom: 0.25rem !important; }
-            .gl-card { padding: 0.75rem 1rem !important; }
-            .gl-footer { display: none !important; }
-          }
         `}</style>
       </div>
     );
@@ -1249,11 +1242,10 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
         )}
       </footer>
 
-      {/* Phone-landscape floor 700x320 zero scroll styles */}
       <style>{`
         .cyber-grid {
           background-size: 48px 48px;
-          background-image: 
+          background-image:
             linear-gradient(to right, rgba(48, 40, 64, 0.35) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(48, 40, 64, 0.35) 1px, transparent 1px);
         }
@@ -1262,20 +1254,6 @@ const BoardGrammarLab = ({ data }: { data?: any }) => {
         }
         .glow-pink-btn:hover {
           box-shadow: 0 0 28px rgba(255, 45, 120, 0.7), 0 4px 0 #b3004e;
-        }
-        @media (max-height: 450px) {
-          .gl-container { padding: 0.4rem 0.8rem !important; }
-          .gl-header { margin-bottom: 0.2rem !important; }
-          .gl-header header { padding: 0.25rem 0.75rem !important; }
-          .gl-main { margin: 0.2rem 0 !important; }
-          .gl-prompt-card { padding: 0.5rem 0.75rem !important; margin-bottom: 0.3rem !important; border-radius: 1rem !important; }
-          .gl-sentence { font-size: 1.15rem !important; line-height: 1.25 !important; }
-          .gl-options-grid { gap: 0.35rem !important; }
-          .gl-option-btn { padding: 0.4rem 0.75rem !important; font-size: 1rem !important; border-radius: 0.75rem !important; }
-          .gl-dropzone { min-height: 44px !important; padding: 0.25rem !important; margin-bottom: 0.25rem !important; gap: 0.25rem !important; }
-          .gl-tile { padding: 0.2rem 0.5rem !important; font-size: 0.85rem !important; border-radius: 0.5rem !important; }
-          .gl-btn { height: 2.1rem !important; padding: 0 0.75rem !important; font-size: 0.85rem !important; border-radius: 0.75rem !important; }
-          .gl-footer { display: none !important; }
         }
       `}</style>
     </div>

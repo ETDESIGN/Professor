@@ -13,7 +13,6 @@
 //   - Teacher Clock Controls: manual Start ("START TIMER"), Pause/Resume, and "Peek Again" (+3s)
 //   - 4-Option Candidate Shelf (A/B/C/D) with keyboard shortcuts (1-4, A-D, SPACE)
 //   - Educational Double-Miss Reveal: shows target image + English word + auto-played native audio
-//   - Fully responsive @media (max-height: 450px) reflow without scrolling
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

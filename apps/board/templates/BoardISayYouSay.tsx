@@ -14,7 +14,6 @@
 //   - Triple-write contract parity for remote MARK_CORRECT (adds missing gradeObjective).
 //   - Audio-text synchronization: canonical displayed text is always spoken.
 //   - Celebratory completion splash when choral practice finishes.
-//   - Full @media (max-height: 450px) phone floor support.
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {

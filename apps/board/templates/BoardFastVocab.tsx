@@ -14,7 +14,6 @@
 //   - Stitch Cyber-Arena HUD: #070C18 blueprint grid, cyan/pink neon badges, radial timer gauge.
 //   - Victory pod: glowing 5-star spring celebration with stats and audio replay.
 //   - Keyboard shortcuts: [1, 2, 3] or [A, B, C] for speed answers; [SPACE] for pronunciation audio.
-//   - Responsive floor: zero vertical scroll at 700×320 landscape (@media (max-height: 450px)).
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

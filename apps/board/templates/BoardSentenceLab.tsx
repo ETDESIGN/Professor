@@ -17,7 +17,6 @@
 // - Progressive hint ladder (distractor elimination → target tile pulse)
 // - Cancellable timeouts via advanceTimerRef
 // - Remote & Commander parity (SKIP, HINT, CHECK, MARK_CORRECT, REDO, END)
-// - Responsive phone floor @media (max-height: 450px) calibration for 700x320
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

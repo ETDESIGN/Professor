@@ -13,7 +13,6 @@
 // - 3-step projector-calibrated progress nav with status badges
 // - 2-miss speech production mercy scaffold + teacher override MARK_CORRECT
 // - Full state resets on phase transitions, remote PLAY_AUDIO action support
-// - Phone floor @media (max-height: 450px) calibration for 700x320 landscape
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';

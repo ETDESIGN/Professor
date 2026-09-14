@@ -1039,20 +1039,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
         </div>
       )}
 
-      {/* Responsive phone-landscape floor styling */}
       <style>{`
-        @media (max-height: 450px) {
-          .wm-container { padding: 0.35rem 0.75rem !important; }
-          .wm-header { margin-bottom: 0.25rem !important; padding: 0.25rem 0 !important; }
-          .wm-title { font-size: 1.1rem !important; }
-          .wm-card-grid { gap: 0.35rem !important; max-height: 140px !important; }
-          .wm-grid-card { padding: 0.25rem !important; border-radius: 0.75rem !important; }
-          .wm-cand-dock { gap: 0.35rem !important; margin-top: 0.25rem !important; }
-          .wm-cand-btn { padding: 0.25rem 0.5rem !important; min-height: 38px !important; border-radius: 0.5rem !important; }
-          .wm-shutter { max-height: 135px !important; }
-          .wm-produce-bar { margin-top: 0.25rem !important; gap: 0.35rem !important; }
-          .wm-produce-btn { padding: 0.35rem 0.75rem !important; font-size: 0.875rem !important; border-radius: 0.5rem !important; }
-        }
         @keyframes wm-shake {
           0%, 100% { transform: translateX(0); }
           20%, 60% { transform: translateX(-8px); }

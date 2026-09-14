@@ -533,16 +533,6 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
         .btn-primary-glow:hover {
           box-shadow: 0 0 30px rgba(255, 45, 120, 0.85);
         }
-        @media (max-height: 450px) {
-          .sq-container { padding: 0.25rem 0.5rem !important; }
-          .sq-header { height: 2.25rem !important; margin-bottom: 0.25rem !important; }
-          .sq-main { gap: 0.5rem !important; }
-          .sq-left { padding: 0.5rem !important; }
-          .sq-right { padding: 0.5rem !important; }
-          .sq-turn-card { padding: 0.35rem 0.5rem !important; }
-          .sq-chant { font-size: 1.1rem !important; line-height: 1.25 !important; }
-          .sq-dot { width: 1.25rem !important; height: 1.25rem !important; font-size: 0.65rem !important; }
-        }
       `}</style>
 
       {/* Top Header — pl-40 lg:pl-48 clearance for BoardShell phase pill */}
