@@ -63,7 +63,7 @@ Commander layout/controls/responsiveness; `/remote`; BoardShell chrome proportio
 ## Testing
 
 - **Unit** (vitest): the scale computation as a pure function (letterbox math, portrait/landscape, k=1 at 1280×720, upscale 1.5 at 1920×1080).
-- **Playwright viewport matrix** on `/board`: 1280×720, 1133×744 (iPad mini landscape), 744×1133 (portrait), 844×390 (iPhone landscape), 390×844 (portrait), 900×800 (narrow desktop). For representative games (GAME_ARENA — worst legacy, SPEED_QUIZ, WORD_SEARCH, TEAM_BATTLE, STORY_STAGE_AG) and overlays (points popup, quiet gauge, leaderboard overlay): assert the stage box fits the viewport (no document overflow) and screenshot.
+- **Playwright viewport matrix** on `/board`: 1280×720, 1133×744 (iPad mini landscape), 744×1133 (portrait), 844×390 (iPhone landscape), 390×844 (portrait), 900×800 (narrow desktop). Game-level visual verification is the owner hardware pass; e2e asserts document-level overflow at each viewport on the connection-gate screen.
 - Screenshot parity at 1280×720 pre/post change (stage is a no-op there).
 - Owner manual pass: iPad mini → projector mirror, and desktop half-window resize.
 
