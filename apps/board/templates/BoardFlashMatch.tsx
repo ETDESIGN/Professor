@@ -480,7 +480,7 @@ const BoardFlashMatch = ({ data }: { data: any }) => {
 
       {/* Header — compressed per the Stitch revision; pl-48 clears
           BoardShell's phase pill. */}
-      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-13 shrink-0">
+      <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-14 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF2E79] to-rose-600 flex items-center justify-center font-black text-white text-xs shadow-md shrink-0">
             FM
