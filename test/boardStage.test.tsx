@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import BoardStage, { stageScale, STAGE_W, STAGE_H } from '../components/shared/BoardStage';
 
@@ -49,11 +49,14 @@ describe('BoardStage (component)', () => {
     const outer = container.firstElementChild as HTMLElement;
     const stage = outer.firstElementChild as HTMLElement;
 
-    // Measure path 1: the layout-effect sync measure via clientWidth stubs.
+    // The mount-time layout-effect measure ran before these clientWidth stubs
+    // existed, so only the ResizeObserver path drives k in this test.
     const widthSpy = vi.spyOn(outer, 'clientWidth', 'get').mockReturnValue(744);
     const heightSpy = vi.spyOn(outer, 'clientHeight', 'get').mockReturnValue(1133);
-    // Measure path 2: a later ResizeObserver notification (URL bar etc.).
-    MockResizeObserver.callback([{ contentRect: { width: 744, height: 1133 } }]);
+    // A later ResizeObserver notification (URL bar etc.).
+    await act(async () => {
+      MockResizeObserver.callback([{ contentRect: { width: 744, height: 1133 } }]);
+    });
 
     await waitFor(() => {
       expect(stage.style.width).toBe(`${STAGE_W}px`);
