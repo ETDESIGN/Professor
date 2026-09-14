@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
     ArrowLeft, CreditCard, QrCode, Printer, RotateCcw, Eye, Plus, CheckCircle2, Circle,
+    LayoutGrid, Download, Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ClassData } from '../../services/DataService';
@@ -8,7 +9,9 @@ import { PassportService, PassportCard } from '../../services/ManagementService'
 import {
     usePassportsForClass, useRosterForClass, useCreatePassport, useResetPassport,
 } from '../../hooks/useQueries';
-import { PassportCardsModal, usePrintCards } from './PassportCards';
+import {
+    PassportCardsModal, usePrintCards, buildPrintableCards, exportCardJpg, exportCardsZip,
+} from './PassportCards';
 
 // =====================================================================
 // Class "login cards" (passports) manager: grid of minted student/parent
@@ -28,6 +31,7 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
     const [modalCards, setModalCards] = useState<PassportCard[] | null>(null);
     const [modalTitle, setModalTitle] = useState('Login cards');
     const [printing, setPrinting] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const rosterById = useMemo(() => new Map(roster.map((r) => [r.id, r])), [roster]);
     const activePassports = passports.filter((p) => p.status === 'active');
@@ -55,6 +59,57 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
             await printCards(chosen);
         } catch { /* toast handled in service */ } finally {
             setPrinting(false);
+        }
+    };
+
+    const fetchActiveClassCards = async () => {
+        const cards = await PassportService.getCards({ classId: cls.id }, true);
+        const active = cards.filter((c) => c.status !== 'revoked');
+        if (!active.length) toast.error('No login cards in this class yet');
+        return active;
+    };
+
+    const handlePrintClassSheet = async () => {
+        try {
+            setPrinting(true);
+            const cards = await fetchActiveClassCards();
+            if (cards.length) await printCards(cards, 'a6x4');
+        } catch { /* handled */ } finally {
+            setPrinting(false);
+        }
+    };
+
+    const handleDownloadClassZip = async () => {
+        try {
+            setExporting(true);
+            const cards = await fetchActiveClassCards();
+            if (!cards.length) return;
+            const items = await buildPrintableCards(cards);
+            const tid = toast.loading(`Preparing ${items.length} card images…`);
+            await exportCardsZip(items, `Professor passes — ${cls.name}`);
+            toast.success('ZIP downloaded', { id: tid });
+        } catch {
+            toast.error('Could not export card images');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleDownloadJpg = async (rosterId: string) => {
+        try {
+            setExporting(true);
+            const cards = await PassportService.getCards({ rosterId });
+            const items = await buildPrintableCards(cards);
+            if (!items.length) {
+                toast.error('No login cards found');
+                return;
+            }
+            await exportCardJpg(items[0]);
+            toast.success('Card image downloaded');
+        } catch {
+            toast.error('Could not export card image');
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -106,13 +161,31 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
                             {cls.name} · {activePassports.length} student{activePassports.length === 1 ? '' : 's'} with cards
                         </p>
                     </div>
-                    <button
-                        onClick={handlePrintSelected}
-                        disabled={!selected.size || printing}
-                        className="px-4 py-2 bg-teacher-primary text-white rounded-lg text-sm font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                        <Printer size={15} /> {printing ? 'Preparing…' : `Print selected (${selected.size})`}
-                    </button>
+                    <div className="flex gap-2 flex-wrap justify-end">
+                        <button
+                            onClick={handlePrintSelected}
+                            disabled={!selected.size || printing}
+                            className="px-4 py-2 bg-teacher-primary text-white rounded-lg text-sm font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                            <Printer size={15} /> {printing ? 'Preparing…' : `Print selected (${selected.size})`}
+                        </button>
+                        <button
+                            onClick={handlePrintClassSheet}
+                            disabled={!activePassports.length || printing}
+                            className="px-3 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
+                            title="Print every card in the class, four per A4 landscape sheet"
+                        >
+                            <LayoutGrid size={15} /> Whole class 2×2
+                        </button>
+                        <button
+                            onClick={handleDownloadClassZip}
+                            disabled={!activePassports.length || exporting}
+                            className="px-3 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 flex items-center gap-1.5"
+                            title="Download every card as a JPG inside one ZIP — send them to families via WhatsApp etc."
+                        >
+                            <Download size={15} /> {exporting ? 'Preparing…' : 'Download ZIP'}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -168,6 +241,14 @@ const PassportsView: React.FC<{ cls: ClassData; onBack: () => void }> = ({ cls, 
                                             className="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center gap-1"
                                         >
                                             <Eye size={13} /> Show
+                                        </button>
+                                        <button
+                                            onClick={() => handleDownloadJpg(p.roster_student_id)}
+                                            disabled={exporting}
+                                            className="flex-1 py-1.5 text-xs font-bold rounded-lg bg-sky-100 text-sky-700 hover:bg-sky-200 disabled:opacity-50 flex items-center justify-center gap-1"
+                                            title="Download this family's card as a JPG to send via WhatsApp etc."
+                                        >
+                                            <ImageIcon size={13} /> JPG
                                         </button>
                                         <button
                                             onClick={() => handleReset(p.roster_student_id, name)}

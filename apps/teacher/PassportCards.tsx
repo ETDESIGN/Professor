@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import QRCode from 'qrcode';
-import { Printer, Copy } from 'lucide-react';
+import { toJpeg, getFontEmbedCSS } from 'html-to-image';
+import JSZip from 'jszip';
+import { Printer, Copy, LayoutGrid, Download, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { PassportCard } from '../../services/ManagementService';
 import { buildLoginQrUrl } from '../../services/passport';
@@ -268,19 +271,38 @@ export const PassportCardFace: React.FC<{ card: PrintableCard }> = ({ card }) =>
     );
 };
 
-/** Portal-rendered A4 sheets (2 × A5 cards + cut guide) — the ONLY thing visible during printing. */
-const PrintPortal: React.FC<{ items: PrintableCard[] }> = ({ items }) => {
+export type PassportPrintMode = 'a5x2' | 'a6x4';
+
+/** Portal-rendered A4 sheets — the ONLY thing visible during printing.
+ *  a5x2: two A5 cards stacked per portrait page (hand-out quality).
+ *  a6x4: 2×2 A6 cards per landscape page — the economical whole-class sheet. */
+const PrintPortal: React.FC<{ items: PrintableCard[]; mode: PassportPrintMode }> = ({ items, mode }) => {
+    const per = mode === 'a5x2' ? 2 : 4;
     const sheets: PrintableCard[][] = [];
-    for (let i = 0; i < items.length; i += 2) sheets.push(items.slice(i, i + 2));
+    for (let i = 0; i < items.length; i += per) sheets.push(items.slice(i, i + per));
     return createPortal(
         <div className="passport-print-portal">
             {sheets.map((sheet, si) => (
-                <div className="passport-sheet" key={si}>
+                <div className={`passport-sheet ${mode === 'a6x4' ? 'passport-sheet-a6' : ''}`} key={si}>
                     {sheet.map((card) => <PassportCardFace key={card.key} card={card} />)}
-                    {sheet.length === 2 && (
-                        <div className="passport-cutline">
+                    {mode === 'a5x2' && sheet.length === 2 && (
+                        <div className="passport-cutline cut-h cut-a5">
                             <span>✂ CUT HERE · 此处裁剪</span>
                         </div>
+                    )}
+                    {mode === 'a6x4' && (
+                        <>
+                            {sheet.length > 1 && (
+                                <div className="passport-cutline cut-v cut-a6">
+                                    <span>✂</span>
+                                </div>
+                            )}
+                            {sheet.length > 2 && (
+                                <div className="passport-cutline cut-h cut-a6">
+                                    <span>✂</span>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             ))}
@@ -291,11 +313,20 @@ const PrintPortal: React.FC<{ items: PrintableCard[] }> = ({ items }) => {
 
 /** Render printable cards and open the browser print dialog (Save-as-PDF works too). */
 export const usePrintCards = () => {
-    const [printItems, setPrintItems] = useState<PrintableCard[] | null>(null);
+    const [printJob, setPrintJob] = useState<{ items: PrintableCard[]; mode: PassportPrintMode } | null>(null);
 
     useEffect(() => {
-        if (!printItems) return;
-        const done = () => setPrintItems(null);
+        if (!printJob) return;
+        // @page cannot be scoped by class — flip the sheet orientation per mode
+        // with a dedicated <style> that outlives the app's own portrait rule.
+        const styleEl = document.createElement('style');
+        styleEl.id = 'passport-page-rule';
+        styleEl.textContent = `@media print { @page { size: A4 ${printJob.mode === 'a6x4' ? 'landscape' : 'portrait'}; } }`;
+        document.head.appendChild(styleEl);
+        const done = () => {
+            styleEl.remove();
+            setPrintJob(null);
+        };
         window.addEventListener('afterprint', done);
         // Let the QR images paint before the dialog freezes the page.
         const t = setTimeout(() => {
@@ -304,22 +335,99 @@ export const usePrintCards = () => {
         }, 200);
         return () => {
             clearTimeout(t);
+            styleEl.remove();
             window.removeEventListener('afterprint', done);
         };
-    }, [printItems]);
+    }, [printJob]);
 
-    const printCards = async (cards: PassportCard[]) => {
+    const printCards = async (cards: PassportCard[], mode: PassportPrintMode = 'a5x2') => {
         const items = await buildPrintableCards(cards);
         if (!items.length) {
             toast.error('No login cards to print');
             return;
         }
-        setPrintItems(items);
+        setPrintJob({ items, mode });
     };
 
-    const portal = printItems ? <PrintPortal items={printItems} /> : null;
+    const portal = printJob ? <PrintPortal items={printJob.items} mode={printJob.mode} /> : null;
     return { printCards, portal };
 };
+
+// ── JPG export (WhatsApp-ready image files) ───────────────────────────
+
+const sanitizeFileName = (name: string) =>
+    name.replace(/[^\p{L}\p{N} _-]+/gu, '').replace(/\s+/g, ' ').trim() || 'passport';
+
+function triggerDownload(url: string, fileName: string) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+/** Rasterize one card face to a JPG data URL via an offscreen mount. */
+let cachedFontEmbedCss: string | null = null;
+async function renderCardJpg(card: PrintableCard): Promise<string> {
+    const host = document.createElement('div');
+    host.style.cssText = 'position:fixed;left:-99999px;top:0;';
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    try {
+        root.render(
+            <div className="passport-export-root">
+                <PassportCardFace card={card} />
+            </div>
+        );
+        if (document.fonts?.ready) await document.fonts.ready;
+        await new Promise((r) => setTimeout(r, 150));
+        const node = host.querySelector('.passport-card') as HTMLElement;
+        if (!node) throw new Error('card not mounted');
+        // Embed the (self-hosted) fonts into the image once per session so
+        // every exported JPG is self-contained for WhatsApp/print.
+        if (cachedFontEmbedCss === null) {
+            try {
+                cachedFontEmbedCss = await getFontEmbedCSS(node);
+            } catch {
+                cachedFontEmbedCss = '';
+            }
+        }
+        return await toJpeg(node, {
+            quality: 0.92,
+            pixelRatio: 2,
+            backgroundColor: '#ffffff',
+            fontEmbedCSS: cachedFontEmbedCss || undefined,
+        });
+    } finally {
+        root.unmount();
+        host.remove();
+    }
+}
+
+/** Download one family card as a JPG the teacher can send via WhatsApp etc. */
+export async function exportCardJpg(card: PrintableCard): Promise<void> {
+    const dataUrl = await renderCardJpg(card);
+    triggerDownload(dataUrl, `Professor pass — ${sanitizeFileName(card.displayName)}.jpg`);
+}
+
+/** Download a whole set of cards as a ZIP of individual JPGs. */
+export async function exportCardsZip(cards: PrintableCard[], zipName: string): Promise<void> {
+    const zip = new JSZip();
+    const used = new Set<string>();
+    for (const card of cards) {
+        // eslint-disable-next-line no-await-in-loop
+        const dataUrl = await renderCardJpg(card);
+        let base = `Professor pass — ${sanitizeFileName(card.displayName)}`;
+        while (used.has(base)) base = `${base} 2`;
+        used.add(base);
+        zip.file(`${base}.jpg`, dataUrl.split(',')[1], { base64: true });
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, `${sanitizeFileName(zipName)}.zip`);
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
 
 /**
  * Success modal shown right after creating or resetting a passport:
@@ -333,12 +441,32 @@ export const PassportCardsModal: React.FC<{
     onClose: () => void;
 }> = ({ open, title, subtitle, cards, onClose }) => {
     const [items, setItems] = useState<PrintableCard[]>([]);
+    const [exporting, setExporting] = useState(false);
     const { printCards, portal } = usePrintCards();
 
     useEffect(() => {
         if (open) void buildPrintableCards(cards).then(setItems);
         else setItems([]);
     }, [open, cards]);
+
+    const handleDownload = async () => {
+        if (!items.length) return;
+        try {
+            setExporting(true);
+            if (items.length === 1) {
+                await exportCardJpg(items[0]);
+                toast.success('Card image downloaded');
+            } else {
+                const tid = toast.loading(`Preparing ${items.length} card images…`);
+                await exportCardsZip(items, 'Professor passes');
+                toast.success('ZIP downloaded', { id: tid });
+            }
+        } catch {
+            toast.error('Could not export card images');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     return (
         <>
@@ -354,7 +482,25 @@ export const PassportCardsModal: React.FC<{
                         disabled={!items.length}
                         className="flex-1 py-3 bg-teacher-primary text-white rounded-lg font-bold hover:bg-pink-700 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        <Printer size={18} /> Print cards
+                        <Printer size={18} /> Print cards <span className="font-normal opacity-75">(A5 ×2/page)</span>
+                    </button>
+                    <button
+                        onClick={() => printCards(cards, 'a6x4')}
+                        disabled={!items.length}
+                        className="px-4 py-3 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                        title="Four smaller cards per A4 landscape sheet — economical whole-class printing"
+                    >
+                        <LayoutGrid size={16} /> 2×2 sheet
+                    </button>
+                </div>
+                <div className="flex gap-2 mt-2">
+                    <button
+                        onClick={handleDownload}
+                        disabled={!items.length || exporting}
+                        className="flex-1 py-2.5 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                        title="Download as an image file you can send to families via WhatsApp etc."
+                    >
+                        <ImageIcon size={16} /> {exporting ? 'Preparing…' : items.length > 1 ? 'Download all (ZIP)' : 'Download JPG'}
                     </button>
                     <button
                         onClick={() => {
@@ -370,13 +516,13 @@ export const PassportCardsModal: React.FC<{
                             toast.success('Logins copied');
                         }}
                         disabled={!items.length}
-                        className="px-4 py-3 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="px-4 py-2.5 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         <Copy size={16} /> Copy
                     </button>
                 </div>
                 <p className="text-xs text-slate-400 mt-3 text-center">
-                    These passwords are shown only here — print or copy them now. Use “Reset” later to issue new cards.
+                    These passwords are shown only here — print or download them now. Use “Reset” later to issue new cards.
                 </p>
             </Modal>
             {portal}
