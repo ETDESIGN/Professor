@@ -69,7 +69,7 @@ for (const vp of VIEWPORTS) {
     await page.waitForTimeout(1500);
     // Loud guard: if auth ever breaks we get bounced to /login and would be
     // measuring the wrong screen — fail on the URL, not on overflow numbers.
-    expect(page.url()).toMatch(/\/board/);
+    expect(page.url()).toMatch(/\/board($|\?)/);
     const overflow = await page.evaluate(() => ({
       x: document.documentElement.scrollWidth - window.innerWidth,
       y: document.documentElement.scrollHeight - window.innerHeight,

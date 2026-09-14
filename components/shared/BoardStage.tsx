@@ -52,8 +52,8 @@ const BoardStage: React.FC<BoardStageProps> = ({ children, className = '' }) => 
             height: STAGE_H,
             transform: `scale(${k})`,
             transformOrigin: 'center center',
-            'container-type': 'size',
-            'container-name': 'stage',
+            containerType: 'size',
+            containerName: 'stage',
             '--stage-scale': String(k),
           } as React.CSSProperties
         }

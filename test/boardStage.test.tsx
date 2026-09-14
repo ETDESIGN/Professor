@@ -64,6 +64,7 @@ describe('BoardStage (component)', () => {
       expect(stage.style.transform).toBe(`scale(${744 / 1280})`);
       expect(stage.style.getPropertyValue('--stage-scale')).toBe(`${744 / 1280}`);
       expect(stage.style.getPropertyValue('container-type')).toBe('size');
+      expect(stage.style.getPropertyValue('container-name')).toBe('stage');
     });
     widthSpy.mockRestore();
     heightSpy.mockRestore();

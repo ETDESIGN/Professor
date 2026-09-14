@@ -14,9 +14,14 @@ const SCAN = join(ROOT, 'apps', 'board');
 const ALLOW_FILES = [/SpellingBeeStage/i];
 
 const RULES = [
-  { name: 'responsive Tailwind prefix (sm:/md:/lg:/xl:/2xl:)', re: /["'`\s]((?:sm|md|lg|xl|2xl):[a-z[-]+)/g },
+  // Catches bare breakpoints (sm:/md:/lg:/xl:/2xl:), max-lg:/min-md:-style
+  // variants, and column-0 occurrences (the ^ alternative — a line starting
+  // with the prefix has no preceding quote/space to anchor the old rule).
+  { name: 'responsive Tailwind prefix (sm:/md:/lg:/xl:/2xl: + max-/min- variants)', re: /(?:^|["'`\s])(?:(?:max|min)-)?((?:sm|md|lg|xl|2xl):[a-z[-]+)/g },
   { name: 'viewport media query (@media)', re: /@media/g },
-  { name: 'viewport unit (vh/vw/vmin/vmax)', re: /[\d.]v(h|w|min|max)\b|\bv(h|min|max)\b/g },
+  // Catches vh/vw/vmin/vmax AND the dynamic-viewport spellings
+  // svh/dvh/lvh/svw/dvw/lvw (mobile URL-bar units are still viewport-keyed).
+  { name: 'viewport unit (vh/vw/vmin/vmax + svh/dvh/lvh/svw/dvw/lvw)', re: /[\d.][sdl]?v(h|w|min|max)\b|\b[sdl]?v(h|min|max)\b/g },
   { name: 'window.inner* sizing', re: /innerWidth|innerHeight/g },
 ];
 
@@ -24,7 +29,7 @@ const walk = (dir) =>
   readdirSync(dir).flatMap((name) => {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) return walk(p);
-    return /\.tsx?$/.test(name) ? [p] : [];
+    return /\.tsx?$|\.css$/.test(name) ? [p] : [];
   });
 
 const violations = [];

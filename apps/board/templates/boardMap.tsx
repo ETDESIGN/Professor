@@ -1,8 +1,9 @@
 // boardMap.tsx — THE single step-type → template map (FIXPLAN P3.8).
 //
-// Both render surfaces consume this map:
-//   • apps/board/ClassroomBoard.tsx        (the projector)
-//   • apps/teacher/live/panels/BoardRenderer.tsx (the commander preview)
+// Both render surfaces share one content tree that consumes this map:
+//   • apps/board/BoardCanvas.tsx — rendered inside a BoardStage by BOTH
+//     apps/board/ClassroomBoard.tsx (the projector) and the Commander
+//     preview (apps/teacher/LiveCommander.tsx)
 //
 // Previously two hand-mirrored switches "already caught drifting once"
 // (commit a44e1bb: 6 unregistered slide types + GAME_ARENA aliased to the

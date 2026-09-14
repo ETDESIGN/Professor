@@ -25,7 +25,8 @@
 //   - Escalating pool snapshots (3 rounds, roundSize: 2)
 //   - Seeded deterministic tile banks
 //   - Steal mechanic & reveal holds
-//   - Phone-landscape floor 700x320 zero scroll
+//   - Fixed 1280×720 BoardStage: all sizing is in stage px (or cqw/cqh);
+//      BoardStage uniformly scales the whole stage to fit any device
 //   - Header clearance pl-48
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
