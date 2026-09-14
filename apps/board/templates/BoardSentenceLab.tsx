@@ -126,12 +126,17 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
       if (pi.exercise_type === 'WORD_BANK_BUILD') {
         const wbb = content as WordBankBuildContent;
         const targetTiles = wbb.target_sentence.trim().split(/\s+/);
+        // ROUND-2 #11 (owner rule): the tray carries ONLY the sentence's own
+        // words — no extra distractors. If the stored bank somehow misses a
+        // target word, fall back to the sentence itself.
+        const tSet = new Set(targetTiles);
+        const ownWords = (wbb.word_bank || []).filter((w: string) => tSet.has(w));
         items.push({
           poolItem: pi,
           promptText: `Build the sentence (${targetTiles.length} words)`,
           targetSentence: wbb.target_sentence,
           targetTiles,
-          wordBank: wbb.word_bank,
+          wordBank: ownWords.length === targetTiles.length ? ownWords : targetTiles,
           translation: wbb.translation,
           audioUrl: wbb.audio_url,
           exerciseType: 'WORD_BANK_BUILD',
@@ -149,13 +154,14 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
             if (!targetSet.has(w) && !distractorPool.includes(w)) distractorPool.push(w);
           }
         });
-        const distractors = shuffle(distractorPool, makeRng(seedBase, pi.id, 'distractors')).slice(0, 2);
+        // ROUND-2 #11: distractors removed — tray = the sentence's own words only.
+        void distractorPool;
         items.push({
           poolItem: pi,
           promptText: transform.prompt_sentence || 'Transform the sentence',
           targetSentence: correctSentence,
           targetTiles,
-          wordBank: [...targetTiles, ...distractors],
+          wordBank: targetTiles,
           translation: transform.instruction,
           exerciseType: 'TRANSFORM',
         });
@@ -167,9 +173,11 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
   const currentItem = sentenceItems[currentItemIdx];
 
   // TTS speech audio for target sentence
+  // ROUND-2 #11: the stored sentence MP3 is stamped at generation and never
+  // re-validated — after any rewrite it speaks the OLD sentence over the NEW
+  // display. The displayed sentence is authoritative: always speak it.
   const { play: playSentenceAudio } = useSpeech({
     text: currentItem?.targetSentence,
-    audioUrl: currentItem?.audioUrl,
     unitId,
   });
 
