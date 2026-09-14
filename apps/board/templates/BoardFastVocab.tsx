@@ -547,16 +547,18 @@ const BoardFastVocab: React.FC<{ data?: any }> = ({ data }) => {
             exit={{ opacity: 0 }}
             className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md cursor-pointer"
             onClick={() => {
+              // ROUND-2 #8: this tap is the teacher's "play it again". The old
+              // else-branch (picked-student mode) only hid the summary card —
+              // the engine stayed in phase 'complete' with every pair already
+              // matched, so taps on the re-shown board were inert ("cards
+              // don't lock"). Re-deal in BOTH modes; the new-wave identity
+              // triggers the engine's resetTurn (matched state clears).
               setShowSummary(false);
-              if (!state.quickWheelWinner && unitPairs.length > 0) {
-                setTurnSummary(null);
-                turnPointsRef.current = 0;
-                setTurnPoints(0);
-                winCuedRef.current = false;
-                buildWave(cursorRef.current);
-              } else {
-                setTurnSummary(null);
-              }
+              setTurnSummary(null);
+              turnPointsRef.current = 0;
+              setTurnPoints(0);
+              winCuedRef.current = false;
+              if (unitPairs.length > 0) buildWave(cursorRef.current);
             }}
           >
             <motion.div
