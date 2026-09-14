@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Search, Filter, Grid, List, MoreVertical, Edit2, Play, BookOpen, Users, CalendarPlus, Loader2, Sparkles, Wand2, Upload, FileText, Trash2, AlertTriangle, Plus, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, FolderInput, RotateCcw, LibraryBig, Dices, Scissors, Image as ImageIcon, ListChecks, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { coverOrFallback } from '../../services/localArt';
 import UnitPreviewModal from './UnitPreviewModal';
 import { useSession } from '../../store/SessionContext';
 import { Engine } from '../../services/SupabaseService';
@@ -680,7 +681,7 @@ const UnitList: React.FC<UnitListProps> = ({ onUploadMaterial, onEditUnit, onPla
         </div>
 
         <img
-          src={unit.coverImage}
+          src={coverOrFallback(unit.coverImage, unit.title || 'unit')}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           alt="Cover"
           referrerPolicy="no-referrer"

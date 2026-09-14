@@ -16,15 +16,24 @@
 
 import React from 'react';
 import { BookOpen } from 'lucide-react';
+import { coverOrFallback } from '../../../services/localArt';
 import { useSession } from '../../../store/SessionContext';
 
 const BoardUnitIntro = ({ data }: { data: any }) => {
   const { state } = useSession();
   const unit: any = state.activeUnit;
 
+  // ROUND-2 #1: a coverless unit (98/112 fleet-wide) used to drop to the
+  // gradient+glow fallback that reads as a broken "blur placeholder" to the
+  // owner. Every other cover surface (board unit-selection, student app)
+  // already falls back to the built-in localArt set — this screen now does
+  // the same (see the else-branch below), so the unit's first page always
+  // shows real-looking art.
   const cover = typeof unit?.coverImage === 'string' && /^https?:/.test(unit.coverImage)
     ? unit.coverImage
-    : (typeof data?.cover_url === 'string' ? data.cover_url : '');
+    : (typeof data?.cover_url === 'string' && /^https?:/.test(data.cover_url)
+        ? data.cover_url
+        : coverOrFallback('', title || 'unit'));
   const title = data?.title || unit?.title || 'Lesson';
   const subtitle = data?.subtitle || unit?.topic || '';
   const theme = data?.theme || '';
