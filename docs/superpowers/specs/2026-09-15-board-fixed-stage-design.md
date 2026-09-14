@@ -42,7 +42,7 @@ Extract exactly what lives inside today's `aspect-video` box (`ClassroomBoard.ts
 Replace the `w-[200%] h-[200%] origin-top-left transform scale-50` + `BoardRenderer` block with `BoardStage` + `BoardCanvas`. The preview now shows precisely what the class sees: game + leaderboard rail + whose-turn footer + phase badge, at projector scale.
 
 - The Commander's own LIVE/PEN badges, pen/color controls, and interactive `DrawingLayer` stay as overlays **outside/above** the stage — untouched.
-- Drawing coincidence: strokes are stored in SessionContext as 0–1 ratios and rendered as SVG percentage coords (`DrawingLayer.tsx:33,75-77`), so the commander's interactive layer and the replica's non-interactive layer coincide exactly at any scale. One cosmetic detail: multiply the overlay's `strokeWidth` by `--stage-scale` so pen width visually matches while drawing.
+- Drawing coincidence: strokes are stored in SessionContext as 0–1 ratios and rendered as SVG percentage coords (`DrawingLayer.tsx:33,75-77`), so the commander's interactive layer and the replica's non-interactive layer coincide exactly at any scale. Pen-width note (decided at implementation): both layers draw the same ratio-based strokes, so they coincide exactly. The Commander's overlay stroke renders at viewport px while the replica's renders scale-multiplied — the same harmless difference that exists between the two surfaces today, so `DrawingLayer` is deliberately left untouched.
 
 ### 4. Template sweep — mechanical, no redesigns
 

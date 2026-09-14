@@ -15,7 +15,8 @@ import AttendanceModal from './AttendanceModal';
 import { filterPresent } from '../../services/attendanceLogic';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '../../components/shared/ErrorBoundary';
-import { BoardRenderer } from './live/panels/BoardRenderer';
+import BoardStage from '../../components/shared/BoardStage';
+import BoardCanvas from '../board/BoardCanvas';
 import { renderContextualControls } from './live/panels/ContextualControls';
 import MediaResolvePanel from './live/panels/MediaResolvePanel';
 import { SidebarPanel } from './live/sidebar/SidebarPanel';
@@ -353,14 +354,16 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
                   )}
 
                   <div className="w-full max-w-5xl aspect-video bg-black rounded-xl shadow-2xl border border-slate-800 relative overflow-hidden group">
-                     <DrawingLayer isInteractive={isDrawingMode} color={drawingColor} className="z-20" />
-                     <div className="absolute inset-0 overflow-hidden z-10 pointer-events-auto select-none">
-                        <div className="w-[200%] h-[200%] origin-top-left transform scale-50">
-                           <ErrorBoundary>
-                              <BoardRenderer currentStep={currentStep} />
-                           </ErrorBoundary>
-                        </div>
+                     {/* True replica: the exact BoardStage + BoardCanvas tree the
+                         projector renders — preview scale === projector scale. */}
+                     <div className="absolute inset-0 z-10">
+                        <ErrorBoundary>
+                           <BoardStage>
+                              <BoardCanvas />
+                           </BoardStage>
+                        </ErrorBoundary>
                      </div>
+                     <DrawingLayer isInteractive={isDrawingMode} color={drawingColor} className="z-20" />
                      <div className="absolute top-3 left-3 flex gap-2 pointer-events-none z-30">
                         <div className="bg-red-600/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm flex items-center gap-1"><div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div> LIVE</div>
                         {isDrawingMode && <div className="bg-indigo-600/90 backdrop-blur px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm">PEN ACTIVE</div>}
