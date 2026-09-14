@@ -310,6 +310,21 @@ const BoardFocusCards = ({ data }: { data: any }) => {
                 <div className={`fc-inner w-full h-full ${isFlipped ? 'fc-flipped' : ''}`}>
                   {/* FRONT — image only, warm-cream frame */}
                   <div className="fc-face fc-front w-full h-full rounded-2xl bg-[#FFF8EC] border-2 border-white/20 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.65)] overflow-hidden flex items-center justify-center">
+                    {/* ROUND-2 #4 (owner request): speaker on the card FRONT so
+                        the teacher can play the word WITHOUT flipping. Left
+                        corner — the studied-✓ badge owns the right. span, not
+                        button: nested buttons are invalid HTML; the back-face
+                        audio control uses the same pattern. */}
+                    <span
+                      role="button"
+                      tabIndex={-1}
+                      aria-label={`play ${card.word}`}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); playWord(i); }}
+                      className="absolute top-2 left-2 z-20 w-9 h-9 rounded-full bg-slate-900/70 backdrop-blur border border-white/40 flex items-center justify-center text-white shadow-lg hover:bg-sky-600 hover:scale-105 active:scale-95 transition-all"
+                    >
+                      <Volume2 size={16} />
+                    </span>
                     {card.image && String(card.image).startsWith('http') ? (
                       <img src={card.image} alt="" className="w-full h-full object-cover" loading="lazy" />
                     ) : (
