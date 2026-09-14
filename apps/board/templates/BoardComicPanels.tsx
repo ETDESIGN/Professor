@@ -400,15 +400,15 @@ const BoardComicPanels = ({ data }: { data: any }) => {
   // ── Story Solved Showcase (Screen 4 / 2-complete.html) ───────────────────
   if (complete) {
     return (
-      <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-7 relative overflow-hidden select-none font-sans comic-stage-root">
+      <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-7 relative overflow-hidden select-none font-sans comic-stage-root">
         {/* TOP APP BAR / HEADER */}
-        <header className="w-full flex items-center justify-between h-12 sm:h-14 relative z-20 flex-none comic-header">
-          <div className="flex items-center gap-3 pl-28 lg:pl-44">
+        <header className="w-full flex items-center justify-between h-14 relative z-20 flex-none comic-header">
+          <div className="flex items-center gap-3 pl-44">
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0B132B] border border-slate-800 text-xs font-mono font-semibold tracking-wider text-sky-400 uppercase shadow-lg">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>PHASE: STORY COMPLETE</span>
             </div>
-            <div className="hidden md:flex items-center gap-2 text-slate-400 font-mono text-xs">
+            <div className="flex items-center gap-2 text-slate-400 font-mono text-xs">
               <span className="text-slate-600">•</span>
               <span>{data?.comic_label || "Leo's Quest"}</span>
             </div>
@@ -421,7 +421,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
             </div>
             <button
               onClick={handleReadAloud}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#0B132B] border border-slate-700 hover:border-sky-400 flex items-center justify-center text-slate-300 hover:text-sky-400 transition-colors ${isSpeaking ? 'text-sky-400 animate-pulse' : ''}`}
+              className={`w-10 h-10 rounded-xl bg-[#0B132B] border border-slate-700 hover:border-sky-400 flex items-center justify-center text-slate-300 hover:text-sky-400 transition-colors ${isSpeaking ? 'text-sky-400 animate-pulse' : ''}`}
               title="Read aloud whole story"
             >
               <Volume2 size={18} />
@@ -430,9 +430,9 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         </header>
 
         {/* CELEBRATION HERO BANNER */}
-        <section className="w-full flex items-center justify-between px-6 sm:px-8 py-3 sm:py-4 rounded-2xl bg-gradient-to-r from-[#0B132B] via-[#111C3D] to-[#0B132B] border border-emerald-500/40 shadow-xl shadow-emerald-500/10 relative overflow-hidden my-1 comic-hero-banner">
-          <div className="flex items-center gap-4 sm:gap-5 relative z-10">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-lg">
+        <section className="w-full flex items-center justify-between px-8 py-4 rounded-2xl bg-gradient-to-r from-[#0B132B] via-[#111C3D] to-[#0B132B] border border-emerald-500/40 shadow-xl shadow-emerald-500/10 relative overflow-hidden my-1 comic-hero-banner">
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-400 shadow-lg">
               <Trophy size={28} />
             </div>
             <div>
@@ -440,15 +440,15 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono text-xs font-bold uppercase tracking-wider">
                   Story Solved!
                 </span>
-                <span className="text-slate-400 text-xs font-mono hidden sm:inline">100% Sequence Accuracy</span>
+                <span className="text-slate-400 text-xs font-mono inline">100% Sequence Accuracy</span>
               </div>
-              <h2 className="font-display font-black text-2xl sm:text-3xl text-white tracking-tight mt-0.5">
+              <h2 className="font-display font-black text-3xl text-white tracking-tight mt-0.5">
                 Fantastic job, <span className="text-emerald-400">{pickedStudent ? pickedStudent.name : 'Class'}</span>!
               </h2>
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center gap-1.5 relative z-10 px-5 py-2 rounded-xl bg-[#0B132B]/80 border border-slate-800">
+          <div className="flex items-center gap-1.5 relative z-10 px-5 py-2 rounded-xl bg-[#0B132B]/80 border border-slate-800">
             {[...Array(5)].map((_, idx) => (
               <Star key={idx} size={22} className="text-amber-400 fill-amber-400 drop-shadow" />
             ))}
@@ -456,8 +456,8 @@ const BoardComicPanels = ({ data }: { data: any }) => {
 
           <div className="flex items-center gap-4 relative z-10">
             <div className="text-right">
-              <div className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-slate-400">Points Awarded</div>
-              <div className="font-display font-extrabold text-xl sm:text-2xl text-emerald-400">
+              <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400">Points Awarded</div>
+              <div className="font-display font-extrabold text-2xl text-emerald-400">
                 +{pointsAwardedRef.current > 0 ? pointsAwardedRef.current : 3} PTS
               </div>
             </div>
@@ -466,10 +466,10 @@ const BoardComicPanels = ({ data }: { data: any }) => {
 
         {/* COMPLETE HORIZONTAL FILMSTRIP RUNWAY */}
         <main className="w-full flex-1 flex flex-col justify-center my-1 relative min-h-0">
-          <div className="w-full flex items-center justify-between gap-2 sm:gap-3 px-1 py-1 overflow-x-auto">
+          <div className="w-full flex items-center justify-between gap-3 px-1 py-1 overflow-x-auto">
             {sortedPanels.map((panel, idx) => (
               <React.Fragment key={panel.id}>
-                <div className="flex-1 min-w-[140px] max-w-[260px] flex flex-col bg-[#0B132B] rounded-xl sm:rounded-2xl p-2 border-2 border-emerald-500/70 shadow-lg relative group comic-filmstrip-panel">
+                <div className="flex-1 min-w-[140px] max-w-[260px] flex flex-col bg-[#0B132B] rounded-2xl p-2 border-2 border-emerald-500/70 shadow-lg relative group comic-filmstrip-panel">
                   <div className="flex items-center justify-between px-1.5 py-0.5 mb-1">
                     <span className="font-mono font-bold text-xs text-emerald-400 flex items-center gap-1.5">
                       <span className="w-4 h-4 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-bold text-[10px]">
@@ -492,7 +492,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                     )}
                     {panel.texts.length > 0 && (
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/75 to-transparent p-1.5 pt-3">
-                        <p className="text-[11px] sm:text-xs font-bold text-white text-center leading-tight truncate">
+                        <p className="text-xs font-bold text-white text-center leading-tight truncate">
                           “{panel.texts[0]}”
                         </p>
                       </div>
@@ -507,7 +507,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                 </div>
 
                 {idx < sortedPanels.length - 1 && (
-                  <div className="hidden sm:flex flex-col items-center justify-center flex-none px-0.5">
+                  <div className="flex flex-col items-center justify-center flex-none px-0.5">
                     <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400/60 flex items-center justify-center text-emerald-400 text-xs">
                       <ArrowRight size={14} />
                     </div>
@@ -519,7 +519,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         </main>
 
         {/* WHOLE-CLASS ORAL CHANT RECAP */}
-        <section className="w-full px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-[#0B132B] border border-slate-800 flex items-center justify-between gap-4 my-1 comic-story-recap">
+        <section className="w-full px-6 py-3 rounded-2xl bg-[#0B132B] border border-slate-800 flex items-center justify-between gap-4 my-1 comic-story-recap">
           <div className="flex items-center gap-3 min-w-max">
             <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
               <Sparkles size={18} />
@@ -531,7 +531,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
           </div>
 
           <div className="flex-1 text-center bg-[#111C3D]/80 px-4 py-1.5 rounded-xl border border-slate-700/60 overflow-hidden">
-            <p className="font-display text-sm sm:text-base lg:text-lg font-bold tracking-tight text-white leading-snug truncate">
+            <p className="font-display text-lg font-bold tracking-tight text-white leading-snug truncate">
               {sortedPanels.map((p, i) => {
                 const prefix = i === 0 ? 'First, ' : i === sortedPanels.length - 1 ? 'Finally, ' : 'Then, ';
                 const line = p.narration || p.texts.join(' ') || `Step ${i + 1}`;
@@ -566,7 +566,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
             </button>
             <button
               onClick={() => { setComplete(false); triggerAction('SLIDE_COMPLETE', { forced: true }); }}
-              className="px-6 py-2 rounded-xl bg-[#FF2E79] hover:bg-[#ff1667] text-white font-bold text-xs sm:text-sm tracking-wide shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center gap-2"
+              className="px-6 py-2 rounded-xl bg-[#FF2E79] hover:bg-[#ff1667] text-white font-bold text-sm tracking-wide shadow-lg shadow-pink-500/20 active:scale-95 transition-all flex items-center gap-2"
             >
               <span>NEXT CHAPTER</span>
               <ArrowRight size={16} />
@@ -579,7 +579,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
 
   // ── Main Gameplay (Screens 1 & 2 / 1-rebuild.html) ───────────────────────
   return (
-    <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-3 sm:p-5 lg:p-6 select-none relative overflow-hidden font-sans comic-stage-root">
+    <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-6 select-none relative overflow-hidden font-sans comic-stage-root">
       <style>{`
         @keyframes pulse-border {
           0%, 100% { border-color: rgba(56, 189, 248, 0.85); box-shadow: 0 0 24px rgba(56, 189, 248, 0.4); }
@@ -591,14 +591,14 @@ const BoardComicPanels = ({ data }: { data: any }) => {
       `}</style>
 
       {/* TOP HEADER */}
-      <header className="h-12 sm:h-14 flex-none flex items-center justify-between px-2 sm:px-4 border-b border-slate-800/80 bg-[#070C18]/95 z-20 comic-header">
+      <header className="h-14 flex-none flex items-center justify-between px-4 border-b border-slate-800/80 bg-[#070C18]/95 z-20 comic-header">
         {/* Left: Overscan clearance + Phase badge */}
-        <div className="flex items-center gap-3 pl-28 lg:pl-44">
+        <div className="flex items-center gap-3 pl-44">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono uppercase tracking-widest font-bold bg-sky-500/10 border border-sky-400/40 text-sky-400 shadow-lg shadow-sky-500/10">
             <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
             PHASE: STORY REBUILD
           </span>
-          <div className="hidden xl:flex items-center gap-2 text-slate-400 font-mono text-xs">
+          <div className="flex items-center gap-2 text-slate-400 font-mono text-xs">
             <span className="text-slate-700">|</span>
             <span className="text-white font-bold tracking-tight">REBUILD THE STORY</span>
             {data?.comic_label && <span className="text-slate-400 font-normal">· {data.comic_label}</span>}
@@ -606,7 +606,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         </div>
 
         {/* Center: Segmented narrative progress */}
-        <div className="flex items-center gap-3 bg-[#0B132B] border border-slate-800 px-3 sm:px-4 py-1.5 rounded-full">
+        <div className="flex items-center gap-3 bg-[#0B132B] border border-slate-800 px-4 py-1.5 rounded-full">
           <span className="text-xs font-mono font-bold tracking-wider text-slate-300 mr-1">
             {placedCount} OF {totalCount} PLACED
           </span>
@@ -617,7 +617,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
               return (
                 <div
                   key={idx}
-                  className={`w-4 sm:w-5 h-2 rounded-sm transition-all ${
+                  className={`w-5 h-2 rounded-sm transition-all ${
                     isPlaced
                       ? 'bg-emerald-400 shadow-md shadow-emerald-500/40'
                       : isCurrent
@@ -631,15 +631,15 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         </div>
 
         {/* Right: Roster context + Audio + Primary CTA */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-[#0B132B] border border-slate-800 rounded-lg text-xs font-mono text-slate-300">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#0B132B] border border-slate-800 rounded-lg text-xs font-mono text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
             <span>{pickedStudent ? `${pickedStudent.name}'s turn` : 'Choral Class Mode'}</span>
           </div>
 
           <button
             onClick={handleReadAloud}
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#0B132B] border border-slate-700 hover:border-sky-400 flex items-center justify-center text-slate-300 hover:text-sky-400 transition-colors ${isSpeaking ? 'text-sky-400 animate-pulse' : ''}`}
+            className={`w-9 h-9 rounded-lg bg-[#0B132B] border border-slate-700 hover:border-sky-400 flex items-center justify-center text-slate-300 hover:text-sky-400 transition-colors ${isSpeaking ? 'text-sky-400 animate-pulse' : ''}`}
             title="Read Aloud Story"
           >
             <Volume2 size={16} />
@@ -649,7 +649,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
             onClick={checkOrder}
             disabled={!allFilled || outcome !== null}
             aria-label="Check Answer"
-            className={`px-4 sm:px-6 py-2 rounded-xl font-bold text-xs sm:text-sm tracking-wide shadow-lg transition-all flex items-center gap-2 ${
+            className={`px-6 py-2 rounded-xl font-bold text-sm tracking-wide shadow-lg transition-all flex items-center gap-2 ${
               allFilled && !outcome
                 ? 'bg-[#FF2E79] hover:bg-[#ff1667] text-white shadow-pink-500/30 hover:scale-105 active:scale-95 cursor-pointer'
                 : 'bg-slate-800 text-slate-500 border border-slate-700/60 cursor-not-allowed'
@@ -662,23 +662,23 @@ const BoardComicPanels = ({ data }: { data: any }) => {
       </header>
 
       {/* STORY SEQUENCE RUNWAY (Center stage) */}
-      <main className="flex-1 px-2 sm:px-6 py-2 sm:py-3 flex flex-col justify-center min-h-0 comic-runway-container">
+      <main className="flex-1 px-6 py-3 flex flex-col justify-center min-h-0 comic-runway-container">
         <div className="flex items-center justify-between mb-1.5 px-1">
           <div className="flex items-baseline gap-2">
             <span className="text-xs font-mono font-bold tracking-widest text-sky-400 uppercase">
               STORY SEQUENCE RUNWAY
             </span>
-            <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">
+            <span className="text-[11px] font-medium text-slate-400 inline">
               · Chronological order (1 to {totalCount}) across the story
             </span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest hidden md:inline">
+          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest inline">
             Widescreen 3:2 Classroom Ratio
           </span>
         </div>
 
         {/* Dynamic Horizontal Grid for Target Slots */}
-        <div className={`grid gap-2.5 sm:gap-3.5 items-stretch w-full mx-auto ${
+        <div className={`grid gap-3.5 items-stretch w-full mx-auto ${
           totalCount <= 3 ? 'grid-cols-3 max-w-4xl' :
           totalCount === 4 ? 'grid-cols-4 max-w-5xl' :
           totalCount === 5 ? 'grid-cols-5 max-w-6xl' :
@@ -717,7 +717,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
               >
                 {/* Slot Header */}
                 <div className="flex items-center justify-between mb-1 px-1">
-                  <span className={`text-[10px] sm:text-[11px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                  <span className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded border ${
                     isPlaced
                       ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
                       : isActiveTarget
@@ -726,7 +726,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                   }`}>
                     0{idx + 1} · {idx === 0 ? 'START' : idx === totalCount - 1 ? 'FINALE' : `STEP 0${idx + 1}`}
                   </span>
-                  <span className={`text-[9px] sm:text-[10px] font-mono font-bold uppercase ${
+                  <span className={`text-[10px] font-mono font-bold uppercase ${
                     isPlaced ? 'text-emerald-400 flex items-center gap-1' :
                     isActiveTarget ? 'text-sky-400' : 'text-slate-600'
                   }`}>
@@ -759,14 +759,14 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                     )}
 
                     {/* Revealed Narration & Dialogue Overlay */}
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-1 sm:p-1.5 pt-2">
+                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-1.5 pt-2">
                       {slot.narration && (
-                        <p className="text-[10px] sm:text-[11px] italic text-amber-300 font-semibold leading-tight truncate">
+                        <p className="text-[11px] italic text-amber-300 font-semibold leading-tight truncate">
                           {slot.narration}
                         </p>
                       )}
                       {slot.texts.map((t, tIdx) => (
-                        <p key={tIdx} className="text-[11px] sm:text-xs font-bold text-white leading-tight truncate">
+                        <p key={tIdx} className="text-xs font-bold text-white leading-tight truncate">
                           “{t}”
                         </p>
                       ))}
@@ -777,7 +777,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                     <div className="w-8 h-8 rounded-full bg-sky-400/20 border border-sky-400/50 flex items-center justify-center text-sky-400 mb-1">
                       <Plus size={18} className="animate-bounce" />
                     </div>
-                    <span className="text-[11px] sm:text-xs font-bold text-sky-200 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-sky-200 uppercase tracking-wide">
                       DROP PANEL 0{idx + 1}
                     </span>
                     <span className="text-[9px] text-sky-400 font-mono mt-0.5">Select from tray below</span>
@@ -797,15 +797,15 @@ const BoardComicPanels = ({ data }: { data: any }) => {
       </main>
 
       {/* SHUFFLED COMIC PANEL TRAY (Bottom stage) */}
-      <section className="h-56 sm:h-64 flex-none px-3 sm:px-6 py-2.5 bg-[#0B132B]/95 border-t border-slate-800 flex flex-col justify-between comic-tray-container">
+      <section className="h-64 flex-none px-6 py-2.5 bg-[#0B132B]/95 border-t border-slate-800 flex flex-col justify-between comic-tray-container">
         {/* Tray Header & Classroom Guidance */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-3">
             <span className="text-xs font-mono font-bold tracking-widest text-slate-200 uppercase flex items-center gap-1.5">
               <BookOpen size={14} className="text-sky-400" />
               COMIC PANEL TRAY (SELECT FOR ACTIVE SLOT 0{activeDropIndex + 1 || totalCount})
             </span>
-            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 border border-amber-500/30 text-amber-300">
+            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 border border-amber-500/30 text-amber-300">
               <span>💡</span>
               <span>Observe characters and sequence before choosing!</span>
             </span>
@@ -829,7 +829,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         </div>
 
         {/* Candidate Cards Horizontal Row */}
-        <div className="flex items-center justify-center gap-3 sm:gap-6 py-1 overflow-x-auto">
+        <div className="flex items-center justify-center gap-6 py-1 overflow-x-auto">
           {tray.map((panel, idx) => {
             const letter = String.fromCharCode(65 + idx);
             const isHinted = candidateHint === panel.id;
@@ -839,7 +839,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
                 key={panel.id}
                 onClick={() => handleTrayClick(panel)}
                 title="Place this panel in the next slot"
-                className={`comic-tray-card w-40 sm:w-52 md:w-60 min-w-40 bg-[#111C3D] rounded-xl p-2 transition-all cursor-pointer text-left relative group border-2 ${
+                className={`comic-tray-card w-60 min-w-40 bg-[#111C3D] rounded-xl p-2 transition-all cursor-pointer text-left relative group border-2 ${
                   isHinted
                     ? 'border-sky-400 ring-4 ring-sky-400/60 shadow-lg shadow-sky-500/40 -translate-y-2'
                     : 'border-slate-700 hover:border-sky-400 hover:-translate-y-1 shadow-md hover:shadow-sky-500/20'
@@ -847,7 +847,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
               >
                 {/* Candidate letter stamp */}
                 <div className="flex items-center justify-between mb-1 px-0.5">
-                  <span className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-300 tracking-wide flex items-center gap-1">
+                  <span className="text-[11px] font-mono font-bold text-slate-300 tracking-wide flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-sky-400"></span>
                     CANDIDATE {letter}
                   </span>
@@ -879,7 +879,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
           )}
 
           {outcome && (
-            <div className={`flex items-center gap-2 font-bold text-xl sm:text-2xl animate-bounce self-center ${
+            <div className={`flex items-center gap-2 font-bold text-2xl animate-bounce self-center ${
               outcome === 'correct' ? 'text-emerald-400' : 'text-amber-400'
             }`}>
               <Check size={28} />
@@ -893,7 +893,7 @@ const BoardComicPanels = ({ data }: { data: any }) => {
         </div>
 
         {/* Tray Footer note */}
-        <div className="text-center text-[10px] sm:text-[11px] font-mono text-slate-500 pb-0.5">
+        <div className="text-center text-[11px] font-mono text-slate-500 pb-0.5">
           Sequencing Rule: Order panels 1 to {totalCount} in book sequence. Tap any placed panel to return it to the tray.
         </div>
       </section>

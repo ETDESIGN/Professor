@@ -7,7 +7,7 @@
 //   1. UNCROPPED story illustration (object-contain) in dedicated widescreen card (F1)
 //   2. Structured speaker dialogue turns with character badges & active highlights (F2)
 //   3. High-contrast choice cards with A/B/C/D letter badges (F3)
-//   4. Full-bleed widescreen canvas with pl-40/lg:pl-48 clearance for BoardShell phase pill
+//   4. Full-bleed widescreen canvas with pl-48 clearance for BoardShell phase pill
 //   5. Preserves owner's animated 📚 trophy celebration on completion and empty state
 //   6. Full lifecycle, dual-write scoring, remote action handlers, and pool coordination verbatim.
 
@@ -537,15 +537,15 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
         }
       `}</style>
 
-      {/* Top Header — pl-40 lg:pl-48 clearance for BoardShell phase pill */}
-      <header className="h-14 sm:h-16 w-full flex-shrink-0 flex items-center justify-between pl-40 lg:pl-48 pr-6 border-b border-slate-800 bg-[#070C18]/90 backdrop-blur-md z-30 sq-header">
+      {/* Top Header — pl-48 clearance for BoardShell phase pill */}
+      <header className="h-16 w-full flex-shrink-0 flex items-center justify-between pl-48 pr-6 border-b border-slate-800 bg-[#070C18]/90 backdrop-blur-md z-30 sq-header">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[#FF2D78]/20 border border-[#FF2D78]/50 flex items-center justify-center text-[#FF2D78] font-black text-lg">
             Q
           </div>
           <div>
-            <h1 className="font-bold text-lg sm:text-xl tracking-wide text-white">
-              Story Quest <span className="text-slate-400 font-normal text-xs sm:text-sm ml-1">· Chapter {currentPanelIdx + 1}</span>
+            <h1 className="font-bold text-xl tracking-wide text-white">
+              Story Quest <span className="text-slate-400 font-normal text-sm ml-1">· Chapter {currentPanelIdx + 1}</span>
             </h1>
           </div>
         </div>
@@ -578,10 +578,10 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="flex-1 w-full p-4 sm:p-6 grid grid-cols-12 gap-4 sm:gap-6 min-h-0 sq-main"
+            className="flex-1 w-full p-6 grid grid-cols-12 gap-6 min-h-0 sq-main"
           >
             {/* Left 40% (5 Cols): Dialogue Script with Speaker Turns */}
-            <section className="col-span-5 flex flex-col bg-[#0B132B] rounded-2xl border border-slate-800 p-4 sm:p-6 min-h-0 justify-between shadow-2xl sq-left">
+            <section className="col-span-5 flex flex-col bg-[#0B132B] rounded-2xl border border-slate-800 p-6 min-h-0 justify-between shadow-2xl sq-left">
               {/* Script Bar */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
@@ -611,7 +611,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                     <article
                       key={idx}
                       onClick={() => setActiveSpeakerTurn(idx)}
-                      className={`rounded-xl p-3.5 sm:p-4 transition-all duration-200 cursor-pointer sq-turn-card ${
+                      className={`rounded-xl p-4 transition-all duration-200 cursor-pointer sq-turn-card ${
                         isActive
                           ? 'active-turn-glow bg-[#111C3D] border-2 border-[#38BDF8] shadow-lg scale-[1.01]'
                           : isPast
@@ -640,7 +640,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                         {isPast && <CheckCircle2 size={16} className="text-emerald-400" />}
                       </div>
 
-                      <div className={`font-bold leading-tight ${isActive ? 'text-xl sm:text-2xl text-white sq-chant' : 'text-sm sm:text-base text-slate-300'}`}>
+                      <div className={`font-bold leading-tight ${isActive ? 'text-2xl text-white sq-chant' : 'text-base text-slate-300'}`}>
                         “{renderTextWithVocab(line.text)}”
                       </div>
                     </article>
@@ -653,7 +653,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                 {currentPanelIdx < storyPanels.length - 1 && predictionOptions.length > 0 ? (
                   <button
                     onClick={() => setPhase('prediction')}
-                    className="flex-1 py-3 sm:py-3.5 px-4 rounded-xl bg-[#FF2D78] text-white font-bold text-base sm:text-lg tracking-wide btn-primary-glow hover:bg-[#FF2D78]/90 transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 px-4 rounded-xl bg-[#FF2D78] text-white font-bold text-lg tracking-wide btn-primary-glow hover:bg-[#FF2D78]/90 transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
                   >
                     <span>What happens next?</span>
                     <ArrowRight size={20} />
@@ -661,7 +661,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                 ) : (
                   <button
                     onClick={() => advanceToNext()}
-                    className="flex-1 py-3 sm:py-3.5 px-4 rounded-xl bg-[#FF2D78] text-white font-bold text-base sm:text-lg tracking-wide btn-primary-glow hover:bg-[#FF2D78]/90 transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
+                    className="flex-1 py-3.5 px-4 rounded-xl bg-[#FF2D78] text-white font-bold text-lg tracking-wide btn-primary-glow hover:bg-[#FF2D78]/90 transition-all duration-200 active:scale-95 flex items-center justify-center gap-2"
                   >
                     <span>Continue Story</span>
                     <ArrowRight size={20} />
@@ -671,18 +671,18 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                 {currentItem.audioUrl && (
                   <button
                     onClick={playAudio}
-                    className="py-3 sm:py-3.5 px-4 rounded-xl bg-[#111C3D] hover:bg-[#182652] text-white font-bold text-xs sm:text-sm border border-slate-700 hover:border-[#38BDF8] transition-all flex items-center gap-2"
+                    className="py-3.5 px-4 rounded-xl bg-[#111C3D] hover:bg-[#182652] text-white font-bold text-sm border border-slate-700 hover:border-[#38BDF8] transition-all flex items-center gap-2"
                     title="Replay Audio (Space)"
                   >
                     <Volume2 size={18} />
-                    <span className="hidden sm:inline">Listen</span>
+                    <span className="inline">Listen</span>
                   </button>
                 )}
               </div>
             </section>
 
             {/* Right 60% (7 Cols): Uncropped Artwork with Story Progress Strip */}
-            <section className="col-span-7 flex flex-col bg-[#0B132B] rounded-2xl border border-slate-800 p-4 sm:p-6 min-h-0 justify-between shadow-2xl sq-right">
+            <section className="col-span-7 flex flex-col bg-[#0B132B] rounded-2xl border border-slate-800 p-6 min-h-0 justify-between shadow-2xl sq-right">
               {/* Scene Info */}
               <div className="flex items-center justify-between pb-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#111C3D] border border-slate-800 text-xs font-bold text-[#38BDF8] tracking-wider uppercase font-mono">
@@ -723,7 +723,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                         return (
                           <div key={idx} className="flex items-center gap-1.5">
                             <div
-                              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all sq-dot ${
+                              className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all sq-dot ${
                                 isDone
                                   ? 'bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400'
                                   : isCurrent
@@ -734,7 +734,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                               {isDone ? <Check size={13} strokeWidth={3} /> : idx + 1}
                             </div>
                             {idx < storyPanels.length - 1 && (
-                              <div className={`w-3 sm:w-4 h-0.5 ${isDone ? 'bg-emerald-500/60' : 'bg-slate-800'}`} />
+                              <div className={`w-4 h-0.5 ${isDone ? 'bg-emerald-500/60' : 'bg-slate-800'}`} />
                             )}
                           </div>
                         );
@@ -763,21 +763,21 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 flex flex-col justify-center gap-4 sm:gap-6 min-h-0"
+            className="flex-1 w-full max-w-5xl mx-auto p-6 flex flex-col justify-center gap-6 min-h-0"
           >
             {/* Top Prompt Card */}
             <section className="bg-[#0B132B] border border-slate-800 rounded-2xl p-5 shadow-2xl text-center">
               <span className="px-3 py-1 rounded-full bg-[#00FFCC]/10 border border-[#00FFCC]/30 text-[#00FFCC] text-xs font-bold uppercase tracking-widest">
                 Whole Class Prediction
               </span>
-              <h2 className="text-2xl sm:text-4xl font-black text-white mt-2 tracking-tight">
+              <h2 className="text-4xl font-black text-white mt-2 tracking-tight">
                 What happens next?
               </h2>
               <p className="text-slate-400 text-sm mt-1">Guess what happens in the next scene!</p>
             </section>
 
             {/* Prediction Options Grid */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-stretch">
+            <section className="grid grid-cols-3 gap-4 items-stretch">
               {predictionOptions.map((option, idx) => {
                 const labels = ['A', 'B', 'C'];
                 const isSelected = selectedPrediction === idx;
@@ -787,7 +787,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => handlePredictionSelect(idx)}
-                    className={`flex flex-col justify-between p-5 rounded-2xl border-2 text-left transition-all duration-200 shadow-xl min-h-[140px] sm:min-h-[180px] ${
+                    className={`flex flex-col justify-between p-5 rounded-2xl border-2 text-left transition-all duration-200 shadow-xl min-h-[180px] ${
                       isSelected
                         ? option.correct
                           ? 'bg-emerald-600 border-emerald-400 text-white shadow-emerald-950/50'
@@ -804,7 +804,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                       </span>
                     </div>
 
-                    <p className="text-base sm:text-xl font-bold leading-snug flex-1 flex items-center">
+                    <p className="text-xl font-bold leading-snug flex-1 flex items-center">
                       “{option.text}”
                     </p>
                   </motion.button>
@@ -831,10 +831,10 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 flex flex-col justify-center gap-4 sm:gap-6 min-h-0"
+            className="flex-1 w-full max-w-5xl mx-auto p-6 flex flex-col justify-center gap-6 min-h-0"
           >
             {/* Question Card */}
-            <section className="bg-[#0B132B] border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden text-center">
+            <section className="bg-[#0B132B] border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden text-center">
               <div className="flex items-center justify-between mb-2">
                 <span className="px-3 py-1 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/40 text-[#38BDF8] text-xs font-bold uppercase tracking-widest font-mono">
                   Comprehension Check · Question {comprehensionIdx + 1}/{comprehensionItems.length}
@@ -845,13 +845,13 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                   </span>
                 )}
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+              <h2 className="text-3xl font-black text-white leading-tight">
                 {(comprehensionItems[comprehensionIdx].content as StoryComprehensionContent).prompt}
               </h2>
             </section>
 
             {/* Options Grid (2x2 or horizontal) */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <section className="grid grid-cols-2 gap-4">
               {(comprehensionItems[comprehensionIdx].content as StoryComprehensionContent).options.map((option, idx) => {
                 const labels = ['A', 'B', 'C', 'D'];
                 const isEliminated = eliminatedOptions.includes(idx);
@@ -866,7 +866,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                     whileTap={{ scale: isEliminated ? 1 : 0.98 }}
                     onClick={() => !isEliminated && handleComprehensionSelect(idx)}
                     disabled={isEliminated}
-                    className={`flex items-center gap-3 p-4 sm:p-5 rounded-2xl border-2 text-left transition-all duration-200 shadow-lg ${
+                    className={`flex items-center gap-3 p-5 rounded-2xl border-2 text-left transition-all duration-200 shadow-lg ${
                       isEliminated
                         ? 'opacity-30 line-through bg-slate-950 border-slate-900 text-slate-500 cursor-not-allowed'
                         : isSelected
@@ -879,7 +879,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
                     <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center font-bold text-base text-[#38BDF8] border border-slate-700 shrink-0">
                       {labels[idx] || idx + 1}
                     </div>
-                    <span className="text-base sm:text-xl font-bold flex-1">{option}</span>
+                    <span className="text-xl font-bold flex-1">{option}</span>
                   </motion.button>
                 );
               })}

@@ -509,30 +509,30 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   // ── Render pieces (v3 "Syntax Workshop" per stitch/12-unscramble) ──────
 
   // Header. BoardShell's phase pill occupies the top-left ~164px —
-  // pl-32/lg:pl-48 keeps the U badge clear (same as Word Search/Listen&Tap).
+  // pl-48 keeps the U badge clear (same as Word Search/Listen&Tap).
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-14 shrink-0">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-lg lg:text-xl flex items-center justify-center shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)] shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black text-xl flex items-center justify-center shadow-[0_0_20px_-4px_rgba(245,158,11,0.6)] shrink-0">
           U
         </div>
         <div className="min-w-0">
-          <p className="un-mono text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400 leading-none">
+          <p className="un-mono text-[10px] font-bold uppercase tracking-[0.18em] text-amber-400 leading-none">
             {isTransform ? 'Transform Workshop' : 'Syntax Workshop'}
           </p>
-          <h1 className="text-lg lg:text-xl font-bold tracking-tight text-white leading-tight truncate">
+          <h1 className="text-xl font-bold tracking-tight text-white leading-tight truncate">
             {isTransform ? 'Transform It' : 'Unscramble'}
           </h1>
         </div>
         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700 shrink-0">
           <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          <span className="un-mono text-[10px] lg:text-xs font-bold text-slate-200">Round {roundIndex}/{TOTAL_ROUNDS}</span>
+          <span className="un-mono text-xs font-bold text-slate-200">Round {roundIndex}/{TOTAL_ROUNDS}</span>
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {!outcome && !slideComplete && !revealTiles && (
           <button onClick={revealHint} title="Hint (swap cue / first wrong spot)"
-            className="px-2.5 lg:px-4 py-1.5 lg:py-2 rounded-xl border border-amber-500/50 bg-amber-950/40 text-amber-300 hover:bg-amber-900/40 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-colors active:scale-95 flex items-center gap-1.5">
+            className="px-4 py-2 rounded-xl border border-amber-500/50 bg-amber-950/40 text-amber-300 hover:bg-amber-900/40 text-xs font-bold uppercase tracking-wider transition-colors active:scale-95 flex items-center gap-1.5">
             <Lightbulb size={13} /> Clue
           </button>
         )}
@@ -548,35 +548,35 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   // in WORD_BANK_BUILD/TRANSFORM content — the plate is full-width (fidelity
   // log #1). The stem shows only SLOT COUNT blanks, never a revealed word.
   const taskFrame = (
-    <section className="w-full shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-4 lg:px-6 py-2.5 lg:py-4 flex flex-col gap-2 relative">
+    <section className="w-full shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-6 py-4 flex flex-col gap-2 relative">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="un-mono px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/40 text-[9px] lg:text-[10px] font-bold uppercase tracking-widest shrink-0">
+          <span className="un-mono px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/40 text-[10px] font-bold uppercase tracking-widest shrink-0">
             Task {String(roundIndex).padStart(2, '0')}
           </span>
-          <span className="text-slate-400 text-xs lg:text-sm font-medium truncate">
+          <span className="text-slate-400 text-sm font-medium truncate">
             {isTransform ? (round?.instruction || 'Rewrite the sentence.') : 'Build the sentence:'}
           </span>
         </div>
-        <span className="un-mono text-[9px] lg:text-[10px] text-slate-500 hidden sm:flex items-center gap-1.5 shrink-0">
+        <span className="un-mono text-[10px] text-slate-500 flex items-center gap-1.5 shrink-0">
           <span className="text-emerald-400 font-bold">{targetLen} words</span>· tap or drag blocks
         </span>
       </div>
 
       {/* Reference line: TRANSFORM original (path b) or L1 translation clue */}
-      <div className="rounded-xl bg-[#070C18]/90 border-2 border-slate-800 px-3.5 lg:px-5 py-2 lg:py-3 flex items-center gap-3 min-h-0 overflow-hidden">
+      <div className="rounded-xl bg-[#070C18]/90 border-2 border-slate-800 px-5 py-3 flex items-center gap-3 min-h-0 overflow-hidden">
         {isTransform ? (
           <>
-            <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-widest text-cyan-400 font-bold shrink-0">Original</span>
-            <span className="text-base lg:text-xl font-bold text-white truncate">{round?.promptText}</span>
+            <span className="un-mono text-[10px] uppercase tracking-widest text-cyan-400 font-bold shrink-0">Original</span>
+            <span className="text-xl font-bold text-white truncate">{round?.promptText}</span>
           </>
         ) : (
           <>
-            <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-widest text-amber-400/80 font-bold shrink-0">Clue</span>
-            <span className={`text-base lg:text-xl font-medium truncate ${round?.translation ? 'text-slate-300' : 'text-slate-500'}`}>
+            <span className="un-mono text-[10px] uppercase tracking-widest text-amber-400/80 font-bold shrink-0">Clue</span>
+            <span className={`text-xl font-medium truncate ${round?.translation ? 'text-slate-300' : 'text-slate-500'}`}>
               {round?.translation || `${targetLen} words — put them in order`}
             </span>
-            <span className="ml-auto hidden md:flex items-center gap-1 shrink-0" aria-hidden>
+            <span className="ml-auto flex items-center gap-1 shrink-0" aria-hidden>
               {round?.targetTiles.map((_, i) => (
                 <span key={i} className="un-mono text-slate-600 text-lg tracking-widest font-bold">__</span>
               ))}
@@ -590,15 +590,15 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   // Sentence runway (design #1 middle): N numbered dashed slots; filled slots
   // render the design-#2 amber "snapped" block.
   const runway = (
-    <section className={`w-full flex-1 min-h-0 rounded-2xl bg-[#070C18]/70 border px-3 lg:px-5 py-2 lg:py-3 flex flex-col justify-center gap-2 relative
+    <section className={`w-full flex-1 min-h-0 rounded-2xl bg-[#070C18]/70 border px-5 py-3 flex flex-col justify-center gap-2 relative
       ${isWrongFlash ? 'border-rose-500/70 un-shake' : 'border-slate-800'}`}>
       <div className="flex items-center justify-between gap-3">
-        <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-[0.18em] text-cyan-300 font-bold shrink-0">
+        <span className="un-mono text-[10px] uppercase tracking-[0.18em] text-cyan-300 font-bold shrink-0">
           Sentence Runway
         </span>
-        <span className="text-[10px] text-slate-500 hidden sm:inline">tap a block to send it back</span>
+        <span className="text-[10px] text-slate-500 inline">tap a block to send it back</span>
       </div>
-      <div className="grid gap-2 lg:gap-4 flex-1 min-h-0"
+      <div className="grid gap-4 flex-1 min-h-0"
         style={{ gridTemplateColumns: `repeat(${Math.max(targetLen, 1)}, minmax(0, 1fr))` }}>
         {Array.from({ length: Math.max(targetLen, placed.length) }).map((_, i) => {
           const tile = placed[i];
@@ -609,27 +609,27 @@ const BoardUnscramble = ({ data }: { data: any }) => {
               <div key={`slot-${i}`}
                 className={`rounded-xl border-2 border-dashed flex items-center justify-center gap-1.5 min-h-0 transition-all
                   ${i === placed.length && !outcome ? 'border-cyan-400/70 bg-cyan-950/20 un-slot-glow' : 'border-slate-700 bg-slate-900/40'}`}>
-                <span className={`un-mono w-5 h-5 lg:w-6 lg:h-6 rounded-md flex items-center justify-center text-[10px] lg:text-xs font-bold
+                <span className={`un-mono w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold
                   ${i === placed.length && !outcome ? 'bg-cyan-400/15 border border-cyan-400/50 text-cyan-300' : 'bg-slate-800 border border-slate-700 text-slate-500'}`}>
                   {i + 1}
                 </span>
-                <span className="un-mono text-slate-600 text-lg hidden lg:inline">____</span>
+                <span className="un-mono text-slate-600 text-lg inline">____</span>
               </div>
             );
           }
           return (
             <button key={tile.id} onClick={() => handleTileClick(tile, 'placed')}
-              className={`rounded-xl border-2 flex flex-col items-center justify-center min-h-0 px-1 lg:px-2 transition-all active:scale-95 animate-pop-in group
+              className={`rounded-xl border-2 flex flex-col items-center justify-center min-h-0 px-2 transition-all active:scale-95 animate-pop-in group
                 ${outcome === 'correct' ? 'border-emerald-400 bg-emerald-950/40'
                   : outcome === 'partial' ? 'border-amber-400 bg-amber-950/30'
                   : 'border-amber-500/70 bg-[#111C3D] un-snapped'}
                 ${inSwapHint ? 'ring-4 ring-amber-400/70 animate-pulse' : ''}
                 ${isWrongSpot ? 'ring-4 ring-rose-500' : ''}`}>
-              <span className="un-mono text-[8px] lg:text-[9px] uppercase tracking-widest text-amber-400/90 font-bold leading-none mb-0.5 hidden sm:block">
+              <span className="un-mono text-[9px] uppercase tracking-widest text-amber-400/90 font-bold leading-none mb-0.5 block">
                 {String(i + 1).padStart(2, '0')} · {outcome ? 'Locked' : 'Tap to remove'}
               </span>
               <span className={`font-extrabold tracking-tight truncate w-full text-center
-                ${targetLen > 5 ? 'text-sm lg:text-xl' : targetLen > 3 ? 'text-lg lg:text-2xl' : 'text-xl lg:text-3xl'}
+                ${targetLen > 5 ? 'text-xl' : targetLen > 3 ? 'text-2xl' : 'text-3xl'}
                 ${outcome === 'correct' ? 'text-emerald-300' : outcome === 'partial' ? 'text-amber-300' : 'text-amber-300'}`}>
                 {tile.text}
               </span>
@@ -639,17 +639,17 @@ const BoardUnscramble = ({ data }: { data: any }) => {
       </div>
       {/* Targeted feedback chips (kept from v2 logic, v3-styled) */}
       {isWrongFlash && (
-        <div className="absolute -top-2.5 right-3 bg-rose-500 text-white text-[10px] lg:text-xs font-bold px-3 py-1 rounded-full animate-bounce">
+        <div className="absolute -top-2.5 right-3 bg-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full animate-bounce">
           Try Again!
         </div>
       )}
       {swapHint && !outcome && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-950 text-[10px] lg:text-xs font-bold px-3.5 py-1 rounded-full flex items-center gap-1.5 animate-pop-in whitespace-nowrap">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-950 text-xs font-bold px-3.5 py-1 rounded-full flex items-center gap-1.5 animate-pop-in whitespace-nowrap">
           <ArrowLeftRight size={13} /> Swap these two!
         </div>
       )}
       {wrongIdx >= 0 && !outcome && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-[10px] lg:text-xs font-bold px-3.5 py-1 rounded-full animate-pop-in whitespace-nowrap">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-xs font-bold px-3.5 py-1 rounded-full animate-pop-in whitespace-nowrap">
           Check spot {wrongIdx + 1}…
         </div>
       )}
@@ -660,24 +660,24 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   // Distractor tiles are NOT visually marked during play — marking them would
   // give the answer away (fidelity log #2); grey styling is reveal-only.
   const wordBank = (
-    <section className="w-full shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-3 lg:px-5 py-2 lg:py-3 flex flex-col gap-2">
+    <section className="w-full shrink-0 rounded-2xl bg-[#0B132B]/90 border border-slate-700/70 px-5 py-3 flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="un-mono text-[9px] lg:text-[10px] uppercase tracking-[0.18em] text-amber-300 font-bold">
+          <span className="un-mono text-[10px] uppercase tracking-[0.18em] text-amber-300 font-bold">
             Word Bank
           </span>
-          <span className="un-mono text-[9px] lg:text-[10px] text-slate-500">
+          <span className="un-mono text-[10px] text-slate-500">
             {tray.length} block{tray.length === 1 ? '' : 's'} left
           </span>
         </div>
       </div>
-      <div className="flex flex-wrap justify-center gap-2 lg:gap-4">
+      <div className="flex flex-wrap justify-center gap-4">
         {tray.length === 0 && (
           <span className="un-mono text-slate-600 text-sm font-bold uppercase tracking-widest py-1">All blocks placed</span>
         )}
         {tray.map((tile) => (
           <button key={tile.id} onClick={() => handleTileClick(tile, 'bank')}
-            className="un-block bg-cyan-400 text-slate-950 font-extrabold text-base lg:text-2xl tracking-wide px-3.5 lg:px-6 py-2 lg:py-3 rounded-xl border-t border-cyan-200 transition-all hover:-translate-y-0.5 active:translate-y-0.5 animate-pop-in">
+            className="un-block bg-cyan-400 text-slate-950 font-extrabold text-2xl tracking-wide px-6 py-3 rounded-xl border-t border-cyan-200 transition-all hover:-translate-y-0.5 active:translate-y-0.5 animate-pop-in">
             {tile.text}
           </button>
         ))}
@@ -686,7 +686,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
   );
 
   return (
-    <div className="un-root h-full w-full flex flex-col gap-2 lg:gap-3 p-2 lg:p-4 bg-[#070C18] relative overflow-hidden">
+    <div className="un-root h-full w-full flex flex-col gap-3 p-4 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .un-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .un-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -711,12 +711,12 @@ const BoardUnscramble = ({ data }: { data: any }) => {
       {header}
 
       {/* Amber-framed workshop panel (design #1 main) */}
-      <main className="flex-1 min-h-0 w-full rounded-2xl lg:rounded-3xl bg-[#0F172A] border-2 border-amber-500/40 shadow-[0_0_36px_-12px_rgba(245,158,11,0.35)] p-2.5 lg:p-5 flex flex-col gap-2 lg:gap-4 relative overflow-hidden">
+      <main className="flex-1 min-h-0 w-full rounded-3xl bg-[#0F172A] border-2 border-amber-500/40 shadow-[0_0_36px_-12px_rgba(245,158,11,0.35)] p-5 flex flex-col gap-4 relative overflow-hidden">
         {/* Amber corner brackets (design accent) */}
-        <div className="absolute top-0 left-0 w-5 h-5 lg:w-7 lg:h-7 border-t-4 border-l-4 border-amber-400/70 rounded-tl-2xl pointer-events-none" />
-        <div className="absolute top-0 right-0 w-5 h-5 lg:w-7 lg:h-7 border-t-4 border-r-4 border-amber-400/70 rounded-tr-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-5 h-5 lg:w-7 lg:h-7 border-b-4 border-l-4 border-amber-400/70 rounded-bl-2xl pointer-events-none" />
-        <div className="absolute bottom-0 right-0 w-5 h-5 lg:w-7 lg:h-7 border-b-4 border-r-4 border-amber-400/70 rounded-br-2xl pointer-events-none" />
+        <div className="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-amber-400/70 rounded-tl-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-amber-400/70 rounded-tr-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-amber-400/70 rounded-bl-2xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-amber-400/70 rounded-br-2xl pointer-events-none" />
 
         {taskFrame}
         {runway}
@@ -726,7 +726,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
         {!outcome && !slideComplete && !revealTiles && (
           <div className="shrink-0 flex justify-center pt-0.5">
             <button onClick={checkAnswer} disabled={!canCheck}
-              className={`px-8 lg:px-10 py-2 lg:py-3 rounded-xl font-bold text-base lg:text-xl flex items-center gap-2.5 transition-all
+              className={`px-10 py-3 rounded-xl font-bold text-xl flex items-center gap-2.5 transition-all
                 ${canCheck
                   ? 'bg-[#FF2E79] text-white shadow-[0_0_22px_-4px_rgba(255,46,121,0.6)] hover:shadow-[0_0_30px_-4px_rgba(255,46,121,0.8)] active:scale-95'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
@@ -741,19 +741,19 @@ const BoardUnscramble = ({ data }: { data: any }) => {
         <div
           onClick={() => setOutcome(null)}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-[#111C3D] border-2 border-emerald-400/50 p-8 lg:p-12 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
-            <div className={`w-24 h-24 lg:w-32 lg:h-32 rounded-full flex items-center justify-center mb-5 ${outcome === 'correct' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
+          <div className="bg-[#111C3D] border-2 border-emerald-400/50 p-12 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
+            <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-5 ${outcome === 'correct' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'}`}>
               {outcome === 'correct' ? <Check size={56} strokeWidth={3} /> : <Lightbulb size={56} strokeWidth={2.5} />}
             </div>
-            <h2 className="text-3xl lg:text-5xl font-black text-white mb-2">
+            <h2 className="text-5xl font-black text-white mb-2">
               {outcome === 'correct'
                 ? (pickedStudent ? `Nice one, ${pickedStudent.name}!` : 'Excellent!')
                 : (pickedStudent ? `So close, ${pickedStudent.name}!` : 'So close!')}
             </h2>
             {outcome === 'partial' && (
-              <p className="text-base lg:text-xl text-slate-400 font-medium mb-3">Almost there — {Math.round(lastRatio * 100)}% in the right order.</p>
+              <p className="text-xl text-slate-400 font-medium mb-3">Almost there — {Math.round(lastRatio * 100)}% in the right order.</p>
             )}
-            <p className="text-xl lg:text-3xl font-bold text-emerald-300 text-center">{round?.targetTiles.join(' ')}</p>
+            <p className="text-3xl font-bold text-emerald-300 text-center">{round?.targetTiles.join(' ')}</p>
             <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>
@@ -765,11 +765,11 @@ const BoardUnscramble = ({ data }: { data: any }) => {
           hold (~2.4s via afterResolve), then the round advances. */}
       {revealTiles && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#111C3D] border-2 border-amber-400/50 p-8 lg:p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
+          <div className="bg-[#111C3D] border-2 border-amber-400/50 p-10 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle max-w-3xl">
             <div className="w-16 h-16 bg-amber-500/15 text-amber-400 rounded-full flex items-center justify-center mb-4">
               <Lightbulb size={36} strokeWidth={2.5} />
             </div>
-            <h2 className="text-2xl lg:text-3xl font-black text-white mb-1">Here's the sentence</h2>
+            <h2 className="text-3xl font-black text-white mb-1">Here's the sentence</h2>
             <p className="text-sm text-slate-400 mb-5 font-medium">
               <span className="text-emerald-400 font-bold">Green</span> = you had it right ·
               <span className="text-amber-400 font-bold"> Amber</span> = wrong spot
@@ -777,7 +777,7 @@ const BoardUnscramble = ({ data }: { data: any }) => {
             <div className="flex flex-wrap justify-center gap-2.5">
               {revealTiles.map((t, i) => (
                 <span key={i}
-                  className={`text-xl lg:text-3xl font-bold px-4 lg:px-6 py-2 lg:py-3 rounded-2xl shadow-md animate-pop-in
+                  className={`text-3xl font-bold px-6 py-3 rounded-2xl shadow-md animate-pop-in
                     ${t.inPlace ? 'bg-emerald-500 text-white' : 'bg-amber-400 text-amber-950'}`}>
                   {t.word}
                 </span>
@@ -799,14 +799,14 @@ const BoardUnscramble = ({ data }: { data: any }) => {
         <div
           onClick={() => setSlideComplete(false)}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in cursor-pointer">
-          <div className="bg-[#111C3D] border-2 border-cyan-400/50 p-8 lg:p-12 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
-            <div className="w-24 h-24 lg:w-32 lg:h-32 bg-cyan-500/15 text-cyan-400 rounded-full flex items-center justify-center mb-5">
+          <div className="bg-[#111C3D] border-2 border-cyan-400/50 p-12 rounded-3xl shadow-2xl flex flex-col items-center animate-bounce-subtle">
+            <div className="w-32 h-32 bg-cyan-500/15 text-cyan-400 rounded-full flex items-center justify-center mb-5">
               <Check size={56} strokeWidth={3} />
             </div>
-            <h2 className="text-3xl lg:text-5xl font-black text-white mb-2">
+            <h2 className="text-5xl font-black text-white mb-2">
               {pickedStudent ? `Great building, ${pickedStudent.name}!` : 'Great building, everyone!'}
             </h2>
-            <p className="text-lg lg:text-2xl text-slate-400 font-medium">Ready for the next slide.</p>
+            <p className="text-2xl text-slate-400 font-medium">Ready for the next slide.</p>
             <p className="text-xs text-slate-500 mt-4 animate-pulse">tap to dismiss</p>
           </div>
         </div>

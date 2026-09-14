@@ -11,7 +11,7 @@
 //   5. Landscape-ratio option plates with A/B/C/D letter badges (F2, §4.d)
 //   6. Whole-class choral round ("ALL ANSWER") with high-energy megaphone banner & dual teacher hotplates
 //   7. Preserves owner's animated 🏆 trophy celebration on completion
-//   8. Header starts with pl-40 lg:pl-48 clearance for BoardShell phase pill
+//   8. Header starts with pl-48 clearance for BoardShell phase pill
 //   9. Full lifecycle, remote action handlers (RESET_GAME, SKIP_ITEM, MARK_CORRECT, CHORAL_ROUND), and scoring verbatim.
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -386,11 +386,11 @@ const BoardClassRally = ({ data }: { data?: any }) => {
 
   return (
     <div className="relative flex flex-col h-full w-full bg-[#070C18] text-[#E8E0F0] select-none overflow-hidden">
-      {/* ═══ TOP APP BAR (Shared Anchor with pl-40 lg:pl-48 Clearance) ═══ */}
-      <header className="w-full flex items-center justify-between pl-40 lg:pl-48 pr-4 sm:pr-8 py-2 bg-[#0A0A12]/95 border-b border-[#302840] shrink-0 z-20 shadow-[0_0_16px_rgba(255,45,120,0.15)]">
+      {/* ═══ TOP APP BAR (Shared Anchor with pl-48 Clearance) ═══ */}
+      <header className="w-full flex items-center justify-between pl-48 pr-8 py-2 bg-[#0A0A12]/95 border-b border-[#302840] shrink-0 z-20 shadow-[0_0_16px_rgba(255,45,120,0.15)]">
         {/* Left: Brand & Phase Pill */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <span className="font-headline text-lg sm:text-xl font-black tracking-widest text-[#00FFCC] drop-shadow-[0_0_8px_rgba(0,255,204,0.6)]">
+        <div className="flex items-center gap-4">
+          <span className="font-headline text-xl font-black tracking-widest text-[#00FFCC] drop-shadow-[0_0_8px_rgba(0,255,204,0.6)]">
             NEON ARENA
           </span>
           <div className="flex items-center gap-2 px-3 py-0.5 bg-[#141422] rounded-full border border-[#00FFCC]/40 shadow-[0_0_10px_rgba(0,255,204,0.2)]">
@@ -400,7 +400,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
             </span>
           </div>
           {pickedStudent && (studentStreaksRef.current[pickedStudent.id] || 0) >= 3 && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-0.5 bg-[#1E1E30] rounded-full border border-[#FFE04A]/50 text-[#FFE04A]">
+            <div className="flex items-center gap-1.5 px-3 py-0.5 bg-[#1E1E30] rounded-full border border-[#FFE04A]/50 text-[#FFE04A]">
               <Flame className="w-3.5 h-3.5 fill-[#FFE04A]" />
               <span className="font-label font-bold text-xs tracking-wider">
                 STREAK: {studentStreaksRef.current[pickedStudent.id]} IN A ROW
@@ -413,14 +413,14 @@ const BoardClassRally = ({ data }: { data?: any }) => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-xl border border-[#00FFCC]/30">
             <span className="font-label text-xs uppercase tracking-widest text-[#A098B0] font-bold">TARGET:</span>
-            <span className="font-headline text-base sm:text-lg font-black text-[#00FFCC]">
+            <span className="font-headline text-lg font-black text-[#00FFCC]">
               {totalCorrect} / {TARGET_CORRECT}
             </span>
             <span className="font-label text-xs text-[#FFE04A] font-bold ml-1">+{totalCorrect * 10} PTS</span>
           </div>
           {pickedStudent && (
             <div className="flex items-center gap-2.5 pl-3 border-l border-[#302840]">
-              <div className="text-right hidden sm:block">
+              <div className="text-right block">
                 <div className="font-headline font-bold text-xs text-[#E8E0F0] leading-tight">
                   {pickedStudent.name}
                 </div>
@@ -437,13 +437,13 @@ const BoardClassRally = ({ data }: { data?: any }) => {
       </header>
 
       {/* ═══ HERO RALLY BAR (Big energetic thick power bar with leading-edge flame) ═══ */}
-      <section className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-2.5 pb-1.5 shrink-0">
+      <section className="w-full max-w-5xl mx-auto px-8 pt-2.5 pb-1.5 shrink-0">
         <div className="flex items-center justify-between gap-4 mb-1.5">
           <div className="flex items-center gap-2.5">
-            <span className="px-2.5 py-0.5 rounded bg-[#FF2D78] text-[#1A0010] font-label font-bold text-[11px] sm:text-xs tracking-wider">
+            <span className="px-2.5 py-0.5 rounded bg-[#FF2D78] text-[#1A0010] font-label font-bold text-xs tracking-wider">
               COLLECTIVE ENERGY
             </span>
-            <h2 className="font-headline text-xs sm:text-sm font-extrabold text-[#E8E0F0] tracking-tight">
+            <h2 className="font-headline text-sm font-extrabold text-[#E8E0F0] tracking-tight">
               {totalCorrect >= TARGET_CORRECT ? (
                 <span className="text-[#00FFCC] drop-shadow-[0_0_8px_rgba(0,255,204,0.7)]">
                   CLASSROOM JACKPOT UNLOCKED! 🔥
@@ -459,14 +459,14 @@ const BoardClassRally = ({ data }: { data?: any }) => {
               )}
             </h2>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 text-xs font-label font-bold text-[#A098B0]">
+          <div className="flex items-center gap-1.5 text-xs font-label font-bold text-[#A098B0]">
             <span>CLASS GOAL:</span>
             <span className="text-[#00FFCC]">{TARGET_CORRECT} CORRECT</span>
           </div>
         </div>
 
         {/* Progress Fill Track */}
-        <div className="relative w-full h-8 sm:h-10 bg-[#0A0A12] rounded-full p-1 border border-[#302840] overflow-visible flex items-center shadow-[inset_0_0_12px_rgba(0,0,0,0.8)]">
+        <div className="relative w-full h-10 bg-[#0A0A12] rounded-full p-1 border border-[#302840] overflow-visible flex items-center shadow-[inset_0_0_12px_rgba(0,0,0,0.8)]">
           <motion.div
             className="h-full rounded-full bg-gradient-to-r from-[#00FFCC] via-[#00E6B8] to-[#FF2D78] relative transition-all shadow-[0_0_16px_rgba(0,255,204,0.5)]"
             animate={{ width: `${Math.max(progress * 100, 2)}%` }}
@@ -474,9 +474,9 @@ const BoardClassRally = ({ data }: { data?: any }) => {
           >
             {/* Flame Glyph Riding The Edge */}
             {progress > 0 && progress < 1 && (
-              <div className="absolute -right-4 sm:-right-5 -top-2.5 sm:-top-3.5 z-20 flex items-center justify-center">
-                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-[#0A0A12] border-2 border-[#FF2D78] flex items-center justify-center shadow-[0_0_15px_rgba(255,45,120,0.8)] animate-pulse">
-                  <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFE04A] fill-[#FFE04A]" />
+              <div className="absolute -right-5 -top-3.5 z-20 flex items-center justify-center">
+                <div className="w-11 h-11 rounded-full bg-[#0A0A12] border-2 border-[#FF2D78] flex items-center justify-center shadow-[0_0_15px_rgba(255,45,120,0.8)] animate-pulse">
+                  <Flame className="w-6 h-6 text-[#FFE04A] fill-[#FFE04A]" />
                 </div>
               </div>
             )}
@@ -488,14 +488,14 @@ const BoardClassRally = ({ data }: { data?: any }) => {
             return (
               <div
                 key={m}
-                className={`absolute top-1/2 -translate-y-1/2 -ml-3 sm:-ml-3.5 w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 z-10 ${
+                className={`absolute top-1/2 -translate-y-1/2 -ml-3.5 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 z-10 ${
                   reached
                     ? 'bg-[#FFE04A] border-[#FFF0C0] text-[#1A1000] shadow-[0_0_12px_rgba(255,224,74,0.8)] scale-110'
                     : 'bg-[#141422] border-[#5A5068] text-[#5A5068]'
                 }`}
                 style={{ left: `${m * 100}%` }}
               >
-                <Star className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${reached ? 'fill-current' : ''}`} />
+                <Star className={`w-4 h-4 ${reached ? 'fill-current' : ''}`} />
               </div>
             );
           })}
@@ -511,11 +511,11 @@ const BoardClassRally = ({ data }: { data?: any }) => {
             exit={{ opacity: 0, scale: 0.6 }}
             className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4"
           >
-            <div className="bg-[#141422]/95 backdrop-blur-xl rounded-3xl shadow-[0_0_50px_rgba(0,255,204,0.4)] px-8 sm:px-14 py-6 sm:py-8 text-center border-4 border-[#00FFCC] max-w-lg">
-              <div className="text-6xl sm:text-7xl mb-2">
+            <div className="bg-[#141422]/95 backdrop-blur-xl rounded-3xl shadow-[0_0_50px_rgba(0,255,204,0.4)] px-14 py-8 text-center border-4 border-[#00FFCC] max-w-lg">
+              <div className="text-7xl mb-2">
                 {showMilestone >= 1 ? '🏆' : showMilestone >= 0.75 ? '🚀' : showMilestone >= 0.5 ? '🔥' : '⚡'}
               </div>
-              <div className="text-2xl sm:text-3xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.7)] mb-1 uppercase tracking-wide">
+              <div className="text-3xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.7)] mb-1 uppercase tracking-wide">
                 {showMilestone >= 1
                   ? 'RALLY COMPLETE!'
                   : showMilestone >= 0.75
@@ -524,7 +524,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                   ? '50% HALFWAY POWER SURGE!'
                   : '25% POWER SURGE!'}
               </div>
-              <div className="text-base sm:text-lg font-bold text-[#E8E0F0]">
+              <div className="text-lg font-bold text-[#E8E0F0]">
                 Great teamwork, class! Keep charging!
               </div>
             </div>
@@ -533,7 +533,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
       </AnimatePresence>
 
       {/* ═══ MAIN STAGE AREA ═══ */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 py-2 flex flex-col justify-between min-h-0 overflow-hidden">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-8 py-2 flex flex-col justify-between min-h-0 overflow-hidden">
         <AnimatePresence>
           {/* ── 1. CHORAL MODE ("ALL ANSWER") ── */}
           {phase === 'choral' && (
@@ -548,18 +548,18 @@ const BoardClassRally = ({ data }: { data?: any }) => {
               <motion.div
                 animate={{ scale: [1, 1.04, 1] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
-                className="mb-2 px-6 sm:px-8 py-2 bg-gradient-to-r from-[#FF2D78] via-purple-600 to-[#00FFCC] rounded-full text-white text-xl sm:text-2xl font-black tracking-widest shadow-[0_0_24px_rgba(255,45,120,0.4)] flex items-center gap-2.5"
+                className="mb-2 px-8 py-2 bg-gradient-to-r from-[#FF2D78] via-purple-600 to-[#00FFCC] rounded-full text-white text-2xl font-black tracking-widest shadow-[0_0_24px_rgba(255,45,120,0.4)] flex items-center gap-2.5"
               >
                 <Megaphone className="w-6 h-6" />
                 <span>📣 EVERYONE!</span>
               </motion.div>
-              <div className="text-sm sm:text-base text-[#00FFCC] font-bold mb-3 tracking-wide">
+              <div className="text-base text-[#00FFCC] font-bold mb-3 tracking-wide">
                 The whole class answers together!
               </div>
 
               {/* Prompt Card */}
-              <div className="bg-[#141422] rounded-2xl border border-[#00FFCC]/40 p-4 sm:p-6 w-full max-w-3xl mb-3 shadow-[0_0_24px_rgba(0,255,204,0.1)] text-center">
-                <div className="text-2xl sm:text-3xl font-extrabold text-[#E8E0F0] mb-2 leading-snug">
+              <div className="bg-[#141422] rounded-2xl border border-[#00FFCC]/40 p-6 w-full max-w-3xl mb-3 shadow-[0_0_24px_rgba(0,255,204,0.1)] text-center">
+                <div className="text-3xl font-extrabold text-[#E8E0F0] mb-2 leading-snug">
                   {currentQuestion.prompt}
                 </div>
                 {currentQuestion.audioUrl && (
@@ -579,7 +579,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
                     onClick={() => resolveChoral(true)}
-                    className="px-6 sm:px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-headline font-black text-lg sm:text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center gap-2.5 transition-all"
+                    className="px-8 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-headline font-black text-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] flex items-center gap-2.5 transition-all"
                   >
                     <CheckCircle2 className="w-6 h-6" />
                     <span>✓ CLASS NAILED IT (+1 Bar)</span>
@@ -588,21 +588,21 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
                     onClick={() => resolveChoral(false)}
-                    className="px-5 sm:px-7 py-3 rounded-2xl bg-[#1E1E30] hover:bg-[#28283E] border-2 border-amber-500/60 text-amber-300 font-headline font-bold text-base sm:text-lg shadow-[0_0_16px_rgba(245,158,11,0.2)] flex items-center gap-2.5 transition-all"
+                    className="px-7 py-3 rounded-2xl bg-[#1E1E30] hover:bg-[#28283E] border-2 border-amber-500/60 text-amber-300 font-headline font-bold text-lg shadow-[0_0_16px_rgba(245,158,11,0.2)] flex items-center gap-2.5 transition-all"
                   >
                     <RotateCcw className="w-5 h-5" />
                     <span>✗ NEEDS PRACTICE</span>
                   </motion.button>
                 </div>
               ) : (
-                <div className="text-lg sm:text-xl font-bold text-amber-300 my-2">
+                <div className="text-xl font-bold text-amber-300 my-2">
                   The answer was: {currentQuestion.options[currentQuestion.correctIndex]?.label}
                 </div>
               )}
 
               {/* Reveal explanation */}
               {currentQuestion.explanation && revealedIdx !== null && (
-                <div className="mt-2 p-2.5 bg-amber-950/70 border-2 border-amber-400/80 rounded-xl text-amber-200 text-xs sm:text-sm max-w-2xl text-center">
+                <div className="mt-2 p-2.5 bg-amber-950/70 border-2 border-amber-400/80 rounded-xl text-amber-200 text-sm max-w-2xl text-center">
                   {currentQuestion.explanation}
                 </div>
               )}
@@ -612,14 +612,14 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                 {currentQuestion.options.map((option, idx) => (
                   <div
                     key={`choral-${idx}`}
-                    className={`rounded-xl p-2.5 border-2 text-center text-sm sm:text-base font-semibold flex items-center justify-center ${
+                    className={`rounded-xl p-2.5 border-2 text-center text-base font-semibold flex items-center justify-center ${
                       revealedIdx === idx
                         ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400 text-amber-200'
                         : 'bg-[#141422] border-[#302840] text-[#E8E0F0]'
                     }`}
                   >
                     {option.imageUrl ? (
-                      <div className="h-14 sm:h-16 w-full flex items-center justify-center p-1">
+                      <div className="h-16 w-full flex items-center justify-center p-1">
                         <img
                           src={option.imageUrl}
                           alt={option.label || `Option ${OPTION_LETTERS[idx] || idx + 1}`}
@@ -645,9 +645,9 @@ const BoardClassRally = ({ data }: { data?: any }) => {
               className="flex-1 flex flex-col justify-between min-h-0 w-full max-w-4xl mx-auto"
             >
               {/* Question Card Header */}
-              <div className="bg-[#141422] rounded-2xl border border-[#302840] p-4 sm:p-5 shadow-[0_0_24px_rgba(0,255,204,0.06)] shrink-0 mb-3">
+              <div className="bg-[#141422] rounded-2xl border border-[#302840] p-5 shadow-[0_0_24px_rgba(0,255,204,0.06)] shrink-0 mb-3">
                 <div className="flex items-center justify-between gap-4">
-                  <div className="text-lg sm:text-2xl font-extrabold text-[#E8E0F0] leading-snug">
+                  <div className="text-2xl font-extrabold text-[#E8E0F0] leading-snug">
                     {currentQuestion.prompt}
                   </div>
                   {currentQuestion.audioUrl && (
@@ -665,7 +665,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
               </div>
 
               {/* 2×2 Options Grid (IMAGE ONLY for IMAGE_SELECT — F1, §2) */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 my-auto flex-1 min-h-0 items-stretch">
+              <div className="grid grid-cols-2 gap-4 my-auto flex-1 min-h-0 items-stretch">
                 {currentQuestion.options.map((option, idx) => {
                   const isSelected = selectedOption === idx;
                   const isCorrect = idx === currentQuestion.correctIndex;
@@ -693,12 +693,12 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleOptionSelect(idx)}
-                      className={`relative rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden rally-compact-h ${
-                        option.imageUrl ? 'h-32 sm:h-40 md:h-44' : 'p-4 sm:p-5 min-h-[3.5rem] sm:min-h-[4.5rem]'
+                      className={`relative rounded-xl border-2 transition-all flex items-center justify-center overflow-hidden ${
+                        option.imageUrl ? 'h-44' : 'p-5 min-h-[4.5rem]'
                       } ${borderAndBg}`}
                     >
                       {/* Option Letter Badge */}
-                      <span className="absolute top-2 left-2 z-10 w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#0A0A12]/90 border border-[#302840] text-[#00FFCC] font-black text-xs flex items-center justify-center shadow-md">
+                      <span className="absolute top-2 left-2 z-10 w-7 h-7 rounded-lg bg-[#0A0A12]/90 border border-[#302840] text-[#00FFCC] font-black text-xs flex items-center justify-center shadow-md">
                         {letter}
                       </span>
 
@@ -712,7 +712,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                           />
                         </div>
                       ) : (
-                        <span className="text-base sm:text-xl font-bold text-center px-6">
+                        <span className="text-xl font-bold text-center px-6">
                           {option.label}
                         </span>
                       )}
@@ -726,14 +726,14 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 p-2.5 bg-amber-950/70 border-2 border-amber-400/80 rounded-xl text-center text-xs sm:text-sm text-amber-200 shrink-0"
+                  className="mt-2 p-2.5 bg-amber-950/70 border-2 border-amber-400/80 rounded-xl text-center text-sm text-amber-200 shrink-0"
                 >
                   {currentQuestion.explanation}
                 </motion.div>
               )}
 
               {/* Non-punitive co-op reminder */}
-              <div className="text-center text-xs text-[#A098B0] mt-2 shrink-0 rally-compact-hide">
+              <div className="text-center text-xs text-[#A098B0] mt-2 shrink-0">
                 Wrong answers never shrink the bar — keep trying, team!
               </div>
             </motion.div>
@@ -748,19 +748,19 @@ const BoardClassRally = ({ data }: { data?: any }) => {
               exit={{ opacity: 0, scale: 0.8 }}
               className="flex-1 flex items-center justify-center select-none"
             >
-              <div className="text-center bg-[#141422] border border-[#00FFCC]/40 rounded-3xl p-6 sm:p-10 shadow-[0_0_36px_rgba(0,255,204,0.2)] max-w-md">
+              <div className="text-center bg-[#141422] border border-[#00FFCC]/40 rounded-3xl p-10 shadow-[0_0_36px_rgba(0,255,204,0.2)] max-w-md">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 200 }}
-                  className="text-6xl sm:text-7xl mb-3"
+                  className="text-7xl mb-3"
                 >
                   💪
                 </motion.div>
-                <h2 className="text-xl sm:text-3xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.5)] mb-2">
+                <h2 className="text-3xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_12px_rgba(0,255,204,0.5)] mb-2">
                   {pickedStudent ? `${pickedStudent.name} filled the bar!` : 'The class filled the bar!'}
                 </h2>
-                <div className="text-base sm:text-xl font-bold text-[#E8E0F0]">
+                <div className="text-xl font-bold text-[#E8E0F0]">
                   {totalCorrect} / {TARGET_CORRECT} — keep going!
                 </div>
               </div>
@@ -781,7 +781,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                   initial={{ scale: 0, rotate: -10 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 260, damping: 14 }}
-                  className="text-[8rem] sm:text-[11rem] leading-none mb-4 drop-shadow-[0_12px_32px_rgba(255,45,120,0.4)]"
+                  className="text-[11rem] leading-none mb-4 drop-shadow-[0_12px_32px_rgba(255,45,120,0.4)]"
                 >
                   🏆
                 </motion.div>
@@ -789,14 +789,14 @@ const BoardClassRally = ({ data }: { data?: any }) => {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="text-3xl sm:text-6xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_16px_rgba(0,255,204,0.6)] mb-2 uppercase tracking-wider"
+                  className="text-6xl font-headline font-black text-[#00FFCC] drop-shadow-[0_0_16px_rgba(0,255,204,0.6)] mb-2 uppercase tracking-wider"
                 >
                   RALLY COMPLETE!
                 </motion.h2>
-                <div className="text-lg sm:text-2xl font-bold text-[#E8E0F0] mb-3">
+                <div className="text-2xl font-bold text-[#E8E0F0] mb-3">
                   The whole class hit {TARGET_CORRECT} correct answers together! 🎉
                 </div>
-                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#1E1E30] border border-[#FFE04A]/50 text-[#FFE04A] font-bold text-sm sm:text-base shadow-[0_0_16px_rgba(255,224,74,0.25)]">
+                <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#1E1E30] border border-[#FFE04A]/50 text-[#FFE04A] font-bold text-base shadow-[0_0_16px_rgba(255,224,74,0.25)]">
                   <Sparkles className="w-5 h-5 text-[#FFE04A]" />
                   <span>Class Team Bonus: +{totalCorrect * 10} XP</span>
                 </div>
@@ -813,7 +813,7 @@ const BoardClassRally = ({ data }: { data?: any }) => {
             <div className="w-7 h-7 rounded-full bg-[#FF2D78] text-[#1A0010] flex items-center justify-center font-bold text-xs">
               {pickedStudent.avatar || pickedStudent.name[0]}
             </div>
-            <div className="text-xs sm:text-sm font-bold text-[#E8E0F0]">
+            <div className="text-sm font-bold text-[#E8E0F0]">
               <span className="text-[#00FFCC]">{pickedStudent.name}'s</span> turn — Choose the right card!
             </div>
             {(studentStreaksRef.current[pickedStudent.id] || 0) >= 2 && (

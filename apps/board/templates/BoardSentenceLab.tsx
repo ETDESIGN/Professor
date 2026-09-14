@@ -462,7 +462,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
           <div className="w-20 h-20 rounded-2xl bg-[#a855f7]/20 border-2 border-[#a855f7] flex items-center justify-center text-4xl mb-4 mx-auto shadow-[0_0_24px_rgba(168,85,247,0.4)]">
             ⚡
           </div>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white font-headline">
+          <h2 className="text-5xl font-extrabold text-white font-headline">
             Round {roundIndex} — Level Up!
           </h2>
           <p className="text-lg text-slate-400 mt-2 font-mono">
@@ -497,13 +497,13 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
   }
 
   return (
-    <div className="relative flex flex-col justify-between h-full w-full bg-[#070c18] text-slate-100 font-body p-3 md:p-5 select-none overflow-hidden antialiased">
+    <div className="relative flex flex-col justify-between h-full w-full bg-[#070c18] text-slate-100 font-body p-5 select-none overflow-hidden antialiased">
       {/* Background Grid & Lighting */}
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#38bdf8]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#ff2e79]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* ================= TOP BAR (16:9 Calibrated Header) ================= */}
-      <header className="relative z-10 w-full shrink-0 flex items-center justify-between px-3 py-2 bg-[#0b132b]/90 border border-[#1e2d5a] rounded-2xl pl-28 lg:pl-44 shadow-lg">
+      <header className="relative z-10 w-full shrink-0 flex items-center justify-between px-3 py-2 bg-[#0b132b]/90 border border-[#1e2d5a] rounded-2xl pl-44 shadow-lg">
         {/* Left: Mode Chip */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#111c3d] border border-[#38bdf8]/40 text-[#38bdf8] font-mono text-xs uppercase font-bold tracking-wider">
@@ -512,14 +512,14 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
           </div>
 
           {pickedStudent ? (
-            <div className="hidden sm:flex items-center gap-2 bg-[#111c3d] px-3 py-1 rounded-full border border-slate-800">
+            <div className="flex items-center gap-2 bg-[#111c3d] px-3 py-1 rounded-full border border-slate-800">
               <span className="w-2 h-2 rounded-full bg-amber-400" />
               <span className="font-mono text-xs text-slate-300">
                 {pickedStudent.name}&apos;s turn
               </span>
             </div>
           ) : (
-            <div className="hidden sm:flex items-center gap-2 bg-[#111c3d] px-3 py-1 rounded-full border border-slate-800">
+            <div className="flex items-center gap-2 bg-[#111c3d] px-3 py-1 rounded-full border border-slate-800">
               <span className="w-2 h-2 rounded-full bg-[#38bdf8]" />
               <span className="font-mono text-xs text-[#38bdf8]">Choral Assembly</span>
             </div>
@@ -527,7 +527,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
         </div>
 
         {/* Center: Target Syntax / Rule */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-[#070c18] border border-slate-800 text-xs font-mono">
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#070c18] border border-slate-800 text-xs font-mono">
           <span className="text-purple-400 font-bold">ROUND {roundIndex}/{TOTAL_ROUNDS}:</span>
           <span className="text-slate-300">
             Challenge {currentItemIdx + 1} of {sentenceItems.length}
@@ -542,14 +542,14 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
             title="Hear Sentence Audio (SPACE)"
           >
             <Volume2 size={14} />
-            <span className="hidden sm:inline">HEAR</span>
+            <span className="inline">HEAR</span>
             <span className="text-[10px] text-slate-400">[SPACE]</span>
           </button>
         </div>
       </header>
 
       {/* ================= MAIN PROJECTOR STAGE ================= */}
-      <main className="relative z-10 flex-1 flex flex-col justify-between gap-2.5 md:gap-3 my-1 overflow-hidden max-w-7xl mx-auto w-full">
+      <main className="relative z-10 flex-1 flex flex-col justify-between gap-3 my-1 overflow-hidden max-w-7xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {phase !== 'complete' && currentItem && (
             <motion.div
@@ -557,18 +557,18 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="flex-1 flex flex-col justify-between gap-2.5 md:gap-3 w-full"
+              className="flex-1 flex flex-col justify-between gap-3 w-full"
             >
               {/* 1. TOP CONTEXT STRIP: Clue line & L1 Scaffold (§2 Owner Bug Fix) */}
-              <section className="w-full rounded-2xl bg-[#0b132b]/95 border border-[#1e2d5a] p-3 md:p-4 flex items-center justify-between gap-4 shadow-xl shrink-0">
+              <section className="w-full rounded-2xl bg-[#0b132b]/95 border border-[#1e2d5a] p-4 flex items-center justify-between gap-4 shadow-xl shrink-0">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#1a2954] border border-[#38bdf8]/40 flex items-center justify-center text-[#38bdf8] shrink-0 shadow-md">
+                  <div className="w-14 h-14 rounded-xl bg-[#1a2954] border border-[#38bdf8]/40 flex items-center justify-center text-[#38bdf8] shrink-0 shadow-md">
                     <Layers size={24} />
                   </div>
 
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono text-[10px] md:text-xs font-extrabold uppercase tracking-wide">
+                      <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono text-xs font-extrabold uppercase tracking-wide">
                         {currentItem.exerciseType === 'TRANSFORM' ? 'Grammar Transform' : 'Sentence Build'}
                       </span>
                       <span className="font-mono text-[11px] text-slate-400">
@@ -577,7 +577,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                     </div>
 
                     {/* Primary English Task Line */}
-                    <div className="font-headline font-extrabold text-base md:text-xl text-white tracking-tight">
+                    <div className="font-headline font-extrabold text-xl text-white tracking-tight">
                       {currentItem.promptText}
                     </div>
 
@@ -592,7 +592,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                 </div>
 
                 {/* Right: Checking status or hint indicator */}
-                <div className="hidden sm:flex flex-col items-end gap-1">
+                <div className="flex flex-col items-end gap-1">
                   {hintLevel > 0 && (
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-xs font-bold animate-pulse">
                       <Lightbulb size={14} />
@@ -606,7 +606,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
               </section>
 
               {/* 2. MIDDLE SECTION: THE SENTENCE RUNWAY WITH DISCRETE SLOTS */}
-              <section className="w-full flex-1 rounded-2xl bg-[#0b132b]/95 border border-[#1e2d5a] p-3 md:p-4 flex flex-col justify-between shadow-2xl relative min-h-[140px] md:min-h-[180px]">
+              <section className="w-full flex-1 rounded-2xl bg-[#0b132b]/95 border border-[#1e2d5a] p-4 flex flex-col justify-between shadow-2xl relative min-h-[180px]">
                 <div className="w-full flex items-center justify-between mb-1.5 px-1">
                   <div className="flex items-center gap-2 font-mono text-xs font-extrabold uppercase text-[#38bdf8] tracking-wider">
                     <span className="w-2 h-2 rounded-full bg-[#38bdf8]" />
@@ -621,7 +621,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
 
                 {/* Dynamic Discrete Slots Grid */}
                 <div
-                  className="w-full flex-1 grid gap-2.5 md:gap-3.5 items-stretch my-1"
+                  className="w-full flex-1 grid gap-3.5 items-stretch my-1"
                   style={{
                     gridTemplateColumns: `repeat(${Math.max(currentItem.targetTiles.length, 3)}, minmax(0, 1fr))`,
                   }}
@@ -637,13 +637,13 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                       return (
                         <div
                           key={`revealed-${slotIdx}`}
-                          className="rounded-xl md:rounded-2xl bg-[#111c3d] border-2 border-emerald-400 p-2 md:p-3 flex flex-col justify-between shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse"
+                          className="rounded-2xl bg-[#111c3d] border-2 border-emerald-400 p-3 flex flex-col justify-between shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse"
                         >
                           <div className="flex items-center justify-between text-[10px] font-mono text-emerald-400 font-bold">
                             <span>0{slotIdx + 1}</span>
                             <span>CORRECT</span>
                           </div>
-                          <div className="my-auto text-center font-headline font-extrabold text-xl md:text-3xl text-emerald-300">
+                          <div className="my-auto text-center font-headline font-extrabold text-3xl text-emerald-300">
                             {targetWord}
                           </div>
                           <div className="text-center text-[10px] font-mono text-emerald-400">
@@ -667,7 +667,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                         <button
                           key={`filled-${slotIdx}`}
                           onClick={() => handleRemoveTile(slotIdx)}
-                          className={`rounded-xl md:rounded-2xl border-2 p-2 md:p-3 flex flex-col justify-between text-left transition-all duration-200 cursor-pointer hover:scale-[1.02] group ${slotBorder}`}
+                          className={`rounded-2xl border-2 p-3 flex flex-col justify-between text-left transition-all duration-200 cursor-pointer hover:scale-[1.02] group ${slotBorder}`}
                           title="Tap to return word to bank"
                         >
                           <div className="flex items-center justify-between w-full text-[10px] font-mono">
@@ -685,7 +685,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                             )}
                           </div>
 
-                          <div className="my-auto text-center font-headline font-extrabold text-xl md:text-3xl text-white tracking-tight drop-shadow">
+                          <div className="my-auto text-center font-headline font-extrabold text-3xl text-white tracking-tight drop-shadow">
                             {tile.text}
                           </div>
 
@@ -701,7 +701,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                       return (
                         <div
                           key={`active-${slotIdx}`}
-                          className="rounded-xl md:rounded-2xl bg-[#111c3d]/60 border-2 border-dashed border-[#38bdf8] p-2 md:p-3 flex flex-col justify-between relative shadow-[0_0_16px_rgba(56,189,248,0.25)] animate-pulse"
+                          className="rounded-2xl bg-[#111c3d]/60 border-2 border-dashed border-[#38bdf8] p-3 flex flex-col justify-between relative shadow-[0_0_16px_rgba(56,189,248,0.25)] animate-pulse"
                         >
                           <div className="flex items-center justify-between w-full text-[10px] font-mono text-[#38bdf8]">
                             <span className="w-5 h-5 rounded-md bg-[#38bdf8]/20 flex items-center justify-center font-bold">
@@ -728,7 +728,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                     return (
                       <div
                         key={`pending-${slotIdx}`}
-                        className="rounded-xl md:rounded-2xl bg-[#070c18]/50 border-2 border-dashed border-slate-700/60 p-2 md:p-3 flex flex-col justify-between opacity-60"
+                        className="rounded-2xl bg-[#070c18]/50 border-2 border-dashed border-slate-700/60 p-3 flex flex-col justify-between opacity-60"
                       >
                         <div className="text-[10px] font-mono text-slate-500">
                           0{slotIdx + 1}
@@ -761,7 +761,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
               </section>
 
               {/* 3. BOTTOM SECTION: TACTILE WORD BANK TRAY & CHECK ACTION */}
-              <section className="w-full rounded-2xl bg-[#0b132b]/95 border border-[#1e2d5a] p-3 md:p-4 flex flex-col justify-between shadow-2xl shrink-0">
+              <section className="w-full rounded-2xl bg-[#0b132b]/95 border border-[#1e2d5a] p-4 flex flex-col justify-between shadow-2xl shrink-0">
                 <div className="w-full flex items-center justify-between mb-2 px-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-black uppercase text-slate-200 tracking-wider">
@@ -777,7 +777,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                 </div>
 
                 {/* 3D Tactile Word Blocks Grid */}
-                <div className="w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 md:gap-3.5 mb-2">
+                <div className="w-full grid grid-cols-6 gap-3.5 mb-2">
                   {bankTiles.map((tile, idx) => {
                     const isUsed = buildTiles.some((t) => t.id === tile.id);
                     const isDistractorDimmed = hintLevel >= 1 && tile.id === firstDistractorId;
@@ -797,14 +797,14 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
                         key={tile.id}
                         onClick={() => handleTileTap(tile)}
                         disabled={isUsed}
-                        className={`group relative rounded-xl md:rounded-2xl p-2.5 md:p-3.5 flex flex-col items-center justify-center transition-all duration-150 cursor-pointer active:translate-y-1 ${blockStyle}`}
+                        className={`group relative rounded-2xl p-3.5 flex flex-col items-center justify-center transition-all duration-150 cursor-pointer active:translate-y-1 ${blockStyle}`}
                       >
                         <span className="w-full flex items-center justify-between font-mono text-[9px] text-slate-400 mb-0.5">
                           <span>0{idx + 1}</span>
                           {isNextNeededHint && <span className="text-slate-900 font-bold">NEXT</span>}
                           {isDistractorDimmed && <span className="text-red-400 font-bold">DEC</span>}
                         </span>
-                        <span className="font-headline font-black text-xl md:text-2xl xl:text-3xl tracking-tight">
+                        <span className="font-headline font-black text-3xl tracking-tight">
                           {tile.text}
                         </span>
                       </button>
@@ -851,20 +851,20 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="flex-1 flex flex-col justify-center items-center gap-4 w-full text-center"
             >
-              <div className="w-full bg-gradient-to-r from-[#0b132b] via-[#11244d] to-[#0b132b] border-2 border-emerald-400 rounded-3xl p-6 md:p-8 shadow-[0_0_35px_rgba(16,185,129,0.3)]">
+              <div className="w-full bg-gradient-to-r from-[#0b132b] via-[#11244d] to-[#0b132b] border-2 border-emerald-400 rounded-3xl p-8 shadow-[0_0_35px_rgba(16,185,129,0.3)]">
                 <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-3xl mx-auto mb-3 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
                   ★
                 </div>
                 <div className="font-mono text-xs font-extrabold text-emerald-400 uppercase tracking-widest mb-1">
                   PERFECT SENTENCE MATCH
                 </div>
-                <h2 className="font-headline font-black text-2xl md:text-4xl text-white mb-3">
+                <h2 className="font-headline font-black text-4xl text-white mb-3">
                   Brilliant job{pickedStudent ? `, ${pickedStudent.name}` : ''}! Sentence Verified!
                 </h2>
 
                 {/* Large Assembled Sentence Display */}
                 <div className="p-4 rounded-2xl bg-[#070c18] border-2 border-emerald-400/80 my-4 inline-block max-w-3xl">
-                  <div className="font-headline font-extrabold text-2xl md:text-4xl text-emerald-300 tracking-wide">
+                  <div className="font-headline font-extrabold text-4xl text-emerald-300 tracking-wide">
                     &ldquo;{currentItem.targetSentence}&rdquo;
                   </div>
                   {currentItem.translation && (
@@ -900,7 +900,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
               <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-4xl mb-4 shadow-[0_0_24px_rgba(16,185,129,0.4)]">
                 🏆
               </div>
-              <h2 className="font-headline font-extrabold text-3xl md:text-5xl text-white mb-2">
+              <h2 className="font-headline font-extrabold text-5xl text-white mb-2">
                 Sentence Lab Mastered!
               </h2>
               <p className="text-slate-400 text-lg max-w-md mb-6">
@@ -934,7 +934,7 @@ const BoardSentenceLab: React.FC<{ data?: any }> = () => {
           </div>
 
           {/* Center: Stage Cue */}
-          <div className="hidden lg:flex items-center gap-2 bg-[#111c3d] px-3 py-1 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-2 bg-[#111c3d] px-3 py-1 rounded-lg border border-slate-800">
             <span className="font-mono text-xs text-slate-400">
               Round {roundIndex} of {TOTAL_ROUNDS} · Sentence {currentItemIdx + 1} of {sentenceItems.length}
             </span>
