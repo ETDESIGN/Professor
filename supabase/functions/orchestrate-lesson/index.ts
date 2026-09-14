@@ -483,7 +483,7 @@ serve(async (req) => {
       const sbClient = createClient(supabaseUrl, supabaseKey);
       const { data: unit, error: unitError } = await sbClient
         .from('units')
-        .select('teacher_id, title, manifest')
+        .select('teacher_id, title, manifest, flow')
         .eq('id', unitId)
         .single();
 
@@ -837,6 +837,25 @@ serve(async (req) => {
       // Age band comes from the CANONICAL manifest (toFlowAssets drops
       // gradeLevel/meta — passing assetsForFlow here lost the age point and
       // stranded topic-only matches below the threshold; owner-reported bug).
+      //
+      // ROUND-2 FIX (owner #2/#3, 2026-09-15): a re-publish used to destroy
+      // previously healed videos — the flow below is REBUILT from scratch, and
+      // when this ladder failed/missed (it is non-fatal by design), the saved
+      // flow replaced a resolved block with an unresolved one. Merge the live
+      // units.flow's resolved media fields into the new flow FIRST; the ladder
+      // then only fills still-unresolved blocks (it never overwrites).
+      try {
+        const prevFlow = Array.isArray((unit as any).flow) ? (unit as any).flow : [];
+        const prevMedia = prevFlow.filter((b: any) => b?.type === 'MEDIA_PLAYER' && b?.data?.videoUrl);
+        const targets = flow.filter((b: any) => b?.type === 'MEDIA_PLAYER');
+        prevMedia.forEach((prev: any, i: number) => {
+          const target = targets[i]; // positional pairing — media blocks keep order
+          if (target && !(target?.data?.videoUrl || target?.data?.audioUrl)) {
+            const { videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand } = prev.data;
+            target.data = { ...(target.data || {}), videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand };
+          }
+        });
+      } catch { /* best-effort preservation */ }
       try {
         const mediaOut = await resolveMediaForFlow(sbClient, flow, {
           unitId,

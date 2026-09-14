@@ -1448,13 +1448,29 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [fetchClassPlan]);
   useEffect(() => { refreshActiveFlowRef.current = refreshActiveFlow; }, [refreshActiveFlow]);
 
+  // ROUND-2 FIX (owner #3): the resolve ladder is deadline-bounded server-side
+  // (~45s), but a hung gateway connection left the Find-video spinner turning
+  // "forever". Race every media invocation against a hard client-side cap so
+  // the button ALWAYS settles with an honest message. (Distinct from the
+  // module-scope withTimeout, which resolves undefined — that would read as
+  // success here.)
+  const mediaTimeout = <T,>(p: Promise<T>, ms: number, what: string): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${what} timed out — tap Find video again`)), ms)),
+    ] as Promise<T>[]);
+
   const resolveMediaForActiveUnit = useCallback(async () => {
     const unitId = activeUnitRef.current?.id;
     if (!unitId) return { ok: false, error: 'No active unit' };
     try {
-      const { data, error } = await supabase.functions.invoke('generate-media', {
-        body: { action: 'resolve-media', unitId, classId: activeClassIdRef.current || undefined },
-      });
+      const { data, error } = await mediaTimeout(
+        supabase.functions.invoke('generate-media', {
+          body: { action: 'resolve-media', unitId, classId: activeClassIdRef.current || undefined },
+        }),
+        70000,
+        'Video search',
+      );
       if (error) return { ok: false, error: error.message };
       if (data?.error) return { ok: false, error: String(data.error) };
       const resolvedCount = Number(data?.resolvedCount ?? 0);
@@ -1473,9 +1489,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     const unitId = activeUnitRef.current?.id;
     if (!unitId) return { ok: false, error: 'No active unit' };
     try {
-      const { data, error } = await supabase.functions.invoke('generate-media', {
-        body: { action: 'apply-media', unitId, url, ...(meta?.title ? { title: meta.title } : {}), ...(meta?.blockSearchQuery ? { blockSearchQuery: meta.blockSearchQuery } : {}) },
-      });
+      const { data, error } = await mediaTimeout(
+        supabase.functions.invoke('generate-media', {
+          body: { action: 'apply-media', unitId, url, ...(meta?.title ? { title: meta.title } : {}), ...(meta?.blockSearchQuery ? { blockSearchQuery: meta.blockSearchQuery } : {}) },
+        }),
+        70000,
+        'Linking the video',
+      );
       if (error) return { ok: false, error: error.message };
       if (data?.error) return { ok: false, error: String(data.error) };
       await refreshActiveFlow();

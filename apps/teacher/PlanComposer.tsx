@@ -125,6 +125,7 @@ const buildBlockData = (
   meta?: any,
   vocabGroups: ContentGroup[] = [],
   storyGroup?: ContentGroup | null,
+  prior?: any,
 ): any => {
   const allVocab: any[] = Array.isArray(ec.vocabulary) ? ec.vocabulary : [];
   const scopedVocab = vocabGroups.length > 0 ? vocabGroups.flatMap((g) => g.words || []) : allVocab;
@@ -218,13 +219,21 @@ const buildBlockData = (
       // Song/Video step (spec 2026-09-13): inserted empty-but-honest — the
       // MediaInspector resolves it at plan time (find/paste). The topic-based
       // search query gives the resolver + the teacher a starting point.
+      // ROUND-2 FIX (owner #2/#3): rebuild paths pass `prior` so a RESOLVED
+      // video (teacher pick or catalog heal) survives any data rebuild —
+      // previously every rebuild dropped videoUrl and the song vanished.
       const topic = meta?.theme || ec.topic || '';
-      return {
+      const media = {
         title: 'Song / Video',
         kind: 'song',
         search_query: topic ? `${topic} kids song` : 'warm up song for kids',
         lyrics: [],
       };
+      if (prior?.videoUrl) {
+        const { videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand } = prior;
+        return { ...media, videoUrl, videoTitle, videoChannel, videoThumbnailUrl, resolvedVia, resolvedAt, ageBand };
+      }
+      return media;
     }
     case 'WORD_SEARCH': {
       // BoardWordSearch pulls words from the pool/vocabulary at runtime; the
@@ -648,7 +657,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     const selected = vocabSeriesFull.filter((g) => groupIds.includes(g.id));
     const ec = enrichedForBlocks();
     updateBlock(block.id, {
-      data: buildBlockData(block.type, ec, undefined, unit?.manifest?.meta, selected, null),
+      data: buildBlockData(block.type, ec, undefined, unit?.manifest?.meta, selected, null, block.data),
     });
   };
 
@@ -658,7 +667,7 @@ const PlanComposer: React.FC<{ unitId: string; unit: any; onFlowSaved?: (flow: a
     const ec = enrichedForBlocks();
     updateBlock(block.id, {
       title: sg ? sg.title : block.title,
-      data: buildBlockData(block.type, ec, undefined, unit?.manifest?.meta, [], sg),
+      data: buildBlockData(block.type, ec, undefined, unit?.manifest?.meta, [], sg, block.data),
     });
   };
 
