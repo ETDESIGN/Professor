@@ -497,9 +497,9 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
   }
 
   return (
-    <div className="tb-container h-full flex flex-col p-3 sm:p-5 relative overflow-hidden bg-[#070b16] select-none text-white">
+    <div className="tb-container h-full flex flex-col p-5 relative overflow-hidden bg-[#070b16] select-none text-white">
       {/* ── Top Header / Status Bar (Overscan cleared) ── */}
-      <div className="tb-header-bar pl-28 lg:pl-44 pr-4 py-1.5 flex items-center justify-between border-b border-white/10 shrink-0 mb-3">
+      <div className="tb-header-bar pl-44 pr-4 py-1.5 flex items-center justify-between border-b border-white/10 shrink-0 mb-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 bg-slate-900/80 px-3 py-1 rounded-full border border-slate-700/60 text-xs font-bold text-slate-300">
             <Flag size={14} className="text-amber-400" />
@@ -537,7 +537,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
       </div>
 
       {/* ── Main Arena: Persistent 3-Column Split-Screen (F4) ── */}
-      <div className="flex-1 flex items-stretch gap-3 sm:gap-4 min-h-0">
+      <div className="flex-1 flex items-stretch gap-4 min-h-0">
         {/* Left Column: Red Team Roster & Score */}
         <TeamRosterColumn
           team="red"
@@ -554,7 +554,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
           {/* Pregame countdown */}
           {phase === 'pregame' && (
             <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex flex-col items-center text-center">
-              <p className="font-display text-2xl sm:text-3xl font-black text-amber-300 mb-2 uppercase tracking-widest">
+              <p className="font-display text-3xl font-black text-amber-300 mb-2 uppercase tracking-widest">
                 Arena Clash! 准备对战!
               </p>
               <p className="text-slate-400 text-sm mb-4">First team to get 3-in-a-row claims victory!</p>
@@ -562,7 +562,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
                 key={countdown}
                 initial={{ scale: 1.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="text-8xl sm:text-9xl font-black text-red-500 drop-shadow-[0_0_35px_rgba(239,68,68,0.6)]"
+                className="text-9xl font-black text-red-500 drop-shadow-[0_0_35px_rgba(239,68,68,0.6)]"
               >
                 {countdown > 0 ? countdown : 'GO!'}
               </motion.div>
@@ -610,7 +610,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
               </div>
 
               {/* Question Prompt */}
-              <h2 className="tb-prompt-text font-display text-xl sm:text-2xl font-bold text-slate-100 mb-4 text-center px-2 leading-snug">
+              <h2 className="tb-prompt-text font-display text-2xl font-bold text-slate-100 mb-4 text-center px-2 leading-snug">
                 {getPromptText(currentQ)}
               </h2>
 
@@ -627,7 +627,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
 
               {/* 4 Option Buttons (▲, ◆, ●, ■) */}
               {content?.options && (
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {content.options.map((opt: any, i: number) => {
                     const isCorrect = i === content.correct_index;
                     const isSelected = selectedTile === i;
@@ -641,7 +641,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
                         whileTap={!answerRevealed ? { scale: 0.97 } : {}}
                         onClick={() => handleAnswer(i)}
                         disabled={answerRevealed}
-                        className={`tb-option-btn w-40 sm:w-56 h-16 sm:h-20 rounded-xl border-2 flex items-center justify-between px-3 sm:px-4 transition-all shadow-md ${
+                        className={`tb-option-btn w-56 h-20 rounded-xl border-2 flex items-center justify-between px-4 transition-all shadow-md ${
                           answerRevealed && isCorrect
                             ? 'border-emerald-400 bg-emerald-500/30 text-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-105'
                             : answerRevealed && isSelected
@@ -650,11 +650,11 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-mono text-xl sm:text-2xl opacity-90">{shape.shape}</span>
+                          <span className="font-mono text-2xl opacity-90">{shape.shape}</span>
                           {isListenSelect && opt?.image_url ? (
                             <img src={opt.image_url} alt="" className="w-10 h-10 object-contain rounded" />
                           ) : (
-                            <span className="font-display text-sm sm:text-base font-bold truncate text-left">
+                            <span className="font-display text-base font-bold truncate text-left">
                               {optText}
                             </span>
                           )}
@@ -685,7 +685,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
                 )}
               </div>
 
-              <h2 className="tb-prompt-text font-display text-lg sm:text-xl font-bold text-slate-100 mb-2 text-center">
+              <h2 className="tb-prompt-text font-display text-xl font-bold text-slate-100 mb-2 text-center">
                 Build: "{content?.target_sentence}"
               </h2>
 
@@ -768,7 +768,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
               <div className={`p-4 rounded-full mb-3 shadow-lg ${activeTeam === 'red' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>
                 <Trophy size={48} className="animate-bounce" />
               </div>
-              <h2 className={`font-display text-3xl sm:text-4xl font-black mb-1 ${activeTeam === 'red' ? 'text-red-300' : 'text-blue-300'}`}>
+              <h2 className={`font-display text-4xl font-black mb-1 ${activeTeam === 'red' ? 'text-red-300' : 'text-blue-300'}`}>
                 {activeTeam === 'red' ? '🔴 RED' : '🔵 BLUE'} TEAM!
               </h2>
               <p className="font-display text-xl font-bold text-amber-300 mb-1">
@@ -788,7 +788,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
                 className={winResult.team === 'red' ? 'text-red-400 mb-2' : winResult.team === 'blue' ? 'text-blue-400 mb-2' : 'text-amber-400 mb-2'}
               />
               <h2
-                className={`font-display text-4xl sm:text-5xl font-black mb-1 ${
+                className={`font-display text-5xl font-black mb-1 ${
                   winResult.team === 'red' ? 'text-red-300' : winResult.team === 'blue' ? 'text-blue-300' : 'text-amber-300'
                 }`}
               >
@@ -805,12 +805,12 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
               {/* Final score compare */}
               <div className="flex gap-8 bg-slate-950/60 px-6 py-3 rounded-2xl border border-white/10 mb-4">
                 <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-red-400">{redScore}</div>
+                  <div className="text-3xl font-black text-red-400">{redScore}</div>
                   <div className="text-xs text-slate-500 font-bold uppercase">Red Cells</div>
                 </div>
                 <div className="w-px bg-white/10" />
                 <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-black text-blue-400">{blueScore}</div>
+                  <div className="text-3xl font-black text-blue-400">{blueScore}</div>
                   <div className="text-xs text-slate-500 font-bold uppercase">Blue Cells</div>
                 </div>
               </div>
@@ -828,7 +828,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
         {/* Right Wing: Permanent 3×3 Tactical Tic-Tac-Toe Arena (F4) + Blue Team Column */}
         <div className="flex items-stretch gap-3 shrink-0">
           {/* Tactical 3×3 Grid */}
-          <div className="tb-tactical-grid w-48 sm:w-60 bg-slate-900/60 rounded-2xl border border-white/10 p-2 sm:p-3 flex flex-col items-center justify-between">
+          <div className="tb-tactical-grid w-60 bg-slate-900/60 rounded-2xl border border-white/10 p-3 flex flex-col items-center justify-between">
             <div className="flex items-center gap-1.5 mb-1 text-center">
               <Shield size={14} className="text-amber-400" />
               <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -837,7 +837,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
             </div>
 
             {/* 3×3 Grid Cells */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 my-auto">
+            <div className="grid grid-cols-3 gap-2 my-auto">
               {grid.map((cell, i) => {
                 const isThreatCell = activeThreat?.threatIndex === i;
                 const isWinningCell = winResult?.line?.includes(i);
@@ -850,7 +850,7 @@ const BoardTeamBattle = ({ data }: { data: any }) => {
                     disabled={cell !== null || phase !== 'choose_cell'}
                     whileHover={isClaimable ? { scale: 1.08 } : {}}
                     whileTap={isClaimable ? { scale: 0.95 } : {}}
-                    className={`tb-cell w-14 h-14 sm:w-16 sm:h-16 rounded-xl border-2 flex flex-col items-center justify-center font-black relative transition-all ${
+                    className={`tb-cell w-16 h-16 rounded-xl border-2 flex flex-col items-center justify-center font-black relative transition-all ${
                       cell === 'red'
                         ? 'bg-red-500/30 border-red-500 text-red-200 shadow-[0_0_15px_rgba(239,68,68,0.4)]'
                         : cell === 'blue'
@@ -935,7 +935,7 @@ const TeamRosterColumn: React.FC<{
 
   return (
     <div
-      className={`tb-roster-col w-32 sm:w-36 shrink-0 rounded-2xl border-2 p-3 flex flex-col justify-between transition-all ${
+      className={`tb-roster-col w-36 shrink-0 rounded-2xl border-2 p-3 flex flex-col justify-between transition-all ${
         active ? styles.rail : styles.railIdle
       } ${winResult ? 'ring-4 ring-amber-400' : ''}`}
     >

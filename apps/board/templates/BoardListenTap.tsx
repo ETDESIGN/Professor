@@ -431,16 +431,16 @@ const BoardListenTap = ({ data }: { data: any }) => {
 
   // ── Render pieces ─────────────────────────────────────────────────────
 
-  // Header. BoardShell's phase pill sits top-left (~164px) — pl-32/lg:pl-48
+  // Header. BoardShell's phase pill sits top-left (~164px) — the pl-48
   // keeps the game badge clear of it (same fix as Word Search, 2026-09-10).
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-14 shrink-0">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="w-7 h-7 lg:w-10 lg:h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/40 flex items-center justify-center shadow-[0_0_18px_-4px_rgba(56,189,248,0.5)] shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-[#38BDF8]/15 border border-[#38BDF8]/40 flex items-center justify-center shadow-[0_0_18px_-4px_rgba(56,189,248,0.5)] shrink-0">
           <Headphones size={15} className="text-[#38BDF8]" />
         </div>
-        <h1 className="text-base lg:text-xl font-bold tracking-tight text-white truncate">Listen &amp; Tap</h1>
-        <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[9px] lg:text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
+        <h1 className="text-xl font-bold tracking-tight text-white truncate">Listen &amp; Tap</h1>
+        <span className="inline px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
           Q{itemNum}/{total}
         </span>
       </div>
@@ -453,13 +453,13 @@ const BoardListenTap = ({ data }: { data: any }) => {
           </motion.div>
         )}
         <button onClick={playAudio} title="Replay the audio"
-          className="flex items-center gap-1.5 px-2.5 lg:px-5 py-1 lg:py-2 rounded-xl bg-slate-800/90 border border-[#38BDF8]/50 hover:bg-[#38BDF8]/15 hover:shadow-[0_0_16px_-2px_rgba(56,189,248,0.4)] transition-all active:scale-95">
+          className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-slate-800/90 border border-[#38BDF8]/50 hover:bg-[#38BDF8]/15 hover:shadow-[0_0_16px_-2px_rgba(56,189,248,0.4)] transition-all active:scale-95">
           <Volume2 size={15} className="text-[#38BDF8]" />
-          <span className="hidden md:inline text-xs lg:text-sm font-bold uppercase tracking-wide text-[#7DD3FC]">Replay Audio</span>
+          <span className="inline text-sm font-bold uppercase tracking-wide text-[#7DD3FC]">Replay Audio</span>
         </button>
         {(uiPhase === 'options' || uiPhase === 'listen') && (
           <button onClick={advanceRound} title="Skip this question"
-            className="px-2 lg:px-4 py-1 lg:py-2 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 text-[10px] lg:text-xs font-bold uppercase tracking-wider transition-colors active:scale-95">
+            className="px-4 py-2 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 text-xs font-bold uppercase tracking-wider transition-colors active:scale-95">
             Skip
           </button>
         )}
@@ -471,24 +471,24 @@ const BoardListenTap = ({ data }: { data: any }) => {
   // text IS the spoken target and would reveal the answer on the projector
   // (design adaptation; fidelity log). It appears only after answering.
   const banner = (
-    <div className="w-full shrink-0 flex items-center justify-between gap-3 px-3 lg:px-6 py-1.5 lg:py-2.5 rounded-2xl bg-[#0B132B]/90 border border-[#38BDF8]/25 shadow-[0_0_24px_-8px_rgba(56,189,248,0.25)]">
+    <div className="w-full shrink-0 flex items-center justify-between gap-3 px-6 py-2.5 rounded-2xl bg-[#0B132B]/90 border border-[#38BDF8]/25 shadow-[0_0_24px_-8px_rgba(56,189,248,0.25)]">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className={`w-8 h-8 lg:w-11 lg:h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
           uiPhase === 'listen' ? 'bg-[#38BDF8]/20 border border-[#38BDF8]/60 shadow-[0_0_14px_-2px_rgba(56,189,248,0.5)]' : 'bg-slate-800 border border-slate-700'
         }`}>
           <Headphones size={16} className={uiPhase === 'listen' ? 'text-[#38BDF8]' : 'text-slate-400'} />
         </div>
         <div className="min-w-0">
-          <p className="lt-mono text-[8px] lg:text-[10px] font-bold uppercase tracking-[0.18em] text-[#38BDF8] flex items-center gap-2">
+          <p className="lt-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#38BDF8] flex items-center gap-2">
             Auditory prompt
-            <span className="hidden sm:flex items-end gap-[3px] h-3">
+            <span className="flex items-end gap-[3px] h-3">
               {[0, 1, 2, 3].map(i => (
                 <span key={i} className={`w-[3px] rounded-full bg-[#38BDF8] ${uiPhase === 'listen' ? 'lt-wave' : ''}`}
                   style={{ height: [12, 7, 14, 9][i], animationDelay: `${i * 0.12}s` }} />
               ))}
             </span>
           </p>
-          <p className="text-xs lg:text-lg font-bold text-white truncate">
+          <p className="text-lg font-bold text-white truncate">
             {uiPhase === 'listen' ? (kind === 'DICTATION' ? 'Listen… then type what you heard.' : 'Listen carefully… then tap the matching picture.')
               : kind === 'DICTATION' ? 'Type what you heard on the Remote.'
               : uiPhase === 'feedback' && selectedTile === correctIndex ? 'You heard:'
@@ -562,19 +562,19 @@ const BoardListenTap = ({ data }: { data: any }) => {
           ) : null}
           {/* Missing-image fallback: cleanly center the text label */}
           <div className={`lt-img-fallback absolute inset-0 flex items-center justify-center p-3 text-center ${opt.image && String(opt.image).startsWith('http') ? 'hidden' : ''}`}>
-            <span className="lt-mono font-black text-sky-200 text-xl lg:text-4xl">
+            <span className="lt-mono font-black text-sky-200 text-4xl">
               {opt.label || '?'}
             </span>
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B] via-transparent to-black/25 pointer-events-none" />
           {/* Letter badge + option tag */}
           <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
-            <span className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center lt-mono font-extrabold text-sm shadow-md ${
+            <span className={`w-8 h-8 rounded-lg flex items-center justify-center lt-mono font-extrabold text-sm shadow-md ${
               solvedCorrect && isCorrect ? 'bg-emerald-400 text-slate-900'
                 : isSelected ? 'bg-[#38BDF8] text-slate-900'
                 : 'bg-[#070C18]/90 border border-slate-600 text-sky-300'
             }`}>{LETTERS[i]}</span>
-            <span className="hidden md:inline lt-mono text-[9px] tracking-[0.14em] uppercase text-slate-300/80 bg-[#070C18]/80 px-2 py-0.5 rounded">
+            <span className="inline lt-mono text-[9px] tracking-[0.14em] uppercase text-slate-300/80 bg-[#070C18]/80 px-2 py-0.5 rounded">
               Option {i + 1}
             </span>
           </div>
@@ -592,12 +592,12 @@ const BoardListenTap = ({ data }: { data: any }) => {
           )}
         </div>
         {/* Label plate */}
-        <div className={`shrink-0 h-9 lg:h-14 px-3 lg:px-4 flex items-center justify-between gap-2 border-t ${
+        <div className={`shrink-0 h-14 px-4 flex items-center justify-between gap-2 border-t ${
           solvedCorrect && isCorrect ? 'bg-emerald-950/60 border-emerald-500/40'
             : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40'
             : 'bg-[#111C3D] border-slate-700/60'
         }`}>
-          <span className={`lt-mono font-extrabold tracking-wide truncate ${twoUp ? 'text-lg lg:text-3xl' : 'text-sm lg:text-2xl'} ${
+          <span className={`lt-mono font-extrabold tracking-wide truncate ${twoUp ? 'text-3xl' : 'text-2xl'} ${
             solvedCorrect && isCorrect ? 'text-emerald-300'
               : isSelected ? 'text-[#7DD3FC]' : 'text-white'
           }`}>
@@ -617,7 +617,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
   // Footer HUD: progress dots + hands-free auto-advance bar (design #2) /
   // pink Next-Round CTA (preview) — the single hot-pink element per screen.
   const footer = (
-    <footer className="w-full shrink-0 h-8 lg:h-12 flex items-center justify-between gap-3 px-1">
+    <footer className="w-full shrink-0 h-12 flex items-center justify-between gap-3 px-1">
       <div className="flex items-center gap-1.5 min-w-0">
         {Array.from({ length: Math.min(total, 8) }).map((_, i) => {
           const done = i < itemNum - 1;
@@ -640,7 +640,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
         <AnimatePresence>
           {showWhisper && uiPhase === 'options' && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 whitespace-nowrap">
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 whitespace-nowrap">
               <span className="text-xs">🤫</span>
               <span className="text-xs font-bold text-slate-300">Class: whisper your answer!</span>
             </motion.div>
@@ -648,8 +648,8 @@ const BoardListenTap = ({ data }: { data: any }) => {
         </AnimatePresence>
 
         {uiPhase === 'feedback' && (
-          <div className="w-40 lg:w-64 flex flex-col gap-1">
-            <span className="lt-mono text-[9px] lg:text-[10px] text-[#7DD3FC] font-bold tracking-wide flex items-center gap-1 justify-end">
+          <div className="w-64 flex flex-col gap-1">
+            <span className="lt-mono text-[10px] text-[#7DD3FC] font-bold tracking-wide flex items-center gap-1 justify-end">
               <Timer size={10} /> Next question…
             </span>
             <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/60">
@@ -661,7 +661,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
 
         {uiPhase === 'preview' && (
           <motion.button initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={advanceRound}
-            className="flex items-center gap-2 px-4 lg:px-7 py-2 rounded-xl bg-[#FF2E79] text-white font-bold text-sm lg:text-base tracking-wide shadow-[0_0_20px_-4px_rgba(255,46,121,0.6)] hover:shadow-[0_0_28px_-4px_rgba(255,46,121,0.8)] active:scale-95 transition-all">
+            className="flex items-center gap-2 px-7 py-2 rounded-xl bg-[#FF2E79] text-white font-bold text-base tracking-wide shadow-[0_0_20px_-4px_rgba(255,46,121,0.6)] hover:shadow-[0_0_28px_-4px_rgba(255,46,121,0.8)] active:scale-95 transition-all">
             Next Round <ChevronRight size={18} />
           </motion.button>
         )}
@@ -670,7 +670,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
   );
 
   return (
-    <div className="lt-root h-full w-full flex flex-col gap-2 lg:gap-3 p-2 lg:p-4 relative overflow-hidden">
+    <div className="lt-root h-full w-full flex flex-col gap-3 p-4 relative overflow-hidden">
       <style>{`
         .lt-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .lt-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -693,18 +693,17 @@ const BoardListenTap = ({ data }: { data: any }) => {
 
       {/* ═══ LISTEN PHASE — big sky speaker moment (design's audio role) ═══ */}
       {uiPhase === 'listen' && (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-5">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-5">
           {banner}
-          <button onClick={playAudio} className="relative flex items-center justify-center w-28 h-28 lg:w-44 lg:h-44 shrink-0">
+          <button onClick={playAudio} className="relative flex items-center justify-center w-44 h-44 shrink-0">
             <span className="lt-ring absolute inset-0 rounded-full border-2 border-[#38BDF8]/60" />
             <span className="lt-ring absolute rounded-full border-2 border-[#38BDF8]/40" style={{ inset: '14%', animationDelay: '0.5s' }} />
             <span className="lt-ring absolute rounded-full border-2 border-[#38BDF8]/25" style={{ inset: '28%', animationDelay: '1s' }} />
-            <span className="relative w-16 h-16 lg:w-24 lg:h-24 rounded-full bg-[#38BDF8]/15 border-2 border-[#38BDF8] flex items-center justify-center shadow-[0_0_44px_-6px_rgba(56,189,248,0.65)] active:scale-95 transition-transform">
-              <Volume2 size={36} className="text-[#38BDF8] lg:hidden" />
-              <Volume2 size={56} className="text-[#38BDF8] hidden lg:block" />
+            <span className="relative w-24 h-24 rounded-full bg-[#38BDF8]/15 border-2 border-[#38BDF8] flex items-center justify-center shadow-[0_0_44px_-6px_rgba(56,189,248,0.65)] active:scale-95 transition-transform">
+              <Volume2 size={56} className="text-[#38BDF8] block" />
             </span>
           </button>
-          <p className="text-2xl lg:text-4xl font-bold text-[#7DD3FC]">Listen!</p>
+          <p className="text-4xl font-bold text-[#7DD3FC]">Listen!</p>
           {kind === 'DICTATION' && (
             <p className="flex items-center gap-2 text-sm text-slate-400">
               <Keyboard size={16} className="text-slate-500" /> Type the answer on the Remote
@@ -715,9 +714,9 @@ const BoardListenTap = ({ data }: { data: any }) => {
 
       {/* ═══ OPTIONS / FEEDBACK — photo card grid ═══ */}
       {(uiPhase === 'options' || uiPhase === 'feedback') && kind !== 'DICTATION' && (
-        <div className="flex-1 min-h-0 flex flex-col gap-2 lg:gap-3">
+        <div className="flex-1 min-h-0 flex flex-col gap-3">
           {banner}
-          <div className={`flex-1 min-h-0 grid gap-2.5 lg:gap-5 ${
+          <div className={`flex-1 min-h-0 grid gap-5 ${
             currentItem.options.length === 2 ? 'grid-cols-2' : 'grid-cols-2 grid-rows-2'
           }`}>
             {currentItem.options.map((opt: any, i: number) => renderCard(opt, i))}
@@ -728,12 +727,12 @@ const BoardListenTap = ({ data }: { data: any }) => {
 
       {/* ═══ DICTATION — remote-typing card + compare feedback ═══ */}
       {(uiPhase === 'listen' || uiPhase === 'options' || uiPhase === 'feedback') && kind === 'DICTATION' && (
-        <div className="flex-1 min-h-0 flex flex-col gap-2 lg:gap-3">
+        <div className="flex-1 min-h-0 flex flex-col gap-3">
           {banner}
           <div className="flex-1 min-h-0 flex items-center justify-center">
             {uiPhase === 'feedback' && dictationResult ? (
               <motion.div initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
-                className={`w-full max-w-2xl rounded-3xl border-2 p-6 lg:p-10 text-center ${
+                className={`w-full max-w-2xl rounded-3xl border-2 p-10 text-center ${
                   dictationResult.ratio >= DICTATION_PASS_THRESHOLD
                     ? 'border-emerald-400/70 bg-emerald-950/30 lt-glow-correct'
                     : 'border-rose-400/60 bg-rose-950/20'
@@ -746,16 +745,16 @@ const BoardListenTap = ({ data }: { data: any }) => {
                     {dictationResult.ratio >= DICTATION_PASS_THRESHOLD ? 'Correct' : 'Not quite'}
                   </span>
                 </div>
-                <p className="lt-mono text-2xl lg:text-4xl font-extrabold text-white mb-2">“{dictationResult.text}”</p>
-                <p className="text-sm lg:text-base text-slate-400">
+                <p className="lt-mono text-4xl font-extrabold text-white mb-2">“{dictationResult.text}”</p>
+                <p className="text-base text-slate-400">
                   Target: <span className="text-[#7DD3FC] font-bold">{(currentItem.poolItem?.content as any)?.correct_text}</span>
                   <span className="lt-mono ml-2 text-slate-500">{Math.round(dictationResult.ratio * 100)}% match</span>
                 </p>
               </motion.div>
             ) : (
-              <div className="w-full max-w-xl rounded-3xl border-2 border-dashed border-[#38BDF8]/40 bg-[#0B132B]/70 p-8 lg:p-12 text-center">
+              <div className="w-full max-w-xl rounded-3xl border-2 border-dashed border-[#38BDF8]/40 bg-[#0B132B]/70 p-12 text-center">
                 <Keyboard size={40} className="text-[#38BDF8]/70 mx-auto mb-4" />
-                <p className="text-xl lg:text-2xl font-bold text-white">Teacher: type what you heard on the Remote</p>
+                <p className="text-2xl font-bold text-white">Teacher: type what you heard on the Remote</p>
                 <p className="lt-mono text-xs text-slate-500 mt-3 uppercase tracking-widest">Remote Baton · dictation mode</p>
               </div>
             )}
@@ -766,9 +765,9 @@ const BoardListenTap = ({ data }: { data: any }) => {
 
       {/* ═══ PREVIEW — transition beat with next student ═══ */}
       {uiPhase === 'preview' && (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-4">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4">
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-            className={`w-20 h-20 lg:w-28 lg:h-28 rounded-full flex items-center justify-center border-2 ${
+            className={`w-28 h-28 rounded-full flex items-center justify-center border-2 ${
               (kind === 'DICTATION' ? dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD : selectedTile === correctIndex)
                 ? 'border-emerald-400 bg-emerald-500/15 lt-glow-correct' : 'border-amber-400/70 bg-amber-500/10'
             }`}>
@@ -776,7 +775,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
               ? <Check size={44} className="text-emerald-400" strokeWidth={3} />
               : <Lightbulb size={40} className="text-amber-400" />}
           </motion.div>
-          <p className="text-2xl lg:text-3xl font-bold text-white">
+          <p className="text-3xl font-bold text-white">
             {(kind === 'DICTATION' ? dictationResult && dictationResult.ratio >= DICTATION_PASS_THRESHOLD : selectedTile === correctIndex)
               ? (classStreak >= 5 ? 'Amazing! Keep the streak burning!' : pickedStudent ? `${pickedStudent.name} got it!` : 'Well done!')
               : 'Good try — listen once more!'}
@@ -797,7 +796,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
       {showMicroExplanation && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 pointer-events-none">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#111C3D] border-2 border-amber-400/60 p-6 lg:p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-md text-center">
+            className="bg-[#111C3D] border-2 border-amber-400/60 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-md text-center">
             <div className="flex items-center gap-2 mb-3">
               <Lightbulb size={22} className="text-amber-400" />
               <span className="lt-mono text-xs font-bold tracking-widest uppercase text-amber-300">Remember this one</span>
@@ -806,7 +805,7 @@ const BoardListenTap = ({ data }: { data: any }) => {
               <img src={currentItem.options[correctIndex].image} alt=""
                 className="w-28 h-28 object-cover rounded-2xl mb-3 border border-slate-600" />
             ) : null}
-            <p className="lt-mono text-3xl lg:text-4xl font-extrabold text-white">{currentItem.options[correctIndex]?.label}</p>
+            <p className="lt-mono text-4xl font-extrabold text-white">{currentItem.options[correctIndex]?.label}</p>
             {currentItem.promptText && (
               <p className="text-base text-slate-400 mt-2">You heard: “{currentItem.promptText}”</p>
             )}

@@ -726,26 +726,26 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
   const testedWord = testedEntry?.word || '';
 
   return (
-    <div className="h-full w-full bg-[#0A0E27] text-white flex flex-col p-4 sm:p-6 lg:p-8 relative overflow-hidden select-none wm-container">
+    <div className="h-full w-full bg-[#0A0E27] text-white flex flex-col p-8 relative overflow-hidden select-none wm-container">
       {/* Ambient background glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-[#0A0E27] to-[#0A0E27] pointer-events-none" />
 
       {/* Header */}
-      <div className="relative z-10 flex justify-between items-center mb-3 sm:mb-6 wm-header">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg transition-colors duration-500 ${
+      <div className="relative z-10 flex justify-between items-center mb-6 wm-header">
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-colors duration-500 ${
             gamePhase === 'memorize' ? 'bg-emerald-500 shadow-emerald-950/50' : 'bg-indigo-600 shadow-indigo-950/50'
           }`}>
             {gamePhase === 'memorize' ? <Eye size={26} className="text-white" /> : <EyeOff size={26} className="text-white" />}
           </div>
           <div>
-            <div className="text-xs sm:text-sm font-black tracking-widest uppercase flex items-center gap-2">
+            <div className="text-sm font-black tracking-widest uppercase flex items-center gap-2">
               <span className="bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 px-2 py-0.5 rounded-md text-[11px] font-bold">
                 Round {roundIndex}/{TOTAL_ROUNDS}
               </span>
               <span className="text-slate-400 font-bold">{isMagic ? 'Magic Eyes' : "What's Missing"}</span>
             </div>
-            <div className="text-xl sm:text-3xl font-black text-white flex items-center gap-3 wm-title">
+            <div className="text-3xl font-black text-white flex items-center gap-3 wm-title">
               <span>
                 {gamePhase === 'memorize'
                   ? (isMagic ? (magicReady ? 'Magic Eyes — Ready?' : 'Watch Closely!') : 'Memorize the Items!')
@@ -754,7 +754,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
                   : 'Revealed!'}
               </span>
               {pickedStudent && (
-                <span className="text-xs sm:text-sm font-bold bg-amber-400/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span className="text-sm font-bold bg-amber-400/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-full flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   {pickedStudent.name}'s Turn
                 </span>
@@ -776,7 +776,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
           )}
           {gamePhase === 'memorize' && (!isMagic || magicFlashing) && (
             <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-xl">
-              <div className="h-2 w-24 sm:w-32 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 w-32 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-emerald-400 transition-all duration-1000 ease-linear rounded-full"
                   style={{ width: `${(timer / memorizeSeconds) * 100}%` }}
@@ -794,15 +794,15 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
           {isMagic ? (
             magicReady ? (
               /* Camera Ready Gate (F2) */
-              <div className="flex flex-col items-center justify-center p-6 sm:p-10 bg-slate-900/90 border-2 border-cyan-500/50 rounded-3xl shadow-2xl max-w-xl text-center animate-pop-in">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center mb-4 text-cyan-300">
+              <div className="flex flex-col items-center justify-center p-10 bg-slate-900/90 border-2 border-cyan-500/50 rounded-3xl shadow-2xl max-w-xl text-center animate-pop-in">
+                <div className="w-20 h-20 rounded-full bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center mb-4 text-cyan-300">
                   <Eye size={40} className="animate-pulse" />
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white mb-2">Magic Eyes! Watch Closely!</h2>
-                <p className="text-slate-300 text-sm sm:text-base mb-6">The photo will flash for 3 seconds. Look at all the details!</p>
+                <h2 className="text-3xl font-black text-white mb-2">Magic Eyes! Watch Closely!</h2>
+                <p className="text-slate-300 text-base mb-6">The photo will flash for 3 seconds. Look at all the details!</p>
                 <button
                   onClick={startMagicFlash}
-                  className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-lg sm:text-xl shadow-xl shadow-cyan-950/50 active:scale-95 transition-all flex items-center gap-3 animate-bounce-subtle mx-auto"
+                  className="px-8 py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xl shadow-xl shadow-cyan-950/50 active:scale-95 transition-all flex items-center gap-3 animate-bounce-subtle mx-auto"
                 >
                   <Zap size={24} /> FLASH IMAGE (3s)
                 </button>
@@ -810,19 +810,19 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
               </div>
             ) : (
               /* Flash Image (image ONLY — no text label, solving F4) */
-              <div className="w-full max-w-2xl aspect-video bg-white rounded-3xl shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-center wm-shutter border-4 border-cyan-400 animate-fade-in">
+              <div className="w-full max-w-2xl aspect-video bg-white rounded-3xl shadow-2xl p-6 flex flex-col items-center justify-center wm-shutter border-4 border-cyan-400 animate-fade-in">
                 <img src={grid[0]?.image} alt="Flash target" className="w-full h-full object-contain drop-shadow-md" />
               </div>
             )
           ) : (
             /* What's Missing Grid (4-8 items) */
-            <div className={`grid gap-3 sm:gap-6 w-full max-w-6xl max-h-[504px] wm-card-grid ${
-              grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-2 sm:grid-cols-4'
+            <div className={`grid gap-6 w-full max-w-6xl max-h-[504px] wm-card-grid ${
+              grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-4'
             }`}>
               {grid.map((item, i) => (
-                <div key={i} className="aspect-[4/3] rounded-2xl sm:rounded-3xl shadow-xl bg-white flex flex-col items-center justify-center p-3 sm:p-4 wm-grid-card border border-slate-100">
+                <div key={i} className="aspect-[4/3] rounded-3xl shadow-xl bg-white flex flex-col items-center justify-center p-4 wm-grid-card border border-slate-100">
                   <img src={item.image} alt={item.word} className="h-2/3 object-contain drop-shadow-sm mb-2" />
-                  <h3 className="text-base sm:text-2xl font-display font-bold text-slate-800 text-center truncate w-full px-1">
+                  <h3 className="text-2xl font-display font-bold text-slate-800 text-center truncate w-full px-1">
                     {item.word}
                   </h3>
                 </div>
@@ -834,29 +834,29 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
 
       {/* ═══ RECALL + REVEAL PHASE ═══ */}
       {(gamePhase === 'recall' || gamePhase === 'reveal' || gamePhase === 'slideComplete') && (
-        <div className="flex-1 relative z-10 flex flex-col items-center justify-center gap-4 sm:gap-6 overflow-hidden">
+        <div className="flex-1 relative z-10 flex flex-col items-center justify-center gap-6 overflow-hidden">
           {isMagic ? (
             /* Magic Eyes Shutter / Revealed Image */
             gamePhase === 'reveal' ? (
-              <div className="w-full max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl relative border-4 border-emerald-400 shadow-emerald-500/20 bg-white p-3 sm:p-4 wm-shutter animate-pop-in">
+              <div className="w-full max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl relative border-4 border-emerald-400 shadow-emerald-500/20 bg-white p-4 wm-shutter animate-pop-in">
                 <img src={grid[0]?.image} alt={grid[0]?.word} className="w-full h-full object-contain" />
               </div>
             ) : (
               /* Mystery Frosted Shutter (NO color leak, solving F1) */
               <div className="w-full max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl relative bg-slate-950 border-4 border-cyan-500/30 flex items-center justify-center wm-shutter">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-950/95 via-indigo-950/90 to-slate-950/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-cyan-400/50 border-dashed animate-spin-slow flex items-center justify-center mb-2 shadow-[0_0_25px_rgba(6,182,212,0.3)]">
+                  <div className="w-20 h-20 rounded-full border-4 border-cyan-400/50 border-dashed animate-spin-slow flex items-center justify-center mb-2 shadow-[0_0_25px_rgba(6,182,212,0.3)]">
                     <EyeOff size={32} className="text-cyan-400" />
                   </div>
-                  <p className="text-cyan-300 font-bold text-base sm:text-lg tracking-widest uppercase">Mystery Lens Closed</p>
-                  <p className="text-slate-400 text-xs sm:text-sm mt-0.5">What did you see in the photo?</p>
+                  <p className="text-cyan-300 font-bold text-lg tracking-widest uppercase">Mystery Lens Closed</p>
+                  <p className="text-slate-400 text-sm mt-0.5">What did you see in the photo?</p>
                 </div>
               </div>
             )
           ) : (
             /* What's Missing: Grid with missing aperture */
-            <div className={`grid gap-2.5 sm:gap-4 w-full max-h-[396px] wm-card-grid ${
-              grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-2 sm:grid-cols-4 max-w-6xl'
+            <div className={`grid gap-4 w-full max-h-[396px] wm-card-grid ${
+              grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-4 max-w-6xl'
             }`}>
               {grid.map((item, i) => {
                 const isMissing = i === missingIndex;
@@ -864,18 +864,18 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
                 return (
                   <div
                     key={i}
-                    className={`aspect-[4/3] rounded-2xl sm:rounded-3xl shadow-xl transition-all duration-500 relative wm-grid-card ${
+                    className={`aspect-[4/3] rounded-3xl shadow-xl transition-all duration-500 relative wm-grid-card ${
                       isMissing && !revealed
                         ? 'bg-indigo-950/60 border-2 border-dashed border-cyan-400/60 shadow-cyan-950/50'
                         : 'bg-white border border-slate-100'
                     }`}
                   >
-                    <div className={`w-full h-full p-2.5 sm:p-3 flex flex-col items-center justify-center transition-opacity duration-300 ${
+                    <div className={`w-full h-full p-3 flex flex-col items-center justify-center transition-opacity duration-300 ${
                       isMissing && !revealed ? 'opacity-0' : 'opacity-100'
                     }`}>
                       <img src={item.image} alt={revealed ? item.word : ''} className="h-2/3 object-contain drop-shadow-sm mb-1.5" />
                       {(!isMissing || revealed) && (
-                        <h3 className="text-sm sm:text-xl font-display font-bold text-slate-800 text-center truncate w-full px-1">
+                        <h3 className="text-xl font-display font-bold text-slate-800 text-center truncate w-full px-1">
                           {item.word}
                         </h3>
                       )}
@@ -887,7 +887,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
                       </div>
                     )}
                     {revealed && (
-                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border-4 border-emerald-400 pointer-events-none animate-pop-in" />
+                      <div className="absolute inset-0 rounded-3xl border-4 border-emerald-400 pointer-events-none animate-pop-in" />
                     )}
                   </div>
                 );
@@ -898,11 +898,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
           {/* Produce-mode oral challenge bar (1-tap oral verification, solving F1) */}
           {interactionMode === 'produce' && gamePhase === 'recall' && (
             <div className="flex flex-col items-center gap-2.5 w-full max-w-lg animate-fade-in wm-produce-bar">
-              <div className="bg-fuchsia-950/70 border-2 border-fuchsia-500/50 text-white text-lg sm:text-2xl font-display font-bold px-6 py-3 rounded-2xl text-center shadow-lg">
+              <div className="bg-fuchsia-950/70 border-2 border-fuchsia-500/50 text-white text-2xl font-display font-bold px-6 py-3 rounded-2xl text-center shadow-lg">
                 {pickedStudent ? `${pickedStudent.name}, say the missing word!` : 'Say the missing word loud!'}
               </div>
               {firstLetterHint && testedWord && (
-                <div className="bg-amber-400 text-slate-950 font-black text-base sm:text-xl px-4 py-1.5 rounded-xl animate-pop-in shadow-md">
+                <div className="bg-amber-400 text-slate-950 font-black text-xl px-4 py-1.5 rounded-xl animate-pop-in shadow-md">
                   Hint: starts with “{testedWord.charAt(0).toUpperCase()}”
                 </div>
               )}
@@ -910,19 +910,19 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
               <div className="flex items-center gap-3 mt-1">
                 <button
                   onClick={forceCorrect}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm sm:text-base shadow-lg active:scale-95 flex items-center gap-2 transition-all wm-produce-btn"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base shadow-lg active:scale-95 flex items-center gap-2 transition-all wm-produce-btn"
                 >
                   <Check size={18} strokeWidth={3} /> ✓ Correct
                 </button>
                 <button
                   onClick={handleProduceMiss}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm sm:text-base shadow-lg active:scale-95 flex items-center gap-2 transition-all wm-produce-btn"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-base shadow-lg active:scale-95 flex items-center gap-2 transition-all wm-produce-btn"
                 >
                   <X size={18} strokeWidth={3} /> ✗ Try Again
                 </button>
                 <button
                   onClick={revealAnswer}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm shadow active:scale-95 flex items-center gap-1.5 transition-all wm-produce-btn"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm shadow active:scale-95 flex items-center gap-1.5 transition-all wm-produce-btn"
                 >
                   <Eye size={16} /> Reveal
                 </button>
@@ -932,11 +932,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
 
           {/* Recognize-mode Candidate Dock (with letter badges, images, and text labels, solving F3/F4) */}
           {interactionMode === 'recognize' && gamePhase === 'recall' && (
-            <div className="flex flex-col items-center gap-2 sm:gap-3 w-full max-w-5xl animate-fade-in">
-              <p className="text-indigo-200 text-sm sm:text-lg font-display font-bold text-center">
+            <div className="flex flex-col items-center gap-3 w-full max-w-5xl animate-fade-in">
+              <p className="text-indigo-200 text-lg font-display font-bold text-center">
                 {isMagic ? 'Which item did you see in the photo?' : 'Which item is missing? Tap the answer!'}
               </p>
-              <div className="flex gap-2 sm:gap-3 flex-wrap justify-center w-full wm-cand-dock">
+              <div className="flex gap-3 flex-wrap justify-center w-full wm-cand-dock">
                 {candidates.map((cand, i) => {
                   const isEliminated = eliminated.includes(i);
                   const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
@@ -945,7 +945,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
                       key={i}
                       onClick={() => handleRecognizeTap(cand, i)}
                       disabled={isEliminated}
-                      className={`flex items-center gap-2.5 px-3.5 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl bg-slate-900/90 border-2 border-slate-700 hover:border-cyan-400 hover:bg-slate-800 shadow-lg transition-all duration-200 wm-cand-btn ${
+                      className={`flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-slate-900/90 border-2 border-slate-700 hover:border-cyan-400 hover:bg-slate-800 shadow-lg transition-all duration-200 wm-cand-btn ${
                         isEliminated
                           ? 'opacity-20 scale-90 cursor-not-allowed border-slate-800'
                           : 'hover:scale-105 active:scale-95'
@@ -958,11 +958,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
                         <img
                           src={cand.image}
                           alt={cand.label || ''}
-                          className="h-8 w-8 sm:h-11 sm:w-11 object-contain drop-shadow"
+                          className="h-11 w-11 object-contain drop-shadow"
                           onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.2'; }}
                         />
                       )}
-                      <span className="font-display font-bold text-sm sm:text-lg text-white">
+                      <span className="font-display font-bold text-lg text-white">
                         {cand.label || `Option ${i + 1}`}
                       </span>
                     </button>
@@ -974,21 +974,21 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
 
           {/* Reveal Feedback Strip with Choral Echo & Audio Pronunciation (solving F4/F3) */}
           {gamePhase === 'reveal' && testedEntry && (
-            <div className={`px-6 sm:px-8 py-3 rounded-2xl sm:rounded-3xl shadow-2xl flex items-center gap-4 sm:gap-6 animate-bounce-subtle ${
+            <div className={`px-8 py-3 rounded-3xl shadow-2xl flex items-center gap-6 animate-bounce-subtle ${
               feedback === 'correct' ? 'bg-emerald-600 border-2 border-emerald-400' : 'bg-amber-600 border-2 border-amber-400'
             } text-white`}>
               {feedback === 'correct' ? <Check size={30} strokeWidth={3} className="text-white shrink-0" /> : <Lightbulb size={30} className="shrink-0" />}
               <div className="text-left">
-                <div className="text-lg sm:text-2xl font-display font-black">
+                <div className="text-2xl font-display font-black">
                   {feedback === 'correct'
                     ? (pickedStudent ? `Nice one, ${pickedStudent.name}!` : 'Awesome!')
                     : `It was: ${testedEntry.word}`}
                 </div>
-                <div className="text-xs sm:text-sm text-emerald-100 font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                  <Users size={15} /> Everyone say: <span className="underline font-black text-white text-sm sm:text-base">{testedEntry.word}</span>
+                <div className="text-sm text-emerald-100 font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                  <Users size={15} /> Everyone say: <span className="underline font-black text-white text-base">{testedEntry.word}</span>
                 </div>
               </div>
-              <img src={testedEntry.image} alt={testedEntry.word} className="h-12 w-12 sm:h-14 sm:w-14 object-contain bg-white/20 rounded-xl p-1 shrink-0" />
+              <img src={testedEntry.image} alt={testedEntry.word} className="h-14 w-14 object-contain bg-white/20 rounded-xl p-1 shrink-0" />
               <button
                 onClick={() => browserSpeak(testedEntry.word)}
                 className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors shrink-0"
@@ -1011,11 +1011,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
       {/* 2nd-miss micro-explanation card */}
       {showExplanation && testedEntry && gamePhase === 'recall' && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none animate-fade-in">
-          <div className="bg-slate-900 border-2 border-amber-400/80 p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
+          <div className="bg-slate-900 border-2 border-amber-400/80 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm text-center">
             <Lightbulb size={36} className="text-amber-400 mb-2 animate-bounce" />
             <img src={testedEntry.image} alt={testedEntry.word} className="h-28 object-contain drop-shadow mb-3 bg-white/10 rounded-2xl p-2" />
-            <p className="text-2xl sm:text-3xl font-display font-black text-white">{testedEntry.word}</p>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1">Here's what it was!</p>
+            <p className="text-3xl font-display font-black text-white">{testedEntry.word}</p>
+            <p className="text-slate-400 text-sm mt-1">Here's what it was!</p>
           </div>
         </div>
       )}
@@ -1026,11 +1026,11 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
           onClick={() => setGamePhase('reveal')}
           className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in cursor-pointer"
         >
-          <div className="bg-slate-900 border-2 border-indigo-500/50 p-8 sm:p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-bounce-subtle text-center max-w-lg">
+          <div className="bg-slate-900 border-2 border-indigo-500/50 p-12 rounded-[2.5rem] shadow-2xl flex flex-col items-center animate-bounce-subtle text-center max-w-lg">
             <div className="w-24 h-24 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center mb-4 border border-indigo-400/40">
               <Sparkles size={48} />
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">
+            <h2 className="text-4xl font-black text-white mb-2">
               {pickedStudent ? `Great memory, ${pickedStudent.name}!` : 'Great memory, everyone!'}
             </h2>
             <p className="text-lg text-slate-400 font-medium">Memory round complete!</p>

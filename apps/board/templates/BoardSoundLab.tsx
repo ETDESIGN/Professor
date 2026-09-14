@@ -562,13 +562,13 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
   const replayCostBadge = replayCount === 0 ? 'Free' : isReplayCharged ? '-1 pt' : 'Free';
 
   return (
-    <div className="relative flex flex-col justify-between h-full w-full bg-[#070c18] text-slate-100 font-body p-3 md:p-5 select-none overflow-hidden antialiased">
+    <div className="relative flex flex-col justify-between h-full w-full bg-[#070c18] text-slate-100 font-body p-5 select-none overflow-hidden antialiased">
       {/* Dynamic Background Glows */}
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#ff2d78]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-[#00ffcc]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* ================= TOP NAVIGATION & 3-STEP PROGRESS BAR ================= */}
-      <header className="relative z-10 w-full shrink-0 flex items-center justify-between px-3 py-2 bg-[#0f0f1a]/80 border border-slate-800 backdrop-blur-md rounded-2xl pl-28 lg:pl-44 shadow-lg">
+      <header className="relative z-10 w-full shrink-0 flex items-center justify-between px-3 py-2 bg-[#0f0f1a]/80 border border-slate-800 backdrop-blur-md rounded-2xl pl-44 shadow-lg">
         {/* Left: Mode Chip */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e1e30] border border-[#00ffcc]/40 text-[#00ffcc] font-mono text-xs uppercase font-bold tracking-wider">
@@ -576,14 +576,14 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
             <span>SOUND LAB</span>
           </div>
           {pickedStudent ? (
-            <div className="hidden sm:flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-full border border-slate-800">
+            <div className="flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-full border border-slate-800">
               <span className="w-2 h-2 rounded-full bg-amber-400" />
               <span className="font-mono text-xs text-slate-300">
                 {pickedStudent.name}&apos;s turn
               </span>
             </div>
           ) : (
-            <div className="hidden sm:flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-full border border-slate-800">
+            <div className="flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-full border border-slate-800">
               <span className="w-2 h-2 rounded-full bg-[#00ffcc]" />
               <span className="font-mono text-xs text-[#00ffcc]">Choral Mode</span>
             </div>
@@ -591,7 +591,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
         </div>
 
         {/* Center: 3-STEP PROGRESS NAV (Prominent projector ladder) */}
-        <nav className="flex items-center gap-1.5 sm:gap-2 bg-[#0a0a12]/90 px-3 py-1 rounded-full border border-slate-800 shadow-inner">
+        <nav className="flex items-center gap-2 bg-[#0a0a12]/90 px-3 py-1 rounded-full border border-slate-800 shadow-inner">
           {/* Step 1: Listen & Tap */}
           <div
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all ${
@@ -605,7 +605,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
             <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono bg-black/40">
               {currentPhase > 1 ? <Check size={10} className="stroke-[3]" /> : '1'}
             </span>
-            <span className="hidden md:inline">Listen &amp; Tap</span>
+            <span className="inline">Listen &amp; Tap</span>
           </div>
 
           <ChevronRight size={14} className="text-slate-600" />
@@ -623,7 +623,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
             <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono bg-black/40">
               {currentPhase > 2 ? <Check size={10} className="stroke-[3]" /> : '2'}
             </span>
-            <span className="hidden md:inline">Listen &amp; Match</span>
+            <span className="inline">Listen &amp; Match</span>
           </div>
 
           <ChevronRight size={14} className="text-slate-600" />
@@ -639,7 +639,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
             <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-mono bg-black/40">
               3
             </span>
-            <span className="hidden md:inline">Hear &amp; Say</span>
+            <span className="inline">Hear &amp; Say</span>
           </div>
         </nav>
 
@@ -652,7 +652,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
       </header>
 
       {/* ================= MAIN PROJECTOR CANVAS ================= */}
-      <main className="relative z-10 flex-1 flex flex-col justify-center items-center gap-2 md:gap-4 w-full max-w-7xl mx-auto my-1">
+      <main className="relative z-10 flex-1 flex flex-col justify-center items-center gap-4 w-full max-w-7xl mx-auto my-1">
         <AnimatePresence mode="wait">
           {!allComplete && currentItem && (
             <motion.div
@@ -668,15 +668,15 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                   {/* Glowing Concentric Ripples during audio */}
                   {isPlayingAudio && (
                     <>
-                      <div className="absolute w-28 h-28 md:w-36 md:h-36 rounded-full border border-[#00ffcc]/40 animate-ping pointer-events-none" />
-                      <div className="absolute w-24 h-24 md:w-32 md:h-32 rounded-full border border-[#ff2d78]/30 animate-pulse pointer-events-none" />
+                      <div className="absolute w-36 h-36 rounded-full border border-[#00ffcc]/40 animate-ping pointer-events-none" />
+                      <div className="absolute w-32 h-32 rounded-full border border-[#ff2d78]/30 animate-pulse pointer-events-none" />
                     </>
                   )}
 
                   {/* Center Audio Replay Button */}
                   <button
                     onClick={playAudio}
-                    className={`relative group z-10 w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#1a1a2e] border-2 transition-all duration-300 hover:scale-105 active:scale-95 flex flex-col items-center justify-center shadow-2xl focus:outline-none ${
+                    className={`relative group z-10 w-20 h-20 rounded-full bg-[#1a1a2e] border-2 transition-all duration-300 hover:scale-105 active:scale-95 flex flex-col items-center justify-center shadow-2xl focus:outline-none ${
                       isPlayingAudio
                         ? 'border-[#00ffcc] text-[#00ffcc] shadow-[0_0_24px_rgba(0,255,204,0.5)]'
                         : 'border-[#38bdf8] text-[#38bdf8] hover:border-[#00ffcc] hover:text-[#00ffcc]'
@@ -704,7 +704,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                 </div>
 
                 {/* Challenge Headline */}
-                <h1 className="font-headline font-extrabold text-xl md:text-3xl text-white tracking-tight">
+                <h1 className="font-headline font-extrabold text-3xl text-white tracking-tight">
                   {currentPhase === 1 && (
                     <>
                       Listen… which picture <span className="text-[#00ffcc] drop-shadow-[0_0_12px_rgba(0,255,204,0.5)]">matches</span> the word?
@@ -725,7 +725,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
 
               {/* PHASE 1: 1x4 HORIZONTAL LANDSCAPE CARDS */}
               {currentPhase === 1 && (
-                <section aria-label="Image Options" className="w-full grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 px-2">
+                <section aria-label="Image Options" className="w-full grid grid-cols-4 gap-4 px-2">
                   {(currentItem.imageOptions || []).map((opt, idx) => {
                     const isSelected = selectedOption === idx;
                     const isCorrect = idx === currentItem.correctIndex;
@@ -761,7 +761,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
 
                         {/* Letter Badge */}
                         <div
-                          className={`absolute top-2.5 left-2.5 z-10 w-8 h-8 md:w-10 md:h-10 rounded-xl font-headline font-extrabold text-base md:text-lg flex items-center justify-center backdrop-blur-md border transition-all ${
+                          className={`absolute top-2.5 left-2.5 z-10 w-10 h-10 rounded-xl font-headline font-extrabold text-lg flex items-center justify-center backdrop-blur-md border transition-all ${
                             isSelected && isCorrect
                               ? 'bg-[#00ffcc] text-[#0a0a12] border-[#00ffcc] shadow-[0_0_12px_#00ffcc]'
                               : isSelected && !isCorrect
@@ -788,8 +788,8 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
 
                         {/* Auditory Purity: Word caption is HIDDEN during listening, revealed on feedback */}
                         {showLabel ? (
-                          <div className="relative z-10 p-2.5 md:p-3 bg-[#1e1e30]/95 backdrop-blur-md border-t border-slate-700 flex items-center justify-between animate-fadeIn">
-                            <span className="font-headline font-extrabold text-base md:text-xl text-[#00ffcc] tracking-wide uppercase truncate">
+                          <div className="relative z-10 p-3 bg-[#1e1e30]/95 backdrop-blur-md border-t border-slate-700 flex items-center justify-between animate-fadeIn">
+                            <span className="font-headline font-extrabold text-xl text-[#00ffcc] tracking-wide uppercase truncate">
                               {opt.label || `Option ${idx + 1}`}
                             </span>
                             <button
@@ -839,9 +839,9 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                         onClick={() => handlePhase2Select(idx)}
                         className={`w-full p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between text-left shadow-lg cursor-pointer ${cardClass}`}
                       >
-                        <div className="flex items-center gap-3 md:gap-4">
+                        <div className="flex items-center gap-4">
                           <span
-                            className={`w-9 h-9 md:w-10 md:h-10 rounded-xl font-headline font-extrabold text-base md:text-lg flex items-center justify-center shrink-0 border ${
+                            className={`w-10 h-10 rounded-xl font-headline font-extrabold text-lg flex items-center justify-center shrink-0 border ${
                               isSelected && isCorrect
                                 ? 'bg-[#00ffcc] text-[#0a0a12] border-[#00ffcc]'
                                 : isSelected && !isCorrect
@@ -851,7 +851,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                           >
                             {OPTION_LETTERS[idx]}
                           </span>
-                          <span className="font-headline font-bold text-base md:text-xl tracking-wide">
+                          <span className="font-headline font-bold text-xl tracking-wide">
                             {option}
                           </span>
                         </div>
@@ -887,7 +887,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                     <div className="font-mono text-xs uppercase tracking-wider text-slate-400 mb-2">
                       Target Sentence
                     </div>
-                    <div className="font-headline font-extrabold text-2xl md:text-4xl text-white tracking-wide">
+                    <div className="font-headline font-extrabold text-4xl text-white tracking-wide">
                       {currentItem.targetText}
                     </div>
 
@@ -916,7 +916,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                       <button
                         onClick={startListening}
                         disabled={isListening || phase3Revealed}
-                        className={`group relative px-8 py-4 rounded-full font-headline font-extrabold text-lg md:text-xl flex items-center gap-3 shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer ${
+                        className={`group relative px-8 py-4 rounded-full font-headline font-extrabold text-xl flex items-center gap-3 shadow-2xl transition-all duration-300 active:scale-95 cursor-pointer ${
                           isListening
                             ? 'bg-[#ff2d78] text-white animate-pulse shadow-[0_0_24px_rgba(255,45,120,0.6)]'
                             : 'bg-[#00ffcc] text-[#0a0a12] hover:bg-[#00ffcc]/90 shadow-[0_0_20px_rgba(0,255,204,0.4)]'
@@ -930,7 +930,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
                       {speechTranscript && (
                         <div className="w-full p-4 rounded-xl bg-[#141422] border border-slate-800 text-center animate-fadeIn">
                           <div className="text-xs font-mono text-slate-400 mb-1">Detected Speech:</div>
-                          <div className="text-lg md:text-xl font-bold text-slate-200 mb-2">
+                          <div className="text-xl font-bold text-slate-200 mb-2">
                             &ldquo;{speechTranscript}&rdquo;
                           </div>
                           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1e1e30] border border-slate-700">
@@ -982,7 +982,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
               <div className="w-20 h-20 rounded-full bg-[#00ffcc]/20 border-2 border-[#00ffcc] flex items-center justify-center text-4xl mb-4 shadow-[0_0_24px_rgba(0,255,204,0.4)]">
                 🎧
               </div>
-              <h2 className="font-headline font-extrabold text-3xl md:text-5xl text-white mb-2">
+              <h2 className="font-headline font-extrabold text-5xl text-white mb-2">
                 Sound Lab Mastered!
               </h2>
               <p className="text-slate-400 text-lg max-w-md mb-6">
@@ -1016,7 +1016,7 @@ const BoardSoundLab: React.FC<{ data?: any }> = () => {
           </div>
 
           {/* Center: Stage Cue */}
-          <div className="hidden lg:flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-2 bg-[#141422] px-3 py-1 rounded-lg border border-slate-800">
             <Headphones size={14} className="text-[#00ffcc]" />
             <span className="font-mono text-xs text-slate-400">
               {currentPhase === 1 && 'Phase 1: Pure Auditory Tap'}

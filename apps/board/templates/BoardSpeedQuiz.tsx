@@ -1,6 +1,6 @@
 // BoardSpeedQuiz v2 — multi-type timed assessment (ASSESS phase).
 //
-// Rewritten per speedquiz-teambattle-v2-spec.md:
+// Rewritten per speedquiz-teambattle-v2-spec.md — key points:
 //   • Consumes 6 exercise types: MEANING_MATCH, SPELL_CLOZE, LISTEN_SELECT,
 //     ERROR_SPOT, STORY_COMPREHENSION, WORD_BANK_BUILD (spec Part A).
 //   • Question composition: proportional-to-type-distribution + mastery-weighted
