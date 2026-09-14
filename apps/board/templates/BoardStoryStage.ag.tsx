@@ -761,7 +761,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 flex flex-col justify-between p-2 sm:p-4 lg:p-6 bg-[#070C18] ag-grid relative box-border overflow-hidden select-none"
+            className="absolute inset-0 flex flex-col justify-between p-6 bg-[#070C18] ag-grid relative box-border overflow-hidden select-none"
           >
             <style>{`
               .ag-grid {
@@ -778,33 +778,33 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               }
             `}</style>
 
-            {/* TOP BAR (16:9 Projector Safe Area: starts pl-40 lg:pl-48 to clear BoardShell's phase pill) */}
-            <header className="w-full flex items-center justify-between gap-3 pl-40 lg:pl-48 pr-1 h-10 sm:h-12 lg:h-14 z-20 shrink-0">
+            {/* TOP BAR (16:9 Projector Safe Area: starts pl-48 to clear BoardShell's phase pill) */}
+            <header className="w-full flex items-center justify-between gap-3 pl-48 pr-1 h-14 z-20 shrink-0">
               {/* Left Section: App / Activity Title */}
-              <div className="flex items-center gap-2.5 lg:gap-3 min-w-0">
-                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#FF2E79] flex items-center justify-center ag-font-display font-bold text-white text-base lg:text-xl shadow-[0_0_16px_rgba(255,46,121,0.5)] shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#FF2E79] flex items-center justify-center ag-font-display font-bold text-white text-xl shadow-[0_0_16px_rgba(255,46,121,0.5)] shrink-0">
                   S
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h1 className="ag-font-display text-lg sm:text-xl lg:text-2xl font-bold tracking-wide text-white truncate">
+                    <h1 className="ag-font-display text-2xl font-bold tracking-wide text-white truncate">
                       Story Stage
                     </h1>
-                    <span className="px-2 py-0.5 rounded bg-[#16234D] border border-white/10 ag-font-mono text-[10px] lg:text-[11px] font-bold text-slate-300 shrink-0">
+                    <span className="px-2 py-0.5 rounded bg-[#16234D] border border-white/10 ag-font-mono text-[11px] font-bold text-slate-300 shrink-0">
                       READING THEATER
                     </span>
                   </div>
-                  <p className="ag-font-mono text-[9px] lg:text-[10px] text-slate-400 tracking-wider truncate uppercase">
+                  <p className="ag-font-mono text-[10px] text-slate-400 tracking-wider truncate uppercase">
                     {data.title ? `CHAPTER · ${data.title}` : 'STORY READING'}
                   </p>
                 </div>
               </div>
 
               {/* Center/Right Status Chips */}
-              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B] border border-white/10">
                   <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
-                  <span className="ag-font-mono text-[10px] sm:text-xs text-slate-300">
+                  <span className="ag-font-mono text-xs text-slate-300">
                     {pickedStudent ? (
                       <>Turn: <strong className="text-white font-bold">{pickedStudent.name}</strong></>
                     ) : (
@@ -816,16 +816,16 @@ const BoardStoryStage = ({ data }: { data: any }) => {
             </header>
 
             {/* MAIN STAGE: TWO-COLUMN 16:9 VIEWPORT (LEFT 38% / RIGHT 62%) */}
-            <main className="w-full flex-1 min-h-0 flex flex-col sm:flex-row gap-2 sm:gap-4 lg:gap-6 my-1 sm:my-2 lg:my-4 overflow-hidden items-stretch">
+            <main className="w-full flex-1 min-h-0 flex flex-row gap-6 my-4 overflow-hidden items-stretch">
               {/* LEFT COLUMN (~38%): HIGH-CONTRAST READING THEATER */}
-              <section className="sm:w-[38%] flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-3 sm:p-5 lg:p-7 relative shadow-2xl overflow-hidden min-h-0">
+              <section className="w-[38%] flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-7 relative shadow-2xl overflow-hidden min-h-0">
                 {/* Top Section: Speaker Identity & Role */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-2.5 sm:pb-3 lg:pb-5 gap-2 shrink-0">
-                  <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+                <div className="flex items-center justify-between border-b border-white/10 pb-5 gap-2 shrink-0">
+                  <div className="flex items-center gap-4 min-w-0">
                     {/* Active Speaker's Round Avatar with Signature Color Halo */}
                     <div className="relative shrink-0">
                       <div
-                        className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-full p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.35)] transition-transform duration-300"
+                        className="w-16 h-16 rounded-full p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.35)] transition-transform duration-300"
                         style={{
                           background: `linear-gradient(to top right, ${activeSpeakerColor}, #F59E0B, #FDE68A)`,
                           boxShadow: `0 0 18px ${activeSpeakerColor}55`,
@@ -839,32 +839,32 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span className="text-lg sm:text-xl lg:text-3xl">
+                            <span className="text-3xl">
                               {activeSpeakerChar?.emoji || activeSpeakerName.charAt(0) || '👤'}
                             </span>
                           )}
                         </div>
                       </div>
                       {/* Speaking Pulse Pill */}
-                      <span className="absolute -bottom-0.5 -right-0.5 lg:-bottom-1 lg:-right-1 flex h-3.5 w-3.5 lg:h-4 lg:w-4">
+                      <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#10B981] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 lg:h-4 lg:w-4 bg-[#10B981] border-2 border-[#070C18]"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-[#10B981] border-2 border-[#070C18]"></span>
                       </span>
                     </div>
 
                     <div className="min-w-0">
-                      <span className="ag-font-mono text-[9px] lg:text-xs uppercase tracking-widest text-slate-400 font-semibold block leading-tight">
+                      <span className="ag-font-mono text-xs uppercase tracking-widest text-slate-400 font-semibold block leading-tight">
                         SPEAKING NOW
                       </span>
                       <div className="flex items-center gap-2">
                         <h2
-                          className="ag-font-display text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold tracking-wide truncate leading-tight"
+                          className="ag-font-display text-3xl font-bold tracking-wide truncate leading-tight"
                           style={{ color: activeSpeakerColor }}
                         >
                           {activeSpeakerName.toUpperCase()}
                         </h2>
                         <span
-                          className="hidden md:inline-block px-2 py-0.5 rounded ag-font-mono text-[9px] lg:text-[10px] font-bold border"
+                          className="inline-block px-2 py-0.5 rounded ag-font-mono text-[10px] font-bold border"
                           style={{
                             backgroundColor: `${activeSpeakerColor}1A`,
                             color: activeSpeakerColor,
@@ -878,8 +878,8 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                   </div>
 
                   {/* Dialogue / Turn Tag */}
-                  <div className="px-2 sm:px-2.5 lg:px-3 py-1 bg-[#111C3D] border border-white/10 rounded-lg shrink-0">
-                    <span className="ag-font-mono text-[9px] sm:text-[10px] lg:text-xs text-slate-300 font-bold">
+                  <div className="px-3 py-1 bg-[#111C3D] border border-white/10 rounded-lg shrink-0">
+                    <span className="ag-font-mono text-xs text-slate-300 font-bold">
                       {parsedLines.length > 1
                         ? `LINE ${activePanel + 1} · TURN ${activeLineIdx + 1}/${parsedLines.length}`
                         : `LINE ${String(activePanel + 1).padStart(2, '0')} / ${String(totalContentPanels).padStart(2, '0')}`}
@@ -890,20 +890,20 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 {/* Center Narrative Area: Multi-character Dialogue or Single Large Blockquote */}
                 {parsedLines.length > 1 ? (
                   /* Multi-character dialogue: distinct speech cards with individual audio play on tap */
-                  <div className="flex-1 min-h-0 flex flex-col justify-center py-1 sm:py-2 lg:py-3 overflow-hidden">
+                  <div className="flex-1 min-h-0 flex flex-col justify-center py-3 overflow-hidden">
                     <div className="mb-2 flex items-center justify-between shrink-0">
                       <div className="flex items-center gap-2">
                         <Quote className="text-[#38BDF8] rotate-180 shrink-0" size={16} />
-                        <span className="ag-font-mono text-[9px] sm:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
+                        <span className="ag-font-mono text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
                           Dialogue ({parsedLines.length} Speakers)
                         </span>
                       </div>
-                      <span className="ag-font-mono text-[9px] sm:text-[10px] text-slate-400">
+                      <span className="ag-font-mono text-[10px] text-slate-400">
                         Tap any character to listen
                       </span>
                     </div>
 
-                    <div className="flex-1 min-h-0 space-y-2 sm:space-y-2.5 overflow-y-auto pr-1">
+                    <div className="flex-1 min-h-0 space-y-2.5 overflow-y-auto pr-1">
                       {parsedLines.map((line, idx) => {
                         const isSelected = idx === activeLineIdx;
                         const lineColor = getCharColor(line.speaker);
@@ -919,7 +919,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                               setActiveLineIdx(idx);
                               playAudioUrl(undefined, line.text);
                             }}
-                            className={`p-2.5 sm:p-3 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden ${
+                            className={`p-3 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden ${
                               isSelected
                                 ? 'bg-[#111C3D] border-[#38BDF8] shadow-[0_0_20px_rgba(56,189,248,0.25)] ring-2 ring-[#38BDF8]/20'
                                 : 'bg-[#0E1733]/70 hover:bg-[#111C3D] border-white/10 hover:border-white/20'
@@ -935,7 +935,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                               {/* Mini avatar with colored halo */}
                               <div className="relative shrink-0 mt-0.5">
                                 <div
-                                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full p-0.5 flex items-center justify-center overflow-hidden"
+                                  className="w-9 h-9 rounded-full p-0.5 flex items-center justify-center overflow-hidden"
                                   style={{
                                     background: `linear-gradient(to top right, ${lineColor}, #F59E0B)`,
                                     boxShadow: isSelected ? `0 0 12px ${lineColor}88` : undefined,
@@ -945,7 +945,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                                     {linePortrait ? (
                                       <img src={linePortrait} alt={line.speaker} className="w-full h-full object-cover" />
                                     ) : (
-                                      <span className="text-xs sm:text-sm font-bold text-white">
+                                      <span className="text-sm font-bold text-white">
                                         {lineChar?.emoji || line.speaker.charAt(0) || '👤'}
                                       </span>
                                     )}
@@ -963,7 +963,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2 mb-0.5">
                                   <span
-                                    className="ag-font-display text-xs sm:text-sm font-bold uppercase tracking-wide truncate"
+                                    className="ag-font-display text-sm font-bold uppercase tracking-wide truncate"
                                     style={{ color: lineColor }}
                                   >
                                     {line.speaker}
@@ -984,8 +984,8 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                                 <p
                                   className={`ag-font-display leading-snug tracking-tight ${
                                     parsedLines.length <= 2
-                                      ? 'text-base sm:text-lg lg:text-2xl font-bold'
-                                      : 'text-sm sm:text-base lg:text-lg font-bold'
+                                      ? 'text-2xl font-bold'
+                                      : 'text-lg font-bold'
                                   } ${isSelected ? 'text-white ag-dialogue-glow' : 'text-slate-200'}`}
                                 >
                                   &ldquo;{renderText(line.text)}&rdquo;
@@ -999,10 +999,10 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                   </div>
                 ) : (
                   /* Single speaker narrative: extra large blockquote */
-                  <div className="flex-1 min-h-0 flex flex-col justify-center py-2 sm:py-3 lg:py-6 overflow-hidden">
-                    <div className="mb-1.5 sm:mb-2 lg:mb-3 flex items-center gap-2 shrink-0">
+                  <div className="flex-1 min-h-0 flex flex-col justify-center py-6 overflow-hidden">
+                    <div className="mb-3 flex items-center gap-2 shrink-0">
                       <Quote className="text-[#38BDF8] rotate-180 shrink-0" size={18} />
-                      <span className="ag-font-mono text-[9px] sm:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
+                      <span className="ag-font-mono text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
                         Target Speech Chant
                       </span>
                     </div>
@@ -1012,7 +1012,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                         const audioUrl = current.audio;
                         playAudioUrl(audioUrl, activeLine.text);
                       }}
-                      className="ag-font-display text-[20px] sm:text-[24px] md:text-[30px] lg:text-[38px] xl:text-[44px] leading-[1.18] font-bold text-white ag-dialogue-glow tracking-tight select-text overflow-y-auto max-h-full cursor-pointer hover:text-sky-100 transition-colors"
+                      className="ag-font-display text-[44px] leading-[1.18] font-bold text-white ag-dialogue-glow tracking-tight select-text overflow-y-auto max-h-full cursor-pointer hover:text-sky-100 transition-colors"
                       title="Tap to read sentence"
                     >
                       &ldquo;{renderText(activeLine.text)}&rdquo;
@@ -1021,7 +1021,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 )}
 
                 {/* Bottom Controls: Sky Audio Replay Pill + Chunk Book-Page Progress Strip (28px dots) */}
-                <div className="border-t border-white/10 pt-2 sm:pt-3 lg:pt-5 space-y-2 sm:space-y-3 lg:space-y-4 shrink-0">
+                <div className="border-t border-white/10 pt-5 space-y-4 shrink-0">
                   {/* Sky Audio Pill to Replay Active Line */}
                   <button
                     type="button"
@@ -1029,7 +1029,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                       const audioUrl = parsedLines.length === 1 ? current.audio : undefined;
                       playAudioUrl(audioUrl, activeLine.text);
                     }}
-                    className="w-full flex items-center justify-center gap-2 sm:gap-2.5 lg:gap-3 py-2 sm:py-2.5 lg:py-3.5 px-4 lg:px-6 rounded-xl bg-[#38BDF8]/15 border-2 border-[#38BDF8] text-[#38BDF8] ag-font-display text-sm sm:text-base lg:text-lg font-bold hover:bg-[#38BDF8] hover:text-[#070C18] transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]"
+                    className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-xl bg-[#38BDF8]/15 border-2 border-[#38BDF8] text-[#38BDF8] ag-font-display text-lg font-bold hover:bg-[#38BDF8] hover:text-[#070C18] transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]"
                   >
                     <Volume2 size={20} className="animate-pulse shrink-0" />
                     <span>
@@ -1041,28 +1041,28 @@ const BoardStoryStage = ({ data }: { data: any }) => {
 
                   {/* Book-Page Progress Strip with Chunky 28px Numbered Dots */}
                   <div>
-                    <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-                      <span className="ag-font-mono text-[9px] sm:text-[10px] lg:text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="ag-font-mono text-xs text-slate-400 font-bold uppercase tracking-wider">
                         STORY PROGRESS (PAGE {activePanel + 1} OF {totalContentPanels})
                       </span>
-                      <span className="ag-font-mono text-[9px] sm:text-[10px] lg:text-xs text-[#10B981] font-bold">
+                      <span className="ag-font-mono text-xs text-[#10B981] font-bold">
                         {Math.round(((activePanel + 1) / totalContentPanels) * 100)}% COMPLETED
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-1 sm:gap-2 p-1.5 sm:p-2.5 lg:p-3 bg-[#111C3D] rounded-xl border border-white/5 overflow-x-auto">
+                    <div className="flex items-center justify-between gap-2 p-3 bg-[#111C3D] rounded-xl border border-white/5 overflow-x-auto">
                       {pages.map((_: any, i: number) => {
                         const isDone = i < activePanel;
                         const isActive = i === activePanel;
                         return (
                           <React.Fragment key={i}>
                             <div
-                              className={`flex items-center justify-center rounded-full ag-font-mono text-[10px] sm:text-xs font-black shrink-0 transition-all ${
+                              className={`flex items-center justify-center rounded-full ag-font-mono text-xs font-black shrink-0 transition-all ${
                                 isDone
-                                  ? 'w-6 h-6 sm:w-7 sm:h-7 min-w-[24px] sm:min-w-[28px] min-h-[24px] sm:min-h-[28px] bg-[#10B981] text-[#070C18] shadow-[0_0_10px_rgba(16,185,129,0.4)]'
+                                  ? 'w-7 h-7 min-w-[28px] min-h-[28px] bg-[#10B981] text-[#070C18] shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                                   : isActive
-                                  ? 'w-6 h-6 sm:w-7 sm:h-7 min-w-[24px] sm:min-w-[28px] min-h-[24px] sm:min-h-[28px] bg-[#FF2E79] text-white shadow-[0_0_16px_rgba(255,46,121,0.6)] ring-4 ring-[#FF2E79]/25 animate-pulse'
-                                  : 'w-6 h-6 sm:w-7 sm:h-7 min-w-[24px] sm:min-w-[28px] min-h-[24px] sm:min-h-[28px] bg-[#0B132B] border border-white/20 text-slate-400 font-bold'
+                                  ? 'w-7 h-7 min-w-[28px] min-h-[28px] bg-[#FF2E79] text-white shadow-[0_0_16px_rgba(255,46,121,0.6)] ring-4 ring-[#FF2E79]/25 animate-pulse'
+                                  : 'w-7 h-7 min-w-[28px] min-h-[28px] bg-[#0B132B] border border-white/20 text-slate-400 font-bold'
                               }`}
                             >
                               {isDone ? '✓' : i + 1}
@@ -1083,26 +1083,26 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               </section>
 
               {/* RIGHT COLUMN (~62%): STORY ART STAGE (UNCROPPED OBJECT-CONTAIN) */}
-              <section className="sm:w-[62%] flex-1 flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-2 sm:p-4 lg:p-6 shadow-2xl relative overflow-hidden min-h-0">
+              <section className="w-[62%] flex-1 flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden min-h-0">
                 {/* Top Stage HUD Strip */}
-                <div className="w-full flex items-center justify-between mb-2 sm:mb-3 lg:mb-4 px-1 sm:px-2 shrink-0">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="w-full flex items-center justify-between mb-4 px-2 shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="flex items-center gap-2 px-2.5 py-1 bg-[#111C3D] rounded-lg border border-white/10 shrink-0">
                       <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                      <span className="ag-font-mono text-[9px] sm:text-xs text-slate-300 font-bold uppercase truncate">
+                      <span className="ag-font-mono text-xs text-slate-300 font-bold uppercase truncate">
                         SCENE {String(activePanel + 1).padStart(2, '0')}{data.title ? `: ${data.title}` : ''}
                       </span>
                     </div>
-                    <span className="ag-font-mono text-[9px] sm:text-xs text-slate-400 hidden md:inline-block">
+                    <span className="ag-font-mono text-xs text-slate-400 inline-block">
                       Visual Clue #{String(activePanel + 1).padStart(2, '0')}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                    <span className="ag-font-mono text-[9px] sm:text-xs text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg font-bold hidden sm:inline-block">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="ag-font-mono text-xs text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-3 py-1 rounded-lg font-bold inline-block">
                       16:9 NATIVE VIEW
                     </span>
-                    <span className="ag-font-mono text-[9px] sm:text-xs text-slate-400 bg-[#111C3D] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-white/10">
+                    <span className="ag-font-mono text-xs text-slate-400 bg-[#111C3D] px-2.5 py-1 rounded-lg border border-white/10">
                       UNCROPPED
                     </span>
                   </div>
@@ -1114,7 +1114,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                     const audioUrl = parsedLines.length === 1 ? current.audio : undefined;
                     playAudioUrl(audioUrl, activeLine.text);
                   }}
-                  className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-2 sm:p-3 relative overflow-hidden shadow-inner group cursor-pointer"
+                  className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-3 relative overflow-hidden shadow-inner group cursor-pointer"
                   title="Click to replay active speaker"
                 >
                   {/* Subtle Ambient Backlight Matching Savanna Artwork */}
@@ -1139,26 +1139,26 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                       className="w-full h-full rounded-lg flex items-center justify-center"
                       style={{ background: 'linear-gradient(160deg, #3A2A16, #1F1408)' }}
                     >
-                      <span className="ag-font-display font-bold text-2xl lg:text-4xl text-amber-300/70">
+                      <span className="ag-font-display font-bold text-4xl text-amber-300/70">
                         {data.title || 'Story'}
                       </span>
                     </div>
                   )}
 
                   {/* Non-intrusive Stage Watermark / Distance Anchor */}
-                  <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 lg:bottom-6 lg:right-6 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[#070C18]/85 backdrop-blur border border-white/15 rounded-lg flex items-center gap-1.5 sm:gap-2 shadow-lg pointer-events-none">
-                    <span className="text-amber-400 text-xs sm:text-sm">👁️</span>
-                    <span className="ag-font-mono text-[9px] sm:text-[11px] font-bold text-slate-200 uppercase tracking-wider truncate max-w-[140px] sm:max-w-[200px]">
+                  <div className="absolute bottom-6 right-6 px-3 py-1.5 bg-[#070C18]/85 backdrop-blur border border-white/15 rounded-lg flex items-center gap-2 shadow-lg pointer-events-none">
+                    <span className="text-amber-400 text-sm">👁️</span>
+                    <span className="ag-font-mono text-[11px] font-bold text-slate-200 uppercase tracking-wider truncate max-w-[200px]">
                       {data.title || 'Story Stage'}
                     </span>
                   </div>
                 </div>
 
                 {/* Interactive Scene Guidance / Classroom Prompt (stripped mock Class Response Meter) */}
-                <div className="mt-2 sm:mt-3 lg:mt-4 flex items-center justify-between px-1 sm:px-2 pt-1 shrink-0">
+                <div className="mt-4 flex items-center justify-between px-2 pt-1 shrink-0">
                   <div className="flex items-center gap-2 text-slate-300 min-w-0">
-                    <span className="text-amber-400 text-sm sm:text-base shrink-0">💡</span>
-                    <span className="ag-font-mono text-[9px] sm:text-xs text-slate-300 truncate">
+                    <span className="text-amber-400 text-base shrink-0">💡</span>
+                    <span className="ag-font-mono text-xs text-slate-300 truncate">
                       <strong className="text-white">Teacher Cue:</strong>{' '}
                       {parsedLines.length > 1
                         ? `Speaking: ${activeSpeakerName}. Tap any character card on the left to read their sentence.`
@@ -1172,10 +1172,10 @@ const BoardStoryStage = ({ data }: { data: any }) => {
             </main>
 
             {/* BOTTOM ACTION & NAVIGATION BAR */}
-            <footer className="w-full flex items-center justify-between h-10 sm:h-12 lg:h-14 z-20 shrink-0 border-t border-white/10 pt-1.5 sm:pt-2 lg:pt-3">
+            <footer className="w-full flex items-center justify-between h-14 z-20 shrink-0 border-t border-white/10 pt-3">
               {/* Left Navigation Guidance */}
               <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-[#0B132B] rounded-lg border border-white/10 text-slate-400 ag-font-mono text-xs">
+                <div className="flex items-center gap-2 px-3 py-1 bg-[#0B132B] rounded-lg border border-white/10 text-slate-400 ag-font-mono text-xs">
                   <span className="font-bold text-slate-200">
                     {parsedLines.length > 1 ? `Line ${activePanel + 1}.${activeLineIdx + 1}` : `Line ${activePanel + 1}`}
                   </span>
@@ -1185,13 +1185,13 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               </div>
 
               {/* Right Primary Action Cluster (Single Hot-Pink Primary) */}
-              <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+              <div className="flex items-center gap-3 ml-auto">
                 {/* Secondary Back Action */}
                 {(activePanel > 0 || (parsedLines.length > 1 && activeLineIdx > 0)) && (
                   <button
                     type="button"
                     onClick={handlePrev}
-                    className="px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 lg:py-2.5 rounded-xl bg-[#0B132B] border border-white/15 text-slate-300 ag-font-display font-bold text-xs sm:text-sm hover:text-white hover:border-white/30 transition-all active:scale-95"
+                    className="px-5 py-2.5 rounded-xl bg-[#0B132B] border border-white/15 text-slate-300 ag-font-display font-bold text-sm hover:text-white hover:border-white/30 transition-all active:scale-95"
                   >
                     {parsedLines.length > 1 && activeLineIdx > 0
                       ? `Back to ${parsedLines[activeLineIdx - 1].speaker}`
@@ -1203,7 +1203,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-4 sm:px-6 lg:px-7 py-1.5 sm:py-2 lg:py-2.5 rounded-xl bg-[#FF2E79] text-white ag-font-display font-bold text-xs sm:text-sm lg:text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-1.5 sm:gap-2"
+                  className="px-7 py-2.5 rounded-xl bg-[#FF2E79] text-white ag-font-display font-bold text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-2"
                 >
                   <span>
                     {parsedLines.length > 1 && activeLineIdx < parsedLines.length - 1

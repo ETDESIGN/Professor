@@ -461,7 +461,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         {isPage && current && (
           <motion.div key={`page-${activePanel}`} initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 flex flex-col p-2 lg:p-6 bg-[#070C18] ss-grid">
+            className="absolute inset-0 flex flex-col p-6 bg-[#070C18] ss-grid">
             <style>{`
               .ss-grid { background-size: 36px 36px; background-image: linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px); }
               .ss-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -469,20 +469,20 @@ const BoardStoryStage = ({ data }: { data: any }) => {
             `}</style>
 
             {/* Header — the design's title cluster; starts clear of BoardShell's phase pill */}
-            <header className="w-full flex items-center justify-between gap-3 pl-40 lg:pl-48 pr-1 h-10 lg:h-12 shrink-0">
+            <header className="w-full flex items-center justify-between gap-3 pl-48 pr-1 h-12 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-[#FF2E79] flex items-center justify-center font-bold text-white text-base lg:text-xl shadow-[0_0_16px_rgba(255,46,121,0.5)] shrink-0">S</div>
+                <div className="w-9 h-9 rounded-xl bg-[#FF2E79] flex items-center justify-center font-bold text-white text-xl shadow-[0_0_16px_rgba(255,46,121,0.5)] shrink-0">S</div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h1 className="font-bold text-lg lg:text-2xl tracking-wide text-white truncate">Story Stage</h1>
-                    <span className="px-2 py-0.5 rounded bg-[#16234D] border border-white/10 ss-mono text-[10px] lg:text-[11px] font-bold text-slate-300 shrink-0">READING THEATER</span>
+                    <h1 className="font-bold text-2xl tracking-wide text-white truncate">Story Stage</h1>
+                    <span className="px-2 py-0.5 rounded bg-[#16234D] border border-white/10 ss-mono text-[11px] font-bold text-slate-300 shrink-0">READING THEATER</span>
                   </div>
-                  <p className="ss-mono text-[9px] lg:text-[10px] text-slate-400 tracking-wider truncate uppercase">{data.title || 'Story'}</p>
+                  <p className="ss-mono text-[10px] text-slate-400 tracking-wider truncate uppercase">{data.title || 'Story'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B] border border-white/10">
-                  <span className="ss-mono text-[10px] lg:text-xs text-slate-300">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B132B] border border-white/10">
+                  <span className="ss-mono text-xs text-slate-300">
                     {pickedStudent ? <>{pickedStudent.name}: <strong className="text-white">read this line</strong></> : <>Chorus: <strong className="text-white">repeat together</strong></>}
                   </span>
                 </div>
@@ -490,67 +490,67 @@ const BoardStoryStage = ({ data }: { data: any }) => {
             </header>
 
             {/* MAIN — two-column 38/62 */}
-            <main className="w-full flex-1 min-h-0 flex flex-col sm:flex-row gap-2 lg:gap-6 lg:my-4">
+            <main className="w-full flex-1 min-h-0 flex flex-row gap-6 my-4">
               {/* LEFT 38%: reading theater */}
-              <section className="sm:w-[38%] flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-3 lg:p-7 shadow-2xl overflow-hidden min-h-0">
+              <section className="w-[38%] flex flex-col justify-between bg-[#0B132B] border border-white/10 rounded-2xl p-7 shadow-2xl overflow-hidden min-h-0">
                 {/* Speaker identity */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-3 lg:pb-5 gap-2">
-                  <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+                <div className="flex items-center justify-between border-b border-white/10 pb-5 gap-2">
+                  <div className="flex items-center gap-4 min-w-0">
                     <div className="relative shrink-0">
-                      <div className="w-10 h-10 lg:w-16 lg:h-16 rounded-full p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
+                      <div className="w-16 h-16 rounded-full p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.35)]"
                         style={{ background: `linear-gradient(to top right, ${getCharColor(current.speaker)}, #F59E0B)` }}>
                         <div className="w-full h-full rounded-full bg-[#111C3D] flex items-center justify-center overflow-hidden border-2 border-[#070C18]">
                           {speakerPortrait ? (
                             <img src={speakerPortrait} alt={currentSpeaker?.name} className="w-full h-full object-cover" />
                           ) : (
-                            <span className="text-xl lg:text-3xl">{currentSpeaker?.emoji || currentSpeaker?.name?.charAt(0) || '👤'}</span>
+                            <span className="text-3xl">{currentSpeaker?.emoji || currentSpeaker?.name?.charAt(0) || '👤'}</span>
                           )}
                         </div>
                       </div>
-                      <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 lg:h-4 lg:w-4">
+                      <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 lg:h-4 lg:w-4 bg-emerald-500 border-2 border-[#070C18]" />
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#070C18]" />
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <span className="ss-mono text-[9px] lg:text-xs uppercase tracking-widest text-slate-400 font-semibold block leading-tight">SPEAKING NOW</span>
-                      <h2 className="font-bold text-lg lg:text-2xl xl:text-3xl tracking-wide truncate leading-tight"
+                      <span className="ss-mono text-xs uppercase tracking-widest text-slate-400 font-semibold block leading-tight">SPEAKING NOW</span>
+                      <h2 className="font-bold text-3xl tracking-wide truncate leading-tight"
                         style={{ color: getCharColor(current.speaker) }}>
                         {(current.speaker || currentSpeaker?.name || 'Narrator').toUpperCase()}
                       </h2>
                     </div>
                   </div>
                   <div className="px-2.5 py-1 bg-[#111C3D] border border-white/10 rounded-lg shrink-0">
-                    <span className="ss-mono text-[9px] lg:text-xs text-slate-300 font-bold">LINE {String(activePanel + 1).padStart(2, '0')} / {String(totalContentPanels).padStart(2, '0')}</span>
+                    <span className="ss-mono text-xs text-slate-300 font-bold">LINE {String(activePanel + 1).padStart(2, '0')} / {String(totalContentPanels).padStart(2, '0')}</span>
                   </div>
                 </div>
 
                 {/* Dialogue — the design's extra-large chant line */}
-                <div className="flex-1 min-h-0 flex flex-col justify-center py-3 lg:py-6">
-                  <div className="mb-2 lg:mb-3 flex items-center gap-2">
-                    <span className="ss-mono text-[9px] lg:text-xs font-bold text-[#38BDF8] uppercase tracking-wider">Say it together</span>
+                <div className="flex-1 min-h-0 flex flex-col justify-center py-6">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="ss-mono text-xs font-bold text-[#38BDF8] uppercase tracking-wider">Say it together</span>
                   </div>
-                  <blockquote className="font-bold text-[22px] sm:text-[26px] lg:text-[36px] xl:text-[44px] leading-[1.18] text-white ss-glow tracking-tight">
+                  <blockquote className="font-bold text-[44px] leading-[1.18] text-white ss-glow tracking-tight">
                     &ldquo;{renderText(current.text || '')}&rdquo;
                   </blockquote>
                 </div>
 
                 {/* Replay + book-page progress strip (the design's chunky 28px dots) */}
-                <div className="border-t border-white/10 pt-3 lg:pt-5 space-y-3 lg:space-y-5 shrink-0">
+                <div className="border-t border-white/10 pt-5 space-y-5 shrink-0">
                   <button onClick={() => playAudioUrl(current.audio, current.text)}
-                    className="w-full flex items-center justify-center gap-2.5 py-2.5 lg:py-3.5 px-4 rounded-xl bg-[#38BDF8]/15 border-2 border-[#38BDF8] text-[#38BDF8] font-bold text-sm lg:text-lg hover:bg-[#38BDF8] hover:text-[#070C18] transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]">
+                    className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-[#38BDF8]/15 border-2 border-[#38BDF8] text-[#38BDF8] font-bold text-lg hover:bg-[#38BDF8] hover:text-[#070C18] transition-all shadow-[0_0_20px_rgba(56,189,248,0.22)] active:scale-[0.98]">
                     <Volume2 size={20} className="animate-pulse" />
                     <span>REPLAY AUDIO LINE</span>
                   </button>
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="ss-mono text-[9px] lg:text-xs text-slate-400 font-bold uppercase tracking-wider">STORY PROGRESS</span>
-                      <span className="ss-mono text-[9px] lg:text-xs text-emerald-400 font-bold">{Math.round(((activePanel + 1) / totalContentPanels) * 100)}% COMPLETED</span>
+                      <span className="ss-mono text-xs text-slate-400 font-bold uppercase tracking-wider">STORY PROGRESS</span>
+                      <span className="ss-mono text-xs text-emerald-400 font-bold">{Math.round(((activePanel + 1) / totalContentPanels) * 100)}% COMPLETED</span>
                     </div>
-                    <div className="flex items-center justify-between gap-1.5 p-2 lg:p-3 bg-[#111C3D] rounded-xl border border-white/5">
+                    <div className="flex items-center justify-between gap-1.5 p-3 bg-[#111C3D] rounded-xl border border-white/5">
                       {pages.map((_: any, i: number) => (
                         <React.Fragment key={i}>
-                          <div className={`flex items-center justify-center w-6 h-6 lg:w-7 lg:h-7 rounded-full ss-mono text-[10px] font-black shrink-0
+                          <div className={`flex items-center justify-center w-7 h-7 rounded-full ss-mono text-[10px] font-black shrink-0
                             ${i < activePanel ? 'bg-emerald-500 text-[#070C18] shadow-[0_0_10px_rgba(16,185,129,0.4)]'
                               : i === activePanel ? 'bg-[#FF2E79] text-white shadow-[0_0_16px_rgba(255,46,121,0.6)] ring-4 ring-[#FF2E79]/25 animate-pulse'
                               : 'bg-[#0B132B] border border-white/20 text-slate-400 font-bold'}`}>
@@ -567,15 +567,15 @@ const BoardStoryStage = ({ data }: { data: any }) => {
               </section>
 
               {/* RIGHT 62%: story art — UNCROPPED object-contain (owner rule) */}
-              <section className="sm:w-[62%] flex-1 flex flex-col bg-[#0B132B] border border-white/10 rounded-2xl p-2 lg:p-6 shadow-2xl overflow-hidden min-h-0">
-                <div className="flex items-center justify-between mb-2 lg:mb-4 px-1 shrink-0">
+              <section className="w-[62%] flex-1 flex flex-col bg-[#0B132B] border border-white/10 rounded-2xl p-6 shadow-2xl overflow-hidden min-h-0">
+                <div className="flex items-center justify-between mb-4 px-1 shrink-0">
                   <div className="flex items-center gap-2 px-2.5 py-1 bg-[#111C3D] rounded-lg border border-white/10">
                     <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="ss-mono text-[9px] lg:text-xs text-slate-300 font-bold uppercase">SCENE {String(activePanel + 1).padStart(2, '0')}</span>
+                    <span className="ss-mono text-xs text-slate-300 font-bold uppercase">SCENE {String(activePanel + 1).padStart(2, '0')}</span>
                   </div>
-                  <span className="ss-mono text-[9px] lg:text-xs text-slate-400 bg-[#111C3D] px-2.5 py-1 rounded-lg border border-white/10 hidden sm:block">UNCROPPED</span>
+                  <span className="ss-mono text-xs text-slate-400 bg-[#111C3D] px-2.5 py-1 rounded-lg border border-white/10 block">UNCROPPED</span>
                 </div>
-                <div className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-1.5 lg:p-3 relative overflow-hidden shadow-inner group">
+                <div className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-3 relative overflow-hidden shadow-inner group">
                   <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-sky-500/10 pointer-events-none" />
                   <StoryArtZoomButton src={current.imageUrl} onOpen={artZoom.open} className="bottom-2 right-2" />
                   {current.imageUrl ? (
@@ -585,30 +585,30 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                       onClick={() => artZoom.open(current.imageUrl)} />
                   ) : (
                     <div className="w-full h-full rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(160deg, #3A2A16, #1F1408)' }}>
-                      <span className="font-bold text-2xl lg:text-4xl text-amber-300/70">{data.title || 'Story'}</span>
+                      <span className="font-bold text-4xl text-amber-300/70">{data.title || 'Story'}</span>
                     </div>
                   )}
-                  <div className="absolute bottom-2 right-2 lg:bottom-6 lg:right-6 px-2.5 py-1.5 bg-[#070C18]/85 backdrop-blur border border-white/15 rounded-lg shadow-lg pointer-events-none">
-                    <span className="ss-mono text-[9px] lg:text-[11px] font-bold text-slate-200 uppercase tracking-wider">{data.title || 'Story Stage'}</span>
+                  <div className="absolute bottom-6 right-6 px-2.5 py-1.5 bg-[#070C18]/85 backdrop-blur border border-white/15 rounded-lg shadow-lg pointer-events-none">
+                    <span className="ss-mono text-[11px] font-bold text-slate-200 uppercase tracking-wider">{data.title || 'Story Stage'}</span>
                   </div>
                 </div>
               </section>
             </main>
 
             {/* Footer — the design's nav cluster (real prev/next) */}
-            <footer className="w-full flex items-center justify-between gap-3 h-10 lg:h-12 shrink-0 border-t border-white/10 pt-2 lg:pt-3">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#0B132B] rounded-lg border border-white/10 ss-mono text-[10px] text-slate-400">
+            <footer className="w-full flex items-center justify-between gap-3 h-12 shrink-0 border-t border-white/10 pt-3">
+              <div className="flex items-center gap-2 px-3 py-1 bg-[#0B132B] rounded-lg border border-white/10 ss-mono text-[10px] text-slate-400">
                 <span>←</span><span>Previous Line</span>
               </div>
-              <div className="flex items-center gap-2 lg:gap-3 ml-auto">
+              <div className="flex items-center gap-3 ml-auto">
                 {activePanel > 0 && (
                   <button onClick={prevPanel}
-                    className="px-3 lg:px-5 py-1.5 lg:py-2.5 rounded-xl bg-[#0B132B] border border-white/15 text-slate-300 font-bold text-xs lg:text-sm hover:text-white hover:border-white/30 transition-all">
+                    className="px-5 py-2.5 rounded-xl bg-[#0B132B] border border-white/15 text-slate-300 font-bold text-sm hover:text-white hover:border-white/30 transition-all">
                     Back to Line {activePanel}
                   </button>
                 )}
                 <button onClick={nextPanel}
-                  className="px-4 lg:px-7 py-1.5 lg:py-2.5 rounded-xl bg-[#FF2E79] text-white font-bold text-sm lg:text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-2">
+                  className="px-7 py-2.5 rounded-xl bg-[#FF2E79] text-white font-bold text-base hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,46,121,0.45)] flex items-center gap-2">
                   <span>Next Line</span>
                   <span>→</span>
                 </button>

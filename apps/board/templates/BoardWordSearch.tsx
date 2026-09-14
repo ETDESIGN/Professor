@@ -159,11 +159,11 @@ const TokenCard: React.FC<TokenCardProps> = ({ word, found, showWord, finderName
             : 'bg-white/95 border-slate-200 shadow-lg hover:border-sky-300'}`}
     >
       {word.imageUrl ? (
-        <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl overflow-hidden bg-slate-100 border shrink-0">
+        <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 border shrink-0">
           <img src={word.imageUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
         </div>
       ) : (
-        <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-xl bg-sky-100 text-sky-600 font-black items-center justify-center flex text-2xl shrink-0">
+        <div className="w-16 h-16 rounded-xl bg-sky-100 text-sky-600 font-black items-center justify-center flex text-2xl shrink-0">
           {showWord ? word.word.slice(0, 1) : '?'}
         </div>
       )}
@@ -171,7 +171,7 @@ const TokenCard: React.FC<TokenCardProps> = ({ word, found, showWord, finderName
         {isFound ? (
           <>
             <div className="flex items-center gap-2">
-              <span className="ws-mono font-extrabold tracking-wider text-white text-lg lg:text-xl truncate">{word.word.toUpperCase()}</span>
+              <span className="ws-mono font-extrabold tracking-wider text-white text-xl truncate">{word.word.toUpperCase()}</span>
               <span className="w-6 h-6 rounded-full bg-white text-emerald-600 flex items-center justify-center font-black text-sm shrink-0">✓</span>
             </div>
             <div className="mt-1.5 flex items-center gap-1.5 bg-emerald-700/60 w-fit px-2 py-0.5 rounded-full border border-emerald-400/30">
@@ -180,10 +180,10 @@ const TokenCard: React.FC<TokenCardProps> = ({ word, found, showWord, finderName
             </div>
           </>
         ) : showWord ? (
-          <div className="ws-mono font-extrabold tracking-wider text-slate-800 text-lg lg:text-xl truncate">{word.word.toUpperCase()}</div>
+          <div className="ws-mono font-extrabold tracking-wider text-slate-800 text-xl truncate">{word.word.toUpperCase()}</div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="ws-mono font-extrabold tracking-[0.2em] text-slate-500 text-base lg:text-lg whitespace-nowrap">
+            <span className="ws-mono font-extrabold tracking-[0.2em] text-slate-500 text-lg whitespace-nowrap">
               {word.letters.split('').map(() => '_').join(' ')}
             </span>
           </div>
@@ -228,7 +228,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ word, showWord, unitId }) => 
   return (
     <button
       onClick={() => play()}
-      className="ws-preview-card group relative w-32 h-44 sm:w-44 sm:h-56 lg:w-52 lg:h-64 xl:w-56 xl:h-72 bg-white rounded-3xl p-2.5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.08)] transition-all duration-300 hover:scale-[1.04] hover:-translate-y-1.5 active:scale-95 flex flex-col"
+      className="ws-preview-card group relative w-56 h-72 bg-white rounded-3xl p-2.5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.08)] transition-all duration-300 hover:scale-[1.04] hover:-translate-y-1.5 active:scale-95 flex flex-col"
     >
       <div className="flex-1 min-h-0 rounded-2xl overflow-hidden bg-slate-100">
         {word.imageUrl ? (
@@ -241,11 +241,11 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ word, showWord, unitId }) => 
       </div>
       {showWord ? (
         <div className="shrink-0 pt-2 pb-0.5 flex items-center justify-center gap-1.5">
-          <span className="ws-mono font-extrabold tracking-wider text-slate-800 text-sm lg:text-base truncate">{word.word.toUpperCase()}</span>
+          <span className="ws-mono font-extrabold tracking-wider text-slate-800 text-base truncate">{word.word.toUpperCase()}</span>
         </div>
       ) : (
         <div className="shrink-0 pt-2 pb-0.5 flex items-center justify-center gap-1.5">
-          <span className="ws-mono font-extrabold tracking-[0.18em] text-slate-400 text-xs lg:text-sm">{word.letters.split('').map(() => '_').join(' ')}</span>
+          <span className="ws-mono font-extrabold tracking-[0.18em] text-slate-400 text-sm">{word.letters.split('').map(() => '_').join(' ')}</span>
         </div>
       )}
       <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-slate-900/70 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title="Hear the word">
@@ -923,7 +923,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
             </button>
             <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full shadow-[0_0_20px_2px_rgba(56,189,248,0.35)] ${timePct <= 20 ? 'bg-rose-500 text-white' : 'bg-[#38BDF8] text-[#070C18]'}`}>
               <Clock size={18} strokeWidth={2.5} />
-              <span className="ws-mono font-extrabold text-xl lg:text-2xl tracking-tight leading-none">
+              <span className="ws-mono font-extrabold text-2xl tracking-tight leading-none">
                 {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
               </span>
             </div>
@@ -944,22 +944,22 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
 
   // Header. The BoardShell renders its phase badge (e.g. "PRACTICE")
   // absolutely at the center-stage's top-left (~164px wide, top-5 left-6) —
-  // pl-40/lg:pl-48 keeps this header's W badge clear of it (owner review
+  // pl-48 keeps this header's W badge clear of it (owner review
   // 2026-09-10 caught the overlap).
   const header = (
-    <header className="w-full flex items-center justify-between gap-4 pr-2 pl-40 lg:pl-48 h-14 lg:h-16 shrink-0">
+    <header className="w-full flex items-center justify-between gap-4 pr-2 pl-48 h-16 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-[#FF2E79] flex items-center justify-center text-white font-bold text-xl lg:text-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] shrink-0">W</div>
+        <div className="w-12 h-12 rounded-xl bg-[#FF2E79] flex items-center justify-center text-white font-bold text-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] shrink-0">W</div>
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-white truncate">Word Search</h1>
-            <span className="hidden sm:inline px-2.5 py-0.5 rounded-full text-[10px] lg:text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
+            <h1 className="text-2xl font-bold tracking-tight text-white truncate">Word Search</h1>
+            <span className="inline px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
               {stage === 'final' ? 'Complete' : `${isFinalRound ? 'Final round' : `Round ${roundIndex}/${TOTAL_ROUNDS}`} · ${PRESET === 'starter' ? 'Starter' : 'Explorer'}`}
             </span>
           </div>
-          <span className="text-[10px] lg:text-xs text-slate-400 font-medium whitespace-nowrap">{directionsLabel} directions</span>
+          <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{directionsLabel} directions</span>
         </div>
-        <div className="hidden md:block ml-2">{modeChip}</div>
+        <div className="block ml-2">{modeChip}</div>
       </div>
       <div className="flex items-center gap-3 shrink-0">
         {TIMED && stage !== 'preview' && timerPill}
@@ -972,15 +972,15 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   );
 
   const railTokens = (compact = false) => (
-    <div className={`flex xl:flex-col gap-2 overflow-x-auto xl:overflow-visible ${compact ? 'w-full' : 'w-full xl:w-[clamp(260px,26%,380px)] shrink-0'}`}>
-      <div className="hidden xl:flex items-center justify-between pb-1 border-b border-slate-800 w-full shrink-0">
+    <div className={`flex flex-col gap-2 overflow-visible ${compact ? 'w-full' : 'w-[clamp(260px,26%,380px)] shrink-0'}`}>
+      <div className="flex items-center justify-between pb-1 border-b border-slate-800 w-full shrink-0">
         <span className="text-xs font-bold tracking-wider uppercase text-slate-400">Target words</span>
         <span className="ws-mono text-[10px] font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded-full">
           {foundCount}/{roundWords.length}
         </span>
       </div>
       {roundWords.map((w) => (
-        <div key={w.id} className="shrink-0 w-52 xl:w-full">
+        <div key={w.id} className="shrink-0 w-full">
           <TokenCard
             word={w}
             found={found[w.id]}
@@ -997,7 +997,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
   );
 
   return (
-    <div className="ws-root h-full w-full bg-[#070C18] flex flex-col p-3 lg:p-5 relative overflow-hidden"
+    <div className="ws-root h-full w-full bg-[#070C18] flex flex-col p-5 relative overflow-hidden"
       style={{
         backgroundImage:
           'radial-gradient(circle at 50% -10%, rgba(30,58,138,0.35) 0%, transparent 55%),' +
@@ -1006,26 +1006,26 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       }}>
 
       {header}
-      <div className="md:hidden shrink-0 mt-1">{modeChip}</div>
+      <div className="hidden shrink-0 mt-1">{modeChip}</div>
 
       {/* ═══ PREVIEW — the round's words, INPUT moment (Stitch round_preview:
           big portrait photo cards, huge display title, difficulty chip) ═══ */}
       {stage === 'preview' && grid && (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2.5 lg:gap-4 animate-fade-in px-2 overflow-y-auto">
-          <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-800/90 border border-sky-500/30 text-sky-300 font-bold text-[10px] lg:text-xs uppercase tracking-widest whitespace-nowrap">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 animate-fade-in px-2 overflow-y-auto">
+          <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-slate-800/90 border border-sky-500/30 text-sky-300 font-bold text-xs uppercase tracking-widest whitespace-nowrap">
             {PRESET === 'starter' ? 'Starter' : 'Explorer'} · {directionsLabel} only
           </span>
-          <h2 className="text-3xl lg:text-5xl xl:text-6xl font-bold text-white text-center leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
+          <h2 className="text-6xl font-bold text-white text-center leading-none drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)]">
             Find these {roundWords.length} words
           </h2>
-          <p className="text-sky-300/80 text-xs lg:text-base">Listen, say them, then search!</p>
-          <div className="flex flex-wrap items-center justify-center gap-3 xl:gap-6 py-1 max-w-full">
+          <p className="text-sky-300/80 text-base">Listen, say them, then search!</p>
+          <div className="flex flex-wrap items-center justify-center gap-6 py-1 max-w-full">
             {roundWords.map((w) => (
               <PreviewCard key={w.id} word={w} showWord={showWordOnTokens} unitId={unitId} />
             ))}
           </div>
           <button onClick={startRound}
-            className="px-10 lg:px-12 py-3 lg:py-4 bg-[#FF2E79] hover:brightness-110 text-white text-lg lg:text-2xl font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all flex items-center gap-3">
+            className="px-12 py-4 bg-[#FF2E79] hover:brightness-110 text-white text-2xl font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all flex items-center gap-3">
             <Play size={24} fill="currentColor" /> Start Round
           </button>
         </div>
@@ -1034,31 +1034,30 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       {/* ═══ PLAY / CELEBRATING — grid + token rail + HUD ═══ */}
       {(stage === 'play' || stage === 'celebrating') && grid && (
         <>
-          <main className="flex-1 min-h-0 flex flex-col xl:flex-row items-center justify-center gap-3 lg:gap-5 px-1 py-2">
-            {/* compact rail (top strip) below xl — slim + shrink-0 so it can
-                never crush the grid (the phone-floor F0-relapse the gate caught) */}
-            <div className="xl:hidden w-full max-h-16 overflow-y-hidden shrink-0">{railTokens(true)}</div>
+          <main className="flex-1 min-h-0 flex flex-row items-center justify-center gap-5 px-1 py-2">
+            {/* compact rail (top strip) — hidden on the fixed 16:9 stage (desktop
+      layout); slim + shrink-0 so it can never crush the grid */}
+            <div className="hidden w-full max-h-16 overflow-y-hidden shrink-0">{railTokens(true)}</div>
 
             {/* The grid — pure CSS square (F0 fix); strokes are grid-unit SVG.
-                Sizing is orientation-conditional: stacked (<xl) it takes the
-                LEFTOVER height after the rail strip (flex-1 + basis 0 — no
-                chicken-and-egg, no flex-crush); in the xl row it sizes from
-                the container height (h-full + aspect). */}
+                Fixed-stage sizing: the grid sizes from the container height
+                (h-full + aspect-square + flex-none — no chicken-and-egg,
+                no flex-crush). */}
             <div
               ref={gridElRef}
               onPointerDown={onGridPointerDown}
               onPointerMove={onGridPointerMove}
               onPointerUp={onGridPointerUp}
               onPointerCancel={() => { dragRef.current = false; setSel(null); }}
-              className={`ws-gridcard relative flex-1 min-h-0 aspect-square max-w-full max-h-full xl:flex-none xl:h-full rounded-2xl lg:rounded-3xl bg-[#0F172A] border-2 border-slate-700/70 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)] touch-none select-none ${wrongFlash ? 'animate-shake' : ''}`}
+              className={`ws-gridcard relative flex-none min-h-0 aspect-square max-w-full max-h-full h-full rounded-3xl bg-[#0F172A] border-2 border-slate-700/70 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,255,255,0.06)] touch-none select-none ${wrongFlash ? 'animate-shake' : ''}`}
               style={{ cursor: stage === 'play' && !timeUp ? 'pointer' : 'default' }}
             >
               {/* subtle dot ambience */}
-              <div className="absolute inset-0 rounded-2xl lg:rounded-3xl pointer-events-none opacity-20"
+              <div className="absolute inset-0 rounded-3xl pointer-events-none opacity-20"
                 style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 1px)', backgroundSize: '22px 22px' }} />
 
               {/* letters */}
-              <div className="absolute inset-0 z-10 p-3 lg:p-5 grid" style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+              <div className="absolute inset-0 z-10 p-5 grid" style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
                 {grid.cells.map((row, r) =>
                   row.map((letter, c) => {
                     const inSel = selKeySet.has(`${r},${c}`);
@@ -1106,23 +1105,23 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
               })()}
 
               {sel && selCells.length === 1 && (
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 bg-slate-800/90 text-slate-200 px-3 py-1 rounded-full text-[11px] lg:text-sm font-bold pointer-events-none whitespace-nowrap">
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 bg-slate-800/90 text-slate-200 px-3 py-1 rounded-full text-sm font-bold pointer-events-none whitespace-nowrap">
                   tap the last letter…
                 </div>
               )}
             </div>
 
             {/* rail beside the grid at xl+ */}
-            <div className="hidden xl:flex h-full max-h-full">{railTokens(false)}</div>
+            <div className="flex h-full max-h-full">{railTokens(false)}</div>
           </main>
 
           {/* ── HUD ── */}
           <footer className="shrink-0 py-1 px-1 flex items-center justify-between gap-3 bg-[#0B132B]/95 border-t border-slate-800 rounded-2xl backdrop-blur-md">
-            <div className="flex items-center gap-2 lg:gap-3 min-w-0 overflow-x-auto">
-              <span className="hidden lg:inline text-[10px] font-bold uppercase tracking-widest text-slate-500">Words</span>
+            <div className="flex items-center gap-3 min-w-0 overflow-x-auto">
+              <span className="inline text-[10px] font-bold uppercase tracking-widest text-slate-500">Words</span>
               {roundWords.map((w, i) => (
                 <div key={w.id} className="flex flex-col items-center shrink-0">
-                  <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center font-bold text-xs lg:text-sm
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm
                     ${found[w.id] && !found[w.id].revealed
                       ? 'bg-emerald-500 border-2 border-emerald-300 text-[#070C18] shadow-[0_0_22px_2px_rgba(16,185,129,0.35)]'
                       : found[w.id]
@@ -1131,7 +1130,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
                     {found[w.id] && !found[w.id].revealed ? '✓' : found[w.id] ? '·' : i + 1}
                   </div>
                   {found[w.id] && !found[w.id].revealed && (
-                    <span className="ws-mono text-[8px] lg:text-[9px] font-bold uppercase text-emerald-300 mt-0.5 tracking-tight max-w-12 truncate">{w.word}</span>
+                    <span className="ws-mono text-[9px] font-bold uppercase text-emerald-300 mt-0.5 tracking-tight max-w-12 truncate">{w.word}</span>
                   )}
                 </div>
               ))}
@@ -1140,18 +1139,18 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
                   🔥 Class combo ×{comboRef.current}
                 </span>
               )}
-              <span className="ml-1 flex items-center gap-1.5 text-slate-400 font-semibold text-xs lg:text-sm whitespace-nowrap">
+              <span className="ml-1 flex items-center gap-1.5 text-slate-400 font-semibold text-sm whitespace-nowrap">
                 <span className={`w-2 h-2 rounded-full ${state.isConnected && state.sessionSyncHealthy ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                Class score: <span className="ws-mono text-white font-extrabold text-sm lg:text-base">{classScore}</span>
+                Class score: <span className="ws-mono text-white font-extrabold text-base">{classScore}</span>
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button onClick={() => triggerAction('REVEAL_ANSWER')}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs lg:text-sm flex items-center gap-1.5 active:scale-95">
-                <Eye size={15} /> <span className="hidden sm:inline">Reveal</span>
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm flex items-center gap-1.5 active:scale-95">
+                <Eye size={15} /> <span className="inline">Reveal</span>
               </button>
               <button onClick={() => triggerAction('REVEAL_HINT')}
-                className="px-4 lg:px-6 py-2 bg-[#FF2E79] hover:brightness-110 text-white rounded-xl font-bold text-sm lg:text-base flex items-center gap-2 shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all">
+                className="px-6 py-2 bg-[#FF2E79] hover:brightness-110 text-white rounded-xl font-bold text-base flex items-center gap-2 shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all">
                 <Lightbulb size={16} /> Clue
               </button>
             </div>
@@ -1166,7 +1165,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
             <div className="w-16 h-16 rounded-full bg-rose-500/15 border-2 border-rose-400/50 text-rose-400 flex items-center justify-center mb-3">
               <Bell size={30} />
             </div>
-            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-1">Time!</h2>
+            <h2 className="text-4xl font-bold text-white mb-1">Time!</h2>
             <p className="text-slate-400 font-semibold mb-5 text-center">
               {roundWords.length - foundCount > 0
                 ? `${roundWords.length - foundCount} word${roundWords.length - foundCount === 1 ? ' is' : 's are'} still hiding — reveal them?`
@@ -1189,23 +1188,23 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       {/* ═══ SUMMARY — honest variants (class-found vs teacher-revealed) ═══ */}
       {stage === 'summary' && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0B132B] border border-slate-700 p-6 lg:p-9 rounded-[2rem] shadow-2xl flex flex-col items-center max-w-xl w-full mx-4 max-h-[92%] overflow-y-auto">
+          <div className="bg-[#0B132B] border border-slate-700 p-9 rounded-[2rem] shadow-2xl flex flex-col items-center max-w-xl w-full mx-4 max-h-[92%] overflow-y-auto">
             {roundStats.credited > 0 ? (
               <>
-                <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-400/50 text-emerald-400 flex items-center justify-center mb-3">
+                <div className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-400/50 text-emerald-400 flex items-center justify-center mb-3">
                   <Check size={38} strokeWidth={3.5} />
                 </div>
-                <h2 className="text-2xl lg:text-3xl font-bold text-white mb-1">Great search!</h2>
+                <h2 className="text-3xl font-bold text-white mb-1">Great search!</h2>
                 <p className="text-slate-400 font-medium mb-5">
                   {isFinalRound ? 'That was the last round' : `Round ${roundIndex} of ${TOTAL_ROUNDS}`}
                 </p>
               </>
             ) : (
               <>
-                <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-sky-500/15 border-2 border-sky-400/50 text-sky-400 flex items-center justify-center mb-3">
+                <div className="w-20 h-20 rounded-full bg-sky-500/15 border-2 border-sky-400/50 text-sky-400 flex items-center justify-center mb-3">
                   <Eye size={34} />
                 </div>
-                <h2 className="text-2xl lg:text-3xl font-bold text-white mb-1">Let's learn these words</h2>
+                <h2 className="text-3xl font-bold text-white mb-1">Let's learn these words</h2>
                 <p className="text-slate-400 font-medium mb-4 text-center">Say them together after the bell 🔔</p>
               </>
             )}
@@ -1254,7 +1253,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
             )}
 
             <button onClick={() => advanceRound(false)}
-              className="px-8 lg:px-10 py-3 lg:py-3.5 bg-[#FF2E79] hover:brightness-110 text-white text-lg font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all flex items-center gap-2">
+              className="px-10 py-3.5 bg-[#FF2E79] hover:brightness-110 text-white text-lg font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all flex items-center gap-2">
               {isFinalRound ? 'See Results' : 'Next Round'} <ChevronRight size={20} />
             </button>
           </div>
@@ -1263,11 +1262,11 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
 
       {/* ═══ FINAL — stars for real success; calm recap otherwise ═══ */}
       {stage === 'final' && (
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 lg:gap-5 animate-fade-in px-4">
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-5 animate-fade-in px-4">
           {!isRecap() ? (
             <>
-              <h2 className="text-3xl lg:text-5xl font-bold text-white">Great search, class!</h2>
-              <div className="flex gap-2 lg:gap-3">
+              <h2 className="text-5xl font-bold text-white">Great search, class!</h2>
+              <div className="flex gap-3">
                 {Array.from({ length: 5 }, (_, i) => (
                   <Star key={i} size={44} className={`animate-star-pop ${i < finalStars ? 'text-amber-400' : 'text-slate-700'}`}
                     fill={i < finalStars ? 'currentColor' : 'none'} style={{ animationDelay: `${i * 0.22}s` }} />
@@ -1276,7 +1275,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
             </>
           ) : (
             <>
-              <h2 className="text-3xl lg:text-4xl font-bold text-white">Let's learn these words</h2>
+              <h2 className="text-4xl font-bold text-white">Let's learn these words</h2>
               <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
                 {roundWords.map((w) => (
                   <button key={w.id} onClick={() => speakWord(w)}
@@ -1290,7 +1289,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
           )}
           <div className="bg-white/5 border border-white/10 rounded-2xl px-6 py-3 text-center">
             <div className="text-slate-400 text-xs font-bold uppercase tracking-widest">Class result</div>
-            <div className="text-white text-base lg:text-lg font-bold">
+            <div className="text-white text-lg font-bold">
               {totalsRef.current.found} / {totalsRef.current.total} words found
               {totalsRef.current.misses > 0 && <span className="text-slate-400"> · {totalsRef.current.misses} misses</span>}
               {totalsRef.current.hints > 0 && <span className="text-slate-400"> · {totalsRef.current.hints} clues</span>}
@@ -1298,11 +1297,11 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
           </div>
           <div className="flex gap-3">
             <button onClick={resetGame}
-              className="px-6 lg:px-8 py-3 bg-[#FF2E79] hover:brightness-110 text-white text-base lg:text-lg font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:translate-y-0.5 transition-all flex items-center gap-2">
+              className="px-8 py-3 bg-[#FF2E79] hover:brightness-110 text-white text-lg font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:translate-y-0.5 transition-all flex items-center gap-2">
               <RefreshCcw size={18} /> Play Again
             </button>
             <button onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
-              className="px-6 lg:px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white text-base lg:text-lg font-bold rounded-2xl active:scale-95 transition-all">
+              className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white text-lg font-bold rounded-2xl active:scale-95 transition-all">
               Next Slide →
             </button>
           </div>
@@ -1313,12 +1312,12 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
       {/* ═══ CREDIT PICKER (open mode) — attribution micro-state ═══ */}
       {credit && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[#0B132B] border border-slate-700 p-6 lg:p-8 rounded-[2rem] shadow-2xl flex flex-col items-center max-w-2xl w-full mx-4">
+          <div className="bg-[#0B132B] border border-slate-700 p-8 rounded-[2rem] shadow-2xl flex flex-col items-center max-w-2xl w-full mx-4">
             <div className="flex items-center gap-2 mb-2">
               <Pause size={16} className="text-sky-400" />
               <span className="text-sky-300 font-bold text-xs uppercase tracking-widest">Paused — choose the finder</span>
             </div>
-            <h3 className="text-xl lg:text-2xl font-bold text-white mb-1">
+            <h3 className="text-2xl font-bold text-white mb-1">
               Who found {roundWords.find((w) => w.id === credit.wordId)?.word.toUpperCase()}?
             </h3>
             <p className="ws-mono text-emerald-400 font-extrabold mb-5">+{credit.award} pts</p>
@@ -1341,7 +1340,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
 
       {/* Floating feedback toast (header-center pill) */}
       {message && (
-        <div className={`absolute top-16 lg:top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full font-bold text-sm lg:text-base shadow-xl animate-pop-in flex items-center gap-2 whitespace-nowrap
+        <div className={`absolute top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full font-bold text-base shadow-xl animate-pop-in flex items-center gap-2 whitespace-nowrap
           ${message.good ? 'bg-emerald-500/95 text-white border-2 border-emerald-300/60' : 'bg-slate-800/95 text-slate-200 border border-slate-600'}`}>
           {message.good && <span className="w-5 h-5 rounded-full bg-white text-emerald-600 flex items-center justify-center font-black text-xs">✓</span>}
           {message.text}

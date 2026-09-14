@@ -248,13 +248,13 @@ const QuickWheelOverlay: React.FC = () => {
         <div className="relative z-10 flex flex-col items-center text-center mb-2">
           <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#ffbd58]/20 border-2 border-[#ffbd58]">
             <span className="text-base">{landed ? '🎉' : '🎡'}</span>
-            <span className="text-[#ffbd58] uppercase font-black tracking-[0.14em] text-xs md:text-sm">
+            <span className="text-[#ffbd58] uppercase font-black tracking-[0.14em] text-sm">
               {landed ? 'We have a winner! • 我们有胜者！' : "Who's next? • 谁来下一个？"}
             </span>
             <span className="text-base">{landed ? '🎉' : '✨'}</span>
           </div>
           {!landed && (
-            <h1 className="text-white text-xl md:text-2xl font-extrabold tracking-wide mt-1.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+            <h1 className="text-white text-2xl font-extrabold tracking-wide mt-1.5" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
               The Carnival Wheel is Ready to Spin!
             </h1>
           )}
@@ -358,7 +358,7 @@ const QuickWheelOverlay: React.FC = () => {
 
         {/* Status hint while spinning (the board doesn't own the spin trigger — the remote does) */}
         {!landed && (
-          <div className="relative z-10 mt-1 mb-1 inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#222848]/80 border border-[#3e4850]/60 text-xs md:text-sm text-[#8fb8cc] font-semibold font-nunito">
+          <div className="relative z-10 mt-1 mb-1 inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#222848]/80 border border-[#3e4850]/60 text-sm text-[#8fb8cc] font-semibold font-nunito">
             <span className="w-2 h-2 rounded-full bg-[#6be026] animate-pulse" />
             Spinning… <span className="text-white/60">tap anywhere to skip</span>
           </div>
@@ -408,10 +408,10 @@ const QuickWheelOverlay: React.FC = () => {
               <div className="relative z-10 flex flex-col items-center mb-2">
                 <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#ffbd58]/20 border-2 border-[#ffbd58]">
                   <span className="text-base">🎉</span>
-                  <span className="font-rubik text-[#ffbd58] uppercase font-black tracking-[0.14em] text-xs md:text-sm">We have a winner!</span>
+                  <span className="font-rubik text-[#ffbd58] uppercase font-black tracking-[0.14em] text-sm">We have a winner!</span>
                   <span className="text-base">🎉</span>
                 </div>
-                <h1 className="text-white text-xl md:text-2xl font-extrabold tracking-wide mt-1.5 font-rubik text-center">The Carnival Wheel has spoken!</h1>
+                <h1 className="text-white text-2xl font-extrabold tracking-wide mt-1.5 font-rubik text-center">The Carnival Wheel has spoken!</h1>
               </div>
 
               {/* Crown badge */}
@@ -432,7 +432,7 @@ const QuickWheelOverlay: React.FC = () => {
                 initial={{ scale: 0.2, rotate: -180, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
                 transition={{ delay: 0.1, type: 'spring', stiffness: 200, damping: 14 }}
-                className="relative z-10 my-3 w-40 h-40 md:w-48 md:h-48 rounded-full p-2.5 flex items-center justify-center"
+                className="relative z-10 my-3 w-48 h-48 rounded-full p-2.5 flex items-center justify-center"
                 style={{
                   background: 'linear-gradient(to top right, #ea9f00, #ffbd58, #fff4cf)',
                   border: '4px solid #050b2b',
@@ -470,10 +470,10 @@ const QuickWheelOverlay: React.FC = () => {
                   <h2
                     className={`font-rubik font-black tracking-tight uppercase whitespace-nowrap ${
                       (winner.name?.split(' ')[0] ?? '').length <= 7
-                        ? 'text-4xl md:text-6xl'
+                        ? 'text-6xl'
                         : (winner.name?.split(' ')[0] ?? '').length <= 11
-                          ? 'text-3xl md:text-5xl'
-                          : 'text-2xl md:text-4xl'
+                          ? 'text-5xl'
+                          : 'text-4xl'
                     }`}
                     style={{
                       color: '#ffffff',
@@ -491,11 +491,11 @@ const QuickWheelOverlay: React.FC = () => {
                   transition={{ delay: 0.4, type: 'spring', stiffness: 320, damping: 16 }}
                   className="flex flex-col items-center mt-4"
                 >
-                  <div className="px-5 py-1.5 rounded-full bg-[#ffbd58] text-[#050b2b] font-black text-sm md:text-base tracking-wider uppercase shadow-md flex items-center gap-1.5 border-2 border-white font-rubik">
+                  <div className="px-5 py-1.5 rounded-full bg-[#ffbd58] text-[#050b2b] font-black text-base tracking-wider uppercase shadow-md flex items-center gap-1.5 border-2 border-white font-rubik">
                     <Zap size={17} strokeWidth={2.75} />
                     Your Turn!
                   </div>
-                  <span className="mt-2 text-[#ffbd58]/90 font-bold text-base md:text-lg">轮到你了！</span>
+                  <span className="mt-2 text-[#ffbd58]/90 font-bold text-lg">轮到你了！</span>
                 </motion.div>
               </motion.div>
             </div>

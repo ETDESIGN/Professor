@@ -201,31 +201,31 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
       <div className="absolute bottom-10 right-20 w-[450px] h-[200px] bg-[#38bdf8]/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* TOP BAR / CLASSROOM PROJECTOR HUD HEADER */}
-      {/* P2 Fix (§4.a): Clearance from BoardShell's • WARM-UP badge via pl-32 lg:pl-48 */}
-      <header className="h-14 lg:h-16 flex items-center justify-between px-4 lg:px-6 bg-[#0a0a12]/95 border-b border-[#1e293b] shrink-0 z-30">
+      {/* P2 Fix (§4.a): Clearance from BoardShell's • WARM-UP badge via pl-44 */}
+      <header className="h-16 flex items-center justify-between px-6 bg-[#0a0a12]/95 border-b border-[#1e293b] shrink-0 z-30">
         {/* Left Cluster */}
-        <div className="flex items-center gap-3 lg:gap-4 pl-28 lg:pl-44 min-w-0">
-          <div className="hidden sm:flex items-center gap-2 bg-[#111c3d] px-3 py-1 lg:py-1.5 rounded-full border border-[#38bdf8]/40 text-[#38bdf8] font-mono text-[11px] lg:text-xs tracking-wider font-bold uppercase shrink-0">
+        <div className="flex items-center gap-4 pl-44 min-w-0">
+          <div className="flex items-center gap-2 bg-[#111c3d] px-3 py-1.5 rounded-full border border-[#38bdf8]/40 text-[#38bdf8] font-mono text-xs tracking-wider font-bold uppercase shrink-0">
             <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-ping" />
             WARM-UP SONG
           </div>
-          <div className="h-4 w-px bg-[#1e293b] hidden sm:block" />
+          <div className="h-4 w-px bg-[#1e293b] block" />
           <div className="flex items-center gap-2 truncate">
             <Music className="text-[#ff2e79] w-5 h-5 shrink-0" />
-            <span className="font-extrabold text-base lg:text-xl text-white tracking-tight truncate">
+            <span className="font-extrabold text-xl text-white tracking-tight truncate">
               {data.title || 'Sing & Move'}
             </span>
           </div>
           {data.topic_relevance && (
-            <span className="hidden xl:flex items-center gap-1 bg-[#24345b]/60 text-[#ffe04a] px-2.5 py-0.5 rounded-full text-xs font-mono tracking-wide border border-[#ffe04a]/20 shrink-0">
+            <span className="flex items-center gap-1 bg-[#24345b]/60 text-[#ffe04a] px-2.5 py-0.5 rounded-full text-xs font-mono tracking-wide border border-[#ffe04a]/20 shrink-0">
               {data.topic_relevance}
             </span>
           )}
         </div>
 
         {/* Right Cluster & System Status */}
-        <div className="flex items-center gap-2 lg:gap-3 pr-2 shrink-0">
-          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#06241b] border border-[#10b981]/40 text-[#34d399] font-mono text-[11px] font-bold tracking-wide">
+        <div className="flex items-center gap-3 pr-2 shrink-0">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#06241b] border border-[#10b981]/40 text-[#34d399] font-mono text-[11px] font-bold tracking-wide">
             <span className="w-2 h-2 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
             REMOTE SYNCED
           </div>
@@ -244,7 +244,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
             >
               {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
             </button>
-            <span className="hidden sm:inline-block text-[10px] font-mono text-[#94a3b8]/80 ml-1 px-1.5 py-0.5 rounded bg-[#111c3d]">
+            <span className="inline-block text-[10px] font-mono text-[#94a3b8]/80 ml-1 px-1.5 py-0.5 rounded bg-[#111c3d]">
               16:9 PROJ
             </span>
           </div>
@@ -252,14 +252,14 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
       </header>
 
       {/* MAIN STAGE */}
-      <main className="flex-1 w-full max-h-full min-h-0 p-3 lg:p-5 overflow-hidden flex flex-col justify-center relative">
+      <main className="flex-1 w-full max-h-full min-h-0 p-5 overflow-hidden flex flex-col justify-center relative">
         {hasPlayableMedia ? (
           /* PLAYABLE MEDIA STATE (Video or Audio) */
-          <div className="w-full h-full grid grid-cols-12 gap-4 lg:gap-6 min-h-0">
+          <div className="w-full h-full grid grid-cols-12 gap-6 min-h-0">
             {/* Left Stage: Video or Graphic Audio Hub */}
             <div
               className={`${
-                hasLyrics ? 'col-span-12 md:col-span-8' : 'col-span-12'
+                hasLyrics ? 'col-span-8' : 'col-span-12'
               } flex flex-col justify-center items-center h-full min-h-0 bg-[#0b132b] rounded-2xl border border-[#24345b] overflow-hidden relative shadow-2xl`}
             >
               {hasVideo ? (
@@ -297,12 +297,12 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                   <div className="absolute bottom-3 inset-x-4 z-20 flex items-center justify-between pointer-events-none">
                     <div className="bg-[#0a0a12]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#ff2e79]/30 text-white flex items-center gap-2 shadow-lg">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#ff2e79] animate-ping" />
-                      <span className="font-bold text-xs lg:text-sm tracking-wide text-[#ffe0ec]">
+                      <span className="font-bold text-sm tracking-wide text-[#ffe0ec]">
                         SING &amp; DO THE ACTIONS! 💃 一起动起来！
                       </span>
                     </div>
                     {duration > 0 && (
-                      <div className="hidden sm:block bg-[#0a0a12]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1e293b] text-[#94a3b8] font-mono text-xs">
+                      <div className="block bg-[#0a0a12]/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-[#1e293b] text-[#94a3b8] font-mono text-xs">
                         {formatTime(currentTime)} / {formatTime(duration)}
                       </div>
                     )}
@@ -328,14 +328,14 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                   />
                   {/* Pulsing Audio Hub */}
                   <div className="relative mb-6">
-                    <div className="w-24 h-24 lg:w-32 lg:h-32 rounded-full bg-[#38bdf8]/10 border-2 border-[#38bdf8]/50 flex items-center justify-center text-[#38bdf8] shadow-[0_0_30px_rgba(56,189,248,0.35)] animate-pulse">
+                    <div className="w-32 h-32 rounded-full bg-[#38bdf8]/10 border-2 border-[#38bdf8]/50 flex items-center justify-center text-[#38bdf8] shadow-[0_0_30px_rgba(56,189,248,0.35)] animate-pulse">
                       <Music size={48} className="text-[#38bdf8]" />
                     </div>
                     {isPlaying && (
                       <span className="absolute -inset-2 rounded-full border border-[#ff2e79]/40 animate-ping" />
                     )}
                   </div>
-                  <h2 className="text-2xl lg:text-3xl font-extrabold text-white mb-2">
+                  <h2 className="text-3xl font-extrabold text-white mb-2">
                     {data.title || 'Classroom Sing-Along'}
                   </h2>
                   <p className="text-sm text-[#38bdf8] font-mono uppercase tracking-widest flex items-center gap-2">
@@ -348,11 +348,11 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
 
             {/* Right Rail: Karaoke Lyrics Teleprompter */}
             {hasLyrics && (
-              <div className="col-span-12 md:col-span-4 h-full flex flex-col justify-between bg-[#0b132b] rounded-2xl border border-[#24345b] p-4 lg:p-5 overflow-hidden relative shadow-xl min-h-0">
+              <div className="col-span-4 h-full flex flex-col justify-between bg-[#0b132b] rounded-2xl border border-[#24345b] p-5 overflow-hidden relative shadow-xl min-h-0">
                 {/* Header */}
                 <div className="bg-[#111c3d] rounded-xl p-3 border border-[#1e293b] shrink-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] lg:text-xs font-mono font-bold text-[#38bdf8] tracking-wider uppercase flex items-center gap-1.5">
+                    <span className="text-xs font-mono font-bold text-[#38bdf8] tracking-wider uppercase flex items-center gap-1.5">
                       <Radio size={14} className="text-[#38bdf8]" />
                       SING-ALONG PROMPTER
                     </span>
@@ -360,7 +360,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                       Choral
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base lg:text-lg text-white leading-tight truncate">
+                  <h3 className="font-extrabold text-lg text-white leading-tight truncate">
                     {data.title || 'Warm Up Song'}
                   </h3>
                 </div>
@@ -377,12 +377,12 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                     </div>
                     <div className="relative">
                       {/* Base text */}
-                      <p className="font-extrabold text-xl lg:text-2xl text-white/40 leading-snug tracking-tight">
+                      <p className="font-extrabold text-2xl text-white/40 leading-snug tracking-tight">
                         {currentLine || '♪ ♪ ♪'}
                       </p>
                       {/* Highlight sweep */}
                       <p
-                        className="font-extrabold text-xl lg:text-2xl text-[#ffe04a] leading-snug tracking-tight absolute top-0 left-0 overflow-hidden whitespace-nowrap drop-shadow-[0_0_12px_rgba(255,224,74,0.6)]"
+                        className="font-extrabold text-2xl text-[#ffe04a] leading-snug tracking-tight absolute top-0 left-0 overflow-hidden whitespace-nowrap drop-shadow-[0_0_12px_rgba(255,224,74,0.6)]"
                         style={{ width: `${lyricProgress * 100}%`, transition: 'width 0.1s linear' }}
                       >
                         {currentLine || '♪ ♪ ♪'}
@@ -396,7 +396,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                       <span className="text-[10px] font-mono uppercase text-[#94a3b8] font-bold block mb-0.5">
                         NEXT UP
                       </span>
-                      <p className="font-bold text-sm lg:text-base text-[#f1f5f9] leading-snug truncate">
+                      <p className="font-bold text-base text-[#f1f5f9] leading-snug truncate">
                         {nextLine}
                       </p>
                     </div>
@@ -404,7 +404,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
 
                   {/* Third Line */}
                   {thirdLine && (
-                    <div className="opacity-25 border-l-2 border-transparent pl-3 hidden lg:block">
+                    <div className="opacity-25 border-l-2 border-transparent pl-3 block">
                       <p className="font-semibold text-xs text-[#94a3b8] leading-snug truncate">
                         {thirdLine}
                       </p>
@@ -431,7 +431,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
           </div>
         ) : (
           /* UNRESOLVED STANDBY CARD (Stitch 2-unresolved.html) */
-          <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-center items-center bg-[#111c3d]/90 border border-[#24345b] rounded-2xl p-4 lg:p-6 backdrop-blur-md shadow-2xl overflow-y-auto max-h-full">
+          <div className="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-center items-center bg-[#111c3d]/90 border border-[#24345b] rounded-2xl p-6 backdrop-blur-md shadow-2xl overflow-y-auto max-h-full">
             {/* Friendly Status Header */}
             <div className="flex flex-col items-center text-center max-w-xl mb-4 shrink-0">
               <div className="relative mb-2">
@@ -443,12 +443,12 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                   <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#38bdf8]" />
                 </span>
               </div>
-              <h2 className="font-extrabold text-xl lg:text-2xl text-white tracking-tight">
+              <h2 className="font-extrabold text-2xl text-white tracking-tight">
                 {playbackError
                   ? 'Video blocked or unavailable in network'
                   : `Warm-Up Song: ${data.title || 'Sing & Move'}`}
               </h2>
-              <p className="text-xs lg:text-sm text-[#94a3b8] mt-1">
+              <p className="text-sm text-[#94a3b8] mt-1">
                 {playbackError
                   ? 'The video could not load. Choose an alternate video below or paste a working URL.'
                   : 'No video linked to this song yet. Select a candidate or link a video in two taps.'}
@@ -457,7 +457,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
 
             {/* Candidate Cards Grid */}
             {candidates.length > 0 ? (
-              <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 mb-4 shrink-0">
+              <div className="w-full grid grid-cols-3 gap-4 mb-4 shrink-0">
                 {candidates.slice(0, 3).map((c, i) => (
                   <div
                     key={c.videoId || c.url || i}
@@ -482,7 +482,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
 
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        <h4 className="font-bold text-xs lg:text-sm text-white leading-snug line-clamp-1">
+                        <h4 className="font-bold text-sm text-white leading-snug line-clamp-1">
                           {c.title || `Song Option ${i + 1}`}
                         </h4>
                         {c.channel && (
@@ -578,7 +578,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
             <div className="w-20 h-20 rounded-full bg-[#10b981]/20 border-2 border-[#10b981] flex items-center justify-center text-[#10b981] shadow-[0_0_30px_#10b981] mb-4">
               <CheckCircle2 size={44} />
             </div>
-            <h2 className="font-extrabold text-3xl lg:text-4xl text-white tracking-tight mb-2">
+            <h2 className="font-extrabold text-4xl text-white tracking-tight mb-2">
               Great Singing! Warm-Up Complete! 🎵
             </h2>
             <p className="text-base text-[#38bdf8] font-mono mb-6">
@@ -596,29 +596,29 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
 
       {/* BOTTOM TRANSPORT BAR (Only visible when media is actually playable) */}
       {hasPlayableMedia && (
-        <footer className="h-16 lg:h-20 bg-[#0b132b] border-t border-[#1e293b] px-4 lg:px-8 flex items-center justify-between shrink-0 z-30 shadow-2xl">
+        <footer className="h-20 bg-[#0b132b] border-t border-[#1e293b] px-8 flex items-center justify-between shrink-0 z-30 shadow-2xl">
           {/* Left: Replay Button */}
-          <div className="flex items-center gap-3 lg:gap-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => {
                 if (playerRef.current) {
                   playerRef.current.seekTo(Math.max(0, currentTime - 10));
                 }
               }}
-              className="flex items-center gap-2 bg-[#111c3d] hover:bg-[#182449] text-white border border-[#1e293b] hover:border-[#38bdf8]/50 px-3 lg:px-4 py-2 rounded-xl font-bold text-xs lg:text-sm tracking-wide transition-all active:scale-95 shadow-md"
+              className="flex items-center gap-2 bg-[#111c3d] hover:bg-[#182449] text-white border border-[#1e293b] hover:border-[#38bdf8]/50 px-4 py-2 rounded-xl font-bold text-sm tracking-wide transition-all active:scale-95 shadow-md"
               title="Skip back 10 seconds"
             >
               <RotateCcw size={18} className="text-[#38bdf8]" />
-              <span className="hidden sm:inline">Replay (-10s)</span>
+              <span className="inline">Replay (-10s)</span>
             </button>
           </div>
 
           {/* Center: Main Playback Controls & Scrubber */}
-          <div className="flex-1 max-w-xl mx-4 lg:mx-8 flex flex-col items-center gap-1.5">
-            <div className="flex items-center gap-3 lg:gap-5">
+          <div className="flex-1 max-w-xl mx-8 flex flex-col items-center gap-1.5">
+            <div className="flex items-center gap-5">
               <button
                 onClick={() => playerRef.current?.seekTo(0)}
-                className="w-8 h-8 lg:w-9 lg:h-9 rounded-lg bg-[#111c3d] hover:bg-[#182449] border border-[#1e293b] flex items-center justify-center text-white hover:text-[#38bdf8] transition-all active:scale-95"
+                className="w-9 h-9 rounded-lg bg-[#111c3d] hover:bg-[#182449] border border-[#1e293b] flex items-center justify-center text-white hover:text-[#38bdf8] transition-all active:scale-95"
                 title="Restart"
               >
                 <SkipBack size={16} />
@@ -627,7 +627,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
               {/* Primary Hero Button: PLAY / PAUSE */}
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="bg-[#ff2e79] hover:bg-[#ff2e79]/90 text-white font-extrabold text-sm lg:text-base px-6 lg:px-8 py-2 lg:py-2.5 rounded-xl flex items-center gap-2 shadow-[0_0_20px_rgba(255,46,121,0.45)] transition-all active:scale-95 cursor-pointer"
+                className="bg-[#ff2e79] hover:bg-[#ff2e79]/90 text-white font-extrabold text-base px-8 py-2.5 rounded-xl flex items-center gap-2 shadow-[0_0_20px_rgba(255,46,121,0.45)] transition-all active:scale-95 cursor-pointer"
               >
                 {isPlaying ? (
                   <>
@@ -648,7 +648,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                     playerRef.current.seekTo(Math.min(duration, currentTime + 10));
                   }
                 }}
-                className="w-8 h-8 lg:w-9 lg:h-9 rounded-lg bg-[#111c3d] hover:bg-[#182449] border border-[#1e293b] flex items-center justify-center text-white hover:text-[#38bdf8] transition-all active:scale-95"
+                className="w-9 h-9 rounded-lg bg-[#111c3d] hover:bg-[#182449] border border-[#1e293b] flex items-center justify-center text-white hover:text-[#38bdf8] transition-all active:scale-95"
                 title="Skip forward 10 seconds"
               >
                 <SkipForward size={16} />
@@ -657,7 +657,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
 
             {/* Timeline Progress Scrubber */}
             <div className="w-full flex items-center gap-2.5">
-              <span className="text-[10px] lg:text-xs font-mono text-[#38bdf8] font-bold w-10 text-right shrink-0">
+              <span className="text-xs font-mono text-[#38bdf8] font-bold w-10 text-right shrink-0">
                 {formatTime(currentTime)}
               </span>
               <div
@@ -669,17 +669,17 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
                   style={{ width: `${progress * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] lg:text-xs font-mono text-[#94a3b8] w-10 shrink-0">
+              <span className="text-xs font-mono text-[#94a3b8] w-10 shrink-0">
                 {formatTime(duration)}
               </span>
             </div>
           </div>
 
           {/* Right: Sound Indicator & Complete */}
-          <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => triggerAction('SLIDE_COMPLETE', { forced: true })}
-              className="bg-[#111c3d] hover:bg-[#182449] border border-[#1e293b] hover:border-[#10b981]/50 text-[#f1f5f9] px-3 lg:px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wide transition-all active:scale-95"
+              className="bg-[#111c3d] hover:bg-[#182449] border border-[#1e293b] hover:border-[#10b981]/50 text-[#f1f5f9] px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wide transition-all active:scale-95"
               title="Skip to next slide"
             >
               Skip →
