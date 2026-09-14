@@ -200,3 +200,8 @@ Refs are `apps/student/steps/SpellingBeeStep.tsx` unless noted.
 - **Screen 2 (Timeout Word-Cost & Audio Reveal Recovery State): Followed.**
   - The new in-lesson rule: on timeout, marks the single word incorrect, triggers acoustic full-word pronunciation with letter slot reveal, keeps hearts intact, and advances smoothly to the next word.
 
+
+## §7 Implementation notes (2026-09-14 session-2 batch)
+
+- **F6 FIXED + DEPLOYED (commit `94e418f` + race fix in the same batch):** the wave-change timer race is dead — `resetTurnState` no longer schedules the presenting→typing beat; the `[waveWords]` effect owns it AFTER `clearTimeouts()` (guaranteed ordering), with a `schedulePresentBeat` helper shared with the external `resetTurn` control. Regression test `test/useSpellingBeeTurn.test.ts` fails on the old code. Affects BOTH surfaces (file 21 twin included — shared engine).
+- **F7 FIXED:** stage containers no longer center a short child (dead bands gone — stage fills height, `justify-between` distributes); compact clue banner stacks image-above-cues on phones; keys `h-12 sm:h-14 md:h-16` / `max-w-[150px]` / `text-xl sm:text-2xl` compact; compact presenting gets a visible "Ready to spell →" 48px chip (same path as physical Space/Enter).

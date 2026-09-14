@@ -215,3 +215,7 @@ Refs are `apps/student/exercises/ChoiceExercise.tsx` unless noted.
 ### 7.f Notes for ZCode
 - Scope strictly observed: edited only `apps/student/exercises/ChoiceExercise.tsx`, `apps/student/exercises/ExerciseRunner.tsx`, `apps/student/exercises/shared.tsx`.
 - Ready for ZCode verification, screenshots, commit, and deploy.
+
+## §7 Implementation notes (2026-09-14 session-2 batch)
+
+- **F7/F8 FIXED + DEPLOYED (commit `de174f3`):** image-option sets are ALWAYS image-only (the `imageOnly` gate no longer keys on IMAGE_SELECT alone — LISTEN_SELECT cards lost the English strip; `alt` keeps accessibility). Uniform modality: the image grid renders only when EVERY option has an `image_url`; mixed sets degrade to the uniform text grid. Cards are `p-0 aspect-square` with `object-cover` — edge-to-edge fill of the rounded frame (was `object-contain` letterbox). Generator side (commit `2347296`): LISTEN_SELECT emitted only for all-image option sets.

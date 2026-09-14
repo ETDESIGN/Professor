@@ -180,3 +180,8 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 - **Design-Fidelity Log per Stitch Screen:**
   - **Screen 1 (Illustrated Story Reader): Followed.** Followed illustrated book card, padded vocabulary pills, character speaker row, and audio read-along bar.
   - **Screen 2 (Word Popup Definition Modal): Followed.** Followed elevated definition card, audio pronunciation button, translation chip, and outside-tap dismiss.
+
+## §7 Implementation notes (2026-09-14 session-2 batch)
+
+- **F6 FIXED + DEPLOYED (commit `83be8b5`):** `STORY_STAGE_AG` added to `STUDENT_ELIGIBLE_TYPES` (`types/stage.ts`), titled "Story" (`services/gameRouting.ts` GAME_TITLES), and routed to the same reader (`SoloLessonPlayer.tsx` render switch + `case 'STORY_STAGE_AG'`). `renderStoryStage` now resolves pages relational-first via `getStory(manifest, data.structure_ids)` (board parity, `BoardStoryStage.tsx:105-110` pattern) with frozen `data.pages` fallback; `EmptyStep` only when both are empty. Surgical shared-file changes named in the commit per session rules.
+- **F7 → Phase 2:** owner direction recorded verbatim in `_CROSS-CUTTING`/spec: two NEW student exercises (story + comic, "step by step, image by image, paragraphe by paragraphe … ludic and immersive") go through the full design pipeline (new audit files 32/33 → AG §4 + Stitch → owner approval). The F6 data path is their foundation.

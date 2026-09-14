@@ -189,3 +189,7 @@ Refs are `apps/student/steps/WordSearchStep.tsx`.
 - **Screen 2 (Puzzle Complete Celebration State): Followed.**
   - Wonder Atlas victory card on paper `#FDFBF7` with animated stars, score, recap word list with interactive pronunciation speakers, and Continue CTA.
 
+
+## §7 Implementation notes (2026-09-14 session-2 batch)
+
+- **F5/F6/F7/F8 FIXED + DEPLOYED (commits `398f35f` + `4c5d2d8`):** `snapLine` projection normalized by vector squared length — exact diagonal endpoint taps select diagonal words (2 new tests in `test/wordSearchGridEngine.test.ts`; board benefits too). Student grids build with `DIRECTIONS_EASY` only (owner decision: left→right + top→bottom). Slide-over-word gesture ported from the board's pointer pattern (`cellFromEvent` rect hit-testing + pointer capture, live rubber-band preview) alongside tap-first/tap-last. Hint is always available while words remain (10s cooldown, label dropped the miss counter). Teacher-configurable difficulty PARKED — the plan panel (PlanComposer) is owner WIP.

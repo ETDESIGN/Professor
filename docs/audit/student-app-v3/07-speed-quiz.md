@@ -183,3 +183,7 @@ Refs are `apps/student/SoloLessonPlayer.tsx` (inline renderer).
 - **Design-Fidelity Log per Stitch Screen:**
   - **Screen 1 (MCQ Correct Feedback State): Followed.** Followed bevel option cards, checkmark badge, streak counter, Duolingo blue audio FAB, and teal continue CTA.
   - **Screen 2 (MCQ Wrong Answer & Acoustic Correction): Followed.** Followed in-place red selection + emerald correct reveal, acoustic error drawer with corrective speech narration, and terracotta got-it CTA.
+
+## §7 Implementation notes (2026-09-14 session-2 batch)
+
+- **F6 FIXED + DEPLOYED:** the pool-driven SPEED_QUIZ / GAME_ARENA batteries now render image-only cards — fix landed in `ChoiceExercise.tsx` (commit `de174f3`: image grid requires every option to have an image; mixed sets degrade to uniform text; `object-cover` fills the rounded frame; English label strip removed) plus the generator-side gate (LISTEN_SELECT emitted only for all-image sets, commit `2347296`). This file's inline text renderer unchanged.
