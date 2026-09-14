@@ -379,11 +379,11 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
     : 0;
 
   return (
-    <div className="h-full w-full bg-[#070C18] text-white flex flex-col justify-between p-3 sm:p-5 font-display relative overflow-hidden select-none">
-      {/* ── Stitch Stadium Header (Overscan Safe, pl-28 lg:pl-44) ── */}
-      <header className="w-full flex items-center justify-between h-14 shrink-0 border-b border-slate-800/80 pb-2 pl-28 lg:pl-44 pr-2 gap-3 z-30">
+    <div className="h-full w-full bg-[#070C18] text-white flex flex-col justify-between p-5 font-display relative overflow-hidden select-none">
+      {/* ── Stitch Stadium Header (Overscan Safe, pl-44) ── */}
+      <header className="w-full flex items-center justify-between h-14 shrink-0 border-b border-slate-800/80 pb-2 pl-44 pr-2 gap-3 z-30">
         {/* Left Region: Phase Indicator + Title Cluster */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+        <div className="flex items-center gap-4 min-w-0">
           {/* Phase Pill */}
           <div
             className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-bold tracking-wider uppercase border shadow-md shrink-0 ${
@@ -419,7 +419,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
           </div>
 
           {/* Title & Round badge */}
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 font-headline font-black text-lg text-white">
               <Zap size={18} className="text-amber-400 fill-amber-400" />
               <span>SPELLING BEE</span>
@@ -440,7 +440,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
 
           {/* Streak pill */}
           {turn.streak >= 2 && (
-            <div className="hidden md:flex items-center gap-1 bg-amber-950/50 border border-amber-400/50 px-2.5 py-1 rounded-full text-xs font-mono font-bold text-amber-300 shrink-0">
+            <div className="flex items-center gap-1 bg-amber-950/50 border border-amber-400/50 px-2.5 py-1 rounded-full text-xs font-mono font-bold text-amber-300 shrink-0">
               <span>🔥</span>
               <span>{turn.streak} IN A ROW</span>
             </div>
@@ -458,7 +458,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
                   : 'bg-slate-800/80 border-slate-700 text-cyan-300'
               }`}
             >
-              <span className="font-mono text-base sm:text-lg font-black tracking-wider">
+              <span className="font-mono text-lg font-black tracking-wider">
                 {turn.timeRemaining}s
               </span>
               {turn.status === 'typing' && (
@@ -506,6 +506,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
                 onReady={turn.beginTyping}
                 onType={turn.typeLetter}
                 onReplayAudio={() => playAudioUrl(turn.currentWord?.audioUrl, turn.currentWord?.word).catch(() => {})}
+                fixedStage
               />
             </motion.div>
           )}
@@ -540,7 +541,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
               initial={{ scale: 0.85, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className="bg-[#0B132B] border-2 border-cyan-500/40 rounded-3xl p-6 sm:p-10 shadow-[0_0_60px_rgba(0,255,204,0.25)] flex flex-col items-center max-w-lg w-full text-center relative overflow-hidden"
+              className="bg-[#0B132B] border-2 border-cyan-500/40 rounded-3xl p-10 shadow-[0_0_60px_rgba(0,255,204,0.25)] flex flex-col items-center max-w-lg w-full text-center relative overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Decorative ambient glow */}
@@ -552,7 +553,7 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
                 <Trophy size={36} />
               </div>
 
-              <h2 className="text-2xl sm:text-4xl font-black text-white font-headline tracking-wide mb-1">
+              <h2 className="text-4xl font-black text-white font-headline tracking-wide mb-1">
                 {summaryName ? `${summaryName} Nailed It!` : 'Spelling Complete!'}
               </h2>
               <p className="text-cyan-300 font-mono text-xs uppercase tracking-widest mb-4">
@@ -583,21 +584,21 @@ const BoardSpellingBee = ({ data }: { data: any }) => {
                   {/* Stat Cards Grid */}
                   <div className="grid grid-cols-3 gap-3 w-full my-2">
                     <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-3 flex flex-col items-center">
-                      <p className="text-2xl sm:text-3xl font-black text-emerald-400 tabular-nums font-headline">
+                      <p className="text-3xl font-black text-emerald-400 tabular-nums font-headline">
                         {turnPoints >= 0 ? '+' : ''}{turnPoints}
                       </p>
                       <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-1">PTS EARNED</p>
                     </div>
 
                     <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-3 flex flex-col items-center">
-                      <p className="text-2xl sm:text-3xl font-black text-amber-400 tabular-nums font-headline">
+                      <p className="text-3xl font-black text-amber-400 tabular-nums font-headline">
                         {turnSummary.bestStreak} 🔥
                       </p>
                       <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-1">BEST STREAK</p>
                     </div>
 
                     <div className="bg-slate-900/80 border border-slate-700 rounded-2xl p-3 flex flex-col items-center">
-                      <p className="text-2xl sm:text-3xl font-black text-cyan-400 tabular-nums font-headline">
+                      <p className="text-3xl font-black text-cyan-400 tabular-nums font-headline">
                         {turnSummary.solved}/{turnSummary.attempted}
                       </p>
                       <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-1">WORDS SPELLED</p>

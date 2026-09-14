@@ -30,6 +30,8 @@ export interface SpellingBeeStageProps {
   compact?: boolean;
   /** Light theme reskin for the student app (defaults to false so the BOARD surface renders pixel-identical). */
   lightTheme?: boolean;
+  /** Board mode: fixed 1280×720 stage classes instead of viewport-responsive ones. */
+  fixedStage?: boolean;
 }
 
 const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
@@ -44,6 +46,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
   onReplayAudio,
   compact = false,
   lightTheme = false,
+  fixedStage = false,
 }) => {
   const slots = React.useMemo(() => slotLayout(word.word), [word.word]);
   const presenting = status === 'presenting'; // Look & listen beat — clock paused, no keyboard
@@ -64,11 +67,11 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
             <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-500/40 flex items-center justify-center">
               <Headphones size={18} className="text-cyan-400" />
             </div>
-            <span className="font-headline text-sm sm:text-base font-bold text-white tracking-wide">
+            <span className={`font-headline ${fixedStage ? 'text-base' : 'text-sm sm:text-base'} font-bold text-white tracking-wide`}>
               Listen carefully to the word and look at the picture
             </span>
           </div>
-          <div className="hidden sm:flex items-center gap-2 bg-amber-500/10 border border-amber-400/30 px-3.5 py-1 rounded-full text-amber-300 text-xs font-bold font-mono uppercase">
+          <div className={`${fixedStage ? 'flex' : 'hidden sm:flex'} items-center gap-2 bg-amber-500/10 border border-amber-400/30 px-3.5 py-1 rounded-full text-amber-300 text-xs font-bold font-mono uppercase`}>
             <Lightbulb size={14} className="text-amber-400" />
             <span>Repeat aloud before spelling!</span>
           </div>
@@ -77,7 +80,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
         {/* Hero 2-Column Presentation Unit */}
         <div className="grid grid-cols-12 gap-6 items-center w-full my-auto py-1">
           {/* Left Column: Hero Uncropped 4:3 Image Card */}
-          <div className="col-span-12 md:col-span-6 flex justify-center items-center">
+          <div className={`${fixedStage ? 'col-span-6' : 'col-span-12 md:col-span-6'} flex justify-center items-center`}>
             <div className="relative w-full max-w-[460px] aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 border-2 border-cyan-500/40 shadow-2xl p-2.5 glow-cyan flex items-center justify-center">
               {/* Category chip */}
               <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-lg border border-cyan-400/40 shadow-md">
@@ -108,8 +111,8 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
           </div>
 
           {/* Right Column: Interactive Listening Station */}
-          <div className="col-span-12 md:col-span-6 flex flex-col justify-center gap-4">
-            <div className="bg-[#0B132B]/90 border-2 border-cyan-400/30 rounded-2xl p-5 sm:p-6 flex flex-col gap-4 shadow-xl relative overflow-hidden backdrop-blur-md">
+          <div className={`${fixedStage ? 'col-span-6' : 'col-span-12 md:col-span-6'} flex flex-col justify-center gap-4`}>
+            <div className={`bg-[#0B132B]/90 border-2 border-cyan-400/30 rounded-2xl ${fixedStage ? 'p-6' : 'p-5 sm:p-6'} flex flex-col gap-4 shadow-xl relative overflow-hidden backdrop-blur-md`}>
               {/* Audio Play & Visualizer */}
               <div className="flex items-center gap-4">
                 <button
@@ -179,7 +182,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
               <button
                 type="button"
                 onClick={onReady}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-600 hover:from-pink-500 hover:to-rose-500 text-white font-headline text-sm sm:text-base font-black tracking-wider uppercase flex items-center justify-center gap-3 shadow-[0_0_24px_rgba(255,45,120,0.45)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer mt-1"
+                className={`w-full h-12 rounded-xl bg-gradient-to-r from-pink-600 via-rose-600 to-pink-600 hover:from-pink-500 hover:to-rose-500 text-white font-headline ${fixedStage ? 'text-base' : 'text-sm sm:text-base'} font-black tracking-wider uppercase flex items-center justify-center gap-3 shadow-[0_0_24px_rgba(255,45,120,0.45)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer mt-1`}
               >
                 <span>Ready to spell →</span>
                 <span className="font-mono text-xs font-bold bg-black/30 px-2.5 py-0.5 rounded text-white">[ENTER]</span>
@@ -194,7 +197,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
   // ── Render Active Typing / Solved / Revealed Stage ───────────────────────
   return (
     <div
-      className={`flex flex-col items-center justify-between w-full select-none gap-2 sm:gap-3 ${
+      className={`flex flex-col items-center justify-between w-full select-none ${fixedStage ? 'gap-3' : 'gap-2 sm:gap-3'} ${
         compact ? 'max-w-xl mx-auto' : 'max-w-5xl mx-auto'
       }`}
     >
@@ -205,7 +208,9 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
             ? // Owner 2026-09-14: phones stack the clue — image above the
               // replay cues — instead of image-left-of-writing in a fixed h-20.
               'flex flex-col items-center justify-center gap-2 p-3'
-            : 'p-2.5 sm:p-3 flex items-center justify-between gap-3 sm:gap-4 h-20 sm:h-24'
+            : fixedStage
+              ? 'p-3 flex items-center justify-between gap-4 h-24'
+              : 'p-2.5 sm:p-3 flex items-center justify-between gap-3 sm:gap-4 h-20 sm:h-24'
         } ${
           lightTheme
             ? 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-md'
@@ -262,7 +267,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
               </div>
             )}
 
-            <div className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-xs ${
+            <div className={`${fixedStage ? 'flex' : 'hidden sm:flex'} items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-xs ${
               lightTheme ? 'bg-[#F7F3E8] border border-[#E2D7C3] text-[#264653]' : 'bg-slate-800 text-slate-300'
             }`}>
               <span>{word.letters.length} Letters</span>
@@ -271,7 +276,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
         </div>
 
         {/* Right Status / Prompt */}
-        <div className="hidden md:flex flex-col items-end justify-center pr-2 shrink-0 font-mono text-xs">
+        <div className={`${fixedStage ? 'flex' : 'hidden md:flex'} flex-col items-end justify-center pr-2 shrink-0 font-mono text-xs`}>
           {solved ? (
             <span className={`${lightTheme ? 'text-[#2A9D8F]' : 'text-emerald-400'} font-bold flex items-center gap-1 text-sm`}>
               <Check size={16} /> SOLVED!
@@ -301,12 +306,12 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
       )}
 
       {/* ── Letter Slot Runway (Projector Scale) ── */}
-      <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 my-1 sm:my-2 flex-wrap select-none">
+      <div className={`flex items-center justify-center ${fixedStage ? 'gap-4 my-2' : 'gap-2 sm:gap-3 md:gap-4 my-1 sm:my-2'} flex-wrap select-none`}>
         <AnimatePresence mode="popLayout">
           {slots.map((slot, i) => {
             if (slot.letterIndex < 0) {
               return (
-                <span key={i} className={`inline-block w-2 sm:w-4 text-center font-black text-2xl ${lightTheme ? 'text-[#8C7A68]' : 'text-slate-500'}`}>
+                <span key={i} className={`inline-block ${fixedStage ? 'w-4' : 'w-2 sm:w-4'} text-center font-black text-2xl ${lightTheme ? 'text-[#8C7A68]' : 'text-slate-500'}`}>
                   {slot.char === ' ' ? '' : slot.char}
                 </span>
               );
@@ -350,7 +355,9 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                 className={`spelling-slot-box relative rounded-2xl flex flex-col items-center justify-center transition-all ${
                   compact
                     ? 'w-12 h-16 sm:w-14 sm:h-18 text-2xl'
-                    : 'w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 text-3xl sm:text-4xl md:text-5xl'
+                    : fixedStage
+                      ? 'w-24 h-28 text-5xl'
+                      : 'w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 text-3xl sm:text-4xl md:text-5xl'
                 } ${slotStyle}`}
               >
                 {/* Slot index label */}
@@ -410,14 +417,14 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
       </div>
 
       {/* ── On-Screen QWERTY Keyboard with Tactile 3D Arcade Keys ── */}
-      <div className={`w-full p-2 sm:p-3 rounded-2xl sm:rounded-3xl shrink-0 ${
+      <div className={`w-full ${fixedStage ? 'p-3 rounded-3xl' : 'p-2 sm:p-3 rounded-2xl sm:rounded-3xl'} shrink-0 ${
         lightTheme
           ? 'bg-[#FDFBF7] border-2 border-[#E2D7C3] shadow-md'
           : 'bg-[#0B132B]/85 border border-slate-800 shadow-2xl backdrop-blur-md'
       }`}>
-        <div className="flex flex-col gap-1.5 sm:gap-2.5 w-full items-center">
+        <div className={`flex flex-col ${fixedStage ? 'gap-2.5' : 'gap-1.5 sm:gap-2.5'} w-full items-center`}>
           {QWERTY_ROWS.map((row, rowIdx) => (
-            <div key={rowIdx} className="flex justify-center gap-1.5 sm:gap-2.5 w-full">
+            <div key={rowIdx} className={`flex justify-center ${fixedStage ? 'gap-2.5' : 'gap-1.5 sm:gap-2.5'} w-full`}>
               <AnimatePresence>
                 {row.map((letter) => {
                   if (removedKeys.has(letter)) {
@@ -425,7 +432,7 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                     return (
                       <div
                         key={letter}
-                        className="flex-1 max-w-[150px] h-12 sm:h-14 md:h-16 opacity-0 pointer-events-none"
+                        className={`flex-1 max-w-[150px] ${fixedStage ? 'h-16' : 'h-12 sm:h-14 md:h-16'} opacity-0 pointer-events-none`}
                       />
                     );
                   }
@@ -465,10 +472,10 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
                       whileTap={typing ? { scale: 0.92 } : undefined}
                       onClick={() => typing && onType(letter)}
                       disabled={!typing}
-                      className={`spelling-key-btn flex-1 max-w-[150px] h-12 sm:h-14 md:h-16 rounded-xl sm:rounded-2xl border font-headline font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none ${
+                      className={`spelling-key-btn flex-1 max-w-[150px] ${fixedStage ? 'h-16 rounded-2xl' : 'h-12 sm:h-14 md:h-16 rounded-xl sm:rounded-2xl'} border font-headline font-bold flex flex-col items-center justify-center transition-all cursor-pointer select-none ${
                         lightTheme ? '' : 'key-cap-bevel'
                       } ${
-                        compact ? 'text-xl sm:text-2xl' : 'text-xl sm:text-2xl md:text-3xl'
+                        compact ? 'text-xl sm:text-2xl' : fixedStage ? 'text-3xl' : 'text-xl sm:text-2xl md:text-3xl'
                       } ${keyClass}`}
                     >
                       <span>{letter}</span>
@@ -509,6 +516,11 @@ const SpellingBeeStage: React.FC<SpellingBeeStageProps> = ({
         }
         .animate-sb-shake { animation: sb-shake 0.35s ease-in-out; }
 
+        /* Phone floor for the STUDENT-app (compact) surface only: short phone
+           viewports shrink the slot boxes and key caps below their utility
+           classes. The board renders inside the fixed 1280×720 stage and never
+           relies on this viewport-height media query (its fixedStage classes
+           above are already the desktop sizes). */
         @media (max-height: 450px) {
           .spelling-slot-box {
             width: 2.75rem !important;
