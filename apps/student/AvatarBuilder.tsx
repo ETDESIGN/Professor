@@ -64,7 +64,12 @@ const AvatarBuilder: React.FC<AvatarBuilderProps> = ({ onBack, onSave, initialCo
   const bases = useMemo(() => catalog.filter((i) => i.kind === 'base'), [catalog]);
   const layers = useMemo(() => previewLayers(config, byId), [config, byId]);
 
-  const availableSlots = useMemo(() => [...AVATAR_SLOTS], []);
+  // Only tabs with catalog items — locked/empty slots (wearables locked
+  // 2026-09-15) shouldn't show a lone "None" card.
+  const availableSlots = useMemo(
+    () => AVATAR_SLOTS.filter((slot) => catalog.some((i) => i.kind === 'item' && i.slot === slot)),
+    [catalog],
+  );
 
   const isUsable = (item: AvatarItem): boolean =>
     item.unlock_type === 'default' || ownedIds.has(item.id);
