@@ -351,3 +351,12 @@ const BoardMyGame = ({ data }: { data: any }) => {
 };
 export default BoardMyGame;
 ```
+
+## The 1280×720 stage — sizing rules for every game (2026-09-15)
+
+The board renders inside a fixed **1280×720 logical stage** (`components/shared/BoardStage.tsx`) that is uniformly scaled to the viewing surface. Consequences for game templates:
+
+1. **Never key layout off the browser viewport.** No `sm:/md:/lg:/xl:` Tailwind prefixes, no `@media`, no `vh/vw/vmin/vmax`, no `window.innerWidth/innerHeight` inside `apps/board/**`. CI enforces this (`npm run board:stage-check`).
+2. **Size in stage px.** The stage is always 1280×720 CSS px — design for that, like a slide. Fluid layouts within the stage (flex/grid fractions, `min-h-0`) are encouraged.
+3. **Container queries are the escape hatch.** The stage is a named size container (`container-name: stage`, and `--stage-scale` is set): `cqw`/`cqh` units and `@container stage (…)` evaluate deterministically at 1280×720 on every device. BoardWordSearch is the reference implementation.
+4. Shared components used by the responsive student app take a `fixedStage` prop (see SpellingBeeStage) instead of dropping their responsive CSS.

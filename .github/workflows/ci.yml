@@ -27,6 +27,9 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
+      - name: Board stage gate
+        run: npm run board:stage-check
+
       - name: Build
         run: npm run build
 

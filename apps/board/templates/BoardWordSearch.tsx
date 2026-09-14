@@ -1321,7 +1321,7 @@ const BoardWordSearch: React.FC<{ data: any }> = ({ data }) => {
               Who found {roundWords.find((w) => w.id === credit.wordId)?.word.toUpperCase()}?
             </h3>
             <p className="ws-mono text-emerald-400 font-extrabold mb-5">+{credit.award} pts</p>
-            <div className="flex flex-wrap justify-center gap-2 max-h-[38vh] overflow-y-auto">
+            <div className="flex flex-wrap justify-center gap-2 max-h-[274px] overflow-y-auto">
               {presentStudents.map((s: any) => (
                 <button key={s.id} onClick={() => resolveCredit(s.id)}
                   className="flex items-center gap-2 bg-slate-800 hover:bg-emerald-600 border-2 border-transparent hover:border-emerald-400 px-4 py-2.5 rounded-2xl font-bold text-slate-200 hover:text-white transition-all active:scale-95">

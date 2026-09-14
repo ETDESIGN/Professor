@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "board:stage-check": "node scripts/board-stage-check.mjs",
     "test:fixtures": "tsx scripts/testing/powerup2-fixture-runner.ts",
     "test:baskets": "tsx scripts/testing/basket-e2e.ts",
     "test:classplans": "tsx scripts/testing/class-plans-e2e.ts",

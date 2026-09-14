@@ -55,7 +55,7 @@ export const StoryArtZoomOverlay: React.FC<{
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         transition={{ duration: 0.18 }}
         onClick={onClose}
-        className="absolute inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 lg:p-10 cursor-zoom-out"
+        className="absolute inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-10 cursor-zoom-out"
         role="dialog"
         aria-label="Zoomed story image"
       >
