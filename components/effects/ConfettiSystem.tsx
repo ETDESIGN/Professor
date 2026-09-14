@@ -32,9 +32,10 @@ const ConfettiSystem: React.FC = () => {
     // mid-lesson (points/GAME_WIN arrived during the connection gate). Without
     // this, the first burst spawns into the default 300×150 bitmap and lands
     // as a clipped corner burst once the real resize runs.
-    if (canvas.width < window.innerWidth * 0.5 || canvas.height < window.innerHeight * 0.5) {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    const host = canvas.parentElement;
+    if (host && (canvas.width < host.clientWidth * 0.5 || canvas.height < host.clientHeight * 0.5)) {
+      canvas.width = host.clientWidth;
+      canvas.height = host.clientHeight;
     }
 
     for (let i = 0; i < 150; i++) {
@@ -68,11 +69,14 @@ const ConfettiSystem: React.FC = () => {
     if (!ctx) return;
 
     // Resize canvas
+    const host = canvas.parentElement;
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      if (!host) return;
+      canvas.width = host.clientWidth;
+      canvas.height = host.clientHeight;
     };
-    window.addEventListener('resize', resize);
+    const ro = new ResizeObserver(resize);
+    if (host) ro.observe(host);
     resize();
 
     // Animation Loop
@@ -109,7 +113,7 @@ const ConfettiSystem: React.FC = () => {
     loop();
 
     return () => {
-      window.removeEventListener('resize', resize);
+      ro.disconnect();
       if (animationId.current) cancelAnimationFrame(animationId.current);
     };
   }, []);
