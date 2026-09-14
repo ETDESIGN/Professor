@@ -208,6 +208,9 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
     if (!state.quickWheelWinner && phase === 'bet') {
       setBet(1);
       setPhase('question');
+      // ROUND-2 #14: same clock-reset requirement as advanceToNext — never
+      // enter a question with a stale zero clock.
+      setTimeRemaining(QUESTION_TIME_LIMIT);
     }
   }, [state.quickWheelWinner, phase]);
 
@@ -548,6 +551,11 @@ const BoardVocabBlitz = ({ data }: { data: any }) => {
       setRetryUsed(false);
       setRevealCorrect(false);
       setTimedOut(false);
+      // ROUND-2 #14: the clock MUST reset here too — the bet gate resets it
+      // for picked mode, but choral mode (and any path that skips the gate)
+      // entered the next question at timeRemaining 0 → instant timeout →
+      // every remaining question raced through with its answer revealed.
+      setTimeRemaining(QUESTION_TIME_LIMIT);
     } else {
       setPhase('complete');
       playCue('win');
