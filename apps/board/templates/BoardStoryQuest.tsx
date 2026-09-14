@@ -22,6 +22,7 @@ import { usePickedStudent } from './usePickedStudent';
 import { logAttempt } from './scoreAttempt';
 import { playCue } from './playCue';
 import { getStory, getVocabulary, getCharacters } from '../../../services/manifest';
+import { useUnitRelational } from '../useUnitRelational';
 import { playAudioUrl } from '../../../services/SpeechService';
 import type { PoolItem, StoryComprehensionContent } from '../../../types/exercise';
 
@@ -136,6 +137,9 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
   const turnId = state.currentTurnId;
   const unitId = state.activeUnit?.id || '';
   const roster = state.students?.map((s: any) => s.id).filter(Boolean) || [];
+
+  // ROUND-2 #7: recover the relational bundle on the board tab (see hook).
+  useUnitRelational();
 
   // ── Story panels: relational manifest first, frozen data.pages fallback ──
   // CONTENT GROUPS (spec 2026-09-13): scoped to THIS story when tagged.

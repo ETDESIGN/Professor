@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, BookOpen, Check } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { getVocabulary, getStory, getCharacters } from '../../../services/manifest';
+import { useUnitRelational } from '../useUnitRelational';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { playCue } from './playCue';
@@ -103,6 +104,9 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   // CONTENT GROUPS (spec 2026-09-13): a tagged story block scopes the
   // relational read to ITS story's pages — a multi-story unit no longer
   // concatenates every page into one story.
+  // ROUND-2 #7: recover the relational bundle on the board tab (see hook).
+  useUnitRelational();
+
   const relPages = useMemo(
     () => getStory(state.activeUnit?.manifest, Array.isArray(data?.structure_ids) ? data.structure_ids : null).pages || [],
     [state.activeUnit?.manifest, data?.structure_ids?.join(',')],
