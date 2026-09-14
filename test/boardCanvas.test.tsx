@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import BoardCanvas from '../apps/board/BoardCanvas';
+import ClassLeaderboard from '../apps/board/ClassLeaderboard';
 
 // Module-level mutable mock state — later tasks extend/reassign fields here
 // (BoardComponents.test.tsx convention). vi.mock factories are hoisted but
@@ -46,5 +47,24 @@ describe('BoardCanvas', () => {
     expect(getByText('🏆 Leaderboard')).toBeTruthy();
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain('absolute inset-0');
+  });
+});
+
+describe('ClassLeaderboard overlay', () => {
+  it('caps and scrolls long rosters inside the stage', () => {
+    mockState.students = Array.from({ length: 30 }, (_, i) => ({
+      id: `s${i}`, name: `Student ${i}`, points: 100 - i, avatar: '',
+    }));
+    try {
+      const { container } = render(<ClassLeaderboard />);
+      const list = container.querySelector('.space-y-2') as HTMLElement;
+      expect(list.className).toContain('max-h-[');
+      expect(list.className).toContain('overflow-y-auto');
+    } finally {
+      mockState.students = [
+        { id: 's1', name: 'Alice', points: 100, avatar: '' },
+        { id: 's2', name: 'Bob', points: 50, avatar: '' },
+      ];
+    }
   });
 });

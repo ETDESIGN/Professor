@@ -33,7 +33,7 @@ const ClassLeaderboard: React.FC = () => {
         <Trophy className="text-yellow-400" size={44} /> Class Leaderboard
       </h1>
 
-      <div className="w-full max-w-2xl space-y-2">
+      <div className="w-full max-w-2xl space-y-2 max-h-[520px] overflow-y-auto pr-2">
         {ranked.map((s, i) => {
           const top3 = i < 3;
           return (
