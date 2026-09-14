@@ -223,7 +223,7 @@ const QuickWheelOverlay: React.FC = () => {
           initial={{ scale: 0.7, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           transition={{ type: 'spring', stiffness: 220, damping: 20 }}
-          className="relative w-[min(94vw,860px)] rounded-[32px] flex flex-col items-center px-6 py-5 overflow-hidden"
+          className="relative w-[860px] rounded-[32px] flex flex-col items-center px-6 py-5 overflow-hidden"
           style={{
             background: 'linear-gradient(to bottom, #19224d, #101738)',
             border: '6px solid #ffbd58',
@@ -261,7 +261,7 @@ const QuickWheelOverlay: React.FC = () => {
         </div>
 
         {/* ── Wheel assembly: flapper + rim + rotating body + hub ── */}
-        <div className="relative flex items-center justify-center my-1" style={{ width: 'min(56vmin, 480px)', height: 'min(56vmin, 480px)' }}>
+        <div className="relative flex items-center justify-center my-1" style={{ width: '480px', height: '480px' }}>
           {/* 12 o'clock gold flapper */}
           <div ref={flapperRef} className="absolute -top-5 left-1/2 -translate-x-1/2 z-30 origin-top" style={{ filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.6))' }}>
             <svg width="44" height="52" viewBox="0 0 56 64" fill="none">
@@ -385,7 +385,7 @@ const QuickWheelOverlay: React.FC = () => {
             >
             {/* Modal card with radiating sunburst */}
             <div
-              className="relative w-[min(92vw,720px)] rounded-3xl px-6 py-7 md:p-9 flex flex-col items-center overflow-hidden"
+              className="relative w-[720px] rounded-3xl p-9 flex flex-col items-center overflow-hidden"
               style={{
                 background: 'linear-gradient(to bottom, #19224d, #101738)',
                 border: '6px solid #ffbd58',

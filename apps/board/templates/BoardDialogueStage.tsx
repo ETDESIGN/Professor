@@ -583,7 +583,7 @@ const BoardDialogueStage = ({ data }: { data: any }) => {
             className="absolute inset-0 flex flex-col items-center justify-center px-8">
             <h2 className="font-display text-3xl font-black text-sky-300 mb-4">🎭 Role Read</h2>
             {/* Show all lines with assigned student names */}
-            <div className="max-w-3xl w-full space-y-3 max-h-[60vh] overflow-y-auto">
+            <div className="max-w-3xl w-full space-y-3 max-h-[432px] overflow-y-auto">
               {lines.map((line, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black shrink-0"

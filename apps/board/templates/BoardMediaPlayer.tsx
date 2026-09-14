@@ -252,7 +252,7 @@ const BoardMediaPlayer: React.FC<{ data: any }> = ({ data }) => {
       </header>
 
       {/* MAIN STAGE */}
-      <main className="flex-1 w-full max-h-[calc(100vh-100px)] min-h-0 p-3 lg:p-5 overflow-hidden flex flex-col justify-center relative">
+      <main className="flex-1 w-full max-h-full min-h-0 p-3 lg:p-5 overflow-hidden flex flex-col justify-center relative">
         {hasPlayableMedia ? (
           /* PLAYABLE MEDIA STATE (Video or Audio) */
           <div className="w-full h-full grid grid-cols-12 gap-4 lg:gap-6 min-h-0">

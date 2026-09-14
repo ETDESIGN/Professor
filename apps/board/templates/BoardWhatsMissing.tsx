@@ -816,7 +816,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
             )
           ) : (
             /* What's Missing Grid (4-8 items) */
-            <div className={`grid gap-3 sm:gap-6 w-full max-w-6xl max-h-[70vh] wm-card-grid ${
+            <div className={`grid gap-3 sm:gap-6 w-full max-w-6xl max-h-[504px] wm-card-grid ${
               grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-2 sm:grid-cols-4'
             }`}>
               {grid.map((item, i) => (
@@ -855,7 +855,7 @@ const BoardWhatsMissing = ({ data, mode = 'whats_missing' }: { data: any; mode?:
             )
           ) : (
             /* What's Missing: Grid with missing aperture */
-            <div className={`grid gap-2.5 sm:gap-4 w-full max-h-[55vh] wm-card-grid ${
+            <div className={`grid gap-2.5 sm:gap-4 w-full max-h-[396px] wm-card-grid ${
               grid.length <= 4 ? 'grid-cols-2 max-w-3xl' : 'grid-cols-2 sm:grid-cols-4 max-w-6xl'
             }`}>
               {grid.map((item, i) => {
