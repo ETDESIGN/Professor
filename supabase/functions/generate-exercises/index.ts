@@ -353,15 +353,68 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
   const canReserve = pairs.length >= MIN_PAIRS_TO_RESERVE;
   const buildablePairs = canReserve ? pairs.slice(0, pairs.length - 1) : pairs;
 
+  // GRAMMAR SYSTEM REDESIGN Stage 1 (approved 2026-09-15): TRANSFORM
+  // distractors were sibling pairs' WHOLE target sentences (audit §4.3.2 —
+  // unrelated sentences findable by topic word, zero grammar). Near-miss
+  // now: the target with its CUE word (the word the transformation adds or
+  // changes vs the original) swapped for other pairs' cue words, plus
+  // single-transform inflection variants. Same-stem options only.
+  // single-transform inflection variants (no composed forms — those produce
+  // nonsense like "doed"); shared by TRANSFORM near-misses below.
+  const inflectionVariants = (w: string): string[] => {
+    const lw = w.toLowerCase();
+    const out: string[] = [];
+    const pv = (v: string) => { if (v && v !== w && v.length > 1) out.push(v); };
+    if (lw.endsWith('ies')) pv(w.slice(0, -3) + 'y');
+    else if (lw.endsWith('es')) pv(w.slice(0, -2));
+    else if (lw.endsWith('s') && !lw.endsWith('ss')) pv(w.slice(0, -1));
+    if (lw.endsWith('e')) { pv(w + 'd'); pv(w.slice(0, -1) + 'ing'); pv(w + 's'); }
+    else if (lw.length > 2 && !lw.endsWith('s')) { pv(w + 's'); pv(w + 'ed'); pv(w + 'ing'); }
+    return [...new Set(out)];
+  };
+  const CUE_STOP = new Set(['i', 'you', 'he', 'she', 'it', 'we', 'they', 'do', 'does', 'did', 'is', 'are', 'was', 'were', 'a', 'an', 'the', 'my', 'your', 'his', 'her']);
+  const cueWordOf = (o: string, t: string): string => {
+    const O = new Set(o.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(Boolean));
+    const T = t.replace(/[^A-Za-z\s]/g, '').split(/\s+/).filter(Boolean);
+    const fresh = T.filter((w) => !O.has(w.toLowerCase()));
+    // The pedagogical cue is the MEANING word the transformation adds — an
+    // adverb ("never/always/sometimes") first, then any non-pronoun/auxiliary
+    // new word; never the swapped subject ("I"/"She").
+    const adverb = fresh.find((w) => w.toLowerCase().endsWith('ly'));
+    if (adverb) return adverb;
+    const content = fresh.find((w) => !CUE_STOP.has(w.toLowerCase()) && w.length > 2);
+    return content || fresh[fresh.length - 1] || T[T.length - 1] || '';
+  };
   for (const p of buildablePairs) {
     const original = String(p?.original || '');
     const transformed = String(p?.transformed || '');
     if (!original || !transformed) continue;
-    // Distractors drawn ONLY from buildablePairs — the reserved pair's
-    // `transformed` text never appears, so rung 4's answer can't leak early.
-    const distractors = buildablePairs.filter((x) => String(x?.transformed) && String(x.transformed) !== transformed).map((x) => String(x.transformed));
-    const c = buildChoices(transformed, distractors, Math.min(4, distractors.length + 1));
-    push('TRANSFORM', { prompt_sentence: original, instruction: rule, ...c });
+    const cue = cueWordOf(original, transformed);
+    const T = transformed.split(/\s+/);
+    const cueIdx = cue ? T.findIndex((w) => w === cue) : -1;
+    const nearMiss = new Set<string>();
+    if (cue && cueIdx >= 0) {
+      for (const p2 of buildablePairs) {
+        if (p2 === p) continue;
+        const cue2 = cueWordOf(String(p2?.original || ''), String(p2?.transformed || ''));
+        if (cue2 && cue2 !== cue) { const cand = [...T]; cand[cueIdx] = cue2; nearMiss.add(cand.join(' ')); }
+      }
+      // Inflection filler only when sibling cues couldn't fill the set —
+      // composed/adverb mutations ("sometim", "Shed") read as nonsense.
+      if (nearMiss.size < 2 && cue.length > 3 && !cue.toLowerCase().endsWith('ly')) {
+        for (const v of inflectionVariants(cue)) { const cand = [...T]; cand[cueIdx] = v; nearMiss.add(cand.join(' ')); }
+      }
+    }
+    // Filler when the rule has a single pair: same-stem grammar mutations.
+    const list = [...nearMiss].filter((s) => s !== transformed && s !== original).slice(0, 3);
+    if (list.length < 2) {
+      for (const m of dedupeDistinct(transformed, grammarMutations(transformed))) {
+        if (list.length >= 3) break;
+        if (m !== transformed && m !== original) list.push(m);
+      }
+    }
+    const c = buildChoices(transformed, list, Math.min(4, list.length + 1));
+    push('TRANSFORM', { prompt_sentence: original, instruction: rule, ...(cue ? { cue } : {}), ...c });
   }
 
   // WORD_BANK_BUILD — assemble an example sentence.
@@ -379,20 +432,30 @@ function buildGrammarItems(unitId: string, objectiveId: string, g: any, siblingW
   // paired the abstract pattern_template with UNRELATED error sentences
   // ("they must wear helmet" → options about books/stoves). ≥2 distinct
   // distractors or the item is skipped.
-  const correctSentence = pairs.length > 0 ? String(pairs[0]?.transformed || '') : (examples.length > 0 ? String(examples[0]) : '');
-  if (correctSentence) {
-    const pairOriginal = pairs.length > 0 ? String(pairs[0]?.original || '') : '';
-    const correctNorm = normalizeForDedupe(correctSentence);
-    const list = dedupeDistinct(correctSentence, [
-      ...(pairOriginal ? [pairOriginal] : []),
-      ...grammarMutations(correctSentence),
+  // GRAMMAR SYSTEM REDESIGN Stage 1 (approved 2026-09-15): ONE item per
+  // buildable pair (was pairs[0] only — starved the micro-quiz), and
+  // sentence_with_blank is now a REAL cloze (the target with its cue word
+  // blanked) instead of the abstract pattern formula; blank_answer carries
+  // the cue for word-level UIs. Options stay same-stem sentences.
+  const fillSources = buildablePairs.length > 0
+    ? buildablePairs.slice(0, 3).map((p: any) => ({ orig: String(p?.original || ''), corr: String(p?.transformed || '') }))
+    : (examples.length > 0 ? [{ orig: '', corr: String(examples[0]) }] : []);
+  for (const { orig, corr } of fillSources) {
+    if (!corr) continue;
+    const cue = cueWordOf(orig, corr);
+    const blanked = cue && corr.includes(cue) ? corr.replace(cue, '____') : corr;
+    const correctNorm = normalizeForDedupe(corr);
+    const list = dedupeDistinct(corr, [
+      ...(orig ? [orig] : []),
+      ...grammarMutations(corr),
       ...errors.map((e) => String(e?.wrong || '')), // same-sentence wrongs survive; unrelated ones face the AI gate
     ]).filter((d) => normalizeForDedupe(d) !== correctNorm).slice(0, 3);
     if (list.length >= 2) {
-      const c = buildChoices(correctSentence, list, Math.min(4, list.length + 1));
+      const c = buildChoices(corr, list, Math.min(4, list.length + 1));
       push('GRAMMAR_FILL', {
         rule_name: rule,
-        sentence_with_blank: g?.pattern_template || '',
+        sentence_with_blank: blanked,
+        ...(cue ? { blank_answer: cue } : {}),
         ...c,
         explanation: g?.explanation,
       });
