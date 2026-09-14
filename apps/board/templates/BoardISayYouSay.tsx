@@ -7,7 +7,7 @@
 //      Teacher-paced, honest unscored practice mode.
 //
 // Stitch Redesign (2026-09-11):
-//   - Clean 16:9 studio aesthetic with safe top-left HUD clearance (pl-28 lg:pl-44).
+//   - Clean 16:9 studio aesthetic with safe top-left HUD clearance (pl-44).
 //   - Explicit word spacing around highlighted target tokens (eliminating "Thetractoris" bug).
 //   - Unified single prominent audio replay button (with SPACE shortcut).
 //   - Full remote/commander Replay wiring (fixes dead remote Replay button).
@@ -441,7 +441,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
   return (
     <div
       ref={containerRef}
-      className="h-full w-full bg-[#070c18] text-[#f1f5f9] font-sans flex flex-col justify-between select-none overflow-hidden relative antialiased p-4 lg:p-6"
+      className="h-full w-full bg-[#070c18] text-[#f1f5f9] font-sans flex flex-col justify-between select-none overflow-hidden relative antialiased p-6"
     >
       {/* Subtle ambient background glow & grid */}
       <div className="absolute inset-0 pointer-events-none opacity-25">
@@ -457,9 +457,9 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
       </div>
 
       {/* TOP BAR: Projector HUD with safe 180px+ clearance for BoardShell's • PRACTICE badge */}
-      <header className="relative z-20 w-full flex items-center justify-between h-12 lg:h-14 shrink-0">
+      <header className="relative z-20 w-full flex items-center justify-between h-14 shrink-0">
         {/* Left Cluster: Safe overscan padding */}
-        <div className="flex items-center gap-3 pl-28 lg:pl-44 min-w-0">
+        <div className="flex items-center gap-3 pl-44 min-w-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#111c3d]/90 border border-[#1e2d5a] shadow-sm shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] animate-pulse" />
             <span className="font-mono text-xs font-bold tracking-wider text-[#38bdf8] uppercase">
@@ -467,7 +467,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
             </span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0b132b] border border-[#1e2d5a] shrink-0">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-[#0b132b] border border-[#1e2d5a] shrink-0">
             <span className="w-6 h-6 rounded-md bg-[#ff2e79] flex items-center justify-center font-extrabold text-xs text-white shadow-[0_0_10px_rgba(255,46,121,0.5)]">
               IS
             </span>
@@ -476,7 +476,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
 
           {/* Picked Student chip (when present) */}
           {pickedStudent && (
-            <div className="hidden md:flex items-center gap-2 bg-gradient-to-r from-[#111c3d] to-[#1a2952] border border-[#38bdf8] rounded-full pl-1.5 pr-3 py-0.5 shadow-[0_0_12px_rgba(56,189,248,0.25)] shrink-0">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-[#111c3d] to-[#1a2952] border border-[#38bdf8] rounded-full pl-1.5 pr-3 py-0.5 shadow-[0_0_12px_rgba(56,189,248,0.25)] shrink-0">
               <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center font-extrabold text-[10px] text-[#070c18]">
                 {pickedStudent.name?.[0]?.toUpperCase() || 'S'}
               </div>
@@ -489,7 +489,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
 
         {/* Right Cluster: Audio HUD & Controls */}
         <div className="flex items-center gap-2 shrink-0 pr-2">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] font-mono text-xs font-semibold">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] font-mono text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping" />
             <span>CLASSROOM MIC</span>
           </div>
@@ -514,12 +514,12 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
       </header>
 
       {/* MAIN CONTENT ARENA */}
-      <main className="relative z-10 w-full flex-1 flex flex-col items-center justify-center max-w-6xl mx-auto my-auto min-h-0 px-2 lg:px-4">
+      <main className="relative z-10 w-full flex-1 flex flex-col items-center justify-center max-w-6xl mx-auto my-auto min-h-0 px-4">
         {shellPhase === 'discrimination' && discriminationItems.length > 0 ? (
           /* ========================================================================= */
           /* PHASE 1: MINIMAL PAIR SOUND CHECK                                         */
           /* ========================================================================= */
-          <div className="w-full bg-[#0b132b] border-2 border-[#1e2d5a] rounded-3xl p-6 lg:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col items-center justify-center">
+          <div className="w-full bg-[#0b132b] border-2 border-[#1e2d5a] rounded-3xl p-10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col items-center justify-center">
             {/* Clue Tag */}
             <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#111c3d] border border-[#38bdf8]/30 mb-6 shadow-inner">
               <Volume2 size={16} className="text-[#38bdf8]" />
@@ -532,23 +532,23 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
             <div className="flex flex-col items-center gap-2 mb-6">
               <button
                 onClick={playCurrentAudio}
-                className="relative group w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-[#111c3d] border-2 border-[#38bdf8]/60 hover:border-[#38bdf8] flex items-center justify-center shadow-[0_0_35px_rgba(56,189,248,0.25)] hover:shadow-[0_0_50px_rgba(56,189,248,0.5)] active:scale-95 transition duration-200"
+                className="relative group w-28 h-28 rounded-full bg-[#111c3d] border-2 border-[#38bdf8]/60 hover:border-[#38bdf8] flex items-center justify-center shadow-[0_0_35px_rgba(56,189,248,0.25)] hover:shadow-[0_0_50px_rgba(56,189,248,0.5)] active:scale-95 transition duration-200"
                 title="Tap to play sound (Spacebar)"
               >
                 <div className="absolute inset-0 rounded-full bg-[#38bdf8]/20 animate-ping opacity-40" />
-                <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-br from-[#38bdf8] to-sky-600 flex items-center justify-center text-slate-950 shadow-lg">
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#38bdf8] to-sky-600 flex items-center justify-center text-slate-950 shadow-lg">
                   <Volume2 size={36} className="translate-x-0.5 text-[#070c18]" />
                 </div>
                 <span className="absolute -bottom-2.5 px-2 py-0.5 rounded-md bg-[#070c18] border border-[#1e2d5a] text-[10px] font-mono font-bold text-[#38bdf8] uppercase tracking-wider">
                   SPACE
                 </span>
               </button>
-              <p className="text-slate-400 text-xs lg:text-sm font-mono mt-1">Tap speaker or press Space to listen</p>
+              <p className="text-slate-400 text-sm font-mono mt-1">Tap speaker or press Space to listen</p>
             </div>
 
             {/* Minimal Pair Option Cards */}
             {discriminationItems[discIdx] && (
-              <div className="w-full max-w-2xl grid grid-cols-2 gap-4 lg:gap-6">
+              <div className="w-full max-w-2xl grid grid-cols-2 gap-6">
                 {discriminationItems[discIdx].options.map((opt, i) => {
                   const item = discriminationItems[discIdx];
                   const isCorrect = i === item.correctIndex;
@@ -565,7 +565,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
                       key={i}
                       onClick={() => !revealed && onDiscriminationAnswer(i)}
                       disabled={revealed}
-                      className={`h-36 sm:h-44 lg:h-52 rounded-2xl lg:rounded-3xl border-2 lg:border-4 text-2xl sm:text-3xl lg:text-4xl font-extrabold flex items-center justify-center transition-all shadow-xl active:scale-95 ${
+                      className={`h-52 rounded-3xl border-4 text-4xl font-extrabold flex items-center justify-center transition-all shadow-xl active:scale-95 ${
                         state_ === 'correct'
                           ? 'bg-[#10b981]/20 border-[#10b981] text-[#34d399] shadow-[0_0_30px_rgba(16,185,129,0.35)]'
                           : state_ === 'wrong'
@@ -598,11 +598,11 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
           /* ========================================================================= */
           /* CHORAL DRILL COMPLETE CELEBRATION CARD                                    */
           /* ========================================================================= */
-          <div className="w-full max-w-2xl bg-[#0b132b] border-2 border-[#10b981] rounded-3xl p-8 lg:p-12 text-center shadow-[0_0_50px_rgba(16,185,129,0.3)] flex flex-col items-center">
+          <div className="w-full max-w-2xl bg-[#0b132b] border-2 border-[#10b981] rounded-3xl p-12 text-center shadow-[0_0_50px_rgba(16,185,129,0.3)] flex flex-col items-center">
             <div className="w-20 h-20 rounded-full bg-[#10b981]/20 border-2 border-[#10b981] flex items-center justify-center text-[#10b981] shadow-[0_0_30px_#10b981] mb-5">
               <CheckCircle2 size={44} />
             </div>
-            <h2 className="font-extrabold text-3xl lg:text-4xl text-white mb-2">
+            <h2 className="font-extrabold text-4xl text-white mb-2">
               Speaking Practice Complete! 🌟
             </h2>
             <p className="text-base text-[#38bdf8] font-mono mb-6">
@@ -620,9 +620,9 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
           /* ========================================================================= */
           /* PHASE 2: CHORAL ECHO DRILL (Stitch 1-choral.html & 2-solo.html)           */
           /* ========================================================================= */
-          <div className="w-full bg-[#0b132b] border-2 border-[#1e2d5a] rounded-3xl p-6 lg:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col items-center">
+          <div className="w-full bg-[#0b132b] border-2 border-[#1e2d5a] rounded-3xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col items-center">
             {/* Context / Prompt Tag */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#111c3d] border border-[#38bdf8]/30 mb-4 lg:mb-6 shadow-inner">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#111c3d] border border-[#38bdf8]/30 mb-6 shadow-inner">
               <Radio size={16} className="text-[#38bdf8]" />
               <span className="font-mono text-xs font-bold tracking-widest text-slate-300 uppercase">
                 {choralStage === 'whole_first'
@@ -634,15 +634,15 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
             </div>
 
             {/* THE GIANT DISPLAY SENTENCE LINE WITH EXACTLY ONE REPLAY BUTTON */}
-            <div className="w-full flex items-center justify-center gap-5 lg:gap-8 my-2 lg:my-4">
+            <div className="w-full flex items-center justify-center gap-8 my-4">
               {/* Single Circular Replay Button */}
               <button
                 onClick={playCurrentAudio}
-                className="relative group flex-shrink-0 w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-[#111c3d] border-2 border-[#38bdf8]/60 hover:border-[#38bdf8] flex items-center justify-center shadow-[0_0_35px_rgba(56,189,248,0.25)] hover:shadow-[0_0_50px_rgba(56,189,248,0.5)] active:scale-95 transition duration-200"
+                className="relative group flex-shrink-0 w-24 h-24 rounded-full bg-[#111c3d] border-2 border-[#38bdf8]/60 hover:border-[#38bdf8] flex items-center justify-center shadow-[0_0_35px_rgba(56,189,248,0.25)] hover:shadow-[0_0_50px_rgba(56,189,248,0.5)] active:scale-95 transition duration-200"
                 title="Play Audio (Spacebar)"
               >
                 <div className="absolute inset-0 rounded-full bg-[#38bdf8]/20 animate-ping opacity-40" />
-                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-gradient-to-br from-[#38bdf8] to-sky-600 flex items-center justify-center text-slate-950 shadow-lg">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#38bdf8] to-sky-600 flex items-center justify-center text-slate-950 shadow-lg">
                   <Volume2 size={32} className="text-[#070c18]" />
                 </div>
                 <span className="absolute -bottom-2 px-1.5 py-0.5 rounded bg-[#070c18] border border-[#1e2d5a] text-[9px] font-mono font-bold text-[#38bdf8] uppercase">
@@ -652,7 +652,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
 
               {/* SENTENCE LINE: Explicit word spacing around highlighted target tokens */}
               {/* P1 Fix (§4.a, §4.e 1): Words are discrete flex tokens with gap-x-4, NEVER fused! */}
-              <div className="flex items-center flex-wrap justify-center gap-x-3 sm:gap-x-4 lg:gap-x-5 gap-y-2 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-none">
+              <div className="flex items-center flex-wrap justify-center gap-x-5 gap-y-2 text-6xl font-extrabold tracking-tight text-white leading-none">
                 {currentDisplayText.split(' ').map((word, i) => {
                   const cleanWord = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
                   const targetClean = (currentChoralItem?.word || '').replace(/[^a-zA-Z]/g, '').toLowerCase();
@@ -662,7 +662,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
                     return (
                       <span
                         key={i}
-                        className="inline-flex items-center px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-2xl bg-[#38bdf8]/15 border-2 border-[#38bdf8] text-[#38bdf8] shadow-[0_0_30px_rgba(56,189,248,0.4)] tracking-tight"
+                        className="inline-flex items-center px-6 py-2.5 rounded-2xl bg-[#38bdf8]/15 border-2 border-[#38bdf8] text-[#38bdf8] shadow-[0_0_30px_rgba(56,189,248,0.4)] tracking-tight"
                       >
                         {word}
                       </span>
@@ -683,7 +683,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
 
             {/* Target Word IPA / Guidance (when word emphasis exists) */}
             {currentChoralItem?.word && (
-              <div className="flex items-center gap-2 text-slate-400 font-mono text-xs sm:text-sm mt-2 mb-4">
+              <div className="flex items-center gap-2 text-slate-400 font-mono text-sm mt-2 mb-4">
                 <span className="text-slate-500">Target word:</span>
                 <span className="px-2.5 py-0.5 rounded-md bg-[#111c3d] border border-[#1e2d5a] text-[#38bdf8] font-bold">
                   {currentChoralItem.word}
@@ -694,7 +694,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
             {/* ROLE STRIP: Solo Repeat (Stitch 2-solo) or Choral Repeat (Stitch 1-choral) */}
             {pickedStudent ? (
               /* Solo Mode Strip */
-              <div className="w-full max-w-3xl flex items-center justify-between gap-4 p-3 sm:p-4 rounded-2xl bg-[#070c18]/90 border border-[#1e2d5a] shadow-inner">
+              <div className="w-full max-w-3xl flex items-center justify-between gap-4 p-4 rounded-2xl bg-[#070c18]/90 border border-[#1e2d5a] shadow-inner">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[#070c18] font-extrabold text-xl shadow-md shrink-0">
                     {pickedStudent.name?.[0]?.toUpperCase() || 'S'}
@@ -703,7 +703,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
                     <span className="px-2 py-0.5 rounded-full bg-[#ff2e79]/20 text-[#ff2e79] font-mono text-[10px] uppercase font-bold tracking-wider">
                       SOLO ECHO
                     </span>
-                    <h3 className="font-extrabold text-sm sm:text-base text-white">
+                    <h3 className="font-extrabold text-base text-white">
                       {pickedStudent.name}, repeat clearly!
                     </h3>
                   </div>
@@ -720,7 +720,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
               </div>
             ) : (
               /* Choral Two-Step Flow Strip */
-              <div className="w-full max-w-3xl flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-[#070c18]/90 border border-[#1e2d5a] shadow-inner">
+              <div className="w-full max-w-3xl flex items-center justify-between gap-4 p-4 rounded-2xl bg-[#070c18]/90 border border-[#1e2d5a] shadow-inner">
                 {/* Step 1 */}
                 <div className="flex-1 flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl bg-[#ff2e79]/15 border border-[#ff2e79]/40">
                   <span className="text-[#ff2e79] font-bold text-xs font-mono">1. TEACHER SAYS</span>
@@ -738,7 +738,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
 
       {/* BOTTOM ACTION BAR */}
       {/* P1 Fix (§4.a, §4.e 4): Roomy pb-6 clearance, button never clipped by bezel */}
-      <footer className="relative z-20 w-full flex items-center justify-between pt-2 pb-4 lg:pb-6 px-2 lg:px-4 shrink-0 border-t border-[#1e2d5a]/60">
+      <footer className="relative z-20 w-full flex items-center justify-between pt-2 pb-6 px-4 shrink-0 border-t border-[#1e2d5a]/60">
         {/* Left: Progress Track */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -776,7 +776,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
         </div>
 
         {/* Center: Teacher Cue Hint */}
-        <div className="hidden lg:flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#0b132b] border border-[#1e2d5a] text-slate-300 text-xs">
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-[#0b132b] border border-[#1e2d5a] text-slate-300 text-xs">
           <Sparkles size={14} className="text-amber-400" />
           <span>
             {shellPhase === 'discrimination'
@@ -791,7 +791,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
             revealed && (
               <button
                 onClick={advanceDiscrimination}
-                className="flex items-center gap-2 px-6 lg:px-8 py-2.5 lg:py-3 rounded-2xl bg-[#ff2e79] hover:bg-[#ff2e79]/90 text-white font-extrabold text-sm lg:text-base shadow-[0_0_24px_rgba(255,46,121,0.5)] transition-all active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-[#ff2e79] hover:bg-[#ff2e79]/90 text-white font-extrabold text-base shadow-[0_0_24px_rgba(255,46,121,0.5)] transition-all active:scale-95 cursor-pointer"
               >
                 <span>{discIdx < discriminationItems.length - 1 ? 'Next Sound' : 'Speaking Practice'}</span>
                 <ChevronRight size={18} />
@@ -801,7 +801,7 @@ const BoardISayYouSay: React.FC<{ data?: any }> = ({ data }) => {
             !isChoralComplete && (
               <button
                 onClick={advanceChoral}
-                className="flex items-center gap-2 px-6 lg:px-8 py-2.5 lg:py-3 rounded-2xl bg-[#ff2e79] hover:bg-[#ff2e79]/90 text-white font-extrabold text-sm lg:text-base shadow-[0_0_24px_rgba(255,46,121,0.5)] transition-all active:scale-95 cursor-pointer"
+                className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-[#ff2e79] hover:bg-[#ff2e79]/90 text-white font-extrabold text-base shadow-[0_0_24px_rgba(255,46,121,0.5)] transition-all active:scale-95 cursor-pointer"
               >
                 <span>
                   {choralStage === 'whole_second' && choralIdx >= choralItems.length - 1

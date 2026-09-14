@@ -452,14 +452,14 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
   const phaseLabel = round.kind === 'ERROR_SPOT' ? 'Spot the Error' : round.kind === 'TRANSFORM' ? 'Transform the Sentence' : 'Produce Freely';
 
   return (
-    <div className="h-full w-full bg-[#0A0F1D] text-white flex flex-col p-4 sm:p-6 lg:p-8 relative overflow-hidden select-none gf-container">
+    <div className="h-full w-full bg-[#0A0F1D] text-white flex flex-col p-8 relative overflow-hidden select-none gf-container">
       {/* Ambient cyber gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-[#0A0F1D] to-[#0A0F1D] pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 sm:mb-6 relative z-10 gf-header">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-lg ${
+      <div className="flex items-center justify-between mb-6 relative z-10 gf-header">
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
             round.kind === 'ERROR_SPOT' ? 'bg-rose-500 shadow-rose-950/50' :
             round.kind === 'TRANSFORM' ? 'bg-cyan-500 shadow-cyan-950/50' :
             'bg-purple-600 shadow-purple-950/50'
@@ -467,7 +467,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
             <Zap size={26} className="text-white" />
           </div>
           <div>
-            <div className="text-xs sm:text-sm font-black tracking-widest uppercase flex items-center gap-2">
+            <div className="text-sm font-black tracking-widest uppercase flex items-center gap-2">
               <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
                 round.kind === 'ERROR_SPOT' ? 'bg-rose-950/80 border border-rose-500/50 text-rose-300' :
                 round.kind === 'TRANSFORM' ? 'bg-cyan-950/80 border border-cyan-500/50 text-cyan-300' :
@@ -477,10 +477,10 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
               </span>
               <span className="text-slate-400">Grammar Forge</span>
             </div>
-            <div className="text-xl sm:text-3xl font-black text-white gf-title flex items-center gap-3">
+            <div className="text-3xl font-black text-white gf-title flex items-center gap-3">
               <span>{phaseLabel}</span>
               {pickedStudent && (
-                <span className="text-xs sm:text-sm font-bold bg-amber-400/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <span className="text-sm font-bold bg-amber-400/20 border border-amber-400/40 text-amber-300 px-3 py-1 rounded-full flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                   {pickedStudent.name}'s Turn
                 </span>
@@ -488,7 +488,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
             </div>
           </div>
         </div>
-        <div className="text-slate-400 font-mono text-lg sm:text-2xl font-bold bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-xl shadow-inner">
+        <div className="text-slate-400 font-mono text-2xl font-bold bg-slate-900/80 border border-slate-800 px-4 py-1.5 rounded-xl shadow-inner">
           <span className="text-cyan-400">{roundIndex + 1}</span> / {rounds.length}
         </div>
       </div>
@@ -522,8 +522,8 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
       )}
 
       {/* Footer controls */}
-      <div className="flex items-center justify-between mt-4 sm:mt-6 relative z-10 border-t border-slate-800/60 pt-3 sm:pt-4 gf-footer">
-        <div className="text-xs text-slate-500 hidden sm:block">
+      <div className="flex items-center justify-between mt-6 relative z-10 border-t border-slate-800/60 pt-4 gf-footer">
+        <div className="text-xs text-slate-500 block">
           {round.kind === 'ERROR_SPOT' ? 'Keyboard: 1-4 or A-D to choose' :
            round.kind === 'TRANSFORM' ? 'Keyboard: Space or Enter to check' :
            'Keyboard: 1 (✗), 2 (~), 3 (✓)'}
@@ -534,7 +534,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
             <button
               onClick={checkTransform}
               disabled={placed.length < round.targetTiles.length}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-base sm:text-xl px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl shadow-lg shadow-indigo-950/50 active:scale-95 transition-all disabled:opacity-40 flex items-center gap-2 gf-btn"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xl px-8 py-3.5 rounded-2xl shadow-lg shadow-indigo-950/50 active:scale-95 transition-all disabled:opacity-40 flex items-center gap-2 gf-btn"
             >
               <Check size={20} /> Check Answer
             </button>
@@ -544,11 +544,11 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
             <>
               <button
                 onClick={() => setScoringMode((m) => m === 'choral' ? 'picked' : 'choral')}
-                className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-800 transition-colors gf-btn"
+                className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 font-bold text-sm hover:bg-slate-800 transition-colors gf-btn"
               >
                 Mode: {scoringMode === 'choral' ? '👥 Choral' : '🎯 Picked Student'}
               </button>
-              <span className="text-slate-400 text-xs sm:text-sm hidden md:inline">Rate production:</span>
+              <span className="text-slate-400 text-sm inline">Rate production:</span>
               <button onClick={() => onProduceRating('incorrect')} className="px-4 py-2.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-300 font-bold hover:bg-rose-900/80 transition-all gf-btn">✗ Incorrect</button>
               <button onClick={() => onProduceRating('partial')} className="px-4 py-2.5 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold hover:bg-amber-900/80 transition-all gf-btn">~ Partial</button>
               <button onClick={() => onProduceRating('correct')} className="px-4 py-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 font-bold hover:bg-emerald-900/80 transition-all gf-btn">✓ Correct</button>
@@ -558,7 +558,7 @@ const BoardGrammarForge: React.FC<{ data?: any }> = ({ data }) => {
           {outcome && (
             <button
               onClick={advanceRound}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg sm:text-xl px-8 sm:px-10 py-3 sm:py-3.5 rounded-2xl shadow-lg shadow-indigo-950/50 active:scale-95 transition-all flex items-center gap-2 gf-btn animate-bounce-subtle"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xl px-10 py-3.5 rounded-2xl shadow-lg shadow-indigo-950/50 active:scale-95 transition-all flex items-center gap-2 gf-btn animate-bounce-subtle"
             >
               {roundIndex >= rounds.length - 1 ? 'Complete Slide' : 'Next Round'} <ArrowRight size={22} />
             </button>
@@ -587,15 +587,15 @@ const ErrorSpotView: React.FC<{
 
   return (
     <>
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-4 sm:mb-6 shadow-2xl gf-prompt-card">
-        <div className="text-rose-400 font-bold text-sm sm:text-base mb-2 flex items-center gap-2">
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 mb-6 shadow-2xl gf-prompt-card">
+        <div className="text-rose-400 font-bold text-base mb-2 flex items-center gap-2">
           <Zap size={18} />
           <span>{isFix ? 'Sentence with mistake — choose the correct word to fix it:' : 'Spot the wrong word in this sentence:'}</span>
         </div>
-        <p className="text-white text-2xl sm:text-4xl font-black leading-snug gf-sentence">{round.sentence}</p>
+        <p className="text-white text-4xl font-black leading-snug gf-sentence">{round.sentence}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 flex-1 content-start gf-options-grid">
+      <div className="grid grid-cols-2 gap-4 flex-1 content-start gf-options-grid">
         {round.options.map((opt, i) => {
           const isCorrect = i === round.correctIndex;
           const state = revealed ? (isCorrect ? 'correct' : outcome === 'incorrect' ? 'wrong' : 'dim') : 'idle';
@@ -604,7 +604,7 @@ const ErrorSpotView: React.FC<{
               key={i}
               onClick={() => !revealed && onAnswer(i)}
               disabled={revealed}
-              className={`rounded-2xl p-4 sm:p-5 border-2 text-lg sm:text-2xl font-bold transition-all text-left flex items-center justify-between gf-option-btn ${
+              className={`rounded-2xl p-5 border-2 text-2xl font-bold transition-all text-left flex items-center justify-between gf-option-btn ${
                 state === 'correct' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-lg shadow-emerald-950/50' :
                 state === 'wrong' ? 'bg-rose-950/80 border-rose-500 text-rose-300 shadow-lg shadow-rose-950/50' :
                 state === 'dim' ? 'bg-slate-900/40 border-slate-800/60 text-slate-500 opacity-60' :
@@ -628,7 +628,7 @@ const ErrorSpotView: React.FC<{
       </div>
 
       {revealed && round.explanation && (
-        <div className="mt-3 sm:mt-4 bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 sm:p-4 text-indigo-200 text-sm sm:text-base flex items-start gap-2.5 animate-fade-in">
+        <div className="mt-4 bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-4 text-indigo-200 text-base flex items-start gap-2.5 animate-fade-in">
           <Lightbulb size={20} className="text-amber-400 shrink-0 mt-0.5" />
           <div>
             <strong className="text-indigo-300 font-bold">Explanation:</strong> {round.explanation}
@@ -653,22 +653,22 @@ const TransformView: React.FC<{
 }> = ({ round, placed, tray, outcome, onTileTap, onPlacedTap, swapHint, wrongIdx }) => (
   <>
     {/* Reference line (the original sentence to transform) */}
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-3 sm:mb-5 gf-prompt-card">
-      <div className="text-cyan-400 font-bold text-xs sm:text-sm uppercase tracking-widest mb-1 flex items-center gap-2">
+    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-5 gf-prompt-card">
+      <div className="text-cyan-400 font-bold text-sm uppercase tracking-widest mb-1 flex items-center gap-2">
         <Zap size={16} />
         <span>{round.instruction} — transform:</span>
       </div>
-      <p className="text-white text-xl sm:text-3xl font-bold gf-sentence">{round.promptSentence}</p>
+      <p className="text-white text-3xl font-bold gf-sentence">{round.promptSentence}</p>
     </div>
 
     {/* Drop zone (the placed tiles = the student's transformed sentence) */}
-    <div className={`bg-slate-950/80 rounded-2xl sm:rounded-3xl border-2 border-dashed p-4 sm:p-6 mb-4 sm:mb-6 min-h-[90px] sm:min-h-[120px] flex flex-wrap gap-2.5 sm:gap-3 items-center content-start transition-all gf-dropzone ${
+    <div className={`bg-slate-950/80 rounded-3xl border-2 border-dashed p-6 mb-6 min-h-[120px] flex flex-wrap gap-3 items-center content-start transition-all gf-dropzone ${
       outcome === 'correct' ? 'border-emerald-500/80 bg-emerald-950/20' :
       outcome === 'incorrect' ? 'border-rose-500/80 bg-rose-950/20 animate-shake' :
       'border-slate-700 hover:border-slate-600'
     }`}>
       {placed.length === 0 && (
-        <span className="text-slate-500 text-sm sm:text-lg italic">
+        <span className="text-slate-500 text-lg italic">
           Tap word tiles below to forge the transformed sentence…
         </span>
       )}
@@ -680,7 +680,7 @@ const TransformView: React.FC<{
             key={tile.id}
             onClick={() => onPlacedTap(tile.id)}
             disabled={outcome === 'correct'}
-            className={`px-4 sm:px-5 py-2 sm:py-3 rounded-xl text-base sm:text-xl font-bold border-2 transition-all gf-tile active:scale-95 ${
+            className={`px-5 py-3 rounded-xl text-xl font-bold border-2 transition-all gf-tile active:scale-95 ${
               outcome === 'correct' ? 'bg-emerald-900/70 border-emerald-400 text-emerald-200 shadow-lg shadow-emerald-950/50' :
               isSwap ? 'bg-amber-950/80 border-amber-400 text-amber-300 animate-pulse' :
               isWrong ? 'bg-rose-950/80 border-rose-400 text-rose-300' :
@@ -694,13 +694,13 @@ const TransformView: React.FC<{
     </div>
 
     {/* Word bank (the tray of shuffled tiles) */}
-    <div className="flex flex-wrap gap-2.5 sm:gap-3 justify-center mb-3">
+    <div className="flex flex-wrap gap-3 justify-center mb-3">
       {tray.map((tile) => (
         <button
           key={tile.id}
           onClick={() => onTileTap(tile.id)}
           disabled={!!outcome}
-          className="px-4 sm:px-5 py-2 sm:py-3 rounded-xl text-base sm:text-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/40 shadow-md shadow-indigo-950/50 active:scale-95 transition-all disabled:opacity-30 gf-tile"
+          className="px-5 py-3 rounded-xl text-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/40 shadow-md shadow-indigo-950/50 active:scale-95 transition-all disabled:opacity-30 gf-tile"
         >
           {tile.text}
         </button>
@@ -719,7 +719,7 @@ const TransformView: React.FC<{
     )}
 
     {outcome === 'incorrect' && (
-      <div className="mt-2 text-center text-rose-400 font-semibold text-sm sm:text-base">
+      <div className="mt-2 text-center text-rose-400 font-semibold text-base">
         {swapHint ? '↔ Try swapping those two highlighted tiles.' : 'Some tiles are in the wrong spot. Tap to remove and try again.'}
       </div>
     )}
@@ -736,21 +736,21 @@ const ProduceView: React.FC<{
   onRate: (rating: 'correct' | 'partial' | 'incorrect') => void;
 }> = ({ round, scoringMode, outcome, produceRevealed, pickedStudentName }) => (
   <>
-    <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-4 sm:mb-6 shadow-2xl gf-prompt-card">
-      <div className="text-purple-400 font-bold text-sm sm:text-base mb-2 flex items-center gap-2">
+    <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 mb-6 shadow-2xl gf-prompt-card">
+      <div className="text-purple-400 font-bold text-base mb-2 flex items-center gap-2">
         <Sparkles size={20} />
         <span>Apply the rule — produce the {round.targetTransformed.includes('?') ? 'question' : 'sentence'}:</span>
       </div>
-      <p className="text-white text-2xl sm:text-4xl font-black leading-snug gf-sentence">{round.promptOriginal}</p>
+      <p className="text-white text-4xl font-black leading-snug gf-sentence">{round.promptOriginal}</p>
       {round.patternTemplate && (
-        <div className="mt-3 sm:mt-4 bg-purple-950/60 border border-purple-500/40 rounded-xl p-2.5 sm:p-3 text-purple-300 text-xs sm:text-sm font-mono flex items-center gap-2">
+        <div className="mt-4 bg-purple-950/60 border border-purple-500/40 rounded-xl p-3 text-purple-300 text-sm font-mono flex items-center gap-2">
           <strong className="text-purple-200">Pattern:</strong> {round.patternTemplate}
         </div>
       )}
     </div>
 
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-5 mb-4 text-center">
-      <div className="text-amber-400 font-bold text-xs sm:text-sm uppercase tracking-widest mb-1 flex items-center justify-center gap-2">
+    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 mb-4 text-center">
+      <div className="text-amber-400 font-bold text-sm uppercase tracking-widest mb-1 flex items-center justify-center gap-2">
         {scoringMode === 'choral' ? (
           <>
             <Users size={16} /> Choral — Class Produces Together
@@ -761,13 +761,13 @@ const ProduceView: React.FC<{
           </>
         )}
       </div>
-      <p className="text-slate-400 text-sm sm:text-base">
+      <p className="text-slate-400 text-base">
         Have {scoringMode === 'choral' ? 'the entire class' : pickedStudentName || 'the student'} say the transformed sentence aloud. Then rate below.
       </p>
     </div>
 
     {produceRevealed && (
-      <div className="bg-emerald-950/70 border-2 border-emerald-500/80 rounded-3xl p-5 sm:p-6 shadow-2xl animate-fade-in">
+      <div className="bg-emerald-950/70 border-2 border-emerald-500/80 rounded-3xl p-6 shadow-2xl animate-fade-in">
         <div className="text-emerald-400 font-bold text-xs uppercase tracking-widest mb-2 flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Check size={16} /> Model Answer
@@ -779,7 +779,7 @@ const ProduceView: React.FC<{
             <Volume2 size={14} /> Listen
           </button>
         </div>
-        <p className="text-white text-xl sm:text-3xl font-bold text-center">{round.targetTransformed}</p>
+        <p className="text-white text-3xl font-bold text-center">{round.targetTransformed}</p>
       </div>
     )}
 

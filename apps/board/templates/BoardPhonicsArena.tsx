@@ -500,16 +500,16 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   // ── Render pieces (v3 "Phonics Arena" per stitch/22-phonics-arena) ─────
 
   const header = (
-    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-32 lg:pl-48 h-12 lg:h-14 shrink-0">
+    <header className="w-full flex items-center justify-between gap-3 pr-1 pl-48 h-14 shrink-0">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="pa-mono px-2.5 py-1.5 rounded-lg bg-[#FF2E79]/15 border border-[#FF2E79]/50 text-[#FF2E79] text-[10px] lg:text-xs font-black tracking-widest shrink-0">
+        <div className="pa-mono px-2.5 py-1.5 rounded-lg bg-[#FF2E79]/15 border border-[#FF2E79]/50 text-[#FF2E79] text-xs font-black tracking-widest shrink-0">
           PHONICS
         </div>
         {/* Tier strip — design's Tier 1/2/3 ladder maps to rounds 1/2/3 */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="flex items-center gap-1">
           {TIERS.map((t) => (
             <span key={t.n}
-              className={`pa-mono px-2.5 py-1 rounded-md text-[9px] lg:text-[10px] font-bold tracking-wider whitespace-nowrap ${
+              className={`pa-mono px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider whitespace-nowrap ${
                 t.n === currentRound
                   ? 'bg-slate-800 border-b-2 border-[#FF2E79] text-white'
                   : t.n < currentRound
@@ -520,16 +520,15 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
             </span>
           ))}
         </nav>
-        <span className="md:hidden pa-mono text-[10px] font-bold text-[#FF2E79] tracking-wider shrink-0">T{currentRound}/3</span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <span className="pa-mono text-[10px] lg:text-xs text-slate-400 font-bold whitespace-nowrap">
+        <span className="pa-mono text-xs text-slate-400 font-bold whitespace-nowrap">
           {currentRound !== 3 ? `Pair ${itemIdx + 1}/${itemTotal}` : `Word ${itemIdx + 1}/${itemTotal}`}
         </span>
         {streak > 1 && (
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/60 border border-amber-500/50">
             <Flame size={13} className="text-amber-400" />
-            <span className="pa-mono text-[10px] lg:text-xs font-bold tracking-wider text-amber-300">STREAK {streak}</span>
+            <span className="pa-mono text-xs font-bold tracking-wider text-amber-300">STREAK {streak}</span>
           </div>
         )}
       </div>
@@ -541,10 +540,10 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
     <div className="shrink-0 flex flex-col items-center justify-center gap-1.5 py-1">
       {/* Standard ripple rings + large replay button */}
       <div className="relative flex items-center justify-center">
-        <span className="pa-ring absolute w-28 h-28 lg:w-40 lg:h-40 rounded-full border border-[#38BDF8]/30" />
-        <span className="pa-ring absolute w-40 h-40 lg:w-56 lg:h-56 rounded-full border border-[#38BDF8]/20" style={{ animationDelay: '0.6s' }} />
+        <span className="pa-ring absolute w-40 h-40 rounded-full border border-[#38BDF8]/30" />
+        <span className="pa-ring absolute w-56 h-56 rounded-full border border-[#38BDF8]/20" style={{ animationDelay: '0.6s' }} />
         <button onClick={playAudio} aria-label="Replay the target audio"
-          className="relative z-10 w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-slate-800 border-2 border-[#38BDF8] flex flex-col items-center justify-center hover:shadow-[0_0_24px_-4px_rgba(56,189,248,0.6)] transition-all active:scale-95">
+          className="relative z-10 w-20 h-20 rounded-full bg-slate-800 border-2 border-[#38BDF8] flex flex-col items-center justify-center hover:shadow-[0_0_24px_-4px_rgba(56,189,248,0.6)] transition-all active:scale-95">
           <Volume2 size={22} className="text-[#38BDF8]" />
           <span className="pa-mono text-[8px] uppercase tracking-widest text-[#38BDF8] mt-0.5">Listen</span>
           {/* Metered replay penalty pill (design #2) */}
@@ -556,18 +555,6 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         </button>
       </div>
 
-      {/* Sleek inline audio pill (floor-only; permanently hidden since the fixed stage) */}
-      <button onClick={playAudio} aria-label="Replay the target audio"
-        className="hidden items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border-2 border-[#38BDF8] text-[#38BDF8] hover:shadow-[0_0_12px_-2px_rgba(56,189,248,0.6)] transition-all active:scale-95 shrink-0">
-        <Volume2 size={16} />
-        <span className="pa-mono text-[10px] font-bold uppercase tracking-wider">Listen</span>
-        {replayCost > 0 && (
-          <span className="bg-rose-500 text-white pa-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
-            −{replayCost}
-          </span>
-        )}
-      </button>
-
       {/* EQ visualizers */}
       <div className="flex items-end justify-center gap-1 h-5" aria-hidden>
         {[10, 16, 20, 13, 8, 17, 11].map((h, i) => (
@@ -576,11 +563,11 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
       </div>
 
       {/* Prompt text */}
-      <div className="flex items-center gap-2 bg-slate-800/80 px-4 lg:px-6 py-1 lg:py-1.5 rounded-full border border-slate-700">
-        <span className="text-sm lg:text-base font-bold text-white">
+      <div className="flex items-center gap-2 bg-slate-800/80 px-6 py-1.5 rounded-full border border-slate-700">
+        <span className="text-base font-bold text-white">
           {currentRound === 3 ? 'Listen first — then say the word!' : 'Which word did you hear?'}
         </span>
-        <span className="hidden lg:inline pa-mono text-[10px] text-slate-500 uppercase tracking-wider">(auto-plays · replay −1 pt)</span>
+        <span className="inline pa-mono text-[10px] text-slate-500 uppercase tracking-wider">(auto-plays · replay −1 pt)</span>
       </div>
     </div>
   );
@@ -632,7 +619,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         transition={{ delay: idx * 0.07, duration: 0.28 }}
         whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
         onClick={() => handleWordSelect(idx)}
-        className={`relative rounded-2xl border-2 p-3 lg:p-5 flex flex-col justify-between min-h-0 overflow-hidden transition-colors
+        className={`relative rounded-2xl border-2 p-5 flex flex-col justify-between min-h-0 overflow-hidden transition-colors
           ${solved ? 'border-emerald-400 bg-emerald-950/40 pa-glow-correct'
             : wrongPick ? 'border-rose-400 bg-rose-950/30 pa-shake'
             : revealed && isCorrect ? 'border-amber-400 bg-amber-950/25 pa-pulse-hint'
@@ -643,16 +630,16 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#38BDF8]/50 rounded-tr-2xl pointer-events-none" />
         <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#38BDF8]/50 rounded-bl-2xl pointer-events-none" />
         <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#38BDF8]/50 rounded-br-2xl pointer-events-none" />
-        <span className={`pa-mono text-[9px] lg:text-[10px] font-bold tracking-[0.18em] uppercase self-start px-2 py-0.5 rounded
+        <span className={`pa-mono text-[10px] font-bold tracking-[0.18em] uppercase self-start px-2 py-0.5 rounded
           ${isSelected ? 'bg-[#38BDF8]/20 text-[#7DD3FC]' : 'bg-slate-800 text-slate-400'}`}>
           Option {LETTERS[idx]}
         </span>
-        <span className={`text-center font-black tracking-tight leading-none my-1 lg:my-2
-          ${currentWords.length > 2 ? 'text-3xl lg:text-5xl xl:text-6xl' : 'text-5xl lg:text-7xl'}
+        <span className={`text-center font-black tracking-tight leading-none my-2
+          ${currentWords.length > 2 ? 'text-6xl' : 'text-7xl'}
           ${solved ? 'text-emerald-300' : revealed && isCorrect ? 'text-amber-300' : isSelected ? 'text-[#7DD3FC]' : 'text-white'}`}>
           {renderWordWithContrast(word)}
         </span>
-        <span className={`pa-mono w-full py-1.5 lg:py-2.5 rounded-lg text-[9px] lg:text-[11px] font-bold tracking-[0.16em] uppercase text-center border
+        <span className={`pa-mono w-full py-2.5 rounded-lg text-[11px] font-bold tracking-[0.16em] uppercase text-center border
           ${solved ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
             : isSelected ? 'bg-[#38BDF8]/10 border-[#38BDF8]/40 text-[#7DD3FC]'
             : 'bg-slate-800/80 border-slate-700 text-slate-300 group-hover:text-[#7DD3FC]'}`}>
@@ -663,7 +650,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
   };
 
   return (
-    <div className="pa-root h-full w-full flex flex-col gap-1.5 lg:gap-2.5 p-2 lg:p-4 bg-[#070C18] relative overflow-hidden">
+    <div className="pa-root h-full w-full flex flex-col gap-2.5 p-4 bg-[#070C18] relative overflow-hidden">
       <style>{`
         .pa-root { font-family: 'Fredoka', 'Baloo 2', ui-rounded, 'Segoe UI', system-ui, sans-serif; }
         .pa-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -687,19 +674,19 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
           <motion.div
             key={`round-${currentRound}-item-${itemIdx}`}
             initial={{ opacity: 0, x: 60 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -60 }}
-            className="flex-1 min-h-0 flex flex-col gap-1.5 lg:gap-2.5">
+            className="flex-1 min-h-0 flex flex-col gap-2.5">
             {acousticHub}
 
             {/* Rounds 1-2: the duel tablets (2-up or 2×2) */}
             {currentRound !== 3 && (
               <>
-                <div className={`flex-1 min-h-0 grid gap-2.5 lg:gap-6 ${currentWords.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
+                <div className={`flex-1 min-h-0 grid gap-6 ${currentWords.length > 2 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-2'}`}>
                   {currentWords.map((word, idx) => renderTablet(word, idx))}
                 </div>
                 {/* Reveal-on-wrong teaching note (content-provided) */}
                 {revealed && currentItem.explanation && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="shrink-0 p-3 bg-amber-950/50 border-2 border-amber-400/60 rounded-xl text-base lg:text-lg text-amber-200 text-center">
+                    className="shrink-0 p-3 bg-amber-950/50 border-2 border-amber-400/60 rounded-xl text-lg text-amber-200 text-center">
                     {currentItem.explanation}
                   </motion.div>
                 )}
@@ -708,10 +695,10 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
 
             {/* Round 3 (Voice Champion): produce view */}
             {currentRound === 3 && (
-              <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 lg:gap-5">
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-5">
                 <div className="text-center">
                   <span className="pa-mono text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">Say the word</span>
-                  <div className="text-5xl lg:text-7xl font-black text-white tracking-tight leading-tall">{currentItem.targetText}</div>
+                  <div className="text-7xl font-black text-white tracking-tight leading-tall">{currentItem.targetText}</div>
                 </div>
                 {!speechSupported ? (
                   <div className="text-center text-slate-400 text-lg flex flex-col items-center gap-3">
@@ -720,7 +707,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
                   </div>
                 ) : (
                   <button onClick={startListening} disabled={isListening}
-                    className={`px-8 lg:px-12 py-4 lg:py-6 rounded-full font-bold text-xl lg:text-2xl flex items-center gap-3 transition-all
+                    className={`px-12 py-6 rounded-full font-bold text-2xl flex items-center gap-3 transition-all
                       ${isListening
                         ? 'bg-[#FF2E79] text-white pa-mic-live'
                         : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 active:scale-95'}`}>
@@ -730,7 +717,7 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
                 )}
                 {speechTranscript && (
                   <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 lg:p-5 rounded-2xl border-2 w-full max-w-xl text-center ${
+                    className={`p-5 rounded-2xl border-2 w-full max-w-xl text-center ${
                       speechPassed ? 'border-emerald-400/70 bg-emerald-950/30' : 'border-rose-400/60 bg-rose-950/20'
                     }`}>
                     <div className="pa-mono text-[9px] uppercase tracking-widest text-slate-400 mb-1">You said</div>
@@ -748,10 +735,10 @@ const BoardPhonicsArena = ({ data }: { data: any }) => {
         {allComplete && (
           <motion.div key="complete" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
             className="flex-1 flex flex-col items-center justify-center gap-4">
-            <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-emerald-500/15 border-2 border-emerald-400 flex items-center justify-center pa-glow-correct">
+            <div className="w-28 h-28 rounded-full bg-emerald-500/15 border-2 border-emerald-400 flex items-center justify-center pa-glow-correct">
               <Check size={52} className="text-emerald-400" strokeWidth={3} />
             </div>
-            <h2 className="text-4xl lg:text-5xl font-black text-white">Arena Complete!</h2>
+            <h2 className="text-5xl font-black text-white">Arena Complete!</h2>
             <div className="flex items-center gap-2 px-5 py-2 rounded-full bg-amber-950/60 border border-amber-500/50">
               <Flame size={18} className="text-amber-400" />
               <span className="text-lg font-bold text-amber-300">Final streak: {streak}</span>

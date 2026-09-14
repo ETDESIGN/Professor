@@ -23,7 +23,7 @@
 //   F7        recordExposure fires on FIRST FLIP (not drill stage 4 — the
 //             48-click barrier is gone).
 //   F8        responsive: 3-col → 2-col grid, landscape cards, no scroll.
-//   G-4.a     header clears the BoardShell phase-pill zone (pl-40/lg:pl-48);
+//   G-4.a     header clears the BoardShell phase-pill zone (pl-48);
 //             FOCUS_CARDS is full-bleed (leaderboard rail retracts — edit in
 //             BoardShell.tsx FULL_BLEED_TYPES).
 //   Owner rule 2026-09-10: cards are LANDSCAPE ~4:3 (horizontal stage).
@@ -227,23 +227,23 @@ const BoardFocusCards = ({ data }: { data: any }) => {
   // ── Completion (audit F6 — the transition is real now) ────────────────────
   if (allStudied) {
     return (
-      <div className="ws-root h-full bg-[#070C18] flex flex-col items-center justify-center text-center px-6 gap-4 lg:gap-5 animate-fade-in overflow-y-auto py-4"
+      <div className="ws-root h-full bg-[#070C18] flex flex-col items-center justify-center text-center px-6 gap-5 animate-fade-in overflow-y-auto py-4"
         style={{ backgroundImage: 'radial-gradient(circle at 50% -10%, rgba(30,58,138,0.35) 0%, transparent 55%), radial-gradient(circle at 80% 90%, rgba(16,185,129,0.1) 0%, transparent 40%)' }}>
-        <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-emerald-500/15 border-2 border-emerald-400/50 text-emerald-400 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-emerald-500/15 border-2 border-emerald-400/50 text-emerald-400 flex items-center justify-center">
           <Sparkles size={30} />
         </div>
-        <h2 className="text-2xl lg:text-5xl font-bold text-white">All {cards.length} words explored!</h2>
+        <h2 className="text-5xl font-bold text-white">All {cards.length} words explored!</h2>
         <p className="text-sky-300/80 font-semibold -mt-1">Say them one more time</p>
         <div className="flex flex-wrap justify-center gap-2 max-w-3xl">
           {cards.map((c: any, i: number) => (
             <button key={i} onClick={() => playWord(i)}
-              className="ws-mono px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 font-bold text-sm lg:text-base flex items-center gap-1.5 hover:bg-emerald-500/20 transition-colors">
+              className="ws-mono px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 font-bold text-base flex items-center gap-1.5 hover:bg-emerald-500/20 transition-colors">
               <Volume2 size={13} /> {c.word.toUpperCase()}
             </button>
           ))}
         </div>
         <button onClick={() => { triggerConfetti(); triggerAction('SLIDE_COMPLETE'); }}
-          className="px-8 lg:px-10 py-3 lg:py-4 bg-[#FF2E79] hover:brightness-110 text-white text-lg lg:text-2xl font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all animate-pulse-soft">
+          className="px-10 py-4 bg-[#FF2E79] hover:brightness-110 text-white text-2xl font-bold rounded-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all animate-pulse-soft">
           Start Practice Phase →
         </button>
         <button onClick={() => { setFlipped(new Set()); setStudied(new Set()); setBatchIndex(0); setActiveIndex(0); }}
@@ -256,7 +256,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
   const detail = detailIndex !== null ? cards[detailIndex] : null;
 
   return (
-    <div className="ws-root h-full w-full bg-[#070C18] flex flex-col p-3 lg:p-5 relative overflow-hidden"
+    <div className="ws-root h-full w-full bg-[#070C18] flex flex-col p-5 relative overflow-hidden"
       style={{
         backgroundImage:
           'radial-gradient(circle at 50% -10%, rgba(30,58,138,0.35) 0%, transparent 55%),' +
@@ -264,26 +264,26 @@ const BoardFocusCards = ({ data }: { data: any }) => {
           'radial-gradient(circle at 90% 85%, rgba(16,185,129,0.08) 0%, transparent 40%)',
       }}>
 
-      {/* Header — starts clear of the BoardShell phase pill (pl-40/lg:pl-48) */}
-      <header className="w-full flex items-center justify-between gap-3 pr-2 pl-40 lg:pl-48 h-14 lg:h-16 shrink-0">
+      {/* Header — starts clear of the BoardShell phase pill (pl-48) */}
+      <header className="w-full flex items-center justify-between gap-3 pr-2 pl-48 h-16 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-[#FF2E79] flex items-center justify-center text-white font-bold text-xl lg:text-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] shrink-0">V</div>
+          <div className="w-12 h-12 rounded-xl bg-[#FF2E79] flex items-center justify-center text-white font-bold text-2xl shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] shrink-0">V</div>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-white truncate">Focus Cards</h1>
-              <span className="hidden sm:inline px-2.5 py-0.5 rounded-full text-[10px] lg:text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
+              <h1 className="text-2xl font-bold tracking-tight text-white truncate">Focus Cards</h1>
+              <span className="inline px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800/90 border border-slate-700 text-sky-300 whitespace-nowrap">
                 Words {batchStart + 1}–{batchEnd} of {cards.length}
               </span>
             </div>
-            <span className="text-[10px] lg:text-xs text-slate-400 font-medium whitespace-nowrap">📖 Presentation — teacher paced</span>
+            <span className="text-xs text-slate-400 font-medium whitespace-nowrap">📖 Presentation — teacher paced</span>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button onClick={() => triggerAction('FLIP_ALL_CARDS')}
-            className="hidden sm:flex px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs lg:text-sm active:scale-95">Flip all</button>
+            className="flex px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm active:scale-95">Flip all</button>
           <button onClick={() => triggerAction('PLAY_AUDIO')}
-            className="px-3 py-2 bg-sky-500/15 border border-sky-500/40 text-sky-300 rounded-xl font-bold text-xs lg:text-sm active:scale-95 flex items-center gap-1.5">
-            <Volume2 size={14} /> <span className="hidden sm:inline">Audio</span>
+            className="px-3 py-2 bg-sky-500/15 border border-sky-500/40 text-sky-300 rounded-xl font-bold text-sm active:scale-95 flex items-center gap-1.5">
+            <Volume2 size={14} /> <span className="inline">Audio</span>
           </button>
           <button onClick={() => triggerAction('RESET_GAME')}
             className="p-2.5 bg-white/5 rounded-xl text-slate-400 hover:bg-white/10 hover:text-white" title="Reset all cards">
@@ -292,8 +292,8 @@ const BoardFocusCards = ({ data }: { data: any }) => {
         </div>
       </header>
 
-      {/* The grid — LANDSCAPE cards, 3×2 (2 cols below lg) */}
-      <main className="flex-1 min-h-0 w-full grid grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-3 lg:gap-5 py-3">
+      {/* The grid — LANDSCAPE cards, 3×2 */}
+      <main className="flex-1 min-h-0 w-full grid grid-cols-3 grid-rows-2 gap-5 py-3">
         {batchCards.map((card: any, bi: number) => {
           const i = batchStart + bi;
           const isFlipped = flipped.has(i);
@@ -338,7 +338,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
                   </div>
                   {/* BACK — word + audio + plus (royal indigo) */}
                   <div className={`fc-face fc-back w-full h-full rounded-2xl bg-[#2C3E8F] border-2 ${isStudied ? 'border-emerald-400/80' : 'border-white/25'} shadow-[0_20px_40px_-10px_rgba(0,0,0,0.65)] flex flex-col items-center justify-center gap-2 px-3`}>
-                    <span className="font-bold text-white text-2xl lg:text-4xl text-center leading-tight break-words drop-shadow">{card.word}</span>
+                    <span className="font-bold text-white text-4xl text-center leading-tight break-words drop-shadow">{card.word}</span>
                     <div className="flex items-center gap-3">
                       <span role="button" tabIndex={-1}
                         onClick={(e) => { e.stopPropagation(); playWord(i); }}
@@ -362,7 +362,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
       {/* Bottom rail — tactile progress pills + batch primary */}
       <footer className="shrink-0 py-1 px-1 flex items-center justify-between gap-3 bg-[#0B132B]/95 border-t border-slate-800 rounded-2xl backdrop-blur-md">
         <div className="flex items-center gap-2 overflow-x-auto min-w-0">
-          <span className="hidden lg:inline text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Words</span>
+          <span className="inline text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Words</span>
           <div className="flex items-center gap-1.5">
             {cards.map((_: any, i: number) => (
               <button key={i} onClick={() => {
@@ -383,7 +383,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
             className="p-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-sm active:scale-95" title="Next card">›</button>
           {totalBatches > 1 && (
             <button onClick={nextBatch}
-              className="px-5 lg:px-7 py-2.5 bg-[#FF2E79] hover:brightness-110 text-white rounded-xl font-bold text-sm lg:text-base flex items-center gap-2 shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all">
+              className="px-7 py-2.5 bg-[#FF2E79] hover:brightness-110 text-white rounded-xl font-bold text-base flex items-center gap-2 shadow-[0_0_24px_-2px_rgba(255,46,121,0.45)] active:scale-95 transition-all">
               Next 6 words <ChevronRight size={16} />
             </button>
           )}
@@ -400,14 +400,14 @@ const BoardFocusCards = ({ data }: { data: any }) => {
               className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center" title="Close">
               <X size={16} />
             </button>
-            <div className="p-6 lg:p-7 flex flex-col items-center text-center gap-3">
+            <div className="p-7 flex flex-col items-center text-center gap-3">
               {detail.image && String(detail.image).startsWith('http') && (
                 <div className="w-full max-w-md aspect-[4/3] rounded-2xl overflow-hidden border-2 border-white/10 shrink-0">
                   <img src={detail.image} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
               <div className="flex items-center gap-3 flex-wrap justify-center">
-                <h3 className="text-3xl lg:text-4xl font-bold text-white">{detail.word}</h3>
+                <h3 className="text-4xl font-bold text-white">{detail.word}</h3>
                 {detail.phonetic && <span className="ws-mono text-slate-400 text-lg">{detail.phonetic}</span>}
               </div>
               <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
               {detail.definition && <p className="text-slate-400">{detail.definition}</p>}
               {detail.example && (
                 <div className="w-full bg-black/20 p-4 rounded-2xl border border-white/10">
-                  <p className="text-slate-300 leading-relaxed text-base lg:text-lg">
+                  <p className="text-slate-300 leading-relaxed text-lg">
                     {detail.example.split(new RegExp(`(${detail.word})`, 'i')).map((part: string, pi: number) =>
                       part.toLowerCase() === detail.word.toLowerCase()
                         ? <span key={pi} className="font-bold text-amber-300 underline decoration-amber-500/40 underline-offset-2">{part}</span>
@@ -446,7 +446,7 @@ const BoardFocusCards = ({ data }: { data: any }) => {
 
       {/* Toast */}
       {toast && (
-        <div className="absolute top-16 lg:top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full bg-emerald-500/95 text-white font-bold text-sm lg:text-base shadow-xl animate-pop-in flex items-center gap-2 whitespace-nowrap">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full bg-emerald-500/95 text-white font-bold text-base shadow-xl animate-pop-in flex items-center gap-2 whitespace-nowrap">
           🎧 {toast}
         </div>
       )}

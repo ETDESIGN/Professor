@@ -357,8 +357,8 @@ const BoardFastVocab: React.FC<{ data?: any }> = ({ data }) => {
 
   return (
     <div className="h-full w-full bg-[#070C18] text-slate-100 flex flex-col justify-between p-3 select-none overflow-hidden relative font-sans">
-      {/* ── TOP HUD HEADER STRIP (Pl-28 lg:pl-44 avoids • PRACTICE badge collision) ── */}
-      <header className="w-full flex items-center justify-between px-4 py-2 bg-[#0B132B]/95 border border-[#1E2D5A] rounded-2xl backdrop-blur-md shrink-0 shadow-lg z-20 pl-28 lg:pl-44">
+      {/* ── TOP HUD HEADER STRIP (Pl-44 avoids • PRACTICE badge collision) ── */}
+      <header className="w-full flex items-center justify-between px-4 py-2 bg-[#0B132B]/95 border border-[#1E2D5A] rounded-2xl backdrop-blur-md shrink-0 shadow-lg z-20 pl-44">
         {/* Left: Phase Pill & Round Title */}
         <div className="flex items-center gap-3">
           <div
@@ -388,7 +388,7 @@ const BoardFastVocab: React.FC<{ data?: any }> = ({ data }) => {
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#0E1733] border border-[#1E2D5A] rounded-lg text-xs font-mono text-slate-300">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#0E1733] border border-[#1E2D5A] rounded-lg text-xs font-mono text-slate-300">
             <span className="text-slate-400 font-bold">MODE:</span>
             <span className="text-sky-300 font-semibold">
               {mode === 'image' ? 'Image Match' : 'Meaning Match'} ({waveSize} Pairs)
@@ -435,7 +435,7 @@ const BoardFastVocab: React.FC<{ data?: any }> = ({ data }) => {
                   {turn.timeRemaining}s
                 </span>
               </div>
-              <span className="font-mono text-[10px] font-bold text-pink-400 uppercase tracking-widest hidden sm:inline">
+              <span className="font-mono text-[10px] font-bold text-pink-400 uppercase tracking-widest inline">
                 RECALL
               </span>
             </div>
@@ -565,14 +565,14 @@ const BoardFastVocab: React.FC<{ data?: any }> = ({ data }) => {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.85, y: 20 }}
               transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              className="bg-[#0B132B]/95 border-2 border-emerald-400 rounded-3xl p-8 md:p-10 shadow-[0_0_50px_rgba(16,185,129,0.35)] flex flex-col items-center max-w-lg mx-4 text-center select-none"
+              className="bg-[#0B132B]/95 border-2 border-emerald-400 rounded-3xl p-10 shadow-[0_0_50px_rgba(16,185,129,0.35)] flex flex-col items-center max-w-lg mx-4 text-center select-none"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 mb-3 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                 <Zap size={32} className="fill-current" />
               </div>
 
-              <h2 className="text-3xl md:text-4xl font-black text-white mb-1 font-sans tracking-wide">
+              <h2 className="text-4xl font-black text-white mb-1 font-sans tracking-wide">
                 {summaryName ? `${summaryName} Mastered It!` : 'Arena Complete!'}
               </h2>
               <p className="text-xs font-mono text-sky-400 uppercase tracking-wider mb-4">
