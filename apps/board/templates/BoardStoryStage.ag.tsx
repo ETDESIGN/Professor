@@ -9,6 +9,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, BookOpen, Check, ArrowRight, Quote } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
+import { useStoryArtZoom, StoryArtZoomButton, StoryArtZoomOverlay } from '../StoryArtZoom';
 import { getVocabulary, getStory, getCharacters } from '../../../services/manifest';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
@@ -155,6 +156,7 @@ export function parseDialogueLines(
 // ── Component ──────────────────────────────────────────────────────────
 const BoardStoryStage = ({ data }: { data: any }) => {
   const { state, triggerAction, addPoints, pushToRemediation, triggerConfetti } = useSession();
+  const artZoom = useStoryArtZoom();
   const pickedStudent = usePickedStudent();
   const unitId = state.activeUnit?.id || '';
   const roster = useMemo(() => (state.students || []).map((s: any) => s.id), [state.students]);
@@ -1119,10 +1121,13 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                   <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-sky-500/10 pointer-events-none" />
 
                   {/* The Story Illustration: Full-bleed object-contain, crisp and never cropped */}
+                  <StoryArtZoomButton src={currentImageUrl} onOpen={artZoom.open} className="bottom-2 right-2" />
                   {currentImageUrl ? (
                     <img
                       src={currentImageUrl}
                       alt={activeSpeakerName || 'Story illustration'}
+                      style={{ cursor: 'zoom-in' }}
+                      onClick={() => artZoom.open(currentImageUrl)}
                       className="w-full h-full object-contain rounded-lg drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)] transition-transform duration-300 group-hover:scale-[1.01]"
                       onError={(e) => {
                         console.warn('[BoardStoryStage] Story image failed to load:', currentImageUrl);
@@ -1351,7 +1356,8 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         }
         .animate-shake { animation: ss-shake 0.4s ease-in-out; }
       `}</style>
-    </div>
+            <StoryArtZoomOverlay src={artZoom.zoomSrc} onClose={artZoom.close} />
+      </div>
   );
 };
 

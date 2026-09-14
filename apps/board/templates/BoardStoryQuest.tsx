@@ -23,6 +23,7 @@ import { logAttempt } from './scoreAttempt';
 import { playCue } from './playCue';
 import { getStory, getVocabulary, getCharacters } from '../../../services/manifest';
 import { useUnitRelational } from '../useUnitRelational';
+import { useStoryArtZoom, StoryArtZoomButton, StoryArtZoomOverlay } from '../StoryArtZoom';
 import { playAudioUrl } from '../../../services/SpeechService';
 import type { PoolItem, StoryComprehensionContent } from '../../../types/exercise';
 
@@ -140,6 +141,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
 
   // ROUND-2 #7: recover the relational bundle on the board tab (see hook).
   useUnitRelational();
+  const artZoom = useStoryArtZoom();
 
   // ── Story panels: relational manifest first, frozen data.pages fallback ──
   // CONTENT GROUPS (spec 2026-09-13): scoped to THIS story when tagged.
@@ -693,6 +695,7 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
 
               {/* Uncropped Full Illustration Container (object-contain, solving F1) */}
               <div className="flex-1 w-full bg-[#050812] rounded-xl border border-slate-800 relative flex items-center justify-center overflow-hidden p-2 min-h-0 shadow-inner">
+                <StoryArtZoomButton src={currentItem.imageUrl} onOpen={artZoom.open} className="top-2 right-2" />
                 {currentItem.imageUrl ? (
                   <img
                     src={currentItem.imageUrl}
@@ -930,7 +933,8 @@ const BoardStoryQuest = ({ data }: { data: any }) => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+            <StoryArtZoomOverlay src={artZoom.zoomSrc} onClose={artZoom.close} />
+      </div>
   );
 };
 

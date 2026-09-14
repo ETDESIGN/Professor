@@ -19,6 +19,7 @@ import { Volume2, BookOpen, Check } from 'lucide-react';
 import { useSession } from '../../../store/SessionContext';
 import { getVocabulary, getStory, getCharacters } from '../../../services/manifest';
 import { useUnitRelational } from '../useUnitRelational';
+import { useStoryArtZoom, StoryArtZoomButton, StoryArtZoomOverlay } from '../StoryArtZoom';
 import { playAudioUrl } from '../../../services/SpeechService';
 import { scoreForAttempt, MISTAKE_PENALTY } from './scoringDefaults';
 import { playCue } from './playCue';
@@ -106,6 +107,7 @@ const BoardStoryStage = ({ data }: { data: any }) => {
   // concatenates every page into one story.
   // ROUND-2 #7: recover the relational bundle on the board tab (see hook).
   useUnitRelational();
+  const artZoom = useStoryArtZoom();
 
   const relPages = useMemo(
     () => getStory(state.activeUnit?.manifest, Array.isArray(data?.structure_ids) ? data.structure_ids : null).pages || [],
@@ -575,10 +577,12 @@ const BoardStoryStage = ({ data }: { data: any }) => {
                 </div>
                 <div className="flex-1 min-h-0 w-full bg-[#111C3D] border-2 border-white/10 rounded-xl flex items-center justify-center p-1.5 lg:p-3 relative overflow-hidden shadow-inner group">
                   <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/10 via-transparent to-sky-500/10 pointer-events-none" />
+                  <StoryArtZoomButton src={current.imageUrl} onOpen={artZoom.open} className="bottom-2 right-2" />
                   {current.imageUrl ? (
                     <img src={current.imageUrl} alt=""
-                      className="w-full h-full object-contain rounded-lg drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)]"
-                      onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0')} />
+                      className="w-full h-full object-contain rounded-lg drop-shadow-[0_12px_28px_rgba(0,0,0,0.7)] cursor-zoom-in"
+                      onError={(e) => ((e.target as HTMLImageElement).style.opacity = '0')}
+                      onClick={() => artZoom.open(current.imageUrl)} />
                   ) : (
                     <div className="w-full h-full rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(160deg, #3A2A16, #1F1408)' }}>
                       <span className="font-bold text-2xl lg:text-4xl text-amber-300/70">{data.title || 'Story'}</span>
@@ -731,7 +735,8 @@ const BoardStoryStage = ({ data }: { data: any }) => {
         }
         .animate-shake { animation: ss-shake 0.4s ease-in-out; }
       `}</style>
-    </div>
+            <StoryArtZoomOverlay src={artZoom.zoomSrc} onClose={artZoom.close} />
+      </div>
   );
 };
 
