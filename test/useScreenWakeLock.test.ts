@@ -1,5 +1,5 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { useScreenWakeLock } from '../hooks/useScreenWakeLock';
 
 type FakeSentinel = {
@@ -34,17 +34,21 @@ function visibilityChanged() {
 }
 
 let restoreVisibility: () => void;
+let playSpy: MockInstance<() => Promise<void>>;
 
 beforeEach(() => {
   installWakeLock();
   const original = Object.getOwnPropertyDescriptor(document, 'visibilityState');
   restoreVisibility = () => { if (original) Object.defineProperty(document, 'visibilityState', original); };
   setVisibility('visible');
+  playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockReturnValue(undefined);
 });
 
 afterEach(() => {
   delete (navigator as any).wakeLock;
   restoreVisibility();
+  vi.restoreAllMocks();
 });
 
 describe('useScreenWakeLock', () => {
@@ -110,12 +114,6 @@ describe('useScreenWakeLock', () => {
     expect(installed.request).toHaveBeenCalledTimes(1);
   });
 
-  it('is a silent no-op where the API is missing', async () => {
-    delete (navigator as any).wakeLock;
-    expect(() => renderHook(() => useScreenWakeLock(true))).not.toThrow();
-    await act(async () => {});
-  });
-
   it('stays silent when the request is rejected', async () => {
     (navigator as any).wakeLock = {
       request: vi.fn(() => Promise.reject(new Error('NotAllowedError'))),
@@ -123,5 +121,68 @@ describe('useScreenWakeLock', () => {
     expect(() => renderHook(() => useScreenWakeLock(true))).not.toThrow();
     await act(async () => {});
     expect((navigator as any).wakeLock.request).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useScreenWakeLock — video fallback (WKWebView browsers without the Wake Lock API, e.g. Brave on iPad)', () => {
+  it('starts a silent looping inline video when the API is missing', async () => {
+    delete (navigator as any).wakeLock;
+    renderHook(() => useScreenWakeLock(true));
+    await act(async () => {});
+    const video = document.querySelector('video');
+    expect(video).toBeTruthy();
+    expect(video!.hasAttribute('playsinline')).toBe(true);
+    expect(video!.loop).toBe(true);
+    expect(video!.src).toContain('/media/silence-loop.mp4');
+    expect(playSpy).toHaveBeenCalled();
+  });
+
+  it('starts the video fallback when the wake lock request is rejected', async () => {
+    (navigator as any).wakeLock = {
+      request: vi.fn(() => Promise.reject(new Error('NotAllowedError'))),
+    };
+    renderHook(() => useScreenWakeLock(true));
+    await act(async () => {});
+    expect(document.querySelector('video')).toBeTruthy();
+    expect(playSpy).toHaveBeenCalled();
+  });
+
+  it('does not start any video while the wake lock is held', async () => {
+    const installed = installWakeLock();
+    renderHook(() => useScreenWakeLock(true));
+    await waitFor(() => expect(installed.request).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+    expect(document.querySelector('video')).toBeNull();
+    expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('pauses and removes the video on unmount', async () => {
+    delete (navigator as any).wakeLock;
+    const { unmount } = renderHook(() => useScreenWakeLock(true));
+    await act(async () => {});
+    expect(document.querySelector('video')).toBeTruthy();
+    unmount();
+    expect(document.querySelector('video')).toBeNull();
+    expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+  });
+
+  it('retries play when autoplay was blocked and the user interacts', async () => {
+    delete (navigator as any).wakeLock;
+    playSpy.mockRejectedValueOnce(new Error('NotAllowedError'));
+    renderHook(() => useScreenWakeLock(true));
+    await act(async () => {});
+    act(() => { document.dispatchEvent(new Event('pointerup')); });
+    await act(async () => {});
+    expect(playSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('resumes the video when the page becomes visible again', async () => {
+    delete (navigator as any).wakeLock;
+    renderHook(() => useScreenWakeLock(true));
+    await act(async () => {});
+    setVisibility('visible');
+    visibilityChanged();
+    await act(async () => {});
+    expect(playSpy).toHaveBeenCalledTimes(2);
   });
 });
