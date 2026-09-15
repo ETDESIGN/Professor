@@ -3,9 +3,14 @@ import { useSession } from '../../store/SessionContext';
 import { WifiOff } from 'lucide-react';
 import BoardStage from '../../components/shared/BoardStage';
 import BoardCanvas from './BoardCanvas';
+import { useScreenWakeLock } from '../../hooks/useScreenWakeLock';
 
 const ClassroomBoard: React.FC = () => {
   const { state } = useSession();
+
+  // The board is projected untouched for a whole lesson — without a wake lock
+  // iPadOS auto-locks it after ~2 minutes.
+  useScreenWakeLock(true);
 
   // Portrait phones/tablets: the 16:9 stage letterboxes into a thin strip.
   // Nudge the teacher to rotate (dismissible — the stage still renders).

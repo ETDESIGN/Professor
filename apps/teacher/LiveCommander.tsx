@@ -4,6 +4,7 @@ import { useSession } from '../../store/SessionContext';
 import { useAppStore } from '../../store/useAppStore';
 import { supabase } from '../../services/supabaseClient';
 import { useTeacherClasses } from '../../hooks/useQueries';
+import { useScreenWakeLock } from '../../hooks/useScreenWakeLock';
 import {
    ChevronLeft, ChevronRight, Play, RotateCw, Volume2,
    Monitor, Clock, LogOut, PenTool, Eraser,
@@ -39,6 +40,10 @@ const LiveCommander: React.FC<LiveCommanderProps> = ({ onExit }) => {
       setQuietMode, updateNoiseLevel, endSession, setActiveClass, ensureAttendanceOccurrence, nextStudent,
       retrySync, magicSelectStudent
    } = useSession();
+
+   // The commander often drives the whole lesson from a tablet with no touch
+   // for minutes at a time — keep that device's display awake while it runs.
+   useScreenWakeLock(true);
 
    // Bind the live session to the class chosen on the Classes screen (?class=…).
    const [searchParams] = useSearchParams();
