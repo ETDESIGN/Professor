@@ -115,10 +115,11 @@ export async function signUp(
     fullName?: string
 ): Promise<{ success: boolean; needsEmailConfirmation?: boolean; error?: string }> {
     try {
-        // Dynamic redirect URL for Vercel deployment
+        // Dynamic redirect URL for the current origin (works on profkat.com and
+        // professor-ruby.vercel.app alike); fallback covers non-browser tests.
         const redirectUrl = typeof window !== 'undefined'
             ? window.location.origin
-            : 'https://professor-eta.vercel.app';
+            : 'https://professor-ruby.vercel.app';
 
         const { data, error } = await supabase.auth.signUp({
             email,
